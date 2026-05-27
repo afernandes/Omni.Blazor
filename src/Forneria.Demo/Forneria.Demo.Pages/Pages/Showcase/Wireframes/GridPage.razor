@@ -1,0 +1,407 @@
+@page "/showcase/grid"
+@layout ShowcaseLayout
+
+<PageTitle>Row + Col (Grid 12) — Showcase</PageTitle>
+
+<ShowcasePage Title="Row + Col — Grid 12-colunas"
+              Subtitle="Grade responsiva mobile-first. OmniRow é o container, OmniCol é a célula com Size 1–12 em cada breakpoint.">
+
+    <Overview>
+        <p>
+            <code>OmniRow</code> + <code>OmniCol</code> formam um <strong>grid de 12
+            colunas responsivo</strong>, inspirado em <code>RadzenRow</code>/<code>RadzenColumn</code>
+            (Radzen) e <code>MudGrid</code> (MudBlazor). É o jeito declarativo de construir
+            layouts multi-coluna como cards de KPI, dashboards, formulários complexos e
+            páginas "main + aside".
+        </p>
+        <p>
+            <strong>Mobile-first</strong>: por padrão cada <code>OmniCol</code> ocupa as
+            12 colunas (full-width). Use <code>Size</code>, <code>SizeSm</code>,
+            <code>SizeMd</code>, <code>SizeLg</code> para override em cada breakpoint —
+            o <code>Size</code> sempre se aplica, os demais "ligam" a partir do breakpoint
+            correspondente. O <code>Gap</code> do <code>OmniRow</code> controla o
+            espaçamento entre células (default 16 px).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Linhas de KPI (4 cards desktop, 2 tablet, 1 mobile).</li>
+            <li>Layout "main + aside" (8/4 desktop, full-width empilhado mobile).</li>
+            <li>Formulários multi-coluna (2 ou 3 campos por linha em desktop).</li>
+            <li>Dashboards assimétricos (composições de Size 4/8, 6/6, 3/3/6 etc.).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Lista simples vertical/horizontal de poucos itens → use <code>OmniStack</code>.</li>
+            <li>Bloco "lego" colado sem gap, com bordas internas → use <code>OmniTileGroup</code>.</li>
+            <li>Conteúdo editorial centralizado com largura máxima → use <code>OmniContainer</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="ANATOMIA — 12 colunas"
+                         Description="Visualização da grade. Cada coluna é 1/12 da largura. Cores accent marcam células."
+                         Code="@(@"<OmniRow Gap=""8"">
+    @for (int i = 0; i < 12; i++)
+    {
+        <OmniCol Size=""1"">@i+1</OmniCol>
+    }
+</OmniRow>")">
+            <OmniRow Gap="8">
+                @for (int i = 0; i < 12; i++)
+                {
+                    <OmniCol Size="1">
+                        <div style="background:var(--omni-accent-soft); padding:8px 0; text-align:center; border-radius:4px; font-size:11px; font-family:var(--omni-font-mono); color:var(--omni-accent);">
+                            @(i + 1)
+                        </div>
+                    </OmniCol>
+                }
+            </OmniRow>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LARGURAS BÁSICAS"
+                         Description="Size 12 = full-width. Size 6/6 = duas colunas iguais. Size 4/4/4 = três colunas. Size 3×4 = quatro colunas."
+                         Code="@(@"<OmniRow><OmniCol Size=""12"">12</OmniCol></OmniRow>
+
+<OmniRow>
+    <OmniCol Size=""6"">6</OmniCol>
+    <OmniCol Size=""6"">6</OmniCol>
+</OmniRow>
+
+<OmniRow>
+    <OmniCol Size=""4"">4</OmniCol>
+    <OmniCol Size=""4"">4</OmniCol>
+    <OmniCol Size=""4"">4</OmniCol>
+</OmniRow>
+
+<OmniRow>
+    <OmniCol Size=""3"">3</OmniCol>
+    <OmniCol Size=""3"">3</OmniCol>
+    <OmniCol Size=""3"">3</OmniCol>
+    <OmniCol Size=""3"">3</OmniCol>
+</OmniRow>")">
+            <OmniStack Gap="12">
+                <OmniRow>
+                    <OmniCol Size="12"><div class="omni-demo-cell">12</div></OmniCol>
+                </OmniRow>
+                <OmniRow>
+                    <OmniCol Size="6"><div class="omni-demo-cell">6</div></OmniCol>
+                    <OmniCol Size="6"><div class="omni-demo-cell">6</div></OmniCol>
+                </OmniRow>
+                <OmniRow>
+                    <OmniCol Size="4"><div class="omni-demo-cell">4</div></OmniCol>
+                    <OmniCol Size="4"><div class="omni-demo-cell">4</div></OmniCol>
+                    <OmniCol Size="4"><div class="omni-demo-cell">4</div></OmniCol>
+                </OmniRow>
+                <OmniRow>
+                    <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                    <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                    <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                    <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                </OmniRow>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ASSIMÉTRICO — Size variado"
+                         Description="Combine Size diferentes para layouts assimétricos. 8/4 = main + aside; 3/6/3 = sidebar + main + aside."
+                         Code="@(@"<OmniRow>
+    <OmniCol Size=""8"">main</OmniCol>
+    <OmniCol Size=""4"">aside</OmniCol>
+</OmniRow>
+
+<OmniRow>
+    <OmniCol Size=""3"">sidebar</OmniCol>
+    <OmniCol Size=""6"">main</OmniCol>
+    <OmniCol Size=""3"">aside</OmniCol>
+</OmniRow>
+
+<OmniRow>
+    <OmniCol Size=""2"">2</OmniCol>
+    <OmniCol Size=""5"">5</OmniCol>
+    <OmniCol Size=""5"">5</OmniCol>
+</OmniRow>")">
+            <OmniStack Gap="12">
+                <OmniRow>
+                    <OmniCol Size="8"><div class="omni-demo-cell">main · 8</div></OmniCol>
+                    <OmniCol Size="4"><div class="omni-demo-cell">aside · 4</div></OmniCol>
+                </OmniRow>
+                <OmniRow>
+                    <OmniCol Size="3"><div class="omni-demo-cell">sidebar · 3</div></OmniCol>
+                    <OmniCol Size="6"><div class="omni-demo-cell">main · 6</div></OmniCol>
+                    <OmniCol Size="3"><div class="omni-demo-cell">aside · 3</div></OmniCol>
+                </OmniRow>
+                <OmniRow>
+                    <OmniCol Size="2"><div class="omni-demo-cell">2</div></OmniCol>
+                    <OmniCol Size="5"><div class="omni-demo-cell">5</div></OmniCol>
+                    <OmniCol Size="5"><div class="omni-demo-cell">5</div></OmniCol>
+                </OmniRow>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RESPONSIVO — KPI ROW (mobile→tablet→desktop)"
+                         Description="Padrão clássico: 4 cards lado-a-lado em desktop, 2×2 em tablet, empilhados em mobile. Use Size=12 + SizeMd=6 + SizeLg=3."
+                         Code="@(@"<OmniRow Gap=""14"">
+    @* Mobile: 12 (full) · Tablet: 6 (2 por linha) · Desktop: 3 (4 por linha) *@
+    <OmniCol Size=""12"" SizeMd=""6"" SizeLg=""3"">
+        <OmniStat Card Label=""RECEITA"" Value=""R$ 12.480"" Delta=""+18%"" />
+    </OmniCol>
+    <OmniCol Size=""12"" SizeMd=""6"" SizeLg=""3"">
+        <OmniStat Card Label=""PEDIDOS"" Value=""2.341"" Delta=""+12%"" />
+    </OmniCol>
+    <OmniCol Size=""12"" SizeMd=""6"" SizeLg=""3"">
+        <OmniStat Card Label=""TICKET MÉDIO"" Value=""R$ 53,30"" />
+    </OmniCol>
+    <OmniCol Size=""12"" SizeMd=""6"" SizeLg=""3"">
+        <OmniStat Card Label=""CANCELAMENTOS"" Value=""1,2%"" Delta=""+0,3%"" DeltaDown />
+    </OmniCol>
+</OmniRow>")">
+            <OmniRow Gap="14">
+                <OmniCol Size="12" SizeMd="6" SizeLg="3">
+                    <OmniStat Card Label="RECEITA" Value="R$ 12.480" Delta="+18%" />
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="6" SizeLg="3">
+                    <OmniStat Card Label="PEDIDOS" Value="2.341" Delta="+12%" />
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="6" SizeLg="3">
+                    <OmniStat Card Label="TICKET MÉDIO" Value="R$ 53,30" />
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="6" SizeLg="3">
+                    <OmniStat Card Label="CANCELAMENTOS" Value="1,2%" Delta="+0,3%" DeltaDown />
+                </OmniCol>
+            </OmniRow>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 10px;">
+                Redimensione a janela para testar: ≥1440 → 4 por linha · ≥1024 → 2 por linha · &lt;1024 → empilhado.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RESPONSIVO — MAIN + ASIDE"
+                         Description="8/4 em desktop, empilhado em mobile. Padrão comum em telas de detalhe."
+                         Code="@(@"<OmniRow Gap=""16"">
+    <OmniCol Size=""12"" SizeMd=""8"">
+        <div>Conteúdo principal (8/12 em ≥1024px, full em mobile)</div>
+    </OmniCol>
+    <OmniCol Size=""12"" SizeMd=""4"">
+        <div>Aside / sidebar contextual</div>
+    </OmniCol>
+</OmniRow>")">
+            <OmniRow Gap="16">
+                <OmniCol Size="12" SizeMd="8">
+                    <div style="background:var(--omni-bg-elev); border:1px solid var(--omni-line); padding:24px; border-radius:8px; min-height:200px;">
+                        <h3 style="margin:0 0 8px">Detalhe do pedido #1823</h3>
+                        <p class="omni-muted" style="margin:0 0 12px">Cliente: Maria Silva · Mesa 12</p>
+                        <ul style="margin:0; padding-left:20px;">
+                            <li>1× Pizza Margherita (G)</li>
+                            <li>1× Refrigerante 2L</li>
+                            <li>2× Brownie com sorvete</li>
+                        </ul>
+                    </div>
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="4">
+                    <div style="background:var(--omni-accent-softer); border:1px solid var(--omni-line); padding:16px; border-radius:8px;">
+                        <p class="omni-muted omni-mono" style="font-size:11px; margin:0 0 6px">RESUMO</p>
+                        <div style="font-size:24px; font-weight:700; margin-bottom:4px;">R$ 124,80</div>
+                        <p class="omni-muted" style="margin:0; font-size:13px;">Subtotal · serviço · taxa</p>
+                    </div>
+                </OmniCol>
+            </OmniRow>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RESPONSIVO — FORMULÁRIO 2 COLUNAS"
+                         Description="Campos lado-a-lado em desktop, empilhados em mobile. Use Size=12 + SizeMd=6."
+                         Code="@(@"<OmniRow Gap=""12"">
+    <OmniCol Size=""12"" SizeMd=""6"">
+        <OmniFormField Label=""Nome""><OmniTextBox /></OmniFormField>
+    </OmniCol>
+    <OmniCol Size=""12"" SizeMd=""6"">
+        <OmniFormField Label=""Sobrenome""><OmniTextBox /></OmniFormField>
+    </OmniCol>
+    <OmniCol Size=""12"" SizeMd=""8"">
+        <OmniFormField Label=""E-mail""><OmniTextBox Type=""email"" /></OmniFormField>
+    </OmniCol>
+    <OmniCol Size=""12"" SizeMd=""4"">
+        <OmniFormField Label=""Telefone""><OmniTextBox /></OmniFormField>
+    </OmniCol>
+</OmniRow>")">
+            <OmniRow Gap="12">
+                <OmniCol Size="12" SizeMd="6">
+                    <OmniFormField Label="Nome"><OmniTextBox Placeholder="Maria" /></OmniFormField>
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="6">
+                    <OmniFormField Label="Sobrenome"><OmniTextBox Placeholder="Silva" /></OmniFormField>
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="8">
+                    <OmniFormField Label="E-mail"><OmniTextBox Type="email" Placeholder="maria@email.com" LeadingIcon="mail" /></OmniFormField>
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="4">
+                    <OmniFormField Label="Telefone"><OmniTextBox Placeholder="(11) 98888-7777" LeadingIcon="phone" /></OmniFormField>
+                </OmniCol>
+            </OmniRow>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="GAP — variações"
+                         Description="O Gap controla o espaçamento horizontal e vertical entre células. Default 16; 14 casa melhor com cards densos."
+                         Code="@(@"<OmniRow Gap=""8"">...</OmniRow>
+<OmniRow Gap=""16"">...</OmniRow>   @* default *@
+<OmniRow Gap=""24"">...</OmniRow>
+<OmniRow Gap=""32"">...</OmniRow>")">
+            <OmniStack Gap="14">
+                @foreach (var g in new[] { 4, 8, 16, 24, 32 })
+                {
+                    <div>
+                        <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px">GAP = @g px</p>
+                        <OmniRow Gap="@g">
+                            <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                            <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                            <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                            <OmniCol Size="3"><div class="omni-demo-cell">3</div></OmniCol>
+                        </OmniRow>
+                    </div>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="QUEBRA AUTOMÁTICA — Σ Size > 12"
+                         Description="Se a soma dos Size exceder 12, as últimas células quebram para a linha de baixo automaticamente."
+                         Code="@(@"<OmniRow>
+    <OmniCol Size=""6"">6</OmniCol>
+    <OmniCol Size=""6"">6</OmniCol>
+    <OmniCol Size=""8"">8 (quebra)</OmniCol>
+    <OmniCol Size=""4"">4</OmniCol>
+</OmniRow>")">
+            <OmniRow>
+                <OmniCol Size="6"><div class="omni-demo-cell">6</div></OmniCol>
+                <OmniCol Size="6"><div class="omni-demo-cell">6</div></OmniCol>
+                <OmniCol Size="8"><div class="omni-demo-cell">8 (linha 2)</div></OmniCol>
+                <OmniCol Size="4"><div class="omni-demo-cell">4</div></OmniCol>
+            </OmniRow>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DASHBOARD — composição realista"
+                         Description="Caso real: 4 KPIs no topo + chart 8/4 abaixo + 3 cards 4/4/4 no rodapé."
+                         Code="@(@"<OmniRow Gap=""14"">
+    @* Linha 1 — 4 KPIs *@
+    <OmniCol Size=""12"" SizeSm=""6"" SizeMd=""3""><OmniStat Card Label=""..."" Value=""..."" /></OmniCol>
+    @* (×4) *@
+
+    @* Linha 2 — chart principal + aside *@
+    <OmniCol Size=""12"" SizeMd=""8""><OmniChart Series=""@..."" /></OmniCol>
+    <OmniCol Size=""12"" SizeMd=""4""><OmniChart Series=""@..."" /></OmniCol>
+
+    @* Linha 3 — 3 cards *@
+    <OmniCol Size=""12"" SizeMd=""4"">...</OmniCol>
+    @* (×3) *@
+</OmniRow>")">
+            <OmniRow Gap="14">
+                <OmniCol Size="12" SizeSm="6" SizeMd="3">
+                    <OmniStat Card Label="RECEITA" Value="R$ 12.480" Delta="+18%" />
+                </OmniCol>
+                <OmniCol Size="12" SizeSm="6" SizeMd="3">
+                    <OmniStat Card Label="PEDIDOS" Value="2.341" Delta="+12%" />
+                </OmniCol>
+                <OmniCol Size="12" SizeSm="6" SizeMd="3">
+                    <OmniStat Card Label="TICKET MÉDIO" Value="R$ 53" />
+                </OmniCol>
+                <OmniCol Size="12" SizeSm="6" SizeMd="3">
+                    <OmniStat Card Label="DEVOLUÇÕES" Value="1,2%" Delta="-15%" DeltaDown />
+                </OmniCol>
+
+                <OmniCol Size="12" SizeMd="8">
+                    <div style="background:var(--omni-bg-elev); border:1px solid var(--omni-line); padding:12px; border-radius:8px;">
+                        <p class="omni-muted omni-mono" style="font-size:11px; margin:0 0 8px">RECEITA SEMANAL</p>
+                        <OmniChart Series="@_revenue" Height="160px" LegendPosition="ChartLegendPosition.None" />
+                    </div>
+                </OmniCol>
+                <OmniCol Size="12" SizeMd="4">
+                    <div style="background:var(--omni-bg-elev); border:1px solid var(--omni-line); padding:12px; border-radius:8px;">
+                        <p class="omni-muted omni-mono" style="font-size:11px; margin:0 0 8px">CANAL</p>
+                        <OmniChart Series="@_channels" Height="160px" DonutCenterValue="R$ 89k" DonutCenterLabel="TOTAL" LegendPosition="ChartLegendPosition.None" />
+                    </div>
+                </OmniCol>
+
+                @foreach (var (title, value) in new[] {
+                    ("MAIS PEDIDA", "Margherita"),
+                    ("PICO DO DIA", "20h12"),
+                    ("MELHOR DIA",  "Sábado") })
+                {
+                    <OmniCol Size="12" SizeMd="4">
+                        <OmniStat Card Label="@title" Value="@value" />
+                    </OmniCol>
+                }
+            </OmniRow>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniRow — parâmetros">
+            <ShowcaseApiRow Name="Gap" Type="int" Default="16"
+                            Description="Espaçamento entre colunas e linhas (px). Aplica em --omni-row-gap. Para KPI rows densos, 14 casa melhor." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Deve conter apenas OmniCol como filhos diretos." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniCol — parâmetros">
+            <ShowcaseApiRow Name="Size" Type="int" Default="12"
+                            Description="Span padrão mobile-first (1–12). Sempre aplicado. Default 12 = full-width." />
+            <ShowcaseApiRow Name="SizeSm" Type="int?" Default="null"
+                            Description="Override em ≥640 px (sm)." />
+            <ShowcaseApiRow Name="SizeMd" Type="int?" Default="null"
+                            Description="Override em ≥1024 px (md). Caso mais comum: SizeMd=6 ou SizeMd=4." />
+            <ShowcaseApiRow Name="SizeLg" Type="int?" Default="null"
+                            Description="Override em ≥1440 px (lg). Use p/ ajustar wide-screens." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo da célula." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Padrões prontos">
+            <ShowcaseApiRow Name="KPI row (4 cards)" Type="Padrão"
+                            Description="Size=&quot;12&quot; SizeMd=&quot;6&quot; SizeLg=&quot;3&quot; — 1/2/4 cards por linha (mobile/tablet/desktop)." />
+            <ShowcaseApiRow Name="Main + aside" Type="Padrão"
+                            Description="Size=&quot;12&quot; SizeMd=&quot;8&quot; + Size=&quot;12&quot; SizeMd=&quot;4&quot; — empilhado mobile, 8/4 desktop." />
+            <ShowcaseApiRow Name="Form 2-col" Type="Padrão"
+                            Description="Size=&quot;12&quot; SizeMd=&quot;6&quot; (×2 ou ×4) — campos empilhados mobile, lado a lado desktop." />
+            <ShowcaseApiRow Name="Sidebar central + 2 asides" Type="Padrão"
+                            Description="Size=&quot;3&quot; + Size=&quot;6&quot; + Size=&quot;3&quot; — clássico app de 3 colunas." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private List<ChartSeries> _revenue = new()
+    {
+        new ChartSeries
+        {
+            Title = "Receita",
+            Type = ChartSeriesType.Area,
+            AreaOpacity = 0.22,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Seg", Value = 8200 },
+                new ChartDataPoint { Category = "Ter", Value = 9100 },
+                new ChartDataPoint { Category = "Qua", Value = 8800 },
+                new ChartDataPoint { Category = "Qui", Value = 10500 },
+                new ChartDataPoint { Category = "Sex", Value = 13200 },
+                new ChartDataPoint { Category = "Sáb", Value = 15800 },
+                new ChartDataPoint { Category = "Dom", Value = 12480 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _channels = new()
+    {
+        new ChartSeries
+        {
+            Title = "Canal",
+            Type = ChartSeriesType.Donut,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Delivery", Value = 52000 },
+                new ChartDataPoint { Category = "Balcão", Value = 24000 },
+                new ChartDataPoint { Category = "Salão", Value = 13000 },
+            }
+        }
+    };
+}

@@ -1,0 +1,12 @@
+@* Lives in the Client project so it can be marked InteractiveAuto from App.razor.
+   AppAssembly points to the Client assembly (which holds all routable pages —
+   layouts, pages and 404). The Server project has no @page components.
+   NotFoundPage tells the router which component to render for unmatched routes
+   (otherwise ASP.NET returns a bare "Not found" 404 body). *@
+<Router AppAssembly="typeof(Forneria.Demo.Pages._Imports).Assembly"
+        NotFoundPage="typeof(Forneria.Demo.Pages.Pages.NotFound)">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Forneria.Demo.Pages.Layout.MarketingLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

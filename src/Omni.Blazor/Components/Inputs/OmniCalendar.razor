@@ -1,0 +1,494 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@inject IJSRuntime JS
+@inject TooltipService Tooltip
+@using System.Globalization
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Calendar grid. Renders one month at a time. Used by OmniDatePicker and
+    OmniDateRangePicker. Now also accepts per-day customization (DateRender),
+    ISO week numbers, configurable first day of week, and a footer slot for
+    "Today" buttons or similar quick actions.
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="omni-calendar-head">
+        @if (ShowNavButtons && ShowPrevButton)
+        {
+            <button type="button" class="omni-calendar-nav" @onclick="@(_ => Move(-1))" aria-label="Mês anterior">
+                <OmniIcon Name="chevron-left" Size="ComponentSize.Sm" />
+            </button>
+        }
+        else { <span></span> }
+        <div class="omni-calendar-title">
+            <button type="button" class="omni-calendar-title-btn" @onclick="ToggleYearPicker">
+                @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(_view.Month).ToUpperInvariant() @_view.Year
+            </button>
+        </div>
+        @if (ShowNavButtons && ShowNextButton)
+        {
+            <button type="button" class="omni-calendar-nav" @onclick="@(_ => Move(+1))" aria-label="Próximo mês">
+                <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+            </button>
+        }
+        else { <span></span> }
+    </div>
+
+    @if (_showYears)
+    {
+        <div class="omni-calendar-years">
+            @for (int y = _view.Year - 6; y <= _view.Year + 5; y++)
+            {
+                var year = y;
+                var active = year == _view.Year;
+                <button type="button"
+                        class="@("omni-calendar-year" + (active ? " omni-active" : ""))"
+                        @onclick="@(_ => SelectYear(year))">@year</button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="@WeekdaysCss">
+            @if (ShowWeekNumbers) { <span class="omni-calendar-week-head"></span> }
+            @foreach (var d in _weekdays)
+            {
+                <span>@d</span>
+            }
+        </div>
+        <div class="@GridCss"
+             tabindex="0"
+             @ref="_gridRef"
+             @onkeydown="OnKeyDown"
+             @onkeydown:preventDefault="@_preventKeyDefault"
+             @onmouseleave="@(_ => OnGridLeave())">
+            @for (int i = 0; i < _days.Count; i++)
+            {
+                var dayIdx = i;
+                var day = _days[dayIdx];
+                // Render the week-number cell on the first day of each week (every 7th iteration).
+                @if (ShowWeekNumbers && (dayIdx % 7) == 0)
+                {
+                    <span class="omni-calendar-week-num">@IsoWeekOf(day)</span>
+                }
+                var (css, disabled, attrs, tooltipText) = ResolveDayRender(day);
+                var isFocused = _focusedDay.HasValue && day == _focusedDay.Value;
+                <button type="button"
+                        class="@(isFocused ? css + " omni-calendar-day-focused" : css)"
+                        tabindex="@(isFocused ? "0" : "-1")"
+                        disabled="@disabled"
+                        @attributes="attrs"
+                        @onclick="@(_ => SelectDay(day))"
+                        @onmouseenter="@(e => OnDayEnter(day, tooltipText, e))"
+                        @onmouseleave="@(_ => OnDayLeave())">@day.Day</button>
+            }
+        </div>
+        @if (Footer is not null)
+        {
+            <div class="omni-calendar-footer">@Footer</div>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Currently selected single date. (Range mode handled by parent.)</summary>
+    [Parameter] public DateOnly? Selected { get; set; }
+    [Parameter] public EventCallback<DateOnly> OnDateSelected { get; set; }
+
+    /// <summary>Optional range — used by the date-range variant for hover/selection visuals.</summary>
+    [Parameter] public DateOnly? RangeStart { get; set; }
+    [Parameter] public DateOnly? RangeEnd { get; set; }
+
+    /// <summary>
+    /// Tentative end of range under the mouse pointer. When set together with
+    /// <see cref="RangeStart"/> (and <see cref="RangeEnd"/> is null), the
+    /// calendar paints a preview band between start and this day so the user
+    /// can see the candidate range before committing.
+    /// </summary>
+    [Parameter] public DateOnly? RangeHoverEnd { get; set; }
+
+    /// <summary>Fires as the mouse moves over (or leaves) day cells. Receives null on leave.</summary>
+    [Parameter] public EventCallback<DateOnly?> OnDayHover { get; set; }
+
+    [Parameter] public DateOnly? MinDate { get; set; }
+    [Parameter] public DateOnly? MaxDate { get; set; }
+    [Parameter] public bool DisableWeekends { get; set; }
+    [Parameter] public Func<DateOnly, bool>? DisabledDates { get; set; }
+
+    /// <summary>
+    /// Per-day render hook. Lets the consumer add a CSS class, set HTML
+    /// attributes, or mark a date disabled — without touching the bound model.
+    /// Mirrors Radzen's <c>DateRender</c> callback. Use it for holiday
+    /// highlights, tooltips, anniversary markers, etc.
+    /// </summary>
+    [Parameter] public Action<DateRenderEventArgs>? DateRender { get; set; }
+
+    /// <summary>Month being displayed. Defaults to today's month (or Selected's month).</summary>
+    [Parameter] public DateOnly? ViewMonth { get; set; }
+    [Parameter] public EventCallback<DateOnly> ViewMonthChanged { get; set; }
+
+    /// <summary>
+    /// Initial month/year to show when the calendar first mounts. Wins over
+    /// <see cref="Selected"/> on the first render but does not override later
+    /// navigation by the user.
+    /// </summary>
+    [Parameter] public DateOnly? InitialViewDate { get; set; }
+
+    /// <summary>Show the ISO 8601 week number column on the left of the grid.</summary>
+    [Parameter] public bool ShowWeekNumbers { get; set; }
+
+    /// <summary>
+    /// Which day starts the week. <c>null</c> respects the current culture
+    /// (default for pt-BR is Sunday). Set explicitly for Monday-start in EU
+    /// formats.
+    /// </summary>
+    [Parameter] public DayOfWeek? FirstDayOfWeek { get; set; }
+
+    /// <summary>Slot rendered below the day grid (e.g. a "Today" button).</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>
+    /// Auto-focus the grid on first render so keyboard nav works without a
+    /// click. Set to false when the calendar is rendered statically on the
+    /// page (Inline mode without an opening trigger).
+    /// </summary>
+    [Parameter] public bool AutoFocus { get; set; }
+
+    /// <summary>Fires when the user presses Escape on the grid.</summary>
+    [Parameter] public EventCallback OnEscape { get; set; }
+
+    [Parameter] public bool ShowNavButtons { get; set; } = true;
+    /// <summary>Show the "previous month" chevron. Useful to hide one side in a two-month layout.</summary>
+    [Parameter] public bool ShowPrevButton { get; set; } = true;
+    /// <summary>Show the "next month" chevron. Useful to hide one side in a two-month layout.</summary>
+    [Parameter] public bool ShowNextButton { get; set; } = true;
+
+    private DateOnly _view;
+    private DateOnly? _focusedDay;        // visually focused (keyboard nav), distinct from Selected
+    private ElementReference _gridRef;
+    private bool _focusPending;           // request DOM focus on next render
+    private bool _preventKeyDefault;      // toggle preventDefault per keydown event
+    private bool _showYears;
+    private bool _initialApplied;
+    private readonly List<DateOnly> _days = new(42);
+    private string[] _weekdays = Array.Empty<string>();
+
+    private string RootCss => CssBuilder.Default("omni-calendar")
+        .AddClass(Class)
+        .Build();
+
+    private string WeekdaysCss => ShowWeekNumbers ? "omni-calendar-weekdays omni-calendar-weekdays-with-weeks" : "omni-calendar-weekdays";
+    private string GridCss     => ShowWeekNumbers ? "omni-calendar-grid omni-calendar-grid-with-weeks" : "omni-calendar-grid";
+
+    // ParameterStates: split the original OnParametersSet into focused
+    // handlers so a parent re-render that doesn't touch any of these
+    // parameters won't trigger a view rebuild.
+    private readonly ParameterState<DateOnly?> _viewMonthState;
+    private readonly ParameterState<DateOnly?> _selectedState;
+    private readonly ParameterState<DateOnly?> _rangeStartState;
+    private readonly ParameterState<DateOnly?> _initialViewDateState;
+    private readonly ParameterState<DayOfWeek?> _firstDowState;
+
+    // Test-only counter: increments every time the view recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniCalendar()
+    {
+        _viewMonthState = RegisterParameter<DateOnly?>(nameof(ViewMonth))
+            .WithParameter(() => ViewMonth)
+            .WithChangeHandler(RecomputeView)
+            .Attach();
+        _selectedState = RegisterParameter<DateOnly?>(nameof(Selected))
+            .WithParameter(() => Selected)
+            .WithChangeHandler(RecomputeView)
+            .Attach();
+        _rangeStartState = RegisterParameter<DateOnly?>(nameof(RangeStart))
+            .WithParameter(() => RangeStart)
+            .WithChangeHandler(RecomputeView)
+            .Attach();
+        _initialViewDateState = RegisterParameter<DateOnly?>(nameof(InitialViewDate))
+            .WithParameter(() => InitialViewDate)
+            .WithChangeHandler(RecomputeView)
+            .Attach();
+        _firstDowState = RegisterParameter<DayOfWeek?>(nameof(FirstDayOfWeek))
+            .WithParameter(() => FirstDayOfWeek)
+            .WithChangeHandler(RecomputeWeekdaysAndDays)
+            .Attach();
+    }
+
+    private void RecomputeView()
+    {
+        // InitialViewDate is a one-shot seed: it sets the opening month on the
+        // first render but never overrides later user navigation.
+        DateOnly seed;
+        if (!_initialApplied && InitialViewDate.HasValue)
+        {
+            seed = InitialViewDate.Value;
+            _initialApplied = true;
+        }
+        else
+        {
+            seed = ViewMonth ?? Selected ?? RangeStart ?? DateOnly.FromDateTime(DateTime.Today);
+        }
+        _view = new DateOnly(seed.Year, seed.Month, 1);
+        // Initialize keyboard focus on a sensible day so the first arrow press
+        // moves from somewhere meaningful (the selected date if present, else
+        // today if it's in the visible month, else the 1st of the month).
+        if (_focusedDay is null)
+        {
+            _focusedDay = Selected ?? RangeStart ??
+                (DateOnly.FromDateTime(DateTime.Today).Year == _view.Year &&
+                 DateOnly.FromDateTime(DateTime.Today).Month == _view.Month
+                    ? DateOnly.FromDateTime(DateTime.Today)
+                    : _view);
+        }
+        // Weekdays only need to be built when FirstDayOfWeek changes, but the
+        // first detect cycle always fires on every state, so the initial
+        // render builds them. Day grid depends on _view; rebuild here so
+        // initial render and later view changes both refresh.
+        BuildWeekdays();
+        BuildDays();
+        RecomputeCount++;
+    }
+
+    private void RecomputeWeekdaysAndDays()
+    {
+        BuildWeekdays();
+        BuildDays();
+        RecomputeCount++;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoFocus)
+        {
+            try { await _gridRef.FocusAsync(); }
+            catch { /* SSR or detached ref — ignore */ }
+        }
+        if (_focusPending)
+        {
+            _focusPending = false;
+            try { await _gridRef.FocusAsync(); }
+            catch { }
+        }
+    }
+
+    private DayOfWeek FirstDow => FirstDayOfWeek ?? CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+
+    private void BuildWeekdays()
+    {
+        // Use the current culture's short day names rotated to start on FirstDow.
+        var names = CultureInfo.CurrentCulture.DateTimeFormat.ShortestDayNames; // ["dom","seg","ter","qua",...] (varies)
+        // Fallback for cultures that return empty: single-letter ours.
+        if (names is null || names.Length != 7 || names.Any(string.IsNullOrEmpty))
+            names = new[] { "D", "S", "T", "Q", "Q", "S", "S" };
+        var rotated = new string[7];
+        var start = (int)FirstDow;
+        for (int i = 0; i < 7; i++)
+        {
+            var raw = names[(start + i) % 7];
+            // Trim to 1-2 chars + capitalize first.
+            rotated[i] = raw.Length > 2 ? raw[..1].ToUpperInvariant() : char.ToUpperInvariant(raw[0]).ToString();
+        }
+        _weekdays = rotated;
+    }
+
+    private void BuildDays()
+    {
+        _days.Clear();
+        var first = new DateOnly(_view.Year, _view.Month, 1);
+        var firstDow = (int)FirstDow;
+        var dayDow = (int)first.DayOfWeek;
+        // How many days before `first` we need to back-fill so the row starts on FirstDow.
+        var offset = (dayDow - firstDow + 7) % 7;
+        var start = first.AddDays(-offset);
+        for (int i = 0; i < 42; i++) _days.Add(start.AddDays(i));
+    }
+
+    private async Task Move(int monthsDelta)
+    {
+        _view = _view.AddMonths(monthsDelta);
+        BuildDays();
+        if (ViewMonthChanged.HasDelegate) await ViewMonthChanged.InvokeAsync(_view);
+    }
+
+    private void ToggleYearPicker() => _showYears = !_showYears;
+
+    private void SelectYear(int year)
+    {
+        _view = new DateOnly(year, _view.Month, 1);
+        _showYears = false;
+        BuildDays();
+        if (ViewMonthChanged.HasDelegate) _ = ViewMonthChanged.InvokeAsync(_view);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        // Mirrors Radzen's calendar keymap: arrows move focus a day/week at a
+        // time, Page navigates a month, Home/End jump to week boundaries,
+        // Enter commits, Esc closes via the OnEscape callback.
+        _preventKeyDefault = false;
+        if (_showYears) return;
+        var focus = _focusedDay ?? _view;
+        DateOnly? next = null;
+        switch (e.Key)
+        {
+            case "ArrowLeft":  next = focus.AddDays(-1); break;
+            case "ArrowRight": next = focus.AddDays(+1); break;
+            case "ArrowUp":    next = focus.AddDays(-7); break;
+            case "ArrowDown":  next = focus.AddDays(+7); break;
+            case "Home":       next = focus.AddDays(-((int)focus.DayOfWeek - (int)FirstDow + 7) % 7); break;
+            case "End":        next = focus.AddDays(6 - ((int)focus.DayOfWeek - (int)FirstDow + 7) % 7); break;
+            case "PageUp":     next = focus.AddMonths(e.ShiftKey ? -12 : -1); break;
+            case "PageDown":   next = focus.AddMonths(e.ShiftKey ? +12 : +1); break;
+            case "Enter":
+            case " ":
+            case "Spacebar":
+                _preventKeyDefault = true;
+                await SelectDay(focus);
+                return;
+            case "Escape":
+                if (OnEscape.HasDelegate) await OnEscape.InvokeAsync();
+                return;
+            default:
+                return;
+        }
+
+        _preventKeyDefault = true;
+        _focusedDay = next;
+        // Scroll the view to keep the focused day visible.
+        if (next.Value.Year != _view.Year || next.Value.Month != _view.Month)
+        {
+            _view = new DateOnly(next.Value.Year, next.Value.Month, 1);
+            BuildDays();
+            if (ViewMonthChanged.HasDelegate) await ViewMonthChanged.InvokeAsync(_view);
+        }
+        _focusPending = true; // re-focus grid so keys keep working
+    }
+
+    private async Task SelectDay(DateOnly day)
+    {
+        if (IsBuiltinDisabled(day)) return;
+        // Honor DateRender's Disabled flag too — call the resolver once more.
+        if (DateRender is not null)
+        {
+            var probe = NewArgs(day);
+            DateRender(probe);
+            if (probe.Disabled) return;
+        }
+        if (OnDateSelected.HasDelegate) await OnDateSelected.InvokeAsync(day);
+    }
+
+    private async Task OnDayEnter(DateOnly day, string? tooltipText, MouseEventArgs e)
+    {
+        // Range hover preview lives in the parent (DateRangePicker); the
+        // tooltip is purely a calendar-local concern.
+        if (OnDayHover.HasDelegate) await OnDayHover.InvokeAsync(day);
+        if (!string.IsNullOrEmpty(tooltipText))
+            Tooltip.Open(e.ClientX, e.ClientY, tooltipText);
+        else
+            Tooltip.Close();
+    }
+
+    private void OnDayLeave() => Tooltip.Close();
+
+    private async Task OnGridLeave()
+    {
+        Tooltip.Close();
+        if (OnDayHover.HasDelegate) await OnDayHover.InvokeAsync(null);
+    }
+
+    private Task OnHover(DateOnly? day)
+        => OnDayHover.HasDelegate ? OnDayHover.InvokeAsync(day) : Task.CompletedTask;
+
+    private bool IsBuiltinDisabled(DateOnly d)
+    {
+        if (MinDate.HasValue && d < MinDate.Value) return true;
+        if (MaxDate.HasValue && d > MaxDate.Value) return true;
+        if (DisableWeekends && (d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday)) return true;
+        if (DisabledDates is not null && DisabledDates(d)) return true;
+        return false;
+    }
+
+    private DateRenderEventArgs NewArgs(DateOnly day) => new()
+    {
+        Date         = day,
+        IsOutOfMonth = day.Month != _view.Month,
+        IsToday      = day == DateOnly.FromDateTime(DateTime.Today),
+        Disabled     = false
+    };
+
+    private (string Css, bool Disabled, IReadOnlyDictionary<string, object>? Attrs, string? Tooltip) ResolveDayRender(DateOnly day)
+    {
+        var disabled = IsBuiltinDisabled(day);
+        DateRenderEventArgs? args = null;
+
+        if (DateRender is not null)
+        {
+            args = NewArgs(day);
+            DateRender(args);
+            disabled = disabled || args.Disabled;
+        }
+
+        // Tooltip resolution: explicit args.Tooltip wins; otherwise we lift a
+        // `title` attribute (auto-promote) so the consumer doesn't accidentally
+        // get the unstyled browser tooltip. The title is removed from the splat
+        // attributes so it never renders natively.
+        string? tooltipText = args?.Tooltip;
+        if (string.IsNullOrEmpty(tooltipText) && args?.Attributes is { } bag && bag.TryGetValue("title", out var t))
+        {
+            tooltipText = t?.ToString();
+            bag.Remove("title");
+        }
+
+        var css = BuildDayCss(day, args?.CssClass);
+        var attrs = (args?.Attributes is { Count: > 0 } a) ? a : null;
+        return (css, disabled, attrs, tooltipText);
+    }
+
+    private string BuildDayCss(DateOnly day, string? extra)
+    {
+        var builder = CssBuilder.Default("omni-calendar-day")
+            .AddClass("omni-calendar-day-out",      day.Month != _view.Month)
+            .AddClass("omni-calendar-day-today",    day == DateOnly.FromDateTime(DateTime.Today))
+            .AddClass("omni-calendar-day-selected", Selected.HasValue && day == Selected.Value);
+
+        // Committed range (both endpoints set) — solid styling.
+        if (RangeStart.HasValue && RangeEnd.HasValue)
+        {
+            var (a, b) = RangeStart.Value <= RangeEnd.Value
+                ? (RangeStart.Value, RangeEnd.Value)
+                : (RangeEnd.Value, RangeStart.Value);
+            builder = builder
+                .AddClass("omni-calendar-day-range-start", day == a)
+                .AddClass("omni-calendar-day-range-end",   day == b)
+                .AddClass("omni-calendar-day-range-mid",   day > a && day < b);
+        }
+        // Hover preview — only when user has picked start but not end yet.
+        else if (RangeStart.HasValue && RangeHoverEnd.HasValue)
+        {
+            var (a, b) = RangeStart.Value <= RangeHoverEnd.Value
+                ? (RangeStart.Value, RangeHoverEnd.Value)
+                : (RangeHoverEnd.Value, RangeStart.Value);
+            builder = builder
+                .AddClass("omni-calendar-day-range-start",     day == RangeStart.Value)
+                .AddClass("omni-calendar-day-range-hover-end", day == RangeHoverEnd.Value && day != RangeStart.Value)
+                .AddClass("omni-calendar-day-range-preview",   day > a && day < b);
+        }
+        else if (RangeStart.HasValue && day == RangeStart.Value)
+        {
+            builder = builder.AddClass("omni-calendar-day-range-start");
+        }
+
+        return builder.AddClass(extra).Build();
+    }
+
+    /// <summary>ISO 8601 week number — first week of the year contains a Thursday.</summary>
+    private static int IsoWeekOf(DateOnly d)
+    {
+        var dt = d.ToDateTime(TimeOnly.MinValue);
+        return ISOWeek.GetWeekOfYear(dt);
+    }
+}

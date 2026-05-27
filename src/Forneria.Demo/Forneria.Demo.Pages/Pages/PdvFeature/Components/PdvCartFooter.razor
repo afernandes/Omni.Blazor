@@ -1,0 +1,48 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Footer do carrinho: totais (subtotal/entrega/serviço/total) + botão
+    "Cobrar agora". O dialog de pagamento fica no Pdv.razor pai — quando
+    o usuário clica em Cobrar, dispara OnCheckout. *@
+<div class="omni-pdv-cart-footer">
+    <div class="omni-pdv-cart-totals">
+        <div class="omni-pdv-cart-totals-row">
+            <span>Subtotal</span>
+            <span class="omni-mono">@Order.Subtotal.ToString("C", _ptBr)</span>
+        </div>
+        @if (Order.Mode == OrderMode.Delivery && Order.DeliveryFee > 0)
+        {
+            <div class="omni-pdv-cart-totals-row">
+                <span>Entrega · @Order.ModeDetails.Hood?.Name</span>
+                <span class="omni-mono">@Order.DeliveryFee.ToString("C", _ptBr)</span>
+            </div>
+        }
+        @if (Order.Mode == OrderMode.Mesa && Order.ServiceFee > 0)
+        {
+            <div class="omni-pdv-cart-totals-row">
+                <span>Serviço (10%)</span>
+                <span class="omni-mono">@Order.ServiceFee.ToString("C", _ptBr)</span>
+            </div>
+        }
+        <div class="omni-pdv-cart-totals-total">
+            <span>Total</span>
+            <span class="omni-mono">@Order.Total.ToString("C", _ptBr)</span>
+        </div>
+    </div>
+    <OmniButton Text="@($"Cobrar {Order.Total.ToString("C", _ptBr)}")"
+                 Icon="check-circle"
+                 Variant="ButtonVariant.Primary"
+                 Size="ComponentSize.Lg"
+                 Block
+                 Disabled="@(Order.Cart.Count == 0)"
+                 OnClick="@(() => OnCheckout.InvokeAsync())" />
+</div>
+
+@code {
+    [Parameter] public EventCallback OnCheckout { get; set; }
+
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+}

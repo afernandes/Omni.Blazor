@@ -1,0 +1,100 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject HotkeyService Hotkeys
+@using Omni.Blazor.State
+
+@*
+    Drop-in keyboard shortcut. Two ways to specify the binding:
+
+      <OmniHotkey Combo="Ctrl+K"        OnPressed="OpenPalette" />
+      <OmniHotkey Combo="Ctrl+K|Meta+K" OnPressed="OpenPalette" />
+      <OmniHotkey Key="Escape"          OnPressed="Close" PreventDefault="false" />
+      <OmniHotkey Key="K" Modifiers="Modifier.Ctrl | Modifier.Shift" OnPressed="OnSearch" />
+
+    Disposes its registration cleanly on unmount (Blazor calls DisposeAsync).
+    Updating Combo/Key/Modifiers re-registers; flipping Disabled toggles in place.
+*@
+
+@code {
+    [Parameter] public string? Combo { get; set; }
+    [Parameter] public string? Key { get; set; }
+    [Parameter] public Modifier Modifiers { get; set; } = Modifier.None;
+
+    [Parameter] public EventCallback<KeyboardEventArgs> OnPressed { get; set; }
+    [Parameter] public bool PreventDefault { get; set; } = true;
+    [Parameter] public bool StopPropagation { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private IAsyncDisposable? _handle;
+
+    // Two ParameterStates: one for the "what combo to register" signature
+    // (Combo / Key / Modifiers all roll up into one spec string) and one for
+    // the Disabled flag (cheap toggle without re-registering).
+    private readonly ParameterState<string?> _specState;
+    private readonly ParameterState<bool> _disabledState;
+
+    public OmniHotkey()
+    {
+        _specState = RegisterParameter<string?>("Spec")
+            .WithParameter(ComputeSpec)
+            .WithChangeHandler(args => _ = ReRegisterAsync(args.Value))
+            .Attach();
+        _disabledState = RegisterParameter<bool>(nameof(Disabled))
+            .WithParameter(() => Disabled)
+            .WithChangeHandler(args => _ = ApplyDisabledAsync(args.Value))
+            .Attach();
+    }
+
+    private async Task ReRegisterAsync(string? spec)
+    {
+        // Drop any existing registration first — covers both spec change and
+        // spec became invalid (null).
+        if (_handle is not null)
+        {
+            try { await _handle.DisposeAsync(); } catch { }
+            _handle = null;
+        }
+        if (spec is null) return;
+
+        var combos = HotkeyCombo.ParseMany(spec);
+        if (combos.Length == 0) return;
+        _handle = await Hotkeys.RegisterAsync(combos, OnPressedAsync, PreventDefault, StopPropagation);
+
+        // If we just (re)registered, sync the Disabled flag from current value
+        // since registration creates the entry enabled by default.
+        if (Disabled) await Hotkeys.SetDisabledAsync(_handle, true);
+    }
+
+    private async Task ApplyDisabledAsync(bool disabled)
+    {
+        if (_handle is null) return;
+        await Hotkeys.SetDisabledAsync(_handle, disabled);
+    }
+
+    /// <summary>Build the spec string used by ParseMany. Combo wins if set.</summary>
+    private string? ComputeSpec()
+    {
+        if (!string.IsNullOrWhiteSpace(Combo)) return Combo;
+        if (string.IsNullOrWhiteSpace(Key))   return null;
+        var parts = new List<string>(4);
+        if (Modifiers.HasFlag(Modifier.Ctrl))  parts.Add("Ctrl");
+        if (Modifiers.HasFlag(Modifier.Alt))   parts.Add("Alt");
+        if (Modifiers.HasFlag(Modifier.Shift)) parts.Add("Shift");
+        if (Modifiers.HasFlag(Modifier.Meta))  parts.Add("Meta");
+        parts.Add(Key!);
+        return string.Join('+', parts);
+    }
+
+    private Task OnPressedAsync(KeyboardEventArgs args)
+        => OnPressed.HasDelegate ? OnPressed.InvokeAsync(args) : Task.CompletedTask;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_handle is not null)
+        {
+            try { await _handle.DisposeAsync(); } catch { }
+            _handle = null;
+        }
+    }
+}

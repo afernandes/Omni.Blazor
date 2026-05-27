@@ -1,0 +1,54 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Comanda — número grande monospace + botão "Gerar" + dropdown de local. *@
+<div class="fs-pdv-mode-label">Número da comanda</div>
+<div class="fs-pdv-mode-row">
+    <OmniTextBox Class="fs-pdv-mode-input fs-pdv-comanda-input"
+                 Type="number"
+                 Value="@(Order.ModeDetails.TabNumber?.ToString() ?? "")"
+                 ValueChanged="OnTabChanged"
+                 Placeholder="042" />
+    <OmniButton Class="fs-pdv-comanda-gen-btn"
+                Icon="refresh"
+                Text="Gerar"
+                Size="ComponentSize.Sm"
+                OnClick="Generate" />
+</div>
+
+<div class="fs-pdv-mode-label">Local</div>
+<OmniSelect Class="fs-pdv-mode-select"
+            TValue="string"
+            Value="@Location"
+            ValueChanged="OnLocationChanged"
+            Placeholder="— escolher —"
+            Items="PdvMockData.TabLocations"
+            TextSelector="@(loc => loc ?? "")"
+            ValueSelector="@(loc => loc)" />
+
+@code {
+    private static readonly Random _rng = new();
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private string Location => Order.ModeDetails.TabLocation ?? "";
+
+    private void OnLocationChanged(string? value)
+    {
+        Order.ModeDetails.TabLocation = string.IsNullOrEmpty(value) ? null : value;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnTabChanged(string? value)
+    {
+        Order.ModeDetails.TabNumber = int.TryParse(value, out var n) ? n : null;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void Generate()
+    {
+        Order.ModeDetails.TabNumber = _rng.Next(1, 1000);
+        Order.NotifyModeDetailsChanged();
+    }
+}

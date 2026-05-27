@@ -1,0 +1,27 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Vertical navigation list (`<nav>`). The actual recursion and collapsed-mode
+    flyout wiring lives in OmniPanelMenuItem + OmniDrawer — this component is
+    purely a styled wrapper that cascades `this` (so items can detect the menu)
+    and a depth=0 baseline. It works standalone or inside a OmniDrawer /
+    OmniPanelMenuSection — the collapsed-mode flyout helper is registered by
+    OmniDrawer so it covers every item beneath the drawer regardless of the
+    inner wrapping. *@
+<CascadingValue Value="this" IsFixed="true">
+    <CascadingValue Name="PanelMenuDepth" Value="0" IsFixed="true">
+        <nav class="@RootCss" style="@Style" @attributes="Attributes">
+            @ChildContent
+        </nav>
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    /// <summary>Optional section label rendered above the menu (e.g. "WORKSPACE").</summary>
+    [Parameter] public string? SectionLabel { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-panel-menu")
+        .AddClass(Class)
+        .Build();
+}

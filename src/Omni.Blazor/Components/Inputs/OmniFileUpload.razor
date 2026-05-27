@@ -1,0 +1,199 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IOmniFormComponent
+@implements IDisposable
+@inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Linq.Expressions
+@using Omni.Blazor.Utilities
+
+@*
+    Drag-and-drop file uploader. Wraps Blazor's <InputFile> with a styled
+    drop-zone, file list, per-file size + remove button.
+
+    Usage:
+        <OmniFileUpload Multiple Accept="image/*" MaxFileSize="@(5 * 1024 * 1024)"
+                          OnFilesSelected="OnFilesAsync" />
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <label class="omni-upload-zone" for="@_id">
+        <InputFile id="@_id"
+                   multiple="@Multiple"
+                   accept="@Accept"
+                   OnChange="OnChangeAsync"
+                   class="omni-upload-input" />
+        <OmniIcon Name="upload" Size="ComponentSize.Lg" />
+        <div class="omni-upload-zone-text">
+            <div class="omni-upload-label">@LabelText</div>
+            <div class="omni-upload-hint">@(HintText ?? DefaultHint)</div>
+        </div>
+    </label>
+
+    @if (_files.Count > 0)
+    {
+        <div class="omni-upload-list">
+            @foreach (var entry in _files)
+            {
+                <div class="omni-upload-file">
+                    <div class="omni-upload-file-ico">
+                        <OmniIcon Name="@IconFor(entry.File.ContentType)" Size="ComponentSize.Sm" />
+                    </div>
+                    <div class="omni-upload-file-info">
+                        <div class="omni-upload-file-name">@entry.File.Name</div>
+                        <div class="omni-upload-file-meta">@FormatSize(entry.File.Size) · @entry.File.ContentType</div>
+                    </div>
+                    <button type="button" class="omni-upload-file-remove" aria-label="Remover"
+                            @onclick="@(_ => RemoveAsync(entry))">
+                        <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                    </button>
+                </div>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="omni-upload-error">@_error</div>
+    }
+</div>
+
+@code {
+    [Parameter] public bool Multiple { get; set; }
+    [Parameter] public string? Accept { get; set; }
+
+    /// <summary>Maximum size per file, in bytes. 0 = no limit. Default 10 MB.</summary>
+    [Parameter] public long MaxFileSize { get; set; } = 10L * 1024 * 1024;
+
+    /// <summary>Maximum number of files (Multiple only). 0 = no limit.</summary>
+    [Parameter] public int MaxFileCount { get; set; }
+
+    [Parameter] public string LabelText { get; set; } = "Arraste arquivos aqui ou clique para selecionar";
+    [Parameter] public string? HintText { get; set; }
+
+    [Parameter] public EventCallback<IReadOnlyList<IBrowserFile>> OnFilesSelected { get; set; }
+    [Parameter] public EventCallback<IBrowserFile> OnFileRemoved { get; set; }
+
+    // ── Integração com EditContext / validators irmãos ──
+    /// <summary>Expression apontando pra coleção de files no model — habilita validators irmãos.
+    /// Ex: <c>FilesExpression="@(() => model.Anexos)"</c>.</summary>
+    [Parameter] public Expression<Func<IReadOnlyList<IBrowserFile>?>>? FilesExpression { get; set; }
+
+    /// <summary>Nome lógico — registra com OmniForm para validators irmãos.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    [CascadingParameter] protected EditContext? FormEditContext { get; set; }
+    [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
+
+    private FieldIdentifier _fieldId;
+    private bool _hasFieldId;
+
+    string IOmniFormComponent.ResolvedName => Name ?? (_hasFieldId ? _fieldId.FieldName : string.Empty);
+    FieldIdentifier IOmniFormComponent.FieldIdentifier => _fieldId;
+    /// <summary>Lista de IBrowserFile selecionados (para validators custom).</summary>
+    object? IOmniFormComponent.GetValue() => _files.Select(f => f.File).ToList();
+    bool IOmniFormComponent.HasValue => _files.Count > 0;
+
+    private string _id = $"up-{Guid.NewGuid():N}";
+    private string? _error;
+
+    private string DefaultHint
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(Accept)) parts.Add(Accept);
+            if (MaxFileSize > 0) parts.Add($"até {FormatSize(MaxFileSize)}");
+            return string.Join(" · ", parts);
+        }
+    }
+
+    private record FileEntry(IBrowserFile File);
+    private readonly List<FileEntry> _files = new();
+
+    private string RootCss => CssBuilder.Default("omni-upload")
+        .AddClass(Class)
+        .Build();
+
+    private async Task OnChangeAsync(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        var incoming = Multiple ? e.GetMultipleFiles(MaxFileCount > 0 ? MaxFileCount : int.MaxValue) : new[] { e.File };
+
+        foreach (var file in incoming)
+        {
+            if (MaxFileSize > 0 && file.Size > MaxFileSize)
+            {
+                _error = $"\"{file.Name}\" ({FormatSize(file.Size)}) ultrapassa o limite de {FormatSize(MaxFileSize)}.";
+                continue;
+            }
+            if (!Multiple) _files.Clear();
+            _files.Add(new FileEntry(file));
+            if (MaxFileCount > 0 && _files.Count >= MaxFileCount) break;
+        }
+
+        if (OnFilesSelected.HasDelegate)
+            await OnFilesSelected.InvokeAsync(_files.Select(f => f.File).ToList());
+        NotifyEditContext();
+
+        // Reset the underlying <input type="file"> so the same file can be
+        // dropped/selected again. Browsers suppress the change event when the
+        // FileList is identical, which would otherwise make re-adding a
+        // just-removed file appear broken.
+        await ClearNativeInputAsync();
+    }
+
+    private async Task RemoveAsync(FileEntry entry)
+    {
+        _files.Remove(entry);
+        if (OnFileRemoved.HasDelegate) await OnFileRemoved.InvokeAsync(entry.File);
+        NotifyEditContext();
+        await ClearNativeInputAsync();
+    }
+
+    private void NotifyEditContext()
+    {
+        // Sibling validators (OmniRequiredValidator etc.) reagem ao field change.
+        if (_hasFieldId) FormEditContext?.NotifyFieldChanged(_fieldId);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (FilesExpression is not null)
+        {
+            _fieldId = FieldIdentifier.Create(FilesExpression);
+            _hasFieldId = true;
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
+        {
+            FormRegistry?.RegisterComponent(this);
+        }
+    }
+
+    public void Dispose() => FormRegistry?.UnregisterComponent(this);
+
+    private async Task ClearNativeInputAsync()
+    {
+        try { await JS.InvokeVoidAsync("omniBlazor.clearFileInput", _id); }
+        catch { }
+    }
+
+    private static string IconFor(string? mime) => mime switch
+    {
+        var m when m?.StartsWith("image/") == true => "star",       // could be "image" icon if added
+        var m when m?.Contains("pdf") == true       => "file-text",
+        _ => "file-text"
+    };
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:N1} KB";
+        if (bytes < 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024):N1} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):N2} GB";
+    }
+}

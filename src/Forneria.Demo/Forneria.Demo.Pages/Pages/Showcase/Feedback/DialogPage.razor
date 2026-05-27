@@ -1,0 +1,215 @@
+@page "/showcase/dialog"
+@layout ShowcaseLayout
+
+<PageTitle>Dialog — Showcase</PageTitle>
+
+<ShowcasePage Title="Dialog"
+              Subtitle="Modal centralizado, Alert, Confirm e Drawer lateral — todos via DialogService.">
+
+    <Overview>
+        <p>
+            O <code>DialogService</code> é um serviço <strong>singleton</strong> que abre janelas
+            modais de forma <strong>programática</strong> — sem markup declarativo na página. Você
+            chama um método (<code>OpenAsync</code>, <code>Confirm</code>, <code>Alert</code>,
+            <code>OpenSideAsync</code>) e <code>await</code> o resultado: o dialog renderiza num host
+            global e a Task completa quando o usuário fecha.
+        </p>
+        <p>
+            <code>OpenAsync&lt;TComponent&gt;</code> renderiza qualquer componente num modal e
+            retorna <code>dynamic?</code> com o que foi passado em <code>Close()</code>. Dialogs
+            <strong>empilham</strong> — cada chamada abre acima da anterior e o <code>ESC</code>
+            fecha sempre o topo.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Formulário de cadastro/edição que precisa de foco total do usuário.</li>
+            <li>Confirmação de uma ação destrutiva ou irreversível (excluir, cancelar pedido).</li>
+            <li>Mensagem informativa que exige um clique de reconhecimento antes de prosseguir.</li>
+            <li>Painel lateral (drawer) para filtros avançados ou detalhes de um registro.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Feedback transitório de uma ação concluída → use <code>NotificationService</code> (Toast).</li>
+            <li>Mensagem contextual que pode ficar inline na página → use <code>OmniAlert</code>.</li>
+            <li>Menu de ações curto disparado por um botão → use <code>OmniPopover</code> com <code>OmniMenu</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="MODAL CUSTOM"
+                         Description="OpenAsync&lt;TComponent&gt;(...) renderiza um componente em um modal e retorna dynamic? quando fecha."
+                         Code="@(@"var result = await Dialog.OpenAsync<ClienteFormDialog>(
+    ""Novo cliente"", null,
+    new DialogOptions { Width = ""640px"" });
+
+if (result is Cliente c)
+    Toast.Success(""Salvo"", c.Nome);")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Modal com formulário" Icon="edit" Variant="ButtonVariant.Primary" OnClick="OpenForm" />
+                <OmniButton Text="Modal pequeno (320px)" OnClick="OpenSmall" />
+                <OmniButton Text="Modal sem overlay click" Icon="lock" OnClick="OpenStrict" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CONFIRM"
+                         Description="Atalho para perguntas sim/não — retorna bool?. Suporta opções de texto e ícone."
+                         Code="@(@"var ok = await Dialog.Confirm(
+    ""Excluir esse item? Esta ação não pode ser desfeita."",
+    ""Excluir item"",
+    new ConfirmOptions { OkButtonText = ""Excluir"", Icon = ""alert-triangle"" });
+
+if (ok == true) { /* executar exclusão */ }")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Confirmar simples" OnClick="OnConfirmAsync" />
+                <OmniButton Text="Confirm destrutivo" Variant="ButtonVariant.Danger" Icon="trash" OnClick="OnDestructiveAsync" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ALERT"
+                         Description="Mensagem informativa apenas com 1 botão de fechar."
+                         Code="@(@"await Dialog.Alert(
+    ""Seu plano atual permite 3 pontos de venda."",
+    ""Limite do plano"",
+    new AlertOptions { Icon = ""info"" });")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Alert info" Icon="info" OnClick="OnAlertInfo" />
+                <OmniButton Text="Alert sucesso" Icon="check-circle" Variant="ButtonVariant.Primary" OnClick="OnAlertSuccess" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DRAWER LATERAL (SIDE DIALOG)"
+                         Description="OpenSideAsync — abre um painel lateral, útil para filtros e detalhes."
+                         Code="@(@"await Dialog.OpenSideAsync<ClienteFormDialog>(
+    ""Filtros avançados"", null,
+    new SideDialogOptions { Position = SidePosition.Right, Width = ""420px"" });")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Drawer à direita" Icon="chevron-left" OnClick="@(_ => OpenSideAsync(SidePosition.Right))" />
+                <OmniButton Text="Drawer à esquerda" Icon="chevron-right" OnClick="@(_ => OpenSideAsync(SidePosition.Left))" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="STACK (DIALOGS EMPILHADOS)"
+                         Description="Cada chamada empilha. O ESC fecha sempre o topo."
+                         Code="@(@"var t1 = Dialog.Alert(""Este é o primeiro dialog."", ""Primeiro"");
+await Task.Delay(200);
+await Dialog.Alert(""Este é o segundo (em cima do primeiro)."", ""Segundo"");
+await t1;")">
+            <OmniButton Text="Abrir 2 dialogs" Variant="ButtonVariant.Primary" OnClick="OnStackAsync" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="UX AUTOMÁTICA — autofocus, Enter, Esc, Tab cycling, Enter-as-Tab">
+            <div style="background:var(--omni-accent-softer);border-left:3px solid var(--omni-accent);padding:14px 16px;border-radius:6px;">
+                <p style="margin:0 0 8px;font-size:13px;">
+                    Toda janela aberta pelo <code>DialogService</code> ativa <strong>5 comportamentos automáticos</strong>
+                    via uma família de markers HTML (classes CSS + data-attributes):
+                </p>
+                <ul style="margin:0 0 12px;padding-left:20px;font-size:13px;line-height:1.7;">
+                    <li><code>class="omni-autofocus"</code> — escolhe foco inicial</li>
+                    <li><code>data-omni-default="true"</code> — Enter aciona</li>
+                    <li><code>data-omni-cancel="true"</code> — Esc aciona</li>
+                    <li><code>data-omni-enter-as-tab="true"</code> — Enter avança campo (padrão PDV)</li>
+                    <li><code>data-omni-focus-trap="true"</code> — Tab cycla na seção</li>
+                </ul>
+                <p style="margin:0;font-size:13px;">
+                    Os mesmos markers funcionam em <strong>forms inline</strong> da página, não só em dialogs.
+                    Veja a página dedicada <a href="/showcase/ux-markers"><strong>UX Markers</strong></a> com demos
+                    interativos, matriz de suporte e código completo.
+                </p>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Métodos" ShowDefault="false">
+            <ShowcaseApiRow Name="OpenAsync&lt;T&gt;" Type="Task&lt;dynamic?&gt;" ShowDefault="false"
+                            Description="Abre um componente em modal centralizado. Aceita parâmetros e DialogOptions; resolve com o resultado de Close()." />
+            <ShowcaseApiRow Name="Confirm" Type="Task&lt;bool?&gt;" ShowDefault="false"
+                            Description="Pergunta sim/não. Retorna true (confirmado), false (cancelado) ou null. Aceita ConfirmOptions." />
+            <ShowcaseApiRow Name="Alert" Type="Task" ShowDefault="false"
+                            Description="Mensagem informativa com um único botão de fechar. Aceita AlertOptions (ícone, texto do botão)." />
+            <ShowcaseApiRow Name="OpenSideAsync&lt;T&gt;" Type="Task&lt;dynamic?&gt;" ShowDefault="false"
+                            Description="Abre um componente num painel lateral (drawer). Aceita SideDialogOptions (Position, Width)." />
+            <ShowcaseApiRow Name="Close" Type="void" ShowDefault="false"
+                            Description="Fecha o dialog do topo da pilha, opcionalmente passando um resultado." />
+            <ShowcaseApiRow Name="CloseSide" Type="void" ShowDefault="false"
+                            Description="Fecha o drawer lateral aberto, opcionalmente com resultado." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="DialogOptions">
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura do modal — ex. &quot;640px&quot;." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="null"
+                            Description="Altura do modal." />
+            <ShowcaseApiRow Name="ShowTitle" Type="bool" Default="true"
+                            Description="Exibe a barra de título do modal." />
+            <ShowcaseApiRow Name="ShowClose" Type="bool" Default="true"
+                            Description="Exibe o botão X de fechar no cabeçalho." />
+            <ShowcaseApiRow Name="CloseDialogOnOverlayClick" Type="bool" Default="true"
+                            Description="Fecha o modal ao clicar fora dele (no overlay)." />
+            <ShowcaseApiRow Name="CloseDialogOnEsc" Type="bool" Default="true"
+                            Description="Fecha o modal ao pressionar a tecla ESC." />
+            <ShowcaseApiRow Name="CanClose" Type="Func&lt;Task&lt;bool&gt;&gt;?" Default="null"
+                            Description="Guard assíncrono — retorne false para impedir o fechamento." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    [Inject] DialogService Dialog { get; set; } = default!;
+    [Inject] NotificationService Toast { get; set; } = default!;
+
+    private async Task OpenForm(MouseEventArgs _)
+    {
+        var result = await Dialog.OpenAsync<Pages.Cadastros.ClienteFormDialog>("Novo cliente", null,
+            new DialogOptions { Width = "640px" });
+        if (result is Cliente c) Toast.Success("Salvo", c.Nome);
+    }
+
+    private async Task OpenSmall(MouseEventArgs _)
+    {
+        await Dialog.Alert("Modal pequeno com apenas 320px de largura.", "Compacto");
+    }
+
+    private async Task OpenStrict(MouseEventArgs _)
+    {
+        await Dialog.OpenAsync<Pages.Cadastros.ClienteFormDialog>("Não fecha no overlay click", null,
+            new DialogOptions { Width = "560px", CloseDialogOnOverlayClick = false });
+    }
+
+    private async Task OnConfirmAsync(MouseEventArgs _)
+    {
+        var ok = await Dialog.Confirm("Tem certeza que deseja prosseguir?", "Confirmar");
+        if (ok == true) Toast.Success("Confirmado"); else Toast.Info("Cancelado");
+    }
+
+    private async Task OnDestructiveAsync(MouseEventArgs _)
+    {
+        var ok = await Dialog.Confirm(
+            "Excluir esse item? Esta ação não pode ser desfeita.",
+            "Excluir item",
+            new ConfirmOptions { OkButtonText = "Excluir", Icon = "alert-triangle" });
+        if (ok == true) Toast.Info("Excluído"); else Toast.Warning("Mantido");
+    }
+
+    private async Task OnAlertInfo(MouseEventArgs _)
+        => await Dialog.Alert("Seu plano atual permite 3 pontos de venda.", "Limite do plano", new AlertOptions { Icon = "info" });
+
+    private async Task OnAlertSuccess(MouseEventArgs _)
+        => await Dialog.Alert("Tudo certo! Suas alterações foram salvas.", "Sucesso", new AlertOptions { Icon = "check-circle" });
+
+    private Task OpenSideAsync(SidePosition pos)
+        => Dialog.OpenSideAsync<Pages.Cadastros.ClienteFormDialog>("Filtros avançados", null,
+            new SideDialogOptions { Position = pos, Width = "420px" });
+
+    private async Task OnStackAsync(MouseEventArgs _)
+    {
+        var t1 = Dialog.Alert("Este é o primeiro dialog.", "Primeiro");
+        await Task.Delay(200);
+        await Dialog.Alert("Este é o segundo dialog (em cima do primeiro).", "Segundo");
+        await t1;
+    }
+}

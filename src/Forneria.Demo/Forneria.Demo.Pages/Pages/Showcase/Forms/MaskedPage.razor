@@ -1,0 +1,132 @@
+@page "/showcase/masked"
+@layout ShowcaseLayout
+
+<PageTitle>MaskedTextBox — Showcase</PageTitle>
+
+<ShowcasePage Title="MaskedTextBox"
+              Subtitle="Input com máscara aplicada em tempo real para documentos e formatos fixos.">
+
+    <Overview>
+        <p>
+            O <code>OmniMaskedTextBox</code> aplica uma <strong>máscara em tempo real</strong>
+            enquanto o usuário digita. Os caracteres de máscara são <code>9</code> (dígito),
+            <code>A</code> (letra) e <code>*</code> (alfanumérico); qualquer outro caractere é
+            tratado como separador literal (<code>.</code>, <code>-</code>, <code>/</code>, etc.).
+        </p>
+        <p>
+            Por padrão o <code>Value</code> bound contém apenas os <strong>caracteres
+            significativos</strong> (sem a formatação) — ideal para persistir CPF/CNPJ limpos.
+            Com <code>KeepMask="true"</code> o valor preserva a formatação completa.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Documentos com formato rígido — CPF, CNPJ, RG.</li>
+            <li>Telefone, CEP e outros campos com separadores fixos.</li>
+            <li>Placas de veículo e códigos com mistura de letras e dígitos.</li>
+            <li>Qualquer campo onde a formatação visual guia o preenchimento.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Texto livre sem formato fixo → use <code>OmniTextBox</code>.</li>
+            <li>Valores numéricos com spinner e min/max → use <code>OmniNumeric</code>.</li>
+            <li>Datas com calendário → use <code>OmniDatePicker</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DOCUMENTOS"
+                         Description="CPF e CNPJ — só dígitos no Value."
+                         Code="@(@"<OmniMaskedTextBox @bind-Value=""cpf"" Mask=""999.999.999-99""
+                    Placeholder=""000.000.000-00"" />
+<OmniMaskedTextBox @bind-Value=""cnpj"" Mask=""99.999.999/9999-99""
+                    Placeholder=""00.000.000/0000-00"" />")">
+            <div class="omni-grid-2">
+                <OmniFormField Label="CPF" HintRight="só dígitos no value">
+                    <OmniMaskedTextBox @bind-Value="cpf" Mask="999.999.999-99" Placeholder="000.000.000-00" />
+                </OmniFormField>
+                <OmniFormField Label="CNPJ">
+                    <OmniMaskedTextBox @bind-Value="cnpj" Mask="99.999.999/9999-99" Placeholder="00.000.000/0000-00" />
+                </OmniFormField>
+            </div>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">
+                CPF (raw) = @(cpf ?? "—") · CNPJ (raw) = @(cnpj ?? "—")
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TELEFONE / CEP"
+                         Description="Máscaras de contato — celular, fixo e CEP."
+                         Code="@(@"<OmniMaskedTextBox @bind-Value=""cel"" Mask=""(99) 99999-9999"" />
+<OmniMaskedTextBox @bind-Value=""fixo"" Mask=""(99) 9999-9999"" />
+<OmniMaskedTextBox @bind-Value=""cep"" Mask=""99999-999"" />")">
+            <div class="omni-grid-3">
+                <OmniFormField Label="Telefone celular">
+                    <OmniMaskedTextBox @bind-Value="cel" Mask="(99) 99999-9999" Placeholder="(11) 99999-9999" />
+                </OmniFormField>
+                <OmniFormField Label="Telefone fixo">
+                    <OmniMaskedTextBox @bind-Value="fixo" Mask="(99) 9999-9999" Placeholder="(11) 4002-8922" />
+                </OmniFormField>
+                <OmniFormField Label="CEP">
+                    <OmniMaskedTextBox @bind-Value="cep" Mask="99999-999" Placeholder="01310-100" />
+                </OmniFormField>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PLACA (LETRA + DÍGITO)"
+                         Description="Mistura A (letra) com 9 (dígito)."
+                         Code="@(@"<OmniMaskedTextBox @bind-Value=""placa1"" Mask=""AAA-9999"" Placeholder=""ABC-1234"" />
+<OmniMaskedTextBox @bind-Value=""placa2"" Mask=""AAA9A99"" Placeholder=""ABC1D23"" />")">
+            <div class="omni-grid-2">
+                <OmniFormField Label="Placa antiga (3 letras + 4 dígitos)">
+                    <OmniMaskedTextBox @bind-Value="placa1" Mask="AAA-9999" Placeholder="ABC-1234" />
+                </OmniFormField>
+                <OmniFormField Label="Placa Mercosul (3L+1D+1L+2D)">
+                    <OmniMaskedTextBox @bind-Value="placa2" Mask="AAA9A99" Placeholder="ABC1D23" />
+                </OmniFormField>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="KEEPMASK"
+                         Description="Com KeepMask=true, o valor bound preserva a formatação (útil para campos que vão direto pra impressão de recibo)."
+                         Code="@(@"<OmniMaskedTextBox @bind-Value=""cnpjKept"" Mask=""99.999.999/9999-99""
+                    KeepMask Placeholder=""00.000.000/0000-00"" />")">
+            <OmniFormField Label="CNPJ formatado">
+                <OmniMaskedTextBox @bind-Value="cnpjKept" Mask="99.999.999/9999-99" KeepMask Placeholder="00.000.000/0000-00" />
+            </OmniFormField>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">value = @(cnpjKept ?? "—")</p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Mask" Type="string" Default="(obrigatório)"
+                            Description="Padrão de máscara. 9=dígito, A=letra, *=alfanumérico; o resto é literal." />
+            <ShowcaseApiRow Name="Value" Type="string?" Default="null"
+                            Description="Valor bound — limpo por padrão, formatado se KeepMask. Suporta bind-Value." />
+            <ShowcaseApiRow Name="KeepMask" Type="bool" Default="false"
+                            Description="Quando true, o valor bound preserva os caracteres de máscara." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto de dica exibido quando o campo está vazio." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Altura do campo — Sm, Md, Lg." />
+            <ShowcaseApiRow Name="Autocomplete" Type="string?" Default="null"
+                            Description="Atributo autocomplete do input HTML." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita a interação com o campo." />
+            <ShowcaseApiRow Name="ReadOnly" Type="bool" Default="false"
+                            Description="Campo somente leitura." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<string?>" ShowDefault="false"
+                            Description="Disparado a cada alteração do valor mascarado." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? cpf, cnpj, cel, fixo, cep, placa1, placa2, cnpjKept;
+}

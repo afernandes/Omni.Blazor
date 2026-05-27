@@ -1,0 +1,62 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ThemeService Theme
+
+@*  Shell PDV usando OmniLayout completo (padrão Wf11 — wireframe PDV Workspace).
+
+    Estrutura LEGO da biblioteca:
+      • OmniAppBar      — topbar full-width
+      • OmniToolBar     — ações (Comanda/Caixa/Cozinha/...)
+      • OmniDrawer      — sidebar Responsive (Persistent ≥Md, overlay <Md)
+      • OmniDrawerToggle — hamburger no AppBar; auto-resolve drawer via Layout registry
+      • OmniMain        — área principal (body do PDV renderiza grid interno 2-col + footer)
+
+    O aside direito do PDV (cart cliente 380px) é coluna interna do main
+    — NÃO é OmniDrawer porque semanticamente faz parte do flow PDV (sempre
+    visível em desktop; vira narrow strip em mobile via CSS local).
+
+    O hamburger funciona automaticamente em qualquer breakpoint sem state
+    custom — em ≥Md o drawer é Persistent (toggle colapsa coluna), em <Md
+    vira Temporary overlay com backdrop + focus trap + Esc handler (grátis
+    do OverlayLifecycle interno do OmniDrawer). *@
+@*  Não passar Class="fs-pdv-*" nos slots do OmniLayout — o CSS legado
+    de _shell.scss define `grid-area: topbar/side/body/...` em fs-pdv-*
+    que conflita com o grid-area `tl-top/tl-tool/tl-left/tl-main` do
+    OmniLayout, quebrando o posicionamento. Estilos visuais específicos
+    do FoodService já estão capturados em classes filhas (fs-pdv-brand,
+    fs-pdv-actbar-btn, etc.) que não dependem do wrapper.
+
+    Para overrides futuros do PDV no contexto OmniLayout, usar a classe
+    `fs-pdv-pdv-shell` no OmniLayout — não conflita com grid-area legado. *@
+<OmniLayout Class="fs-pdv-pdv-shell">
+    <OmniAppBar>
+        <PdvTopBar />
+    </OmniAppBar>
+
+    <OmniToolBar Class="fs-pdv-actbar">
+        <PdvActionBar />
+    </OmniToolBar>
+
+    <OmniDrawer Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md">
+        <PdvSidebar />
+    </OmniDrawer>
+
+    <OmniMain NoPadding>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* swallow */ }
+        }
+    }
+
+    public void Dispose() { }
+}

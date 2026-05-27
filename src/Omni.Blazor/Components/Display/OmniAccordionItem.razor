@@ -1,0 +1,89 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IDisposable
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+<div class="@WrapCss" style="@Style" @attributes="Attributes">
+    <button type="button" class="omni-accordion-header" disabled="@Disabled" @onclick="ToggleAsync" aria-expanded="@(IsExpanded ? "true" : "false")">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <span class="omni-accordion-icon"><OmniIcon Name="@Icon" Size="ComponentSize.Sm" /></span>
+        }
+        <span class="omni-accordion-title-text">
+            @if (TitleContent is not null) { @TitleContent } else { @Title }
+        </span>
+        <span class="omni-accordion-chevron"><OmniIcon Name="chevron-right" Size="ComponentSize.Sm" /></span>
+    </button>
+    <div class="omni-accordion-body-outer">
+        <div class="omni-accordion-body-inner">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] internal OmniAccordion? Parent { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? TitleContent { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public bool Expanded { get; set; }
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    internal bool IsExpanded => _expanded;
+    private bool _expanded;
+
+    private string WrapCss => CssBuilder.Default("omni-accordion-item")
+        .AddClass("omni-expanded", _expanded)
+        .AddClass("omni-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    // ParameterState: lets a parent push Expanded=true into the item without
+    // bouncing the internal toggle state on every unrelated re-render.
+    private readonly ParameterState<bool> _expandedState;
+
+    // Test-only counter: increments every time the Expanded-driven recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniAccordionItem()
+    {
+        _expandedState = RegisterParameter<bool>(nameof(Expanded))
+            .WithParameter(() => Expanded)
+            .WithChangeHandler(SyncExpandedFromParam)
+            .Attach();
+    }
+
+    private void SyncExpandedFromParam()
+    {
+        if (Expanded && !_expanded) _expanded = true;
+        RecomputeCount++;
+    }
+
+    protected override void OnInitialized()
+    {
+        _expanded = Expanded;
+        Parent?.Register(this);
+    }
+
+    public void Dispose() => Parent?.Unregister(this);
+
+    internal void SetExpanded(bool value)
+    {
+        if (_expanded == value) return;
+        _expanded = value;
+        InvokeAsync(StateHasChanged);
+        if (ExpandedChanged.HasDelegate) _ = ExpandedChanged.InvokeAsync(value);
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (Disabled) return;
+        var newValue = !_expanded;
+        if (newValue) Parent?.NotifyExpanding(this);
+        _expanded = newValue;
+        if (ExpandedChanged.HasDelegate) await ExpandedChanged.InvokeAsync(newValue);
+    }
+}

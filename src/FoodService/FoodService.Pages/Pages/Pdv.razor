@@ -1,0 +1,128 @@
+@page "/"
+@page "/pdv"
+@layout AppShellPdv
+@inject PdvOrderService Order
+@inject DialogService Dialog
+@inject NotificationService Toast
+@implements IDisposable
+
+<PageTitle>FoodService — PDV</PageTitle>
+
+@*  Composition root do PDV. Layout 2-col interno (main + aside 380px) + footer
+    sticky bottom full-width. Hotkeys F2/F5/F9/Ctrl+N/⌘K. *@
+
+@* Hotkeys globais — só registrados após primeiro render interativo
+   para evitar JS interop durante prerender. *@
+@if (_rendered)
+{
+    <OmniHotkey Key="F2" OnPressed="OpenCardapio" PreventDefault="true" />
+    <OmniHotkey Key="F5" OnPressed="TriggerFinalize" PreventDefault="true" />
+    <OmniHotkey Key="F9" OnPressed="TriggerClear" PreventDefault="true" />
+    <OmniHotkey Key="N" Modifiers="Modifier.Ctrl" OnPressed="TriggerPause" PreventDefault="true" />
+    <OmniHotkey Key="K" Modifiers="Modifier.Ctrl" OnPressed="FocusOmni" PreventDefault="true" />
+}
+
+<div class="fs-pdv-page">
+    <section class="fs-pdv-main">
+        @* Narrow-only header (mobile) — show customer + modes inside main when aside collapses *@
+        <div class="fs-pdv-narrow-strip">
+            <PdvCustomerHead />
+            <PdvModeTabs />
+            <PdvModeDetails />
+        </div>
+
+        <PdvPausedBar />
+        <PdvOmniBox />
+        @if (Order.Cart.Count == 0)
+        {
+            <PdvFavoritesRail />
+        }
+        <PdvCartList />
+    </section>
+
+    <aside class="fs-pdv-aside">
+        <PdvCustomerHead />
+        <PdvModeTabs />
+        <PdvModeDetails />
+        <PdvLoyaltyMini />
+    </aside>
+
+    <PdvFooter />
+</div>
+
+@code {
+    private bool _rendered;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _rendered = true;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Order.OnChange += StateHasChanged;
+        // Pré-popular cenário demo: pizza meio-a-meio + cliente Marina + Delivery.
+        if (Order.Cart.Count == 0)
+        {
+            // Cenário mock Forneria — match exato com o prototype:
+            //   - Cheeseburger Duplo ×2 (R$ 28,00 × 2 = 56,00)
+            //   - Coca-Cola 350ml   ×2 (R$ 7,50  × 2 = 15,00)
+            //   - SUBTOTAL = R$ 71,00 · Modo Balcão · Cliente Marina Toledo
+            //   - Cupom BEM-VINDO15 aplicado → savings = até R$ 54,10
+            var burger = PdvMockData.Products.First(p => p.Id == "p-bg-dup");
+            var coca   = PdvMockData.Products.First(p => p.Id == "p-coca350");
+            Order.AddItem(burger, 2);
+            Order.AddItem(coca, 2);
+
+            Order.SetCustomer(PdvMockData.Customers.First(c => c.Id == "c1"));
+            Order.SetMode(OrderMode.Balcao);
+            Order.LoyaltyCode = "BEM-VINDO15";
+            Order.NotifyModeDetailsChanged();
+        }
+    }
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private async Task FocusOmni()
+    {
+        if (Order.OmniFocus is not null) await Order.OmniFocus();
+    }
+
+    private void OpenCardapio()
+    {
+        Toast.Info("Cardápio em construção — use o Omni Box");
+    }
+
+    private async Task TriggerFinalize()
+    {
+        if (Order.Cart.Count == 0) { Toast.Warning("Carrinho vazio"); return; }
+        var lines = new List<string>
+        {
+            $"Itens: {Order.ItemCount}",
+            $"TOTAL: {Order.Total:C}",
+        };
+        var ok = await Dialog.Confirm(string.Join("\n", lines), "Finalizar pedido (F5)");
+        if (ok == true)
+        {
+            Toast.Success("Pedido finalizado");
+            Order.FinalizeOrder();
+        }
+    }
+
+    private async Task TriggerClear()
+    {
+        if (Order.Cart.Count == 0) return;
+        var ok = await Dialog.Confirm("Limpar todos os itens?", "Limpar (F9)");
+        if (ok == true) Order.Clear();
+    }
+
+    private void TriggerPause()
+    {
+        if (Order.Cart.Count == 0) { Toast.Info("Nada para pausar"); return; }
+        Order.PauseCurrent();
+        Toast.Info("Pedido pausado. Inicie um novo.");
+    }
+}

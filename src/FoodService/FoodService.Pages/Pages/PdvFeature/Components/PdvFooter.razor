@@ -1,0 +1,124 @@
+@inject PdvOrderService Order
+@inject DialogService Dialog
+@inject NotificationService Toast
+@implements IDisposable
+
+@*  Footer total: estado vazio = hint; estado cheio = meta groups + Ajustar + Total + Finalizar. *@
+<footer class="fs-pdv-footer">
+    @if (Order.Cart.Count == 0)
+    {
+        <div class="fs-pdv-footer-empty">
+            <OmniIcon Name="info" Size="ComponentSize.Sm" />
+            <span>Pedido vazio · digite um código no Omni Box para começar</span>
+            <kbd>?</kbd>
+            <span>para atalhos</span>
+        </div>
+    }
+    else
+    {
+        <div class="fs-pdv-footer-meta">
+            <div class="fs-pdv-footer-meta-grp">
+                <span class="fs-pdv-footer-meta-label">Itens</span>
+                <span class="fs-pdv-footer-meta-val">@Order.ItemCount</span>
+            </div>
+            <div class="fs-pdv-footer-divider"></div>
+            <div class="fs-pdv-footer-meta-grp">
+                <span class="fs-pdv-footer-meta-label">Subtotal</span>
+                <span class="fs-pdv-footer-meta-val">@Order.Subtotal.ToString("C", _ptBr)</span>
+            </div>
+            @if (Order.Mode == OrderMode.Delivery && Order.DeliveryFee > 0)
+            {
+                <div class="fs-pdv-footer-divider"></div>
+                <div class="fs-pdv-footer-meta-grp">
+                    <span class="fs-pdv-footer-meta-label">Entrega</span>
+                    <span class="fs-pdv-footer-meta-val">@Order.DeliveryFee.ToString("C", _ptBr)</span>
+                </div>
+            }
+            @if (Order.Mode == OrderMode.Mesa && Order.ServiceFee > 0)
+            {
+                <div class="fs-pdv-footer-divider"></div>
+                <div class="fs-pdv-footer-meta-grp">
+                    <span class="fs-pdv-footer-meta-label">Serviço 10%</span>
+                    <span class="fs-pdv-footer-meta-val">@Order.ServiceFee.ToString("C", _ptBr)</span>
+                </div>
+            }
+            @if (Order.Discount > 0)
+            {
+                <div class="fs-pdv-footer-divider"></div>
+                <div class="fs-pdv-footer-meta-grp">
+                    <span class="fs-pdv-footer-meta-label">Desconto</span>
+                    <span class="fs-pdv-footer-meta-val is-discount">− @Order.Discount.ToString("C", _ptBr)</span>
+                </div>
+            }
+            @if (Order.OrderAdjustment is not null && Order.OrderAdjustmentImpact > 0)
+            {
+                <div class="fs-pdv-footer-divider"></div>
+                <div class="fs-pdv-footer-meta-grp">
+                    <span class="fs-pdv-footer-meta-label">Ajuste</span>
+                    <span class="fs-pdv-footer-meta-val is-discount">− @Order.OrderAdjustmentImpact.ToString("C", _ptBr)</span>
+                </div>
+            }
+        </div>
+
+        <div class="fs-pdv-footer-actions">
+            <OmniButton Class="fs-pdv-footer-adjust" OnClick="OpenOrderAdjustment">
+                <span class="pct-mark">%</span> Ajustar
+            </OmniButton>
+            <div class="fs-pdv-footer-total">
+                <span class="fs-pdv-footer-total-label">Total a pagar</span>
+                <span class="fs-pdv-footer-total-val">
+                    @Order.Total.ToString("C", _ptBr)
+                    <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                </span>
+            </div>
+            <OmniButton Class="fs-pdv-footer-finish"
+                        Icon="credit-card"
+                        Size="ComponentSize.Sm"
+                        Disabled="@(Order.Cart.Count == 0)"
+                        OnClick="FinishOrder">
+                Finalizar
+                <kbd>F5</kbd>
+            </OmniButton>
+        </div>
+    }
+</footer>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private async Task OpenOrderAdjustment()
+    {
+        var result = await Dialog.OpenAsync<PdvAdjustmentDialog>(
+            title: "Ajustar pedido",
+            parameters: new Dictionary<string, object?>
+            {
+                ["BaseAmount"] = Order.Subtotal,
+                ["Initial"]    = Order.OrderAdjustment,
+            });
+        if (result is Adjustment adj) Order.ApplyOrderAdjustment(adj);
+        else if (result is string s && s == "clear") Order.ApplyOrderAdjustment(null);
+    }
+
+    private async Task FinishOrder()
+    {
+        var lines = new List<string>
+        {
+            $"Itens: {Order.ItemCount}",
+            $"Subtotal: {Order.Subtotal.ToString("C", _ptBr)}",
+        };
+        if (Order.DeliveryFee > 0) lines.Add($"Entrega: {Order.DeliveryFee.ToString("C", _ptBr)}");
+        if (Order.ServiceFee > 0)  lines.Add($"Serviço 10%: {Order.ServiceFee.ToString("C", _ptBr)}");
+        if (Order.Discount > 0)    lines.Add($"Desconto: − {Order.Discount.ToString("C", _ptBr)}");
+        lines.Add($"TOTAL: {Order.Total.ToString("C", _ptBr)}");
+
+        var ok = await Dialog.Confirm(string.Join("\n", lines), "Finalizar pedido");
+        if (ok == true)
+        {
+            Toast.Success($"Pedido finalizado — {Order.Total.ToString("C", _ptBr)}");
+            Order.FinalizeOrder();
+        }
+    }
+}

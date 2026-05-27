@@ -1,0 +1,193 @@
+@page "/showcase/container"
+@layout ShowcaseLayout
+
+<PageTitle>Container — Showcase</PageTitle>
+
+<ShowcasePage Title="Container"
+              Subtitle="Wrapper centralizado com largura máxima responsiva. Equivalente a MudContainer e Bootstrap .container-{bp}.">
+
+    <Overview>
+        <p>
+            O <code>OmniContainer</code> centraliza o conteúdo e impõe uma
+            <strong>largura máxima legível</strong> independentemente da viewport.
+            É a primitiva ideal para páginas marketing/landing, conteúdos editoriais,
+            seções de auth (login/cadastro), e qualquer área onde 1920 px de tela
+            ficaria desconfortável de ler.
+        </p>
+        <p>
+            Use o enum <code>MaxWidth</code> para escolher entre <code>Sm</code> (640 px),
+            <code>Md</code> (1024 px), <code>Lg</code> (1280 px — default),
+            <code>Xl</code> (1440 px), <code>Xxl</code> (1920 px) ou <code>Full</code>
+            (sem limite). O atalho <code>Fluid</code> equivale a
+            <code>MaxWidth=Full</code>. O toggle <code>Gutters</code> controla o padding
+            lateral (default ligado).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Landing pages e seções marketing.</li>
+            <li>Telas de auth (login, cadastro, recuperar senha).</li>
+            <li>Páginas de blog/conteúdo editorial.</li>
+            <li>Qualquer página onde a largura nativa do navegador exige limitar.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Apps internos com layout fixed via <code>OmniLayout</code> → o layout já controla largura.</li>
+            <li>Dashboards full-width → use <code>OmniContainer Fluid</code> ou nem use.</li>
+            <li>Grade de cards dentro do app → use <code>OmniRow</code>+<code>OmniCol</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="MAXWIDTH — galeria"
+                         Description="Cada container mostra a largura efetiva. Em telas largas a diferença fica evidente; em telas estreitas todos colapsam para 100%."
+                         Code="@(@"<OmniContainer MaxWidth=""ContainerMaxWidth.Sm"">  ... 640px ... </OmniContainer>
+<OmniContainer MaxWidth=""ContainerMaxWidth.Md"">  ... 1024px ... </OmniContainer>
+<OmniContainer MaxWidth=""ContainerMaxWidth.Lg"">  ... 1280px (default) ... </OmniContainer>
+<OmniContainer MaxWidth=""ContainerMaxWidth.Xl"">  ... 1440px ... </OmniContainer>
+<OmniContainer MaxWidth=""ContainerMaxWidth.Xxl""> ... 1920px ... </OmniContainer>
+<OmniContainer MaxWidth=""ContainerMaxWidth.Full""> ... sem limite ... </OmniContainer>")">
+            <OmniStack Gap="12">
+                @foreach (var mw in new[] {
+                    (ContainerMaxWidth.Sm,  "Sm  · 640px"),
+                    (ContainerMaxWidth.Md,  "Md  · 1024px"),
+                    (ContainerMaxWidth.Lg,  "Lg  · 1280px (default)"),
+                    (ContainerMaxWidth.Xl,  "Xl  · 1440px"),
+                    (ContainerMaxWidth.Xxl, "Xxl · 1920px"),
+                    (ContainerMaxWidth.Full,"Full · sem limite")
+                })
+                {
+                    <div style="background:var(--omni-bg-sunken); border:1px dashed var(--omni-line); border-radius:8px; padding:8px;">
+                        <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px">MAXWIDTH = @mw.Item2</p>
+                        <OmniContainer MaxWidth="@mw.Item1">
+                            <div style="background:var(--omni-accent-soft); color:var(--omni-accent); padding:10px 14px; border-radius:6px; text-align:center; font-family:var(--omni-font-mono); font-size:12px;">
+                                conteúdo centralizado · max-width: @mw.Item2.Split('·')[1].Trim()
+                            </div>
+                        </OmniContainer>
+                    </div>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="FLUID — atalho para sem limite"
+                         Description="Fluid=true é equivalente a MaxWidth=Full. Útil para landing pages com seções alternadas."
+                         Code="@(@"<OmniContainer Fluid>
+    @* preenche 100% da viewport (com padding lateral) *@
+</OmniContainer>")">
+            <OmniContainer Fluid>
+                <div style="background:var(--omni-accent); color:var(--omni-accent-fg); padding:24px; border-radius:8px; text-align:center;">
+                    Esta div ocupa 100% da viewport (menos os gutters).
+                </div>
+            </OmniContainer>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="GUTTERS — padding lateral"
+                         Description="Gutters=true (default) adiciona padding lateral. Desligue para conteúdo full-bleed dentro do container."
+                         Code="@(@"<OmniContainer Gutters=""true"">  @* default — padding lateral *@
+    ...
+</OmniContainer>
+
+<OmniContainer Gutters=""false""> @* sem padding lateral *@
+    ...
+</OmniContainer>")">
+            <OmniStack Gap="10">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 4px">GUTTERS = TRUE (default)</p>
+                    <div style="background:var(--omni-bg-sunken); border:1px dashed var(--omni-line); border-radius:8px;">
+                        <OmniContainer MaxWidth="ContainerMaxWidth.Md" Gutters="true">
+                            <div style="background:var(--omni-good); color:white; padding:14px; border-radius:6px; text-align:center;">
+                                container com padding lateral
+                            </div>
+                        </OmniContainer>
+                    </div>
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 4px">GUTTERS = FALSE</p>
+                    <div style="background:var(--omni-bg-sunken); border:1px dashed var(--omni-line); border-radius:8px;">
+                        <OmniContainer MaxWidth="ContainerMaxWidth.Md" Gutters="false">
+                            <div style="background:var(--omni-info); color:white; padding:14px; border-radius:6px; text-align:center;">
+                                container sem padding lateral (conteúdo "full-bleed")
+                            </div>
+                        </OmniContainer>
+                    </div>
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LANDING — composição realista"
+                         Description="Como o Container vive em uma landing: hero centralizado + features em grid."
+                         Code="@(@"<OmniContainer MaxWidth=""ContainerMaxWidth.Xl"">
+    <h1>Forneria — Pizzaria moderna</h1>
+    <p>Subtítulo descritivo</p>
+    <OmniRow Gap=""16"">
+        <OmniCol Size=""12"" SizeMd=""4""> ... feature 1 ... </OmniCol>
+        <OmniCol Size=""12"" SizeMd=""4""> ... feature 2 ... </OmniCol>
+        <OmniCol Size=""12"" SizeMd=""4""> ... feature 3 ... </OmniCol>
+    </OmniRow>
+</OmniContainer>")">
+            <div style="background:var(--omni-bg-sunken); border:1px dashed var(--omni-line); border-radius:10px; padding:8px;">
+                <OmniContainer MaxWidth="ContainerMaxWidth.Xl">
+                    <div style="background:var(--omni-bg-elev); border:1px solid var(--omni-line); border-radius:8px; padding:32px;">
+                        <h2 style="margin:0 0 6px; font-size:24px;">Forneria — Pizzaria moderna</h2>
+                        <p class="omni-muted" style="margin:0 0 20px;">Sistema operacional para sua pizzaria — PDV, cardápio digital, KDS de cozinha.</p>
+                        <OmniRow Gap="16">
+                            @foreach (var f in new[] {
+                                ("zap",      "PDV ágil",   "Atendimento em 3 cliques, pagamento integrado."),
+                                ("grid",     "Cardápio QR","Mesa escaneia, pede e paga sem garçom."),
+                                ("trending-up","Dashboards","Receita, ticket e canais em tempo real.")
+                            })
+                            {
+                                <OmniCol Size="12" SizeMd="4">
+                                    <div style="padding:14px;">
+                                        <OmniIcon Name="@f.Item1" />
+                                        <h4 style="margin:8px 0 4px;">@f.Item2</h4>
+                                        <p class="omni-muted" style="margin:0; font-size:13px;">@f.Item3</p>
+                                    </div>
+                                </OmniCol>
+                            }
+                        </OmniRow>
+                    </div>
+                </OmniContainer>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="AUTH — container pequeno"
+                         Description="Sm = 640 px é a largura ideal para forms de login/cadastro."
+                         Code="@(@"<OmniContainer MaxWidth=""ContainerMaxWidth.Sm"">
+    <h1>Entrar</h1>
+    <OmniFormField Label=""E-mail""><OmniTextBox /></OmniFormField>
+    <OmniFormField Label=""Senha""><OmniTextBox Type=""password"" /></OmniFormField>
+    <OmniButton Text=""Entrar"" Variant=""ButtonVariant.Primary"" />
+</OmniContainer>")">
+            <div style="background:var(--omni-bg-sunken); border:1px dashed var(--omni-line); border-radius:10px; padding:24px;">
+                <OmniContainer MaxWidth="ContainerMaxWidth.Sm">
+                    <div style="background:var(--omni-bg-elev); border:1px solid var(--omni-line); border-radius:10px; padding:28px;">
+                        <h3 style="margin:0 0 16px;">Entrar</h3>
+                        <OmniStack Gap="12">
+                            <OmniFormField Label="E-mail"><OmniTextBox Type="email" Placeholder="maria@email.com" LeadingIcon="mail" /></OmniFormField>
+                            <OmniFormField Label="Senha"><OmniTextBox Type="password" Placeholder="••••••••" LeadingIcon="lock" /></OmniFormField>
+                            <OmniButton Text="Entrar" Variant="ButtonVariant.Primary" />
+                        </OmniStack>
+                    </div>
+                </OmniContainer>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniContainer — parâmetros">
+            <ShowcaseApiRow Name="MaxWidth" Type="ContainerMaxWidth" Default="Lg"
+                            Description="Sm (640px) · Md (1024) · Lg (1280, default) · Xl (1440) · Xxl (1920) · Full (sem limite)." />
+            <ShowcaseApiRow Name="Fluid" Type="bool" Default="false"
+                            Description="Atalho para MaxWidth=Full (sem limite de largura). Tem prioridade sobre MaxWidth." />
+            <ShowcaseApiRow Name="Gutters" Type="bool" Default="true"
+                            Description="Padding lateral nas bordas. Desligue p/ conteúdo full-bleed dentro do container." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo do container." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

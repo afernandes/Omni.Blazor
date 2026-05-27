@@ -1,0 +1,133 @@
+@page "/showcase/exit-prompt"
+@layout ShowcaseLayout
+@inject NotificationService Toast
+@inject NavigationManager Nav
+
+<PageTitle>ExitPrompt — Showcase</PageTitle>
+
+<OmniExitPrompt When="@(() => isDirty)" />
+
+<ShowcasePage Title="ExitPrompt"
+              Subtitle="Guarda de navegação que evita perda de alterações não salvas.">
+
+    <Overview>
+        <p>
+            O <code>OmniExitPrompt</code> <strong>bloqueia a saída da página</strong> quando o
+            predicate <code>When</code> retorna <code>true</code> — tipicamente quando há mudanças
+            não salvas. Ele cobre dois cenários: cliques em links internos do Blazor (intercepta a
+            mudança de rota) e o unload do browser (fechar a aba, dar refresh, digitar nova URL).
+        </p>
+        <p>
+            Na navegação interna mostra um <code>DialogService.Confirm</code> customizável
+            (<code>Title</code>, <code>Text</code>, <code>ConfirmText</code>, <code>CancelText</code>);
+            com <code>UseNativePrompt</code> usa o <code>window.confirm</code>. No unload, o browser
+            sempre exibe seu prompt nativo. O componente não renderiza nada — apenas o coloque uma
+            vez no topo da página.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Formulários longos onde perder o preenchimento custaria caro ao usuário.</li>
+            <li>Telas de edição com estado "sujo" que ainda não foi persistido.</li>
+            <li>Editores de conteúdo (rascunhos, documentos) com alterações pendentes.</li>
+            <li>Qualquer fluxo onde sair sem salvar é um erro provável e custoso.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Páginas read-only ou sem estado editável — não há nada a proteger.</li>
+            <li>Confirmar uma ação destrutiva pontual → use <code>DialogService.Confirm</code> direto.</li>
+            <li>Avisar sobre estado sem bloquear navegação → use <code>OmniAlert</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DEMONSTRAÇÃO"
+                         Description="Edite o campo (qualquer alteração marca o form como sujo). Tente navegar pelos botões — aparece um confirm. Apertar F5 / fechar a aba mostra o prompt nativo do browser."
+                         Code="@(@"<OmniExitPrompt When=""@(() => isDirty)"" />
+
+@code {
+    bool isDirty;
+    string? draftTitle;
+}")">
+            <div class="omni-stack omni-stack-12" style="max-width:520px;">
+                <OmniFormField Label="Título do rascunho">
+                    <OmniTextBox @bind-Value="draftTitle" Placeholder="Digite algo..." />
+                </OmniFormField>
+
+                <div class="omni-row omni-row-gap-8" style="align-items:center;">
+                    <OmniChip Variant="@(isDirty ? BadgeVariant.Warn : BadgeVariant.Good)">
+                        @(isDirty ? "Form sujo" : "Form limpo")
+                    </OmniChip>
+                    <OmniButton Text="Salvar"  Variant="ButtonVariant.Primary" Disabled="@(!isDirty)" OnClick="Save" />
+                    <OmniButton Text="Descartar" Variant="ButtonVariant.Ghost"  Disabled="@(!isDirty)" OnClick="Discard" />
+                </div>
+
+                <div class="omni-row omni-row-gap-8" style="padding-top:8px; border-top:1px solid var(--omni-line);">
+                    <OmniButton Text="Tentar ir pro Dashboard" Icon="external-link"
+                                 OnClick="@(_ => { Nav.NavigateTo("/dashboard"); return Task.CompletedTask; })" />
+                    <OmniButton Text="Tentar ir pro PDV"       Icon="external-link"
+                                 OnClick="@(_ => { Nav.NavigateTo("/pdv"); return Task.CompletedTask; })" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PROMPT CUSTOMIZADO"
+                         Description="Title, Text e os rótulos dos botões são todos configuráveis."
+                         Code="@(@"<OmniExitPrompt When=""@(() => isDirty)""
+                Title=""Descartar rascunho?""
+                Text=""Suas edições serão perdidas.""
+                ConfirmText=""Descartar""
+                CancelText=""Continuar editando"" />")">
+            <p class="omni-muted" style="font-size: 13px;">
+                Use <code>UseNativePrompt=true</code> para trocar o diálogo do <code>DialogService</code>
+                pelo <code>window.confirm</code> nativo do browser.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="When" Type="Func<bool>?" Default="null"
+                            Description="Predicate que define quando o prompt deve aparecer. Quando null, sempre guarda." />
+            <ShowcaseApiRow Name="Title" Type="string" Default="Sair sem salvar?"
+                            Description="Título do diálogo de confirmação." />
+            <ShowcaseApiRow Name="Text" Type="string" Default="Você tem alterações…"
+                            Description="Mensagem do diálogo de confirmação." />
+            <ShowcaseApiRow Name="ConfirmText" Type="string" Default="Sair sem salvar"
+                            Description="Rótulo do botão que confirma a saída." />
+            <ShowcaseApiRow Name="CancelText" Type="string" Default="Continuar editando"
+                            Description="Rótulo do botão que cancela a saída." />
+            <ShowcaseApiRow Name="UseNativePrompt" Type="bool" Default="false"
+                            Description="Usa o window.confirm nativo em vez do DialogService." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool isDirty;
+    private string? _draftTitle;
+    private string? draftTitle
+    {
+        get => _draftTitle;
+        set { if (_draftTitle != value) { _draftTitle = value; isDirty = true; } }
+    }
+
+    private Task Save()
+    {
+        isDirty = false;
+        Toast.Success("Salvo", "Você pode navegar livremente agora.");
+        return Task.CompletedTask;
+    }
+
+    private Task Discard()
+    {
+        _draftTitle = null;
+        isDirty = false;
+        Toast.Info("Descartado");
+        return Task.CompletedTask;
+    }
+}

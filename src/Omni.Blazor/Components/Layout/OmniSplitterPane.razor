@@ -1,0 +1,81 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IDisposable
+
+@*  Pane child of <OmniSplitter>. Visibility is controlled by the parent;
+    this component only registers itself and exposes parameters. The actual
+    layout/rendering happens inside OmniSplitter (which reads ChildContent
+    directly from each registered pane). *@
+
+@code {
+    [CascadingParameter] internal OmniSplitter? Parent { get; set; }
+
+    /// <summary>Initial size — accepts <c>"30%"</c> or <c>"200px"</c>. Null/empty = "auto"
+    /// (the pane shares the remaining space equally with other auto panes).</summary>
+    [Parameter] public string? Size { get; set; }
+
+    /// <summary>Minimum size (<c>"%"</c> or <c>"px"</c>). User can't drag the bar below this.</summary>
+    [Parameter] public string? Min { get; set; }
+
+    /// <summary>Maximum size (<c>"%"</c> or <c>"px"</c>). User can't drag the bar above this.</summary>
+    [Parameter] public string? Max { get; set; }
+
+    /// <summary>Whether the pane can be resized via the adjacent bar. Default true.</summary>
+    [Parameter] public bool Resizable { get; set; } = true;
+
+    /// <summary>Whether the pane can be collapsed via the bar's chevron buttons. Default false.</summary>
+    [Parameter] public bool Collapsible { get; set; }
+
+    /// <summary>Two-way: is the pane currently collapsed?</summary>
+    [Parameter] public bool Collapsed { get; set; }
+
+    /// <summary>Fires when Collapsed flips. Enables <c>@bind-Collapsed</c>.</summary>
+    [Parameter] public EventCallback<bool> CollapsedChanged { get; set; }
+
+    /// <summary>Internal collapsed state (controlled by parent or by external @bind-Collapsed).</summary>
+    internal bool IsCollapsed { get; private set; }
+
+    /// <summary>Restore-to-this percent when expanding.</summary>
+    internal double PercentBeforeCollapse { get; set; }
+
+    /// <summary>Tracks the last Collapsed parameter value so we only sync to
+    /// IsCollapsed when an EXTERNAL change happens. Without this, every
+    /// parent re-render would call OnParametersSet and reset IsCollapsed
+    /// back to the default <c>Collapsed=false</c>, undoing the user's click.</summary>
+    private bool? _previousCollapsed;
+
+    protected override void OnInitialized()
+    {
+        IsCollapsed = Collapsed;
+        _previousCollapsed = Collapsed;
+        Parent?.Register(this);
+    }
+
+    public override async Task SetParametersAsync(Microsoft.AspNetCore.Components.ParameterView parameters)
+    {
+        await base.SetParametersAsync(parameters);
+        // Sync external Collapsed → internal ONLY when the bound value really
+        // changed since last render. Otherwise leave IsCollapsed alone (it's
+        // owned by the splitter or by a prior SetCollapsed call).
+        if (_previousCollapsed != Collapsed)
+        {
+            _previousCollapsed = Collapsed;
+            IsCollapsed = Collapsed;
+        }
+    }
+
+    internal void SetCollapsed(bool value)
+    {
+        if (IsCollapsed == value) return;
+        IsCollapsed = value;
+        // Do NOT touch _previousCollapsed here — it tracks the EXTERNAL
+        // parameter value. If consumer binds @bind-Collapsed they'll get
+        // notified via CollapsedChanged → their backing field updates →
+        // the parameter changes → SetParametersAsync re-syncs correctly.
+        // If they don't bind, the parameter stays at default (false) and
+        // _previousCollapsed stays at the initial sync, so no echo loop.
+        if (CollapsedChanged.HasDelegate) _ = CollapsedChanged.InvokeAsync(value);
+    }
+
+    public void Dispose() => Parent?.Unregister(this);
+}

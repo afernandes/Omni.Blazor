@@ -1,0 +1,259 @@
+@namespace Omni.Blazor.Components
+@inherits ComponentBase
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Models
+
+@*  Wrapper headless da Web Speech API (SpeechRecognition + webkit variant).
+    Equivalente em poder ao RadzenSpeechToTextButton, mas SEM visual próprio —
+    você decora como quiser via render-prop ChildContent que recebe um
+    SpeechContext tipado (IsRecording, IsSupported, ToggleAsync, etc.).
+
+    Pra um botão pronto com mic/stop animado, use <OmniSpeechToTextButton />
+    (wrapper de conveniência por cima deste).
+
+    Suporte: Chrome/Edge total, Safari parcial, Firefox NÃO (2024). Componente
+    detecta falta de suporte e dispara OnUnsupported em vez de travar.
+
+    State machine: o JS reporta transições explícitas via OnStateChange
+    (Idle/Starting/Recording/Stopping/Error), o que permite UI mostrar
+    spinner durante transição em vez de "mentir" sobre estar gravando.
+    IsBusy = true durante Starting/Stopping (botão deve mostrar feedback).
+
+    Usage — render-prop customizado:
+        <OmniSpeechToText Language="pt-BR"
+                           OnResult="@(r => _texto += r.Transcript)"
+                           Context="speech">
+            <button @onclick="@speech.ToggleAsync" disabled="@(!speech.IsSupported)">
+                @(speech.IsRecording ? "🛑 Parar" : "🎤 Falar")
+            </button>
+        </OmniSpeechToText>
+
+    Usage — controle programático sem ChildContent:
+        <OmniSpeechToText @ref="_stt" OnResult="OnResult" />
+        @code { OmniSpeechToText? _stt;
+                Task Toggle() => _stt?.ToggleAsync() ?? Task.CompletedTask; } *@
+
+@if (ChildContent is not null)
+{
+    @ChildContent(new SpeechContext(this))
+}
+
+@code {
+    [Parameter] public RenderFragment<SpeechContext>? ChildContent { get; set; }
+
+    /// <summary>BCP-47 language code: "pt-BR", "en-US", "es-ES", etc. Null = browser default.</summary>
+    [Parameter] public string? Language { get; set; }
+
+    /// <summary>Quando true (default), continua reconhecendo até o user parar.
+    /// false = para automaticamente após o primeiro silêncio longo.</summary>
+    [Parameter] public bool Continuous { get; set; } = true;
+
+    /// <summary>Quando true, dispara OnResult com resultados parciais (IsFinal=false)
+    /// enquanto o user fala. Útil pra mostrar texto "ao vivo" enquanto fala.
+    /// Default false — só resultados finais.</summary>
+    [Parameter] public bool InterimResults { get; set; }
+
+    /// <summary>Quantas alternativas pedir do motor por trecho. Default 1.</summary>
+    [Parameter] public int MaxAlternatives { get; set; } = 1;
+
+    /// <summary>Disparado a cada <c>onresult</c> do motor. Recebe transcript +
+    /// IsFinal + confidence.</summary>
+    [Parameter] public EventCallback<SpeechRecognitionResult> OnResult { get; set; }
+
+    /// <summary>Disparado quando o reconhecimento começa (após permissão de mic).</summary>
+    [Parameter] public EventCallback OnStart { get; set; }
+
+    /// <summary>Disparado quando o reconhecimento termina (user parou, silêncio
+    /// longo em modo non-continuous, ou erro). Use pra resetar UI.</summary>
+    [Parameter] public EventCallback OnEnd { get; set; }
+
+    /// <summary>Disparado em erro. Códigos comuns: <c>"not-allowed"</c> (permissão
+    /// negada), <c>"no-speech"</c>, <c>"audio-capture"</c>, <c>"network"</c>,
+    /// <c>"aborted"</c>, <c>"start-timeout"</c> (browser não respondeu),
+    /// <c>"invalid-state"</c> (instância prévia travada).
+    /// Use pra mostrar feedback ao user.</summary>
+    [Parameter] public EventCallback<string> OnError { get; set; }
+
+    /// <summary>Disparado quando o browser NÃO suporta Web Speech API
+    /// (Firefox, alguns embedded webviews). Use pra esconder o botão de
+    /// mic ou mostrar mensagem alternativa.</summary>
+    [Parameter] public EventCallback OnUnsupported { get; set; }
+
+    /// <summary>Disparado a cada transição de estado da state machine
+    /// (Idle ↔ Connecting ↔ Recording ↔ Stopping ↔ Error). Use pra UI
+    /// avançada (spinner em transição, badge de erro, etc).</summary>
+    [Parameter] public EventCallback<SpeechRecognitionState> OnStateChange { get; set; }
+
+    private DotNetObjectReference<OmniSpeechToText>? _selfRef;
+    private SpeechRecognitionState _state = SpeechRecognitionState.Idle;
+    private bool? _isSupportedCache;
+    private string? _lastError;
+
+    /// <summary>Estado atual da state machine.</summary>
+    public SpeechRecognitionState State => _state;
+
+    /// <summary>True APENAS quando mic está capturando áudio de fato
+    /// (<c>Recording</c>). Não confunda com <see cref="IsBusy"/> — durante
+    /// <c>Connecting</c> o reconhecedor pode estar tentando conectar
+    /// (especialmente no Edge) e o usuário NÃO consegue falar ainda.</summary>
+    public bool IsRecording => _state == SpeechRecognitionState.Recording;
+
+    /// <summary>True em transições/conexão (<c>Connecting</c>, <c>Stopping</c>).
+    /// Use pra mostrar spinner enquanto aguarda mic/browser. Botão deve
+    /// dizer "Conectando…" — não "Ouvindo".</summary>
+    public bool IsBusy => _state == SpeechRecognitionState.Connecting
+                       || _state == SpeechRecognitionState.Stopping;
+
+    /// <summary>Último código de erro recebido. Limpa ao reiniciar.</summary>
+    public string? LastError => _lastError;
+
+    /// <summary>Cache do <c>speechSupported()</c> JS. Avaliado lazy na 1ª chamada.</summary>
+    public async ValueTask<bool> IsSupportedAsync()
+    {
+        if (_isSupportedCache is bool b) return b;
+        try { _isSupportedCache = await JS.InvokeAsync<bool>("omniBlazor.speechSupported"); }
+        catch { _isSupportedCache = false; }
+        return _isSupportedCache.Value;
+    }
+
+    /// <summary>
+    /// Identifica o motor de reconhecimento ativo: <c>"chrome"</c> (Google Speech),
+    /// <c>"edge"</c> (Microsoft Speech — cold start lento, mais sensível a rede),
+    /// <c>"safari"</c> (Apple), ou <c>"other"</c>. Útil pra UI mostrar dicas
+    /// específicas (ex: "primeira fala no Edge pode demorar alguns segundos").
+    /// </summary>
+    public async ValueTask<string> EngineAsync()
+    {
+        try { return await JS.InvokeAsync<string>("omniBlazor.speechEngine"); }
+        catch { return "other"; }
+    }
+
+    /// <summary>Liga/desliga o mic. Se outro componente está gravando, o JS
+    /// para o atual e encadeia o start deste. Chamado pelo Button wrapper
+    /// e/ou pelo render-prop do user.
+    /// IMPORTANTE: não há guarda C# de IsBusy — o JS tem debounce de 250ms
+    /// + state machine que filtra cliques inválidos. Bloquear aqui escondia
+    /// cliques legítimos durante <c>Stopping</c> (pode durar segundos).</summary>
+    public async Task ToggleAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            // Passa nomes dos métodos [JSInvokable] explicitamente — nossa convenção é
+            // "*Internal" pra evitar colisão de nome com os parâmetros EventCallback
+            // (C# não permite property + method com mesmo nome). O JS aceita override
+            // via opts.{start|end|result|error|unsupported|state}Method.
+            await JS.InvokeVoidAsync("omniBlazor.speechToggle", _selfRef, new
+            {
+                Language,
+                Continuous,
+                InterimResults,
+                MaxAlternatives,
+                startMethod       = nameof(OnStartInternal),
+                endMethod         = nameof(OnEndInternal),
+                resultMethod      = nameof(OnResultInternal),
+                errorMethod       = nameof(OnErrorInternal),
+                unsupportedMethod = nameof(OnUnsupportedInternal),
+                stateMethod       = nameof(OnStateChangeInternal),
+            });
+        }
+        catch
+        {
+            // SignalR pode ter reconectado e _selfRef estar stale — invalida pra
+            // próximo click recriar. Sem isso o user precisaria F5.
+            try { _selfRef?.Dispose(); } catch { }
+            _selfRef = null;
+        }
+    }
+
+    /// <summary>Inicia o reconhecimento se estiver parado. Idempotente.</summary>
+    public Task StartAsync() => IsRecording || IsBusy ? Task.CompletedTask : ToggleAsync();
+
+    /// <summary>Para o reconhecimento se estiver gravando ou conectando.
+    /// Cancela auto-retry em andamento (importante no Edge). Idempotente.</summary>
+    public async Task StopAsync()
+    {
+        if (_state != SpeechRecognitionState.Recording
+         && _state != SpeechRecognitionState.Connecting) return;
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try { await JS.InvokeVoidAsync("omniBlazor.speechStop", _selfRef); }
+        catch
+        {
+            try { _selfRef?.Dispose(); } catch { }
+            _selfRef = null;
+        }
+    }
+
+    [JSInvokable] public Task OnStartInternal()
+    {
+        // State já foi atualizado por OnStateChangeInternal (ordem JS:
+        // setState 'recording' antes de invokar startMethod).
+        _lastError = null;
+        return OnStart.HasDelegate ? OnStart.InvokeAsync() : Task.CompletedTask;
+    }
+
+    [JSInvokable] public Task OnEndInternal()
+        => OnEnd.HasDelegate ? OnEnd.InvokeAsync() : Task.CompletedTask;
+
+    [JSInvokable] public Task OnResultInternal(string transcript, bool isFinal, double confidence)
+        => OnResult.HasDelegate
+            ? OnResult.InvokeAsync(new SpeechRecognitionResult(transcript, isFinal, confidence))
+            : Task.CompletedTask;
+
+    [JSInvokable] public Task OnErrorInternal(string error)
+    {
+        _lastError = error;
+        return OnError.HasDelegate ? OnError.InvokeAsync(error) : Task.CompletedTask;
+    }
+
+    [JSInvokable] public Task OnUnsupportedInternal()
+    {
+        _isSupportedCache = false;
+        _state = SpeechRecognitionState.Idle;
+        StateHasChanged();
+        return OnUnsupported.HasDelegate ? OnUnsupported.InvokeAsync() : Task.CompletedTask;
+    }
+
+    /// <summary>Notificação canônica de transição de estado vindo do JS.
+    /// É a fonte de verdade — OnStart/OnEnd são "cherry on top" pra
+    /// callers que só se importam com começo/fim.</summary>
+    [JSInvokable] public Task OnStateChangeInternal(int stateInt)
+    {
+        var newState = (SpeechRecognitionState)stateInt;
+        if (_state == newState) return Task.CompletedTask;
+        _state = newState;
+        // Quando volta pra Idle, limpa erro pra próxima sessão começar limpa
+        if (newState == SpeechRecognitionState.Idle) _lastError = null;
+        StateHasChanged();
+        return OnStateChange.HasDelegate
+            ? OnStateChange.InvokeAsync(newState)
+            : Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_state == SpeechRecognitionState.Recording
+         || _state == SpeechRecognitionState.Connecting)
+        {
+            try { await StopAsync(); } catch { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Context exposto ao ChildContent (render-prop). Encapsula state +
+    /// ações pra que o user customize o visual sem mexer no @ref do componente.</summary>
+    public sealed record SpeechContext(OmniSpeechToText Owner)
+    {
+        public SpeechRecognitionState State => Owner._state;
+        public bool IsRecording => Owner.IsRecording;
+        public bool IsBusy => Owner.IsBusy;
+        public string? LastError => Owner._lastError;
+        public ValueTask<bool> IsSupportedAsync() => Owner.IsSupportedAsync();
+        public Task ToggleAsync() => Owner.ToggleAsync();
+        public Task StartAsync() => Owner.StartAsync();
+        public Task StopAsync() => Owner.StopAsync();
+    }
+}

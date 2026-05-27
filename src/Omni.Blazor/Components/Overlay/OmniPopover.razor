@@ -1,0 +1,167 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Interactive popover — like Tooltip but with arbitrary content (links, forms,
+    menus). Opens on click of the Trigger slot; closes on click-outside or ESC.
+
+    Usage:
+        <OmniPopover Position="PopoverPosition.Bottom">
+            <Trigger>
+                <OmniButton Text="Opções" Icon="more-horizontal" />
+            </Trigger>
+            <ChildContent>
+                <div class="omni-stack omni-stack-8" style="padding: 12px; min-width: 200px;">
+                    <a href="#">Renomear</a>
+                    <a href="#">Duplicar</a>
+                    <a href="#" style="color: var(--omni-danger);">Excluir</a>
+                </div>
+            </ChildContent>
+        </OmniPopover>
+*@
+
+<span @ref="_wrapRef" class="@RootCss" style="@Style" data-omni-ppid="@_id" @attributes="Attributes">
+    <span class="omni-popover-trigger" @onclick="ToggleAsync">
+        @Trigger
+    </span>
+    @if (_open)
+    {
+        <div class="@PopoverCss" style="@PopoverInlineStyle" role="dialog" @onclick:stopPropagation>
+            @ChildContent
+        </div>
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public RenderFragment? Trigger { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public PopoverPosition Position { get; set; } = PopoverPosition.Bottom;
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+    [Parameter] public string? Width { get; set; }
+    [Parameter] public bool CloseOnContentClick { get; set; }
+
+    /// <summary>Mostra setinha (estilo tooltip/balão). Default <c>true</c>.
+    /// Para menus dropdown, defina <c>false</c> — visual mais limpo, sem o "balão".</summary>
+    [Parameter] public bool ShowArrow { get; set; } = true;
+
+    /// <summary>Alinha o popover ao FIM (direita) do trigger ao invés do começo (esquerda).
+    /// Útil para split buttons cujo trigger fica à direita: AlignEnd=true faz o popover
+    /// crescer para a esquerda, evitando overflow no canto direito da tela.</summary>
+    [Parameter] public bool AlignEnd { get; set; }
+
+    /// <summary>Distância (px) entre o trigger e o popover. Default <c>8</c> (tooltip-like).
+    /// Para dropdown menus, use 2-4 para parecer "grudado" no botão.</summary>
+    [Parameter] public int Offset { get; set; } = 8;
+
+    private bool _open;
+    private bool _flipPending;
+    private ElementReference _wrapRef;
+    private string _id = $"pp-{Guid.NewGuid():N}";
+    private readonly ParameterState<bool> _openState;
+
+    public OmniPopover()
+    {
+        // ParameterState fires its handler only when the *consumer* mutates
+        // the Open parameter — never when a re-render re-passes the same value.
+        // That eliminates the bug where typing into a sibling input would
+        // collapse the popover.
+        _openState = RegisterParameter<bool>(nameof(Open))
+            .WithParameter(() => Open)
+            .WithEventCallback(() => OpenChanged)
+            .WithChangeHandler(args => _open = args.Value)
+            .Attach();
+    }
+
+    private string RootCss => CssBuilder.Default("omni-popover-wrap")
+        .AddClass("omni-popover-open", _open)
+        .AddClass(Class)
+        .Build();
+
+    private string PopoverCss => CssBuilder.Default("omni-popover")
+        .AddClass(Position switch
+        {
+            PopoverPosition.Top   => "omni-popover-top",
+            PopoverPosition.Left  => "omni-popover-left",
+            PopoverPosition.Right => "omni-popover-right",
+            _                     => "omni-popover-bottom"
+        })
+        .AddClass("omni-popover-no-arrow", !ShowArrow)
+        .AddClass("omni-popover-align-end", AlignEnd)
+        .Build();
+
+    private string PopoverInlineStyle
+    {
+        get
+        {
+            var parts = new List<string>(3) { $"--omni-popover-offset:{Offset}px" };
+            if (Width is not null) parts.Add($"width:{Width}");
+            return string.Join(';', parts);
+        }
+    }
+
+    private Task ToggleAsync()
+    {
+        return _open ? CloseAsync() : OpenAsync();
+    }
+
+    private async Task OpenAsync()
+    {
+        if (_open) return;
+        _open = true;
+        _flipPending = true;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(true);
+        StateHasChanged();
+        try
+        {
+            var dotnet = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+                _id, $"[data-omni-ppid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+            await JS.InvokeVoidAsync("omniBlazor.registerEsc", _id, dotnet, "OnEscAsync");
+        }
+        catch { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Roda auto-flip APÓS o popover entrar no DOM (precisamos do bounding rect).
+        // Também registra no popoverRegistry para reposicionar em resize/scroll.
+        if (_open && _flipPending)
+        {
+            _flipPending = false;
+            try
+            {
+                await JS.InvokeVoidAsync("omniBlazor.popoverRegister", _wrapRef);
+                await JS.InvokeVoidAsync("omniBlazor.popoverAutoFlip", _wrapRef);
+            }
+            catch { }
+        }
+    }
+
+    [JSInvokable]
+    public Task OnClickOutsideAsync() => CloseAsync();
+
+    [JSInvokable]
+    public Task OnEscAsync() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!_open) return;
+        _open = false;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(false);
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
+            await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
+            await JS.InvokeVoidAsync("omniBlazor.popoverUnregister", _wrapRef);
+        }
+        catch { }
+        StateHasChanged();
+    }
+
+    public void Dispose() => _ = CloseAsync();
+}

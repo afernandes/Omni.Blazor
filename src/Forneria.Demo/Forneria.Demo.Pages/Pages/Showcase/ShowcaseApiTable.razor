@@ -1,0 +1,48 @@
+@* API reference table for a component doc page. Group rows by purpose using
+   the Title parameter ("Parâmetros", "Eventos", "Slots", "Métodos").
+
+   Usage:
+       <ShowcaseApiTable Title="Parâmetros">
+           <ShowcaseApiRow Name="Severity" Type="NotificationSeverity" Default="Info"
+                           Description="Cor e ícone do alerta." />
+       </ShowcaseApiTable>
+*@
+
+<div class="omni-api-block">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h3 class="omni-api-block-title">@Title</h3>
+    }
+    <div class="omni-api-table-scroll">
+        <table class="omni-api-table">
+            <thead>
+                <tr>
+                    <th>@NameHeader</th>
+                    <th>Tipo</th>
+                    @if (ShowDefault)
+                    {
+                        <th>Padrão</th>
+                    }
+                    <th>Descrição</th>
+                </tr>
+            </thead>
+            <tbody>
+                @ChildContent
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    /// <summary>Group heading — e.g. "Parâmetros", "Eventos", "Slots", "Métodos".</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Header of the first column. Default "Nome".</summary>
+    [Parameter] public string NameHeader { get; set; } = "Nome";
+
+    /// <summary>Whether to render the "Padrão" column. Disable for Events/Slots tables.</summary>
+    [Parameter] public bool ShowDefault { get; set; } = true;
+
+    /// <summary>The <c>ShowcaseApiRow</c> rows.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

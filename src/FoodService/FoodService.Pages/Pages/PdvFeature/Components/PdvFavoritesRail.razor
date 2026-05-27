@@ -1,0 +1,23 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Rail horizontal de produtos mais usados (mock). Click adiciona ao cart. *@
+<div class="fs-pdv-fav-rail">
+    @foreach (var fav in PdvMockData.Favorites)
+    {
+        var f = fav;
+        var prod = PdvMockData.Products.FirstOrDefault(p => p.Id == f.ProductId);
+        if (prod is null) continue;
+        <OmniChip Class="fs-pdv-fav-chip" Icon="plus" OnClick="@(() => Order.AddItem(prod))">
+            <span class="fs-pdv-fav-chip-name">@f.Name</span>
+            <span class="fs-pdv-fav-chip-price">@f.Price.ToString("C", _ptBr)</span>
+        </OmniChip>
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+}

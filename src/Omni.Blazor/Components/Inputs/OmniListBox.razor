@@ -1,0 +1,188 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits FormComponent<TValue>
+@using Omni.Blazor.Utilities
+
+@*  Lista sempre aberta de seleção. Diferente do OmniSelect (dropdown
+    popup), o ListBox renderiza inline e ocupa espaço — bom para
+    sidebars fixas, pickers permanentes, "transfer lists" em wizards.
+
+    Modos:
+      • Single (default): clica = seleciona (deselecta o anterior)
+      • Multiple=true: clica = toggle (checkbox visual à esquerda)
+
+    Two-way:
+      • Single   → @bind-Value="single"
+      • Multiple → @bind-Values="multi"
+
+    A11y: role=listbox, role=option em cada item, aria-selected,
+    aria-multiselectable. Keyboard: ↑/↓ move, Enter/Space seleciona,
+    Home/End vão ao primeiro/último. *@
+
+<div class="@RootCss" style="@RootStyle"
+     role="listbox"
+     aria-multiselectable="@(Multiple ? "true" : "false")"
+     aria-label="@AriaLabel"
+     tabindex="@(Disabled ? -1 : 0)"
+     @onkeydown="OnKey"
+     @attributes="Attributes">
+    @if (Items is not null)
+    {
+        var idx = 0;
+        @foreach (var item in Items)
+        {
+            var localIdx = idx;
+            // Default ValueSelector = identity: sem selector, o próprio item é o valor.
+            // (default(TValue) seria null/0 para todos os items — quebraria click + bind.)
+            var v = ValueSelector is not null ? ValueSelector(item) : item;
+            var label = TextSelector is not null ? TextSelector(item) : item?.ToString() ?? "";
+            var icon = IconSelector is not null ? IconSelector(item) : null;
+            var desc = DescriptionSelector is not null ? DescriptionSelector(item) : null;
+            var itemDisabled = Disabled || (DisabledSelector is not null && DisabledSelector(item));
+            var selected = IsSelected(v);
+            <div class="@ItemCss(selected, itemDisabled, _focusedIndex == localIdx)"
+                 role="option"
+                 aria-selected="@(selected ? "true" : "false")"
+                 aria-disabled="@(itemDisabled ? "true" : null)"
+                 @onclick="@(_ => OnItemClickAsync(v, itemDisabled, localIdx))">
+                @if (Multiple)
+                {
+                    <span class="omni-listbox-check">
+                        @if (selected) { <OmniIcon Name="check" Size="ComponentSize.Sm" /> }
+                    </span>
+                }
+                @if (!string.IsNullOrEmpty(icon))
+                {
+                    <OmniIcon Name="@icon" Size="ComponentSize.Sm" />
+                }
+                <span class="omni-listbox-text">
+                    <span class="omni-listbox-label">@label</span>
+                    @if (!string.IsNullOrEmpty(desc))
+                    {
+                        <span class="omni-listbox-desc">@desc</span>
+                    }
+                </span>
+            </div>
+            idx++;
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Itens a renderizar.</summary>
+    [Parameter] public IEnumerable<TValue>? Items { get; set; }
+
+    // Value (single-select) / ValueChanged / ValueExpression / Required /
+    // Validation / OnlyValidateIfDirty / Disabled herdados de FormComponent<TValue>.
+
+    /// <summary>Multi-select bind. Use com <c>Multiple=true</c>.</summary>
+    [Parameter] public IEnumerable<TValue>? Values { get; set; }
+    [Parameter] public EventCallback<IEnumerable<TValue>> ValuesChanged { get; set; }
+
+    /// <summary>Quando true, permite selecionar múltiplos itens.</summary>
+    [Parameter] public bool Multiple { get; set; }
+
+    [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
+    [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
+    [Parameter] public Func<TValue?, string?>? DescriptionSelector { get; set; }
+    [Parameter] public Func<TValue?, string?>? IconSelector { get; set; }
+    [Parameter] public Func<TValue?, bool>? DisabledSelector { get; set; }
+
+    /// <summary>Altura máxima (CSS). Default <c>240px</c>. Quando excede, scroll vertical.</summary>
+    [Parameter] public string MaxHeight { get; set; } = "240px";
+
+    // Disabled herdado de FormComponent<TValue>.
+
+    [Parameter] public string? AriaLabel { get; set; }
+
+    private int _focusedIndex = -1;
+
+    private string RootCss => CssBuilder.Default("omni-listbox")
+        .AddClass(Multiple ? "omni-listbox-multi" : "omni-listbox-single")
+        .AddClass("omni-listbox-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle => $"max-height:{MaxHeight};" + (Style ?? "");
+
+    private string ItemCss(bool selected, bool itemDisabled, bool focused) =>
+        CssBuilder.Default("omni-listbox-item")
+            .AddClass("omni-listbox-item-selected", selected)
+            .AddClass("omni-listbox-item-disabled", itemDisabled)
+            .AddClass("omni-listbox-item-focused",  focused)
+            .Build();
+
+    private bool IsSelected(TValue? v)
+    {
+        if (v is null) return false;
+        if (Multiple)
+            return Values?.Any(x => EqualityComparer<TValue>.Default.Equals(x, v)) ?? false;
+        return EqualityComparer<TValue>.Default.Equals(Value, v);
+    }
+
+    private async Task OnItemClickAsync(TValue? v, bool itemDisabled, int idx)
+    {
+        if (itemDisabled || v is null) return;
+        _focusedIndex = idx;
+        await ToggleAsync(v);
+    }
+
+    private async Task ToggleAsync(TValue v)
+    {
+        if (Multiple)
+        {
+            // Modo multi: gerencia Values manualmente (FormComponent.Value é só single).
+            var list = Values?.ToList() ?? new List<TValue>();
+            var existing = list.FirstOrDefault(x => EqualityComparer<TValue>.Default.Equals(x, v));
+            if (existing is not null && !EqualityComparer<TValue>.Default.Equals(existing, default))
+                list.RemoveAll(x => EqualityComparer<TValue>.Default.Equals(x, v));
+            else
+                list.Add(v);
+            Values = list;
+            if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(list);
+        }
+        else
+        {
+            // Modo single: SetValueAsync (de FormComponent) integra com EditContext + Validation.
+            if (EqualityComparer<TValue>.Default.Equals(Value, v)) return;
+            await SetValueAsync(v);
+        }
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (Disabled || Items is null) return;
+        var arr = Items.ToArray();
+        if (arr.Length == 0) return;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _focusedIndex = Math.Min(arr.Length - 1, _focusedIndex + 1);
+                break;
+            case "ArrowUp":
+                _focusedIndex = Math.Max(0, _focusedIndex - 1);
+                break;
+            case "Home":
+                _focusedIndex = 0;
+                break;
+            case "End":
+                _focusedIndex = arr.Length - 1;
+                break;
+            case "Enter":
+            case " ":
+                if (_focusedIndex >= 0 && _focusedIndex < arr.Length)
+                {
+                    var item = arr[_focusedIndex];
+                    // Default ValueSelector = identity (mesma regra do click handler).
+                    var v = ValueSelector is not null ? ValueSelector(item) : item;
+                    var itemDisabled = DisabledSelector is not null && DisabledSelector(item);
+                    if (!itemDisabled && v is not null) await ToggleAsync(v);
+                }
+                break;
+            default:
+                return;
+        }
+        StateHasChanged();
+    }
+}

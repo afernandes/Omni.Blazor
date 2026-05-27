@@ -1,0 +1,420 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@implements IOmniFormComponent
+@inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Linq.Expressions
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Date range picker with a single combined input. Click the input or the
+    calendar icon to open a popover with:
+
+      • A presets sidebar (Hoje · Ontem · Últimos 7/30 dias · Este mês ·
+        Mês passado · Este ano) — one click commits the range.
+      • Two adjacent months side-by-side (previous + current).
+      • Hover preview: after the first click, dragging the mouse over the
+        calendar paints a live preview of the candidate range.
+      • A Clear button — wipes the range without closing the popover.
+
+    Inspired by MudDateRangePicker's interaction model and Radzen's footer
+    pattern, but consolidated into one input (less visual clutter).
+
+    Usage:
+        <OmniDateRangePicker @bind-From="from" @bind-To="to" />
+*@
+
+<div class="@RootCss" style="@Style" data-omni-rpid="@_id" @attributes="Attributes">
+    <button type="button"
+            class="omni-daterange-input"
+            disabled="@Disabled"
+            @onclick="ToggleAsync">
+        @if (From is null && To is null)
+        {
+            <span class="omni-daterange-placeholder">@Placeholder</span>
+        }
+        else
+        {
+            <span class="omni-daterange-value">@(From?.ToString(DateFormat) ?? "…")</span>
+            <span class="omni-daterange-sep">→</span>
+            <span class="omni-daterange-value">@(To?.ToString(DateFormat) ?? "…")</span>
+        }
+        <span class="omni-daterange-trigger">
+            <OmniIcon Name="calendar" Size="ComponentSize.Sm" />
+        </span>
+    </button>
+
+    @if (_open)
+    {
+        <div class="omni-daterange-popover" @onclick:stopPropagation>
+            <aside class="omni-daterange-presets">
+                <div class="omni-daterange-presets-title">ATALHOS</div>
+                @foreach (var p in Presets)
+                {
+                    var preset = p;
+                    <button type="button"
+                            class="omni-daterange-preset"
+                            @onclick="@(_ => ApplyPresetAsync(preset))">@preset.Label</button>
+                }
+            </aside>
+            <div class="omni-daterange-cal-wrap">
+                <div class="omni-daterange-cal-grid">
+                    @* Left calendar: show only the "prev" chevron — the inner (right) one is hidden so the two panels read as one widget. *@
+                    <OmniCalendar Selected="null"
+                                    RangeStart="@_pendingFrom" RangeEnd="@_pendingTo" RangeHoverEnd="@_hover"
+                                    ViewMonth="@_leftMonth"
+                                    ViewMonthChanged="OnLeftMonthChanged"
+                                    MinDate="@MinDate" MaxDate="@MaxDate"
+                                    DisableWeekends="@DisableWeekends"
+                                    DisabledDates="@DisabledDates"
+                                    DateRender="@DateRender"
+                                    ShowWeekNumbers="@ShowWeekNumbers"
+                                    FirstDayOfWeek="@FirstDayOfWeek"
+                                    ShowNextButton="false"
+                                    OnDateSelected="OnDayClick"
+                                    OnDayHover="OnDayHover" />
+                    @* Right calendar: show only the "next" chevron — its inner (left) one is hidden. *@
+                    <OmniCalendar Selected="null"
+                                    RangeStart="@_pendingFrom" RangeEnd="@_pendingTo" RangeHoverEnd="@_hover"
+                                    ViewMonth="@_rightMonth"
+                                    ViewMonthChanged="OnRightMonthChanged"
+                                    MinDate="@MinDate" MaxDate="@MaxDate"
+                                    DisableWeekends="@DisableWeekends"
+                                    DisabledDates="@DisabledDates"
+                                    DateRender="@DateRender"
+                                    ShowWeekNumbers="@ShowWeekNumbers"
+                                    FirstDayOfWeek="@FirstDayOfWeek"
+                                    ShowPrevButton="false"
+                                    OnDateSelected="OnDayClick"
+                                    OnDayHover="OnDayHover" />
+                </div>
+                @if (ShowFooter)
+                {
+                    <footer class="omni-daterange-footer">
+                        <span class="omni-daterange-summary">@RangeSummary</span>
+                        <div class="omni-row omni-row-gap-8">
+                            @if (ShowClearButton)
+                            {
+                                <OmniButton Text="@ClearText" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" OnClick="ClearAsync" />
+                            }
+                            @if (!AutoApply)
+                            {
+                                <OmniButton Text="@CancelText" Variant="ButtonVariant.Ghost"  Size="ComponentSize.Sm" OnClick="CancelAsync" />
+                                <OmniButton Text="@ApplyText"  Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                             Disabled="@(_pendingFrom is null || _pendingTo is null)"
+                                             OnClick="CommitAsync" />
+                            }
+                        </div>
+                    </footer>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public DateOnly? From { get; set; }
+    [Parameter] public EventCallback<DateOnly?> FromChanged { get; set; }
+    [Parameter] public DateOnly? To { get; set; }
+    [Parameter] public EventCallback<DateOnly?> ToChanged { get; set; }
+
+    /// <summary>Expression para integração com EditContext (registra com OmniForm).
+    /// Aponte pro campo From do model; o validator vai receber o tuple (From, To).</summary>
+    [Parameter] public Expression<Func<DateOnly?>>? FromExpression { get; set; }
+
+    /// <summary>Nome lógico — registra com OmniForm para validators irmãos.
+    /// (<c>&lt;OmniRequiredValidator Component="periodo" /&gt;</c>)</summary>
+    [Parameter] public string? Name { get; set; }
+
+    [CascadingParameter] protected EditContext? FormEditContext { get; set; }
+    [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
+
+    // ── IOmniFormComponent — descoberta por validators irmãos ──
+    // O "valor" do range é o tuple (From, To). Validators que tratam tuple
+    // sabem checar ambos; o RequiredValidator considera HasValue se AMBOS
+    // estiverem definidos (período completo).
+    private FieldIdentifier _fieldId;
+    private bool _hasFieldId;
+
+    string IOmniFormComponent.ResolvedName => Name ?? (_hasFieldId ? _fieldId.FieldName : string.Empty);
+    FieldIdentifier IOmniFormComponent.FieldIdentifier => _fieldId;
+    object? IOmniFormComponent.GetValue() => (From, To);
+    bool IOmniFormComponent.HasValue => From.HasValue && To.HasValue;
+
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string DateFormat { get; set; } = "dd/MM/yyyy";
+    [Parameter] public string Placeholder { get; set; } = "Selecionar período";
+    [Parameter] public DateOnly? MinDate { get; set; }
+    [Parameter] public DateOnly? MaxDate { get; set; }
+    [Parameter] public bool DisableWeekends { get; set; }
+    [Parameter] public Func<DateOnly, bool>? DisabledDates { get; set; }
+
+    /// <summary>Per-day render hook applied to both calendars (holidays, markers, tooltips).</summary>
+    [Parameter] public Action<DateRenderEventArgs>? DateRender { get; set; }
+    /// <summary>Show the ISO 8601 week number column on both calendars.</summary>
+    [Parameter] public bool ShowWeekNumbers { get; set; }
+    /// <summary>Override the first day of the week on both calendars.</summary>
+    [Parameter] public DayOfWeek? FirstDayOfWeek { get; set; }
+
+    /// <summary>
+    /// Quick-select shortcuts shown in the popover sidebar. Each preset is a
+    /// label plus a function returning the (from, to) tuple at the moment it's
+    /// clicked. Default set covers the most common business reporting periods.
+    /// </summary>
+    [Parameter] public IReadOnlyList<DateRangePreset> Presets { get; set; } = DefaultPresets;
+
+    /// <summary>
+    /// When true (default), the second click on a day commits and closes the
+    /// picker immediately. When false, the popover stays open and Apply /
+    /// Cancel buttons are shown so the user can preview before committing.
+    /// </summary>
+    [Parameter] public bool AutoApply { get; set; } = true;
+
+    /// <summary>Show the "Limpar" button in the popover footer.</summary>
+    [Parameter] public bool ShowClearButton { get; set; } = true;
+
+    [Parameter] public string ClearText  { get; set; } = "Limpar";
+    [Parameter] public string ApplyText  { get; set; } = "Aplicar";
+    [Parameter] public string CancelText { get; set; } = "Cancelar";
+
+    /// <summary>Whether the footer row is rendered at all. Hidden if no buttons would show and AutoApply is on.</summary>
+    private bool ShowFooter => ShowClearButton || !AutoApply || true;
+    // Always render the footer because it also holds the summary line. The
+    // expression above keeps the door open for a future "minimal" mode.
+
+    private readonly string _id = $"rp-{Guid.NewGuid():N}";
+    private bool _open;
+    private DateOnly? _pendingFrom;
+    private DateOnly? _pendingTo;
+    private DateOnly? _hover;
+    private DateOnly _leftMonth  = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1);
+    private DateOnly _rightMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+    private string RootCss => CssBuilder.Default("omni-daterange")
+        .AddClass("omni-daterange-open", _open)
+        .AddClass("omni-daterange-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private string RangeSummary
+    {
+        get
+        {
+            if (_pendingFrom is null) return "Selecione a data inicial";
+            if (_pendingTo is null)   return $"Início: {_pendingFrom.Value.ToString(DateFormat)} · selecione o fim";
+            var (a, b) = _pendingFrom.Value <= _pendingTo.Value
+                ? (_pendingFrom.Value, _pendingTo.Value)
+                : (_pendingTo.Value, _pendingFrom.Value);
+            var days = b.DayNumber - a.DayNumber + 1;
+            return $"{a.ToString(DateFormat)} → {b.ToString(DateFormat)} · {days} dia{(days == 1 ? "" : "s")}";
+        }
+    }
+
+    // ParameterStates: From/To only need to re-sync to pending state when the
+    // value really changes (not on every render). FromExpression rebuilds the
+    // FieldIdentifier only when the expression itself is rebound.
+    private readonly ParameterState<DateOnly?> _fromState;
+    private readonly ParameterState<DateOnly?> _toState;
+    private readonly ParameterState<Expression<Func<DateOnly?>>?> _fromExprState;
+
+    // Test-only counter: increments every time any tracked-param recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniDateRangePicker()
+    {
+        _fromState = RegisterParameter<DateOnly?>(nameof(From))
+            .WithParameter(() => From)
+            .WithChangeHandler(SyncPendingFromProps)
+            .Attach();
+        _toState = RegisterParameter<DateOnly?>(nameof(To))
+            .WithParameter(() => To)
+            .WithChangeHandler(SyncPendingFromProps)
+            .Attach();
+        _fromExprState = RegisterParameter<Expression<Func<DateOnly?>>?>(nameof(FromExpression))
+            .WithParameter(() => FromExpression)
+            .WithChangeHandler(RecomputeFieldId)
+            .Attach();
+    }
+
+    private void SyncPendingFromProps()
+    {
+        // Only sync pending state from props when the picker is closed, so a
+        // re-render of the parent doesn't blow away a half-committed selection.
+        if (!_open)
+        {
+            _pendingFrom = From;
+            _pendingTo   = To;
+        }
+        RecomputeCount++;
+    }
+
+    private void RecomputeFieldId()
+    {
+        if (FromExpression is not null)
+        {
+            _fieldId = FieldIdentifier.Create(FromExpression);
+            _hasFieldId = true;
+        }
+        else
+        {
+            _hasFieldId = false;
+        }
+        RecomputeCount++;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
+        {
+            FormRegistry?.RegisterComponent(this);
+        }
+    }
+
+    private async Task OnDayClick(DateOnly day)
+    {
+        if (_pendingFrom is null || _pendingTo is not null)
+        {
+            // Start a fresh selection
+            _pendingFrom = day;
+            _pendingTo   = null;
+            _hover       = null;
+        }
+        else
+        {
+            // Complete the range (auto-swap if user clicked end-before-start)
+            if (day < _pendingFrom.Value) (_pendingFrom, _pendingTo) = (day, _pendingFrom);
+            else _pendingTo = day;
+            _hover = null;
+            if (AutoApply) await CommitAsync();
+            // When AutoApply is off, leave the popover open so the user can
+            // preview the chosen range, click Apply, or adjust by clicking
+            // another day (resetting to the fresh-selection branch above).
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        // Throw away any pending changes; CloseAsync also resets pending to
+        // From/To as defense in depth.
+        _pendingFrom = From;
+        _pendingTo   = To;
+        await CloseAsync();
+    }
+
+    private Task OnDayHover(DateOnly? day)
+    {
+        // Only meaningful while user is mid-selection.
+        if (_pendingFrom is null || _pendingTo is not null) { _hover = null; return Task.CompletedTask; }
+        _hover = day;
+        return Task.CompletedTask;
+    }
+
+    private async Task ApplyPresetAsync(DateRangePreset preset)
+    {
+        var (from, to) = preset.Resolve();
+        _pendingFrom = from;
+        _pendingTo   = to;
+        await CommitAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        _pendingFrom = null;
+        _pendingTo   = null;
+        _hover       = null;
+        if (FromChanged.HasDelegate) await FromChanged.InvokeAsync(null);
+        if (ToChanged.HasDelegate)   await ToChanged.InvokeAsync(null);
+        NotifyEditContext();
+        StateHasChanged();
+    }
+
+    private async Task CommitAsync()
+    {
+        if (FromChanged.HasDelegate) await FromChanged.InvokeAsync(_pendingFrom);
+        if (ToChanged.HasDelegate)   await ToChanged.InvokeAsync(_pendingTo);
+        NotifyEditContext();
+        await CloseAsync();
+    }
+
+    private void NotifyEditContext()
+    {
+        // Sibling validators reagem ao field change; usa o FieldId do FromExpression.
+        if (_hasFieldId) FormEditContext?.NotifyFieldChanged(_fieldId);
+    }
+
+    private void OnLeftMonthChanged(DateOnly v)  { _leftMonth = v;  _rightMonth = v.AddMonths(1); }
+    private void OnRightMonthChanged(DateOnly v) { _rightMonth = v; _leftMonth  = v.AddMonths(-1); }
+
+    private async Task ToggleAsync()
+    {
+        if (Disabled) return;
+        if (_open) await CloseAsync(); else await OpenAsync();
+    }
+
+    private async Task OpenAsync()
+    {
+        if (Disabled || _open) return;
+        _open = true;
+        _hover = null;
+        // Sync the months we'll show to the current value when reopening.
+        if (From.HasValue)
+        {
+            _leftMonth  = new DateOnly(From.Value.Year, From.Value.Month, 1);
+            _rightMonth = _leftMonth.AddMonths(1);
+        }
+        StateHasChanged();
+        try
+        {
+            var dotnet = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+                _id, $"[data-omni-rpid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public Task OnClickOutsideAsync() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!_open) return;
+        _open = false;
+        _hover = null;
+        // Discard a half-completed selection: revert pending back to the
+        // last committed range so re-opening shows the real state, not a
+        // dangling start-without-end.
+        _pendingFrom = From;
+        _pendingTo   = To;
+        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
+        catch { }
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        FormRegistry?.UnregisterComponent(this);
+        _ = CloseAsync();
+    }
+
+    /// <summary>Quick-select shortcut: label + resolver returning the range.</summary>
+    public sealed record DateRangePreset(string Label, Func<(DateOnly From, DateOnly To)> Resolve);
+
+    public static readonly IReadOnlyList<DateRangePreset> DefaultPresets = new[]
+    {
+        new DateRangePreset("Hoje",            () => { var d = Today; return (d, d); }),
+        new DateRangePreset("Ontem",           () => { var d = Today.AddDays(-1); return (d, d); }),
+        new DateRangePreset("Últimos 7 dias",  () => (Today.AddDays(-6),  Today)),
+        new DateRangePreset("Últimos 30 dias", () => (Today.AddDays(-29), Today)),
+        new DateRangePreset("Este mês",        () => (new DateOnly(Today.Year, Today.Month, 1), Today)),
+        new DateRangePreset("Mês passado",     () => {
+            var first = new DateOnly(Today.Year, Today.Month, 1).AddMonths(-1);
+            var last  = first.AddMonths(1).AddDays(-1);
+            return (first, last);
+        }),
+        new DateRangePreset("Este ano",        () => (new DateOnly(Today.Year, 1, 1), Today)),
+    };
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+}

@@ -1,0 +1,362 @@
+@page "/showcase/datepicker"
+@layout ShowcaseLayout
+
+<PageTitle>DatePicker — Showcase</PageTitle>
+
+<ShowcasePage Title="DatePicker & DateRangePicker"
+              Subtitle="Calendário popover para seleção de data, hora e período.">
+
+    <Overview>
+        <p>
+            O <code>OmniDatePicker&lt;TValue&gt;</code> é um seletor de data <strong>genérico</strong> —
+            funciona com <code>DateOnly?</code>, <code>DateTime?</code> e <code>TimeOnly?</code> (que
+            ativa automaticamente o modo só-hora). Abre um calendário em popover, ou pode ser
+            renderizado <code>Inline</code> direto no fluxo da página.
+        </p>
+        <p>
+            Suporta limites <code>MinDate</code>/<code>MaxDate</code>, bloqueio de finais de
+            semana e datas específicas, hook <code>DateRender</code> para estilizar dias,
+            seleção de hora (<code>ShowTime</code>), semana ISO, parser customizado
+            (<code>ParseInput</code>) e slot <code>Footer</code>. O <code>OmniDateRangePicker</code>
+            adiciona seleção de período com calendário duplo e atalhos.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Seleção de uma data única — vencimento, agendamento, nascimento.</li>
+            <li>Data + hora para agendamentos precisos com <code>ShowTime</code>.</li>
+            <li>Período (de–até) em relatórios e filtros com <code>OmniDateRangePicker</code>.</li>
+            <li>Calendários embutidos em painéis de filtro via <code>Inline</code>.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Entrada de hora isolada sem data → use <code>TValue="TimeOnly?"</code> ou o modo só-hora.</li>
+            <li>Texto de data sem calendário → use <code>OmniMaskedTextBox</code> com máscara.</li>
+            <li>Seleção de mês/ano apenas → use <code>OmniSelect</code> com listas curtas.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DATE PICKER"
+                         Description="Generic sobre DateOnly? ou DateTime?."
+                         Code="@(@"<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""d1"" />
+<OmniDatePicker TValue=""DateTime?"" @bind-Value=""d2"" />")">
+            <div class="omni-grid-3">
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">DateOnly?</label>
+                    <OmniDatePicker TValue="DateOnly?" @bind-Value="d1" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">DateTime?</label>
+                    <OmniDatePicker TValue="DateTime?" @bind-Value="d2" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Com valor inicial</label>
+                    <OmniDatePicker TValue="DateOnly?" @bind-Value="d3" />
+                </div>
+            </div>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">
+                d1=@(d1?.ToString() ?? "—") | d2=@(d2?.ToString("dd/MM/yyyy") ?? "—") | d3=@(d3?.ToString() ?? "—")
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MIN / MAX & DIAS BLOQUEADOS"
+                         Description="Limite a partir de hoje e bloqueio de finais de semana."
+                         Code="@(@"<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""d4""
+                 MinDate=""@DateOnly.FromDateTime(DateTime.Today)""
+                 MaxDate=""@DateOnly.FromDateTime(DateTime.Today.AddDays(30))"" />
+<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""d5"" DisableWeekends />")">
+            <div class="omni-grid-2">
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Mín = hoje, Máx = daqui 30 dias</label>
+                    <OmniDatePicker TValue="DateOnly?" @bind-Value="d4"
+                                      MinDate="@DateOnly.FromDateTime(DateTime.Today)"
+                                      MaxDate="@DateOnly.FromDateTime(DateTime.Today.AddDays(30))" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Apenas dias de semana</label>
+                    <OmniDatePicker TValue="DateOnly?" @bind-Value="d5" DisableWeekends />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DATAS ESPECIAIS (DATE RENDER)"
+                         Description="Callback DateRender deixa o consumidor estilizar/desabilitar dias específicos sem mexer no modelo. Aqui: feriados (vermelho), reuniões marcadas (accent), e domingos desabilitados."
+                         Code="@(@"<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""d6"" DateRender=""OnHolidayRender"" />
+<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""d7"" DateRender=""OnAgendaRender"" />")">
+            <div class="omni-grid-2">
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Feriados destacados</label>
+                    <OmniDatePicker TValue="DateOnly?" @bind-Value="d6"
+                                      DateRender="OnHolidayRender" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Agenda — dias com reunião</label>
+                    <OmniDatePicker TValue="DateOnly?" @bind-Value="d7"
+                                      DateRender="OnAgendaRender" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ISO WEEK + FIRST DAY OF WEEK + FOOTER"
+                         Description="Coluna de semana ISO 8601, primeira coluna como segunda-feira (padrão europeu), e botão Hoje no rodapé."
+                         Code="@(@"<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""d8""
+                 ShowWeekNumbers=""true""
+                 FirstDayOfWeek=""DayOfWeek.Monday"">
+    <Footer>
+        <OmniButton Text=""Hoje"" Variant=""ButtonVariant.Ghost"" Size=""ComponentSize.Sm"" />
+    </Footer>
+</OmniDatePicker>")">
+            <OmniDatePicker TValue="DateOnly?" @bind-Value="d8"
+                              ShowWeekNumbers="true"
+                              FirstDayOfWeek="DayOfWeek.Monday"
+                              InitialViewDate="@DateOnly.FromDateTime(DateTime.Today)">
+                <Footer>
+                    <OmniButton Text="Hoje" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                 OnClick="@(_ => { d8 = DateOnly.FromDateTime(DateTime.Today); return Task.CompletedTask; })" />
+                </Footer>
+            </OmniDatePicker>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DATE RANGE"
+                         Description="Seleção de período. Calendário duplo (2 meses lado a lado)."
+                         Code="@(@"<OmniDateRangePicker @bind-From=""rangeFrom"" @bind-To=""rangeTo"" />")">
+            <OmniDateRangePicker @bind-From="rangeFrom" @bind-To="rangeTo" />
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">
+                De @(rangeFrom?.ToString("dd/MM/yyyy") ?? "—") até @(rangeTo?.ToString("dd/MM/yyyy") ?? "—")
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="INLINE"
+                         Description="Inline=true renderiza o calendário no fluxo da página, sem input nem popover. Bom pra painéis de filtro / sidebars / dashboards de agenda."
+                         Code="@(@"<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""dInline"" Inline=""true"" />")">
+            <OmniDatePicker TValue="DateOnly?" @bind-Value="dInline" Inline="true" />
+            <div class="omni-meta" style="margin-top:8px;">Selecionado: <strong>@(dInline?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SHOWTIME (DATA + HORA)"
+                         Description="ShowTime adiciona seletor de hora/minuto abaixo do calendário. Útil pra agendamentos. Aqui ligado em DateTime?."
+                         Code="@(@"<OmniDatePicker TValue=""DateTime?"" @bind-Value=""dtSchedule"" ShowTime=""true"" />
+<OmniDatePicker TValue=""DateTime?"" @bind-Value=""dtBooking""
+                 ShowTime=""true"" ShowSeconds=""true"" HourFormat=""12"" />")">
+            <div class="omni-grid-2">
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Agendamento (24h)</label>
+                    <OmniDatePicker TValue="DateTime?" @bind-Value="dtSchedule" ShowTime="true" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Reserva (12h + AM/PM + segundos)</label>
+                    <OmniDatePicker TValue="DateTime?" @bind-Value="dtBooking"
+                                      ShowTime="true" ShowSeconds="true" HourFormat="12"
+                                      DateFormat="dd/MM/yyyy hh:mm:ss tt" />
+                </div>
+            </div>
+            <div class="omni-meta" style="margin-top:8px;">
+                schedule = @(dtSchedule?.ToString("dd/MM/yyyy HH:mm") ?? "—") &nbsp;·&nbsp;
+                booking = @(dtBooking?.ToString("dd/MM/yyyy hh:mm:ss tt") ?? "—")
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TIMEONLY"
+                         Description="Picker só de hora (calendário oculto). TValue=TimeOnly? auto-detecta o modo; ShowTimeOnly=true força mesmo em outros tipos."
+                         Code="@(@"<OmniDatePicker TValue=""TimeOnly?"" @bind-Value=""tOpen"" />
+<OmniDatePicker TValue=""TimeOnly?"" @bind-Value=""tReminder"" ShowSeconds=""true"" />")">
+            <div class="omni-grid-2">
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Horário de abertura</label>
+                    <OmniDatePicker TValue="TimeOnly?" @bind-Value="tOpen" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">Lembrete (com segundos)</label>
+                    <OmniDatePicker TValue="TimeOnly?" @bind-Value="tReminder" ShowSeconds="true" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PARSE INPUT"
+                         Description="Parser custom — aceita formatos extras. Aqui interpreta 'hoje' / 'amanhã' / 'D+N' (D mais N dias) além do formato padrão dd/MM/yyyy."
+                         Code="@(@"<OmniDatePicker TValue=""DateOnly?"" @bind-Value=""dParsed""
+                 Placeholder=""Digite 'hoje', 'amanhã', 'D+7' ou dd/MM/yyyy""
+                 ParseInput=""ParseSmart"" />")">
+            <OmniDatePicker TValue="DateOnly?" @bind-Value="dParsed"
+                              Placeholder="Digite 'hoje', 'amanhã', 'D+7' ou dd/MM/yyyy"
+                              ParseInput="ParseSmart" />
+            <div class="omni-meta" style="margin-top:8px;">Parsed: <strong>@(dParsed?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DATE RANGE — FERIADOS + SEMANA ISO"
+                         Description="O mesmo DateRender funciona em ambos os calendários do range. Útil pra mostrar visualmente onde caem feriados no período selecionado."
+                         Code="@(@"<OmniDateRangePicker @bind-From=""rangeFrom2"" @bind-To=""rangeTo2""
+                      DateRender=""OnHolidayRender""
+                      ShowWeekNumbers=""true"" />")">
+            <OmniDateRangePicker @bind-From="rangeFrom2" @bind-To="rangeTo2"
+                                   DateRender="OnHolidayRender"
+                                   ShowWeekNumbers="true" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniDatePicker — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="TValue?" Default="default"
+                            Description="Data bound — DateOnly?, DateTime? ou TimeOnly?. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto de dica. Inferido do formato se omitido." />
+            <ShowcaseApiRow Name="DateFormat" Type="string" Default="dd/MM/yyyy"
+                            Description="Formato de exibição e parsing do texto." />
+            <ShowcaseApiRow Name="Clearable" Type="bool" Default="true"
+                            Description="Exibe o botão x para limpar a data selecionada." />
+            <ShowcaseApiRow Name="MinDate" Type="DateOnly?" Default="null"
+                            Description="Data mínima selecionável." />
+            <ShowcaseApiRow Name="MaxDate" Type="DateOnly?" Default="null"
+                            Description="Data máxima selecionável." />
+            <ShowcaseApiRow Name="DisableWeekends" Type="bool" Default="false"
+                            Description="Bloqueia sábados e domingos." />
+            <ShowcaseApiRow Name="DisabledDates" Type="Func<DateOnly, bool>?" Default="null"
+                            Description="Predicado que decide se uma data fica desabilitada." />
+            <ShowcaseApiRow Name="DateRender" Type="Action<DateRenderEventArgs>?" Default="null"
+                            Description="Hook por dia para estilizar, desabilitar ou adicionar tooltip." />
+            <ShowcaseApiRow Name="InitialViewDate" Type="DateOnly?" Default="null"
+                            Description="Mês/ano exibido na primeira abertura do popover." />
+            <ShowcaseApiRow Name="ShowWeekNumbers" Type="bool" Default="false"
+                            Description="Exibe a coluna de número da semana ISO 8601." />
+            <ShowcaseApiRow Name="FirstDayOfWeek" Type="DayOfWeek?" Default="null"
+                            Description="Sobrescreve o primeiro dia da semana (padrão = cultura)." />
+            <ShowcaseApiRow Name="Inline" Type="bool" Default="false"
+                            Description="Renderiza o calendário no fluxo da página, sem input/popover." />
+            <ShowcaseApiRow Name="ShowTime" Type="bool" Default="false"
+                            Description="Adiciona seletor de hora/minuto abaixo do calendário." />
+            <ShowcaseApiRow Name="ShowTimeOnly" Type="bool" Default="false"
+                            Description="Oculta o calendário — picker mostra apenas hora." />
+            <ShowcaseApiRow Name="HourFormat" Type="string" Default="24"
+                            Description="Formato 24h (padrão) ou 12h com alternância AM/PM." />
+            <ShowcaseApiRow Name="ShowSeconds" Type="bool" Default="false"
+                            Description="Exibe o campo de segundos junto a hora/minuto." />
+            <ShowcaseApiRow Name="MinutesStep" Type="int" Default="1"
+                            Description="Incremento do spinner de minutos." />
+            <ShowcaseApiRow Name="SecondsStep" Type="int" Default="1"
+                            Description="Incremento do spinner de segundos." />
+            <ShowcaseApiRow Name="ParseInput" Type="Func<string, DateTime?>?" Default="null"
+                            Description="Parser de texto customizado — substitui o parsing padrão." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Altura do campo — Sm, Md, Lg." />
+            <ShowcaseApiRow Name="Footer" Type="RenderFragment?" Default="null"
+                            Description="Slot renderizado abaixo da grade de dias." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniDatePicker — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<TValue?>" ShowDefault="false"
+                            Description="Disparado quando a data selecionada muda." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniDateRangePicker — Parâmetros">
+            <ShowcaseApiRow Name="From" Type="DateOnly?" Default="null"
+                            Description="Data inicial do período. Suporta bind-From." />
+            <ShowcaseApiRow Name="To" Type="DateOnly?" Default="null"
+                            Description="Data final do período. Suporta bind-To." />
+            <ShowcaseApiRow Name="Placeholder" Type="string" Default="Selecionar período"
+                            Description="Texto exibido quando nenhum período foi selecionado." />
+            <ShowcaseApiRow Name="DateFormat" Type="string" Default="dd/MM/yyyy"
+                            Description="Formato de exibição das datas no botão." />
+            <ShowcaseApiRow Name="MinDate" Type="DateOnly?" Default="null"
+                            Description="Data mínima selecionável em ambos os calendários." />
+            <ShowcaseApiRow Name="MaxDate" Type="DateOnly?" Default="null"
+                            Description="Data máxima selecionável em ambos os calendários." />
+            <ShowcaseApiRow Name="DisableWeekends" Type="bool" Default="false"
+                            Description="Bloqueia finais de semana nos dois calendários." />
+            <ShowcaseApiRow Name="DateRender" Type="Action<DateRenderEventArgs>?" Default="null"
+                            Description="Hook por dia aplicado aos dois calendários." />
+            <ShowcaseApiRow Name="ShowWeekNumbers" Type="bool" Default="false"
+                            Description="Exibe a coluna de semana ISO nos dois calendários." />
+            <ShowcaseApiRow Name="FirstDayOfWeek" Type="DayOfWeek?" Default="null"
+                            Description="Sobrescreve o primeiro dia da semana." />
+            <ShowcaseApiRow Name="Presets" Type="IReadOnlyList<DateRangePreset>" Default="DefaultPresets"
+                            Description="Atalhos de seleção rápida exibidos na lateral do popover." />
+            <ShowcaseApiRow Name="AutoApply" Type="bool" Default="true"
+                            Description="Quando true, o segundo clique confirma e fecha o picker." />
+            <ShowcaseApiRow Name="ShowClearButton" Type="bool" Default="true"
+                            Description="Exibe o botão Limpar no rodapé do popover." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniDateRangePicker — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="FromChanged" Type="EventCallback<DateOnly?>" ShowDefault="false"
+                            Description="Disparado quando a data inicial muda." />
+            <ShowcaseApiRow Name="ToChanged" Type="EventCallback<DateOnly?>" ShowDefault="false"
+                            Description="Disparado quando a data final muda." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private DateOnly? d1, d3 = DateOnly.FromDateTime(new DateTime(2026, 5, 20)), d4, d5, d6, d7, d8, dInline, dParsed;
+    private DateTime? d2, dtSchedule, dtBooking;
+    private TimeOnly? tOpen, tReminder;
+    private DateOnly? rangeFrom, rangeTo, rangeFrom2, rangeTo2;
+
+    // Feriados nacionais 2026 — datas-exemplo. Em produção viria da API.
+    private static readonly HashSet<DateOnly> Holidays2026 = new()
+    {
+        new(2026, 1,  1),  // Confraternização Universal
+        new(2026, 2, 17),  // Carnaval
+        new(2026, 4,  3),  // Sexta-feira Santa
+        new(2026, 4, 21),  // Tiradentes
+        new(2026, 5,  1),  // Dia do Trabalho
+        new(2026, 9,  7),  // Independência
+        new(2026, 10, 12), // Nossa Senhora Aparecida
+        new(2026, 11, 2),  // Finados
+        new(2026, 11, 15), // Proclamação da República
+        new(2026, 12, 25), // Natal
+    };
+
+    // Reuniões "agendadas" no calendário — exemplo de uso pra agenda.
+    private static readonly HashSet<DateOnly> AgendaDays = new()
+    {
+        DateOnly.FromDateTime(DateTime.Today.AddDays(2)),
+        DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+        DateOnly.FromDateTime(DateTime.Today.AddDays(9)),
+        DateOnly.FromDateTime(DateTime.Today.AddDays(15)),
+    };
+
+    private void OnHolidayRender(DateRenderEventArgs args)
+    {
+        if (Holidays2026.Contains(args.Date))
+        {
+            args.CssClass = "omni-calendar-day-holiday";
+            args.Attributes["title"] = "Feriado nacional";
+        }
+        else if (args.Date.DayOfWeek == DayOfWeek.Sunday)
+        {
+            args.Disabled = true;
+            args.Attributes["title"] = "Domingo (não selecionável)";
+        }
+    }
+
+    private void OnAgendaRender(DateRenderEventArgs args)
+    {
+        if (AgendaDays.Contains(args.Date))
+        {
+            args.CssClass = "omni-calendar-day-marked";
+            args.Attributes["title"] = "Reunião agendada";
+        }
+    }
+
+    /// <summary>
+    /// Parser custom: aceita "hoje", "amanhã", "ontem", "D+N", "D-N" além do
+    /// formato padrão dd/MM/yyyy. Falha (retorna null) silenciosamente em
+    /// qualquer outro input pra o consumidor seguir digitando sem erro.
+    /// </summary>
+    private DateTime? ParseSmart(string text)
+    {
+        var s = text.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(s)) return null;
+        if (s == "hoje")    return DateTime.Today;
+        if (s == "amanhã" || s == "amanha") return DateTime.Today.AddDays(1);
+        if (s == "ontem")   return DateTime.Today.AddDays(-1);
+        if (s.StartsWith("d+") && int.TryParse(s[2..], out var plus))  return DateTime.Today.AddDays(plus);
+        if (s.StartsWith("d-") && int.TryParse(s[2..], out var minus)) return DateTime.Today.AddDays(-minus);
+        if (DateTime.TryParseExact(text, "dd/MM/yyyy",
+            System.Globalization.CultureInfo.GetCultureInfo("pt-BR"),
+            System.Globalization.DateTimeStyles.None, out var d)) return d;
+        return null;
+    }
+}

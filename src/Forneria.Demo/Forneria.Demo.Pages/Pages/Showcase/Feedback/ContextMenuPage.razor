@@ -1,0 +1,144 @@
+@page "/showcase/context-menu"
+@layout ShowcaseLayout
+
+<PageTitle>Context menu — Showcase</PageTitle>
+
+<ShowcasePage Title="Context menu"
+              Subtitle="Menu suspenso em coordenadas via ContextMenuService. Use para clique direito ou botões 'mais opções'.">
+
+    <Overview>
+        <p>
+            O <code>ContextMenuService</code> abre um <strong>menu suspenso</strong> em coordenadas
+            de tela de forma <strong>programática</strong>. Você passa um <code>MouseEventArgs</code>
+            (de um clique ou <code>oncontextmenu</code>) e uma lista de
+            <code>ContextMenuItem</code> — o menu se posiciona sozinho perto do cursor.
+        </p>
+        <p>
+            Cada <code>ContextMenuItem</code> tem <code>Text</code>, <code>Icon</code>,
+            <code>Shortcut</code> e um callback <code>OnClick</code>. Marque <code>IsDanger</code>
+            para ações destrutivas e use <code>ContextMenuItem.Separator()</code> para dividir
+            grupos. O menu fecha sozinho em click-outside ou após a ação.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Ações de uma linha de tabela disparadas por um botão ⋮ (mais opções).</li>
+            <li>Menu de clique direito sobre uma área ou item de uma lista.</li>
+            <li>Conjunto de comandos secundários que não merecem botões fixos na UI.</li>
+            <li>Ações sensíveis ao contexto que variam conforme o item selecionado.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Menu acionado por um botão com conteúdo rico ou form → use <code>OmniPopover</code>.</li>
+            <li>Ações primárias e sempre visíveis → use <code>OmniButton</code> direto na barra.</li>
+            <li>Seleção de um valor entre opções num formulário → use <code>OmniSelect</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BOTÃO ⋮ ABRE MENU"
+                         Description="Clique no botão ⋮ para abrir o menu de ações na posição correta."
+                         Code="@(@"Menu.Open(e, new[]
+{
+    new ContextMenuItem { Text = ""Abrir"", Icon = ""external-link"", OnClick = OnOpen },
+    new ContextMenuItem { Text = ""Duplicar"", Icon = ""copy"", Shortcut = ""⌘D"", OnClick = OnDup },
+    ContextMenuItem.Separator(),
+    new ContextMenuItem { Text = ""Excluir"", Icon = ""trash"", IsDanger = true, OnClick = OnDel },
+});")">
+            <div class="omni-stack omni-stack-12">
+                @foreach (var item in items)
+                {
+                    <div class="omni-row omni-row-spread omni-card" style="padding: 12px 16px;">
+                        <div>
+                            <div style="font-weight: 600;">@item.Nome</div>
+                            <div class="omni-muted" style="font-size: 11px;">@item.Email</div>
+                        </div>
+                        <OmniButton IconOnly Icon="more-vertical" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                     OnClick="@(e => OpenMenu(e, item))" />
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RIGHT-CLICK GLOBAL"
+                         Description="Pode também abrir no clique direito de uma área inteira (oncontextmenu prevent + open)."
+                         Code="@(@"<div @oncontextmenu=""OpenRightClick"" @oncontextmenu:preventDefault>
+    Clique direito aqui
+</div>
+
+void OpenRightClick(MouseEventArgs e)
+    => Menu.Open(e, items);")">
+            <div class="omni-section-demo" style="text-align:center; padding: 60px; background: var(--omni-bg-sunken); border-radius: var(--omni-radius); border: 1px dashed var(--omni-line-strong);"
+                 @oncontextmenu="OpenRightClick"
+                 @oncontextmenu:preventDefault>
+                <span class="omni-muted">Clique direito em qualquer lugar desta caixa</span>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Métodos (ContextMenuService)" ShowDefault="false">
+            <ShowcaseApiRow Name="Open" Type="void" ShowDefault="false"
+                            Description="Abre o menu. Aceita um MouseEventArgs (posiciona pelo cursor) ou coordenadas (x, y), mais a lista de itens." />
+            <ShowcaseApiRow Name="Close" Type="void" ShowDefault="false"
+                            Description="Fecha o menu aberto." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="ContextMenuItem">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Rótulo do item de menu." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Nome do ícone exibido à esquerda do texto." />
+            <ShowcaseApiRow Name="Shortcut" Type="string?" Default="null"
+                            Description="Atalho de teclado mostrado à direita (apenas visual)." />
+            <ShowcaseApiRow Name="IsDanger" Type="bool" Default="false"
+                            Description="Renderiza o item em vermelho — para ações destrutivas." />
+            <ShowcaseApiRow Name="IsSeparator" Type="bool" Default="false"
+                            Description="Marca o item como divisor. Use ContextMenuItem.Separator() como atalho." />
+            <ShowcaseApiRow Name="OnClick" Type="Func&lt;Task&gt;?" Default="null"
+                            Description="Callback executado ao clicar no item." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    [Inject] ContextMenuService Menu { get; set; } = default!;
+    [Inject] NotificationService Toast { get; set; } = default!;
+
+    private record Item(string Nome, string Email);
+    private readonly Item[] items = new[]
+    {
+        new Item("Marina Costa", "marina@forno.com.br"),
+        new Item("Lucas P.",     "lucas@forno.com.br"),
+        new Item("Beatriz M.",   "beatriz@forno.com.br"),
+    };
+
+    private void OpenMenu(MouseEventArgs e, Item item)
+    {
+        Menu.Open(e, new[]
+        {
+            new ContextMenuItem { Text = "Abrir",     Icon = "external-link", OnClick = () => { Toast.Info($"Abrindo {item.Nome}"); return Task.CompletedTask; } },
+            new ContextMenuItem { Text = "Duplicar",  Icon = "copy",          Shortcut = "⌘D",
+                                   OnClick = () => { Toast.Success("Duplicado", item.Nome); return Task.CompletedTask; } },
+            new ContextMenuItem { Text = "Renomear",  Icon = "edit",
+                                   OnClick = () => { Toast.Info("Renomeando..."); return Task.CompletedTask; } },
+            ContextMenuItem.Separator(),
+            new ContextMenuItem { Text = "Excluir",   Icon = "trash", IsDanger = true,
+                                   OnClick = () => { Toast.Warning("Excluído", item.Nome); return Task.CompletedTask; } },
+        });
+    }
+
+    private void OpenRightClick(MouseEventArgs e)
+    {
+        Menu.Open(e, new[]
+        {
+            new ContextMenuItem { Text = "Atualizar",   Icon = "refresh",  Shortcut = "⌘R",   OnClick = () => Task.CompletedTask },
+            new ContextMenuItem { Text = "Inspecionar", Icon = "settings", Shortcut = "F12",  OnClick = () => Task.CompletedTask },
+            ContextMenuItem.Separator(),
+            new ContextMenuItem { Text = "Copiar link", Icon = "copy",     OnClick = () => Task.CompletedTask },
+        });
+    }
+}

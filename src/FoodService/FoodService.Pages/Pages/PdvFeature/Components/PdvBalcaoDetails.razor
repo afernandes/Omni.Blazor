@@ -1,0 +1,20 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Balcão — só identificação opcional. *@
+<div class="fs-pdv-mode-label">Identificação (opcional)</div>
+<OmniTextBox Class="fs-pdv-mode-input"
+             Value="@Order.Identification"
+             ValueChanged="OnValueChanged"
+             Placeholder="Ex.: João, senha 42…" />
+
+@code {
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private void OnValueChanged(string? value)
+    {
+        Order.Identification = value ?? "";
+        Order.NotifyModeDetailsChanged();
+    }
+}

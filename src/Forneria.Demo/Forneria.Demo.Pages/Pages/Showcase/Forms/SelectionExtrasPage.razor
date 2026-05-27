@@ -1,0 +1,270 @@
+@page "/showcase/selection-extras"
+@layout ShowcaseLayout
+
+<PageTitle>CheckBoxList, ListBox & MultiSelect — Showcase</PageTitle>
+
+<ShowcasePage Title="CheckBoxList, ListBox & MultiSelect"
+              Subtitle="Três formas de seleção múltipla: grupo de checkboxes (lista de opções visíveis), lista sempre-aberta (estilo file picker), e dropdown com chips (compacto)."
+              >
+
+    <Overview>
+        <p>
+            Quando há poucas opções e quer mostrar todas: <code>OmniCheckBoxList</code>.
+            Quando precisa de uma lista permanente fixa (sidebar, transfer): <code>OmniListBox</code>.
+            Quando há muitas opções e precisa de espaço: <code>OmniMultiSelect</code>
+            (popup com chips, suporta busca).
+        </p>
+        <p>
+            Todos os 3 compartilham o mesmo modelo de bind (<code>Items</code> +
+            <code>TextSelector</code> + <code>ValueSelector</code>) e fazem two-way para
+            <code>IEnumerable&lt;TValue&gt;</code>.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="CHECKBOXLIST — vertical (default)"
+                         Description="Use quando há ≤8 opções e o usuário se beneficia de ver todas de uma vez."
+                         Code="@(@"<OmniCheckBoxList TValue=""string""
+                   Items=""@(new[] { ""Cheddar"", ""Bacon"", ""Cebola caramelizada"", ""Ovo"" })""
+                   @bind-Value=""adicionais"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="40" Wrap="true">
+                <div>
+                    <OmniLabel Text="Adicionais da pizza" Size="ComponentSize.Sm" />
+                    <OmniCheckBoxList TValue="string"
+                                       Items="@_adicionaisOpts"
+                                       @bind-Value="_adicionais" />
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                        Selecionados: @(string.Join(", ", _adicionais ?? Array.Empty<string>()))
+                    </p>
+                </div>
+                <div>
+                    <OmniLabel Text="Com descrição auxiliar" Size="ComponentSize.Sm" />
+                    <OmniCheckBoxList TValue="PaymentMethod"
+                                       Items="@_paymentMethods"
+                                       TextSelector="@(p => p?.Nome ?? "")"
+                                       DescriptionSelector="@(p => p?.Descricao)"
+                                       @bind-Value="_paymentsSel" />
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CHECKBOXLIST — horizontal"
+                         Description="Orientation=Horizontal: mais compacto, bom p/ filtros lado a lado."
+                         Code="@(@"<OmniCheckBoxList ... Orientation=""Orientation.Horizontal"" />")">
+            <div>
+                <OmniLabel Text="Status do pedido" Size="ComponentSize.Sm" />
+                <OmniCheckBoxList TValue="string"
+                                   Items="@(new[] { "Pendente", "Em preparo", "Pronto", "Entregue", "Cancelado" })"
+                                   @bind-Value="_statusFilter"
+                                   Orientation="Orientation.Horizontal" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LISTBOX — single select (sempre aberto)"
+                         Description="Mesma API do Select mas renderizado inline (sem popup). Use em sidebars, file pickers."
+                         Code="@(@"<OmniListBox TValue=""string""
+              Items=""@mesas""
+              @bind-Value=""mesaSelecionada"" />")">
+            <div class="omni-grid-2">
+                <div>
+                    <OmniLabel Text="Mesa selecionada" Size="ComponentSize.Sm" />
+                    <OmniListBox TValue="string"
+                                  Items="@_mesas"
+                                  @bind-Value="_mesaSel"
+                                  MaxHeight="200px" />
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin-top:6px;">Selecionada: @_mesaSel</p>
+                </div>
+                <div>
+                    <OmniLabel Text="Com ícones e descrições" Size="ComponentSize.Sm" />
+                    <OmniListBox TValue="ProductCategory"
+                                  Items="@_categories"
+                                  TextSelector="@(c => c?.Name ?? "")"
+                                  IconSelector="@(c => c?.Icon)"
+                                  DescriptionSelector="@(c => c?.Desc)"
+                                  @bind-Value="_catSel"
+                                  MaxHeight="200px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LISTBOX — multi select"
+                         Description='@("Multiple=true: checkbox visual aparece à esquerda. Bind via @bind-Values.")'
+                         Code="@(@"<OmniListBox TValue=""string""
+              Items=""@mesas""
+              Multiple
+              @bind-Values=""mesasSel"" />")">
+            <div>
+                <OmniLabel Text="Mesas reservadas (multi)" Size="ComponentSize.Sm" />
+                <OmniListBox TValue="string"
+                              Items="@_mesas"
+                              Multiple
+                              @bind-Values="_mesasMulti"
+                              MaxHeight="200px" />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:6px;">
+                    Selecionadas (@(_mesasMulti?.Count() ?? 0)): @string.Join(", ", _mesasMulti ?? Array.Empty<string>())
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MULTISELECT — chips no campo + popup"
+                         Description="Compacto: cada item selecionado vira chip removível dentro do campo. Chevron abre popover com lista (OmniListBox internamente)."
+                         Code="@(@"<OmniMultiSelect TValue=""string""
+                  Items=""@categorias""
+                  @bind-Values=""categoriasSel""
+                  Placeholder=""Selecione categorias..."" />")">
+            <div>
+                <OmniLabel Text="Categorias do produto" Size="ComponentSize.Sm" Required />
+                <OmniMultiSelect TValue="string"
+                                  Items="@_categoriasPizza"
+                                  @bind-Values="_categoriasSel"
+                                  Placeholder="Selecione categorias..." />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:6px;">
+                    @(_categoriasSel?.Count() ?? 0) selecionadas
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MULTISELECT — com busca"
+                         Description="Searchable=true habilita campo de busca no topo do popover (auto-focus via .omni-autofocus)."
+                         Code="@(@"<OmniMultiSelect TValue=""string""
+                  Items=""@bairros""
+                  @bind-Values=""bairrosSel""
+                  Searchable
+                  SearchPlaceholder=""Buscar bairro..."" />")">
+            <div>
+                <OmniLabel Text="Bairros atendidos" Size="ComponentSize.Sm" />
+                <OmniMultiSelect TValue="string"
+                                  Items="@_bairrosOptions"
+                                  @bind-Values="_bairrosSel"
+                                  Searchable
+                                  SearchPlaceholder="Buscar bairro..." />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="QUANDO USAR CADA UM"
+                         Description="Cada componente tem seu caso ideal. Aqui um guia rápido.">
+            <div class="omni-grid-3">
+                <div style="border:1px solid var(--omni-line);border-radius:8px;padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">CHECKBOXLIST</p>
+                    <h4 style="margin:0 0 8px;font-size:14px;">2-8 opções visíveis</h4>
+                    <p style="margin:0;font-size:13px;">
+                        Filtros simples (status, tipo), adicionais de pizza, preferências.
+                        Mostra todas opções de cara, sem clicar.
+                    </p>
+                </div>
+                <div style="border:1px solid var(--omni-line);border-radius:8px;padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">LISTBOX</p>
+                    <h4 style="margin:0 0 8px;font-size:14px;">Sidebar fixa / picker permanente</h4>
+                    <p style="margin:0;font-size:13px;">
+                        Lista de mesas, seleção de produtos pra adicionar ao pedido,
+                        transfer lists (wizard "selecione e mova").
+                    </p>
+                </div>
+                <div style="border:1px solid var(--omni-line);border-radius:8px;padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">MULTISELECT</p>
+                    <h4 style="margin:0 0 8px;font-size:14px;">10+ opções, espaço escasso</h4>
+                    <p style="margin:0;font-size:13px;">
+                        Categorias de produto, bairros atendidos, tags. Cada selecionado
+                        é visível como chip + busca dentro do popover.
+                    </p>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Todos compartilham (TValue, modelo de dados)">
+            <ShowcaseApiRow Name="Items" Type="IEnumerable&lt;TValue&gt;?" Default="null"
+                            Description="Itens a renderizar." />
+            <ShowcaseApiRow Name="TextSelector" Type="Func&lt;TValue?, string&gt;?" Default="null"
+                            Description="Texto principal de cada item. Default = item.ToString()." />
+            <ShowcaseApiRow Name="ValueSelector" Type="Func&lt;TValue?, TValue?&gt;?" Default="null"
+                            Description="Extrai o valor a usar no bind. Default = o próprio item." />
+            <ShowcaseApiRow Name="DescriptionSelector" Type="Func&lt;TValue?, string?&gt;?" Default="null"
+                            Description="Texto auxiliar (mostrado abaixo do label)." />
+            <ShowcaseApiRow Name="DisabledSelector" Type="Func&lt;TValue?, bool&gt;?" Default="null"
+                            Description="Item-by-item: retorne true para desabilitar." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniCheckBoxList — específico">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="IEnumerable&lt;TValue&gt;?" Default="null"
+                            Description='@("Two-way: @bind-Value.")' />
+            <ShowcaseApiRow Name="Orientation" Type="Orientation" Default="Vertical"
+                            Description="Vertical (default) ou Horizontal." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniListBox — específico">
+            <ShowcaseApiRow Name="Multiple" Type="bool" Default="false"
+                            Description="false = single (Value), true = multi (Values)." />
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="TValue?" Default="null"
+                            Description="Single-select bind (Multiple=false)." />
+            <ShowcaseApiRow Name="Values / ValuesChanged" Type="IEnumerable&lt;TValue&gt;?" Default="null"
+                            Description="Multi-select bind (Multiple=true)." />
+            <ShowcaseApiRow Name="IconSelector" Type="Func&lt;TValue?, string?&gt;?" Default="null"
+                            Description="Ícone Lucide opcional por item." />
+            <ShowcaseApiRow Name="MaxHeight" Type="string" Default="&quot;240px&quot;"
+                            Description="Altura máxima — scroll vertical se exceder." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniMultiSelect — específico">
+            <ShowcaseApiRow Name="Values / ValuesChanged" Type="IEnumerable&lt;TValue&gt;?" Default="null"
+                            Description='@("Bind: @bind-Values.")' />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto exibido quando nenhuma seleção." />
+            <ShowcaseApiRow Name="Searchable" Type="bool" Default="false"
+                            Description="Adiciona OmniTextBox no topo do popover." />
+            <ShowcaseApiRow Name="SearchPlaceholder" Type="string?" Default="&quot;Buscar...&quot;"
+                            Description="Placeholder do campo de busca." />
+            <ShowcaseApiRow Name="ShowClearAll" Type="bool" Default="true"
+                            Description="Botão 'Limpar seleção (N)' no rodapé do popover." />
+            <ShowcaseApiRow Name="PopoverMaxHeight" Type="string" Default="&quot;280px&quot;"
+                            Description="Altura máxima da lista no popover." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    // CheckBoxList demos
+    private readonly string[] _adicionaisOpts = { "Cheddar", "Bacon", "Cebola caramelizada", "Ovo", "Catupiry" };
+    private IEnumerable<string>? _adicionais = new[] { "Cheddar", "Bacon" };
+
+    private record PaymentMethod(string Nome, string Descricao);
+    private readonly PaymentMethod[] _paymentMethods =
+    {
+        new("Pix",      "Transferência instantânea via chave"),
+        new("Crédito",  "Cartão de crédito Visa/Master/Elo"),
+        new("Débito",   "Cartão de débito conectado à conta"),
+        new("Dinheiro", "Pagamento em espécie na entrega"),
+    };
+    private IEnumerable<PaymentMethod>? _paymentsSel;
+
+    private IEnumerable<string>? _statusFilter = new[] { "Pendente", "Em preparo" };
+
+    // ListBox demos
+    private readonly string[] _mesas = { "Mesa 01", "Mesa 02", "Mesa 03", "Mesa 04", "Mesa 05", "Balcão 1", "Balcão 2", "Varanda 1", "Varanda 2", "Varanda 3" };
+    private string? _mesaSel = "Mesa 03";
+    private IEnumerable<string>? _mesasMulti = new[] { "Mesa 01", "Varanda 2" };
+
+    private record ProductCategory(string Name, string Icon, string Desc);
+    private readonly ProductCategory[] _categories =
+    {
+        new("Pizzas",      "package",      "Salgadas e doces"),
+        new("Bebidas",     "package",      "Refrigerantes, sucos, água"),
+        new("Sobremesas",  "package",      "Brownies, sorvetes, frutas"),
+        new("Acompanha.",  "package",      "Batatas, anéis de cebola"),
+    };
+    private ProductCategory? _catSel;
+
+    // MultiSelect demos
+    private readonly string[] _categoriasPizza = { "Tradicional", "Especial", "Doce", "Vegetariana", "Vegana", "Fitness", "Premium", "Promocional" };
+    private IEnumerable<string>? _categoriasSel = new[] { "Tradicional", "Especial" };
+
+    private readonly string[] _bairrosOptions =
+    {
+        "Pinheiros", "Vila Madalena", "Itaim Bibi", "Moema", "Brooklin",
+        "Vila Olímpia", "Jardins", "Vila Mariana", "Saúde", "Liberdade",
+        "Bela Vista", "Higienópolis", "Perdizes", "Lapa", "Pompeia", "Vila Romana"
+    };
+    private IEnumerable<string>? _bairrosSel = new[] { "Pinheiros", "Vila Madalena" };
+}

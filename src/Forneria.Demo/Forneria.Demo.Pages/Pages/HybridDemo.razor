@@ -1,0 +1,204 @@
+@page "/hybrid"
+@layout AppShellHybrid
+@using System.Globalization
+
+<PageTitle>Forneria — Layout híbrido</PageTitle>
+
+@*  /hybrid — demo da composição "menu horizontal (módulos) + menu vertical
+    (itens do módulo) + corpo do dashboard". Usa os primitivos compartilhados
+    do design system: OmniPaneHeader (com slot Breadcrumb), OmniRow/OmniCol
+    (grid 12-col), OmniCard (Title + Subtitle + HeaderActions + NoPadding). *@
+
+<div class="omni-hd-page">
+
+    @* ─── Page head — breadcrumb · título · ações ─── *@
+    <OmniPaneHeader Title="Clientes"
+                     Subtitle="Base completa de clientes · sincronizada com PDV, cardápio digital e iFood">
+        <Breadcrumb>
+            <OmniBreadcrumb Items="@_crumbs" />
+        </Breadcrumb>
+        <Actions>
+            <OmniButton Text="Importar"      Icon="printer"  Variant="ButtonVariant.Ghost"   Size="ComponentSize.Sm" />
+            <OmniButton Text="Exportar CSV"  Icon="download" Variant="ButtonVariant.Ghost"   Size="ComponentSize.Sm" />
+            <OmniButton Text="Novo cliente"  Icon="plus"     Variant="ButtonVariant.Primary" Size="ComponentSize.Sm" />
+        </Actions>
+    </OmniPaneHeader>
+
+    @* ─── Toolbar — busca + segmentos + filtro (específica desta página) ─── *@
+    <div class="omni-hb-toolbar">
+        <div class="omni-hb-toolbar-search">
+            <OmniTextBox Placeholder="Buscar por nome, telefone, e-mail…" @bind-Value="_query" />
+        </div>
+        <OmniSegmentedControl TValue="string" Value="@_segment" ValueChanged="@(v => _segment = v)" Items="@_segments" />
+        <div class="omni-hb-toolbar-spacer"></div>
+        <OmniButton Text="Filtros" Icon="sliders" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+    </div>
+
+    @* ─── KPIs — grid 12-col responsivo (4 · 2 · 1 colunas) ─── *@
+    <OmniRow Gap="14">
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="users" Label="Clientes no segmento" Value="@Filtered.Count().ToString("N0", _ptBr)"
+                       Delta="▲ +12 este mês" DeltaCaption="vs mês anterior" />
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="dollar-sign" Label="Receita acumulada" Value="@FormatBrl(TotalSpent)"
+                       Delta="▲ +18,4%" DeltaCaption="vs período anterior" />
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="credit-card" Label="Ticket médio" Value="@FormatBrl(AvgTicket)"
+                       Delta="▲ +8,2%" DeltaCaption="vs período anterior" />
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="shopping-cart" Label="Pedidos totais" Value="@TotalOrders.ToString("N0", _ptBr)"
+                       Delta="▼ −4,1%" DeltaDown DeltaCaption="vs período anterior" />
+        </OmniCol>
+    </OmniRow>
+
+    @* ─── Card com a tabela — OmniCard padrão (Title + Subtitle + HeaderActions),
+         DataGrid pousa direto no ChildContent. NoPadding evita o double-padding
+         do OmniCardBody quando o conteúdo já tem suas próprias bordas. ─── *@
+    <OmniCard Title="@CurrentSegmentLabel"
+               Subtitle="@($"{Filtered.Count()} clientes · ordenado por valor gasto · atualizado há 2 min")"
+               NoPadding>
+        <HeaderActions>
+            <OmniButton Text="Colunas" Icon="sliders" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+            <OmniButton Text="Ordenar"                Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+        </HeaderActions>
+        <ChildContent>
+            <OmniDataGrid TItem="Cliente" Data="@Filtered" AllowPaging="false" AllowSorting="true">
+                <Columns>
+                    <OmniDataGridColumn TItem="Cliente" Title="Cliente" Property="@(c => (object?)c.Nome)">
+                        <Template Context="c">
+                            <div class="omni-hb-cust">
+                                <OmniAvatar Initials="@c.Iniciais" />
+                                <div>
+                                    <div class="omni-hb-cust-name">@c.Nome</div>
+                                    <div class="omni-hb-cust-meta omni-mono">#@c.Id.ToString("D4")</div>
+                                </div>
+                            </div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Cliente" Title="Contato" Property="@(c => (object?)c.Telefone)">
+                        <Template Context="c">
+                            <div class="omni-mono" style="font-size:12.5px;">@c.Telefone</div>
+                            <div class="omni-muted" style="font-size:11.5px;">@c.Email</div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Cliente" Title="Segmento" Property="@(c => (object?)c.Segmento)" Width="120px">
+                        <Template Context="c">
+                            <OmniBadge Text="@SegmentLabel(c.Segmento)" Variant="@SegmentVariant(c.Segmento)" />
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Cliente" Title="Pedidos" Property="@(c => (object?)c.Pedidos)" Width="90px">
+                        <Template Context="c">
+                            <div class="omni-mono" style="text-align:right;">@c.Pedidos</div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Cliente" Title="Ticket médio" Property="@(c => (object?)c.TicketMedio)" Width="120px">
+                        <Template Context="c">
+                            <div class="omni-mono" style="text-align:right;">@FormatBrl(c.TicketMedio)</div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Cliente" Title="Total gasto" Property="@(c => (object?)c.TotalGasto)" Width="130px">
+                        <Template Context="c">
+                            <div class="omni-mono" style="text-align:right; font-weight:700;">@FormatBrl(c.TotalGasto)</div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Cliente" Title="Último pedido" Property="@(c => (object?)c.UltimoPedido)" Width="150px">
+                        <Template Context="c">
+                            <div>@c.UltimoPedido</div>
+                            <OmniBadge Text="@c.Canal" Variant="@ChannelVariant(c.Canal)" />
+                        </Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ChildContent>
+    </OmniCard>
+</div>
+
+@code {
+    private static readonly CultureInfo _ptBr = new("pt-BR");
+
+    private string _query = "";
+    private string _segment = "vip";
+
+    private string CurrentSegmentLabel => _segments.First(s => s.Value == _segment).Label;
+
+    private readonly OmniBreadcrumb.Item[] _crumbs = new[]
+    {
+        new OmniBreadcrumb.Item("Forneria", "/"),
+        new OmniBreadcrumb.Item("Gestão"),
+        new OmniBreadcrumb.Item("Clientes"),
+        new OmniBreadcrumb.Item("VIPs"),
+    };
+
+    private readonly OmniSegmentedControl<string>.Item[] _segments = new[]
+    {
+        new OmniSegmentedControl<string>.Item("todos",   "Todos"),
+        new OmniSegmentedControl<string>.Item("vip",     "VIPs"),
+        new OmniSegmentedControl<string>.Item("gold",    "Gold"),
+        new OmniSegmentedControl<string>.Item("recor",   "Recorrentes"),
+        new OmniSegmentedControl<string>.Item("novo",    "Novos"),
+        new OmniSegmentedControl<string>.Item("inativo", "Inativos"),
+        new OmniSegmentedControl<string>.Item("risco",   "Em risco"),
+    };
+
+    private IEnumerable<Cliente> Filtered =>
+        _customers.Where(c =>
+            (_segment == "todos" || c.Segmento == _segment) &&
+            (string.IsNullOrWhiteSpace(_query) ||
+             c.Nome.Contains(_query, StringComparison.OrdinalIgnoreCase) ||
+             c.Email.Contains(_query, StringComparison.OrdinalIgnoreCase) ||
+             c.Telefone.Contains(_query)));
+
+    private decimal TotalSpent => Filtered.Sum(c => c.TotalGasto);
+    private decimal AvgTicket  => Filtered.Any() ? Filtered.Average(c => c.TicketMedio) : 0m;
+    private int     TotalOrders => Filtered.Sum(c => c.Pedidos);
+
+    private static string FormatBrl(decimal value) => "R$ " + value.ToString("N2", _ptBr);
+    private static string SegmentLabel(string seg) => seg switch
+    {
+        "vip" => "VIP", "gold" => "Gold", "recor" => "Recorrente",
+        "novo" => "Novo", "inativo" => "Inativo", "risco" => "Em risco",
+        _ => seg,
+    };
+    private static BadgeVariant SegmentVariant(string seg) => seg switch
+    {
+        "vip"     => BadgeVariant.Accent,
+        "gold"    => BadgeVariant.Warn,
+        "novo"    => BadgeVariant.Good,
+        "risco"   => BadgeVariant.Danger,
+        "inativo" => BadgeVariant.Plain,
+        _ => BadgeVariant.Plain,
+    };
+    private static BadgeVariant ChannelVariant(string canal) => canal switch
+    {
+        "DIG" => BadgeVariant.Accent,
+        "IFD" => BadgeVariant.Danger,
+        "PDV" => BadgeVariant.Plain,
+        _ => BadgeVariant.Plain,
+    };
+
+    public record Cliente(int Id, string Nome, string Telefone, string Email, string Segmento,
+                          decimal TotalGasto, int Pedidos, decimal TicketMedio,
+                          string UltimoPedido, string Canal)
+    {
+        public string Iniciais => string.Concat(Nome.Split(' ').Take(2).Select(p => p[0]));
+    }
+
+    private readonly List<Cliente> _customers = new()
+    {
+        new(1,  "Marina Costa Almeida",    "+55 11 9·8765-4321", "marina.costa@gmail.com",  "vip",     4280.50m, 38, 112.65m, "hoje, 12:42",  "DIG"),
+        new(2,  "João Pereira da Silva",   "+55 11 9·1234-5678", "jp.silva@gmail.com",      "gold",    3142.00m, 31, 101.35m, "ontem",        "PDV"),
+        new(3,  "Carla Mendes Rocha",      "+55 11 9·9999-1212", "carla.m@outlook.com",     "vip",     2876.30m, 27, 106.50m, "há 2 dias",    "IFD"),
+        new(4,  "Pedro Henrique Lima",     "+55 11 9·5555-7878", "pedro.lima@hotmail.com",  "recor",   1842.75m, 19,  96.99m, "há 4 dias",    "DIG"),
+        new(5,  "Luciana Andrade Santos",  "+55 11 9·3434-2121", "lu.andrade@gmail.com",    "recor",   1620.40m, 17,  95.31m, "há 6 dias",    "IFD"),
+        new(6,  "Roberto Tanaka",          "+55 11 9·8181-6767", "r.tanaka@yahoo.com",      "gold",    1542.00m, 14, 110.14m, "há 1 sem",     "PDV"),
+        new(7,  "Beatriz Oliveira",        "+55 11 9·2727-3939", "bia.oliveira@gmail.com",  "risco",    980.00m,  8, 122.50m, "há 38 dias",   "DIG"),
+        new(8,  "Lucas Andrade Vieira",    "+55 11 9·4444-5252", "lucas.av@gmail.com",      "novo",     312.50m,  4,  78.12m, "há 3 dias",    "DIG"),
+        new(9,  "Família Bertolucci",      "+55 11 9·6262-1414", "lf.bertolucci@uol.com.br","vip",     6480.00m, 42, 154.28m, "hoje, 19:20",  "PDV"),
+        new(10, "Ana Carolina Souza",      "+55 11 9·1717-8989", "ana.cs@gmail.com",        "recor",   1240.20m, 14,  88.58m, "há 8 dias",    "IFD"),
+        new(11, "Diego Fernandes",         "+55 11 9·6464-1919", "diego.f@gmail.com",       "inativo",  480.00m,  6,  80.00m, "há 92 dias",   "PDV"),
+        new(12, "Mariana Pacheco",         "+55 11 9·8888-5454", "m.pacheco@hotmail.com",   "novo",     175.00m,  2,  87.50m, "há 1 dia",     "DIG"),
+    };
+}

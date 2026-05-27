@@ -1,0 +1,113 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@using Omni.Blazor.Utilities
+
+@if (HasGroupAffix)
+{
+    <div class="@GroupCss" style="@Style" @attributes="Attributes">
+        @if (!string.IsNullOrEmpty(LeadingIcon))
+        {
+            <span class="omni-input-group-ico"><OmniIcon Name="@LeadingIcon" Size="ComponentSize.Sm" /></span>
+        }
+        @InputEl
+        @if (ShowClearButton)
+        {
+            <button type="button"
+                    class="omni-input-group-ico omni-input-group-ico-right omni-input-clear"
+                    tabindex="-1"
+                    aria-label="Limpar"
+                    @onclick="ClearAsync">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        }
+        else if (!string.IsNullOrEmpty(TrailingIcon))
+        {
+            <span class="omni-input-group-ico omni-input-group-ico-right"><OmniIcon Name="@TrailingIcon" Size="ComponentSize.Sm" /></span>
+        }
+    </div>
+}
+else
+{
+    @InputEl
+}
+
+@if (ShowCharCount && MaxLength.HasValue)
+{
+    <div class="omni-input-char-count">
+        <span class="@(CharCount > MaxLength.Value ? "omni-danger" : null)">@CharCount</span>
+        <span class="omni-soft"> / @MaxLength.Value</span>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string Type { get; set; } = "text";
+    [Parameter] public string? Autocomplete { get; set; }
+    [Parameter] public string? LeadingIcon { get; set; }
+    [Parameter] public string? TrailingIcon { get; set; }
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public int? MinLength { get; set; }
+    [Parameter] public int? MaxLength { get; set; }
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
+
+    /// <summary>When true, shows an "x" button to clear the value whenever it's non-empty.</summary>
+    [Parameter] public bool Clearable { get; set; }
+
+    /// <summary>When true (and MaxLength is set), shows a character counter below the field.</summary>
+    [Parameter] public bool ShowCharCount { get; set; }
+
+    private int CharCount => Value?.Length ?? 0;
+    private bool ShowClearButton => Clearable && !Disabled && !ReadOnly && !string.IsNullOrEmpty(Value);
+    private bool HasGroupAffix => !string.IsNullOrEmpty(LeadingIcon)
+                                  || !string.IsNullOrEmpty(TrailingIcon)
+                                  || ShowClearButton;
+
+    // When the textbox renders without any affix, the <input> itself is the
+    // consumer-visible root — so Class is appended here. When wrapped in the
+    // group, Class is appended to the outer <div>.
+    private string InputCss => CssBuilder.Default("omni-input")
+        .AddClass("omni-input-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-input-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-invalid",  IsInvalid)
+        .AddClass(Class, !HasGroupAffix)
+        .Build();
+
+    private string GroupCss
+    {
+        get
+        {
+            // Pad left when there's a leading icon; pad right when there's any trailing affix.
+            var hasLeading  = !string.IsNullOrEmpty(LeadingIcon);
+            var hasTrailing = !string.IsNullOrEmpty(TrailingIcon) || ShowClearButton;
+            return CssBuilder.Default("omni-input-group")
+                .AddClass("omni-input-group-right", !hasLeading && hasTrailing)
+                .AddClass(Class)
+                .Build();
+        }
+    }
+
+    private RenderFragment InputEl => __builder =>
+    {
+        // When wrapped in the affix group, Attributes are splatted onto the
+        // outer wrapper instead of the bare input.
+        <input class="@InputCss"
+               type="@Type"
+               value="@Value"
+               placeholder="@Placeholder"
+               disabled="@Disabled"
+               readonly="@ReadOnly"
+               minlength="@MinLength"
+               maxlength="@MaxLength"
+               autocomplete="@Autocomplete"
+               name="@Name"
+               @oninput="OnInput"
+               @onkeydown="OnKeyDown"
+               @onblur="OnBlur"
+               @attributes="@(HasGroupAffix ? null : Attributes)" />
+    };
+
+    private Task OnInput(ChangeEventArgs e) => SetValueAsync(e.Value?.ToString());
+
+    private Task ClearAsync() => SetValueAsync(null);
+}

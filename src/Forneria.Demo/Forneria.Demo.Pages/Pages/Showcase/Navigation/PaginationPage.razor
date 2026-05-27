@@ -1,0 +1,97 @@
+@page "/showcase/pagination"
+@layout ShowcaseLayout
+
+<PageTitle>Pagination — Showcase</PageTitle>
+
+<ShowcasePage Title="Pagination"
+              Subtitle="Paginador standalone para navegar listas longas em blocos.">
+
+    <Overview>
+        <p>
+            O <code>OmniPagination</code> é um <strong>paginador independente</strong> — o mesmo
+            que o <code>OmniDataGrid</code> usa internamente, mas disponível para qualquer lista
+            customizada: cards, timelines, galerias. Calcula o total de páginas a partir de
+            <code>TotalCount</code> e <code>PageSize</code>.
+        </p>
+        <p>
+            No modo padrão exibe botões numéricos com <strong>elipsis</strong> em torno da página
+            atual (limitados por <code>MaxVisible</code>). O modo <code>Compact</code> mostra apenas
+            prev/next com o indicador "N / total", e <code>ShowSummary</code> adiciona o texto
+            "1–10 de N".
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Navegar listas customizadas (cards, timelines) que não usam DataGrid.</li>
+            <li>Quebrar grandes conjuntos de dados em blocos digeríveis.</li>
+            <li>Toolbars apertadas e telas mobile — com o modo <code>Compact</code>.</li>
+            <li>Dar contexto de posição ao usuário com o resumo "1–10 de N".</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Tabelas de dados completas → o <code>OmniDataGrid</code> já pagina internamente.</li>
+            <li>Listas muito longas com scroll contínuo → use <code>OmniVirtualize</code>.</li>
+            <li>Conjuntos pequenos que cabem inteiros na tela sem paginar.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="FULL"
+                         Description="Default. Páginas numéricas com elipsis em volta da atual."
+                         Code="@(@"<OmniPagination @bind-CurrentPage=""page""
+                 TotalCount=""200"" PageSize=""10"" ShowSummary />")">
+            <OmniPagination @bind-CurrentPage="page1" TotalCount="200" PageSize="10" ShowSummary />
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">PÁGINA ATUAL → @(page1 + 1)</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COMPACT"
+                         Description="Só prev/next com 'N / total'. Útil em mobile e em toolbars apertadas."
+                         Code="@(@"<OmniPagination @bind-CurrentPage=""page""
+                 TotalCount=""200"" PageSize=""10"" Compact ShowSummary />")">
+            <OmniPagination @bind-CurrentPage="page2" TotalCount="200" PageSize="10" Compact ShowSummary />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="POUCAS PÁGINAS"
+                         Description="Quando total ≤ MaxVisible, mostra todas sem elipsis."
+                         Code="@(@"<OmniPagination @bind-CurrentPage=""page""
+                 TotalCount=""50"" PageSize=""10"" />")">
+            <OmniPagination @bind-CurrentPage="page3" TotalCount="50" PageSize="10" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="UMA PÁGINA SÓ"
+                         Description="Botões desabilitados quando não há para onde navegar."
+                         Code="@(@"<OmniPagination CurrentPage=""0""
+                 TotalCount=""5"" PageSize=""10"" />")">
+            <OmniPagination CurrentPage="0" TotalCount="5" PageSize="10" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="CurrentPage" Type="int" Default="0"
+                            Description="Índice (base 0) da página atual. Suporta bind." />
+            <ShowcaseApiRow Name="TotalCount" Type="int" Default="0"
+                            Description="Número total de itens na coleção paginada." />
+            <ShowcaseApiRow Name="PageSize" Type="int" Default="10"
+                            Description="Quantidade de itens por página." />
+            <ShowcaseApiRow Name="MaxVisible" Type="int" Default="7"
+                            Description="Máximo de botões numéricos visíveis (sem contar elipsis)." />
+            <ShowcaseApiRow Name="Compact" Type="bool" Default="false"
+                            Description="Esconde os botões numéricos e mostra apenas 'N / Total'." />
+            <ShowcaseApiRow Name="ShowSummary" Type="bool" Default="false"
+                            Description="Exibe o resumo '1–10 de N' à esquerda dos controles." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="CurrentPageChanged" Type="EventCallback<int>" ShowDefault="false"
+                            Description="Disparado quando o usuário muda de página." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int page1, page2 = 4, page3;
+}

@@ -1,0 +1,269 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits FormComponent<TItem>
+@implements IDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Search-as-you-type select. Supports sync data (Items) or async (LoadData
+    callback). The bound Value is one of TItem.
+
+    Usage (sync):
+        <OmniAutoComplete TItem="Cliente"
+                            Items="@todos"
+                            TextSelector="@(c => c.Nome)"
+                            @bind-Value="selecionado" />
+
+    Usage (async):
+        <OmniAutoComplete TItem="Cidade"
+                            LoadData="BuscarCidades"
+                            TextSelector="@(c => c.Nome)"
+                            @bind-Value="cidade" />
+*@
+
+<div class="@RootCss" style="@Style" data-omni-acid="@_id" @attributes="Attributes">
+    <input class="omni-input omni-autocomplete-input"
+           type="text"
+           value="@_searchText"
+           placeholder="@Placeholder"
+           disabled="@Disabled"
+           readonly="@ReadOnly"
+           name="@Name"
+           autocomplete="off"
+           @oninput="OnInput"
+           @onfocus="@(_ => OpenAsync())"
+           @onkeydown="OnKeyDown" />
+    @if (Clearable && Value is not null && !Disabled && !ReadOnly)
+    {
+        <button type="button"
+                class="omni-input-group-ico omni-input-group-ico-right omni-input-clear"
+                tabindex="-1"
+                aria-label="Limpar"
+                @onclick="ClearAsync">
+            <OmniIcon Name="x" Size="ComponentSize.Sm" />
+        </button>
+    }
+    else
+    {
+        <span class="omni-input-group-ico omni-input-group-ico-right">
+            <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" />
+        </span>
+    }
+
+    @if (_open)
+    {
+        <div class="omni-autocomplete-panel" @onclick:stopPropagation>
+            @if (_loading)
+            {
+                <div class="omni-autocomplete-status">
+                    <OmniSpinner Size="ComponentSize.Sm" />
+                    <span>Buscando...</span>
+                </div>
+            }
+            else if (_filtered.Count == 0)
+            {
+                <div class="omni-autocomplete-status">@EmptyText</div>
+            }
+            else
+            {
+                @foreach (var (item, idx) in _filtered.Select((it, i) => (it, i)))
+                {
+                    var active = idx == _highlightedIndex;
+                    var selected = EqualityComparer<TItem>.Default.Equals(Value, item);
+                    <button type="button"
+                            class="@AutoOptionCss(active, selected)"
+                            @onclick="@(_ => SelectAsync(item))">
+                        @if (ItemTemplate is not null) { @ItemTemplate(item) }
+                        else { @ResolveText(item) }
+                        @if (selected) { <OmniIcon Name="check" Size="ComponentSize.Sm" /> }
+                    </button>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Placeholder { get; set; } = "Buscar...";
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public string EmptyText { get; set; } = "Nenhum resultado.";
+
+    /// <summary>Synchronous item source. Use this OR LoadData, not both.</summary>
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+
+    /// <summary>Async item source — called whenever the search text changes (debounced).</summary>
+    [Parameter] public Func<string, Task<IEnumerable<TItem>>>? LoadData { get; set; }
+
+    /// <summary>Required: how to extract the display text from an item.</summary>
+    [Parameter, EditorRequired] public Func<TItem, string> TextSelector { get; set; } = it => it?.ToString() ?? "";
+
+    /// <summary>Optional template rendered for each option in the dropdown.</summary>
+    [Parameter] public RenderFragment<TItem>? ItemTemplate { get; set; }
+
+    /// <summary>Minimum characters before searching. Default 0 (show all on focus).</summary>
+    [Parameter] public int MinSearchLength { get; set; }
+
+    /// <summary>Debounce window for async LoadData calls. Default 220ms.</summary>
+    [Parameter] public int DebounceMs { get; set; } = 220;
+
+    private string _id = $"ac-{Guid.NewGuid():N}";
+    private bool _open;
+    private bool _loading;
+    private string _searchText = "";
+    private List<TItem> _filtered = new();
+    private int _highlightedIndex;
+    private CancellationTokenSource? _debounceCts;
+
+    // ParameterState fires only on consumer-driven Value changes — the initial
+    // sync + later prop pushes happen here, while user typing into the input
+    // (which mutates Value via SetValueAsync) is correctly ignored on the
+    // next detect because LastValue already reflects the new value.
+    private readonly ParameterState<TItem?> _valueState;
+
+    // Test-only counter: increments every time the Value-driven recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniAutoComplete()
+    {
+        _valueState = RegisterParameter<TItem?>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(SyncSearchTextFromValue)
+            .Attach();
+    }
+
+    private void SyncSearchTextFromValue()
+    {
+        // Keep input text in sync with bound Value — only when the user hasn't
+        // already typed something into the box (Radzen-style).
+        if (Value is not null && string.IsNullOrEmpty(_searchText))
+            _searchText = TextSelector(Value);
+        RecomputeCount++;
+    }
+
+    private string RootCss => CssBuilder.Default("omni-input-group")
+        .AddClass("omni-input-group-right")
+        .AddClass("omni-autocomplete")
+        .AddClass("omni-input-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-input-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-autocomplete-open", _open)
+        .AddClass("omni-invalid", IsInvalid)
+        .AddClass(Class)
+        .Build();
+
+    private string AutoOptionCss(bool active, bool selected) =>
+        CssBuilder.Default("omni-autocomplete-option")
+            .AddClass("omni-active",   active)
+            .AddClass("omni-selected", selected)
+            .Build();
+
+    private string ResolveText(TItem item) => TextSelector(item);
+
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        _searchText = e.Value?.ToString() ?? "";
+        _highlightedIndex = 0;
+        if (!_open) await OpenAsync();
+        await TriggerSearchAsync();
+    }
+
+    private async Task TriggerSearchAsync()
+    {
+        if (_searchText.Length < MinSearchLength) { _filtered.Clear(); return; }
+
+        if (LoadData is not null)
+        {
+            _debounceCts?.Cancel();
+            _debounceCts = new CancellationTokenSource();
+            var token = _debounceCts.Token;
+            try
+            {
+                await Task.Delay(DebounceMs, token);
+                _loading = true;
+                StateHasChanged();
+                var results = await LoadData(_searchText);
+                if (!token.IsCancellationRequested)
+                {
+                    _filtered = results.ToList();
+                    _loading = false;
+                    StateHasChanged();
+                }
+            }
+            catch (TaskCanceledException) { /* superseded by a newer search */ }
+        }
+        else if (Items is not null)
+        {
+            _filtered = string.IsNullOrWhiteSpace(_searchText)
+                ? Items.ToList()
+                : Items.Where(it => TextSelector(it).Contains(_searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectAsync(TItem item)
+    {
+        _searchText = TextSelector(item);
+        await SetValueAsync(item);
+        await CloseAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        _searchText = "";
+        _filtered.Clear();
+        await SetValueAsync(default);
+        await CloseAsync();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (!_open && (e.Key == "ArrowDown" || e.Key == "Enter")) { await OpenAsync(); return; }
+        if (!_open) return;
+        switch (e.Key)
+        {
+            case "ArrowDown": _highlightedIndex = Math.Min(_filtered.Count - 1, _highlightedIndex + 1); break;
+            case "ArrowUp":   _highlightedIndex = Math.Max(0, _highlightedIndex - 1); break;
+            case "Enter":
+                if (_highlightedIndex >= 0 && _highlightedIndex < _filtered.Count)
+                    await SelectAsync(_filtered[_highlightedIndex]);
+                break;
+            case "Escape":    await CloseAsync(); break;
+        }
+    }
+
+    private async Task OpenAsync()
+    {
+        if (Disabled || ReadOnly || _open) return;
+        _open = true;
+        await TriggerSearchAsync();
+        StateHasChanged();
+        try
+        {
+            var dotnet = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+                _id, $"[data-omni-acid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public Task OnClickOutsideAsync() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!_open) return;
+        _open = false;
+        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
+        catch { }
+        StateHasChanged();
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _debounceCts?.Cancel();
+        _ = CloseAsync();
+    }
+}

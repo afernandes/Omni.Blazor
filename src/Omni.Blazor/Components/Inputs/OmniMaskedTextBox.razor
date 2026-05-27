@@ -1,0 +1,159 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@inject IJSRuntime JS
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Input with runtime mask. Mask characters:
+      9 = digit (0–9)
+      A = letter
+      * = alphanumeric
+    Anything else is treated as a literal separator (".", "-", "(", ")", " ", "/" etc.).
+
+    Formatting and cursor handling happen entirely in JS (omniBlazor.applyMask)
+    to bypass Blazor's value-attribute diffing — when a keystroke is rejected,
+    the DOM input has to be rewritten regardless of whether the bound value
+    changed. Inspired by the Radzen.mask approach.
+
+    By default the bound Value contains only the meaningful characters; set
+    KeepMask=true to preserve formatting in the bound value.
+*@
+
+<input @ref="_input"
+       class="@InputCss"
+       type="text"
+       value="@_initialDisplay"
+       placeholder="@Placeholder"
+       disabled="@Disabled"
+       readonly="@ReadOnly"
+       maxlength="@(Mask?.Length ?? 0)"
+       autocomplete="@Autocomplete"
+       inputmode="@_inputMode"
+       name="@Name"
+       @oninput="OnInputAsync"
+       @attributes="Attributes" />
+
+@code {
+    [Parameter, EditorRequired] public string Mask { get; set; } = "";
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public bool KeepMask { get; set; }
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public string? Autocomplete { get; set; }
+
+    private ElementReference _input;
+    private string _initialDisplay = "";
+    private string _inputMode = "text";
+
+    // ParameterStates fire change handlers only on real consumer-driven changes,
+    // so typing into the field doesn't re-trigger initial formatting.
+    private readonly ParameterState<string?> _valueState;
+    private readonly ParameterState<string> _maskState;
+
+    public OmniMaskedTextBox()
+    {
+        _valueState = RegisterParameter<string?>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(_ => RebuildDisplay())
+            .Attach();
+        _maskState = RegisterParameter<string>(nameof(Mask))
+            .WithParameter(() => Mask)
+            .WithChangeHandler(_ =>
+            {
+                _inputMode = MaskIsAllDigits(Mask) ? "numeric" : "text";
+                RebuildDisplay();
+            })
+            .Attach();
+    }
+
+    private void RebuildDisplay()
+        => _initialDisplay = FormatWithMask(Value ?? "", Mask);
+
+    private string InputCss => CssBuilder.Default("omni-input")
+        .AddClass("omni-input-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-input-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-invalid",  IsInvalid)
+        .AddClass(Class)
+        .Build();
+
+    private async Task OnInputAsync(ChangeEventArgs e)
+    {
+        // JS applies the mask in-place on the DOM input (preserving cursor),
+        // then returns the formatted string. This sidesteps Blazor's diff,
+        // which won't rewrite `value` when the bound string happens to equal
+        // the previous render (e.g. when a rejected keystroke leaves the
+        // mask-aware value unchanged but the raw input value has a stray char).
+        string formatted;
+        try
+        {
+            formatted = await JS.InvokeAsync<string>("omniBlazor.applyMask", _input, Mask);
+        }
+        catch
+        {
+            formatted = e.Value?.ToString() ?? "";
+        }
+
+        var bound = KeepMask ? formatted : ExtractClean(formatted, Mask);
+        await SetValueAsync(bound);
+        // SetValueAsync mutates Value; next SetParametersAsync will see
+        // Value == LastValue (no rebuild), so the user's caret position is safe.
+    }
+
+    private static string FormatWithMask(string value, string mask)
+    {
+        if (string.IsNullOrEmpty(mask) || string.IsNullOrEmpty(value)) return value ?? "";
+        var sb = new System.Text.StringBuilder(mask.Length);
+        int count = 0;
+        var chars = new System.Collections.Generic.List<char>(value.Length);
+        foreach (var c in value)
+        {
+            if (MaskAcceptsAny(c, mask)) chars.Add(c);
+        }
+        for (int i = 0; i < mask.Length && count < chars.Count; i++)
+        {
+            var m = mask[i];
+            if (IsMaskSlot(m))
+            {
+                if (MaskSlotAccepts(m, chars[count])) { sb.Append(chars[count]); count++; }
+                else { count++; i--; }
+            }
+            else
+            {
+                sb.Append(m);
+                if (chars[count] == m) count++;
+            }
+        }
+        return sb.ToString();
+    }
+
+    private static string ExtractClean(string display, string mask)
+    {
+        if (string.IsNullOrEmpty(mask)) return display ?? "";
+        var sb = new System.Text.StringBuilder(display.Length);
+        for (int i = 0; i < display.Length && i < mask.Length; i++)
+        {
+            if (IsMaskSlot(mask[i])) sb.Append(display[i]);
+        }
+        return sb.ToString();
+    }
+
+    private static bool IsMaskSlot(char m) => m == '9' || m == 'A' || m == '*';
+    private static bool MaskSlotAccepts(char slot, char c) => slot switch
+    {
+        '9' => char.IsDigit(c),
+        'A' => char.IsLetter(c),
+        '*' => char.IsLetterOrDigit(c),
+        _   => false
+    };
+    private static bool MaskAcceptsAny(char c, string mask)
+    {
+        foreach (var m in mask) if (MaskSlotAccepts(m, c)) return true;
+        return false;
+    }
+    private static bool MaskIsAllDigits(string mask)
+    {
+        if (string.IsNullOrEmpty(mask)) return false;
+        foreach (var c in mask) if (c == 'A' || c == '*') return false;
+        return true;
+    }
+}

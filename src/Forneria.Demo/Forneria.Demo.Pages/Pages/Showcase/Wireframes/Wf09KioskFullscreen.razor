@@ -1,0 +1,86 @@
+@page "/showcase/wireframes/kiosk-fullscreen"
+@layout WireframeLayout
+
+<PageTitle>WF-9 · Kiosk Full-screen (só Main)</PageTitle>
+
+@*  WIREFRAME 9 — Só OmniMain NoPadding. Tela inteira sem chrome. *@
+<OmniLayout>
+    <OmniMain NoPadding>
+        <div class="wf-kiosk-board">
+            <div class="wf-kiosk-col wf-kiosk-pending">
+                <header class="wf-kiosk-head">
+                    <h2>Pendentes <span class="wf-kiosk-badge">12</span></h2>
+                    <span class="omni-muted">aguardando preparo</span>
+                </header>
+                <div class="wf-kiosk-cards">
+                    <div class="wf-kiosk-card"><span class="wf-kiosk-num">#1042</span><span>Marina C. · 2 itens · 4 min</span></div>
+                    <div class="wf-kiosk-card"><span class="wf-kiosk-num">#1041</span><span>Lucas P. · 5 itens · 7 min</span></div>
+                    <div class="wf-kiosk-card"><span class="wf-kiosk-num">#1040</span><span>Fernanda S. · 1 item · 12 min</span></div>
+                </div>
+            </div>
+            <div class="wf-kiosk-col wf-kiosk-prep">
+                <header class="wf-kiosk-head">
+                    <h2>Em preparo <span class="wf-kiosk-badge">8</span></h2>
+                    <span class="omni-muted">forno · grelha</span>
+                </header>
+                <div class="wf-kiosk-cards">
+                    <div class="wf-kiosk-card wf-pulse"><span class="wf-kiosk-num">#1039</span><span>Pizza G · 02:15</span></div>
+                    <div class="wf-kiosk-card wf-pulse"><span class="wf-kiosk-num">#1038</span><span>Burger duplo · 04:30</span></div>
+                </div>
+            </div>
+            <div class="wf-kiosk-col wf-kiosk-ready">
+                <header class="wf-kiosk-head">
+                    <h2>Prontos <span class="wf-kiosk-badge">6</span></h2>
+                    <span class="omni-muted">aguardando saída</span>
+                </header>
+                <div class="wf-kiosk-cards">
+                    <div class="wf-kiosk-card wf-done"><span class="wf-kiosk-num">#1037</span><span>Beatriz M. · empacotado</span></div>
+                    <div class="wf-kiosk-card wf-done"><span class="wf-kiosk-num">#1036</span><span>Rafael S. · empacotado</span></div>
+                </div>
+            </div>
+        </div>
+    </OmniMain>
+</OmniLayout>
+
+<style>
+    .wf-kiosk-board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        padding: 16px;
+        height: 100%;
+        background: #0a0a0a;
+        color: #f4f4f4;
+    }
+    .wf-kiosk-col {
+        background: #171717;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow: auto;
+    }
+    .wf-kiosk-head h2 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; }
+    .wf-kiosk-badge {
+        background: #404040; padding: 2px 8px; border-radius: 999px;
+        font-size: 11px; font-weight: 600; color: #d4d4d4;
+    }
+    .wf-kiosk-pending .wf-kiosk-badge { background: #422006; color: #fbbf24; }
+    .wf-kiosk-prep    .wf-kiosk-badge { background: #431407; color: #f97316; }
+    .wf-kiosk-ready   .wf-kiosk-badge { background: #052e16; color: #34d399; }
+    .wf-kiosk-cards { display: flex; flex-direction: column; gap: 8px; }
+    .wf-kiosk-card {
+        background: #262626; padding: 10px 12px; border-radius: 8px;
+        display: flex; flex-direction: column; gap: 4px;
+        font-size: 13px; line-height: 1.4;
+    }
+    .wf-kiosk-num { font-family: ui-monospace, monospace; font-weight: 700; color: #fbbf24; }
+    .wf-pulse { box-shadow: 0 0 0 1px #f97316; animation: wf-pulse 1.6s ease-in-out infinite; }
+    @@keyframes wf-pulse {
+        0%, 100% { box-shadow: 0 0 0 1px #f97316; }
+        50%      { box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.4); }
+    }
+    .wf-done { opacity: 0.85; }
+    .wf-done .wf-kiosk-num { color: #34d399; }
+</style>

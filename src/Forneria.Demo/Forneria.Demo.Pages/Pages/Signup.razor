@@ -1,0 +1,134 @@
+@page "/signup"
+@layout AuthLayout
+
+<PageTitle>Criar conta — Forneria</PageTitle>
+
+<div class="omni-auth">
+    <section class="omni-auth-form-side">
+        <div class="omni-auth-topbar">
+            <OmniBrand Initial="F" Name="Forneria" Href="/" />
+            <div class="omni-muted" style="font-size: 13px;">
+                Já tem conta? <a class="omni-auth-link" href="/login">Entrar</a>
+            </div>
+        </div>
+
+        <div class="omni-auth-form-wrap">
+            <OmniEyebrow Text="14 DIAS GRÁTIS · SEM CARTÃO" />
+            <h1 class="omni-auth-h1" style="margin-top: 16px;">Crie sua conta em 90 segundos.</h1>
+            <p class="omni-auth-sub">
+                Você define o cardápio depois — pizzaria, hamburgueria, cafeteria ou
+                qualquer outro segmento, o Forneria descobre na hora do onboarding.
+            </p>
+
+            <div class="omni-auth-form">
+                <OmniFormField Label="Nome completo" Required>
+                    <OmniTextBox @bind-Value="nome" Placeholder="Maria Silva" Autocomplete="name" />
+                </OmniFormField>
+
+                <OmniFormField Label="E-mail" Required>
+                    <OmniTextBox @bind-Value="email" Type="email" Placeholder="voce@restaurante.com.br" LeadingIcon="mail" Autocomplete="email" />
+                </OmniFormField>
+
+                <OmniFormField Label="Nome do estabelecimento" HintRight="aparecerá no recibo" Required>
+                    <OmniTextBox @bind-Value="estab" Placeholder="Forno do Bairro" />
+                </OmniFormField>
+
+                <div class="omni-grid-2">
+                    <OmniFormField Label="Senha" Required Hint="@StrengthLabel">
+                        <OmniPassword @bind-Value="senha" Placeholder="Mínimo 8 caracteres" MinLength="8" Autocomplete="new-password" />
+                        <OmniProgress Segments="4" Active="@StrengthScore" Class="omni-mt-auto" Style="margin-top:8px" />
+                    </OmniFormField>
+                    <OmniFormField Label="Confirmar senha" Required Hint="@MatchLabel">
+                        <OmniPassword @bind-Value="senha2" Placeholder="Repita a senha" MinLength="8" Autocomplete="new-password" />
+                    </OmniFormField>
+                </div>
+
+                <OmniButton Text="Criar minha conta grátis" Variant="ButtonVariant.Primary" Block TrailingIcon="arrow-right" OnClick="@OnSignupAsync" />
+
+                <p class="omni-auth-fineprint">
+                    Ao criar a conta você concorda com os <a class="omni-auth-link" href="#">Termos de uso</a> e a
+                    <a class="omni-auth-link" href="#">Política de privacidade</a> do Forneria.
+                    Sem cartão de crédito · cancele quando quiser.
+                </p>
+            </div>
+        </div>
+
+        <div class="omni-row omni-row-spread omni-mt-auto" style="padding-top: 24px;">
+            <span class="omni-mono omni-soft" style="font-size: 11px; letter-spacing: 0.04em;">© 2026 FORNERIA</span>
+            <a href="#" class="omni-mono omni-soft" style="font-size: 11px; letter-spacing: 0.04em;">AJUDA</a>
+        </div>
+    </section>
+
+    <aside class="omni-auth-vis">
+        <div class="omni-auth-vis-inner">
+            <div>
+                <div class="omni-mono omni-accent-fg" style="font-size: 10.5px; letter-spacing: 0.08em; font-weight: 600;">★★★★★ · CASE</div>
+                <div class="omni-auth-vis-quote">
+                    <p>Em duas semanas o Forneria substituiu nosso PDV antigo, o app de delivery e a caderneta da cozinha. O salão respira de novo.</p>
+                </div>
+                <div class="omni-auth-vis-who">
+                    <OmniAvatar Initials="MC" />
+                    <div>
+                        <div class="name">Marina Costa</div>
+                        <div class="role">Sócia · Forno Alto</div>
+                    </div>
+                </div>
+            </div>
+
+            <OmniMosaic>
+                <OmniMosaicCard Name="Setup automático" Meta="DETECTA O SEGMENTO" Icon="zap" Featured />
+                <OmniMosaicCard Name="Importa cardápio" Meta="CSV · IFOOD · MANUAL" Icon="upload" />
+                <OmniMosaicCard Name="Multi-pagamento" Meta="PIX · CARTÃO · VOUCHER" Icon="credit-card" />
+                <OmniMosaicCard Name="Suporte humano · 7 dias" Meta="DA INSTALAÇÃO À PRIMEIRA SEMANA" Icon="users" Wide />
+            </OmniMosaic>
+
+            <div class="omni-auth-vis-metrics">
+                <OmniStat Label="Setup médio" Value="90 seg" />
+                <OmniStat Label="Lojas ativas" Value="3 412" />
+                <OmniStat Label="NPS · 2026" Value="71" />
+            </div>
+        </div>
+    </aside>
+</div>
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+    [Inject] NotificationService Toast { get; set; } = default!;
+
+    private string? nome;
+    private string? email;
+    private string? estab;
+    private string? senha;
+    private string? senha2;
+
+    private int StrengthScore => (senha ?? "") switch
+    {
+        var s when s.Length < 8 => 0,
+        var s when s.Length < 10 || !s.Any(char.IsDigit) => 1,
+        var s when !s.Any(char.IsUpper) || !s.Any(c => !char.IsLetterOrDigit(c)) => 2,
+        var s when s.Length < 14 => 3,
+        _ => 4
+    };
+
+    private string StrengthLabel => StrengthScore switch
+    {
+        0 => "PELO MENOS 8 CARACTERES",
+        1 => "FRACA — adicione números",
+        2 => "BOA — adicione maiúsculas/símbolos",
+        3 => "FORTE",
+        _ => "EXCELENTE"
+    };
+
+    private string MatchLabel => string.IsNullOrEmpty(senha2)
+        ? "DEVE COINCIDIR COM A SENHA"
+        : senha == senha2 ? "✓ COINCIDE" : "⚠ DIFERENTE";
+
+    private Task OnSignupAsync(MouseEventArgs _)
+    {
+        if (senha != senha2) { Toast.Error("Senhas não coincidem."); return Task.CompletedTask; }
+        if (StrengthScore < 1) { Toast.Warning("Senha muito curta."); return Task.CompletedTask; }
+        Toast.Success("Conta criada!", "Bem-vindo ao Forneria. Vamos configurar seu estabelecimento.", 3000);
+        Nav.NavigateTo("/login");
+        return Task.CompletedTask;
+    }
+}

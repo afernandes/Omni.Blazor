@@ -1,0 +1,330 @@
+@page "/showcase/swipearea"
+@layout ShowcaseLayout
+
+<PageTitle>SwipeArea — Showcase</PageTitle>
+
+<ShowcasePage Title="SwipeArea"
+              Subtitle="Detecta gestos de swipe (deslize) e dispara eventos com direção e distância. Equivalente ao MudSwipeArea, ideal para carrosséis, pull-to-refresh e drawers mobile.">
+
+    <Overview>
+        <p>
+            O <code>OmniSwipeArea</code> é um container <strong>puramente comportamental</strong> —
+            não tem visual próprio, só observa gestos de ponteiro (mouse, touch, pen) e dispara
+            eventos tipados conforme a direção e a distância do arraste.
+        </p>
+        <p>
+            Três eventos principais: <code>OnSwipeMove</code> dispara a cada tick (ignora
+            sensitivity, expõe AMBOS os eixos), <code>OnSwipeEnd</code> dispara UMA vez no fim
+            do gesto se a distância arrastada ultrapassou <code>Sensitivity</code> (default 100 px),
+            e <code>OnSwipeLeave</code> dispara quando o ponteiro sai da área no meio do gesto.
+        </p>
+        <p>
+            Para detectar swipes <strong>verticais</strong> em mobile, ative
+            <code>PreventDefault=true</code> — isso anexa listeners JS não-passivos que evitam
+            o scroll nativo da página. Sem isso, o browser "come" o gesto antes de chegar ao
+            Blazor.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Carrosséis e galeries: swipe left/right para próximo/anterior.</li>
+            <li>Pull-to-refresh: swipe top-to-bottom no topo da lista.</li>
+            <li>Drawers mobile: swipe da borda esquerda para abrir o menu.</li>
+            <li>Cards "Tinder-style": swipe horizontal para like/pass.</li>
+            <li>Navegação por gestos em apps mobile/tablet.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Drag & drop de elementos → use <code>OmniDropZone</code>.</li>
+            <li>Redimensionar painéis → use <code>OmniSplitter</code>.</li>
+            <li>Cliques simples → use <code>OmniButton</code> ou handlers <code>@@onclick</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SWIPE DIRECTIONS — básico"
+                         Description="Arraste em qualquer direção com mouse ou dedo. OnSwipeEnd dispara UMA vez ao soltar (se passou de 100 px)."
+                         Code="@(@"<OmniSwipeArea OnSwipeEnd=""@(e => _direction = e.SwipeDirection)"" Style=""width:100%;height:240px;..."">
+    <span>@_direction</span>
+</OmniSwipeArea>")">
+            <OmniSwipeArea OnSwipeEnd="@(e => { _direction = e.SwipeDirection; return Task.CompletedTask; })"
+                            Style="width:100%;height:240px;background:var(--omni-bg-sunken);border:1px dashed var(--omni-line);border-radius:8px;display:grid;place-items:center;cursor:grab;">
+                <div style="text-align:center;">
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 8px;">ÚLTIMA DIREÇÃO DETECTADA</p>
+                    <p style="font-size:24px;font-weight:600;margin:0;font-family:var(--omni-font-mono);">@_direction</p>
+                    <p class="omni-muted" style="font-size:12px;margin:12px 0 0;">Arraste em qualquer direção (>100 px) e solte.</p>
+                </div>
+            </OmniSwipeArea>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="REAL-TIME — multi-axis"
+                         Description="OnSwipeMove dispara a cada tick, com delta em AMBOS os eixos. Os contadores acumulam a distância total arrastada em cada direção."
+                         Code="@(@"<OmniSwipeArea @ref=""_realTimeArea""
+                OnSwipeMove=""HandleSwipeMove""
+                OnSwipeEnd=""@(_ => Reset())""
+                OnSwipeLeave=""@(_ => { _realTimeArea.Cancel(); Reset(); })"">
+    ...
+</OmniSwipeArea>")">
+            <OmniSwipeArea @ref="_realTimeArea"
+                            OnSwipeMove="HandleSwipeMove"
+                            OnSwipeEnd="@(_ => { ResetCounters(); return Task.CompletedTask; })"
+                            OnSwipeLeave="@(_ => { _realTimeArea?.Cancel(); ResetCounters(); return Task.CompletedTask; })"
+                            Style="width:100%;height:240px;background:var(--omni-bg-sunken);border:1px dashed var(--omni-accent);border-radius:8px;display:grid;place-items:center;cursor:grab;">
+                <p class="omni-mono" style="font-size:18px;margin:0;">
+                    @($"{_realTimeDir[1]}  ·  {_realTimeDir[0]}")
+                </p>
+            </OmniSwipeArea>
+            <OmniStack Direction="StackDirection.Row" Gap="8" AlignItems="StackAlign.Center" Style="margin-top:12px;flex-wrap:wrap;">
+                <OmniChip Text="@($"← Left: {_leftSwipe:F0}")" Static />
+                <OmniChip Text="@($"→ Right: {_rightSwipe:F0}")" Static />
+                <OmniChip Text="@($"↑ Top: {_topSwipe:F0}")" Static />
+                <OmniChip Text="@($"↓ Bottom: {_bottomSwipe:F0}")" Static />
+            </OmniStack>
+            <p class="omni-muted omni-mono" style="font-size:10px;margin-top:6px;">VALORES RESETAM SE O PONTEIRO SAIR DA ÁREA OU O SWIPE TERMINAR</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LIVE DRAG via OnSwipeMove — Blazor-routed"
+                         Description="Acumula delta no state e aplica transform via inline style. Funciona em qualquer Blazor (Server/WASM), mas em Blazor Server cada frame faz round-trip SignalR — pode ficar levemente choppy em redes lentas."
+                         Code="@(@"<OmniSwipeArea OnSwipeMove=""@HandleDrag"" OnSwipeEnd=""@HandleEnd"">
+    <div style=""transform: translateX(@(_dragX)px)"">arrasta aí →</div>
+</OmniSwipeArea>")">
+            <OmniSwipeArea OnSwipeMove="HandleStateDrag"
+                            OnSwipeEnd="@(_ => { _stateDragX = 0; StateHasChanged(); return Task.CompletedTask; })"
+                            Style="width:100%;height:140px;background:var(--omni-bg-sunken);border:1px dashed var(--omni-line);border-radius:8px;display:grid;place-items:center;cursor:grab;overflow:hidden;">
+                <div style="@($"transform: translateX({_stateDragX.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)}px); transition: transform {(_stateDragging ? "0ms" : "240ms cubic-bezier(0.2, 0.9, 0.3, 1)")}; padding: 16px 22px; background: var(--omni-accent); color: var(--omni-accent-fg); border-radius: 8px; user-select: none; font-weight: 600;")">
+                    Blazor route · @($"{_stateDragX:F0}px")
+                </div>
+            </OmniSwipeArea>
+            <p class="omni-muted omni-mono" style="font-size:10px;margin-top:6px;">SignalR roundtrip por frame — funciona, mas pode oscilar em rede lenta</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LIVE DRAG via LiveTransform — 60fps real"
+                         Description="LiveTransform=X faz o JS atualizar transform direto via CSS var, ZERO round-trip por frame. OnSwipeEnd continua disparando no fim do gesto pra você decidir snap/dismiss. Comparado com a seção acima: imperceptivelmente mais fluido em Blazor Server."
+                         Code='@("<OmniSwipeArea LiveTransform=\"SwipeAreaLiveTransform.X\"\n                OnSwipeEnd=\"@HandleEnd\">\n    <div>arrasta — JS atualiza CSS var direto</div>\n</OmniSwipeArea>")'>
+            <OmniSwipeArea LiveTransform="SwipeAreaLiveTransform.X"
+                            OnSwipeEnd="@(e => { _liveLast = e.SwipeDelta ?? 0; StateHasChanged(); return Task.CompletedTask; })"
+                            Style="width:100%;height:140px;background:var(--omni-bg-sunken);border:1px dashed var(--omni-good);border-radius:8px;display:grid;place-items:center;cursor:grab;overflow:hidden;padding:16px 22px;color:var(--omni-good);font-weight:600;">
+                JS route · último delta = @($"{_liveLast:F0}px")
+            </OmniSwipeArea>
+            <p class="omni-muted omni-mono" style="font-size:10px;margin-top:6px;">Drag = JS atualiza transform via CSS var. Soltar = volta suavemente. Delta total chega no C# UMA vez via OnSwipeEnd.</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CARROSSEL — swipe para navegar"
+                         Description="Padrão clássico de galeria mobile: swipe horizontal para próximo/anterior."
+                         Code="@(@"<OmniSwipeArea OnSwipeEnd=""HandleCarouselSwipe"">
+    <div>@_slides[_currentSlide]</div>
+</OmniSwipeArea>
+
+void HandleCarouselSwipe(SwipeEventArgs e) {
+    if (e.SwipeDirection == SwipeDirection.RightToLeft) _currentSlide++;
+    else if (e.SwipeDirection == SwipeDirection.LeftToRight) _currentSlide--;
+}")">
+            <div style="position:relative;">
+                <OmniSwipeArea OnSwipeEnd="HandleCarouselSwipe"
+                                Style="@($"width:100%;height:220px;background:linear-gradient(135deg, {_slides[_currentSlide].Color1} 0%, {_slides[_currentSlide].Color2} 100%);border-radius:10px;display:grid;place-items:center;cursor:grab;color:white;transition:background 220ms;")">
+                    <div style="text-align:center;padding:24px;">
+                        <p class="omni-mono" style="font-size:11px;margin:0 0 8px;opacity:0.7;">SLIDE @(_currentSlide + 1) DE @_slides.Length</p>
+                        <h3 style="margin:0 0 6px;font-size:24px;">@_slides[_currentSlide].Title</h3>
+                        <p style="margin:0;opacity:0.85;font-size:14px;">@_slides[_currentSlide].Subtitle</p>
+                    </div>
+                </OmniSwipeArea>
+                <OmniStack Direction="StackDirection.Row" Gap="6" Justify="StackJustify.Center" Style="margin-top:12px;">
+                    @for (int i = 0; i < _slides.Length; i++)
+                    {
+                        var idx = i;
+                        <button type="button"
+                                @onclick="@(() => _currentSlide = idx)"
+                                style="@($"width:8px;height:8px;border-radius:50%;border:0;cursor:pointer;background:{(idx == _currentSlide ? "var(--omni-accent)" : "var(--omni-line)")};padding:0;")"
+                                aria-label="@($"Ir para slide {idx + 1}")"></button>
+                    }
+                </OmniStack>
+            </div>
+            <p class="omni-muted omni-mono" style="font-size:10px;margin-top:8px;text-align:center;">ARRASTE PARA ESQUERDA (PRÓXIMO) OU DIREITA (ANTERIOR)</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DRAWER — swipe da borda para abrir"
+                         Description="Padrão de menu lateral mobile: swipe da esquerda para a direita abre o drawer. Swipe ao contrário fecha."
+                         Code="@(@"<OmniSwipeArea OnSwipeEnd=""HandleDrawerSwipe"" Sensitivity=""50"">
+    <div>conteúdo principal (clica fora pra fechar)</div>
+</OmniSwipeArea>
+
+void HandleDrawerSwipe(SwipeEventArgs e) {
+    if (e.SwipeDirection == SwipeDirection.LeftToRight) _drawerOpen = true;
+    else if (e.SwipeDirection == SwipeDirection.RightToLeft) _drawerOpen = false;
+}")">
+            <div style="position:relative;height:240px;overflow:hidden;border:1px solid var(--omni-line);border-radius:10px;">
+                <OmniSwipeArea OnSwipeEnd="HandleDrawerSwipe" Sensitivity="50"
+                                Style="width:100%;height:100%;background:var(--omni-bg-sunken);display:grid;place-items:center;cursor:grab;">
+                    <div style="text-align:center;padding:24px;">
+                        <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 8px;">ÁREA PRINCIPAL</p>
+                        <p style="margin:0 0 12px;font-size:14px;">Arraste DA ESQUERDA pra DIREITA para abrir o menu.</p>
+                        <OmniBadge Text="@(_drawerOpen ? "DRAWER ABERTO" : "DRAWER FECHADO")"
+                                    Variant="@(_drawerOpen ? BadgeVariant.Good : BadgeVariant.Plain)" />
+                    </div>
+                </OmniSwipeArea>
+                @* Drawer overlay *@
+                <div style="@($"position:absolute;top:0;left:0;width:200px;height:100%;background:var(--omni-bg-elev);border-right:1px solid var(--omni-line);box-shadow:{(_drawerOpen ? "var(--omni-shadow-lg)" : "none")};transform:translateX({(_drawerOpen ? "0%" : "-100%")});transition:transform 240ms cubic-bezier(0.16, 1, 0.3, 1);padding:20px;")">
+                    <p class="omni-mono" style="font-size:11px;margin:0 0 12px;color:var(--omni-fg-muted);text-transform:uppercase;">MENU</p>
+                    @foreach (var item in new[] { "Dashboard", "Pedidos", "Cardápio", "Relatórios", "Configurações" })
+                    {
+                        <p style="margin:8px 0;font-size:14px;cursor:pointer;">@item</p>
+                    }
+                </div>
+            </div>
+            <OmniStack Direction="StackDirection.Row" Gap="8" AlignItems="StackAlign.Center" Style="margin-top:12px;">
+                <OmniButton Text="@(_drawerOpen ? "Fechar" : "Abrir")" Size="ComponentSize.Sm"
+                             OnClick="@(_ => { _drawerOpen = !_drawerOpen; return Task.CompletedTask; })" />
+                <span class="omni-muted omni-mono" style="font-size:11px;">Sensitivity=50 (mais sensível que o default 100)</span>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PREVENT DEFAULT — bloquear scroll vertical"
+                         Description="Em mobile, swipes verticais normalmente fazem o browser scrollar a página. Use PreventDefault=true para impedir e capturar o gesto."
+                         Code="@(@"<OmniSwipeArea OnSwipeEnd=""..."" PreventDefault=""true"">
+    @* Swipes verticais agora ficam SÓ aqui — não fazem scroll da página *@
+</OmniSwipeArea>")">
+            <OmniSwipeArea OnSwipeEnd="@(e => { _verticalDir = e.SwipeDirection; return Task.CompletedTask; })"
+                            PreventDefault="true"
+                            Style="width:100%;height:200px;background:var(--omni-accent-soft);border:1px dashed var(--omni-accent);border-radius:8px;display:grid;place-items:center;cursor:grab;">
+                <div style="text-align:center;">
+                    <p class="omni-mono" style="font-size:11px;margin:0 0 8px;color:var(--omni-accent);">PREVENT DEFAULT ATIVO</p>
+                    <p style="font-size:18px;margin:0;font-family:var(--omni-font-mono);">@_verticalDir</p>
+                    <p class="omni-muted" style="font-size:12px;margin:8px 0 0;">Arraste vertical aqui — em mobile a página NÃO scrolla.</p>
+                </div>
+            </OmniSwipeArea>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSwipeArea — parâmetros">
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo dentro da área de swipe. Visual livre — o componente é só comportamental." />
+            <ShowcaseApiRow Name="Sensitivity" Type="int" Default="100"
+                            Description="Distância mínima em pixels para disparar OnSwipeEnd. Swipes menores são ignorados (a menos que OnSwipeMove esteja conectado)." />
+            <ShowcaseApiRow Name="PreventDefault" Type="bool" Default="false"
+                            Description="Anexa listeners JS não-passivos com preventDefault. Necessário p/ swipes verticais em mobile (senão o browser scrolla)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniSwipeArea — eventos">
+            <ShowcaseApiRow Name="OnSwipeMove" Type="EventCallback&lt;MultiDimensionSwipeEventArgs&gt;" Default="empty"
+                            Description="Dispara A CADA pointermove. Ignora Sensitivity. Expõe AMBOS os eixos (xDiff + yDiff) e ambas as direções." />
+            <ShowcaseApiRow Name="OnSwipeEnd" Type="EventCallback&lt;SwipeEventArgs&gt;" Default="empty"
+                            Description="Dispara UMA vez no pointerup, se distância > Sensitivity. Indica direção DOMINANTE (eixo com maior delta)." />
+            <ShowcaseApiRow Name="OnSwipeLeave" Type="EventCallback&lt;PointerEventArgs&gt;" Default="empty"
+                            Description="Dispara quando o ponteiro SAI da área no meio do gesto. NÃO reseta o estado — chame Cancel() se quiser abortar." />
+            <ShowcaseApiRow Name="OnSwipeCancel" Type="EventCallback&lt;PointerEventArgs&gt;" Default="empty"
+                            Description="Dispara em pointercancel (interruption de multitouch, etc.)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniSwipeArea — métodos públicos">
+            <ShowcaseApiRow Name="Cancel()" Type="void" Default="—"
+                            Description="Aborta o gesto em curso (reseta estado interno). Útil dentro de OnSwipeLeave." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="SwipeEventArgs (OnSwipeEnd)">
+            <ShowcaseApiRow Name="SwipeDirection" Type="SwipeDirection" Default="—"
+                            Description="Direção DOMINANTE: LeftToRight | RightToLeft | TopToBottom | BottomToTop." />
+            <ShowcaseApiRow Name="SwipeDelta" Type="double?" Default="—"
+                            Description="Distância total no eixo dominante (pixels). Positivo p/ esquerda/cima, negativo p/ direita/baixo." />
+            <ShowcaseApiRow Name="TouchEventArgs" Type="PointerEventArgs" Default="—"
+                            Description="O PointerEventArgs do pointerup que terminou o swipe." />
+            <ShowcaseApiRow Name="Sender" Type="OmniSwipeArea" Default="—"
+                            Description="Referência da área que originou o evento." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="MultiDimensionSwipeEventArgs (OnSwipeMove)">
+            <ShowcaseApiRow Name="SwipeDirections" Type="IReadOnlyList&lt;SwipeDirection&gt;" Default="—"
+                            Description="[0] = direção horizontal | [1] = direção vertical. Cada uma pode ser None se o eixo não teve movimento." />
+            <ShowcaseApiRow Name="SwipeDeltas" Type="IReadOnlyList&lt;double?&gt;" Default="—"
+                            Description="[0] = xDiff | [1] = yDiff (pixels). Incremental — delta desde o ÚLTIMO pointermove." />
+            <ShowcaseApiRow Name="TouchEventArgs" Type="PointerEventArgs" Default="—"
+                            Description="PointerEventArgs do tick atual." />
+            <ShowcaseApiRow Name="Sender" Type="OmniSwipeArea" Default="—"
+                            Description="Referência da área." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    // ─── Basic directions demo ─────────────────────────────────────────────
+    private SwipeDirection _direction = SwipeDirection.None;
+
+    // ─── Real-time multi-axis demo ─────────────────────────────────────────
+    private OmniSwipeArea? _realTimeArea;
+    private double _leftSwipe, _rightSwipe, _topSwipe, _bottomSwipe;
+    private SwipeDirection[] _realTimeDir = { SwipeDirection.None, SwipeDirection.None };
+
+    // ─── Live drag via Blazor events (state-based) ─────────────────────────
+    private double _stateDragX;
+    private bool _stateDragging;
+
+    private Task HandleStateDrag(MultiDimensionSwipeEventArgs e)
+    {
+        // SwipeDeltas[0] = xDiff incremental = (xCurrent - clientX) → negativo qdo arrasta pra direita
+        _stateDragX -= (e.SwipeDeltas[0] ?? 0); // inverte pra que +X = pra direita
+        _stateDragging = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    // ─── Live drag via LiveTransform (JS-direct) ───────────────────────────
+    private double _liveLast;
+
+    private void HandleSwipeMove(MultiDimensionSwipeEventArgs e)
+    {
+        _realTimeDir[0] = e.SwipeDirections[0];
+        _realTimeDir[1] = e.SwipeDirections[1];
+        for (int i = 0; i < e.SwipeDirections.Count; i++)
+        {
+            var dir = e.SwipeDirections[i];
+            var abs = Math.Abs(e.SwipeDeltas[i] ?? 0);
+            if (dir == SwipeDirection.LeftToRight)      _rightSwipe  += abs;
+            else if (dir == SwipeDirection.RightToLeft) _leftSwipe   += abs;
+            else if (dir == SwipeDirection.BottomToTop) _topSwipe    += abs;
+            else if (dir == SwipeDirection.TopToBottom) _bottomSwipe += abs;
+        }
+    }
+
+    private void ResetCounters()
+    {
+        _leftSwipe = _rightSwipe = _topSwipe = _bottomSwipe = 0;
+        _realTimeDir[0] = _realTimeDir[1] = SwipeDirection.None;
+    }
+
+    // ─── Carousel demo ─────────────────────────────────────────────────────
+    private int _currentSlide = 0;
+    private record Slide(string Title, string Subtitle, string Color1, string Color2);
+    private readonly Slide[] _slides = new[]
+    {
+        new Slide("Pizza do dia",     "Margherita artesanal", "#d97706", "#ea580c"),
+        new Slide("Sobremesa",        "Brownie com sorvete",  "#7c3aed", "#c026d3"),
+        new Slide("Combo família",    "4 pizzas + 2L refri",  "#059669", "#0d9488"),
+        new Slide("Promoção noturna", "30% OFF após 22h",     "#dc2626", "#e11d48"),
+    };
+
+    private Task HandleCarouselSwipe(SwipeEventArgs e)
+    {
+        if (e.SwipeDirection == SwipeDirection.RightToLeft && _currentSlide < _slides.Length - 1)
+            _currentSlide++;
+        else if (e.SwipeDirection == SwipeDirection.LeftToRight && _currentSlide > 0)
+            _currentSlide--;
+        return Task.CompletedTask;
+    }
+
+    // ─── Drawer demo ───────────────────────────────────────────────────────
+    private bool _drawerOpen = false;
+
+    private Task HandleDrawerSwipe(SwipeEventArgs e)
+    {
+        if (e.SwipeDirection == SwipeDirection.LeftToRight) _drawerOpen = true;
+        else if (e.SwipeDirection == SwipeDirection.RightToLeft) _drawerOpen = false;
+        return Task.CompletedTask;
+    }
+
+    // ─── Prevent default demo ──────────────────────────────────────────────
+    private SwipeDirection _verticalDir = SwipeDirection.None;
+}

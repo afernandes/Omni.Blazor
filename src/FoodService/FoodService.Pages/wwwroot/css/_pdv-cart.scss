@@ -1,0 +1,498 @@
+// ============================================================================
+// CART — items header + regular items + pizza items + flavor editor + borda
+// ============================================================================
+
+// Cart main container
+.fs-pdv-cart-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.fs-pdv-cart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 0 14px;
+  border-bottom: 1px solid var(--omni-line);
+  margin-bottom: 8px;
+}
+.fs-pdv-cart-head-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--omni-fg);
+  letter-spacing: -0.01em;
+}
+.fs-pdv-cart-head-sub { font-size: 12px; color: var(--omni-fg-muted); margin-top: 3px; }
+.fs-pdv-cart-head-actions {
+  display: flex;
+  gap: 8px;
+}
+.fs-pdv-cart-head-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--omni-line);
+  border-radius: 8px;
+  background: var(--omni-bg-elev);
+  font: inherit; font-size: 12.5px;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+}
+.fs-pdv-cart-head-btn:hover { color: var(--omni-fg); border-color: var(--omni-line-strong); }
+.fs-pdv-cart-head-btn > kbd {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border: 1px solid var(--omni-line);
+  border-radius: 4px;
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg);
+  line-height: 1;
+}
+.fs-pdv-cart-head-btn-ghost { border-color: transparent; background: transparent; }
+.fs-pdv-cart-head-btn-ghost:hover { background: var(--omni-bg-sunken); }
+
+// Items list (scrollable)
+.fs-pdv-cart-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  padding-bottom: 16px;
+  min-height: 0;
+}
+
+// Empty state
+.fs-pdv-cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--omni-fg-muted);
+}
+.fs-pdv-cart-empty-ico {
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+  background: var(--omni-bg-sunken);
+  border-radius: 50%;
+  color: var(--omni-fg-soft);
+}
+.fs-pdv-cart-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--omni-fg);
+}
+.fs-pdv-cart-empty-sub { font-size: 12.5px; max-width: 320px; line-height: 1.5; }
+.fs-pdv-cart-empty-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--omni-accent);
+  background: none; border: 0;
+  cursor: pointer;
+}
+.fs-pdv-cart-empty-link:hover { text-decoration: underline; }
+
+// ─── Cart item (base) ──────────────────────────────────────────────
+.fs-pdv-ci {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--omni-line);
+}
+.fs-pdv-ci:last-child { border-bottom: 0; }
+
+.fs-pdv-ci-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fs-pdv-ci-head-block { display: flex; align-items: center; gap: 8px; }
+.fs-pdv-ci-total {
+  font-family: var(--omni-font-mono);
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--omni-fg);
+}
+
+// Regular item
+.fs-pdv-ci-regular-name { font-size: 15px; font-weight: 700; color: var(--omni-fg); }
+.fs-pdv-ci-regular-tag {
+  font-family: var(--omni-font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg-muted);
+  text-transform: uppercase;
+}
+.fs-pdv-ci-regular-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--omni-fg-muted);
+}
+.fs-pdv-ci-regular-meta .dot { color: var(--omni-fg-soft); }
+.fs-pdv-ci-regular-meta .mono { font-family: var(--omni-font-mono); }
+
+// Notes (yellow accent)
+.fs-pdv-ci-notes {
+  padding: 8px 10px;
+  background: color-mix(in oklab, var(--omni-warn) 8%, transparent);
+  border-left: 3px solid var(--omni-warn);
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: var(--omni-fg);
+  white-space: pre-wrap;
+}
+
+// Observação editor (textarea inline)
+.fs-pdv-ci-obs-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.fs-pdv-ci-obs-editor textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--omni-line);
+  border-radius: 8px;
+  background: var(--omni-bg);
+  font: inherit; font-size: 13px;
+  color: var(--omni-fg);
+  resize: vertical;
+  outline: none;
+}
+.fs-pdv-ci-obs-editor textarea:focus { border-color: var(--omni-accent); }
+.fs-pdv-ci-obs-editor-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+// ─── Pizza item ─────────────────────────────────────────────────────
+.fs-pdv-ci-pizza-title { display: flex; align-items: center; gap: 8px; }
+.fs-pdv-ci-pizza-size { font-size: 18px; font-weight: 800; color: var(--omni-fg); }
+.fs-pdv-ci-pizza-label {
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--omni-fg-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--omni-bg-sunken);
+}
+.fs-pdv-ci-flavors {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: 2px;
+}
+.fs-pdv-ci-flavor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fs-pdv-ci-flavor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fs-pdv-ci-flavor-half {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.fs-pdv-ci-flavor-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--omni-fg);
+}
+.fs-pdv-ci-flavor-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: none; border: 0;
+  font: inherit; font-size: 12px; font-weight: 600;
+  color: var(--omni-accent);
+  cursor: pointer;
+}
+.fs-pdv-ci-flavor-edit:hover { text-decoration: underline; }
+.fs-pdv-ci-flavor-ing {
+  font-size: 12px;
+  color: var(--omni-fg-muted);
+  padding-left: 30px;
+  line-height: 1.4;
+}
+
+// Modifier chips ─ inside flavor row (− removed, + extra, ✎ note)
+.fs-pdv-ci-mods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: 30px;
+  margin-top: 2px;
+}
+.fs-pdv-ci-mod {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--omni-bg-sunken);
+}
+.fs-pdv-ci-mod-removed { color: var(--fs-mod-removed); background: color-mix(in oklab, var(--fs-mod-removed) 10%, transparent); }
+.fs-pdv-ci-mod-extra   { color: var(--fs-mod-extra);   background: color-mix(in oklab, var(--fs-mod-extra) 10%, transparent); }
+.fs-pdv-ci-mod-note    { color: var(--fs-mod-note);    background: color-mix(in oklab, var(--fs-mod-note) 10%, transparent); }
+.fs-pdv-ci-mod-sign {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+// Borda row
+.fs-pdv-ci-borda {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--omni-bg-sunken);
+  border-radius: 8px;
+  margin-left: 2px;
+  border: 1px solid var(--omni-line);
+}
+.fs-pdv-ci-borda-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--omni-fg);
+  flex: 1;
+}
+.fs-pdv-ci-borda-name > .omni-icon { color: var(--omni-accent); width: 14px; height: 14px; flex-shrink: 0; }
+.fs-pdv-ci-borda-price {
+  font-family: var(--omni-font-mono);
+  font-size: 12px;
+  color: var(--omni-good);
+  font-weight: 700;
+}
+.fs-pdv-ci-borda-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none; border: 0;
+  font: inherit; font-size: 11.5px;
+  font-weight: 600;
+  color: var(--omni-accent);
+  cursor: pointer;
+}
+.fs-pdv-ci-borda-edit:hover { text-decoration: underline; }
+
+// ─── Controls row (qty + chips + remove) ───────────────────────────
+.fs-pdv-ci-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.fs-pdv-ci-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  background: var(--omni-bg-elev);
+  font: inherit; font-size: 12px;
+  font-weight: 500;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+  transition: border-color 100ms, color 100ms, background-color 100ms;
+}
+.fs-pdv-ci-chip:hover {
+  border-color: var(--omni-line-strong);
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg);
+}
+.fs-pdv-ci-chip > .omni-icon { width: 13px; height: 13px; }
+.fs-pdv-ci-chip-pct {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+}
+.fs-pdv-ci-chip-pct.is-active { color: var(--omni-accent); }
+.fs-pdv-ci-chip.is-active {
+  border-color: var(--omni-accent);
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  font-weight: 600;
+}
+.fs-pdv-ci-spacer { flex: 1; }
+.fs-pdv-ci-trash {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  display: grid; place-items: center;
+  background: none; border: 0;
+  color: var(--omni-fg-soft);
+  cursor: pointer;
+}
+.fs-pdv-ci-trash:hover { color: var(--omni-danger); background: var(--omni-bg-sunken); }
+
+// ─── Flavor editor (inline expanded) ────────────────────────────────
+.fs-pdv-flavor-editor {
+  margin-left: 30px;
+  margin-top: 6px;
+  padding: 12px;
+  background: var(--omni-bg-sunken);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fs-pdv-flavor-editor-section-label {
+  font-family: var(--omni-font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--omni-fg-soft);
+}
+.fs-pdv-flavor-editor-ings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fs-pdv-flavor-editor-ing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.fs-pdv-flavor-editor-ing input[type="checkbox"] { margin: 0; }
+.fs-pdv-flavor-editor-ing.is-removed {
+  color: var(--fs-mod-removed);
+  text-decoration: line-through;
+}
+.fs-pdv-flavor-editor-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fs-pdv-flavor-editor-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  background: var(--omni-bg-elev);
+  font: inherit; font-size: 11.5px;
+  color: var(--omni-fg);
+  cursor: pointer;
+}
+.fs-pdv-flavor-editor-extra:hover { border-color: var(--fs-mod-extra); color: var(--fs-mod-extra); }
+.fs-pdv-flavor-editor-extra.is-added {
+  background: color-mix(in oklab, var(--fs-mod-extra) 12%, transparent);
+  border-color: var(--fs-mod-extra);
+  color: var(--fs-mod-extra);
+  font-weight: 600;
+}
+.fs-pdv-flavor-editor-extra > .price {
+  font-family: var(--omni-font-mono);
+  font-size: 10.5px;
+  opacity: 0.8;
+}
+.fs-pdv-flavor-editor textarea {
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--omni-line);
+  border-radius: 6px;
+  background: var(--omni-bg);
+  font: inherit; font-size: 12.5px;
+  color: var(--omni-fg);
+  resize: vertical;
+  outline: none;
+}
+.fs-pdv-flavor-editor textarea:focus { border-color: var(--omni-accent); }
+.fs-pdv-flavor-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+// ─── Borda picker (chip grid) ───────────────────────────────────────
+.fs-pdv-borda-picker {
+  margin-top: 4px;
+  padding: 10px;
+  background: var(--omni-bg-sunken);
+  border-radius: 8px;
+}
+.fs-pdv-borda-picker-label {
+  font-family: var(--omni-font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--omni-fg-soft);
+  margin-bottom: 6px;
+}
+.fs-pdv-borda-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fs-pdv-borda-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  background: var(--omni-bg-elev);
+  font: inherit; font-size: 12px;
+  color: var(--omni-fg);
+  cursor: pointer;
+}
+.fs-pdv-borda-chip:hover { border-color: var(--omni-accent); }
+.fs-pdv-borda-chip.is-active {
+  border-color: var(--omni-accent);
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  font-weight: 600;
+}
+.fs-pdv-borda-chip-price {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  opacity: 0.8;
+}

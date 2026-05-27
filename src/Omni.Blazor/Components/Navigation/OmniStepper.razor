@@ -1,0 +1,210 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Multi-step container. Children are OmniStep instances; only the active one's
+    body renders, but every step appears in the header (numbered + status).
+
+    Responsivo:
+      > 768px         horizontal — bolha em cima, label embaixo, connector horizontal
+      481–768px       timeline vertical — bolha à esquerda, label à direita
+      ≤ 480px         compact — só o step ativo + indicador "Etapa N/M" + dots clicáveis
+
+    Usage:
+        <OmniStepper @bind-ActiveStep="step" OnComplete="OnFinishAsync">
+            <OmniStep Title="Conta" Description="Email e senha">
+                ... step 1 form ...
+            </OmniStep>
+            <OmniStep Title="Estabelecimento">
+                ...
+            </OmniStep>
+            <OmniStep Title="Confirmação">
+                ...
+            </OmniStep>
+        </OmniStepper>
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <div class="@RootCss" style="@Style" @attributes="Attributes">
+        <ol class="omni-stepper-head">
+            @for (int i = 0; i < _steps.Count; i++)
+            {
+                var idx = i;
+                var isLast = idx == _steps.Count - 1;
+                @RenderNode(idx, isLast, withConnector: true, asButton: true)
+            }
+        </ol>
+
+        @* Compact (mobile ≤ 480px). Está sempre no DOM; CSS escolhe quando exibir. *@
+        <div class="omni-stepper-compact">
+            <div class="omni-stepper-compact-indicator">
+                Etapa @(ActiveStep + 1) <span class="omni-stepper-compact-indicator-sep">/</span> @_steps.Count
+            </div>
+            <div class="omni-stepper-compact-card">
+                @if (ActiveStepInstance is not null)
+                {
+                    @RenderNode(ActiveStep, isLast: true, withConnector: false, asButton: false)
+                }
+            </div>
+            <div class="omni-stepper-compact-dots" role="tablist" aria-label="Steps">
+                @for (int i = 0; i < _steps.Count; i++)
+                {
+                    var idx = i;
+                    var s = _steps[idx];
+                    var status = StatusOf(idx);
+                    var canClick = !Linear || status != StepStatus.Pending;
+                    <button type="button"
+                            class="@($"omni-stepper-compact-dot omni-stepper-{status.ToString().ToLowerInvariant()}")"
+                            disabled="@(!canClick || s.Disabled)"
+                            aria-label="@($"Ir para etapa {idx + 1}: {s.Title}")"
+                            aria-current="@(idx == ActiveStep ? "step" : null)"
+                            @onclick="@(_ => GoToAsync(idx))"></button>
+                }
+            </div>
+        </div>
+
+        @* Hidden registration of all steps *@
+        <div style="display:none">@ChildContent</div>
+
+        <div class="omni-stepper-body">
+            @if (ActiveStepInstance is not null)
+            {
+                @ActiveStepInstance.ChildContent
+            }
+        </div>
+
+        <div class="omni-stepper-foot">
+            <OmniButton Text="@PrevText" Icon="chevron-left"
+                         Disabled="@(ActiveStep == 0)"
+                         OnClick="@(_ => GoToAsync(ActiveStep - 1))" />
+            <div class="omni-flex-1"></div>
+            @if (ActiveStep < _steps.Count - 1)
+            {
+                <OmniButton Text="@NextText" TrailingIcon="chevron-right" Variant="ButtonVariant.Primary"
+                             OnClick="@(_ => GoToAsync(ActiveStep + 1))" />
+            }
+            else
+            {
+                <OmniButton Text="@CompleteText" Icon="check" Variant="ButtonVariant.Primary"
+                             OnClick="OnCompleteClickAsync" />
+            }
+        </div>
+    </div>
+</CascadingValue>
+
+@code {
+    [Parameter] public int ActiveStep { get; set; }
+    [Parameter] public EventCallback<int> ActiveStepChanged { get; set; }
+    [Parameter] public bool Linear { get; set; } = true;
+    [Parameter] public EventCallback OnComplete { get; set; }
+    [Parameter] public string NextText { get; set; } = "Próximo";
+    [Parameter] public string PrevText { get; set; } = "Voltar";
+    [Parameter] public string CompleteText { get; set; } = "Concluir";
+
+    internal enum StepStatus { Done, Active, Pending }
+
+    private readonly List<OmniStep> _steps = new();
+
+    private string RootCss => CssBuilder.Default("omni-stepper")
+        .AddClass(Class)
+        .Build();
+
+    private OmniStep? ActiveStepInstance =>
+        ActiveStep >= 0 && ActiveStep < _steps.Count ? _steps[ActiveStep] : null;
+
+    internal void Register(OmniStep step)
+    {
+        if (!_steps.Contains(step)) { _steps.Add(step); StateHasChanged(); }
+    }
+    internal void Unregister(OmniStep step) => _steps.Remove(step);
+
+    private StepStatus StatusOf(int idx) =>
+        idx < ActiveStep ? StepStatus.Done :
+        idx == ActiveStep ? StepStatus.Active : StepStatus.Pending;
+
+    private async Task GoToAsync(int idx)
+    {
+        if (idx < 0 || idx >= _steps.Count) return;
+        if (Linear && idx > ActiveStep + 1) return;       // cannot skip forward
+        ActiveStep = idx;
+        if (ActiveStepChanged.HasDelegate) await ActiveStepChanged.InvokeAsync(idx);
+    }
+
+    private async Task OnCompleteClickAsync(MouseEventArgs _)
+    {
+        if (OnComplete.HasDelegate) await OnComplete.InvokeAsync();
+    }
+
+    private RenderFragment RenderNode(int idx, bool isLast, bool withConnector, bool asButton) => __builder =>
+    {
+        if (idx < 0 || idx >= _steps.Count) return;
+        var step = _steps[idx];
+        var status = StatusOf(idx);
+        var canClick = !Linear || status != StepStatus.Pending;
+        var nodeCss = $"omni-stepper-node omni-stepper-{status.ToString().ToLowerInvariant()}";
+
+        RenderFragment inner = b =>
+        {
+            <div class="omni-stepper-row">
+                @if (asButton)
+                {
+                    <button type="button"
+                            class="omni-stepper-bubble"
+                            disabled="@(!canClick || step.Disabled)"
+                            @onclick="@(_ => GoToAsync(idx))">
+                        @RenderBubbleContent(step, status, idx)
+                    </button>
+                }
+                else
+                {
+                    <span class="omni-stepper-bubble" role="presentation">
+                        @RenderBubbleContent(step, status, idx)
+                    </span>
+                }
+                @if (withConnector && !isLast)
+                {
+                    <span class="omni-stepper-connector" aria-hidden="true"></span>
+                }
+            </div>
+            <div class="omni-stepper-label">
+                <div class="omni-stepper-title">
+                    @step.Title
+                    @if (step.Optional)
+                    {
+                        <span class="omni-stepper-optional"> (opcional)</span>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(step.Description))
+                {
+                    <div class="omni-stepper-description">@step.Description</div>
+                }
+            </div>
+        };
+
+        if (asButton)
+        {
+            <li class="@nodeCss">@inner</li>
+        }
+        else
+        {
+            <div class="@nodeCss">@inner</div>
+        }
+    };
+
+    private RenderFragment RenderBubbleContent(OmniStep step, StepStatus status, int idx) => __builder =>
+    {
+        @if (status == StepStatus.Done)
+        {
+            <OmniIcon Name="check" Size="ComponentSize.Sm" />
+        }
+        else if (!string.IsNullOrEmpty(step.Icon))
+        {
+            <OmniIcon Name="@step.Icon" Size="ComponentSize.Sm" />
+        }
+        else
+        {
+            <span>@(idx + 1)</span>
+        }
+    };
+}

@@ -1,0 +1,318 @@
+// ============================================================================
+// OMNIBOX — search input + suggestions + pizza panel inline + help card
+// ============================================================================
+
+// Paused orders bar (multi-order management) — INLINE no main bg (sem container box)
+.fs-pdv-paused-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 0;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.fs-pdv-paused-bar::-webkit-scrollbar { display: none; }
+.fs-pdv-paused-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--omni-font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--omni-fg-soft);
+  padding-right: 8px;
+}
+.fs-pdv-paused-label > .omni-icon { width: 14px; height: 14px; color: var(--omni-fg-muted); }
+.fs-pdv-paused-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px 6px 12px;
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 100ms, color 100ms, border-color 100ms;
+}
+.fs-pdv-paused-tab:hover { background: var(--omni-bg-elev); color: var(--omni-fg); border-color: var(--omni-line-strong); }
+.fs-pdv-paused-tab.is-current {
+  background: var(--omni-accent-soft);
+  border-color: color-mix(in oklab, var(--omni-accent) 30%, var(--omni-line));
+  color: var(--omni-accent);
+  font-weight: 600;
+}
+.fs-pdv-paused-tab-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--omni-accent);
+  flex-shrink: 0;
+}
+.fs-pdv-paused-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--omni-bg-elev);
+  color: var(--omni-fg-muted);
+  font-family: var(--omni-font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid var(--omni-line);
+}
+.fs-pdv-paused-tab.is-current .fs-pdv-paused-tab-count {
+  background: var(--omni-accent);
+  color: #fff;
+  border-color: transparent;
+}
+.fs-pdv-paused-tab-amount {
+  font-family: var(--omni-font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--omni-fg-soft);
+}
+.fs-pdv-paused-tab-x {
+  width: 16px; height: 16px;
+  display: grid; place-items: center;
+  background: none; border: 0;
+  color: var(--omni-fg-soft);
+  cursor: pointer;
+  border-radius: 4px;
+  margin-left: 2px;
+}
+.fs-pdv-paused-tab-x:hover { color: var(--omni-danger); background: var(--omni-bg-sunken); }
+.fs-pdv-paused-pause-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--omni-fg-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.fs-pdv-paused-pause-btn:hover { border-color: var(--omni-accent); color: var(--omni-accent); }
+.fs-pdv-paused-pause-btn > kbd {
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--omni-line);
+  border-radius: 4px;
+  background: var(--omni-bg-sunken);
+}
+
+// Omnibox (main search input)
+.fs-pdv-omni-wrap {
+  position: relative;
+  width: 100%;
+}
+.fs-pdv-omni {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 16px;
+  border: 1.5px solid var(--omni-line);
+  border-radius: 12px;
+  background: var(--omni-bg-elev);
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.fs-pdv-omni:focus-within {
+  border-color: var(--omni-accent);
+  box-shadow: 0 0 0 3px var(--omni-accent-softer);
+}
+.fs-pdv-omni > .omni-icon:first-child { width: 18px; height: 18px; }
+.fs-pdv-omni > .omni-icon { color: var(--omni-fg-muted); flex: 0 0 auto; }
+.fs-pdv-omni input {
+  flex: 1;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14.5px;
+  font-family: var(--omni-font-mono);
+  color: var(--omni-fg);
+  outline: none;
+  padding: 0;
+}
+.fs-pdv-omni input::placeholder { color: var(--omni-fg-soft); font-family: var(--omni-font-ui); }
+.fs-pdv-omni-help {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--omni-bg-sunken);
+  border: 0;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+  font-weight: 700;
+}
+.fs-pdv-omni-help:hover { background: var(--omni-accent-soft); color: var(--omni-accent); }
+
+// Suggestions dropdown
+.fs-pdv-omni-sugg {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 10px;
+  box-shadow: var(--omni-shadow-lg);
+  padding: 4px;
+  z-index: 100;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.fs-pdv-omni-sugg-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.fs-pdv-omni-sugg-item:hover,
+.fs-pdv-omni-sugg-item.is-active { background: var(--omni-bg-sunken); }
+.fs-pdv-omni-sugg-code {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  border-radius: 4px;
+  min-width: 36px;
+  text-align: center;
+}
+.fs-pdv-omni-sugg-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--omni-fg);
+}
+.fs-pdv-omni-sugg-price {
+  font-family: var(--omni-font-mono);
+  font-size: 12px;
+  color: var(--omni-fg-muted);
+}
+
+// Pizza config inline panel (when omnibox detects pizza command)
+.fs-pdv-omni-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 12px;
+  box-shadow: var(--omni-shadow-lg);
+  padding: 16px;
+  z-index: 110;
+}
+.fs-pdv-omni-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.fs-pdv-omni-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--omni-fg);
+}
+.fs-pdv-omni-panel-price {
+  font-family: var(--omni-font-mono);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--omni-accent);
+}
+.fs-pdv-omni-panel-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--omni-bg-sunken);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.fs-pdv-omni-panel-tab {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: none; border: 0;
+  font: inherit; font-size: 12.5px;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+}
+.fs-pdv-omni-panel-tab.is-active {
+  background: var(--omni-bg-elev);
+  color: var(--omni-accent);
+  font-weight: 600;
+  box-shadow: var(--omni-shadow-sm);
+}
+.fs-pdv-omni-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--omni-line);
+}
+.fs-pdv-omni-panel-hints {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--omni-fg-soft);
+}
+.fs-pdv-omni-panel-hints > kbd {
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--omni-line);
+  border-radius: 3px;
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg-muted);
+}
+
+// Favorites rail
+.fs-pdv-fav-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+.fs-pdv-fav-rail::-webkit-scrollbar { display: none; }
+.fs-pdv-fav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  background: var(--omni-bg-elev);
+  font-size: 12.5px;
+  color: var(--omni-fg);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.fs-pdv-fav-chip:hover { border-color: var(--omni-accent); }
+.fs-pdv-fav-chip > .omni-icon {
+  width: 12px; height: 12px;
+  color: var(--omni-accent);
+}
+.fs-pdv-fav-chip-name { font-weight: 500; }
+.fs-pdv-fav-chip-price {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  color: var(--omni-fg-muted);
+}

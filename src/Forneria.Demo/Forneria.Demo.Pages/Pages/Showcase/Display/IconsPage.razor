@@ -1,0 +1,111 @@
+@page "/showcase/icons"
+@layout ShowcaseLayout
+
+<PageTitle>Icons — Showcase</PageTitle>
+
+<ShowcasePage Title="Icon"
+              Subtitle="@($"{OmniIconLibrary.Names.Count()} ícones SVG inline que herdam a cor do texto.")">
+
+    <Overview>
+        <p>
+            O <code>OmniIcon</code> renderiza ícones <strong>SVG inline</strong> a partir de uma
+            biblioteca interna (estilo Lucide, stroke 1.8) — <strong>sem dependência externa</strong>,
+            sem fontes de ícone, sem requisições de rede. Basta informar o <code>Name</code>.
+        </p>
+        <p>
+            Os ícones herdam <code>currentColor</code>, então para colorir um ícone basta definir a
+            cor do elemento pai. O parâmetro <code>Size</code> oferece quatro tamanhos
+            (<code>Sm</code> 14px, <code>Md</code> 16px, <code>Lg</code> 20px, <code>Xl</code> 28px).
+            O catálogo completo de nomes está em <code>OmniIconLibrary.Names</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Acompanhar rótulos de botões, menus e itens de navegação.</li>
+            <li>Indicadores visuais de status, severidade e categoria.</li>
+            <li>Ações compactas onde texto ocuparia espaço demais (toolbar).</li>
+            <li>Qualquer pictograma que deva herdar a cor do contexto.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Identidade de um usuário ou entidade → use <code>OmniAvatar</code>.</li>
+            <li>Logos ou ilustrações complexas → use uma <code>&lt;img&gt;</code> ou SVG dedicado.</li>
+            <li>Rótulo de status com texto → use <code>OmniBadge</code> (que aceita <code>Icon</code>).</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Sm 14px, Md 16px, Lg 20px, Xl 28px."
+                         Code="@(@"<OmniIcon Name=""zap"" Size=""ComponentSize.Sm"" />
+<OmniIcon Name=""zap"" Size=""ComponentSize.Md"" />
+<OmniIcon Name=""zap"" Size=""ComponentSize.Lg"" />
+<OmniIcon Name=""zap"" Size=""ComponentSize.Xl"" />")">
+            <div class="omni-row omni-row-gap-16" style="align-items: center;">
+                <div class="omni-stack omni-stack-4 omni-text-center">
+                    <OmniIcon Name="zap" Size="ComponentSize.Sm" />
+                    <span class="omni-mono omni-soft" style="font-size: 10px;">SM</span>
+                </div>
+                <div class="omni-stack omni-stack-4 omni-text-center">
+                    <OmniIcon Name="zap" Size="ComponentSize.Md" />
+                    <span class="omni-mono omni-soft" style="font-size: 10px;">MD</span>
+                </div>
+                <div class="omni-stack omni-stack-4 omni-text-center">
+                    <OmniIcon Name="zap" Size="ComponentSize.Lg" />
+                    <span class="omni-mono omni-soft" style="font-size: 10px;">LG</span>
+                </div>
+                <div class="omni-stack omni-stack-4 omni-text-center">
+                    <OmniIcon Name="zap" Size="ComponentSize.Xl" />
+                    <span class="omni-mono omni-soft" style="font-size: 10px;">XL</span>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HERANÇA DE COR"
+                         Description="Icons herdam currentColor — basta colorir o pai."
+                         Code="@(@"<span style=""color: var(--omni-accent);"">
+    <OmniIcon Name=""heart"" Size=""ComponentSize.Lg"" />
+</span>
+<span style=""color: var(--omni-good);"">
+    <OmniIcon Name=""check-circle"" Size=""ComponentSize.Lg"" />
+</span>")">
+            <div class="omni-row omni-row-gap-24" style="align-items: center;">
+                <span style="color: var(--omni-accent); font-size: 28px;"><OmniIcon Name="heart" Size="ComponentSize.Lg" /></span>
+                <span style="color: var(--omni-good); font-size: 28px;"><OmniIcon Name="check-circle" Size="ComponentSize.Lg" /></span>
+                <span style="color: var(--omni-warn); font-size: 28px;"><OmniIcon Name="alert-triangle" Size="ComponentSize.Lg" /></span>
+                <span style="color: var(--omni-danger); font-size: 28px;"><OmniIcon Name="alert-circle" Size="ComponentSize.Lg" /></span>
+                <span style="color: var(--omni-info); font-size: 28px;"><OmniIcon Name="info" Size="ComponentSize.Lg" /></span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CATÁLOGO COMPLETO"
+                         Description="Todos os ícones disponíveis em OmniIconLibrary.Names."
+                         Code="@(@"@foreach (var name in OmniIconLibrary.Names.OrderBy(n => n))
+{
+    <OmniIcon Name=""@name"" Size=""ComponentSize.Lg"" />
+}")">
+            <div class="omni-grid-auto-200">
+                @foreach (var name in OmniIconLibrary.Names.OrderBy(n => n))
+                {
+                    <div class="omni-card" style="padding:14px; display:flex; align-items:center; gap:12px;">
+                        <OmniIcon Name="@name" Size="ComponentSize.Lg" />
+                        <span class="omni-mono" style="font-size:12px;">@name</span>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Name" Type="string" Default="&quot;&quot;"
+                            Description="Nome do ícone na biblioteca (obrigatório). Veja OmniIconLibrary.Names." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Tamanho do ícone — Sm 14px, Md 16px, Lg 20px, Xl 28px." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

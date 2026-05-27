@@ -1,0 +1,81 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Container raiz do shell. Estrutura LEGO composável:
+
+      <OmniLayout>
+        <OmniAppBar>...</OmniAppBar>           ← opcional, Top ou Bottom
+        <OmniToolBar>...</OmniToolBar>         ← opcional, abaixo do AppBar
+        <OmniDrawer Anchor="Left">...</...>     ← opcional, esquerda
+        <OmniDrawer Anchor="Right">...</...>    ← opcional, direita
+        <OmniMain>@Body</OmniMain>             ← opcional (qualquer conteúdo)
+        <OmniFooter>...</OmniFooter>           ← opcional
+      </OmniLayout>
+
+    A grid CSS detecta automaticamente quais slots estão presentes via
+    seletor <c>:has()</c> e colapsa linhas/colunas vazias. Não há
+    parâmetros de estado aqui — cada componente filho cuida do próprio
+    comportamento.
+
+    Além disso, o layout mantém um <c>registry</c> dos drawers filhos
+    para que <c>OmniDrawerToggle</c> (que pode estar dentro do AppBar
+    — sibling do drawer, não descendente) consiga encontrá-los via
+    cascade.
+
+    Inspirado em:
+      • MudBlazor MudLayout + MudDrawerContainer
+      • Radzen RadzenLayout (grid-template-areas + :has)
+      • Bootstrap navbar-expand + offcanvas + container
+
+    Browser support: requer CSS :has() — Chrome 105+, Safari 15.4+, Firefox
+    121+ (todos lançados em 2022 ou antes).
+*@
+<CascadingValue Value="this" IsFixed="true">
+    @if (SkipToContent)
+    {
+        <a class="omni-skip-link" href="@SkipTarget">@SkipLabel</a>
+    }
+    <div class="@RootCss" style="@Style" @attributes="Attributes">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>Renderiza um "skip to content" link visível apenas com foco
+    /// por teclado (Tab no início da página). WCAG 2.4.1. Default true.</summary>
+    [Parameter] public bool SkipToContent { get; set; } = true;
+
+    /// <summary>Texto do link de skip. Default "Pular para o conteúdo".</summary>
+    [Parameter] public string SkipLabel { get; set; } = "Pular para o conteúdo";
+
+    /// <summary>Âncora do skip link. Default <c>#main</c> (o OmniMain renderiza
+    /// um elemento <c>&lt;main&gt;</c> que pode receber esse id no consumidor
+    /// via <c>Class</c> ou attributes).</summary>
+    [Parameter] public string SkipTarget { get; set; } = "#main";
+
+    private readonly List<OmniDrawer> _drawers = new();
+
+    /// <summary>Drawers filhos registrados (acesso somente leitura). Útil para
+    /// componentes como <see cref="OmniDrawerToggle"/> encontrarem o drawer
+    /// alvo quando estão em um slot sibling (AppBar) e não dentro do drawer.</summary>
+    public IReadOnlyList<OmniDrawer> Drawers => _drawers;
+
+    /// <summary>Registra um drawer filho. Chamado pelo próprio OmniDrawer
+    /// no <c>OnInitialized</c>.</summary>
+    internal void RegisterDrawer(OmniDrawer drawer)
+    {
+        if (drawer is not null && !_drawers.Contains(drawer))
+            _drawers.Add(drawer);
+    }
+
+    /// <summary>Desregistra um drawer filho. Chamado no <c>Dispose</c> do drawer.</summary>
+    internal void UnregisterDrawer(OmniDrawer drawer) => _drawers.Remove(drawer);
+
+    public void Dispose() => _drawers.Clear();
+
+    private string RootCss => CssBuilder.Default("omni-layout")
+        .AddClass(Class)
+        .Build();
+}

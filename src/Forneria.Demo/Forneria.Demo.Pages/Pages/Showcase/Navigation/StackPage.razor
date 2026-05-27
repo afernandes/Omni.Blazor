@@ -1,0 +1,268 @@
+@page "/showcase/stack"
+@layout ShowcaseLayout
+
+<PageTitle>Stack — Showcase</PageTitle>
+
+<ShowcasePage Title="Stack"
+              Subtitle="Container flex declarativo — equivalente a MudStack e RadzenStack. Substitui markup ad-hoc de classes .omni-row/.omni-stack-N por parâmetros tipados.">
+
+    <Overview>
+        <p>
+            O <code>OmniStack</code> é o primitivo de layout mais comum: um
+            <strong>container flex</strong> com direção, gap e alinhamento
+            configuráveis. Substitui dezenas de classes utilitárias espalhadas
+            (<code>omni-row omni-row-gap-12</code>, <code>omni-stack omni-stack-8</code>)
+            por uma única tag legível.
+        </p>
+        <p>
+            Para grades estruturais use <code>OmniRow</code>+<code>OmniCol</code>
+            (12-col responsivo) ou <code>OmniTileGroup</code> (lego/bento sem gap).
+            <code>OmniStack</code> é a primitiva mais simples: sem grid, mas
+            <strong>com responsividade opcional</strong> via <code>DirectionSm/Md/Lg</code>
+            — basta declarar para virar de Column (mobile) em Row (desktop).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Compor toolbars, action bars, barras horizontais de botões/chips.</li>
+            <li>Empilhar campos de formulário verticalmente com gap consistente.</li>
+            <li>Toda página onde você escreveria <code>&lt;div style=&quot;display:flex; gap:8px&quot;&gt;</code> à mão.</li>
+            <li>Layouts intermediários que não precisam de grid 12-col ou tiles.</li>
+            <li>Cards/blocos que precisam virar coluna em mobile e linha em desktop.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Layout responsivo multi-coluna estrutural → use <code>OmniRow</code>+<code>OmniCol</code> (12-col).</li>
+            <li>Blocos "lego" colados sem gap, com bordas internas → use <code>OmniTileGroup</code>.</li>
+            <li>Formulários estruturados com labels → use <code>OmniFormField</code> + <code>OmniStack</code> dentro.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DIRECTION = ROW (horizontal)"
+                         Description="Empilha filhos horizontalmente. Útil para action bars, chip groups, toolbars."
+                         Code="@(@"<OmniStack Direction=""StackDirection.Row"" Gap=""8"" AlignItems=""StackAlign.Center"">
+    <OmniButton Text=""Salvar""  Variant=""ButtonVariant.Primary"" />
+    <OmniButton Text=""Cancelar"" Variant=""ButtonVariant.Ghost"" />
+    <OmniKbd Text=""⌘S"" />
+</OmniStack>")">
+            <OmniStack Direction="StackDirection.Row" Gap="8" AlignItems="StackAlign.Center">
+                <OmniButton Text="Salvar"   Variant="ButtonVariant.Primary" />
+                <OmniButton Text="Cancelar" Variant="ButtonVariant.Ghost" />
+                <OmniKbd Text="⌘S" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DIRECTION = COLUMN (default)"
+                         Description="Empilha filhos verticalmente. É o default — Direction pode ser omitido."
+                         Code="@(@"<OmniStack Gap=""12"">
+    <OmniTextBox Placeholder=""Nome"" />
+    <OmniTextBox Placeholder=""Email"" />
+    <OmniTextBox Placeholder=""Telefone"" />
+</OmniStack>")">
+            <OmniStack Gap="12">
+                <OmniTextBox Placeholder="Nome" />
+                <OmniTextBox Placeholder="Email" />
+                <OmniTextBox Placeholder="Telefone" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DIRECTION RESPONSIVA (mobile → desktop)"
+                         Description="Combine Direction + DirectionMd: empilha vertical no mobile, vira horizontal em ≥1024 px. Redimensione a janela ou abra DevTools p/ ver."
+                         Code="@(@"@* Column no mobile, Row em ≥1024px *@
+<OmniStack Direction=""StackDirection.Column""
+            DirectionMd=""StackDirection.Row""
+            Gap=""12"" AlignItems=""StackAlign.Center"">
+    <OmniBadge Text=""Status"" Variant=""BadgeVariant.Good"" />
+    <OmniTextBox Placeholder=""Buscar..."" />
+    <OmniButton Text=""Aplicar"" Variant=""ButtonVariant.Primary"" />
+</OmniStack>")">
+            <OmniStack Direction="StackDirection.Column"
+                        DirectionMd="StackDirection.Row"
+                        Gap="12" AlignItems="StackAlign.Center">
+                <OmniBadge Text="Status: OK" Variant="BadgeVariant.Good" Icon="check" />
+                <OmniTextBox Placeholder="Buscar pedidos..." LeadingIcon="search" />
+                <OmniButton Text="Aplicar" Variant="ButtonVariant.Primary" />
+            </OmniStack>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 10px;">
+                BREAKPOINTS — sm ≥ 640 · md ≥ 1024 · lg ≥ 1440
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="JUSTIFY — galeria"
+                         Description="Mapeia para justify-content. Compara todos os 6 valores na mesma altura."
+                         Code="@(@"<OmniStack Direction=""StackDirection.Row"" Justify=""StackJustify.Center"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" Justify=""StackJustify.End"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" Justify=""StackJustify.Between"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" Justify=""StackJustify.Around"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" Justify=""StackJustify.Evenly"">...</OmniStack>")">
+            <OmniStack Gap="8">
+                @foreach (var j in new[] {
+                    StackJustify.Start, StackJustify.Center, StackJustify.End,
+                    StackJustify.Between, StackJustify.Around, StackJustify.Evenly })
+                {
+                    <div style="border:1px dashed var(--omni-line); border-radius:8px; padding:8px 10px;">
+                        <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px">JUSTIFY = @j.ToString().ToUpperInvariant()</p>
+                        <OmniStack Direction="StackDirection.Row" Justify="@j" Gap="6">
+                            <OmniBadge Text="A" Variant="BadgeVariant.Accent" />
+                            <OmniBadge Text="B" Variant="BadgeVariant.Plain" />
+                            <OmniBadge Text="C" Variant="BadgeVariant.Solid" />
+                        </OmniStack>
+                    </div>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ALIGN ITEMS — galeria"
+                         Description="Mapeia para align-items. Itens com alturas diferentes evidenciam o efeito do cross-axis."
+                         Code="@(@"<OmniStack Direction=""StackDirection.Row"" AlignItems=""StackAlign.Start"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" AlignItems=""StackAlign.Center"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" AlignItems=""StackAlign.End"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" AlignItems=""StackAlign.Stretch"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" AlignItems=""StackAlign.Baseline"">...</OmniStack>")">
+            <OmniStack Gap="8">
+                @foreach (var a in new[] {
+                    StackAlign.Start, StackAlign.Center, StackAlign.End,
+                    StackAlign.Stretch, StackAlign.Baseline })
+                {
+                    <div style="border:1px dashed var(--omni-line); border-radius:8px; padding:8px 10px; background:var(--omni-bg-sunken);">
+                        <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px">ALIGNITEMS = @a.ToString().ToUpperInvariant()</p>
+                        <OmniStack Direction="StackDirection.Row" AlignItems="@a" Gap="10" style="min-height:64px;">
+                            <div style="background:var(--omni-accent-soft); padding:6px 12px; border-radius:6px; font-size:13px;">curto</div>
+                            <div style="background:var(--omni-accent-soft); padding:18px 12px; border-radius:6px; font-size:13px;">médio</div>
+                            <div style="background:var(--omni-accent-soft); padding:30px 12px; border-radius:6px; font-size:13px;">alto</div>
+                        </OmniStack>
+                    </div>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="JUSTIFY = SPACE BETWEEN (caso clássico)"
+                         Description="Topbar com brand à esquerda e ações à direita — padrão de header reutilizado em quase toda página."
+                         Code="@(@"<OmniStack Direction=""StackDirection.Row""
+            Justify=""StackJustify.Between""
+            AlignItems=""StackAlign.Center"">
+    <strong>Forneria</strong>
+    <OmniStack Direction=""StackDirection.Row"" Gap=""6"">
+        <OmniButton Text=""Login""    Variant=""ButtonVariant.Ghost"" Size=""ComponentSize.Sm"" />
+        <OmniButton Text=""Cadastrar"" Variant=""ButtonVariant.Primary"" Size=""ComponentSize.Sm"" />
+    </OmniStack>
+</OmniStack>")">
+            <div style="border: 1px solid var(--omni-line); padding: 12px 16px; border-radius: 8px;">
+                <OmniStack Direction="StackDirection.Row" Justify="StackJustify.Between" AlignItems="StackAlign.Center">
+                    <strong>Forneria</strong>
+                    <OmniStack Direction="StackDirection.Row" Gap="6">
+                        <OmniButton Text="Login"     Variant="ButtonVariant.Ghost"   Size="ComponentSize.Sm" />
+                        <OmniButton Text="Cadastrar" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm" />
+                    </OmniStack>
+                </OmniStack>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="WRAP — quebra em multiplas linhas"
+                         Description="Habilita flex-wrap. Útil para chip groups ou tag clouds que não cabem em uma linha."
+                         Code="@(@"<OmniStack Direction=""StackDirection.Row"" Gap=""6"" Wrap=""true"">
+    <OmniChip Text=""Pizza Salgada"" />
+    <OmniChip Text=""Pizza Doce"" />
+    <OmniChip Text=""Burgers"" />
+    <OmniChip Text=""Massas"" />
+    <OmniChip Text=""Saladas"" />
+    <OmniChip Text=""Sobremesas"" />
+    <OmniChip Text=""Bebidas"" />
+    <OmniChip Text=""Vinhos"" />
+</OmniStack>")">
+            <OmniStack Direction="StackDirection.Row" Gap="6" Wrap="true">
+                <OmniChip Text="Pizza Salgada" />
+                <OmniChip Text="Pizza Doce" />
+                <OmniChip Text="Burgers" />
+                <OmniChip Text="Massas" />
+                <OmniChip Text="Saladas" />
+                <OmniChip Text="Sobremesas" />
+                <OmniChip Text="Bebidas" />
+                <OmniChip Text="Vinhos" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="GAP — escala visual"
+                         Description="O gap é um inteiro em pixels. Conheça a escala: 4 (chips colados), 8 (default), 12 (form), 16/24 (seções)."
+                         Code="@(@"<OmniStack Direction=""StackDirection.Row"" Gap=""4"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" Gap=""8"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" Gap=""16"">...</OmniStack>
+<OmniStack Direction=""StackDirection.Row"" Gap=""24"">...</OmniStack>")">
+            <OmniStack Gap="12">
+                @foreach (var g in new[] { 4, 8, 12, 16, 24 })
+                {
+                    <div style="border:1px dashed var(--omni-line); border-radius:8px; padding:8px 10px;">
+                        <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px">GAP = @g px</p>
+                        <OmniStack Direction="StackDirection.Row" Gap="@g">
+                            <OmniBadge Text="A" />
+                            <OmniBadge Text="B" />
+                            <OmniBadge Text="C" />
+                            <OmniBadge Text="D" />
+                        </OmniStack>
+                    </div>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COMPOSIÇÃO — Stacks aninhados"
+                         Description="O padrão mais útil: Stack horizontal por linha, dentro de um Stack vertical para empilhar várias linhas."
+                         Code="@(@"<OmniStack Gap=""8"">                          @* Stack vertical externo *@
+    <OmniStack Direction=""StackDirection.Row""  @* Stack horizontal por linha *@
+                Justify=""StackJustify.Between""
+                AlignItems=""StackAlign.Center"">
+        <span>Pedido #1823</span>
+        <OmniBadge Text=""Pronto"" Variant=""BadgeVariant.Good"" />
+    </OmniStack>
+    <OmniStack Direction=""StackDirection.Row""
+                Justify=""StackJustify.Between"">
+        <span>Pedido #1824</span>
+        <OmniBadge Text=""Em preparo"" Variant=""BadgeVariant.Warn"" />
+    </OmniStack>
+</OmniStack>")">
+            <OmniStack Gap="8">
+                @foreach (var p in new[] {
+                    ("#1823", "Pronto",      BadgeVariant.Good),
+                    ("#1824", "Em preparo",  BadgeVariant.Warn),
+                    ("#1825", "Aguardando",  BadgeVariant.Plain),
+                    ("#1826", "Cancelado",   BadgeVariant.Danger),
+                })
+                {
+                    <div style="border:1px solid var(--omni-line); padding:8px 12px; border-radius:6px;">
+                        <OmniStack Direction="StackDirection.Row" Justify="StackJustify.Between" AlignItems="StackAlign.Center">
+                            <span class="omni-mono">Pedido @p.Item1</span>
+                            <OmniBadge Text="@p.Item2" Variant="@p.Item3" />
+                        </OmniStack>
+                    </div>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniStack — parâmetros">
+            <ShowcaseApiRow Name="Direction" Type="StackDirection" Default="Column"
+                            Description="Column (vertical, default) ou Row (horizontal). Mapeia para flex-direction." />
+            <ShowcaseApiRow Name="DirectionSm" Type="StackDirection?" Default="null"
+                            Description="Override de Direction em ≥640 px (sm breakpoint). Útil p/ mobile → tablet." />
+            <ShowcaseApiRow Name="DirectionMd" Type="StackDirection?" Default="null"
+                            Description="Override em ≥1024 px (md breakpoint). Caso mais comum: Column mobile → Row desktop." />
+            <ShowcaseApiRow Name="DirectionLg" Type="StackDirection?" Default="null"
+                            Description="Override em ≥1440 px (lg breakpoint). Para wide-screens." />
+            <ShowcaseApiRow Name="Gap" Type="int" Default="8"
+                            Description="Espaçamento entre filhos em pixels. Aplicado via custom property --omni-stack-gap." />
+            <ShowcaseApiRow Name="AlignItems" Type="StackAlign" Default="Stretch"
+                            Description="Eixo cross (align-items): Start, Center, End, Stretch, Baseline." />
+            <ShowcaseApiRow Name="Justify" Type="StackJustify" Default="Start"
+                            Description="Eixo main (justify-content): Start, Center, End, Between, Around, Evenly." />
+            <ShowcaseApiRow Name="Wrap" Type="bool" Default="false"
+                            Description="Habilita flex-wrap (quebra de linha em múltiplas linhas)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Filhos do container." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

@@ -1,0 +1,78 @@
+@page "/cadastros/categorias"
+@layout CadastrosLayout
+
+<PageTitle>Categorias — Forneria</PageTitle>
+
+<OmniPaneHeader Title="Categorias" Subtitle="@($"{cats.Count} categorias no cardápio")" />
+
+<OmniPaneToolbar>
+    <OmniTextBox @bind-Value="search" Placeholder="Buscar categoria..." LeadingIcon="search" Class="omni-pane-toolbar-search" />
+    <div class="omni-pane-toolbar-spacer"></div>
+    <OmniButton Text="Nova categoria" Icon="plus" Variant="ButtonVariant.Primary" />
+</OmniPaneToolbar>
+
+<OmniDataGrid TItem="Categoria" Data="@Filtered" AllowPaging PageSize="14" Embed>
+    <Columns>
+        <OmniDataGridColumn TItem="Categoria" Title="Categoria" Property="@(c => c.Nome)">
+            <Template>
+                <div class="omni-row omni-row-gap-10">
+                    <div class="omni-mosaic-ic" style="width:32px;height:32px;flex:0 0 32px;border-radius:7px;">
+                        <OmniIcon Name="@context.Icon" Size="ComponentSize.Sm" />
+                    </div>
+                    <div>
+                        <div style="font-weight:600;">@context.Nome</div>
+                        <div class="omni-muted" style="font-size:11px;">@context.Itens itens</div>
+                    </div>
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Categoria" Title="Faturamento (mês)" Property="@(c => (object)c.Faturamento)">
+            <Template>
+                <span class="omni-mono">@context.Faturamento.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Categoria" Title="Destaque" Sortable="false" Width="120px">
+            <Template>
+                @if (context.Destaque)
+                {
+                    <OmniBadge Text="Destaque" Variant="BadgeVariant.Accent" />
+                }
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Categoria" Title="Status" Property="@(c => (object)c.Ativa)">
+            <Template>
+                <OmniBadge Text="@(context.Ativa ? "Ativa" : "Inativa")"
+                            Variant="@(context.Ativa ? BadgeVariant.Good : BadgeVariant.Plain)" />
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Categoria" Title="" Sortable="false" Width="140px">
+            <Template>
+                <div class="omni-row omni-row-gap-4 omni-row-end">
+                    <OmniButton IconOnly Icon="edit"  Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    <OmniButton IconOnly Icon="trash" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>
+
+@code {
+    private record Categoria(string Nome, string Icon, int Itens, decimal Faturamento, bool Ativa, bool Destaque);
+
+    private string? search;
+
+    private readonly List<Categoria> cats = new()
+    {
+        new("Pizzas",     "pizza",          18, 18_240m, true, true),
+        new("Bebidas",    "coffee",         12,  4_120m, true, false),
+        new("Sobremesas", "heart",           8,  1_840m, true, false),
+        new("Combos",     "package",         5,  7_650m, true, true),
+        new("Lanches",    "package",        14,  6_320m, true, false),
+        new("Entradas",   "star",            6,  2_180m, true, false),
+        new("Sazonais",   "star",            3,    980m, false, false),
+        new("Outros",     "grid",            4,    540m, false, false),
+    };
+
+    private IEnumerable<Categoria> Filtered => cats.Where(c =>
+        string.IsNullOrWhiteSpace(search) || c.Nome.Contains(search, StringComparison.OrdinalIgnoreCase));
+}

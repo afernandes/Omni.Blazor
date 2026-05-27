@@ -1,0 +1,43 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits FormComponent<TValue>
+@using Omni.Blazor.Utilities
+
+@*
+    Mutually-exclusive choice container. Holds the bound Value; <OmniRadio>
+    children register themselves via cascading parameter and report selection.
+
+    Usage:
+        <OmniRadioGroup TValue="string" @bind-Value="pgto">
+            <OmniRadio TValue="string" Value="pix"     Label="PIX" />
+            <OmniRadio TValue="string" Value="cartao"  Label="Cartão" />
+            <OmniRadio TValue="string" Value="dinheiro" Label="Dinheiro" />
+        </OmniRadioGroup>
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <div class="@RootCss" style="@Style" role="radiogroup" @attributes="Attributes">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
+
+    // Every <OmniRadio> in this group renders with the same name attribute so
+    // the browser enforces mutual exclusion natively. Without this, repeated
+    // clicks would leave each input's DOM `.checked` property set to true and
+    // multiple fills would show even though the C# Value points at just one.
+    internal string GroupName { get; } = $"omni-rg-{Guid.NewGuid():N}";
+
+    private string RootCss => CssBuilder.Default("omni-radio-group")
+        .AddClass("omni-radio-group-horizontal", Orientation == Orientation.Horizontal)
+        .AddClass(Class)
+        .Build();
+
+    internal bool IsSelected(TValue? value) =>
+        EqualityComparer<TValue?>.Default.Equals(Value, value);
+
+    internal Task SelectAsync(TValue? value) => SetValueAsync(value);
+}

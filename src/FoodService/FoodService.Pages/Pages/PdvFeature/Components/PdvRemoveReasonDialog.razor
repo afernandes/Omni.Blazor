@@ -1,0 +1,65 @@
+@inject DialogService Dialog
+
+@*  Dialog de remoção: lista de razões + nota livre + confirmar.
+    Retorna RemoveResult(reason, note?) ou null se cancelar. *@
+<div class="fs-pdv-modal-body">
+    <div>
+        <div class="fs-pdv-modal-section-label">Razão da remoção</div>
+        <div class="fs-pdv-reason-list">
+            @foreach (var r in _reasons)
+            {
+                var rk = r.Kind;
+                <OmniChip Class="fs-pdv-reason-item"
+                          Icon="@r.Icon"
+                          Active="@(Reason == rk)"
+                          OnClick="@(() => Reason = rk)">
+                    @r.Label
+                </OmniChip>
+            }
+        </div>
+    </div>
+
+    @if (Reason == RemoveReason.Outro)
+    {
+        <div>
+            <div class="fs-pdv-modal-section-label">Detalhar</div>
+            <OmniTextBox Class="fs-pdv-mode-input"
+                         Value="@Note"
+                         ValueChanged="@(v => Note = v ?? "")"
+                         Placeholder="Ex.: cliente desistiu, item duplicado…" />
+        </div>
+    }
+
+    <div class="fs-pdv-adj-actions">
+        <OmniButton Class="fs-pdv-btn fs-pdv-btn-ghost" Variant="ButtonVariant.Ghost" OnClick="Cancel">Cancelar</OmniButton>
+        <OmniButton Class="fs-pdv-btn fs-pdv-btn-primary"
+                    Variant="ButtonVariant.Primary"
+                    Disabled="@(Reason == RemoveReason.Outro && string.IsNullOrWhiteSpace(Note))"
+                    OnClick="Confirm">
+            Confirmar remoção
+        </OmniButton>
+    </div>
+</div>
+
+@code {
+    private record ReasonOption(RemoveReason Kind, string Label, string Icon);
+
+    private readonly ReasonOption[] _reasons =
+    {
+        new(RemoveReason.Estoque, "Falta de estoque", "package"),
+        new(RemoveReason.Preco,   "Erro de preço",    "dollar-sign"),
+        new(RemoveReason.Engano,  "Item adicionado por engano", "alert-circle"),
+        new(RemoveReason.Cliente, "Cliente desistiu", "user"),
+        new(RemoveReason.Outro,   "Outro motivo",     "more-horizontal"),
+    };
+
+    private RemoveReason Reason { get; set; } = RemoveReason.Engano;
+    private string Note { get; set; } = "";
+
+    private void Confirm()
+    {
+        var note = string.IsNullOrWhiteSpace(Note) ? null : Note;
+        Dialog.Close(new RemoveResult(Reason, note));
+    }
+    private void Cancel() => Dialog.Close(null);
+}

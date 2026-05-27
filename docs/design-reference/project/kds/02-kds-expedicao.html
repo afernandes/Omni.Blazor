@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Forneria · KDS Expedição</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kds.css" />
+<style>
+  /* —— Expedição —— list view */
+  .ex-wrap {
+    overflow-y: auto;
+    padding: 22px;
+  }
+  .ex-list {
+    max-width: 1400px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .ex-row {
+    display: grid;
+    grid-template-columns: 56px 100px 140px minmax(0, 1fr) 180px 160px 200px;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 22px;
+    background: var(--bg-card);
+    border: 1px solid color-mix(in oklab, var(--st-ready) 30%, var(--line));
+    border-left: 4px solid var(--st-ready);
+    border-radius: 12px;
+    transition: transform 200ms cubic-bezier(.2,.8,.2,1), opacity 200ms;
+  }
+  .ex-row.leaving { animation: kCardOut 360ms ease-in forwards; }
+  .ex-check {
+    width: 40px; height: 40px; border-radius: 8px;
+    background: color-mix(in oklab, var(--st-ready) 20%, transparent);
+    color: var(--st-ready);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .ex-no {
+    font-family: var(--font-mono); font-weight: 700;
+    font-size: 22px;
+    color: var(--fg);
+  }
+  .ex-type {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 6px;
+    font-family: var(--font-mono); font-weight: 700;
+    font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    align-self: center;
+    justify-self: start;
+  }
+  .ex-type[data-type="delivery"] { background: color-mix(in oklab, var(--tp-delivery) 18%, transparent); color: var(--tp-delivery); }
+  .ex-type[data-type="table"]    { background: color-mix(in oklab, var(--tp-table) 18%, transparent); color: var(--tp-table); }
+  .ex-type[data-type="counter"]  { background: color-mix(in oklab, var(--tp-counter) 18%, transparent); color: var(--tp-counter); }
+
+  .ex-cust { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .ex-cust .nm { font-size: 16px; font-weight: 600; color: var(--fg); }
+  .ex-cust .it { font-size: 13px; color: var(--fg-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .ex-wait {
+    display: flex; flex-direction: column; gap: 2px;
+    font-family: var(--font-mono);
+  }
+  .ex-wait .lbl { font-size: 10px; letter-spacing: 0.1em; color: var(--fg-soft); text-transform: uppercase; }
+  .ex-wait .v { font-size: 18px; font-weight: 700; color: var(--fg); }
+  .ex-wait.warn .v { color: var(--st-prep); }
+  .ex-wait.danger .v { color: var(--st-delay); }
+
+  .ex-prep {
+    display: flex; flex-direction: column; gap: 2px;
+    font-family: var(--font-mono);
+  }
+  .ex-prep .lbl { font-size: 10px; letter-spacing: 0.1em; color: var(--fg-soft); text-transform: uppercase; }
+  .ex-prep .v { font-size: 14px; color: var(--fg-muted); }
+
+  .ex-act {
+    height: 56px;
+    border-radius: 10px;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--st-ready);
+    color: oklch(0.16 0.04 150);
+    border: 1px solid var(--st-ready);
+    width: 100%;
+    transition: transform 80ms, background 100ms;
+  }
+  .ex-act:hover { background: color-mix(in oklab, var(--st-ready) 90%, white); }
+  .ex-act:active { transform: scale(0.97); }
+
+  .ex-summary {
+    max-width: 1400px; margin: 0 auto 18px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .ex-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .ex-stat .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-soft); }
+  .ex-stat .v { font-family: var(--font-mono); font-weight: 700; font-size: 28px; color: var(--fg); line-height: 1; }
+  .ex-stat .v small { font-size: 14px; color: var(--fg-muted); font-weight: 500; margin-left: 4px; }
+
+  .ex-empty {
+    text-align: center; padding: 80px 20px; color: var(--fg-soft);
+    background: var(--bg-card); border: 1px dashed var(--line); border-radius: 12px;
+  }
+  .ex-empty b { display: block; font-size: 18px; color: var(--fg-muted); font-weight: 600; margin-bottom: 4px; }
+  .ex-empty span { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="k">
+
+  <!-- ——— TOP BAR ——— -->
+  <header class="k-top">
+    <div style="display:flex; align-items:center;">
+      <div class="k-brand">
+        <div class="k-brand-mark">F</div>
+        <div>
+          <div class="k-brand-name">Forneria</div>
+          <div class="k-brand-meta">KDS · v2.4</div>
+        </div>
+      </div>
+      <button class="k-sector">
+        <span class="ic">🍕</span>
+        <span>Setor Pizza</span>
+        <span class="ch">▾</span>
+      </button>
+    </div>
+
+    <div class="k-clock-block">
+      <div class="k-clock" id="clock">14:32:05</div>
+      <div class="k-counter"><b id="readyCount">5</b> · prontos para entregar</div>
+    </div>
+
+    <div class="k-actions">
+      <a class="k-navlink" href="01-kds-principal.html">Principal</a>
+      <a class="k-navlink on" href="02-kds-expedicao.html">Expedição<span style="margin-left:6px;color:var(--st-ready);font-weight:700">·5</span></a>
+      <a class="k-navlink" href="04-kds-historico.html">Histórico</a>
+      <span class="k-online"><span class="dot"></span>Online</span>
+      <a class="k-iconbtn" href="03-kds-configuracoes.html" aria-label="Configurações">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- ——— FILTER BAR ——— -->
+  <div class="k-filters">
+    <div class="k-pills">
+      <button class="k-pill on">Todos<span class="ct" id="cAll">5</span></button>
+      <button class="k-pill" style="border-color:color-mix(in oklab, var(--tp-delivery) 50%, var(--line));color:var(--tp-delivery)">🛵 Delivery<span class="ct" style="background:color-mix(in oklab, var(--tp-delivery) 22%, transparent);color:var(--tp-delivery)">2</span></button>
+      <button class="k-pill" style="border-color:color-mix(in oklab, var(--tp-table) 50%, var(--line));color:var(--tp-table)">🍽️ Mesas<span class="ct" style="background:color-mix(in oklab, var(--tp-table) 22%, transparent);color:var(--tp-table)">2</span></button>
+      <button class="k-pill" style="border-color:color-mix(in oklab, var(--tp-counter) 50%, var(--line));color:var(--tp-counter)">🏃 Balcão<span class="ct" style="background:color-mix(in oklab, var(--tp-counter) 22%, transparent);color:var(--tp-counter)">1</span></button>
+    </div>
+    <button class="k-sort">
+      <span class="lbl">Ordenar por:</span>
+      <span>Tempo de espera</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+
+  <!-- ——— LIST ——— -->
+  <div class="ex-wrap">
+
+    <div class="ex-summary">
+      <div class="ex-stat"><div class="lbl">Aguardando expedição</div><div class="v" id="cReady">5</div></div>
+      <div class="ex-stat"><div class="lbl">Tempo médio aguardo</div><div class="v">3<small>min</small></div></div>
+      <div class="ex-stat"><div class="lbl">Entregues hoje</div><div class="v">42</div></div>
+      <div class="ex-stat"><div class="lbl">Tempo médio preparo</div><div class="v">18<small>min</small></div></div>
+    </div>
+
+    <div class="ex-list" id="list">
+      <!-- rows rendered by JS -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+const READY = [
+  { id: 4718, type: 'table', tableNum: 3, customer: 'Mesa 03',
+    items: 'Pizza G Margherita ×2', meta: 'Garçom Felipe',
+    waitSecs: 312, prepSecs: 1268 },
+  { id: 4720, type: 'delivery', customer: 'Carlos Mendes',
+    items: 'Pizza G Calabresa, Pizza G Portuguesa, Coca 2L',
+    meta: 'R. das Acácias, 142 · Motoboy: Diego', waitSecs: 264, prepSecs: 1044 },
+  { id: 4721, type: 'counter', customer: 'João Silva',
+    items: 'Pizza G Pepperoni Picante, Suco Laranja 500ml',
+    meta: 'Senha 23 · Retirada balcão', waitSecs: 78, prepSecs: 968 },
+  { id: 4715, type: 'table', tableNum: 8, customer: 'Mesa 08',
+    items: 'Pizza M Quatro Queijos, Bruschetta',
+    meta: 'Garçom Felipe', waitSecs: 182, prepSecs: 1102 },
+  { id: 4717, type: 'delivery', customer: 'Maria Fernandes',
+    items: 'Pizza G Búfala, Coca Lata ×2',
+    meta: 'Av. Brasil, 2210 · Motoboy: Diego', waitSecs: 95, prepSecs: 866 },
+];
+
+const TYPE_LABEL = { delivery: '🛵 DELIVERY', table: '🍽️ MESA', counter: '🏃 BALCÃO' };
+
+function fmtMin(secs) {
+  const m = Math.floor(secs/60);
+  const s = secs % 60;
+  return `${m}min ${String(s).padStart(2,'0')}s`;
+}
+function fmtPrep(secs) {
+  const m = Math.floor(secs/60);
+  return `${m} min preparo`;
+}
+
+function waitClass(s) {
+  if (s >= 300) return 'danger';
+  if (s >= 180) return 'warn';
+  return '';
+}
+
+function render() {
+  const list = document.getElementById('list');
+  const items = READY.filter(r => !r.delivered);
+  if (items.length === 0) {
+    list.innerHTML = `<div class="ex-empty"><b>Nenhum pedido aguardando expedição</b><span>Quando a cozinha marcar um pedido como pronto, ele aparece aqui.</span></div>`;
+  } else {
+    list.innerHTML = items.map(r => {
+      const tlabel = r.type === 'table' ? `🍽️ MESA ${r.tableNum}` : TYPE_LABEL[r.type];
+      const wcls = waitClass(r.waitSecs);
+      return `
+        <div class="ex-row" data-id="${r.id}">
+          <div class="ex-check">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
+          </div>
+          <div class="ex-no">#${r.id}</div>
+          <span class="ex-type" data-type="${r.type}">${tlabel}</span>
+          <div class="ex-cust">
+            <div class="nm">${r.customer}</div>
+            <div class="it">${r.items}</div>
+          </div>
+          <div class="ex-wait ${wcls}">
+            <div class="lbl">⏱ Aguardando</div>
+            <div class="v" data-wait="${r.waitSecs}">${fmtMin(r.waitSecs)}</div>
+          </div>
+          <div class="ex-prep">
+            <div class="lbl">Preparo</div>
+            <div class="v">${fmtPrep(r.prepSecs)}</div>
+          </div>
+          <button class="ex-act" data-id="${r.id}">✓ Entregue</button>
+        </div>
+      `;
+    }).join('');
+  }
+  document.getElementById('cReady').textContent = items.length;
+  document.getElementById('readyCount').textContent = items.length;
+  document.getElementById('cAll').textContent = items.length;
+  bindEvents();
+}
+
+function bindEvents() {
+  document.querySelectorAll('.ex-act').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = +btn.dataset.id;
+      const row = document.querySelector(`.ex-row[data-id="${id}"]`);
+      row.classList.add('leaving');
+      setTimeout(() => {
+        const r = READY.find(x => x.id === id);
+        if (r) r.delivered = true;
+        render();
+      }, 360);
+    });
+  });
+}
+
+function tickClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+}
+
+function tickWait() {
+  READY.forEach(r => {
+    if (r.delivered) return;
+    r.waitSecs += 1;
+    const v = document.querySelector(`.ex-row[data-id="${r.id}"] .ex-wait .v`);
+    if (v) {
+      v.textContent = fmtMin(r.waitSecs);
+      const parent = v.closest('.ex-wait');
+      parent.classList.remove('warn','danger');
+      const c = waitClass(r.waitSecs);
+      if (c) parent.classList.add(c);
+    }
+  });
+}
+
+render();
+tickClock();
+setInterval(tickClock, 1000);
+setInterval(tickWait, 1000);
+</script>
+</body>
+</html>

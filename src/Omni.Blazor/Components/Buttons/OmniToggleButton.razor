@@ -1,0 +1,106 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  Botão com estado liga/desliga (pressed/unpressed). Diferente do
+    OmniSwitch (que parece um switch hardware), este parece um botão
+    normal mas com estado visual. Usado para:
+      • Filtros sticky ("Mostrar só atrasados" — pressed = filtro ativo)
+      • Toggles de view ("Cards / Lista")
+      • Toolbar de formatação ("Negrito / Itálico / Sublinhado")
+
+    Two-way binding via @bind-Active. ARIA usa aria-pressed (não aria-checked
+    — esse último é para checkboxes/switches). Quando agrupado em série
+    (toolbar), pareie com `omni-toggle-btn-group` no container pai. *@
+
+<button type="button"
+        class="@RootCss"
+        style="@Style"
+        disabled="@Disabled"
+        aria-pressed="@(Active ? "true" : "false")"
+        @onclick="HandleClickAsync"
+        @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <OmniIcon Name="@Icon" Size="@IconSize" />
+    }
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+    else if (!string.IsNullOrEmpty(Text))
+    {
+        <span>@Text</span>
+    }
+    @if (!string.IsNullOrEmpty(TrailingIcon))
+    {
+        <OmniIcon Name="@TrailingIcon" Size="@IconSize" />
+    }
+</button>
+
+@code {
+    /// <summary>Texto do botão.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Ícone antes do texto.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Ícone após o texto.</summary>
+    [Parameter] public string? TrailingIcon { get; set; }
+
+    /// <summary>Estado pressed (true) / unpressed (false). Two-way: <c>@bind-Active</c>.</summary>
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public EventCallback<bool> ActiveChanged { get; set; }
+
+    /// <summary>Variante visual quando ativo. Default = accent suave.</summary>
+    [Parameter] public ToggleVariant Variant { get; set; } = ToggleVariant.Default;
+
+    /// <summary>Tamanho.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Renderiza só o ícone (sem texto). Bom para toolbars.</summary>
+    [Parameter] public bool IconOnly { get; set; }
+
+    /// <summary>Desabilita interação.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Callback de click adicional (além do toggle automático).</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-toggle-btn")
+        .AddClass("omni-toggle-btn-active", Active)
+        .AddClass(Variant switch
+        {
+            ToggleVariant.Primary => "omni-toggle-btn-primary",
+            ToggleVariant.Accent  => "omni-toggle-btn-accent",
+            ToggleVariant.Ghost   => "omni-toggle-btn-ghost",
+            _                     => null,
+        })
+        .AddClass(Size switch
+        {
+            ComponentSize.Sm => "omni-toggle-btn-sm",
+            ComponentSize.Lg => "omni-toggle-btn-lg",
+            ComponentSize.Xl => "omni-toggle-btn-xl",
+            _                => "omni-toggle-btn-md",
+        })
+        .AddClass("omni-toggle-btn-icon", IconOnly)
+        .AddClass(Class)
+        .Build();
+
+    private ComponentSize IconSize => Size switch
+    {
+        ComponentSize.Sm => ComponentSize.Sm,
+        ComponentSize.Lg => ComponentSize.Md,
+        ComponentSize.Xl => ComponentSize.Lg,
+        _                => ComponentSize.Sm,
+    };
+
+    private async Task HandleClickAsync(MouseEventArgs args)
+    {
+        if (Disabled) return;
+        Active = !Active;
+        if (ActiveChanged.HasDelegate) await ActiveChanged.InvokeAsync(Active);
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(args);
+    }
+}

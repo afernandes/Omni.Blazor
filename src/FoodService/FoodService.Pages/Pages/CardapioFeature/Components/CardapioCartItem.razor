@@ -1,0 +1,42 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@inject CardapioDigitalState State
+@using Omni.Blazor.Utilities
+
+@*  Cart item — display + meta + obs (se houver) + qty stepper + price + trash. *@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="fs-cd-cart-item-top">
+        <div class="fs-cd-cart-item-info">
+            <div class="fs-cd-cart-item-name">@Item.Display</div>
+            <div class="fs-cd-cart-item-meta">@Item.Detail</div>
+            @if (!string.IsNullOrEmpty(Item.Obs))
+            {
+                <div class="fs-cd-cart-item-obs">Obs: @Item.Obs</div>
+            }
+        </div>
+        <OmniButton Icon="trash"
+                    IconOnly
+                    Variant="ButtonVariant.Ghost"
+                    Size="ComponentSize.Sm"
+                    Class="fs-cd-cart-trash"
+                    OnClick="HandleRemove"
+                    aria-label="Remover item" />
+    </div>
+    <div class="fs-cd-cart-item-foot">
+        <OmniQtyStepper Size="ComponentSize.Sm"
+                        Value="@Item.Qty"
+                        ValueChanged="HandleQtyChanged" />
+        <div class="fs-cd-cart-item-price omni-mono">@CardapioDigitalState.Brl(Item.UnitCents * Item.Qty)</div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CdCartItem Item { get; set; } = null!;
+
+    private string RootCss => CssBuilder.Default("fs-cd-cart-item")
+        .AddClass(Class)
+        .Build();
+
+    private void HandleRemove() => State.RemoveCartItem(Item);
+    private void HandleQtyChanged(int qty) => State.SetCartItemQty(Item, qty);
+}

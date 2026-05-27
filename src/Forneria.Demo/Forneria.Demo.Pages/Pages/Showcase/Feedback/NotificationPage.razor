@@ -1,0 +1,121 @@
+@page "/showcase/notification"
+@layout ShowcaseLayout
+
+<PageTitle>Notification — Showcase</PageTitle>
+
+<ShowcasePage Title="Notification (Toast)"
+              Subtitle="Mensagens transitórias auto-dismiss. 4 severidades, 4 posições, progress bar.">
+
+    <Overview>
+        <p>
+            O <code>NotificationService</code> dispara <strong>toasts</strong> — mensagens curtas
+            e <strong>transitórias</strong> que aparecem num canto da tela e somem sozinhas após
+            alguns segundos. É um serviço <strong>singleton</strong>: chame
+            <code>Toast.Success(...)</code> de qualquer componente, sem markup na página.
+        </p>
+        <p>
+            Tem quatro severidades (<code>Info</code>, <code>Success</code>, <code>Warning</code>,
+            <code>Error</code>) e quatro posições. A propriedade <code>Duration</code> controla o
+            tempo de exibição — passe <code>0</code> para uma notificação persistente que só fecha
+            no clique do X.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Confirmar que uma ação rápida deu certo (salvou, copiou, enviou).</li>
+            <li>Avisar de um erro não-bloqueante que o usuário não precisa resolver agora.</li>
+            <li>Dar feedback de operações em background (sincronização, upload concluído).</li>
+            <li>Comunicar eventos do sistema que não exigem nenhuma decisão do usuário.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Mensagem que precisa ficar visível enquanto o usuário trabalha → use <code>OmniAlert</code>.</li>
+            <li>Confirmação que exige uma resposta (Sim/Não) → use <code>DialogService.Confirm</code>.</li>
+            <li>Erro de validação de um campo específico → use <code>OmniValidationMessage</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SEVERIDADES"
+                         Description="Quatro níveis — cada um com cor e ícone próprios. Clear() remove todos."
+                         Code="@(@"Toast.Info(""Informação"", ""Algo útil aconteceu."");
+Toast.Success(""Salvo"", ""Cliente atualizado com sucesso."");
+Toast.Warning(""Atenção"", ""Faltam 5 itens em estoque."");
+Toast.Error(""Erro"", ""Falha ao conectar com a impressora."");
+Toast.Clear();")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Info" Icon="info" OnClick="@(_ => { Toast.Info("Informação", "Algo útil aconteceu."); return Task.CompletedTask; })" />
+                <OmniButton Text="Success" Icon="check-circle" Variant="ButtonVariant.Primary" OnClick="@(_ => { Toast.Success("Salvo", "Cliente atualizado com sucesso."); return Task.CompletedTask; })" />
+                <OmniButton Text="Warning" Icon="alert-triangle" OnClick="@(_ => { Toast.Warning("Atenção", "Faltam 5 itens em estoque."); return Task.CompletedTask; })" />
+                <OmniButton Text="Error" Icon="alert-circle" Variant="ButtonVariant.Danger" OnClick="@(_ => { Toast.Error("Erro", "Falha ao conectar com a impressora."); return Task.CompletedTask; })" />
+                <OmniButton Text="Limpar todos" Variant="ButtonVariant.Ghost" OnClick="@(_ => { Toast.Clear(); return Task.CompletedTask; })" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="POSIÇÃO"
+                         Description="4 cantos da tela. O service mantém uma fila independente."
+                         Code="@(@"Toast.Position = NotificationPosition.BottomRight;
+Toast.Info(""Aparece no canto inferior direito"");")">
+            <OmniSegmentedControl TValue="NotificationPosition"
+                                    Value="Toast.Position"
+                                    ValueChanged="@(v => Toast.Position = v)"
+                                    Items="@positions" />
+            <p class="omni-muted" style="font-size: 13px; margin-top: 12px;">
+                Dispare uma notificação após mudar a posição para ver onde aparece.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DURATION"
+                         Description="Controle quanto tempo a mensagem fica visível (default 4s, error 6s)."
+                         Code="@(@"Toast.Info(""Rápido"", ""Fica 2s."", 2000);
+Toast.Warning(""Demorado"", ""Fica 10s."", 10000);
+Toast.Error(""Persistente"", ""Só some clicando no X."", 0);")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="2 segundos" OnClick="@(_ => { Toast.Info("Rápido", "Fica 2s.", 2000); return Task.CompletedTask; })" />
+                <OmniButton Text="10 segundos" OnClick="@(_ => { Toast.Warning("Demorado", "Fica 10s para você ler com calma.", 10000); return Task.CompletedTask; })" />
+                <OmniButton Text="Persistente (até clicar)" OnClick="@(_ => { Toast.Error("Persistente", "Só some clicando no X.", 0); return Task.CompletedTask; })" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Métodos" ShowDefault="false">
+            <ShowcaseApiRow Name="Info" Type="void" ShowDefault="false"
+                            Description="Dispara um toast informativo. Assinatura: (summary, detail?, duration = 4000)." />
+            <ShowcaseApiRow Name="Success" Type="void" ShowDefault="false"
+                            Description="Dispara um toast de sucesso. duration padrão 4000ms." />
+            <ShowcaseApiRow Name="Warning" Type="void" ShowDefault="false"
+                            Description="Dispara um toast de aviso. duration padrão 4500ms." />
+            <ShowcaseApiRow Name="Error" Type="void" ShowDefault="false"
+                            Description="Dispara um toast de erro. duration padrão 6000ms." />
+            <ShowcaseApiRow Name="Notify" Type="void" ShowDefault="false"
+                            Description="Forma genérica — recebe um NotificationMessage ou (severity, summary, detail, duration)." />
+            <ShowcaseApiRow Name="Remove" Type="void" ShowDefault="false"
+                            Description="Remove um NotificationMessage específico da fila." />
+            <ShowcaseApiRow Name="Clear" Type="void" ShowDefault="false"
+                            Description="Remove todas as notificações ativas de uma vez." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Propriedades">
+            <ShowcaseApiRow Name="Position" Type="NotificationPosition" Default="TopRight"
+                            Description="Canto da tela onde os toasts aparecem — TopRight, TopLeft, BottomRight, BottomLeft." />
+            <ShowcaseApiRow Name="Messages" Type="IReadOnlyList&lt;NotificationMessage&gt;" Default="[]"
+                            Description="Fila de notificações atualmente visíveis." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    [Inject] NotificationService Toast { get; set; } = default!;
+
+    private readonly IEnumerable<OmniSegmentedControl<NotificationPosition>.Item> positions = new[]
+    {
+        new OmniSegmentedControl<NotificationPosition>.Item(NotificationPosition.TopRight,    "↗ Top right"),
+        new OmniSegmentedControl<NotificationPosition>.Item(NotificationPosition.TopLeft,     "↖ Top left"),
+        new OmniSegmentedControl<NotificationPosition>.Item(NotificationPosition.BottomRight, "↘ Bot right"),
+        new OmniSegmentedControl<NotificationPosition>.Item(NotificationPosition.BottomLeft,  "↙ Bot left"),
+    };
+}

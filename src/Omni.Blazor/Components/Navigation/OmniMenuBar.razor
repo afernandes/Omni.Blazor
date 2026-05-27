@@ -1,0 +1,128 @@
+@namespace Omni.Blazor.Components
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+@inherits OmniComponentWithChildren
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+@*  Horizontal navigation bar — tab-style root items with rich dropdowns.
+    One dropdown open at a time; click opens, and once a menu is open hovering
+    a sibling switches to it. Overflows into a horizontal scroll on phones.  *@
+<nav id="@Id" class="@RootCss" style="@Style" aria-label="@AriaLabel" @attributes="Attributes">
+    <ul class="omni-menubar-list" role="menubar">
+        <CascadingValue Value="this" IsFixed="true">
+            <CascadingValue Name="MenuBarDepth" Value="0" IsFixed="true">
+                @ChildContent
+            </CascadingValue>
+        </CascadingValue>
+    </ul>
+    @if (Aux is not null)
+    {
+        <div class="omni-menubar-aux">@Aux</div>
+    }
+</nav>
+
+@code {
+    /// <summary>How a dropdown first opens — Click (default) or Hover.</summary>
+    [Parameter] public MenuTrigger Trigger { get; set; } = MenuTrigger.Click;
+
+    /// <summary>Accessible label for the navigation landmark.</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Menu";
+
+    /// <summary>Optional content pinned to the right edge of the bar (status, etc.).</summary>
+    [Parameter] public RenderFragment? Aux { get; set; }
+
+    private OmniMenuBarItem? _openItem;
+    private bool _listening;
+    private DotNetObjectReference<OmniMenuBar>? _ref;
+
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+
+    private string RootCss => CssBuilder.Default("omni-menubar")
+        .AddClass(Trigger == MenuTrigger.Hover ? "omni-menubar-hover" : "omni-menubar-click")
+        .AddClass(Class)
+        .Build();
+
+    /// <summary>True when any dropdown is currently open.</summary>
+    internal bool HasOpen => _openItem is not null;
+
+    /// <summary>True when <paramref name="item"/>'s dropdown is open.</summary>
+    internal bool IsOpen(OmniMenuBarItem item) => ReferenceEquals(_openItem, item);
+
+    /// <summary>Toggle an item's dropdown.</summary>
+    internal void Toggle(OmniMenuBarItem item)
+    {
+        _openItem = ReferenceEquals(_openItem, item) ? null : item;
+        SyncListeners();
+        StateHasChanged();
+    }
+
+    /// <summary>Switch the open dropdown to another item (hover-to-peek).</summary>
+    internal void SwitchTo(OmniMenuBarItem item)
+    {
+        if (ReferenceEquals(_openItem, item)) return;
+        _openItem = item;
+        SyncListeners();
+        StateHasChanged();
+    }
+
+    /// <summary>Close any open dropdown.</summary>
+    internal void CloseAll()
+    {
+        if (_openItem is null) return;
+        _openItem = null;
+        SyncListeners();
+        StateHasChanged();
+    }
+
+    /// <summary>Invoked by the JS click-outside / ESC helpers.</summary>
+    [JSInvokable]
+    public void OnDismiss() => CloseAll();
+
+    private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (_openItem is null) return;
+        _openItem = null;
+        SyncListeners();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncListeners()
+    {
+        var needed = _openItem is not null;
+        if (needed && !_listening)
+        {
+            _listening = true;
+            _ref ??= DotNetObjectReference.Create(this);
+            _ = JS.InvokeVoidAsync("omniBlazor.registerClickOutside", Id, "#" + Id, _ref, "OnDismiss");
+            _ = JS.InvokeVoidAsync("omniBlazor.registerEsc", Id, _ref, "OnDismiss");
+            // Viewport-flip for nested flyouts (progressive enhancement; the flyouts
+            // still work without it).
+            _ = JS.InvokeVoidAsync("omniBlazor.registerFlyoutFlip", Id, "#" + Id);
+        }
+        else if (!needed && _listening)
+        {
+            _listening = false;
+            _ = JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", Id);
+            _ = JS.InvokeVoidAsync("omniBlazor.unregisterEsc", Id);
+            _ = JS.InvokeVoidAsync("omniBlazor.unregisterFlyoutFlip", Id);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        if (_listening)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", Id);
+                await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", Id);
+                await JS.InvokeVoidAsync("omniBlazor.unregisterFlyoutFlip", Id);
+            }
+            catch { /* circuit already gone */ }
+        }
+        _ref?.Dispose();
+    }
+}

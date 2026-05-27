@@ -1,0 +1,66 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Container flex declarativo — equivalente a <c>MudStack</c> (MudBlazor) e
+    <c>RadzenStack</c> (Radzen). Substitui as utility-classes
+    <c>.omni-row</c>/<c>.omni-stack</c>/<c>.omni-row-gap-N</c> espalhadas pelas
+    páginas-demo: em vez de markup de classes, usa parâmetros tipados.
+
+    Props:
+      • Direction (StackDirection)  — Column (default) ou Row
+      • Gap (int, default 8)        — espaçamento em px (custom property)
+      • AlignItems (StackAlign)     — align-items (cross-axis)
+      • Justify (StackJustify)      — justify-content (main-axis)
+      • Wrap (bool)                 — flex-wrap
+
+    Uso:
+      <OmniStack Direction="StackDirection.Row" Gap="12" AlignItems="StackAlign.Center">
+        <OmniButton ... />
+        <OmniButton ... />
+      </OmniStack>
+*@
+<div class="@RootCss" style="@($"--omni-stack-gap: {Gap}px;{Style}")" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Direção do flex container. Default <see cref="StackDirection.Column"/>.</summary>
+    [Parameter] public StackDirection Direction { get; set; } = StackDirection.Column;
+
+    /// <summary>Override em ≥640px. Default null (segue <see cref="Direction"/>).</summary>
+    [Parameter] public StackDirection? DirectionSm { get; set; }
+
+    /// <summary>Override em ≥1024px. Default null.</summary>
+    [Parameter] public StackDirection? DirectionMd { get; set; }
+
+    /// <summary>Override em ≥1440px. Default null.</summary>
+    [Parameter] public StackDirection? DirectionLg { get; set; }
+
+    /// <summary>Espaçamento entre filhos em pixels. Default 8.</summary>
+    [Parameter] public int Gap { get; set; } = 8;
+
+    /// <summary>Alinhamento dos filhos no eixo cross (mapeia para <c>align-items</c>).
+    /// Default <see cref="StackAlign.Stretch"/>.</summary>
+    [Parameter] public StackAlign AlignItems { get; set; } = StackAlign.Stretch;
+
+    /// <summary>Distribuição dos filhos no eixo main (mapeia para <c>justify-content</c>).
+    /// Default <see cref="StackJustify.Start"/>.</summary>
+    [Parameter] public StackJustify Justify { get; set; } = StackJustify.Start;
+
+    /// <summary>Quebra de linha (flex-wrap). Default false.</summary>
+    [Parameter] public bool Wrap { get; set; }
+
+    private static string DirCls(StackDirection d) => d == StackDirection.Row ? "row" : "column";
+
+    private string RootCss => CssBuilder.Default("omni-stack")
+        .AddClass($"omni-stack-{DirCls(Direction)}")
+        .AddClass(DirectionSm is StackDirection sm ? $"omni-stack-sm-{DirCls(sm)}" : null)
+        .AddClass(DirectionMd is StackDirection md ? $"omni-stack-md-{DirCls(md)}" : null)
+        .AddClass(DirectionLg is StackDirection lg ? $"omni-stack-lg-{DirCls(lg)}" : null)
+        .AddClass($"omni-stack-align-{AlignItems.ToString().ToLowerInvariant()}")
+        .AddClass($"omni-stack-justify-{Justify.ToString().ToLowerInvariant()}")
+        .AddClass("omni-stack-wrap", Wrap)
+        .AddClass(Class)
+        .Build();
+}

@@ -1,0 +1,128 @@
+@inject CardapioDigitalState State
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Preview screen — revisão da pizza: flavor cards clicáveis abrem bottom-sheet
+    de personalização (remove ingredients + add extras + note), borda obrigatória,
+    observação, summary e qty stepper. *@
+<div class="fs-cd-screen">
+    <CardapioAppBar Title="Revise sua pizza"
+                    Subtitle="@($"{State.SelectedSize?.Name} · {State.SelectedFlavorIds.Count} {(State.SelectedFlavorIds.Count == 1 ? "sabor" : "sabores")}")"
+                    OnBack="State.Back" />
+
+    <div class="fs-cd-scroll" style="padding-bottom: 120px;">
+
+        <div class="fs-cd-section-pad fs-cd-section-pad-tight">
+            <div class="fs-cd-section-pad-head">
+                <h2 class="fs-cd-section-pad-h">Seus sabores</h2>
+                <span class="fs-cd-section-pad-sub-link">toque para personalizar</span>
+            </div>
+        </div>
+
+        @foreach (var id in State.SelectedFlavorIds)
+        {
+            var flavorId = id;
+            var fl = CardapioMockData.Flavors.First(x => x.Id == flavorId);
+            var custom = State.GetCustom(fl.Id);
+            var customized = custom.IsCustomized;
+            <button @key="flavorId"
+                    type="button"
+                    class="@FlavorCardCss(customized)"
+                    @onclick="@(() => OpenSheet(fl))">
+                <div class="fs-cd-flavor-card-top">
+                    <div class="fs-cd-flavor-card-thumb"></div>
+                    <div>
+                        @if (State.SelectedFlavorIds.Count == 2)
+                        {
+                            <span class="fs-cd-flavor-card-frac omni-mono">½</span>
+                        }
+                        <span class="fs-cd-flavor-card-name">@fl.Name</span>
+                        <div class="fs-cd-flavor-card-ing">@fl.Ingredients</div>
+                        <div class="fs-cd-flavor-card-price omni-mono">@CardapioDigitalState.Brl(State.FlavorPrice(fl))</div>
+                    </div>
+                    <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" Class="fs-cd-flavor-card-chev" />
+                </div>
+                @if (customized)
+                {
+                    <div class="fs-cd-flavor-card-mods">
+                        @foreach (var exId in custom.ExtraIds)
+                        {
+                            var extraId = exId;
+                            var ex = CardapioMockData.Extras.FirstOrDefault(e => e.Id == extraId);
+                            if (ex is null) continue;
+                            <span @key="@($"a:{extraId}")" class="fs-cd-flavor-card-mod fs-cd-flavor-card-mod-add">+ @ex.Name</span>
+                        }
+                        @foreach (var ing in custom.RemovedIngredients)
+                        {
+                            var ingredient = ing;
+                            <span @key="@($"r:{ingredient}")" class="fs-cd-flavor-card-mod fs-cd-flavor-card-mod-rem">− @ingredient</span>
+                        }
+                    </div>
+                    <div class="fs-cd-flavor-card-hint fs-cd-flavor-card-hint-edit">
+                        <span class="fs-cd-flavor-card-hint-ic">✏️</span>
+                        Personalizado — toque para editar
+                    </div>
+                }
+                else
+                {
+                    <div class="fs-cd-flavor-card-hint">
+                        <span class="fs-cd-flavor-card-hint-ic">👆</span>
+                        Toque aqui para personalizar este sabor
+                    </div>
+                }
+            </button>
+        }
+
+        <div class="fs-cd-req-row">
+            <span class="fs-cd-req-label">Escolha a borda</span>
+            <span class="fs-cd-req-tag">OBRIGATÓRIO · 1</span>
+        </div>
+        <CardapioBordaPicker />
+
+        <div class="fs-cd-obs">
+            <label>Alguma observação?</label>
+            <OmniTextBox Value="@State.Observation"
+                         ValueChanged="State.SetObservation"
+                         Placeholder="Ex.: sem cebola, ponto da massa mais alto…" />
+        </div>
+
+        <div class="fs-cd-section-pad fs-cd-section-pad-tight">
+            <h2 class="fs-cd-section-pad-h">Resumo</h2>
+        </div>
+        <CardapioPriceSummary />
+    </div>
+
+    <CardapioBottomBar Label="Adicionar"
+                       Disabled="@(State.SelectedBorda is null)"
+                       TrailingText="@CardapioDigitalState.Brl(State.PizzaTotalCents * State.PizzaQty)"
+                       OnClick="State.AddPizzaToCart">
+        <LeadingContent>
+            <OmniQtyStepper Value="@State.PizzaQty"
+                            ValueChanged="State.SetPizzaQty"
+                            Min="1"
+                            Max="99"
+                            Size="ComponentSize.Md" />
+        </LeadingContent>
+    </CardapioBottomBar>
+
+    <CardapioFlavorCustomizeSheet @bind-Open="_sheetOpen" CdFlavor="_sheetFlavor" />
+</div>
+
+@code {
+    private bool _sheetOpen;
+    private CdFlavor? _sheetFlavor;
+
+    private void OpenSheet(CdFlavor f)
+    {
+        _sheetFlavor = f;
+        _sheetOpen = true;
+    }
+
+    private static string FlavorCardCss(bool customized) =>
+        CssBuilder.Default("fs-cd-flavor-card fs-cd-flavor-card-clickable")
+            .AddClass("fs-cd-flavor-card-on", customized)
+            .Build();
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

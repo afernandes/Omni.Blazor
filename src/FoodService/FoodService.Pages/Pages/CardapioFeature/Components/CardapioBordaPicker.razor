@@ -1,0 +1,46 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@inject CardapioDigitalState State
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Borda radio list (screen Preview) — radio dot + nome + preço
+    (incluso ou +R$). Estado "on" derivado de State.SelectedBorda. *@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @foreach (var borda in CardapioMockData.Bordas)
+    {
+        var current = borda;
+        var on = State.SelectedBorda?.Id == current.Id;
+        <button @key="current.Id"
+                type="button"
+                class="@BordaCss(on)"
+                @onclick="@(() => State.SetBorda(current))">
+            <div class="@RadioCss(on)"></div>
+            <span class="fs-cd-borda-nm">@current.Name</span>
+            <span class="@PriceCss(current)">
+                @(current.Cents == 0 ? "incluso" : "+ " + CardapioDigitalState.Brl(current.Cents))
+            </span>
+        </button>
+    }
+</div>
+
+@code {
+    private string RootCss => CssBuilder.Default("fs-cd-borda-list")
+        .AddClass(Class)
+        .Build();
+
+    private static string BordaCss(bool on) => CssBuilder.Default("fs-cd-borda")
+        .AddClass("fs-cd-borda-on", on)
+        .Build();
+
+    private static string RadioCss(bool on) => CssBuilder.Default("fs-cd-radio")
+        .AddClass("fs-cd-radio-on", on)
+        .Build();
+
+    private static string PriceCss(CdBorda b) => CssBuilder.Default("fs-cd-borda-pr omni-mono")
+        .AddClass("fs-cd-borda-pr-free", b.Cents == 0)
+        .Build();
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

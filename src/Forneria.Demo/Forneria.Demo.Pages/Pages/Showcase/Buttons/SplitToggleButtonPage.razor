@@ -1,0 +1,216 @@
+@page "/showcase/split-toggle-button"
+@layout ShowcaseLayout
+
+<PageTitle>Split & Toggle Button — Showcase</PageTitle>
+
+<ShowcasePage Title="Split & Toggle Button"
+              Subtitle="SplitButton (ação primária + chevron com menu) + ToggleButton (estado pressed/unpressed). Pareçam com OmniButton mas com semântica específica.">
+
+    <Overview>
+        <p>
+            <code>OmniSplitButton</code> combina uma ação principal com um menu de
+            variações relacionadas — padrão clássico em PDV/ERP "Salvar / Salvar e imprimir
+            / Salvar e enviar email". Compõe <code>OmniButton</code> + <code>OmniPopover</code>
+            + <code>OmniMenu</code> existentes.
+        </p>
+        <p>
+            <code>OmniToggleButton</code> tem estado pressed/unpressed (two-way
+            <code>@@bind-Active</code>). Diferente do <code>OmniSwitch</code> (que parece
+            switch de hardware), parece um botão normal — use para filtros sticky, toolbars
+            de formatação, view-mode toggles.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="SPLIT BUTTON — Salvar com variações"
+                         Description="Botão primário à esquerda + chevron à direita. MenuAlignEnd=true alinha a borda direita do popover com a borda direita do chevron — visual mais limpo, popover fica ancorado embaixo do conjunto inteiro (primário + chevron)."
+                         Code="@(@"<OmniSplitButton Text=""Salvar"" Icon=""save""
+                  Variant=""ButtonVariant.Primary""
+                  MenuAlignEnd=""true""
+                  OnClick=""OnSave"">
+    <OmniMenuItem Text=""Salvar e imprimir"" Icon=""printer"" OnClick=""OnSavePrint"" />
+    <OmniMenuItem Text=""Salvar e enviar e-mail"" Icon=""mail"" OnClick=""OnSaveEmail"" />
+    <OmniMenuSeparator />
+    <OmniMenuItem Text=""Salvar como rascunho"" Icon=""file"" OnClick=""OnSaveDraft"" />
+</OmniSplitButton>")">
+            <OmniStack Gap="14">
+                <div class="omni-row omni-row-gap-12 omni-row-wrap" style="align-items:center;">
+                    <OmniSplitButton Text="Salvar" Icon="save" Variant="ButtonVariant.Primary"
+                                      MenuAlignEnd="true"
+                                      OnClick="@(_ => { _action = "Salvar (primário)"; return Task.CompletedTask; })">
+                        <OmniMenuItem Text="Salvar e imprimir" Icon="printer"
+                                       OnClick="@(_ => { _action = "Salvar e imprimir"; return Task.CompletedTask; })" />
+                        <OmniMenuItem Text="Salvar e enviar e-mail" Icon="mail"
+                                       OnClick="@(_ => { _action = "Salvar e enviar e-mail"; return Task.CompletedTask; })" />
+                        <OmniMenuSeparator />
+                        <OmniMenuItem Text="Salvar como rascunho" Icon="file"
+                                       OnClick="@(_ => { _action = "Salvar como rascunho"; return Task.CompletedTask; })" />
+                    </OmniSplitButton>
+
+                    <OmniSplitButton Text="Exportar" Icon="download" Variant="ButtonVariant.Default"
+                                      MenuAlignEnd="true"
+                                      OnClick="@(_ => { _action = "Exportar (padrão PDF)"; return Task.CompletedTask; })">
+                        <OmniMenuItem Text="Exportar PDF" Icon="file"
+                                       OnClick="@(_ => { _action = "Exportar PDF"; return Task.CompletedTask; })" />
+                        <OmniMenuItem Text="Exportar Excel" Icon="grid"
+                                       OnClick="@(_ => { _action = "Exportar Excel"; return Task.CompletedTask; })" />
+                        <OmniMenuItem Text="Exportar CSV" Icon="file"
+                                       OnClick="@(_ => { _action = "Exportar CSV"; return Task.CompletedTask; })" />
+                    </OmniSplitButton>
+
+                    <OmniSplitButton Text="Excluir" Icon="trash" Variant="ButtonVariant.Danger"
+                                      MenuAlignEnd="true"
+                                      OnClick="@(_ => { _action = "Excluir (com confirmação)"; return Task.CompletedTask; })">
+                        <OmniMenuItem Text="Excluir sem confirmar" IsDanger
+                                       OnClick="@(_ => { _action = "Excluir sem confirmar"; return Task.CompletedTask; })" />
+                        <OmniMenuItem Text="Arquivar" Icon="archive"
+                                       OnClick="@(_ => { _action = "Arquivar"; return Task.CompletedTask; })" />
+                    </OmniSplitButton>
+                </div>
+                @if (!string.IsNullOrEmpty(_action))
+                {
+                    <p class="omni-muted omni-mono" style="font-size:11px;">Última ação: <strong>@_action</strong></p>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SPLIT BUTTON — comparativo de alinhamento"
+                         Description="MenuAlignEnd=false (default) alinha o popover à esquerda do chevron, extendendo p/ direita. MenuAlignEnd=true alinha à direita, extendendo p/ esquerda — borda direita do popover = borda direita do botão. Use AlignEnd quando o SplitButton está perto da direita da tela (evita overflow) ou quando você quer o popover ancorado embaixo do conjunto."
+                         Code="@(@"<!-- Default: popover extende para a direita -->
+<OmniSplitButton Text=""Default"" Variant=""ButtonVariant.Primary"">...</OmniSplitButton>
+
+<!-- AlignEnd: popover extende para a esquerda, alinhado com a borda direita -->
+<OmniSplitButton Text=""AlignEnd"" Variant=""ButtonVariant.Primary"" MenuAlignEnd>...</OmniSplitButton>")">
+            <OmniStack Direction="StackDirection.Row" Gap="40" Wrap="true" AlignItems="StackAlign.Start">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">MenuAlignEnd=false (default)</p>
+                    <OmniSplitButton Text="Imprimir" Icon="printer" Variant="ButtonVariant.Primary">
+                        <OmniMenuItem Text="Imprimir tudo" Icon="printer" />
+                        <OmniMenuItem Text="Imprimir página atual" Icon="file" />
+                        <OmniMenuItem Text="Pré-visualizar" Icon="eye" />
+                    </OmniSplitButton>
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">MenuAlignEnd=true</p>
+                    <OmniSplitButton Text="Imprimir" Icon="printer" Variant="ButtonVariant.Primary" MenuAlignEnd="true">
+                        <OmniMenuItem Text="Imprimir tudo" Icon="printer" />
+                        <OmniMenuItem Text="Imprimir página atual" Icon="file" />
+                        <OmniMenuItem Text="Pré-visualizar" Icon="eye" />
+                    </OmniSplitButton>
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SPLIT BUTTON — tamanhos"
+                         Description="Size aplica em ambos os botões. Funciona Sm / Md / Lg / Xl."
+                         Code="@(@"<OmniSplitButton Text=""Sm"" Size=""ComponentSize.Sm"">...</OmniSplitButton>
+<OmniSplitButton Text=""Md (default)"">...</OmniSplitButton>
+<OmniSplitButton Text=""Lg"" Size=""ComponentSize.Lg"">...</OmniSplitButton>")">
+            <OmniStack Direction="StackDirection.Row" Gap="12" AlignItems="StackAlign.Center" Wrap="true">
+                @foreach (var s in new[] { ComponentSize.Sm, ComponentSize.Md, ComponentSize.Lg, ComponentSize.Xl })
+                {
+                    <OmniSplitButton Text="@s.ToString()" Size="@s" Variant="ButtonVariant.Primary">
+                        <OmniMenuItem Text="Opção 1" />
+                        <OmniMenuItem Text="Opção 2" />
+                    </OmniSplitButton>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TOGGLE BUTTON — filtros sticky"
+                         Description='@("ToggleButton tem estado pressed via @bind-Active. Use para filtros que ligam/desligam.")'
+                         Code="@(@"<OmniToggleButton Icon=""filter"" Text=""Só atrasados""
+                   @bind-Active=""filtroAtrasados"" />
+<OmniToggleButton Icon=""star"" Text=""Favoritos""
+                   @bind-Active=""filtroFavoritos"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="8" Wrap="true">
+                <OmniToggleButton Icon="filter" Text="Só atrasados" @bind-Active="_filtroAtrasados" />
+                <OmniToggleButton Icon="star" Text="Favoritos" @bind-Active="_filtroFavoritos" />
+                <OmniToggleButton Icon="bell" Text="Notificações" @bind-Active="_filtroNotif" />
+                <OmniToggleButton Icon="clock" Text="Hoje" @bind-Active="_filtroHoje" />
+            </OmniStack>
+            <p class="omni-muted omni-mono" style="font-size:11px;margin-top:10px;">
+                Atrasados: @_filtroAtrasados · Favoritos: @_filtroFavoritos · Notif: @_filtroNotif · Hoje: @_filtroHoje
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TOGGLE BUTTON — variantes visuais"
+                         Description="Default (accent-soft), Primary (accent forte), Accent (intermediate), Ghost (transparente)."
+                         Code="@(@"<OmniToggleButton Text=""Default"" Variant=""ToggleVariant.Default"" Active />
+<OmniToggleButton Text=""Primary"" Variant=""ToggleVariant.Primary"" Active />
+<OmniToggleButton Text=""Accent"" Variant=""ToggleVariant.Accent"" Active />
+<OmniToggleButton Text=""Ghost"" Variant=""ToggleVariant.Ghost"" Active />")">
+            <OmniStack Direction="StackDirection.Row" Gap="8" Wrap="true">
+                @foreach (var v in new[] { ToggleVariant.Default, ToggleVariant.Primary, ToggleVariant.Accent, ToggleVariant.Ghost })
+                {
+                    <OmniStack Gap="6" Direction="StackDirection.Column" AlignItems="StackAlign.Center">
+                        <OmniToggleButton Text="@v.ToString()" Variant="@v" Active />
+                        <OmniToggleButton Text="@v.ToString()" Variant="@v" />
+                    </OmniStack>
+                }
+            </OmniStack>
+            <p class="omni-muted omni-mono" style="font-size:10px;margin-top:8px;">Linha 1: Active=true · Linha 2: Active=false</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TOGGLE BUTTON — toolbar de formatação"
+                         Description="Padrão clássico: vários toggles juntos numa toolbar. IconOnly + Sm = compacto."
+                         Code="@(@"<OmniToggleButton Icon=""bold""       @bind-Active=""b"" IconOnly Size=""ComponentSize.Sm"" />
+<OmniToggleButton Icon=""italic""     @bind-Active=""i"" IconOnly Size=""ComponentSize.Sm"" />
+<OmniToggleButton Icon=""underline""  @bind-Active=""u"" IconOnly Size=""ComponentSize.Sm"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="4">
+                <OmniToggleButton Icon="bold" @bind-Active="_bold" IconOnly Size="ComponentSize.Sm" Variant="ToggleVariant.Ghost" />
+                <OmniToggleButton Icon="italic" @bind-Active="_italic" IconOnly Size="ComponentSize.Sm" Variant="ToggleVariant.Ghost" />
+                <OmniToggleButton Icon="underline" @bind-Active="_underline" IconOnly Size="ComponentSize.Sm" Variant="ToggleVariant.Ghost" />
+                <span style="width:1px; background:var(--omni-line); margin:0 4px;"></span>
+                <OmniToggleButton Icon="align-left" @bind-Active="_alignLeft" IconOnly Size="ComponentSize.Sm" Variant="ToggleVariant.Ghost" />
+                <OmniToggleButton Icon="align-center" @bind-Active="_alignCenter" IconOnly Size="ComponentSize.Sm" Variant="ToggleVariant.Ghost" />
+                <OmniToggleButton Icon="align-right" @bind-Active="_alignRight" IconOnly Size="ComponentSize.Sm" Variant="ToggleVariant.Ghost" />
+            </OmniStack>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSplitButton — parâmetros">
+            <ShowcaseApiRow Name="Text / Icon" Type="string?" Default="null"
+                            Description="Texto e ícone do botão primário." />
+            <ShowcaseApiRow Name="Variant" Type="ButtonVariant" Default="Default"
+                            Description="Compartilhado por primário e chevron." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Compartilhado por ambos." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback&lt;MouseEventArgs&gt;" Default="empty"
+                            Description="Click do botão primário (ação default)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" Default="null"
+                            Description="OmniMenuItem / OmniMenuSeparator do menu (chevron)." />
+            <ShowcaseApiRow Name="MenuPosition" Type="PopoverPosition" Default="Bottom"
+                            Description="Posição do popover do menu (Bottom/Top/Left/Right)." />
+            <ShowcaseApiRow Name="MenuAlignEnd" Type="bool" Default="false"
+                            Description="true = popover alinhado à direita do chevron (extende p/ esquerda). Use perto da borda direita ou quando quer o menu ancorado embaixo do conjunto." />
+            <ShowcaseApiRow Name="MenuAriaLabel" Type="string?" Default="&quot;Mais opções&quot;"
+                            Description="aria-label do chevron (acessibilidade)." />
+            <ShowcaseApiRow Name="Disabled / Loading" Type="bool" Default="false"
+                            Description="Loading mostra spinner no primário e desabilita ambos." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniToggleButton — parâmetros">
+            <ShowcaseApiRow Name="Active / ActiveChanged" Type="bool" Default="false"
+                            Description='@("Two-way: @bind-Active. ARIA usa aria-pressed.")' />
+            <ShowcaseApiRow Name="Text / Icon / TrailingIcon" Type="string?" Default="null"
+                            Description="Conteúdo do botão." />
+            <ShowcaseApiRow Name="Variant" Type="ToggleVariant" Default="Default"
+                            Description="Default / Primary / Accent / Ghost." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Sm / Md / Lg / Xl." />
+            <ShowcaseApiRow Name="IconOnly" Type="bool" Default="false"
+                            Description="Só ícone, sem texto — compacto p/ toolbars." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback&lt;MouseEventArgs&gt;" Default="empty"
+                            Description="Callback adicional (além do toggle automático)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? _action;
+    private bool _filtroAtrasados, _filtroFavoritos, _filtroNotif = true, _filtroHoje;
+    private bool _bold = true, _italic, _underline, _alignLeft = true, _alignCenter, _alignRight;
+}

@@ -1,0 +1,57 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IAsyncDisposable
+@inject BreakpointService Breakpoints
+
+@*
+    Cascades the current <see cref="Breakpoint"/> to descendants so they can
+    branch their markup on viewport size from C# (no CSS-only conditionals).
+
+    Two ways to consume:
+
+      1. @bind to a local field on the parent:
+         <OmniBreakpointProvider @bind-Breakpoint="bp">
+             @if (bp.IsMobile()) { <Mobile /> } else { <Desktop /> }
+         </OmniBreakpointProvider>
+
+      2. CascadingParameter in a deep child:
+         [CascadingParameter] public Breakpoint Breakpoint { get; set; }
+
+    Mounts a single shared resize listener via BreakpointService — many
+    providers on one page share the same JS subscription.
+*@
+
+<CascadingValue Value="_current" Name="Breakpoint" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter] public Breakpoint Breakpoint { get; set; }
+    [Parameter] public EventCallback<Breakpoint> BreakpointChanged { get; set; }
+
+    private Breakpoint _current = Breakpoint.Md;
+    private IAsyncDisposable? _subscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subscription = await Breakpoints.SubscribeAsync(OnChanged);
+    }
+
+    private async Task OnChanged(Breakpoint bp)
+    {
+        if (bp == _current) return;
+        _current = bp;
+        Breakpoint = bp;
+        if (BreakpointChanged.HasDelegate) await BreakpointChanged.InvokeAsync(bp);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_subscription is not null)
+        {
+            try { await _subscription.DisposeAsync(); } catch { }
+            _subscription = null;
+        }
+    }
+}

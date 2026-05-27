@@ -1,0 +1,79 @@
+@* Standardised component documentation page — inspired by MudBlazor / Radzen docs.
+
+   Structure rendered top-to-bottom:
+     1. Pane header (Title + Subtitle one-liner)
+     2. Overview block      — rich descriptive prose (optional)
+     3. Usage block         — "Quando usar" / "Quando não usar" columns (optional)
+     4. ChildContent        — the demo sections (<ShowcaseSection>)
+     5. API block           — <ShowcaseApiTable> rows (optional)
+*@
+
+<OmniPaneHeader Title="@Title" Subtitle="@Subtitle" />
+
+<div class="omni-showcase-body">
+    @if (Overview is not null)
+    {
+        <div class="omni-doc-overview">
+            @Overview
+        </div>
+    }
+
+    @if (WhenToUse is not null || WhenNotToUse is not null)
+    {
+        <div class="omni-doc-usage">
+            @if (WhenToUse is not null)
+            {
+                <div class="omni-doc-usage-col omni-doc-usage-do">
+                    <div class="omni-doc-usage-head">
+                        <OmniIcon Name="check-circle" Size="ComponentSize.Sm" />
+                        <span>Quando usar</span>
+                    </div>
+                    <div class="omni-doc-usage-body">@WhenToUse</div>
+                </div>
+            }
+            @if (WhenNotToUse is not null)
+            {
+                <div class="omni-doc-usage-col omni-doc-usage-dont">
+                    <div class="omni-doc-usage-head">
+                        <OmniIcon Name="x-circle" Size="ComponentSize.Sm" />
+                        <span>Quando não usar</span>
+                    </div>
+                    <div class="omni-doc-usage-body">@WhenNotToUse</div>
+                </div>
+            }
+        </div>
+    }
+
+    @ChildContent
+
+    @if (Api is not null)
+    {
+        <div class="omni-doc-api">
+            <h2 class="omni-doc-api-title">API</h2>
+            @Api
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Component name shown in the pane header.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    /// <summary>One-line summary shown under the title.</summary>
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>Rich descriptive prose rendered above the demo sections.</summary>
+    [Parameter] public RenderFragment? Overview { get; set; }
+
+    /// <summary>Bullet list of recommended use cases.</summary>
+    [Parameter] public RenderFragment? WhenToUse { get; set; }
+
+    /// <summary>Bullet list of cases where another component fits better.</summary>
+    [Parameter] public RenderFragment? WhenNotToUse { get; set; }
+
+    /// <summary>API reference — typically one or more <c>ShowcaseApiTable</c>.</summary>
+    [Parameter] public RenderFragment? Api { get; set; }
+
+    /// <summary>The demo sections (<c>ShowcaseSection</c> blocks).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,121 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject ThemeService Theme
+
+@*  Shell padrão: AppBar topo + Drawer esquerdo Responsive + Main + Body slot.
+    Tudo composto a partir das primitivas LEGO (OmniLayout / OmniAppBar /
+    OmniDrawer / OmniMain). Estado do drawer e responsividade são
+    gerenciados internamente pelo próprio OmniDrawer (variante Responsive). *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle Target="_drawer" />
+        <OmniBrand Name="Forneria" Tenant="Pizzaria do Forno" />
+        <div class="omni-header-spacer"></div>
+        <div class="omni-header-kbd-hint">
+            <OmniIcon Name="search" Size="ComponentSize.Sm" />
+            <span>Buscar</span>
+            <OmniKbd Text="⌘K" />
+        </div>
+        <OmniThemePicker />
+        <div class="omni-header-user">
+            <OmniAvatar Initials="AF" />
+            <div class="omni-stack omni-stack-2">
+                <span class="omni-header-user-name">Anderson F.</span>
+                <span class="omni-header-user-role">Gerente</span>
+            </div>
+        </div>
+    </OmniAppBar>
+
+    <OmniDrawer @ref="_drawer" Anchor="DrawerAnchor.Left" Variant="DrawerVariant.Mini">
+        <OmniPanelMenuSection Label="Operação">
+            <OmniPanelMenuItem Text="Dashboard"        Icon="layout-dashboard" Path="/dashboard" />
+            <OmniPanelMenuItem Text="Live Operations" Icon="zap"               Path="/liveops"   CountText="LIVE" CountKind="MenuMetaKind.Danger" />
+            <OmniPanelMenuItem Text="PDV"    Icon="shopping-cart" Path="/pdv"    Count="3" CountKind="MenuMetaKind.Accent" />
+            <OmniPanelMenuItem Text="Garçom"      Icon="users" Path="/garcom" Count="2" CountKind="MenuMetaKind.Warn" />
+            <OmniPanelMenuItem Text="KDS Cozinha"      Icon="zap"  Path="/kds"      Count="8" CountKind="MenuMetaKind.Danger" />
+            <OmniPanelMenuItem Text="Cardápio Digital" Icon="grid" Path="/cardapio" CountText="QR"   CountKind="MenuMetaKind.Accent" />
+            <OmniPanelMenuItem Text="Pedidos" Icon="package" Count="28" CountKind="MenuMetaKind.Warn">
+                <OmniPanelMenuItem Text="Em aberto" Count="4" />
+                <OmniPanelMenuItem Text="Na cozinha" Icon="zap" Count="12" CountKind="MenuMetaKind.Warn">
+                    <OmniPanelMenuItem Text="Pizza" Count="6" CountKind="MenuMetaKind.Warn" />
+                    <OmniPanelMenuItem Text="Burger / grelha" Count="4" />
+                    <OmniPanelMenuItem Text="Fritura" Count="2" />
+                </OmniPanelMenuItem>
+                <OmniPanelMenuItem Text="Prontos" Count="6" CountKind="MenuMetaKind.Good" />
+                <OmniPanelMenuItem Text="Em entrega" Icon="truck" Count="5" CountKind="MenuMetaKind.Accent">
+                    <OmniPanelMenuItem Text="Frota própria" Count="2" CountKind="MenuMetaKind.Accent" />
+                    <OmniPanelMenuItem Text="iFood" Count="3" />
+                </OmniPanelMenuItem>
+            </OmniPanelMenuItem>
+        </OmniPanelMenuSection>
+        <OmniPanelMenuSection Label="Cadastros">
+            <OmniPanelMenuItem Text="Cadastros" Icon="database">
+                <OmniPanelMenuItem Text="Clientes" Icon="users" Path="/cadastros/clientes" Count="2341" />
+                <OmniPanelMenuItem Text="Produtos" Icon="package" Path="/cadastros/produtos" Count="47" />
+                <OmniPanelMenuItem Text="Categorias" Icon="grid" Path="/cadastros/categorias" />
+            </OmniPanelMenuItem>
+            <OmniPanelMenuItem Text="Usuários" Icon="users" Path="/cadastros/usuarios" />
+            <OmniPanelMenuItem Text="Equipe" Icon="users">
+                <OmniPanelMenuItem Text="Operadores" />
+                <OmniPanelMenuItem Text="Garçons" />
+                <OmniPanelMenuItem Text="Cozinha" />
+                <OmniPanelMenuItem Text="Entregadores" />
+            </OmniPanelMenuItem>
+            <OmniPanelMenuItem Text="Estoque" Icon="store" CountText="!" CountKind="MenuMetaKind.Danger">
+                <OmniPanelMenuItem Text="Insumos críticos" Count="4" CountKind="MenuMetaKind.Danger" />
+                <OmniPanelMenuItem Text="Todos os insumos" Count="184" />
+                <OmniPanelMenuItem Text="Perdas e quebras" />
+            </OmniPanelMenuItem>
+        </OmniPanelMenuSection>
+        <OmniPanelMenuSection Label="Showcase">
+            <OmniPanelMenuItem Text="Componentes"          Icon="grid"   Path="/showcase" />
+            <OmniPanelMenuItem Text="Wireframes"           Icon="layout" Path="/showcase/wireframes" />
+            <OmniPanelMenuItem Text="TileGroup (tile-style)" Icon="package" Path="/tiles" />
+        </OmniPanelMenuSection>
+
+        <div class="omni-sidebar-footer">
+            <div class="omni-plan-card">
+                <div class="omni-plan-card-name">Plano Pro</div>
+                <div class="omni-plan-card-meta">2 341 / 5 000 pedidos</div>
+                <div class="omni-plan-card-bar"><div style="width: 47%;"></div></div>
+            </div>
+        </div>
+    </OmniDrawer>
+
+    <OmniMain>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    private OmniDrawer? _drawer;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    /// <summary>Restore persisted theme preferences (accent + dark) on first render.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* swallow — never block the shell on a theme-restore hiccup */ }
+        }
+    }
+
+    /// <summary>Fecha o drawer mobile (overlay) ao navegar.</summary>
+    private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        if (_drawer is { IsOverlayMode: true, IsOpen: true })
+        {
+            _ = InvokeAsync(async () => { await _drawer.CloseAsync(); StateHasChanged(); });
+        }
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

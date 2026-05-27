@@ -1,0 +1,281 @@
+@page "/showcase/dropzone"
+@layout ShowcaseLayout
+@inject NotificationService Toast
+
+<PageTitle>DropZone — Showcase</PageTitle>
+
+<ShowcasePage Title="DropZone"
+              Subtitle="Drag-and-drop estilo Kanban. Container central com regras (CanDrop / ItemSelector / Drop) + N zonas filhas. HTML5 nativo, sem dependências.">
+
+    <Overview>
+        <p>
+            O <code>OmniDropZoneContainer</code> implementa <strong>drag-and-drop estilo Kanban</strong>
+            sobre a API nativa de HTML5 — sem dependências externas. O container detém a lista de
+            dados (<code>Data</code>) e as regras; cada <code>OmniDropZone</code> filha é um balde
+            que recebe itens. O <code>ItemSelector</code> decide a qual zona cada item pertence.
+        </p>
+        <p>
+            <code>CanDrop</code> valida cada soltura (bloqueando movimentos inválidos),
+            <code>Drop</code> recebe o evento concluído com <code>FromZone</code>,
+            <code>ToZone</code> e <code>ToItem</code> — permitindo mover entre colunas e reordenar
+            dentro delas. O slot <code>Template</code> renderiza cada card.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Quadro Kanban onde cards mudam de status ao serem arrastados entre colunas.</li>
+            <li>Listas reordenáveis por arrasto (prioridades, etapas, sequência de tarefas).</li>
+            <li>Atribuição visual — arrastar um item de um pool para um destino.</li>
+            <li>Fluxos com regras de transição que precisam bloquear movimentos inválidos.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Listas longas só de leitura ou com rolagem virtual → use <code>OmniVirtualize</code>.</li>
+            <li>Tabela de dados com ordenação por coluna → use <code>OmniDataGrid</code>.</li>
+            <li>Upload de arquivos por arrasto → use <code>OmniFileUpload</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="KANBAN BÁSICO"
+                         Description="Três colunas — To do · Doing · Done. Arraste cards entre colunas para mudar o status. Drop em outro card reordena dentro da coluna."
+                         Code="@(@"<OmniDropZoneContainer TItem=""Card""
+                        Data=""cards""
+                        ItemSelector=""@((c, z) => c.Status == (Status)z.Value!)""
+                        CanDrop=""@(_ => true)""
+                        Drop=""OnDrop"">
+    <ChildContent>
+        <OmniDropZone TItem=""Card"" Value=""Status.Todo"">…</OmniDropZone>
+        <OmniDropZone TItem=""Card"" Value=""Status.Doing"">…</OmniDropZone>
+        <OmniDropZone TItem=""Card"" Value=""Status.Done"">…</OmniDropZone>
+    </ChildContent>
+    <Template><strong>@context.Title</strong></Template>
+</OmniDropZoneContainer>")">
+
+            <OmniDropZoneContainer TItem="Card"
+                                    Data="cards"
+                                    ItemSelector="@((c, z) => c.Status == (Status)z.Value!)"
+                                    CanDrop="@(_ => true)"
+                                    Drop="OnDrop">
+                <ChildContent>
+                    <div class="omni-kanban-board">
+                        <OmniDropZone TItem="Card" Value="Status.Todo" class="omni-kanban-col">
+                            <div class="omni-kanban-col-head">
+                                <OmniChip Variant="BadgeVariant.Plain">To do</OmniChip>
+                                <span class="omni-meta">@cards.Count(c => c.Status == Status.Todo)</span>
+                            </div>
+                        </OmniDropZone>
+
+                        <OmniDropZone TItem="Card" Value="Status.Doing" class="omni-kanban-col">
+                            <div class="omni-kanban-col-head">
+                                <OmniChip Variant="BadgeVariant.Info">Doing</OmniChip>
+                                <span class="omni-meta">@cards.Count(c => c.Status == Status.Doing)</span>
+                            </div>
+                        </OmniDropZone>
+
+                        <OmniDropZone TItem="Card" Value="Status.Done" class="omni-kanban-col">
+                            <div class="omni-kanban-col-head">
+                                <OmniChip Variant="BadgeVariant.Good">Done</OmniChip>
+                                <span class="omni-meta">@cards.Count(c => c.Status == Status.Done)</span>
+                            </div>
+                        </OmniDropZone>
+                    </div>
+                </ChildContent>
+                <Template>
+                    <OmniCard Style="cursor:inherit;">
+                        <div class="omni-stack omni-stack-4">
+                            <div style="font-size:13px; font-weight:600;">@context.Title</div>
+                            <div class="omni-meta">@context.Owner · @context.Hours h</div>
+                        </div>
+                    </OmniCard>
+                </Template>
+            </OmniDropZoneContainer>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="REGRAS DE NEGÓCIO"
+                         Description="CanDrop permite bloquear drops específicos. Aqui: cards travados (com cadeado) não podem sair da coluna atual; e nada pode voltar diretamente de Done pra Todo."
+                         Code="@(@"bool CanDropStrict(DropZoneItemEventArgs<Card> args)
+{
+    if (args.Item is null || args.ToZone?.Value is not Status to) return false;
+    var from = (Status)(args.FromZone?.Value ?? Status.Todo);
+    if (args.Item.Locked && from != to) return false;          // travado: não sai
+    if (from == Status.Done && to == Status.Todo) return false; // Done ✗→ Todo
+    return true;
+}")">
+            <OmniDropZoneContainer TItem="Card"
+                                    Data="rulesCards"
+                                    ItemSelector="@((c, z) => c.Status == (Status)z.Value!)"
+                                    CanDrop="CanDropStrict"
+                                    ItemRender="OnItemRender"
+                                    Drop="OnDropRules">
+                <ChildContent>
+                    <div class="omni-kanban-board">
+                        <OmniDropZone TItem="Card" Value="Status.Todo" class="omni-kanban-col">
+                            <div class="omni-kanban-col-head"><OmniChip Variant="BadgeVariant.Plain">To do</OmniChip></div>
+                        </OmniDropZone>
+                        <OmniDropZone TItem="Card" Value="Status.Doing" class="omni-kanban-col">
+                            <div class="omni-kanban-col-head"><OmniChip Variant="BadgeVariant.Info">Doing</OmniChip></div>
+                        </OmniDropZone>
+                        <OmniDropZone TItem="Card" Value="Status.Done" class="omni-kanban-col">
+                            <div class="omni-kanban-col-head"><OmniChip Variant="BadgeVariant.Good">Done</OmniChip></div>
+                        </OmniDropZone>
+                    </div>
+                </ChildContent>
+                <Template>
+                    <OmniCard>
+                        <div class="omni-row omni-row-gap-8" style="align-items:center;">
+                            @if (context.Locked) { <OmniIcon Name="lock" Size="ComponentSize.Sm" /> }
+                            <div style="font-size:13px; font-weight:600;">@context.Title</div>
+                        </div>
+                    </OmniCard>
+                </Template>
+            </OmniDropZoneContainer>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniDropZoneContainer">
+            <ShowcaseApiRow Name="Data" Type="IEnumerable&lt;TItem&gt;?" Default="null"
+                            Description="Lista de dados de origem. Cada zona filtra esta lista via ItemSelector." />
+            <ShowcaseApiRow Name="ItemSelector" Type="Func&lt;TItem, OmniDropZone, bool&gt;?" Default="null"
+                            Description="Retorna true quando um item pertence à zona informada." />
+            <ShowcaseApiRow Name="CanDrop" Type="Func&lt;DropZoneItemEventArgs, bool&gt;?" Default="null"
+                            Description="Valida se o arrasto atual pode ser solto na zona/item de destino." />
+            <ShowcaseApiRow Name="ItemRender" Type="Action&lt;DropZoneItemRenderEventArgs&gt;?" Default="null"
+                            Description="Hook por item — ajusta atributos (class, style) ou esconde o item." />
+            <ShowcaseApiRow Name="Template" Type="RenderFragment&lt;TItem&gt;?" Default="null"
+                            Description="Template de cada item. Recebe o item como context." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos — OmniDropZoneContainer" ShowDefault="false">
+            <ShowcaseApiRow Name="Drop" Type="EventCallback&lt;DropZoneItemEventArgs&gt;" ShowDefault="false"
+                            Description="Dispara quando um item é solto numa zona (ou sobre outro item)." />
+            <ShowcaseApiRow Name="DragStart" Type="EventCallback&lt;DropZoneItemEventArgs&gt;" ShowDefault="false"
+                            Description="Dispara quando o usuário começa a arrastar um item." />
+            <ShowcaseApiRow Name="DragEnd" Type="EventCallback&lt;DropZoneItemEventArgs&gt;" ShowDefault="false"
+                            Description="Dispara quando o arrasto termina (com ou sem drop)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Parâmetros — OmniDropZone">
+            <ShowcaseApiRow Name="Value" Type="object?" Default="null"
+                            Description="Valor opaco usado pelo ItemSelector do container para agrupar itens nesta zona." />
+            <ShowcaseApiRow Name="Footer" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo opcional renderizado abaixo dos itens (ex. botão '+ Adicionar')." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private enum Status { Todo, Doing, Done }
+
+    private sealed class Card
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Owner { get; set; } = "";
+        public int Hours { get; set; }
+        public Status Status { get; set; }
+        public bool Locked { get; set; }
+    }
+
+    private List<Card> cards = new();
+    private List<Card> rulesCards = new();
+
+    protected override void OnInitialized()
+    {
+        cards = new()
+        {
+            new Card { Id=1, Title="Importar massa de teste",   Owner="Marina",  Hours=3, Status=Status.Todo  },
+            new Card { Id=2, Title="Ajustar zoom do mapa",       Owner="Caio",    Hours=2, Status=Status.Todo  },
+            new Card { Id=3, Title="Migrar API para v3",         Owner="Beatriz", Hours=8, Status=Status.Doing },
+            new Card { Id=4, Title="Revisar copy da landing",    Owner="Renan",   Hours=1, Status=Status.Doing },
+            new Card { Id=5, Title="Setup do pipeline de CI",    Owner="Felipe",  Hours=5, Status=Status.Done  },
+        };
+
+        rulesCards = new()
+        {
+            new Card { Id=10, Title="Rascunho free",            Status=Status.Todo  },
+            new Card { Id=11, Title="Travado em Doing",         Status=Status.Doing, Locked=true },
+            new Card { Id=12, Title="Em produção (Done)",       Status=Status.Done  },
+        };
+    }
+
+    private void OnDrop(DropZoneItemEventArgs<Card> args)
+    {
+        if (args.Item is null) return;
+
+        // Move between zones
+        if (args.FromZone != args.ToZone && args.ToZone?.Value is Status newStatus)
+        {
+            args.Item.Status = newStatus;
+            Toast.Info("Movido", $"\"{args.Item.Title}\" → {newStatus}");
+        }
+
+        // Reorder when dropped on another card
+        if (args.ToItem is not null && !ReferenceEquals(args.ToItem, args.Item))
+        {
+            cards.Remove(args.Item);
+            cards.Insert(cards.IndexOf(args.ToItem), args.Item);
+        }
+    }
+
+    private bool CanDropStrict(DropZoneItemEventArgs<Card> args)
+    {
+        if (args.Item is null || args.ToZone?.Value is not Status to) return false;
+        var from = (Status)(args.FromZone?.Value ?? Status.Todo);
+
+        // Locked cards never leave their column.
+        if (args.Item.Locked && from != to) return false;
+
+        // Cannot jump from Done directly back to Todo (must go via Doing).
+        if (from == Status.Done && to == Status.Todo) return false;
+
+        return true;
+    }
+
+    private void OnItemRender(DropZoneItemRenderEventArgs<Card> args)
+    {
+        if (args.Item?.Locked == true)
+        {
+            args.Attributes["style"] = "opacity: 0.85;";
+        }
+    }
+
+    private void OnDropRules(DropZoneItemEventArgs<Card> args)
+    {
+        if (args.Item is not null && args.FromZone != args.ToZone && args.ToZone?.Value is Status s)
+        {
+            args.Item.Status = s;
+            Toast.Success("OK", $"\"{args.Item.Title}\" → {s}");
+        }
+    }
+}
+
+<style>
+    .omni-kanban-board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        align-items: start;
+    }
+    @@media (max-width: 768px) {
+        .omni-kanban-board { grid-template-columns: 1fr; }
+    }
+    .omni-kanban-col {
+        background: var(--omni-bg-sunken);
+        border: 1px solid var(--omni-line);
+        border-radius: var(--omni-radius);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 140px;
+    }
+    .omni-kanban-col-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+</style>

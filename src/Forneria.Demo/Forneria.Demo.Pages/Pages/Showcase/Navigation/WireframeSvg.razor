@@ -1,0 +1,23 @@
+@*  Helper local da página Wireframes — renderiza um SVG 100×100 viewBox que
+    serve como "thumbnail" visual do layout. Quando <c>DemoHref</c> é
+    informado, adiciona um link "Ver demo ao vivo →" logo abaixo. *@
+<svg class="wf-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+    @ChildContent
+</svg>
+@if (!string.IsNullOrEmpty(DemoHref))
+{
+    <a class="wf-demo-link" href="@DemoHref">
+        Ver demo ao vivo
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14" />
+            <path d="M12 5l7 7-7 7" />
+        </svg>
+    </a>
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Link opcional para a demo em tela cheia.</summary>
+    [Parameter] public string? DemoHref { get; set; }
+}

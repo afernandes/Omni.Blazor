@@ -1,0 +1,174 @@
+@page "/showcase/textbox"
+@layout ShowcaseLayout
+
+<PageTitle>TextBox — Showcase</PageTitle>
+
+<ShowcasePage Title="TextBox / Password / TextArea"
+              Subtitle="Inputs de texto da família — entrada de linha única, senha e multilinha.">
+
+    <Overview>
+        <p>
+            A família de inputs de texto cobre os três casos básicos de entrada textual:
+            <code>OmniTextBox</code> para uma linha, <code>OmniPassword</code> para senhas
+            (com toggle de visibilidade) e <code>OmniTextArea</code> para texto multilinha.
+            Todos herdam de <code>FormComponent&lt;string&gt;</code>, então fazem
+            <strong>bind bidirecional</strong> e se integram ao <code>EditContext</code> de validação.
+        </p>
+        <p>
+            O <code>OmniTextBox</code> suporta <code>LeadingIcon</code>/<code>TrailingIcon</code>,
+            botão <code>Clearable</code>, contador de caracteres (<code>ShowCharCount</code> +
+            <code>MaxLength</code>) e três tamanhos (<code>Sm</code> 30px, <code>Md</code> 36px,
+            <code>Lg</code> 44px).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Captura de texto livre curto — nome, e-mail, busca, título.</li>
+            <li>Campos de senha com confirmação visual via toggle de olho.</li>
+            <li>Texto longo (observações, descrição, comentários) com <code>OmniTextArea</code>.</li>
+            <li>Inputs com affixes — ícone de busca, lixeira de limpar, contador.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Entrada numérica com spinner e formatação → use <code>OmniNumeric</code>.</li>
+            <li>Texto com formato fixo (CPF, telefone, CEP) → use <code>OmniMaskedTextBox</code>.</li>
+            <li>Seleção de uma opção entre várias → use <code>OmniSelect</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="VARIANTES BÁSICAS"
+                         Description="Default, com leading icon, e com trailing icon."
+                         Code="@(@"<OmniTextBox @bind-Value=""v1"" Placeholder=""Digite algo..."" />
+<OmniTextBox @bind-Value=""v2"" Placeholder=""Buscar..."" LeadingIcon=""search"" />
+<OmniTextBox @bind-Value=""v3"" Placeholder=""user@example.com"" TrailingIcon=""mail"" />")">
+            <div class="omni-grid-3">
+                <OmniTextBox @bind-Value="v1" Placeholder="Digite algo..." />
+                <OmniTextBox @bind-Value="v2" Placeholder="Buscar..." LeadingIcon="search" />
+                <OmniTextBox @bind-Value="v3" Placeholder="user@example.com" TrailingIcon="mail" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Sm 30px, Md 36px, Lg 44px de altura."
+                         Code="@(@"<OmniTextBox @bind-Value=""v4"" Size=""ComponentSize.Sm"" Placeholder=""Small (sm)"" />
+<OmniTextBox @bind-Value=""v5"" Size=""ComponentSize.Md"" Placeholder=""Medium (md, padrão)"" />
+<OmniTextBox @bind-Value=""v6"" Size=""ComponentSize.Lg"" Placeholder=""Large (lg)"" />")">
+            <div class="omni-stack omni-stack-8">
+                <OmniTextBox @bind-Value="v4" Size="ComponentSize.Sm" Placeholder="Small (sm)" />
+                <OmniTextBox @bind-Value="v5" Size="ComponentSize.Md" Placeholder="Medium (md, padrão)" />
+                <OmniTextBox @bind-Value="v6" Size="ComponentSize.Lg" Placeholder="Large (lg)" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CLEAR + CHARACTER COUNTER"
+                         Description="Botão x aparece quando há valor. ShowCharCount + MaxLength mostra contador."
+                         Code="@(@"<OmniTextBox @bind-Value=""v7"" Placeholder=""Limpa com X"" Clearable />
+<OmniTextBox @bind-Value=""v8"" Placeholder=""Máx 60 caracteres""
+              MaxLength=""60"" ShowCharCount Clearable />")">
+            <div class="omni-grid-2">
+                <OmniTextBox @bind-Value="v7" Placeholder="Limpa com X" Clearable />
+                <OmniTextBox @bind-Value="v8" Placeholder="Máx 60 caracteres" MaxLength="60" ShowCharCount Clearable />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESTADOS"
+                         Description="Disabled e ReadOnly mantêm contraste reduzido."
+                         Code="@(@"<OmniTextBox Value=""Desabilitado"" Disabled />
+<OmniTextBox Value=""Somente leitura"" ReadOnly />")">
+            <div class="omni-grid-2">
+                <OmniTextBox Value="Desabilitado" Disabled />
+                <OmniTextBox Value="Somente leitura" ReadOnly />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PASSWORD"
+                         Description="Sempre vem com toggle de visibilidade."
+                         Code="@(@"<OmniPassword @bind-Value=""pwd1"" Placeholder=""Sua senha"" />
+<OmniPassword @bind-Value=""pwd2"" Placeholder=""Sem toggle"" ShowToggle=""false"" />")">
+            <div class="omni-grid-2">
+                <OmniPassword @bind-Value="pwd1" Placeholder="Sua senha" />
+                <OmniPassword @bind-Value="pwd2" Placeholder="Sem toggle" ShowToggle="false" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TEXTAREA"
+                         Description="Resize vertical por padrão."
+                         Code="@(@"<OmniTextArea @bind-Value=""ta1""
+               Placeholder=""Observações, descrição, comentários...""
+               Rows=""4"" MaxLength=""280"" />")">
+            <OmniTextArea @bind-Value="ta1" Placeholder="Observações, descrição, comentários..." Rows="4" MaxLength="280" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniTextBox — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="string?" Default="null"
+                            Description="Valor bound. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto de dica exibido quando o campo está vazio." />
+            <ShowcaseApiRow Name="Type" Type="string" Default="text"
+                            Description="Atributo type do input HTML (text, email, url, etc.)." />
+            <ShowcaseApiRow Name="LeadingIcon" Type="string?" Default="null"
+                            Description="Ícone exibido à esquerda do texto." />
+            <ShowcaseApiRow Name="TrailingIcon" Type="string?" Default="null"
+                            Description="Ícone exibido à direita do texto." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Altura do campo — Sm (30px), Md (36px), Lg (44px)." />
+            <ShowcaseApiRow Name="Clearable" Type="bool" Default="false"
+                            Description="Exibe o botão x para limpar o valor quando não vazio." />
+            <ShowcaseApiRow Name="ShowCharCount" Type="bool" Default="false"
+                            Description="Mostra contador de caracteres abaixo (requer MaxLength)." />
+            <ShowcaseApiRow Name="MinLength" Type="int?" Default="null"
+                            Description="Mínimo de caracteres aceitos." />
+            <ShowcaseApiRow Name="MaxLength" Type="int?" Default="null"
+                            Description="Máximo de caracteres aceitos." />
+            <ShowcaseApiRow Name="Autocomplete" Type="string?" Default="null"
+                            Description="Atributo autocomplete do input HTML." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita a interação com o campo." />
+            <ShowcaseApiRow Name="ReadOnly" Type="bool" Default="false"
+                            Description="Campo somente leitura — exibe valor mas não permite edição." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniTextBox — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<string?>" ShowDefault="false"
+                            Description="Disparado a cada alteração do valor." />
+            <ShowcaseApiRow Name="OnKeyDown" Type="EventCallback<KeyboardEventArgs>" ShowDefault="false"
+                            Description="Disparado ao pressionar uma tecla no campo." />
+            <ShowcaseApiRow Name="OnBlur" Type="EventCallback<FocusEventArgs>" ShowDefault="false"
+                            Description="Disparado quando o campo perde o foco." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniPassword — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="string?" Default="null"
+                            Description="Senha bound. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto de dica exibido quando o campo está vazio." />
+            <ShowcaseApiRow Name="ShowToggle" Type="bool" Default="true"
+                            Description="Exibe o botão de olho para alternar a visibilidade da senha." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Altura do campo — Sm, Md, Lg." />
+            <ShowcaseApiRow Name="MinLength" Type="int?" Default="null"
+                            Description="Mínimo de caracteres aceitos." />
+            <ShowcaseApiRow Name="Autocomplete" Type="string?" Default="current-password"
+                            Description="Atributo autocomplete do input HTML." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniTextArea — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="string?" Default="null"
+                            Description="Texto bound. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto de dica exibido quando vazio." />
+            <ShowcaseApiRow Name="Rows" Type="int" Default="4"
+                            Description="Número de linhas visíveis inicialmente." />
+            <ShowcaseApiRow Name="MaxLength" Type="int?" Default="null"
+                            Description="Máximo de caracteres aceitos." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? v1, v2, v3, v4, v5, v6, v7, v8, pwd1, pwd2, ta1;
+}

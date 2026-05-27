@@ -1,0 +1,134 @@
+@inject NotificationService Toast
+@inject ThemeService Theme
+@implements IDisposable
+
+@*  User menu — trigger (avatar + identity + caret) opening a rich dropdown:
+    user card, primary actions, preferences (with theme switch), admin,
+    tenant switcher and logout. Recreation of the design's UserMenu.  *@
+<div class="omni-hd-user">
+    <div class="@TriggerCss" @onclick="Toggle" role="button" tabindex="0">
+        <OmniAvatar Initials="CR" />
+        <div class="omni-hd-user-trigger-text">
+            <div class="omni-hd-user-name">Carla Rocha</div>
+            <div class="omni-hd-user-role">Gerente · PDV-02</div>
+        </div>
+        <span class="omni-hd-user-caret"><OmniIcon Name="chevron-down" Size="ComponentSize.Sm" /></span>
+    </div>
+
+    @if (_open)
+    {
+        <div class="omni-hd-backdrop" @onclick="Close"></div>
+        <div class="omni-hd-user-menu" role="menu">
+
+            <div class="omni-hd-user-card">
+                <OmniAvatar Initials="CR" Size="AvatarSize.Lg" />
+                <div class="omni-hd-user-card-info">
+                    <div class="omni-hd-user-card-name">Carla Rocha</div>
+                    <div class="omni-hd-user-card-mail">carla.rocha@@forneria.app</div>
+                    <span class="omni-hd-user-card-meta"><span class="omni-hd-umeta-dot"></span>Gerente · PDV-02</span>
+                </div>
+            </div>
+
+            <div class="omni-hd-user-section">
+                <button type="button" class="omni-hd-user-item" @onclick="@(() => Pick("Meu perfil"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="user" Size="ComponentSize.Sm" /></span>
+                    <span>Meu perfil</span>
+                </button>
+                <button type="button" class="omni-hd-user-item" @onclick="@(() => Pick("Meu caixa"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="dollar-sign" Size="ComponentSize.Sm" /></span>
+                    <span>Meu caixa<span class="omni-hd-user-dim">· 04:32</span></span>
+                    <span class="omni-hd-user-trail" style="color:var(--omni-good);">R$ 4.280</span>
+                </button>
+                <button type="button" class="omni-hd-user-item" @onclick="@(() => Pick("Fechar turno"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="clock" Size="ComponentSize.Sm" /></span>
+                    <span>Fechar turno</span>
+                    <span class="omni-hd-user-kbd">⇧ X</span>
+                </button>
+            </div>
+
+            <div class="omni-hd-user-section">
+                <div class="omni-hd-user-label">Preferências</div>
+                <div class="omni-hd-user-theme">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="@(Theme.Dark ? "moon" : "sun")" Size="ComponentSize.Sm" /></span>
+                    <span>Aparência</span>
+                    <div class="omni-hd-user-theme-seg">
+                        <button type="button" class="@(Theme.Dark ? "" : "omni-active")" title="Claro"
+                                @onclick="@(() => SetTheme(false))">
+                            <OmniIcon Name="sun" Size="ComponentSize.Sm" />
+                        </button>
+                        <button type="button" class="@(Theme.Dark ? "omni-active" : "")" title="Escuro"
+                                @onclick="@(() => SetTheme(true))">
+                            <OmniIcon Name="moon" Size="ComponentSize.Sm" />
+                        </button>
+                    </div>
+                </div>
+                <button type="button" class="omni-hd-user-item" @onclick="@(() => Pick("Notificações"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="bell" Size="ComponentSize.Sm" /></span>
+                    <span>Notificações</span>
+                    <span class="omni-hd-user-trail">3 novas</span>
+                </button>
+                <button type="button" class="omni-hd-user-item" @onclick="@(() => Pick("Atalhos do teclado"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="command" Size="ComponentSize.Sm" /></span>
+                    <span>Atalhos do teclado</span>
+                    <span class="omni-hd-user-kbd">⌘ /</span>
+                </button>
+            </div>
+
+            <div class="omni-hd-user-section">
+                <button type="button" class="omni-hd-user-item" @onclick="@(() => Pick("Configurações"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="settings" Size="ComponentSize.Sm" /></span>
+                    <span>Configurações</span>
+                </button>
+                <button type="button" class="omni-hd-user-item" @onclick="@(() => Pick("Ajuda & Suporte"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="help-circle" Size="ComponentSize.Sm" /></span>
+                    <span>Ajuda &amp; Suporte</span>
+                    <span class="omni-hd-user-trail" style="color:var(--omni-accent);">Chat 24/7</span>
+                </button>
+            </div>
+
+            <div class="omni-hd-user-tenant">
+                <div class="omni-hd-user-tenant-mark">FB</div>
+                <div class="omni-hd-user-tenant-info">
+                    <div class="omni-hd-user-tenant-name">Forno do Bairro</div>
+                    <div class="omni-hd-user-tenant-meta">Vila Madalena · 3 unidades</div>
+                </div>
+                <button type="button" class="omni-hd-user-tenant-switch" @onclick="@(() => Pick("Trocar unidade"))">
+                    Trocar
+                </button>
+            </div>
+
+            <div class="omni-hd-user-section">
+                <button type="button" class="omni-hd-user-item is-danger" @onclick="@(() => Pick("Sair"))">
+                    <span class="omni-hd-user-ico"><OmniIcon Name="log-out" Size="ComponentSize.Sm" /></span>
+                    <span>Sair</span>
+                    <span class="omni-hd-user-kbd">⇧ ⌘ Q</span>
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _open;
+    private string TriggerCss => "omni-hd-user-trigger" + (_open ? " is-open" : "");
+
+    protected override void OnInitialized() => Theme.OnChange += OnThemeChanged;
+
+    private void Toggle() => _open = !_open;
+    private void Close() => _open = false;
+
+    private void Pick(string action)
+    {
+        _open = false;
+        Toast.Info("Menu do usuário", action);
+    }
+
+    private async Task SetTheme(bool dark)
+    {
+        if (Theme.Dark != dark) await Theme.SetDarkAsync(dark);
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Theme.OnChange -= OnThemeChanged;
+}

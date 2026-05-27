@@ -1,0 +1,320 @@
+@page "/showcase/hotkeys"
+@layout ShowcaseLayout
+@inject NotificationService Toast
+@inject HotkeyService Hotkeys
+@inject KeyInterceptorService KeyInterceptor
+@implements IAsyncDisposable
+
+<PageTitle>Hotkeys — Showcase</PageTitle>
+
+<ShowcasePage Title="Hotkeys"
+              Subtitle="Atalhos de teclado globais — componente declarativo + service programático.">
+
+    <Overview>
+        <p>
+            O <code>OmniHotkey</code> registra um <strong>atalho global de teclado</strong> de
+            forma declarativa: basta soltar o componente na página. Aceita um <code>Combo</code>
+            (ex: <code>"Ctrl+K|Meta+K"</code>) ou <code>Key</code> + <code>Modifiers</code>, e
+            registra/desregistra automaticamente no mount/unmount. Com <code>PreventDefault</code>
+            ele impede o comportamento padrão do browser (ex: o "Salvar como" do Ctrl+S).
+        </p>
+        <p>
+            O <code>HotkeyService</code> faz o mesmo de forma <strong>programática</strong> — útil
+            para registrar atalhos em código (ex: no AppShell, para a app inteira). É
+            <strong>leak-safe</strong>: cada <code>RegisterAsync</code> devolve um
+            <code>IAsyncDisposable</code> que remove a entrada e avisa o JS; <code>RegistrationCount</code>
+            expõe o número de registros ativos para testes de vazamento.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Command palette, busca rápida e outras ações de produtividade (Ctrl+K).</li>
+            <li>Atalhos de salvar/criar que devem sobrescrever o default do browser.</li>
+            <li>Registrar atalhos globais em código via <code>HotkeyService</code>.</li>
+            <li>Power users que esperam navegar a aplicação sem o mouse.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Atalhos que só valem dentro de um elemento focado → use <code>KeyInterceptorService</code>.</li>
+            <li>Ações pontuais de um único componente → trate o <code>onkeydown</code> local.</li>
+            <li>Substituir botões visíveis — atalhos complementam a UI, não a escondem.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DECLARATIVO"
+                         Description="Drop os componentes <OmniHotkey> diretamente na página. Cada um registra/desregistra automaticamente no mount/unmount."
+                         Code="@(@"<OmniHotkey Combo=""Ctrl+K|Meta+K"" OnPressed=""OnPalette"" />
+<OmniHotkey Combo=""Ctrl+S""        OnPressed=""OnSave"" />
+<OmniHotkey Combo=""?""             OnPressed=""OnHelp"" />")">
+
+            <OmniHotkey Combo="Ctrl+K|Meta+K" OnPressed="OnPalette" />
+            <OmniHotkey Combo="Ctrl+S"        OnPressed="OnSave" />
+            <OmniHotkey Combo="?"             OnPressed="OnHelp" />
+
+            <div class="omni-stack omni-stack-8">
+                <div class="omni-row omni-row-gap-12" style="align-items:center;">
+                    <OmniKbd Text="Ctrl + K" /> <span class="omni-meta">Abrir command palette (Cmd+K no Mac).</span>
+                </div>
+                <div class="omni-row omni-row-gap-12" style="align-items:center;">
+                    <OmniKbd Text="Ctrl + S" /> <span class="omni-meta">Salvar — o browser <strong>não</strong> abre "Salvar como" porque PreventDefault=true.</span>
+                </div>
+                <div class="omni-row omni-row-gap-12" style="align-items:center;">
+                    <OmniKbd Text="?" /> <span class="omni-meta">Abrir ajuda — não dispara enquanto você está digitando num input (sem modifier + foco editável = ignora).</span>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VIA SERVICE"
+                         Description="Quando você quer registrar atalhos em código (ex: no AppShell para a app inteira), injete HotkeyService e chame RegisterAsync. O IAsyncDisposable retornado controla o lifecycle."
+                         Code="@(@"@inject HotkeyService Hotkeys
+
+protected override async Task OnInitializedAsync()
+{
+    _handle = await Hotkeys.RegisterAsync(""Ctrl+E"", _ =>
+    {
+        Toast.Info(""Atalho via service"");
+        return Task.CompletedTask;
+    });
+}")">
+            <div class="omni-stack omni-stack-12" style="max-width:520px;">
+                <div class="omni-row omni-row-gap-12" style="align-items:center;">
+                    <OmniKbd Text="Ctrl + E" />
+                    <span class="omni-meta">Registrado em <code>OnInitializedAsync</code>. Mostra um toast e está sujeito ao switch abaixo.</span>
+                </div>
+                <OmniFormField Label="Disabled" Hint="Liga/desliga o hotkey sem desregistrar — usa setHotkeyDisabled no JS.">
+                    <OmniSwitch @bind-Value="ctrlEDisabled" />
+                </OmniFormField>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ELEMENT-SCOPED"
+                         Description="KeyInterceptorService anexa o listener a um elemento específico (não ao documento). Clique no card abaixo pra focá-lo; depois use ↑/↓ pra navegar, Enter pra selecionar, Esc pra limpar. Esses atalhos só funcionam enquanto o card está focado."
+                         Code="@(@"_handle = await KeyInterceptor.AttachAsync(_card,
+    new[]
+    {
+        new KeyInterceptorOption(""ArrowDown"", PreventDefault: true),
+        new KeyInterceptorOption(""Enter"",     PreventDefault: true)
+    },
+    OnScopedKey);")">
+            <div @ref="_scopedCard" class="omni-scoped-card" tabindex="0">
+                <div class="omni-row" style="justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:13px; font-weight:600;">Lista navegável por teclado</div>
+                        <div class="omni-meta">↑/↓ move · Enter seleciona · Esc limpa</div>
+                    </div>
+                    <OmniChip Variant="@(_scopedItems[_scopedIdx] == _scopedSelected ? BadgeVariant.Good : BadgeVariant.Plain)">
+                        @(_scopedSelected ?? "—")
+                    </OmniChip>
+                </div>
+                <div class="omni-stack omni-stack-4" style="margin-top:10px;">
+                    @for (var i = 0; i < _scopedItems.Length; i++)
+                    {
+                        var idx = i;
+                        var sel = idx == _scopedIdx;
+                        <div class="@ScopedItemClass(sel)">
+                            <span>@_scopedItems[idx]</span>
+                            @if (_scopedItems[idx] == _scopedSelected) { <OmniIcon Name="check" Size="ComponentSize.Sm" /> }
+                        </div>
+                    }
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="STRESS TEST"
+                         Description="Para validar que não vaza memória: registra N hotkeys e descarta todos. Os contadores (C# e JS) devem voltar a 0."
+                         Code="@(@"for (int i = 0; i < 500; i++)
+{
+    var h = await Hotkeys.RegisterAsync($""Ctrl+Alt+Shift+F{(i % 12) + 1}"", _ => Task.CompletedTask);
+    _stress.Add(h);
+}
+// depois: foreach (var h in _stress) await h.DisposeAsync();")">
+            <div class="omni-stack omni-stack-8" style="max-width:520px;">
+                <div class="omni-row omni-row-gap-8" style="align-items:center;">
+                    <OmniButton Text="Registrar 500" OnClick="StressRegister" />
+                    <OmniButton Text="Descartar tudo" Variant="ButtonVariant.Ghost" OnClick="StressDispose" />
+                    <OmniButton Text="Verificar"      Variant="ButtonVariant.Ghost" OnClick="StressReport" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <div class="omni-meta">C# RegistrationCount: <strong>@Hotkeys.RegistrationCount</strong></div>
+                    <div class="omni-meta">JS hotkeys.size: <strong>@_jsSize</strong></div>
+                    <div class="omni-meta">Stress handles em memória: <strong>@_stress.Count</strong></div>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniHotkey — Parâmetros">
+            <ShowcaseApiRow Name="Combo" Type="string?" Default="null"
+                            Description="Atalho(s) como string, ex: 'Ctrl+K' ou 'Ctrl+K|Meta+K'. Tem prioridade sobre Key." />
+            <ShowcaseApiRow Name="Key" Type="string?" Default="null"
+                            Description="Tecla principal, combinada com Modifiers quando Combo não é usado." />
+            <ShowcaseApiRow Name="Modifiers" Type="Modifier" Default="None"
+                            Description="Flags de modificadores (Ctrl, Alt, Shift, Meta) usadas com Key." />
+            <ShowcaseApiRow Name="PreventDefault" Type="bool" Default="true"
+                            Description="Impede o comportamento padrão do browser para o atalho." />
+            <ShowcaseApiRow Name="StopPropagation" Type="bool" Default="false"
+                            Description="Interrompe a propagação do evento de teclado." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desativa o atalho sem desregistrá-lo (toggle barato)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniHotkey — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnPressed" Type="EventCallback<KeyboardEventArgs>" ShowDefault="false"
+                            Description="Disparado quando o atalho é acionado." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="HotkeyService — Membros">
+            <ShowcaseApiRow Name="RegistrationCount" Type="int" Default="0"
+                            Description="Número de registros de atalho ativos — útil para testes de vazamento." />
+            <ShowcaseApiRow Name="RegisterAsync(combo, handler, …)" Type="Task<IAsyncDisposable>" Default="—"
+                            Description="Registra um atalho; o IAsyncDisposable retornado o desregistra ao ser descartado." />
+            <ShowcaseApiRow Name="SetDisabledAsync(handle, disabled)" Type="Task" Default="—"
+                            Description="Liga/desliga um registro existente sem removê-lo." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private IAsyncDisposable? _ctrlE;
+    private bool _ctrlEDisabled;
+    private bool ctrlEDisabled
+    {
+        get => _ctrlEDisabled;
+        set { _ = SetCtrlEDisabledAsync(value); }
+    }
+
+    private readonly List<IAsyncDisposable> _stress = new();
+    private int _jsSize;
+
+    private ElementReference _scopedCard;
+    private IAsyncDisposable? _scopedHandle;
+    private readonly string[] _scopedItems = { "Pizza Margherita", "Pizza Pepperoni", "Pizza Quatro Queijos", "Calzone", "Tiramisu" };
+    private int _scopedIdx;
+    private string? _scopedSelected;
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private Task OnPalette(KeyboardEventArgs _) { Toast.Info("Command palette aberto", "Ctrl+K / ⌘+K"); return Task.CompletedTask; }
+    private Task OnSave(KeyboardEventArgs _)    { Toast.Success("Salvo", "Ctrl+S");                    return Task.CompletedTask; }
+    private Task OnHelp(KeyboardEventArgs _)    { Toast.Info("Ajuda aberta", "?");                     return Task.CompletedTask; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _ctrlE = await Hotkeys.RegisterAsync("Ctrl+E", _ =>
+        {
+            Toast.Info("Atalho via service", "Ctrl+E (registrado em C#)");
+            return Task.CompletedTask;
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _scopedHandle = await KeyInterceptor.AttachAsync(_scopedCard,
+                new[]
+                {
+                    new KeyInterceptorOption("ArrowDown", PreventDefault: true),
+                    new KeyInterceptorOption("ArrowUp",   PreventDefault: true),
+                    new KeyInterceptorOption("Enter",     PreventDefault: true),
+                    new KeyInterceptorOption("Escape",    PreventDefault: true)
+                },
+                OnScopedKey);
+        }
+    }
+
+    private string ScopedItemClass(bool active)
+        => active ? "omni-scoped-item omni-scoped-item-active" : "omni-scoped-item";
+
+    private Task OnScopedKey(string key, KeyboardEventArgs args)
+    {
+        switch (key)
+        {
+            case "ArrowDown": _scopedIdx = (_scopedIdx + 1) % _scopedItems.Length; break;
+            case "ArrowUp":   _scopedIdx = (_scopedIdx - 1 + _scopedItems.Length) % _scopedItems.Length; break;
+            case "Enter":     _scopedSelected = _scopedItems[_scopedIdx]; Toast.Success("Selecionado", _scopedSelected); break;
+            case "Escape":    _scopedSelected = null; Toast.Info("Limpo"); break;
+        }
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task SetCtrlEDisabledAsync(bool disabled)
+    {
+        _ctrlEDisabled = disabled;
+        if (_ctrlE is not null) await Hotkeys.SetDisabledAsync(_ctrlE, disabled);
+        StateHasChanged();
+    }
+
+    private async Task StressRegister()
+    {
+        for (int i = 0; i < 500; i++)
+        {
+            // Use combos that won't actually collide with anything real.
+            var h = await Hotkeys.RegisterAsync($"Ctrl+Alt+Shift+F{(i % 12) + 1}", _ => Task.CompletedTask);
+            _stress.Add(h);
+        }
+        await ReadJsSize();
+    }
+
+    private async Task StressDispose()
+    {
+        foreach (var h in _stress) await h.DisposeAsync();
+        _stress.Clear();
+        await ReadJsSize();
+    }
+
+    private async Task StressReport()
+    {
+        await ReadJsSize();
+        Toast.Info("Contadores",
+            $"C#: {Hotkeys.RegistrationCount} · JS: {_jsSize}");
+    }
+
+    private async Task ReadJsSize()
+    {
+        try { _jsSize = await JS.InvokeAsync<int>("eval", "window.omniBlazor._hotkeys.size"); }
+        catch { _jsSize = -1; }
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_ctrlE is not null)        { try { await _ctrlE.DisposeAsync(); } catch { } _ctrlE = null; }
+        if (_scopedHandle is not null) { try { await _scopedHandle.DisposeAsync(); } catch { } _scopedHandle = null; }
+        foreach (var h in _stress) { try { await h.DisposeAsync(); } catch { } }
+        _stress.Clear();
+    }
+}
+
+<style>
+    .omni-scoped-card {
+        background: var(--omni-bg-elev);
+        border: 1px solid var(--omni-line);
+        border-radius: var(--omni-radius);
+        padding: 14px 16px;
+        outline: none;
+        transition: border-color 120ms, box-shadow 120ms;
+        max-width: 520px;
+    }
+    .omni-scoped-card:focus {
+        border-color: var(--omni-accent);
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--omni-accent) 25%, transparent);
+    }
+    .omni-scoped-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: var(--omni-fg);
+    }
+    .omni-scoped-item-active {
+        background: color-mix(in oklab, var(--omni-accent) 12%, transparent);
+        color: var(--omni-accent);
+        font-weight: 600;
+    }
+</style>

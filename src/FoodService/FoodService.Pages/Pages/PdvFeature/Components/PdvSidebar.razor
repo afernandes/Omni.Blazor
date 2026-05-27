@@ -1,0 +1,50 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Sidebar do PDV — children do OmniDrawer do AppShellPdv. O `<aside>` é
+    renderizado pelo próprio OmniDrawer, então aqui só renderizamos o
+    conteúdo (PanelMenu + plan footer).
+
+    PDV é a tela ativa; outras rotas são stubs visuais. Item PDV recebe
+    count = ItemCount do pedido atual (badge accent). *@
+<OmniPanelMenu Class="fs-pdv-nav-section">
+    <OmniPanelMenuSection Label="Operação" />
+    <OmniPanelMenuItem Text="PDV"
+                       Icon="shopping-cart"
+                       Path="/"
+                       Match="NavLinkMatch.All"
+                       Count="@(Order.Cart.Count > 0 ? Order.ItemCount : null)"
+                       CountKind="MenuMetaKind.Accent" />
+    <OmniPanelMenuItem Text="Montar Pizza"   Icon="package"   Path="#" />
+    <OmniPanelMenuItem Text="HUB de Pedidos" Icon="grid"      Path="#" Count="12" />
+    <OmniPanelMenuItem Text="Cardápio"       Icon="file-text" Path="#" />
+</OmniPanelMenu>
+
+<OmniPanelMenu Class="fs-pdv-nav-section">
+    <OmniPanelMenuSection Label="Salão" />
+    <OmniPanelMenuItem Text="Mesas" Icon="users" Path="#" />
+</OmniPanelMenu>
+
+<OmniPanelMenu Class="fs-pdv-nav-section">
+    <OmniPanelMenuSection Label="Gestão" />
+    <OmniPanelMenuItem Text="Clientes"   Icon="database"  Path="#" />
+    <OmniPanelMenuItem Text="Relatórios" Icon="bar-chart" Path="#" />
+</OmniPanelMenu>
+
+<OmniPanelMenu Class="fs-pdv-nav-section">
+    <OmniPanelMenuSection Label="Tenant" />
+    <OmniPanelMenuItem Text="Configurações" Icon="sliders" Path="#" />
+</OmniPanelMenu>
+
+<div class="fs-pdv-side-footer">
+    <div class="fs-pdv-side-plan-name">Plano Pro</div>
+    <div class="fs-pdv-side-plan-meta">1.205 / 5.000 pedidos · este mês</div>
+    <div class="fs-pdv-side-plan-bar">
+        <div style="width: 24%;"></div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+}

@@ -1,0 +1,282 @@
+@page "/showcase/scroll"
+@layout ShowcaseLayout
+@implements IAsyncDisposable
+@inject ScrollManager Scroll
+@inject NotificationService Toast
+@using Omni.Blazor.Models
+@using System.Globalization
+
+<PageTitle>ScrollManager — Showcase</PageTitle>
+
+<ShowcasePage Title="ScrollManager"
+              Subtitle="Façade central para todas as operações de scroll — lock counter-based e navegação programática.">
+
+    <Overview>
+        <p>
+            O <code>ScrollManager</code> é a <strong>façade central</strong> de todas as operações
+            de scroll. Inspirado no ScrollManager do MudBlazor, ele centraliza todo o interop JS
+            relacionado a rolagem para que os componentes <strong>não precisem alcançar o
+            <code>IJSRuntime</code></strong> por conta própria.
+        </p>
+        <p>
+            O lock de scroll é <strong>counter-based</strong>: cada <code>LockScrollAsync</code>
+            incrementa um contador e só o <code>UnlockScrollAsync</code> correspondente ao último
+            lock realmente libera o overflow — então um dialog aberto dentro de um drawer não solta
+            o body antes da hora. O seletor <code>"auto"</code> (padrão) encontra o container de
+            rolagem real (ex: <code>.omni-body</code> no app shell); passe um seletor explícito
+            quando souber qual container deve rolar.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Travar o scroll do body enquanto um overlay (dialog, drawer, popover) está aberto.</li>
+            <li>Rolar programaticamente até um elemento — âncoras, validação que falhou, item recém-criado.</li>
+            <li>Botão "voltar ao topo" / "ir ao fim" em listas longas.</li>
+            <li>Ler o offset vertical atual para decorar a UI (ex: mostrar uma sombra no header).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Renderizar listas enormes com performance → use <code>OmniVirtualize</code>.</li>
+            <li>Detectar mudança de viewport para layout responsivo → use <code>BreakpointService</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="LOCK SCROLL"
+                         Description="Cada Lock incrementa um contador; só o último Unlock realmente libera o overflow. Faça Lock 3× e Unlock 2× para verificar."
+                         Code="@(@"@inject ScrollManager Scroll
+
+await Scroll.LockScrollAsync();    // incrementa o contador
+await Scroll.UnlockScrollAsync();  // só o último libera o overflow
+
+int count = await Scroll.GetLockCountAsync();")">
+            <div class="omni-row omni-row-gap-8" style="align-items:center;">
+                <OmniButton Text="Lock"   OnClick="OnLock" />
+                <OmniButton Text="Unlock" OnClick="OnUnlock" Variant="ButtonVariant.Ghost" />
+                <OmniButton Text="Ver contador" OnClick="OnReadCount" Variant="ButtonVariant.Ghost" />
+                <span class="omni-meta">Counter local: <strong>@_localCount</strong> · JS: <strong>@_jsCount</strong></span>
+            </div>
+            <div class="omni-meta" style="margin-top:8px;">
+                Tente rolar a página enquanto o lock está &gt; 0 — o scroll fica bloqueado. Faça Lock 3× e Unlock 2× pra verificar que só o último Unlock libera.
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SCROLL TO POSITION"
+                         Description="ScrollTo / ScrollIntoView / ScrollToTop / ScrollToBottom — comportamento smooth ou instant."
+                         Code="@(@"await Scroll.ScrollToTopAsync();
+await Scroll.ScrollToBottomAsync();
+await Scroll.ScrollIntoViewAsync(
+    ""#scroll-target"",
+    ScrollBehavior.Smooth,
+    ScrollBlock.Center);")">
+            <div class="omni-row omni-row-gap-8" style="margin-bottom:12px;">
+                <OmniButton Text="Ir pro topo"      OnClick="GoToTop" />
+                <OmniButton Text="Ir pro target #4" OnClick="GoToTarget" Variant="ButtonVariant.Ghost" />
+                <OmniButton Text="Ir pro fim"       OnClick="GoToBottom" Variant="ButtonVariant.Ghost" />
+            </div>
+
+            @for (int i = 1; i <= 8; i++)
+            {
+                <OmniCard Style="margin-bottom:12px;">
+                    <div id="@(i == 4 ? "scroll-target" : null)">
+                        <div style="font-size:13px; font-weight:600;">Card #@i @(i == 4 ? "← target" : "")</div>
+                        <div class="omni-meta">Demo de espaçamento vertical pra exercitar o scroll.</div>
+                    </div>
+                </OmniCard>
+            }
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="OBSERVAR POSIÇÃO DE SCROLL"
+                         Description="ObserveScrollPositionAsync retorna IAsyncDisposable — listener throttled via rAF (~1 fire por frame) que emite snapshot completo (top, height, percent). Use pra UI customizada: badges de progresso, fade de header on scroll, scroll-to-top customizado, etc. await using ou DisposeAsync manual."
+                         Code='@("@implements IAsyncDisposable\n@inject ScrollManager Scroll\n\nIAsyncDisposable? _obs;\ndouble _percent;\n\nprotected override async Task OnAfterRenderAsync(bool first) {\n    if (!first) return;\n    _obs = await Scroll.ObserveScrollPositionAsync(null, info => {\n        _percent = info.Percent;\n        StateHasChanged();\n        return Task.CompletedTask;\n    });\n}\n\npublic async ValueTask DisposeAsync() {\n    if (_obs is not null) await _obs.DisposeAsync();\n}")'>
+            <div class="scroll-obs-demo">
+                <div class="scroll-obs-row">
+                    <span class="scroll-obs-label">Scroll do container atual:</span>
+                    <strong class="scroll-obs-value">@_percent.ToString("P1", CultureInfo.InvariantCulture)</strong>
+                </div>
+                <div class="scroll-obs-bar">
+                    <div class="scroll-obs-bar-fill"
+                         style="width: @((_percent * 100).ToString("F1", CultureInfo.InvariantCulture))%"></div>
+                </div>
+                <div class="scroll-obs-grid">
+                    <div>
+                        <span class="scroll-obs-label">ScrollTop</span>
+                        <code class="scroll-obs-value">@_top.ToString("F0", CultureInfo.InvariantCulture) px</code>
+                    </div>
+                    <div>
+                        <span class="scroll-obs-label">ScrollHeight</span>
+                        <code class="scroll-obs-value">@_height.ToString("F0", CultureInfo.InvariantCulture) px</code>
+                    </div>
+                    <div>
+                        <span class="scroll-obs-label">ClientHeight</span>
+                        <code class="scroll-obs-value">@_clientH.ToString("F0", CultureInfo.InvariantCulture) px</code>
+                    </div>
+                    <div>
+                        <span class="scroll-obs-label">MaxScroll</span>
+                        <code class="scroll-obs-value">@_maxScroll.ToString("F0", CultureInfo.InvariantCulture) px</code>
+                    </div>
+                </div>
+                <div class="omni-meta">
+                    Role essa página pra cima/baixo — os valores reagem em tempo real (throttled via requestAnimationFrame).
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="ScrollManager — métodos de lock" ShowDefault="false">
+            <ShowcaseApiRow Name="LockScrollAsync(selector)" Type="ValueTask" ShowDefault="false"
+                            Description="Trava o scroll. selector padrão 'auto' detecta o container real. Counter-based." />
+            <ShowcaseApiRow Name="UnlockScrollAsync(selector)" Type="ValueTask" ShowDefault="false"
+                            Description="Libera um lock; só o último realmente solta o overflow." />
+            <ShowcaseApiRow Name="GetLockCountAsync(selector)" Type="ValueTask&lt;int&gt;" ShowDefault="false"
+                            Description="Diagnóstico — contador de locks atual de um seletor." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="ScrollManager — métodos de navegação" ShowDefault="false">
+            <ShowcaseApiRow Name="ScrollToAsync(selector, top, left, behavior)" Type="ValueTask" ShowDefault="false"
+                            Description="Rola o container até uma posição específica." />
+            <ShowcaseApiRow Name="ScrollIntoViewAsync(selector, behavior, block)" Type="ValueTask" ShowDefault="false"
+                            Description="Traz um elemento para a viewport (o ancestral rolável mais próximo rola)." />
+            <ShowcaseApiRow Name="ScrollToTopAsync(selector, behavior)" Type="ValueTask" ShowDefault="false"
+                            Description="Rola o container (ou a raiz auto-detectada) até o topo." />
+            <ShowcaseApiRow Name="ScrollToBottomAsync(selector, behavior)" Type="ValueTask" ShowDefault="false"
+                            Description="Rola o container (ou a raiz auto-detectada) até o fim." />
+            <ShowcaseApiRow Name="GetScrollOffsetYAsync(selector)" Type="ValueTask&lt;double&gt;" ShowDefault="false"
+                            Description="Lê o offset vertical de scroll atual." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="ScrollManager — observação de scroll" ShowDefault="false">
+            <ShowcaseApiRow Name="ObserveScrollPositionAsync(selector, handler)" Type="ValueTask&lt;IAsyncDisposable&gt;" ShowDefault="false"
+                            Description="Observa scroll de um container. Callback throttled via rAF (~1 fire por frame). Retorna IAsyncDisposable — dispose pra parar de observar. selector null = auto-detect scroll root. ResizeObserver acoplado pra recalcular quando o conteúdo cresce (lazy load)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="ScrollPositionInfo record">
+            <ShowcaseApiRow Name="ScrollTop" Type="double" ShowDefault="false" Description="Pixels scrollados a partir do topo." />
+            <ShowcaseApiRow Name="ScrollHeight" Type="double" ShowDefault="false" Description="Altura total do conteúdo scrollable." />
+            <ShowcaseApiRow Name="ClientHeight" Type="double" ShowDefault="false" Description="Altura visível do container." />
+            <ShowcaseApiRow Name="MaxScroll" Type="double" ShowDefault="false" Description="Máximo scrollável (ScrollHeight - ClientHeight). Zero se não overflows." />
+            <ShowcaseApiRow Name="Percent" Type="double" ShowDefault="false" Description="Fração 0.0–1.0 de scroll percorrido (0 no topo, 1 no final)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Enums">
+            <ShowcaseApiRow Name="ScrollBehavior" Type="enum" Default="Auto"
+                            Description="Comportamento da rolagem — Auto, Smooth, Instant." />
+            <ShowcaseApiRow Name="ScrollBlock" Type="enum" Default="Start"
+                            Description="Alinhamento de bloco em ScrollIntoView — Start, Center, End, Nearest." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int _localCount;
+    private int _jsCount;
+
+    // Live demo de ObserveScrollPositionAsync
+    private double _percent;
+    private double _top;
+    private double _height;
+    private double _clientH;
+    private double _maxScroll;
+    private IAsyncDisposable? _scrollObs;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _scrollObs = await Scroll.ObserveScrollPositionAsync(null, info =>
+            {
+                _percent = info.Percent;
+                _top = info.ScrollTop;
+                _height = info.ScrollHeight;
+                _clientH = info.ClientHeight;
+                _maxScroll = info.MaxScroll;
+                StateHasChanged();
+                return Task.CompletedTask;
+            });
+        }
+        catch { /* SSR / JS gone */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_scrollObs is not null)
+        {
+            try { await _scrollObs.DisposeAsync(); } catch { }
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    private async Task OnLock()
+    {
+        await Scroll.LockScrollAsync();
+        _localCount++;
+        Toast.Info("Scroll travado", $"Counter: {_localCount}");
+        await RefreshJsCount();
+    }
+
+    private async Task OnUnlock()
+    {
+        if (_localCount <= 0)
+        {
+            Toast.Warning("Nada pra desbloquear");
+            return;
+        }
+        await Scroll.UnlockScrollAsync();
+        _localCount--;
+        Toast.Success(_localCount == 0 ? "Scroll liberado" : "Decrementado", $"Counter: {_localCount}");
+        await RefreshJsCount();
+    }
+
+    private async Task OnReadCount()
+    {
+        await RefreshJsCount();
+        Toast.Info("Counter", $"C# local: {_localCount} · JS: {_jsCount}");
+    }
+
+    private async Task RefreshJsCount()
+    {
+        _jsCount = await Scroll.GetLockCountAsync();
+        StateHasChanged();
+    }
+
+    private Task GoToTop()    => Scroll.ScrollToTopAsync().AsTask();
+    private Task GoToBottom() => Scroll.ScrollToBottomAsync().AsTask();
+    private Task GoToTarget() => Scroll.ScrollIntoViewAsync("#scroll-target", ScrollBehavior.Smooth, ScrollBlock.Center).AsTask();
+}
+
+<style>
+    .scroll-obs-demo {
+        padding: 18px 22px;
+        background: var(--omni-bg-elev);
+        border: 1px solid var(--omni-line);
+        border-radius: 12px;
+        display: flex; flex-direction: column; gap: 14px;
+    }
+    .scroll-obs-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .scroll-obs-label { font-size: 12px; color: var(--omni-fg-soft); display: block; }
+    .scroll-obs-value { font: 600 14px var(--omni-font-mono); color: var(--omni-accent); }
+    .scroll-obs-bar {
+        height: 10px;
+        background: var(--omni-bg-sunken);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .scroll-obs-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--omni-accent), color-mix(in oklab, var(--omni-accent) 70%, var(--omni-warn, #ff8800)));
+        transition: width 100ms linear;
+    }
+    .scroll-obs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        padding: 10px 12px;
+        background: var(--omni-bg);
+        border-radius: 8px;
+    }
+    .scroll-obs-grid > div { display: flex; flex-direction: column; gap: 2px; }
+</style>

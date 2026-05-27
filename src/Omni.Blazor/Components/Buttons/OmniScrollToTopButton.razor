@@ -1,0 +1,194 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject Omni.Blazor.Services.ScrollManager Scroll
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Omni.Blazor.Utilities
+@using System.Globalization
+
+@*  Botão "Voltar ao topo" auto-show/hide baseado em scroll position.
+    Aparece quando o user scrolla além do threshold (px ou %), some quando
+    volta perto do topo. Smooth scroll on click. Opcional: anel de progresso
+    em volta do ícone mostrando quanto da página já foi scrollada.
+
+    Drop-in: <OmniScrollToTopButton /> em qualquer página/layout.
+    Auto-detecta o container de scroll via ScrollManager (mesma lógica do
+    ScrollToTopAsync — tipicamente .omni-showcase-body, .omni-main ou maior
+    elemento scrollable).
+
+    Pra UI customizada, use ScrollManager.ObserveScrollPositionAsync direto. *@
+
+<button type="button"
+        class="@RootCss"
+        title="@Title"
+        aria-label="@Title"
+        aria-hidden="@(_visible ? "false" : "true")"
+        tabindex="@(_visible ? "0" : "-1")"
+        style="@RootStyle"
+        @onclick="HandleClickAsync"
+        @attributes="Attributes">
+    @if (ShowProgress)
+    {
+        @* Anel SVG ao redor do ícone — anima via stroke-dashoffset baseado em --omni-stt-percent.
+           viewBox 36x36, raio 16, circunferência ≈ 100 — facilita cálculo de offset. *@
+        <svg class="omni-scroll-top-ring" viewBox="0 0 36 36" aria-hidden="true">
+            <circle class="track" cx="18" cy="18" r="16" />
+            <circle class="fill"  cx="18" cy="18" r="16" />
+        </svg>
+    }
+    <OmniIcon Name="@Icon" Size="@IconSize" />
+</button>
+
+@code {
+    /// <summary>Ícone do botão. Default <c>"arrow-up"</c>.</summary>
+    [Parameter] public string Icon { get; set; } = "arrow-up";
+
+    /// <summary>Tooltip + aria-label. Default <c>"Voltar ao topo"</c>.</summary>
+    [Parameter] public string Title { get; set; } = "Voltar ao topo";
+
+    /// <summary>Canto da viewport. Default <c>BottomRight</c>.</summary>
+    [Parameter] public FabPosition Position { get; set; } = FabPosition.BottomRight;
+
+    /// <summary>Variant do botão. Default <c>Primary</c>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Primary;
+
+    /// <summary>Tamanho. Default <c>Lg</c>.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Lg;
+
+    /// <summary>Comportamento de scroll ao clicar. <c>Smooth</c> (default) anima;
+    /// <c>Auto</c>/<c>Instant</c> salta direto.</summary>
+    [Parameter] public ScrollBehavior ScrollBehavior { get; set; } = ScrollBehavior.Smooth;
+
+    /// <summary>Selector CSS do container scrollável. <c>null</c> (default) auto-detecta
+    /// (o mesmo "scroll root" usado por <c>ScrollToTopAsync</c>).</summary>
+    [Parameter] public string? ScrollContainerSelector { get; set; }
+
+    /// <summary>Quantos pixels scrollados pra começar a mostrar. Default <c>200</c>.
+    /// Ignorado se <see cref="ShowAfterPercent"/> for setado.</summary>
+    [Parameter] public double ShowAfterPx { get; set; } = 200;
+
+    /// <summary>Fração (0.0–1.0) de scroll percorrido pra mostrar. Quando setado,
+    /// sobrescreve <see cref="ShowAfterPx"/>. Ex: <c>0.15</c> = mostra após 15%.</summary>
+    [Parameter] public double? ShowAfterPercent { get; set; }
+
+    /// <summary>Mostra anel de progresso (SVG) ao redor do ícone indicando quanto
+    /// da página foi scrollada (0% no topo → 100% no final). Default <c>false</c>.</summary>
+    [Parameter] public bool ShowProgress { get; set; }
+
+    /// <summary>Force-hide externo (override do auto). Default <c>false</c>.</summary>
+    [Parameter] public bool Hidden { get; set; }
+
+    private IAsyncDisposable? _observer;
+    private bool _visible;
+    private double _percent;
+    private bool _atTop = true;
+
+    // Threshold em "pre-render": começa como invisible. Só mostra após primeiro
+    // sinal de scroll que exceda o threshold (callOnInit do JS dispara estado
+    // inicial — se o user recarregou a página com scroll preservado, mostra
+    // imediatamente; se carregou no topo, fica escondido até user scrollar).
+
+    private ComponentSize IconSize => Size switch
+    {
+        ComponentSize.Sm => ComponentSize.Sm,
+        ComponentSize.Lg => ComponentSize.Md,
+        ComponentSize.Xl => ComponentSize.Lg,
+        _                => ComponentSize.Sm,
+    };
+
+    private string PercentStyle => ShowProgress
+        ? $"--omni-stt-percent: {_percent.ToString("F3", CultureInfo.InvariantCulture)};"
+        : string.Empty;
+
+    /// <summary>Combined inline style: progress-percent var + consumer-supplied <c>Style</c>.</summary>
+    private string RootStyle => string.IsNullOrWhiteSpace(Style)
+        ? PercentStyle
+        : (string.IsNullOrWhiteSpace(PercentStyle) ? Style! : $"{PercentStyle} {Style}");
+
+    private string RootCss => CssBuilder.Default("omni-scroll-top-btn")
+        .AddClass(Position switch
+        {
+            FabPosition.BottomRight  => "omni-fab-bottom-right",
+            FabPosition.BottomLeft   => "omni-fab-bottom-left",
+            FabPosition.TopRight     => "omni-fab-top-right",
+            FabPosition.TopLeft      => "omni-fab-top-left",
+            FabPosition.BottomCenter => "omni-fab-bottom-center",
+            FabPosition.Static       => "omni-fab-static",
+            _                        => "omni-fab-bottom-right",
+        })
+        .AddClass(Variant switch
+        {
+            ButtonVariant.Primary => "omni-stt-variant-primary",
+            ButtonVariant.Ghost   => "omni-stt-variant-ghost",
+            ButtonVariant.Danger  => "omni-stt-variant-danger",
+            _                     => "omni-stt-variant-default",
+        })
+        .AddClass(Size switch
+        {
+            ComponentSize.Sm => "omni-stt-sm",
+            ComponentSize.Lg => "omni-stt-lg",
+            ComponentSize.Xl => "omni-stt-xl",
+            _                => "omni-stt-md",
+        })
+        .AddClass("omni-stt-with-progress", ShowProgress)
+        .AddClass("omni-scroll-top-visible", _visible && !Hidden)
+        .AddClass(Class)
+        .Build();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _observer = await Scroll.ObserveScrollPositionAsync(
+                ScrollContainerSelector,
+                HandleScrollAsync);
+        }
+        catch { /* SSR / JS gone */ }
+    }
+
+    private Task HandleScrollAsync(ScrollPositionInfo info)
+    {
+        var shouldShow = ShouldShow(info);
+        var percentChanged = ShowProgress && Math.Abs(info.Percent - _percent) > 0.005;
+        var atTopChanged = (info.ScrollTop < 1) != _atTop;
+
+        if (shouldShow != _visible || percentChanged || atTopChanged)
+        {
+            _visible = shouldShow;
+            _percent = info.Percent;
+            _atTop = info.ScrollTop < 1;
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
+    }
+
+    private bool ShouldShow(ScrollPositionInfo info)
+    {
+        // Se conteúdo não overflows (MaxScroll == 0), nunca mostra — não há
+        // pra onde scrollar de volta.
+        if (info.MaxScroll < 1) return false;
+        if (ShowAfterPercent is double pct) return info.Percent >= pct;
+        return info.ScrollTop >= ShowAfterPx;
+    }
+
+    private async Task HandleClickAsync()
+    {
+        await Scroll.ScrollToTopAsync(ScrollContainerSelector, ScrollBehavior);
+        // _visible vai pra false sozinho quando o scroll observer ver scrollTop < threshold,
+        // mas pra animação parecer instant otimista: oculta na próxima frame.
+        _visible = false;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_observer is not null)
+        {
+            try { await _observer.DisposeAsync(); } catch { }
+            _observer = null;
+        }
+        GC.SuppressFinalize(this);
+    }
+}

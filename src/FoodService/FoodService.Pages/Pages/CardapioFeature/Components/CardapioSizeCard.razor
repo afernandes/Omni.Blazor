@@ -1,0 +1,35 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@inject CardapioDigitalState State
+@using Omni.Blazor.Utilities
+
+@*  Size radio card grande (screen Sizes) — nome + descrição + preço
+    "a partir de" + radio dot. Estado "on" derivado de State.SelectedSize. *@
+<button type="button"
+        class="@RootCss"
+        style="@Style"
+        @onclick="HandleClick"
+        @attributes="Attributes">
+    <div>
+        <div class="fs-cd-size-nm">@Size.Name</div>
+        <div class="fs-cd-size-ds">@Size.Desc · até @Size.MaxFlavors sabores</div>
+    </div>
+    <div class="fs-cd-size-pr omni-mono">
+        @CardapioDigitalState.Brl(Size.FromCents)
+        <small>a partir de</small>
+    </div>
+    <div class="fs-cd-radio"></div>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public CdPizzaSize Size { get; set; } = null!;
+
+    private bool IsOn => State.SelectedSize?.Id == Size.Id;
+
+    private string RootCss => CssBuilder.Default("fs-cd-size-card")
+        .AddClass("fs-cd-size-card-on", IsOn)
+        .AddClass(Class)
+        .Build();
+
+    private void HandleClick() => State.SetSize(Size);
+}

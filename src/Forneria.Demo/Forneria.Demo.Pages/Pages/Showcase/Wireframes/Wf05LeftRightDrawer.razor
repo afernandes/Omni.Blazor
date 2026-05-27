@@ -1,0 +1,68 @@
+@page "/showcase/wireframes/left-right-drawer"
+@layout WireframeLayout
+
+<PageTitle>WF-5 · Left + Right Drawer + Footer</PageTitle>
+
+@*  WIREFRAME 5 — AppBar + Left Drawer + Right Drawer + Main + Footer.
+    Workspace 3-colunas com status bar. Os dois drawers convivem no
+    grid via :has() — esquerda para navegação, direita para inspector. *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle Target="_left" Title="Alternar navegação" />
+        <OmniBrand Name="IDE" Tenant="Workspace 3-cols" />
+        <div class="omni-header-spacer"></div>
+        <OmniKbd Text="WF-5" />
+        <OmniDrawerToggle Target="_right" Icon="sliders" Title="Alternar inspector" />
+    </OmniAppBar>
+
+    <OmniDrawer @ref="_left" Anchor="DrawerAnchor.Left">
+        <OmniPanelMenuSection Label="Arquivos">
+            <OmniPanelMenuItem Text="src/"        Icon="layout-dashboard" />
+            <OmniPanelMenuItem Text="components/" Icon="package" />
+            <OmniPanelMenuItem Text="services/"   Icon="sliders" />
+            <OmniPanelMenuItem Text="tests/"      Icon="check" />
+        </OmniPanelMenuSection>
+    </OmniDrawer>
+
+    <OmniDrawer @ref="_right" Anchor="DrawerAnchor.Right" Width="320px">
+        <div style="padding: 16px;">
+            <h3 style="margin-top:0;">Inspector</h3>
+            <p class="omni-muted" style="font-size:13px;">
+                Painel direito para preview/properties/sidebar contextual. Independente
+                do drawer esquerdo, ambos vivem no mesmo grid graças ao seletor
+                <code>:has()</code>.
+            </p>
+            <div class="omni-stack omni-stack-8" style="margin-top:12px;">
+                <OmniChip Text="Selected" />
+                <OmniChip Text="MyComponent.razor" />
+            </div>
+        </div>
+    </OmniDrawer>
+
+    <OmniMain>
+        <div class="wf-demo-content">
+            <h1>Left + Right Drawer + Footer</h1>
+            <p class="omni-muted">
+                Workspace 3-colunas. Esquerda para navegação, direita para inspector/preview,
+                Main no meio com seu próprio scroll, Footer com status bar.
+            </p>
+            <OmniCard Title="Dois drawers no mesmo grid">
+                A regra <code>.omni-layout:has(.omni-drawer[data-anchor=&quot;left&quot;])</code> +
+                <code>:has(.omni-drawer[data-anchor=&quot;right&quot;])</code> ativa as colunas
+                automaticamente. Sem JS, sem reposicionar nada à mão.
+            </OmniCard>
+        </div>
+    </OmniMain>
+
+    <OmniFooter>
+        <OmniStatusBadge Label="Pronto" Kind="StatusBadgeKind.Good" />
+        <span class="omni-muted" style="font-size:12px;">Branch: <code>main</code> · 0 alterações pendentes</span>
+        <div class="omni-header-spacer"></div>
+        <span class="omni-muted" style="font-size:12px;">Ln 42, Col 18 · UTF-8</span>
+    </OmniFooter>
+</OmniLayout>
+
+@code {
+    private OmniDrawer? _left;
+    private OmniDrawer? _right;
+}

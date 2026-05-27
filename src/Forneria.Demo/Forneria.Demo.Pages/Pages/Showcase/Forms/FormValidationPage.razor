@@ -1,0 +1,631 @@
+@page "/showcase/form-validation"
+@layout ShowcaseLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject NotificationService Toast
+
+<PageTitle>Form Validation — Showcase</PageTitle>
+
+<ShowcasePage Title="Form Validation"
+              Subtitle="EditContext, DataAnnotations e validação customizada plugados no OmniForm.">
+
+    <Overview>
+        <p>
+            O <code>OmniForm&lt;TModel&gt;</code> é um wrapper sobre o <code>&lt;EditForm&gt;</code>
+            do Blazor que <strong>anexa o DataAnnotationsValidator automaticamente</strong> e expõe
+            <code>IsValid</code>, <code>Errors</code> e <code>IsTouched</code> via <code>@@ref</code>,
+            além dos métodos <code>SubmitAsync</code>, <code>ValidateAsync</code> e
+            <code>ResetAsync</code>.
+        </p>
+        <p>
+            Para regras que envolvem mais de um campo (ex: confirmação de senha), use o callback
+            <code>Validation</code>; para checagens no servidor, <code>ValidationAsync</code> com
+            <code>ValidationDelay</code> para debounce. O <code>OmniValidationSummary</code> mostra
+            todos os erros do form, e o <code>OmniValidationMessage</code> exibe o erro de um
+            campo específico.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Formulários de cadastro e edição com regras de validação.</li>
+            <li>Validação declarativa via atributos DataAnnotations no modelo.</li>
+            <li>Regras cross-field — confirmação de senha, datas coerentes.</li>
+            <li>Checagens assíncronas no servidor — disponibilidade de username/e-mail.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Apenas um input avulso sem regras → use <code>OmniTextBox</code> direto.</li>
+            <li>Mensagem de estado fora de formulário → use <code>OmniAlert</code>.</li>
+            <li>Confirmação que exige decisão Sim/Não → use <code>DialogService.Confirm</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DATA ANNOTATIONS"
+                         Description="Atributos [Required], [StringLength], [EmailAddress], [Range] no modelo. O OmniForm anexa DataAnnotationsValidator automaticamente; cada OmniFormField pega seu erro do EditContext."
+                         Code="@(@"<OmniForm Model=""user"" OnValidSubmit=""OnUserSubmit"" @ref=""userForm"">
+    <OmniValidationSummary Title=""Não consegui salvar — verifique:"" />
+    <OmniFormField Label=""Nome"" Required ValidationFor=""@(() => user.Name)"">
+        <OmniTextBox @bind-Value=""user.Name"" />
+    </OmniFormField>
+    <OmniButton Text=""Cadastrar"" OnClick=""@(_ => userForm!.SubmitAsync())"" />
+</OmniForm>")">
+            <OmniForm Model="user" OnValidSubmit="OnUserSubmit" @ref="userForm">
+
+                <OmniValidationSummary Title="Não consegui salvar — verifique:" />
+
+                <div class="omni-row omni-row-gap-12" style="margin-top:12px; flex-wrap:wrap;">
+                    <OmniFormField Label="Nome" Required Style="flex:1 1 220px;"
+                                    ValidationFor="@(() => user.Name)">
+                        <OmniTextBox @bind-Value="user.Name" Placeholder="Como você se chama?" />
+                    </OmniFormField>
+
+                    <OmniFormField Label="Email" Required Style="flex:1 1 220px;"
+                                    ValidationFor="@(() => user.Email)">
+                        <OmniTextBox @bind-Value="user.Email" Placeholder="voce@email.com" />
+                    </OmniFormField>
+                </div>
+
+                <div class="omni-row omni-row-gap-12" style="margin-top:12px; flex-wrap:wrap;">
+                    <OmniFormField Label="Idade" Style="flex:0 1 180px;"
+                                    ValidationFor="@(() => user.Age)">
+                        <OmniNumeric TValue="int" @bind-Value="user.Age" Min="0" Max="120" />
+                    </OmniFormField>
+
+                    <OmniFormField Label="Senha" Required Style="flex:1 1 220px;"
+                                    Hint="Mínimo 8 caracteres."
+                                    ValidationFor="@(() => user.Password)">
+                        <OmniPassword @bind-Value="user.Password" />
+                    </OmniFormField>
+                </div>
+
+                <div class="omni-row omni-row-gap-8" style="margin-top:16px;">
+                    <OmniButton Text="Cadastrar" Variant="ButtonVariant.Primary"
+                                 OnClick="@(_ => userForm!.SubmitAsync())" />
+                    <OmniButton Text="Limpar" Variant="ButtonVariant.Ghost"
+                                 OnClick="@(_ => { user = new(); StateHasChanged(); return Task.CompletedTask; })" />
+                    <span class="omni-meta" style="align-self:center;">
+                        Form @(userForm?.IsValid == true ? "✓ válido" : "✗ inválido")
+                    </span>
+                </div>
+            </OmniForm>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VALIDAÇÃO CUSTOMIZADA (cross-field)"
+                         Description="Quando uma regra envolve mais de um campo (ex: confirmação de senha), use o callback Validation do OmniForm. Funciona junto com DataAnnotations."
+                         Code="@(@"<OmniForm Model=""signup"" OnValidSubmit=""OnSignupSubmit""
+           Validation=""ValidateSignup"" @ref=""signupForm"">
+    <OmniFormField Label=""Senha"" ValidationFor=""@(() => signup.Password)"">
+        <OmniPassword @bind-Value=""signup.Password"" />
+    </OmniFormField>
+    <OmniFormField Label=""Confirmação"" ValidationFor=""@(() => signup.PasswordConfirm)"">
+        <OmniPassword @bind-Value=""signup.PasswordConfirm"" />
+    </OmniFormField>
+</OmniForm>")">
+            <OmniForm Model="signup" OnValidSubmit="OnSignupSubmit"
+                       Validation="ValidateSignup" @ref="signupForm">
+
+                <div class="omni-row omni-row-gap-12" style="flex-wrap:wrap;">
+                    <OmniFormField Label="Senha" Required Style="flex:1 1 220px;"
+                                    ValidationFor="@(() => signup.Password)">
+                        <OmniPassword @bind-Value="signup.Password" />
+                    </OmniFormField>
+
+                    <OmniFormField Label="Confirmação" Required Style="flex:1 1 220px;"
+                                    ValidationFor="@(() => signup.PasswordConfirm)">
+                        <OmniPassword @bind-Value="signup.PasswordConfirm" />
+                    </OmniFormField>
+                </div>
+
+                <div class="omni-row omni-row-gap-8" style="margin-top:16px;">
+                    <OmniButton Text="Criar conta" Variant="ButtonVariant.Primary"
+                                 OnClick="@(_ => signupForm!.SubmitAsync())" />
+                </div>
+            </OmniForm>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ASYNC + DEBOUNCE + IS TOUCHED"
+                         Description="ValidationAsync roda um check no servidor (aqui simulado com 600ms de delay). ValidationDelay debounce os checks por 400ms — você digita rápido, só o último valor é checado. O botão Salvar fica desabilitado até IsTouched=true."
+                         Code="@(@"<OmniForm Model=""asyncModel"" OnValidSubmit=""OnAsyncSubmit""
+           ValidationAsync=""CheckUsernameAsync""
+           ValidationDelay=""400""
+           @bind-IsTouched=""asyncTouched""
+           @ref=""asyncForm"">
+    ...
+</OmniForm>")">
+            <OmniForm Model="asyncModel" OnValidSubmit="OnAsyncSubmit"
+                       ValidationAsync="CheckUsernameAsync"
+                       ValidationDelay="400"
+                       @bind-IsTouched="asyncTouched"
+                       @ref="asyncForm">
+                <div class="omni-row omni-row-gap-12" style="flex-wrap:wrap;">
+                    <OmniFormField Label="Username" Required Style="flex:1 1 240px;"
+                                    ValidationFor="@(() => asyncModel.Username)"
+                                    Hint="Tente: admin, root, alice — esses estão 'tomados'. Espere ~600ms após parar de digitar.">
+                        <OmniTextBox @bind-Value="asyncModel.Username" Placeholder="seu_usuario" />
+                    </OmniFormField>
+
+                    <OmniFormField Label="Display name" Style="flex:1 1 220px;"
+                                    ValidationFor="@(() => asyncModel.DisplayName)">
+                        <OmniTextBox @bind-Value="asyncModel.DisplayName" Placeholder="Como aparece pros outros" />
+                    </OmniFormField>
+                </div>
+
+                <div class="omni-row omni-row-gap-8" style="margin-top:16px; align-items:center;">
+                    <OmniButton Text="@SaveButtonLabel"
+                                 Variant="ButtonVariant.Primary"
+                                 Disabled="@(!asyncTouched || asyncBusy)"
+                                 OnClick="SubmitAsyncForm" />
+                    <OmniButton Text="Reset" Variant="ButtonVariant.Ghost"
+                                 OnClick="ResetAsyncForm" />
+                    <OmniChip Variant="@(asyncTouched ? BadgeVariant.Warn : BadgeVariant.Plain)">
+                        @(asyncTouched ? "Touched" : "Pristine")
+                    </OmniChip>
+                    <OmniChip Variant="@(asyncForm?.IsValid == true ? BadgeVariant.Good : BadgeVariant.Danger)">
+                        @(asyncForm?.IsValid == true ? "Válido" : "Inválido")
+                    </OmniChip>
+                    @if (asyncBusy)
+                    {
+                        <OmniSpinner Size="ComponentSize.Sm" />
+                    }
+                </div>
+            </OmniForm>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VALIDATION DELEGATE PER-INPUT (MudBlazor-style)"
+                         Description="Validation no próprio input aceita Func<T,string?>, Func<T,IEnumerable<string>>, Func<T,Task<...>>, ou ValidationAttribute. Sem precisar criar campos no model com [Required]. Required + RequiredError são atalhos do mais comum."
+                         Code="@(@"<OmniForm Model=""m""@>
+    <OmniTextBox @bind-Value=""m.User""
+                  Required RequiredError=""Informe o usuário.""
+                  Validation=""@PwStrength"" />
+</OmniForm>
+
+@code {
+    Func<string?, string?> PwStrength = v =>
+        (v?.Length ?? 0) < 8 ? ""Mínimo 8 caracteres."" : null;
+}")">
+            <OmniForm Model="mud" @ref="mudForm">
+                <div class="omni-row omni-row-gap-12" style="flex-wrap:wrap;">
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="Username" Required ValidationFor="@(() => mud.Username)">
+                            <OmniTextBox @bind-Value="mud.Username"                                          Required RequiredError="Informe o username."
+                                          Validation="@(new Func<string?, string?>(v => v?.Length is int n && n < 3 ? "Mín. 3 caracteres." : null))" />
+                        </OmniFormField>
+                    </div>
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="Idade" ValidationFor="@(() => mud.Age)">
+                            <OmniNumeric TValue="int" @bind-Value="mud.Age"                                          Validation="@(new Func<int, IEnumerable<string>>(AgeRules))" />
+                        </OmniFormField>
+                    </div>
+                </div>
+                <div class="omni-row omni-row-gap-12" style="margin-top:12px;">
+                    <OmniButton Text="Validar" OnClick="@(_ => mudForm!.SubmitAsync())" Variant="ButtonVariant.Primary" />
+                    <OmniChip Variant="@(mudForm?.IsValid == true ? BadgeVariant.Good : BadgeVariant.Plain)">
+                        @(mudForm?.IsValid == true ? "Válido" : "Inválido")
+                    </OmniChip>
+                </div>
+            </OmniForm>
+            <p class="omni-muted" style="font-size:11px;margin-top:8px;">
+                <strong>Vantagem:</strong> não precisa de DataAnnotations no model. Útil pra forms com regras dinâmicas (carregadas de banco) ou regras descartáveis (filtros).
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VALIDATORS IRMÃOS (Radzen-style)"
+                         Description="Compõe regras como componentes ao lado do input. Componente='nome' liga validator ao input via Name. Múltiplas regras por campo sem if/else aninhado, sem alocar Funcs em campos."
+                         Code="@(@"<OmniForm Model=""m"">
+    <OmniTextBox Name=""email"" @bind-Value=""m.Email"" />
+    <OmniRequiredValidator Component=""email"" Text=""Email é obrigatório."" />
+    <OmniEmailValidator    Component=""email"" Text=""Formato inválido."" />
+    <OmniCustomValidator TValue=""string"" Component=""email""
+                          Validator=""@IsUnique"" Text=""Já cadastrado."" />
+
+    <OmniTextBox Name=""password"" @bind-Value=""m.Password"" />
+    <OmniTextBox Name=""confirm""  @bind-Value=""m.Confirm"" />
+    <OmniCompareValidator Component=""confirm"" OtherComponent=""password""
+                           Text=""As senhas não conferem."" />
+</OmniForm>")">
+            <OmniForm Model="rad" @ref="radForm" AddDataAnnotationsValidator="false">
+                <OmniValidationSummary Title="Erros:" />
+                <div class="omni-row omni-row-gap-12" style="flex-wrap:wrap;">
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="E-mail" Required ValidationFor="@(() => rad.Email)">
+                            <OmniTextBox Name="email" @bind-Value="rad.Email" />
+                        </OmniFormField>
+                        <OmniRequiredValidator Component="email" Text="E-mail é obrigatório." />
+                        <OmniEmailValidator    Component="email" Text="Formato de e-mail inválido." />
+                        <OmniCustomValidator TValue="string" Component="email"
+                                              Validator="@IsEmailUnique" Text="Já cadastrado." />
+                    </div>
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="CEP" ValidationFor="@(() => rad.Cep)">
+                            <OmniTextBox Name="cep" @bind-Value="rad.Cep" />
+                        </OmniFormField>
+                        <OmniRegexValidator Component="cep" Pattern="^\d{5}-?\d{3}$"
+                                             Text="CEP deve ser 00000-000." />
+                    </div>
+                </div>
+                <div class="omni-row omni-row-gap-12" style="margin-top:12px; flex-wrap:wrap;">
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="Senha" Required ValidationFor="@(() => rad.Password)">
+                            <OmniTextBox Name="password" @bind-Value="rad.Password" />
+                        </OmniFormField>
+                        <OmniRequiredValidator Component="password" Text="Senha é obrigatória." />
+                        <OmniLengthValidator   Component="password" Min="8" Text="Mínimo 8 caracteres." />
+                    </div>
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="Confirmar senha" Required ValidationFor="@(() => rad.Confirm)">
+                            <OmniTextBox Name="confirm" @bind-Value="rad.Confirm" />
+                        </OmniFormField>
+                        <OmniCompareValidator Component="confirm" OtherComponent="password"
+                                               Text="As senhas não conferem." />
+                    </div>
+                </div>
+                <div class="omni-row omni-row-gap-12" style="margin-top:12px;">
+                    <OmniButton Text="Validar" OnClick="@(_ => radForm!.SubmitAsync())" Variant="ButtonVariant.Primary" />
+                    <OmniButton Text="Reset"   OnClick="@(_ => { rad = new(); return radForm!.ResetAsync(); })" Variant="ButtonVariant.Ghost" />
+                </div>
+            </OmniForm>
+            <p class="omni-muted" style="font-size:11px;margin-top:8px;">
+                <strong>Vantagem:</strong> regras visíveis no markup, sem polluir o model. <code>CompareValidator</code> revalida automaticamente quando o outro campo muda — padrão clássico "senha + confirma".
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COMO ESCOLHER ENTRE OS 3 PADRÕES"
+                         Description="Os 3 funcionam juntos e podem ser misturados no mesmo form. Cada um tem cenário ideal.">
+            <div class="omni-grid-3">
+                <div style="border:1px solid var(--omni-line);border-radius:8px;padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">PADRÃO 1</p>
+                    <h4 style="margin:0 0 8px;font-size:14px;">DataAnnotations no Model</h4>
+                    <p style="margin:0;font-size:13px;">
+                        Forms ligados a DTOs/entidades. Regras viajam com o model
+                        — server-side reuse, code-first, EF Core. <strong>Default
+                        recomendado</strong> pra cadastros.
+                    </p>
+                </div>
+                <div style="border:1px solid var(--omni-line);border-radius:8px;padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">PADRÃO 2</p>
+                    <h4 style="margin:0 0 8px;font-size:14px;">Validation delegate per-input</h4>
+                    <p style="margin:0;font-size:13px;">
+                        Regras dinâmicas (carregadas runtime), forms sem model
+                        formal (filtros, busca), async server checks com
+                        <code>Func&lt;T, Task&lt;string?&gt;&gt;</code>.
+                    </p>
+                </div>
+                <div style="border:1px solid var(--omni-line);border-radius:8px;padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px;margin:0 0 6px;">PADRÃO 3</p>
+                    <h4 style="margin:0 0 8px;font-size:14px;">Validators irmãos</h4>
+                    <p style="margin:0;font-size:13px;">
+                        Múltiplas regras heterogêneas por campo
+                        (Required + Length + Email + Custom em sequência),
+                        sem if/else no code-behind. Forms-builder, no-code, CMS.
+                    </p>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SNAPSHOT / RESTORE — undo de edição"
+                         Description="Snapshot() captura o estado do Model no momento (tipicamente OnInitialized). ResetAsync() restaura para o snapshot + limpa erros + reseta Touched. Útil para 'Cancelar' em formulários de edição."
+                         Code="@(@"<OmniForm Model=""user"" @ref=""form"">
+    <OmniTextBox Name=""name"" @bind-Value=""user.Name"" />
+    <OmniButton Text=""Cancelar"" OnClick=""@(_ => form!.ResetAsync())"" />
+</OmniForm>
+
+@code {
+    UserModel user = new() { Name = ""João"", Age = 30 };
+    OmniForm<UserModel>? form;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) form?.Snapshot(); // captura estado original
+    }
+}")">
+            <OmniForm Model="undo" @ref="undoForm">
+                <div class="omni-row omni-row-gap-12" style="flex-wrap:wrap;">
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="Nome" ValidationFor="@(() => undo.Name)">
+                            <OmniTextBox @bind-Value="undo.Name" />
+                        </OmniFormField>
+                    </div>
+                    <div style="flex:1 1 240px; min-width:240px;">
+                        <OmniFormField Label="Idade" ValidationFor="@(() => undo.Age)">
+                            <OmniNumeric TValue="int" @bind-Value="undo.Age" />
+                        </OmniFormField>
+                    </div>
+                </div>
+                <div class="omni-row omni-row-gap-12" style="margin-top:12px;">
+                    <OmniButton Text="Snapshot agora" OnClick="@(_ => { undoForm?.Snapshot(); return Task.CompletedTask; })" Variant="ButtonVariant.Default" />
+                    <OmniButton Text="Cancelar (restore)" OnClick="@(_ => undoForm!.ResetAsync())" Variant="ButtonVariant.Ghost" />
+                </div>
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                    Estado atual: <strong>@undo.Name · @undo.Age anos</strong>
+                </p>
+            </OmniForm>
+            <p class="omni-muted" style="font-size:11px;margin-top:8px;">
+                Mude os valores, clique <strong>Snapshot agora</strong> pra fixar, edite mais, e clique <strong>Cancelar</strong> pra ver os valores voltarem.
+                Requer TModel JSON-serializable (POCO com props públicas, records).
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniForm — Parâmetros">
+            <ShowcaseApiRow Name="Model" Type="TModel" Default="(obrigatório)"
+                            Description="Instância do modelo bound ao formulário." />
+            <ShowcaseApiRow Name="AddDataAnnotationsValidator" Type="bool" Default="true"
+                            Description="Anexa automaticamente um DataAnnotationsValidator." />
+            <ShowcaseApiRow Name="Validation" Type="Action<EditContext, ValidationMessageStore>?" Default="null"
+                            Description="Validação síncrona customizada — para regras cross-field." />
+            <ShowcaseApiRow Name="ValidationAsync" Type="Func<EditContext, ValidationMessageStore, Task>?" Default="null"
+                            Description="Validação assíncrona — tipicamente um round-trip ao servidor." />
+            <ShowcaseApiRow Name="ValidationDelay" Type="int" Default="0"
+                            Description="Debounce (ms) das validações disparadas por mudança de campo." />
+            <ShowcaseApiRow Name="IsTouched" Type="bool" Default="false"
+                            Description="True após a primeira mudança de campo. Suporta bind-IsTouched." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os campos e botões do formulário." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniForm — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnValidSubmit" Type="EventCallback<EditContext>" ShowDefault="false"
+                            Description="Disparado no submit quando o formulário está válido." />
+            <ShowcaseApiRow Name="OnInvalidSubmit" Type="EventCallback<EditContext>" ShowDefault="false"
+                            Description="Disparado no submit quando há erros de validação." />
+            <ShowcaseApiRow Name="IsTouchedChanged" Type="EventCallback<bool>" ShowDefault="false"
+                            Description="Disparado quando IsTouched muda." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniForm — Membros (via ref)" ShowDefault="false">
+            <ShowcaseApiRow Name="IsValid" Type="bool" ShowDefault="false"
+                            Description="True quando o EditContext não tem mensagens de erro." />
+            <ShowcaseApiRow Name="Errors" Type="IEnumerable<string>" ShowDefault="false"
+                            Description="Lista plana de todas as mensagens de erro do formulário." />
+            <ShowcaseApiRow Name="SubmitAsync()" Type="Task" ShowDefault="false"
+                            Description="Valida (async) e dispara OnValidSubmit se válido." />
+            <ShowcaseApiRow Name="ValidateAsync()" Type="Task<bool>" ShowDefault="false"
+                            Description="Roda validação async + EditContext.Validate(), ignorando o debounce." />
+            <ShowcaseApiRow Name="ResetAsync()" Type="Task" ShowDefault="false"
+                            Description="Limpa IsTouched e o store de mensagens de validação." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniValidationSummary — Parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="Corrija os erros abaixo:"
+                            Description="Título exibido acima da lista de erros." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniValidationMessage — Parâmetros">
+            <ShowcaseApiRow Name="For" Type="Expression<Func<TValue?>>" Default="(obrigatório)"
+                            Description="Lambda apontando para o campo do modelo." />
+            <ShowcaseApiRow Name="ShowAll" Type="bool" Default="true"
+                            Description="Renderiza todas as mensagens do campo, ou apenas a primeira." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="FormComponent<T> — Validação per-input (todos os inputs herdam)" ShowDefault="false">
+            <ShowcaseApiRow Name="Required" Type="bool" Default="false"
+                            Description="Marca como obrigatório. Valor default/empty → dispara RequiredError." />
+            <ShowcaseApiRow Name="RequiredError" Type="string" Default='"Campo obrigatório."'
+                            Description="Mensagem do Required." />
+            <ShowcaseApiRow Name="Validation" Type="object?" Default="null"
+                            Description="Polymorphic: Func<T,bool>, Func<T,string?>, Func<T,IEnumerable<string>>, Func<T,Task<string?>>, Func<T,Task<IEnumerable<string>>>, ValidationAttribute." />
+            <ShowcaseApiRow Name="OnlyValidateIfDirty" Type="bool" Default="true"
+                            Description="Silencia até o user mexer (evita erros vermelhos na primeira render)." />
+            <ShowcaseApiRow Name="Name" Type="string?" Default="null"
+                            Description="Nome lógico — registra no OmniForm pra ser encontrado por validators irmãos." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Validators Irmãos — comuns a todos" ShowDefault="false">
+            <ShowcaseApiRow Name="Component" Type="string" Default="(obrigatório)"
+                            Description="Nome do input alvo (match com Name do OmniTextBox/Numeric/etc)." />
+            <ShowcaseApiRow Name="Text" Type="string" Default='"Valor inválido."'
+                            Description="Mensagem exibida quando a validação falha." />
+            <ShowcaseApiRow Name="ShowMessage" Type="bool" Default="false"
+                            Description="Renderiza mensagem inline (default false — usa OmniFormField/Summary)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniRequiredValidator">
+            <ShowcaseApiRow Name="DefaultValue" Type="object?" Default="null"
+                            Description="Valor 'vazio' customizado — útil pra 'Selecione…' = inválido em selects." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniLengthValidator">
+            <ShowcaseApiRow Name="Min / Max" Type="int?" Default="null"
+                            Description="Limites inclusivos. Funciona com string ou ICollection." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniRangeValidator">
+            <ShowcaseApiRow Name="Min / Max" Type="object?" Default="null"
+                            Description="Limites inclusivos. Aceita int/double/decimal/DateTime/qualquer IComparable." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniRegexValidator">
+            <ShowcaseApiRow Name="Pattern" Type="string" Default="(obrigatório)"
+                            Description="Regex .NET. Vazio passa (delega ao Required)." />
+            <ShowcaseApiRow Name="Options" Type="RegexOptions" Default="None"
+                            Description="IgnoreCase, Multiline, etc." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniEmailValidator">
+            <ShowcaseApiRow Name="—" Type="—" ShowDefault="false"
+                            Description="Sem parâmetros adicionais. Usa o mesmo motor do [EmailAddress]." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniCompareValidator">
+            <ShowcaseApiRow Name="Value" Type="object?" Default="null"
+                            Description="Compara com este valor literal (use OU OtherComponent)." />
+            <ShowcaseApiRow Name="OtherComponent" Type="string?" Default="null"
+                            Description="Compara com OUTRO campo (revalida quando AQUELE muda — cross-field)." />
+            <ShowcaseApiRow Name="Operator" Type="CompareOperator" Default="Equal"
+                            Description="Equal / NotEqual / LessThan / LessThanEqual / GreaterThan / GreaterThanEqual." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniCustomValidator<TValue>">
+            <ShowcaseApiRow Name="Validator" Type="Func<TValue?, bool>" Default="(obrigatório)"
+                            Description="true = OK, false = inválido. Recebe o valor TIPADO (não object como Radzen)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private OmniForm<UserModel>? userForm;
+    private OmniForm<SignupModel>? signupForm;
+    private OmniForm<AsyncModel>? asyncForm;
+    private OmniForm<MudStyleModel>? mudForm;
+    private OmniForm<RadStyleModel>? radForm;
+    private OmniForm<UndoModel>? undoForm;
+
+    private UserModel user = new();
+    private SignupModel signup = new();
+    private AsyncModel asyncModel = new();
+    private MudStyleModel mud = new();
+    private RadStyleModel rad = new();
+    private UndoModel undo = new() { Name = "João Silva", Age = 30 };
+    private bool _undoSnapshotted;
+    private bool asyncTouched;
+    private bool asyncBusy;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Captura snapshot inicial do undoForm na 1ª render. Usuários reais
+        // chamariam isso no OnInitialized — fazemos no AfterRender pq
+        // precisamos do @ref já populado.
+        if (!_undoSnapshotted && undoForm is not null)
+        {
+            undoForm.Snapshot();
+            _undoSnapshotted = true;
+        }
+    }
+
+    public class UndoModel
+    {
+        public string? Name { get; set; }
+        public int Age { get; set; }
+    }
+
+    // Para o exemplo MudBlazor-style: validador inline.
+    private IEnumerable<string> AgeRules(int v)
+    {
+        if (v < 0)   yield return "Idade não pode ser negativa.";
+        if (v > 120) yield return "Idade improvável (>120).";
+    }
+
+    // Para o exemplo Radzen-style: custom validator (lookup simulado).
+    private static readonly HashSet<string> _takenEmails =
+        new(StringComparer.OrdinalIgnoreCase) { "admin@forneria.com", "test@test.com" };
+    private bool IsEmailUnique(string? email) =>
+        string.IsNullOrEmpty(email) || !_takenEmails.Contains(email);
+
+    public class MudStyleModel
+    {
+        public string? Username { get; set; }
+        public int Age { get; set; } = 25;
+    }
+
+    public class RadStyleModel
+    {
+        public string? Email { get; set; }
+        public string? Cep { get; set; }
+        public string? Password { get; set; }
+        public string? Confirm { get; set; }
+    }
+
+    // Simula checagem de disponibilidade no servidor.
+    private static readonly HashSet<string> _takenUsernames =
+        new(StringComparer.OrdinalIgnoreCase) { "admin", "root", "alice", "bob", "tvs" };
+
+    private async Task CheckUsernameAsync(EditContext ctx, ValidationMessageStore store)
+    {
+        var u = asyncModel.Username?.Trim();
+        if (string.IsNullOrWhiteSpace(u)) return; // [Required] do DataAnnotations cobre vazio
+
+        asyncBusy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Task.Delay(600); // simula round-trip pra API
+            if (_takenUsernames.Contains(u))
+            {
+                store.Add(new FieldIdentifier(asyncModel, nameof(asyncModel.Username)),
+                          $"“{u}” já está em uso.");
+            }
+        }
+        finally
+        {
+            asyncBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private Task OnAsyncSubmit(EditContext ctx)
+    {
+        Toast.Success("Conta criada", asyncModel.Username);
+        return Task.CompletedTask;
+    }
+
+    public class AsyncModel
+    {
+        [Required(ErrorMessage = "Username obrigatório.")]
+        [StringLength(30, MinimumLength = 3, ErrorMessage = "Entre 3 e 30 caracteres.")]
+        [RegularExpression("^[a-zA-Z0-9_]+$", ErrorMessage = "Use só letras, números e _.")]
+        public string? Username { get; set; }
+        public string? DisplayName { get; set; }
+    }
+
+    private string SaveButtonLabel => asyncBusy ? "Verificando..." : "Salvar";
+
+    private Task SubmitAsyncForm() => asyncForm?.SubmitAsync() ?? Task.CompletedTask;
+
+    private async Task ResetAsyncForm()
+    {
+        asyncModel = new AsyncModel();
+        if (asyncForm is not null) await asyncForm.ResetAsync();
+    }
+
+    private Task OnUserSubmit(EditContext ctx)
+    {
+        Toast.Success("Salvo!", $"{user.Name} · {user.Email}");
+        return Task.CompletedTask;
+    }
+
+    private Task OnSignupSubmit(EditContext ctx)
+    {
+        Toast.Success("Conta criada", "Senhas conferem.");
+        return Task.CompletedTask;
+    }
+
+    // Cross-field validation: senhas precisam bater.
+    private void ValidateSignup(EditContext ctx, ValidationMessageStore store)
+    {
+        if (!string.IsNullOrEmpty(signup.Password)
+            && !string.IsNullOrEmpty(signup.PasswordConfirm)
+            && signup.Password != signup.PasswordConfirm)
+        {
+            store.Add(new FieldIdentifier(signup, nameof(signup.PasswordConfirm)),
+                      "As senhas não conferem.");
+        }
+    }
+
+    public class UserModel
+    {
+        [Required(ErrorMessage = "Informe seu nome.")]
+        [StringLength(60, MinimumLength = 2, ErrorMessage = "Nome deve ter entre 2 e 60 caracteres.")]
+        public string? Name { get; set; }
+
+        [Required(ErrorMessage = "Email é obrigatório.")]
+        [EmailAddress(ErrorMessage = "Email inválido.")]
+        public string? Email { get; set; }
+
+        [Range(0, 120, ErrorMessage = "Idade entre 0 e 120.")]
+        public int Age { get; set; } = 18;
+
+        [Required(ErrorMessage = "Defina uma senha.")]
+        [StringLength(64, MinimumLength = 8, ErrorMessage = "Senha precisa ter ao menos 8 caracteres.")]
+        public string? Password { get; set; }
+    }
+
+    public class SignupModel
+    {
+        [Required, StringLength(64, MinimumLength = 8, ErrorMessage = "Mínimo 8 caracteres.")]
+        public string? Password { get; set; }
+        [Required(ErrorMessage = "Repita a senha.")]
+        public string? PasswordConfirm { get; set; }
+    }
+}

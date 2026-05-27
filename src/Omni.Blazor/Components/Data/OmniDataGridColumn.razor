@@ -1,0 +1,109 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@implements IDisposable
+
+@code {
+    [CascadingParameter] internal OmniDataGrid<TItem>? Parent { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Width { get; set; }
+    [Parameter] public bool Sortable { get; set; } = true;
+    [Parameter] public Func<TItem, object?>? Property { get; set; }
+    [Parameter] public Func<TItem, string?>? TextSelector { get; set; }
+    [Parameter] public RenderFragment<TItem>? Template { get; set; }
+
+    /// <summary>
+    /// Editor render fragment used when the row/cell is in edit mode. If null,
+    /// the column is treated as read-only even when EditMode is active.
+    /// </summary>
+    [Parameter] public RenderFragment<TItem>? EditTemplate { get; set; }
+
+    /// <summary>Whether the user can hide this column via the visibility menu. Default true.</summary>
+    [Parameter] public bool CanHide { get; set; } = true;
+
+    /// <summary>
+    /// Initial visibility. Toggled via the grid's column-visibility menu when
+    /// <see cref="OmniDataGrid{TItem}.AllowColumnVisibility"/> is enabled.
+    /// </summary>
+    [Parameter] public bool Visible { get; set; } = true;
+
+    /// <summary>
+    /// Nome canônico da propriedade (usado para serializar em <c>SortDescriptor</c>,
+    /// <c>FilterDescriptor</c> e <c>GroupBy</c>). Quando ausente, cai no <c>Title</c>.
+    /// Em modo server-side é altamente recomendado definir explicitamente.
+    /// </summary>
+    [Parameter] public string? PropertyName { get; set; }
+
+    // --- Fase 2 (filter per-column) ---
+    /// <summary>Liga o filtro por coluna nesta coluna. Requer <c>AllowColumnFilter</c> no DataGrid.</summary>
+    [Parameter] public bool Filterable { get; set; }
+    /// <summary>Tipo de UI/operadores oferecidos. Default: Text.</summary>
+    [Parameter] public ColumnFilterType FilterType { get; set; } = ColumnFilterType.Text;
+    /// <summary>Override dos operadores oferecidos (default depende de FilterType).</summary>
+    [Parameter] public FilterOperator[]? FilterOperators { get; set; }
+    /// <summary>Opções para FilterType=Select.</summary>
+    [Parameter] public IEnumerable<object>? FilterSelectOptions { get; set; }
+
+    // --- Fase 3 (aggregations) ---
+    /// <summary>Função agregadora aplicada nesta coluna no footer (e em group footers).</summary>
+    [Parameter] public AggregateFunction? Aggregate { get; set; }
+    /// <summary>Selector específico p/ agregação (default: usa <c>Property</c>).</summary>
+    [Parameter] public Func<TItem, decimal>? AggregateProperty { get; set; }
+    /// <summary>Formatador opcional do valor agregado (ex: <c>v =&gt; $"R$ {v:N2}"</c>).</summary>
+    [Parameter] public Func<object?, string>? AggregateFormat { get; set; }
+
+    // --- Fase 4 (grouping) ---
+    /// <summary>Permite arrastar esta coluna para a group zone do DataGrid.</summary>
+    [Parameter] public bool Groupable { get; set; }
+
+    // --- Fase 5 (frozen) ---
+    /// <summary>Congela esta coluna no scroll horizontal. <c>null</c> = não congelada.</summary>
+    [Parameter] public FrozenPosition? Frozen { get; set; }
+
+    // --- Hierarquia (tree-grid) ---
+    /// <summary>
+    /// Marca esta coluna como o "âncora" da hierarquia — receberá o chevron de
+    /// expand/collapse + indentação por nível. Quando nenhuma coluna marca, o
+    /// grid usa a primeira coluna visível.
+    /// </summary>
+    [Parameter] public bool IsHierarchyAnchor { get; set; }
+
+    /// <summary>Backing field for runtime visibility toggling.</summary>
+    internal bool VisibleInternal { get; set; } = true;
+
+    /// <summary>Resolved property name (PropertyName ou Title como fallback).</summary>
+    internal string ResolvedPropertyName => PropertyName ?? Title ?? string.Empty;
+
+    protected override void OnInitialized()
+    {
+        VisibleInternal = Visible;
+        Parent?.Register(this);
+    }
+
+    public void Dispose() => Parent?.Unregister(this);
+
+    internal string? GetCellText(TItem item)
+    {
+        if (TextSelector is not null) return TextSelector(item);
+        if (Property is not null) return Property(item)?.ToString();
+        return null;
+    }
+
+    internal object? GetSortValue(TItem item)
+    {
+        if (Property is not null) return Property(item);
+        return GetCellText(item);
+    }
+
+    /// <summary>Extrai o valor numérico para agregação. Usa <c>AggregateProperty</c> se setado, senão tenta <c>Property</c>.</summary>
+    internal decimal? GetAggregateValue(TItem item)
+    {
+        if (AggregateProperty is not null) return AggregateProperty(item);
+        if (Property is null) return null;
+        var v = Property(item);
+        if (v is null) return null;
+        try { return Convert.ToDecimal(v, System.Globalization.CultureInfo.InvariantCulture); }
+        catch { return null; }
+    }
+}

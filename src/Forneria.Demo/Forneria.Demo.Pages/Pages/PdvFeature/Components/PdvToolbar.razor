@@ -1,0 +1,34 @@
+@*  Barra superior do PDV: busca livre + chips de categoria. Toolbar é
+    "burra" — só dispara EventCallbacks (query/category). A página dona
+    do estado é a /pdv via @bind-Query / @bind-Category. *@
+<div class="omni-pdv-toolbar">
+    <div class="omni-pdv-toolbar-search">
+        <OmniTextBox Placeholder="Buscar produto…" Value="@Query"
+                      ValueChanged="@OnQueryChanged" />
+    </div>
+    <OmniStack Direction="StackDirection.Row" Gap="6" Wrap="true">
+        @foreach (var c in PdvMockData.Categories)
+        {
+            <OmniChip Text="@c.Label"
+                       Active="@(Category == c.Id)"
+                       OnClick="@(() => OnCategoryChanged.InvokeAsync(c.Id))" />
+        }
+    </OmniStack>
+</div>
+
+@code {
+    [Parameter] public string Query { get; set; } = "";
+    [Parameter] public EventCallback<string> QueryChanged { get; set; }
+
+    [Parameter] public string Category { get; set; } = "todos";
+    [Parameter] public EventCallback<string> CategoryChanged { get; set; }
+
+    // Renomeamos pra OnCategoryChanged para evitar shadowing do bind
+    private EventCallback<string> OnCategoryChanged => CategoryChanged;
+
+    private Task OnQueryChanged(string v)
+    {
+        Query = v;
+        return QueryChanged.InvokeAsync(v);
+    }
+}

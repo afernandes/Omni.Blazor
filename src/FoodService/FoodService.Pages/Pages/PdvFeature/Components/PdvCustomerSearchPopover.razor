@@ -1,0 +1,71 @@
+@*  Popover de busca de cliente: AutoComplete por nome/telefone +
+    botão de cadastro inline (stub). *@
+<div class="fs-pdv-cust-pop">
+    <div class="fs-pdv-cust-pop-label">Buscar cliente</div>
+    <OmniAutoComplete TValue="Customer"
+                       Placeholder="Nome ou telefone (mínimo 3 dígitos)…"
+                       LoadData="Search"
+                       TextSelector="@(c => c?.Name ?? "")"
+                       @bind-Value="_picked"
+                       @bind-Value:after="OnAcChange">
+        <ItemTemplate>
+            <div class="fs-pdv-cust-suggestion" style="display:flex;align-items:center;gap:10px;">
+                <div class="fs-pdv-cust-av" style="width:28px;height:28px;font-size:11px;">@Initials(context!.Name)</div>
+                <div>
+                    <div style="font-weight:600;font-size:13px;">@context.Name</div>
+                    <div style="font-size:11px;color:var(--omni-fg-muted);">
+                        @context.Phone · @context.Points pts
+                    </div>
+                </div>
+            </div>
+        </ItemTemplate>
+    </OmniAutoComplete>
+
+    <div style="display:flex; gap:8px; justify-content: space-between; margin-top: 8px; padding: 0 4px;">
+        <button class="fs-pdv-btn fs-pdv-btn-ghost" @onclick="@(() => OnClose.InvokeAsync())">Fechar</button>
+        <button class="fs-pdv-btn">
+            <OmniIcon Name="plus" Size="ComponentSize.Sm" /> Novo cliente
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<Customer> OnSelect { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Customer? _picked;
+
+    private Task<IEnumerable<Customer?>> Search(string q)
+    {
+        var qn = (q ?? "").Trim();
+        IEnumerable<Customer?> results;
+        if (string.IsNullOrEmpty(qn))
+        {
+            results = PdvMockData.Customers;
+        }
+        else
+        {
+            var digits = new string(qn.Where(char.IsDigit).ToArray());
+            results = digits.Length >= 3
+                ? PdvMockData.Customers.Where(c =>
+                    new string(c.Phone.Where(char.IsDigit).ToArray()).Contains(digits))
+                : PdvMockData.Customers.Where(c =>
+                    c.Name.Contains(qn, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(results);
+    }
+
+    private async Task OnAcChange()
+    {
+        if (_picked is not null)
+        {
+            var sel = _picked;
+            _picked = null;
+            await OnSelect.InvokeAsync(sel);
+        }
+    }
+
+    private static string Initials(string name) =>
+        string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                          .Take(2).Select(w => char.ToUpperInvariant(w[0])));
+}

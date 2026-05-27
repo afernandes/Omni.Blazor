@@ -1,0 +1,42 @@
+@*  Demo dialog para o showcase de Dialog — UX automática.
+
+    Mostra os 3 marcadores em ação:
+      • class="omni-autofocus"     — input que ganha o foco ao abrir
+      • data-omni-default="true"   — Enter dispara este botão
+      • data-omni-cancel="true"    — Esc dispara este botão
+
+    O usuário abre, vê o cursor no campo "Mensagem", digita algo, Enter
+    submete (botão "Enviar"), Esc descarta (botão "Cancelar"). *@
+@inject DialogService Dialog
+
+<div class="omni-stack omni-stack-16">
+    <OmniFormField Label="Assunto">
+        <OmniTextBox @bind-Value="_subject" Placeholder="Pizza atrasou..." />
+    </OmniFormField>
+
+    @* omni-autofocus → este textarea recebe o foco ao abrir o dialog,
+       mesmo sem ser o primeiro campo *@
+    <OmniFormField Label="Mensagem (recebe foco inicial via omni-autofocus)">
+        <OmniTextArea @bind-Value="_message" Placeholder="Descreva o problema..."
+                       Class="omni-autofocus" Rows="3" />
+    </OmniFormField>
+
+    <div class="omni-row omni-row-end omni-row-gap-8">
+        @* data-omni-cancel → Esc dispara este botão (semântica de cancel) *@
+        <OmniButton Text="Cancelar" OnClick="OnCancel" data-omni-cancel="true" />
+
+        @* data-omni-default → Enter (fora de textarea) dispara este botão *@
+        <OmniButton Text="Enviar" Variant="ButtonVariant.Primary"
+                     OnClick="OnSubmit" data-omni-default="true" />
+    </div>
+</div>
+
+@code {
+    private string? _subject;
+    private string? _message;
+
+    private void OnCancel(MouseEventArgs _) => Dialog.Close((object?)null);
+
+    private void OnSubmit(MouseEventArgs _)
+        => Dialog.Close((object)$"Assunto: {_subject} | Mensagem: {_message}");
+}

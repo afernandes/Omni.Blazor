@@ -1,0 +1,280 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  FAB com menu expansível — clique no botão principal pra mostrar/esconder
+    itens (OmniFabMenuItem). Padrão Material Design "Speed Dial".
+
+    Equivalente ao RadzenFabMenu com melhorias:
+      • Esc fecha o menu (Radzen não tem)
+      • Backdrop opcional (escurece o fundo, foca atenção no menu)
+      • Direção combinável com posição (Up/Down/Left/Right vs Top/Bottom/Left/Right/Start/End)
+      • Cascading parameter pra itens fecharem o menu sozinhos
+      • Label flutuante nos items (padrão Material chip-style)
+
+    Usage — speed dial clássico canto inferior direito:
+        <OmniFabMenu Position="FabPosition.BottomRight"
+                      Direction="FabMenuDirection.Up"
+                      Icon="plus" OpenIcon="x">
+            <OmniFabMenuItem Icon="folder"        Label="Pasta"   OnClick="@NewFolder" />
+            <OmniFabMenuItem Icon="message-square" Label="Chat"   OnClick="@NewChat" />
+            <OmniFabMenuItem Icon="image"          Label="Imagem" OnClick="@NewImage" />
+        </OmniFabMenu>
+
+    Usage — controlado externamente via two-way binding:
+        <OmniFabMenu @bind-IsOpen="_menuOpen" Icon="more-vertical">
+            ...
+        </OmniFabMenu>
+        <button @onclick="@(() => _menuOpen = true)">Abrir programaticamente</button> *@
+
+@if (ShowBackdrop && _isOpen)
+{
+    @* Backdrop ganha modificador "scoped" em Position=Static — vira position:absolute
+       em vez de fixed, escopando ao container pai (que precisa ser position:relative).
+       Em modo fixed (default), continua cobrindo a viewport inteira (produção normal). *@
+    <div class="@BackdropCss" @onclick="CloseAsync" aria-hidden="true"></div>
+}
+
+<div @ref="_el"
+     class="@RootCss"
+     style="@Style"
+     role="group"
+     aria-label="@AriaLabel"
+     @attributes="Attributes">
+
+    @* Items renderizados ANTES do botão pra que estejam DOM-ordered antes do
+       toggle — leitor de tela percorre items → botão de fechar (após Tab). *@
+    @if (_isOpen)
+    {
+        <div class="omni-fab-items"
+             id="@($"{_id}-items")"
+             role="menu"
+             aria-labelledby="@($"{_id}-btn")">
+            <CascadingValue Value="this" IsFixed="true">
+                @ChildContent
+            </CascadingValue>
+        </div>
+    }
+
+    <OmniButton Icon="@CurrentIcon"
+                 IconOnly="true"
+                 Variant="@Variant"
+                 Size="@Size"
+                 Disabled="@Disabled"
+                 OnClick="@(_ => ToggleAsync())"
+                 Class="omni-fab-trigger"
+                 title="@CurrentTitle"
+                 aria-label="@(AriaLabel ?? CurrentTitle)"
+                 aria-haspopup="menu"
+                 aria-expanded="@(_isOpen ? "true" : "false")"
+                 aria-controls="@($"{_id}-items")"
+                 id="@($"{_id}-btn")" />
+</div>
+
+@code {
+    /// <summary>Ícone do FAB quando o menu está fechado. Default <c>"plus"</c>.</summary>
+    [Parameter] public string Icon { get; set; } = "plus";
+
+    /// <summary>Ícone do FAB quando o menu está aberto. Default <c>"x"</c>
+    /// (padrão Material — close icon indica "agora fecha").</summary>
+    [Parameter] public string OpenIcon { get; set; } = "x";
+
+    /// <summary>Two-way bound. Pode ser controlado externamente.</summary>
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>Canto da viewport onde o FAB ancora. Default <c>BottomRight</c>.</summary>
+    [Parameter] public FabPosition Position { get; set; } = FabPosition.BottomRight;
+
+    /// <summary>Direção em que os items se expandem. Default <c>Up</c>
+    /// (combina com posições Bottom*).</summary>
+    [Parameter] public FabMenuDirection Direction { get; set; } = FabMenuDirection.Up;
+
+    /// <summary>Modo de animação de abertura. Default <c>Stagger</c>
+    /// (pop-in cascading, padrão Material). <c>Linear</c> = fade simples
+    /// estilo Radzen. <c>None</c> = sem animação.</summary>
+    [Parameter] public FabMenuAnimation Animation { get; set; } = FabMenuAnimation.Stagger;
+
+    /// <summary>Variant do FAB. Default <c>Primary</c>.</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Primary;
+
+    /// <summary>Tamanho. Default <c>Lg</c>.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Lg;
+
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Tooltip quando fechado. Default <c>"Abrir menu"</c>.</summary>
+    [Parameter] public string Title { get; set; } = "Abrir menu";
+
+    /// <summary>Tooltip quando aberto. Default <c>"Fechar menu"</c>.</summary>
+    [Parameter] public string OpenTitle { get; set; } = "Fechar menu";
+
+    /// <summary>aria-label do grupo. Use pra nomear semanticamente o speed dial.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Fecha o menu quando o user clica fora dele. Default <c>true</c>.</summary>
+    [Parameter] public bool CloseOnOutsideClick { get; set; } = true;
+
+    /// <summary>Fecha o menu quando o user pressiona Escape. Default <c>true</c>.</summary>
+    [Parameter] public bool CloseOnEsc { get; set; } = true;
+
+    /// <summary>Fecha o menu quando um <c>OmniFabMenuItem</c> filho é clicado.
+    /// Default <c>true</c> — comportamento usual de speed dial.</summary>
+    [Parameter] public bool CloseOnItemClick { get; set; } = true;
+
+    /// <summary>Mostra um backdrop semi-transparente que cobre a tela quando
+    /// o menu está aberto. Default <c>false</c> — speed dial clássico não
+    /// usa, mas em mobile pode focar a atenção.</summary>
+    [Parameter] public bool ShowBackdrop { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference _el;
+    private DotNetObjectReference<OmniFabMenu>? _selfRef;
+    private bool _isOpen;
+    // _jsListenersActive rastreia o ESTADO REAL dos listeners no JS, não
+    // o estado C#. Crítico pra modo controlado: se _isOpen oscilar várias
+    // vezes entre renders, ainda sabemos se precisamos registrar/desregistrar.
+    private bool _jsListenersActive;
+    // _previousIsOpen rastreia o último valor de IsOpen recebido do pai.
+    // Sem isso, SetParametersAsync resetaria _isOpen toda vez que o pai
+    // re-renderizasse — destruindo estado interno em modo uncontrolled.
+    private bool _previousIsOpen;
+    private bool _isOpenInitialized;
+    private string _id = $"omni-fab-{Guid.NewGuid():N}";
+
+    private string CurrentIcon => _isOpen ? OpenIcon : Icon;
+    private string CurrentTitle => _isOpen ? OpenTitle : Title;
+
+    private string BackdropCss => CssBuilder.Default("omni-fab-backdrop")
+        // Em Static, vira absolute pra escopar ao container pai (que deve
+        // ser position:relative). Sem esse modifier, cobria a viewport
+        // inteira (errado pra showcase / FAB embutido em painel).
+        .AddClass("omni-fab-backdrop-scoped", Position == FabPosition.Static)
+        .Build();
+
+    private string RootCss => CssBuilder.Default("omni-fab-menu")
+        .AddClass(Position switch
+        {
+            FabPosition.BottomRight  => "omni-fab-bottom-right",
+            FabPosition.BottomLeft   => "omni-fab-bottom-left",
+            FabPosition.TopRight     => "omni-fab-top-right",
+            FabPosition.TopLeft      => "omni-fab-top-left",
+            FabPosition.BottomCenter => "omni-fab-bottom-center",
+            FabPosition.Static       => "omni-fab-static",
+            _                        => "omni-fab-bottom-right",
+        })
+        .AddClass(Direction switch
+        {
+            FabMenuDirection.Up    => "omni-fab-dir-up",
+            FabMenuDirection.Down  => "omni-fab-dir-down",
+            FabMenuDirection.Left  => "omni-fab-dir-left",
+            FabMenuDirection.Right => "omni-fab-dir-right",
+            _                      => "omni-fab-dir-up",
+        })
+        .AddClass(Animation switch
+        {
+            FabMenuAnimation.Stagger => "omni-fab-anim-stagger",
+            FabMenuAnimation.Linear  => "omni-fab-anim-linear",
+            FabMenuAnimation.None    => "omni-fab-anim-none",
+            _                        => "omni-fab-anim-stagger",
+        })
+        .AddClass("omni-fab-open", _isOpen)
+        .AddClass(Class)
+        .Build();
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        await base.SetParametersAsync(parameters);
+
+        // Sincronização IsOpen (externo) → _isOpen (interno):
+        //   • Primeira render: copia o valor inicial.
+        //   • Renders subsequentes: SÓ aceita o valor externo se ele MUDOU
+        //     desde a última vez que vimos (parent explicitamente alterou).
+        //     Sem essa guarda, qualquer re-render do pai (ex: outro state
+        //     change no showcase) chamaria _isOpen = IsOpen, RESETANDO o
+        //     estado interno para o default — fazia o toggle parecer "só
+        //     reabrir": menu fecha visualmente, mas próximo click vê
+        //     _isOpen=false e abre de novo.
+        if (!_isOpenInitialized)
+        {
+            _isOpen = IsOpen;
+            _previousIsOpen = IsOpen;
+            _isOpenInitialized = true;
+        }
+        else if (IsOpen != _previousIsOpen)
+        {
+            // Parent mudou IsOpen explicitamente — aceita o novo valor.
+            _previousIsOpen = IsOpen;
+            _isOpen = IsOpen;
+        }
+    }
+
+    /// <summary>Alterna abertura/fechamento.</summary>
+    public async Task ToggleAsync()
+    {
+        if (Disabled) return;
+        await SetOpenAsync(!_isOpen);
+    }
+
+    /// <summary>Abre o menu.</summary>
+    public Task OpenAsync() => SetOpenAsync(true);
+
+    /// <summary>Fecha o menu (chamado por JS interop em outside-click/Esc).</summary>
+    [JSInvokable] public Task CloseAsync() => SetOpenAsync(false);
+
+    private async Task SetOpenAsync(bool open)
+    {
+        if (_isOpen == open) return;
+        _isOpen = open;
+        // Antecipa o valor que o pai vai ver via @bind — evita que SetParametersAsync
+        // detecte "mudança externa" e ressincronize desnecessariamente.
+        _previousIsOpen = open;
+        if (IsOpenChanged.HasDelegate) await IsOpenChanged.InvokeAsync(_isOpen);
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Setup/teardown JS listeners — compara C# state ATUAL com o JS state
+        // REAL (não com snapshot do render anterior). Isso evita race onde
+        // _isOpen oscila true→false→true entre renders e o delta check
+        // previno acima "vê" só o início e o fim, mesmo valor, e pula a
+        // sincronização — deixando listeners stale ou ausentes.
+        if (_isOpen == _jsListenersActive) return;
+
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            if (_isOpen)
+            {
+                await JS.InvokeVoidAsync("omniBlazor.fabMenuOpen", _el, _selfRef, new
+                {
+                    closeOnOutsideClick = CloseOnOutsideClick,
+                    closeOnEsc = CloseOnEsc,
+                });
+                _jsListenersActive = true;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("omniBlazor.fabMenuClose", _el);
+                _jsListenersActive = false;
+            }
+        }
+        catch { /* SSR / JS gone — mantém _jsListenersActive como estava */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Cleanup sempre, mesmo que _jsListenersActive seja false — defensivo
+        // contra circuit drops onde o estado JS pode ter divergido.
+        try { await JS.InvokeVoidAsync("omniBlazor.fabMenuClose", _el); } catch { }
+        _jsListenersActive = false;
+        _selfRef?.Dispose();
+        _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+}

@@ -1,0 +1,128 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*
+    Internal draggable item rendered by <OmniDropZone>. Not meant to be used
+    directly by consumers — the zone instantiates it for each item produced by
+    the container's ItemSelector.
+*@
+
+<div class="@RootCss"
+     draggable="@DraggableValue"
+     style="@Style"
+     @attributes="MergedItemAttributes"
+     @ondragstart="OnDragStart"
+     @ondragover="OnItemDragOver"
+     @ondragover:preventDefault="true"
+     @ondragleave="OnDragLeave"
+     @ondragend="OnDragEnd"
+     @ondrop="OnDrop"
+     @ondrop:stopPropagation="true">
+    @if (Container?.Template is not null)
+    {
+        @Container.Template(Item!)
+    }
+    else
+    {
+        @Item?.ToString()
+    }
+</div>
+
+@code {
+    [CascadingParameter] internal TItem? Item { get; set; }
+    [CascadingParameter] internal OmniDropZone<TItem>? Zone { get; set; }
+
+    /// <summary>ItemAttributes contributed by the container's ItemRender hook.</summary>
+    [Parameter] public IReadOnlyDictionary<string, object>? ItemAttributes { get; set; }
+
+    private OmniDropZoneContainer<TItem>? Container => Zone?.Container;
+
+    private string _stateClass = "";
+    private string _dragClass = "";
+
+    /// <summary>Honor an explicit draggable="false" from ItemRender; otherwise default true.</summary>
+    private string DraggableValue =>
+        ItemAttributes is not null && ItemAttributes.TryGetValue("draggable", out var d) ? d?.ToString() ?? "true" : "true";
+
+    /// <summary>
+    /// Merge our state classes with the attribute bag from ItemRender. <c>class</c>
+    /// and <c>style</c> get appended; everything else is passed through.
+    /// </summary>
+    private string RootCss
+    {
+        get
+        {
+            var consumerClass = ItemAttributes is not null && ItemAttributes.TryGetValue("class", out var c) ? c?.ToString() : null;
+            return CssBuilder.Default("omni-dropzone-item")
+                .AddClass(_stateClass, !string.IsNullOrEmpty(_stateClass))
+                .AddClass(_dragClass, !string.IsNullOrEmpty(_dragClass))
+                .AddClass(consumerClass)
+                .AddClass(Class)
+                .Build();
+        }
+    }
+
+    /// <summary>Strip class/style/draggable from the splat — we already applied them.</summary>
+    private IReadOnlyDictionary<string, object>? MergedItemAttributes
+    {
+        get
+        {
+            if (ItemAttributes is null || ItemAttributes.Count == 0) return null;
+            return ItemAttributes
+                .Where(kv => kv.Key is not "class" and not "style" and not "draggable")
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+    }
+
+    private void EnsurePayload(DragEventArgs? args)
+    {
+        if (Container is null) return;
+        Container.Payload = new DropZoneItemEventArgs<TItem>
+        {
+            FromZone = Zone,
+            Item = Item,
+            DataTransfer = args?.DataTransfer ?? default!
+        };
+    }
+
+    private async Task OnDragStart(DragEventArgs args)
+    {
+        _dragClass = "omni-dragging";
+        EnsurePayload(args);
+        if (Container is not null) await Container.DragStart.InvokeAsync(Container.Payload);
+    }
+
+    private void OnItemDragOver(DragEventArgs args)
+    {
+        if (Container?.Payload is null) EnsurePayload(args);
+        if (Container?.Payload is not null) Container.Payload.ToItem = Item;
+
+        var allowed = Zone?.CheckCanDrop() ?? false;
+        if (args.DataTransfer is not null) args.DataTransfer.DropEffect = allowed ? "move" : "none";
+        _stateClass = allowed ? "omni-can-drop" : "omni-no-drop";
+
+        Zone?.OnDragOver(args);
+    }
+
+    private void OnDragLeave(DragEventArgs _) => _stateClass = "";
+
+    private async Task OnDragEnd(DragEventArgs _)
+    {
+        _dragClass = "";
+        if (Container is not null)
+        {
+            await Container.DragEnd.InvokeAsync(Container.Payload);
+            Container.Payload = null;
+        }
+    }
+
+    private async Task OnDrop(DragEventArgs args)
+    {
+        if (Container?.Payload is null) EnsurePayload(args);
+        if (Container?.Payload is not null) Container.Payload.ToItem = Item;
+        _stateClass = "";
+        if (Zone is not null) await Zone.OnDropInternal();
+    }
+}

@@ -1,0 +1,21 @@
+@*  Card de produto clicável (thumb + nome + tag + preço). Domain-specific
+    do PDV; não vale promover à lib porque depende do formato Product. *@
+<button type="button" class="omni-pdv-prod" @onclick="@(() => OnPick.InvokeAsync())">
+    <div class="@($"omni-pdv-prod-thumb {(Product.Tag is null ? "" : $"omni-pdv-prod-thumb-{Product.Tag.ToLowerInvariant()}")}")">
+        @if (Product.Tag is not null)
+        {
+            <span class="omni-pdv-prod-thumb-tag omni-mono">@Product.Tag</span>
+        }
+    </div>
+    <div class="omni-pdv-prod-body">
+        <div class="omni-pdv-prod-name">@Product.Name</div>
+        <div class="omni-pdv-prod-price omni-mono">@Product.Price.ToString("C", _ptBr)</div>
+    </div>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public Product Product { get; set; } = default!;
+    [Parameter] public EventCallback OnPick { get; set; }
+
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+}

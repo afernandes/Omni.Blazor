@@ -1,0 +1,317 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IDisposable
+@inject NavigationManager Nav
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  One node of a OmniPanelMenu. Recursive: nesting items inside ChildContent
+    builds a tree of arbitrary depth.
+
+    Two rendering modes for items with children:
+      • Expanded sidebar → inline accordion (the existing behaviour).
+      • Collapsed sidebar + Depth == 0 → side flyout (icon button + a panel that
+        opens to the right). Hover/focus reveal with a ~220 ms close grace is
+        driven by the `omniBlazor.registerPanelMenuFlyout` JS helper, which also
+        sets `position:fixed` coordinates so the flyout escapes the sidebar's
+        `overflow-y` clip.
+
+    Inside the flyout, descendant items render in their expanded inline style
+    regardless of the sidebar being collapsed — they're cascaded a higher
+    `PanelMenuDepth`, which disables the collapsed-trigger path. *@
+<div class="@WrapCss"
+     style="@Style"
+     data-pm-trigger="@(IsCollapsedTrigger ? "1" : null)"
+     data-label="@Text"
+     data-badge="@BadgeAttr"
+     @attributes="Attributes">
+    @if (HasChildren)
+    {
+        <button type="button" class="@ItemCss"
+                aria-haspopup="@(IsCollapsedTrigger ? "menu" : null)"
+                @onclick="ToggleExpanded">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <span class="omni-panel-menu-icon"><OmniIcon Name="@Icon" /></span>
+            }
+            else
+            {
+                <span class="omni-panel-menu-icon" aria-hidden="true"></span>
+            }
+            <span class="omni-panel-menu-label">@Text</span>
+            @if (Count.HasValue)
+            {
+                <span class="@CountCss">@Count.Value</span>
+            }
+            else if (!string.IsNullOrEmpty(CountText))
+            {
+                <span class="@CountCss">@CountText</span>
+            }
+            <span class="omni-panel-menu-chevron"><OmniIcon Name="chevron-right" Size="ComponentSize.Sm" /></span>
+        </button>
+
+        @if (IsCollapsedTrigger)
+        {
+            @* Collapsed-mode flyout — JS positions/reveals it; CSS animates it. *@
+            <div class="omni-panel-menu-flyout" role="menu">
+                <div class="omni-panel-menu-flyout-head">
+                    @if (!string.IsNullOrEmpty(Icon))
+                    {
+                        <span class="ico"><OmniIcon Name="@Icon" Size="ComponentSize.Sm" /></span>
+                    }
+                    <span>@Text</span>
+                </div>
+                <div class="@FlyoutBodyCss">
+                    <CascadingValue Value="this" IsFixed="true">
+                        <CascadingValue Name="PanelMenuDepth" Value="@(Depth + 1)" IsFixed="true">
+                            @ChildContent
+                        </CascadingValue>
+                    </CascadingValue>
+                </div>
+            </div>
+        }
+        else if (_expanded)
+        {
+            <div class="@ChildrenCss">
+                <CascadingValue Value="this" IsFixed="true">
+                    <CascadingValue Name="PanelMenuDepth" Value="@(Depth + 1)" IsFixed="true">
+                        @ChildContent
+                    </CascadingValue>
+                </CascadingValue>
+            </div>
+        }
+    }
+    else if (!string.IsNullOrEmpty(Path) && !Disabled)
+    {
+        <a class="@ItemCss" href="@Path">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <span class="omni-panel-menu-icon"><OmniIcon Name="@Icon" /></span>
+            }
+            else
+            {
+                <span class="omni-panel-menu-icon" aria-hidden="true"></span>
+            }
+            <span class="omni-panel-menu-label">@Text</span>
+            @if (Count.HasValue)
+            {
+                <span class="@CountCss">@Count.Value</span>
+            }
+            else if (!string.IsNullOrEmpty(CountText))
+            {
+                <span class="@CountCss">@CountText</span>
+            }
+        </a>
+    }
+    else
+    {
+        <button type="button" class="@ItemCss" disabled="@Disabled" @onclick="HandleClickAsync">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <span class="omni-panel-menu-icon"><OmniIcon Name="@Icon" /></span>
+            }
+            else
+            {
+                <span class="omni-panel-menu-icon" aria-hidden="true"></span>
+            }
+            <span class="omni-panel-menu-label">@Text</span>
+            @if (Count.HasValue)
+            {
+                <span class="@CountCss">@Count.Value</span>
+            }
+            else if (!string.IsNullOrEmpty(CountText))
+            {
+                <span class="@CountCss">@CountText</span>
+            }
+        </button>
+    }
+</div>
+
+@code {
+    [CascadingParameter] public OmniLayout? Layout { get; set; }
+    [CascadingParameter] public OmniDrawer? Drawer { get; set; }
+    /// <summary>
+    /// Non-fixed cascade emitted by <see cref="OmniDrawer"/>. Reading this
+    /// (instead of <c>Drawer?.IsCollapsed</c>) lets descendants subscribe to
+    /// collapse-state changes — Blazor diffs the bool value and triggers a
+    /// re-render here when the drawer toggles. Without it, the `Value="this"`
+    /// cascade with IsFixed=true would never notify us, leaving
+    /// <c>data-pm-trigger</c> stale after a hamburger click.
+    /// </summary>
+    [CascadingParameter(Name = "DrawerCollapsed")] public bool? DrawerCollapsed { get; set; }
+    [CascadingParameter(Name = "PanelMenuDepth")] public int Depth { get; set; }
+    [CascadingParameter] public OmniPanelMenuItem? ParentItem { get; set; }
+
+    /// <summary>Label.</summary>
+    [Parameter] public string Text { get; set; } = "";
+
+    /// <summary>Optional icon name.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Navigation URL (leaf items only).</summary>
+    [Parameter] public string? Path { get; set; }
+
+    /// <summary>Match mode for the active-route highlight.</summary>
+    [Parameter] public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+
+    /// <summary>Disables the item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Numeric count pill (e.g. unread, items in queue).</summary>
+    [Parameter] public int? Count { get; set; }
+
+    /// <summary>String count pill (e.g. "!", "74%", "NEW") — alternative to <see cref="Count"/>.</summary>
+    [Parameter] public string? CountText { get; set; }
+
+    /// <summary>Color of the count pill.</summary>
+    [Parameter] public MenuMetaKind CountKind { get; set; } = MenuMetaKind.Neutral;
+
+    /// <summary>Inline-accordion state for items with children (expanded sidebar mode).</summary>
+    [Parameter] public bool Expanded { get; set; }
+
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+
+    /// <summary>Click handler for leaf items without a <see cref="Path"/>.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private bool _expanded;
+    private bool _subscribed;
+    private readonly List<OmniPanelMenuItem> _children = new();
+
+    private bool HasChildren => ChildContent is not null;
+
+    /// <summary>True when the surrounding drawer is in icon-only mode.
+    /// Reads the named, non-fixed `DrawerCollapsed` cascade first — that's
+    /// what makes `data-pm-trigger` update reactively when the user toggles
+    /// the hamburger. Falls back to the reference cascade when the named
+    /// one isn't provided, or to false when used standalone without a
+    /// Drawer wrapper.</summary>
+    private bool IsCollapsed =>
+        DrawerCollapsed
+        ?? Drawer?.IsCollapsed
+        ?? false;
+
+    /// <summary>True at Depth 0 with children while the sidebar is collapsed —
+    /// this is the item that opens a side flyout instead of an inline accordion.</summary>
+    private bool IsCollapsedTrigger => HasChildren && Depth == 0 && IsCollapsed;
+
+    protected override void OnInitialized()
+    {
+        _expanded = Expanded;
+        Nav.LocationChanged += OnLocationChanged;
+        _subscribed = true;
+        ParentItem?.RegisterChild(this);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Expanded) _expanded = true;
+        // Auto-expand the trail to the active descendant when in non-collapsed mode
+        // (matches the design's `containsActive` effect).
+        if (!_expanded && !IsCollapsed && HasChildren && ContainsActiveDescendant())
+        {
+            _expanded = true;
+        }
+    }
+
+    internal void RegisterChild(OmniPanelMenuItem child)
+    {
+        if (_children.Contains(child)) return;
+        _children.Add(child);
+        InvokeAsync(StateHasChanged);
+    }
+
+    internal void UnregisterChild(OmniPanelMenuItem child) => _children.Remove(child);
+
+    private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>True when this item's own <see cref="Path"/> matches the current route.</summary>
+    public bool IsActiveSelf()
+    {
+        if (string.IsNullOrEmpty(Path)) return false;
+        try
+        {
+            var current = new Uri(Nav.Uri).LocalPath.TrimEnd('/');
+            var target  = new Uri(Nav.ToAbsoluteUri(Path).AbsoluteUri).LocalPath.TrimEnd('/');
+            if (string.IsNullOrEmpty(target)) return false;
+            return Match == NavLinkMatch.All
+                ? current.Equals(target, StringComparison.OrdinalIgnoreCase)
+                : current.Equals(target, StringComparison.OrdinalIgnoreCase)
+                    || current.StartsWith(target + "/", StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>True when any descendant item matches the current route.</summary>
+    public bool ContainsActiveDescendant()
+        => _children.Any(c => c.IsActiveSelf() || c.ContainsActiveDescendant());
+
+    private Task ToggleExpanded()
+    {
+        // In the collapsed-trigger case, opening/closing is handled by the JS
+        // flyout helper on hover; a click is left as a no-op (or a select on
+        // mobile where hover doesn't apply — handled by :focus-within in CSS).
+        if (IsCollapsedTrigger) return Task.CompletedTask;
+
+        _expanded = !_expanded;
+        return ExpandedChanged.HasDelegate ? ExpandedChanged.InvokeAsync(_expanded) : Task.CompletedTask;
+    }
+
+    private Task HandleClickAsync()
+        => OnClick.HasDelegate ? OnClick.InvokeAsync() : Task.CompletedTask;
+
+    private string WrapCss => CssBuilder.Default("omni-panel-menu-item-wrap")
+        .AddClass("omni-expanded", _expanded)
+        .AddClass("omni-has-children", HasChildren)
+        .AddClass("omni-in-trail", ContainsActiveDescendant() && !IsActiveSelf())
+        .AddClass(Class)
+        .Build();
+
+    private string ItemCss => CssBuilder.Default("omni-panel-menu-item")
+        .AddClass("omni-active", IsActiveSelf())
+        .AddClass("omni-in-trail", !IsActiveSelf() && ContainsActiveDescendant())
+        .Build();
+
+    private string CountCss => CssBuilder.Default("omni-panel-menu-count")
+        .AddClass($"omni-meta-{CountKind.ToString().ToLowerInvariant()}", CountKind != MenuMetaKind.Neutral)
+        .Build();
+
+    /// <summary>True when every direct child item lacks an icon — the children
+    /// container can then drop its reserved icon column and reclaim the space
+    /// for labels. Matches the design's `.no-icons` modifier.</summary>
+    private bool AllChildrenLackIcons
+        => _children.Count > 0 && _children.All(c => string.IsNullOrEmpty(c.Icon));
+
+    private string ChildrenCss => CssBuilder.Default("omni-panel-menu-children")
+        .AddClass("omni-no-icons", AllChildrenLackIcons)
+        .Build();
+
+    private string FlyoutBodyCss => CssBuilder.Default("omni-panel-menu-flyout-body")
+        .AddClass("omni-no-icons", AllChildrenLackIcons)
+        .Build();
+
+    /// <summary>Value used by the collapsed-mode badge (data-badge ::before).</summary>
+    private string? BadgeAttr
+    {
+        get
+        {
+            if (!IsCollapsed) return null;
+            if (Count.HasValue) return Count.Value > 99 ? "99+" : Count.Value.ToString();
+            if (!string.IsNullOrEmpty(CountText)) return CountText;
+            return null;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_subscribed)
+        {
+            Nav.LocationChanged -= OnLocationChanged;
+            _subscribed = false;
+        }
+        ParentItem?.UnregisterChild(this);
+    }
+}

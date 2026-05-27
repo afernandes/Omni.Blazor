@@ -1,0 +1,189 @@
+@page "/showcase/select"
+@layout ShowcaseLayout
+
+<PageTitle>Select & AutoComplete — Showcase</PageTitle>
+
+<ShowcasePage Title="Select & AutoComplete"
+              Subtitle="Escolha de uma opção — select nativo para listas curtas, autocomplete para listas grandes.">
+
+    <Overview>
+        <p>
+            O <code>OmniSelect&lt;TValue&gt;</code> é um wrapper sobre o <code>&lt;select&gt;</code>
+            nativo do navegador — leve, acessível e ideal para <strong>listas curtas</strong> de
+            opções conhecidas. Aceita itens via parâmetro <code>Items</code> ou conteúdo
+            <code>&lt;option&gt;</code> livre.
+        </p>
+        <p>
+            O <code>OmniAutoComplete&lt;TItem&gt;</code> é search-as-you-type: filtra a lista
+            conforme o usuário digita. Suporta fonte <strong>síncrona</strong> (<code>Items</code>)
+            ou <strong>assíncrona</strong> (<code>LoadData</code> com debounce), além de
+            <code>ItemTemplate</code> para renderizar cada opção com layout rico.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><code>OmniSelect</code> para listas curtas e estáveis (até ~15 opções).</li>
+            <li><code>OmniAutoComplete</code> para listas longas onde a busca acelera a escolha.</li>
+            <li>Autocomplete async quando as opções vêm de uma API.</li>
+            <li>Quando cada opção precisa de layout rico via <code>ItemTemplate</code>.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Poucas opções mutuamente exclusivas sempre visíveis → use <code>OmniRadioGroup</code>.</li>
+            <li>Escolha binária liga/desliga → use <code>OmniSwitch</code> ou <code>OmniCheckBox</code>.</li>
+            <li>Texto livre sem lista de opções → use <code>OmniTextBox</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SELECT"
+                         Description="Wrapper sobre <select> nativo, com Items ou conteúdo livre."
+                         Code="@(@"<OmniSelect TValue=""string"" @bind-Value=""cat""
+             Items=""@categorias"" Placeholder=""Selecione..."" />
+<OmniSelect TValue=""int"" @bind-Value=""ano"" Items=""@anos"" Placeholder=""Ano"" />")">
+            <div class="omni-grid-2">
+                <OmniSelect TValue="string" @bind-Value="cat" Items="@categorias" Placeholder="Selecione..." />
+                <OmniSelect TValue="int" @bind-Value="ano" Items="@anos" Placeholder="Ano" />
+            </div>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">
+                VALOR ATUAL → @(cat ?? "—") | @ano
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="AUTOCOMPLETE — SYNC"
+                         Description="Lista síncrona. Filtra à medida que o usuário digita."
+                         Code="@(@"<OmniAutoComplete TValue=""string"" Items=""@produtosTodos""
+                   @bind-Value=""prodSel""
+                   TextSelector=""@(p => p ?? """")""
+                   Placeholder=""Buscar produto..."" />")">
+            <div class="omni-grid-2">
+                <OmniAutoComplete TValue="string"
+                                    Items="@(produtosTodos)"
+                                    @bind-Value="prodSel"
+                                    TextSelector="@(p => p ?? "")"
+                                    Placeholder="Buscar produto..." />
+                <OmniAutoComplete TValue="Cidade"
+                                    Items="@(cidadesTodas)"
+                                    @bind-Value="cidadeSel"
+                                    TextSelector="@(c => c?.Nome ?? "")"
+                                    Placeholder="Buscar cidade...">
+                    <ItemTemplate>
+                        <div>
+                            <div style="font-weight:600;">@context.Nome</div>
+                            <div class="omni-muted" style="font-size:11px;">@context.Uf · @context.Pop hab</div>
+                        </div>
+                    </ItemTemplate>
+                </OmniAutoComplete>
+            </div>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">
+                VALOR ATUAL → produto: @(prodSel ?? "—") | cidade: @(cidadeSel?.Nome ?? "—")
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="AUTOCOMPLETE — ASYNC"
+                         Description="LoadData async com debounce de 220ms — simula chamada de API."
+                         Code="@(@"<OmniAutoComplete TValue=""string"" LoadData=""LoadAsync""
+                   @bind-Value=""asyncSel""
+                   TextSelector=""@(s => s ?? """")""
+                   Placeholder=""Digite para buscar (debounced)..."" />")">
+            <OmniAutoComplete TValue="string"
+                                LoadData="LoadAsync"
+                                @bind-Value="asyncSel"
+                                TextSelector="@(s => s ?? "")"
+                                Placeholder="Digite para buscar (debounced)..." />
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">
+                VALOR ATUAL → @(asyncSel ?? "—")
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSelect — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="TValue?" Default="default"
+                            Description="Valor selecionado. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Items" Type="IEnumerable<TValue>?" Default="null"
+                            Description="Coleção de opções renderizadas como <option>." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Opção inicial desabilitada exibida quando nada está selecionado." />
+            <ShowcaseApiRow Name="ValueSelector" Type="Func<TValue?, TValue?>?" Default="null"
+                            Description="Extrai o valor de cada item da lista." />
+            <ShowcaseApiRow Name="TextSelector" Type="Func<TValue?, string>?" Default="null"
+                            Description="Extrai o texto exibido de cada item." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Opções <option> declaradas manualmente." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita a interação com o select." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniSelect — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<TValue?>" ShowDefault="false"
+                            Description="Disparado quando a opção selecionada muda." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniAutoComplete — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="TItem?" Default="default"
+                            Description="Item selecionado. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Items" Type="IEnumerable<TItem>?" Default="null"
+                            Description="Fonte síncrona de itens — use esta OU LoadData." />
+            <ShowcaseApiRow Name="LoadData" Type="Func<string, Task<IEnumerable<TItem>>>?" Default="null"
+                            Description="Fonte assíncrona — chamada a cada digitação (debounced)." />
+            <ShowcaseApiRow Name="TextSelector" Type="Func<TItem, string>" Default="(obrigatório)"
+                            Description="Extrai o texto de exibição de cada item." />
+            <ShowcaseApiRow Name="ItemTemplate" Type="RenderFragment<TItem>?" Default="null"
+                            Description="Template renderizado para cada opção da lista." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="Buscar..."
+                            Description="Texto de dica do campo de busca." />
+            <ShowcaseApiRow Name="EmptyText" Type="string" Default="Nenhum resultado."
+                            Description="Mensagem exibida quando o filtro não retorna itens." />
+            <ShowcaseApiRow Name="MinSearchLength" Type="int" Default="0"
+                            Description="Mínimo de caracteres antes de iniciar a busca." />
+            <ShowcaseApiRow Name="DebounceMs" Type="int" Default="220"
+                            Description="Janela de debounce para chamadas async LoadData." />
+            <ShowcaseApiRow Name="Clearable" Type="bool" Default="true"
+                            Description="Exibe o botão x para limpar a seleção." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Altura do campo — Sm, Md, Lg." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniAutoComplete — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<TItem?>" ShowDefault="false"
+                            Description="Disparado quando o item selecionado muda." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private record Cidade(string Nome, string Uf, string Pop);
+
+    private string? cat;
+    private int ano = 2026;
+    private readonly string[] categorias = new[] { "Pizzas", "Bebidas", "Sobremesas", "Lanches", "Entradas", "Outros" };
+    private readonly int[] anos = new[] { 2024, 2025, 2026, 2027 };
+
+    private readonly string[] produtosTodos = new[]
+    {
+        "Pizza Margherita", "Pizza Pepperoni", "Pizza Calabresa", "Pizza 4 Queijos",
+        "Cheeseburger Duplo", "Burger da Casa", "Smash Bacon",
+        "Coca-Cola 350ml", "Guaraná 2L", "Suco de Laranja",
+        "Brownie", "Petit Gâteau", "Pudim da Casa",
+    };
+    private string? prodSel;
+
+    private readonly List<Cidade> cidadesTodas = new()
+    {
+        new("São Paulo",     "SP", "12.3M"),  new("Rio de Janeiro","RJ", "6.7M"),
+        new("Belo Horizonte","MG", "2.5M"),   new("Salvador",      "BA", "2.9M"),
+        new("Curitiba",      "PR", "1.9M"),   new("Porto Alegre",  "RS", "1.5M"),
+        new("Recife",        "PE", "1.6M"),   new("Fortaleza",     "CE", "2.7M"),
+    };
+    private Cidade? cidadeSel;
+
+    private string? asyncSel;
+    private async Task<IEnumerable<string>> LoadAsync(string q)
+    {
+        await Task.Delay(350);   // simulate API latency
+        if (string.IsNullOrWhiteSpace(q)) return produtosTodos;
+        return produtosTodos.Where(p => p.Contains(q, StringComparison.OrdinalIgnoreCase));
+    }
+}

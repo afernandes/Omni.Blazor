@@ -1,0 +1,465 @@
+@page "/showcase/wireframes"
+@layout ShowcaseLayout
+
+<PageTitle>Wireframes — LEGO Layouts — Showcase</PageTitle>
+
+<ShowcasePage Title="Wireframes — LEGO Layouts"
+              Subtitle="10 combinações prontas das primitivas OmniLayout / OmniAppBar / OmniDrawer / OmniMain / OmniToolBar / OmniFooter / OmniContainer / OmniDrawerToggle.">
+
+    <Overview>
+        <p>
+            O <code>OmniLayout</code> funciona como peças <strong>LEGO</strong>: encaixe os slots
+            que você quiser (AppBar, Drawer-Left, Drawer-Right, ToolBar, Main, Footer) em qualquer
+            ordem e o grid CSS auto-detecta via <code>:has()</code> quais existem, colapsando os
+            ausentes. Inspirado em <strong>MudBlazor MudLayout / MudDrawer</strong>, em
+            <strong>Radzen RadzenLayout</strong> (que usa <code>:has()</code> também) e em
+            <strong>Bootstrap navbar-expand + offcanvas</strong>.
+        </p>
+        <p>
+            Esta galeria mostra 10 combinações típicas. Cada uma traz um <em>wireframe SVG</em>,
+            o <em>código completo</em> copiável e um <strong>botão "Ver demo ao vivo →"</strong>
+            que abre uma página em tela cheia rodando aquele wireframe — com conteúdo de exemplo,
+            estado funcional (hamburger, módulos contextuais, etc.) e uma pílula "Voltar à galeria"
+            no canto inferior direito.
+        </p>
+        <div class="omni-alert omni-alert-info" style="margin-top: 12px;">
+            <OmniIcon Name="info" Size="ComponentSize.Sm" />
+            <div>
+                Browser support: o sistema usa <code>:has()</code> (Chrome 105+, Safari 15.4+,
+                Firefox 121+ — todos de 2022 ou antes).
+            </div>
+        </div>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Backoffice / admin</strong>: variante <em>AppBar + Left Drawer Responsive</em> é o padrão.</li>
+            <li><strong>Marketing / landing</strong>: variante <em>AppBar + Main(Container)</em> com max-width centralizado.</li>
+            <li><strong>Kiosk / KDS / TV</strong>: variante <em>Fullscreen</em> sem chrome.</li>
+            <li><strong>Mobile-style</strong>: <em>AppBar Top + AppBar Bottom</em> com nav inferior.</li>
+            <li><strong>Workspace</strong>: <em>Left Drawer + Right Drawer</em> com 3 colunas.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Quando você só precisa de um <code>&lt;OmniSplitView&gt;</code> master/detail dentro de uma página existente — use o SplitView direto.</li>
+            <li>Para conteúdo embarcado em terceiros (modais, drawers de produtos) — esses usam <code>OmniDialog</code> / <code>OmniPopover</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+
+        @* ───────── 1. APPBAR ONLY ───────── *@
+        <ShowcaseSection Title="1 · APPBAR + MAIN"
+                         Description="Wireframe mais simples — só barra superior e área principal. Perfeito para landing pages e telas focadas em conteúdo."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniBrand Name=""Forneria"" />
+        <div class=""omni-header-spacer""></div>
+        <OmniButton Text=""Entrar"" Variant=""ButtonVariant.Primary"" />
+    </OmniAppBar>
+    <OmniMain>
+        <h1>Bem-vindo</h1>
+    </OmniMain>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/appbar-only">
+                <rect x="0" y="0" width="100%" height="14%" class="wf-bar" />
+                <rect x="0" y="14%" width="100%" height="86%" class="wf-main" />
+                <text x="50%" y="9%" text-anchor="middle" class="wf-lbl">AppBar</text>
+                <text x="50%" y="58%" text-anchor="middle" class="wf-lbl">Main</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 2. APPBAR + LEFT DRAWER (PERSISTENT) ───────── *@
+        <ShowcaseSection Title="2 · APPBAR + LEFT DRAWER (Persistent)"
+                         Description="O padrão clássico de admin/dashboard. Drawer sempre visível em desktop, sem hamburger."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniBrand Name=""App"" />
+    </OmniAppBar>
+    <OmniDrawer Variant=""DrawerVariant.Persistent"">
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text=""Dashboard"" Path=""/dashboard"" />
+            <OmniPanelMenuItem Text=""Pedidos""    Path=""/pedidos"" />
+        </OmniPanelMenu>
+    </OmniDrawer>
+    <OmniMain>@Body</OmniMain>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/appbar-left-drawer-persistent">
+                <rect x="0" y="0" width="100%" height="14%" class="wf-bar" />
+                <rect x="0" y="14%" width="22%" height="86%" class="wf-aside" />
+                <rect x="22%" y="14%" width="78%" height="86%" class="wf-main" />
+                <text x="50%" y="9%" text-anchor="middle" class="wf-lbl">AppBar</text>
+                <text x="11%" y="58%" text-anchor="middle" class="wf-lbl">Drawer</text>
+                <text x="61%" y="58%" text-anchor="middle" class="wf-lbl">Main</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 3. APPBAR + LEFT DRAWER (RESPONSIVE) ───────── *@
+        <ShowcaseSection Title="3 · APPBAR + LEFT DRAWER (Responsive) + Hamburger"
+                         Description="Acima do Breakpoint o drawer é Persistent; abaixo, vira Temporary (overlay). O OmniDrawerToggle é o hamburger e auto-encontra o drawer via cascading."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle />
+        <OmniBrand Name=""App"" />
+    </OmniAppBar>
+    <OmniDrawer Variant=""DrawerVariant.Responsive"" Breakpoint=""Breakpoint.Md"">
+        <OmniPanelMenu>...</OmniPanelMenu>
+    </OmniDrawer>
+    <OmniMain>@Body</OmniMain>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/appbar-left-drawer-responsive">
+                <rect x="0" y="0" width="100%" height="14%" class="wf-bar" />
+                <rect x="0" y="14%" width="22%" height="86%" class="wf-aside" />
+                <rect x="22%" y="14%" width="78%" height="86%" class="wf-main" />
+                <text x="50%" y="9%" text-anchor="middle" class="wf-lbl">AppBar + ☰</text>
+                <text x="11%" y="58%" text-anchor="middle" class="wf-lbl">Drawer*</text>
+                <text x="61%" y="58%" text-anchor="middle" class="wf-lbl">Main</text>
+                <text x="50%" y="98%" text-anchor="middle" class="wf-hint">*overlay abaixo de Md</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 4. APPBAR + TOOLBAR (HORIZONTAL NAV) ───────── *@
+        <ShowcaseSection Title="4 · APPBAR + TOOLBAR (menu horizontal)"
+                         Description="Substitui o drawer por um menu horizontal abaixo do AppBar. Útil quando navegação cabe em ~6-8 itens."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniBrand Name=""App"" />
+    </OmniAppBar>
+    <OmniToolBar>
+        <OmniMenuBar>
+            <OmniMenuBarItem Text=""Início""  />
+            <OmniMenuBarItem Text=""Pedidos"" />
+            <OmniMenuBarItem Text=""Análise"" />
+        </OmniMenuBar>
+    </OmniToolBar>
+    <OmniMain>@Body</OmniMain>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/appbar-toolbar">
+                <rect x="0" y="0" width="100%" height="14%" class="wf-bar" />
+                <rect x="0" y="14%" width="100%" height="10%" class="wf-tool" />
+                <rect x="0" y="24%" width="100%" height="76%" class="wf-main" />
+                <text x="50%" y="9%" text-anchor="middle" class="wf-lbl">AppBar</text>
+                <text x="50%" y="21%" text-anchor="middle" class="wf-lbl">ToolBar</text>
+                <text x="50%" y="62%" text-anchor="middle" class="wf-lbl">Main</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 5. LEFT + RIGHT DRAWER + FOOTER ───────── *@
+        <ShowcaseSection Title="5 · LEFT + RIGHT DRAWER + FOOTER"
+                         Description="Workspace 3-colunas. Esquerda para navegação, direita para preview/inspector, footer para status. Os DOIS drawers convivem no mesmo grid via :has()."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle Target=""_left"" />
+        <OmniBrand Name=""IDE"" />
+    </OmniAppBar>
+    <OmniDrawer @ref=""_left"" Anchor=""DrawerAnchor.Left"">
+        <OmniPanelMenu>...</OmniPanelMenu>
+    </OmniDrawer>
+    <OmniDrawer Anchor=""DrawerAnchor.Right"" Width=""320px"">
+        <h3>Inspector</h3>
+    </OmniDrawer>
+    <OmniMain>@Body</OmniMain>
+    <OmniFooter>Status: pronto</OmniFooter>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/left-right-drawer">
+                <rect x="0" y="0" width="100%" height="12%" class="wf-bar" />
+                <rect x="0" y="12%" width="20%" height="78%" class="wf-aside" />
+                <rect x="20%" y="12%" width="58%" height="78%" class="wf-main" />
+                <rect x="78%" y="12%" width="22%" height="78%" class="wf-aside" />
+                <rect x="0" y="90%" width="100%" height="10%" class="wf-foot" />
+                <text x="50%" y="8%" text-anchor="middle" class="wf-lbl">AppBar</text>
+                <text x="10%" y="52%" text-anchor="middle" class="wf-lbl">Drawer L</text>
+                <text x="49%" y="52%" text-anchor="middle" class="wf-lbl">Main</text>
+                <text x="89%" y="52%" text-anchor="middle" class="wf-lbl">Drawer R</text>
+                <text x="50%" y="96%" text-anchor="middle" class="wf-lbl">Footer</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 6. DRAWER VARIANTS ───────── *@
+        <ShowcaseSection Title="6 · DRAWER VARIANTS — Persistent · Mini · Temporary · Responsive"
+                         Description="As 4 variantes lado a lado. Persistent empurra o main; Mini é icon-only (hover expande); Temporary é overlay com backdrop; Responsive vira Temporary abaixo do Breakpoint."
+                         Code="@(@"<!-- Persistent -->
+<OmniDrawer Variant=""DrawerVariant.Persistent"" />
+
+<!-- Mini (icon-only, hover-expand) -->
+<OmniDrawer Variant=""DrawerVariant.Mini"" />
+
+<!-- Temporary (overlay com backdrop) -->
+<OmniDrawer Variant=""DrawerVariant.Temporary"" @bind-Open=""_open"" />
+
+<!-- Responsive (Persistent acima de Breakpoint, Temporary abaixo) -->
+<OmniDrawer Variant=""DrawerVariant.Responsive"" Breakpoint=""Breakpoint.Lg"" />")">
+            <div class="wf-variants-grid">
+                <div>
+                    <WireframeSvg>
+                        <rect x="0" y="0" width="35%" height="100%" class="wf-aside" />
+                        <rect x="35%" y="0" width="65%" height="100%" class="wf-main" />
+                        <text x="17%" y="55%" text-anchor="middle" class="wf-lbl">Persistent</text>
+                    </WireframeSvg>
+                </div>
+                <div>
+                    <WireframeSvg>
+                        <rect x="0" y="0" width="12%" height="100%" class="wf-aside" />
+                        <rect x="12%" y="0" width="88%" height="100%" class="wf-main" />
+                        <text x="50%" y="55%" text-anchor="middle" class="wf-lbl">Mini</text>
+                    </WireframeSvg>
+                </div>
+                <div>
+                    <WireframeSvg>
+                        <rect x="0" y="0" width="100%" height="100%" class="wf-main" />
+                        <rect x="0" y="0" width="40%" height="100%" class="wf-aside" style="opacity:.85" />
+                        <text x="20%" y="55%" text-anchor="middle" class="wf-lbl">Temporary</text>
+                    </WireframeSvg>
+                </div>
+                <div>
+                    <WireframeSvg>
+                        <rect x="0" y="0" width="35%" height="100%" class="wf-aside" />
+                        <rect x="35%" y="0" width="65%" height="100%" class="wf-main" />
+                        <text x="17%" y="50%" text-anchor="middle" class="wf-lbl">Responsive</text>
+                        <text x="17%" y="65%" text-anchor="middle" class="wf-hint">(auto)</text>
+                    </WireframeSvg>
+                </div>
+            </div>
+            <a class="wf-demo-link" href="/showcase/wireframes/drawer-variants" style="margin-top: 8px;">
+                Ver demo ao vivo (alterna as 4 variantes em runtime)
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="M12 5l7 7-7 7" />
+                </svg>
+            </a>
+        </ShowcaseSection>
+
+        @* ───────── 7. APPBAR TOP + APPBAR BOTTOM (mobile-style) ───────── *@
+        <ShowcaseSection Title="7 · APPBAR TOP + APPBAR BOTTOM (mobile-style)"
+                         Description="Dois AppBars — topo para identidade, rodapé para navegação primária. Comum em PWAs e apps mobile-first."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar Position=""BarPosition.Top"">
+        <OmniBrand Name=""App"" />
+    </OmniAppBar>
+    <OmniMain NoPadding>@Body</OmniMain>
+    <OmniAppBar Position=""BarPosition.Bottom"">
+        <OmniButton IconOnly Icon=""home"" />
+        <OmniButton IconOnly Icon=""search"" />
+        <OmniButton IconOnly Icon=""user"" />
+    </OmniAppBar>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/top-bottom-bar">
+                <rect x="0" y="0" width="100%" height="14%" class="wf-bar" />
+                <rect x="0" y="14%" width="100%" height="72%" class="wf-main" />
+                <rect x="0" y="86%" width="100%" height="14%" class="wf-bar" />
+                <text x="50%" y="9%" text-anchor="middle" class="wf-lbl">AppBar Top</text>
+                <text x="50%" y="55%" text-anchor="middle" class="wf-lbl">Main</text>
+                <text x="50%" y="95%" text-anchor="middle" class="wf-lbl">AppBar Bottom</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 8. MARKETING (CONTAINER) ───────── *@
+        <ShowcaseSection Title="8 · MARKETING — AppBar + Main(Container) + Footer"
+                         Description="Landing page com max-width centralizado via OmniContainer. AppBar transparente, Footer não-fixo (rola junto)."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar Elevated=""false"" Bordered=""false"">
+        <OmniBrand Name=""Forneria"" />
+        <div class=""omni-header-spacer""></div>
+        <OmniButton Text=""Cadastre-se"" Variant=""ButtonVariant.Primary"" />
+    </OmniAppBar>
+    <OmniMain Container=""ContainerMaxWidth.Xl"">
+        <h1>O delivery do bairro</h1>
+        <p>Lorem ipsum...</p>
+    </OmniMain>
+    <OmniFooter Fixed=""false"">© 2026 Forneria</OmniFooter>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/marketing">
+                <rect x="0" y="0" width="100%" height="12%" class="wf-bar" />
+                <rect x="0" y="12%" width="100%" height="76%" class="wf-main" />
+                <rect x="14%" y="16%" width="72%" height="68%" class="wf-card" />
+                <rect x="0" y="88%" width="100%" height="12%" class="wf-foot" />
+                <text x="50%" y="8%" text-anchor="middle" class="wf-lbl">AppBar</text>
+                <text x="50%" y="52%" text-anchor="middle" class="wf-lbl">Container(Xl)</text>
+                <text x="50%" y="95%" text-anchor="middle" class="wf-lbl">Footer</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 9. KIOSK FULL-SCREEN ───────── *@
+        <ShowcaseSection Title="9 · KIOSK FULL-SCREEN — só Main(NoPadding)"
+                         Description="Para KDS, TV de cozinha, totem de pedido. Zero chrome — o conteúdo controla tudo, inclusive padding."
+                         Code="@(@"<OmniLayout>
+    <OmniMain NoPadding>
+        <KdsBoard />
+    </OmniMain>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/kiosk-fullscreen">
+                <rect x="0" y="0" width="100%" height="100%" class="wf-main" />
+                <text x="50%" y="55%" text-anchor="middle" class="wf-lbl">Main (NoPadding)</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 10. HYBRID (TOOLBAR + DRAWER + MAIN) ───────── *@
+        <ShowcaseSection Title="10 · HYBRID — AppBar + ToolBar(modules) + Drawer(contexto) + Main"
+                         Description="Combo poderoso: módulos no topo (horizontal) + sub-navegação contextual à esquerda. É o pattern do AppShellHybrid do Forneria.Demo."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle />
+        <OmniBrand Name=""App"" />
+    </OmniAppBar>
+    <OmniToolBar>
+        <OmniMenuBar>
+            <OmniMenuBarItem Text=""Gestão"" />
+            <OmniMenuBarItem Text=""Operação"" />
+        </OmniMenuBar>
+    </OmniToolBar>
+    <OmniDrawer Variant=""DrawerVariant.Responsive"">
+        <OmniPanelMenu>
+            <!-- conteúdo varia com módulo -->
+        </OmniPanelMenu>
+    </OmniDrawer>
+    <OmniMain>@Body</OmniMain>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/hybrid">
+                <rect x="0" y="0" width="100%" height="12%" class="wf-bar" />
+                <rect x="0" y="12%" width="100%" height="10%" class="wf-tool" />
+                <rect x="0" y="22%" width="22%" height="78%" class="wf-aside" />
+                <rect x="22%" y="22%" width="78%" height="78%" class="wf-main" />
+                <text x="50%" y="8%" text-anchor="middle" class="wf-lbl">AppBar</text>
+                <text x="50%" y="19%" text-anchor="middle" class="wf-lbl">ToolBar (módulos)</text>
+                <text x="11%" y="62%" text-anchor="middle" class="wf-lbl">Drawer</text>
+                <text x="61%" y="62%" text-anchor="middle" class="wf-lbl">Main</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── 11. PDV WORKSPACE ───────── *@
+        <ShowcaseSection Title="11 · PDV WORKSPACE (AppBar + ToolBar + Drawer + Main com aside interno)"
+                         Description="POS/dashboard denso: AppBar com brand+omnibox+notif, ToolBar com ações, Drawer Responsive para navegação, Main com layout interno 2-col (main + aside cliente 380px) + footer interno (Total + Finalizar). O aside direito NÃO é OmniDrawer — é coluna do main porque semanticamente faz parte do flow PDV."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle />
+        <OmniBrand Initial=""F"" Name=""FoodService"" Tenant=""..."" />
+        <div class=""omni-header-spacer""></div>
+        <OmniBadge Content=""3"" Variant=""BadgeVariant.Danger"" Overlap>
+            <OmniButton Icon=""bell"" IconOnly Variant=""ButtonVariant.Ghost"" />
+        </OmniBadge>
+        <OmniAvatar Initials=""AF"" />
+    </OmniAppBar>
+    <OmniToolBar>
+        <OmniButton Icon=""printer"">Comanda</OmniButton>
+        <OmniButton Icon=""dollar-sign"">Caixa</OmniButton>
+        <OmniButton Icon=""plus"" Variant=""ButtonVariant.Primary"">Novo pedido</OmniButton>
+    </OmniToolBar>
+    <OmniDrawer Variant=""DrawerVariant.Responsive"" Breakpoint=""Breakpoint.Md"">
+        <OmniPanelMenu>...</OmniPanelMenu>
+    </OmniDrawer>
+    <OmniMain NoPadding>
+        <div class=""pdv-body"">  <!-- grid interno: main + aside + footer -->
+            <section class=""pdv-main"">@Body</section>
+            <aside class=""pdv-aside"">Cliente + Modo + Loyalty</aside>
+            <footer class=""pdv-footer"">Total + Finalizar</footer>
+        </div>
+    </OmniMain>
+</OmniLayout>")">
+            <WireframeSvg DemoHref="/showcase/wireframes/pdv-workspace">
+                <rect x="0" y="0" width="100%" height="12%" class="wf-bar" />
+                <rect x="0" y="12%" width="100%" height="10%" class="wf-tool" />
+                <rect x="0" y="22%" width="20%" height="78%" class="wf-aside" />
+                <rect x="20%" y="22%" width="55%" height="68%" class="wf-main" />
+                <rect x="75%" y="22%" width="25%" height="68%" class="wf-aside" />
+                <rect x="20%" y="90%" width="80%" height="10%" class="wf-foot" />
+                <text x="50%" y="8%"  text-anchor="middle" class="wf-lbl">AppBar (brand + omnibox + notif)</text>
+                <text x="50%" y="19%" text-anchor="middle" class="wf-lbl">ToolBar (ações)</text>
+                <text x="10%" y="60%" text-anchor="middle" class="wf-lbl">Drawer</text>
+                <text x="47%" y="58%" text-anchor="middle" class="wf-lbl">Main</text>
+                <text x="87%" y="58%" text-anchor="middle" class="wf-lbl">Aside</text>
+                <text x="87%" y="65%" text-anchor="middle" class="wf-hint">(coluna interna)</text>
+                <text x="60%" y="96%" text-anchor="middle" class="wf-lbl">Footer (Total + Finalizar)</text>
+            </WireframeSvg>
+        </ShowcaseSection>
+
+        @* ───────── CHEAT SHEET ───────── *@
+        <ShowcaseSection Title="✦ CHEAT-SHEET — Cada slot é opcional"
+                         Description="Como o grid auto-detecta os slots via :has(), você pluga só o que precisa. Tabela de equivalência com frameworks de referência:">
+            <div class="omni-table-wrap">
+                <table class="omni-table">
+                    <thead>
+                        <tr>
+                            <th>Omni.Blazor</th>
+                            <th>MudBlazor</th>
+                            <th>Radzen</th>
+                            <th>Bootstrap</th>
+                            <th>HTML semântico</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>OmniLayout</code></td><td>MudLayout</td><td>RadzenLayout</td><td>(div wrapper)</td><td>—</td></tr>
+                        <tr><td><code>OmniAppBar</code></td><td>MudAppBar</td><td>RadzenHeader</td><td>.navbar</td><td>&lt;header&gt;</td></tr>
+                        <tr><td><code>OmniDrawer</code></td><td>MudDrawer</td><td>RadzenSidebar</td><td>.offcanvas</td><td>&lt;aside&gt;</td></tr>
+                        <tr><td><code>OmniToolBar</code></td><td>MudToolBar</td><td>—</td><td>—</td><td>&lt;div role=&quot;toolbar&quot;&gt;</td></tr>
+                        <tr><td><code>OmniMain</code></td><td>MudMainContent</td><td>RadzenBody</td><td>—</td><td>&lt;main&gt;</td></tr>
+                        <tr><td><code>OmniFooter</code></td><td>—</td><td>RadzenFooter</td><td>—</td><td>&lt;footer&gt;</td></tr>
+                        <tr><td><code>OmniContainer</code></td><td>MudContainer</td><td>—</td><td>.container</td><td>—</td></tr>
+                        <tr><td><code>OmniDrawerToggle</code></td><td>—</td><td>RadzenSidebarToggle</td><td>[data-bs-toggle=&quot;offcanvas&quot;]</td><td>&lt;button&gt;</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </ShowcaseSection>
+
+    </ChildContent>
+
+</ShowcasePage>
+
+<style>
+    /* Wireframe thumbnails — visual SVG ~640x140 que ilustra a estrutura */
+    .wf-svg {
+        display: block;
+        width: 100%;
+        max-width: 640px;
+        height: 160px;
+        border-radius: 12px;
+        background: var(--omni-bg-sunken);
+        border: 1px solid var(--omni-line);
+        margin: 8px 0 16px;
+    }
+    .wf-svg .wf-bar  { fill: var(--omni-accent-soft, #fee2e2); stroke: var(--omni-line); stroke-width: 1; }
+    .wf-svg .wf-tool { fill: color-mix(in srgb, var(--omni-accent-soft) 60%, var(--omni-bg-elev)); stroke: var(--omni-line); stroke-width: 1; }
+    .wf-svg .wf-aside{ fill: var(--omni-bg-elev); stroke: var(--omni-line); stroke-width: 1; }
+    .wf-svg .wf-main { fill: var(--omni-bg); stroke: var(--omni-line); stroke-width: 1; }
+    .wf-svg .wf-foot { fill: var(--omni-bg-sunken); stroke: var(--omni-line); stroke-width: 1; }
+    .wf-svg .wf-card { fill: var(--omni-bg-elev); stroke: var(--omni-line); stroke-width: 1; }
+    .wf-svg .wf-lbl  { fill: var(--omni-fg-muted); font-size: 11px; font-family: var(--omni-font-mono, ui-monospace, monospace); }
+    .wf-svg .wf-hint { fill: var(--omni-fg-soft); font-size: 9px; font-family: var(--omni-font-mono, ui-monospace, monospace); }
+
+    .wf-variants-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    @@media (min-width: 1024px) {
+        .wf-variants-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .wf-variants-grid .wf-svg { height: 110px; }
+
+    /* "Ver demo ao vivo →" — link abaixo do wireframe SVG */
+    .wf-demo-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        background: var(--omni-accent-soft, #fee2e2);
+        color: var(--omni-accent);
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        margin-bottom: 12px;
+        transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
+    }
+    .wf-demo-link:hover {
+        background: var(--omni-accent);
+        color: #fff;
+        text-decoration: none;
+        transform: translateX(2px);
+    }
+    .wf-demo-link svg { transition: transform 120ms ease; }
+    .wf-demo-link:hover svg { transform: translateX(2px); }
+</style>
+
+@* WireframeSvg está em WireframeSvg.razor (ao lado deste arquivo) *@

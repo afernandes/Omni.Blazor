@@ -1,0 +1,90 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Dispatcher de detalhes por modo. Em narrow (<= 900px) vira accordion:
+    header sticky (clicável) + body colapsável. Em wide (> 900px) só o body
+    aparece — header tem display:none por default. *@
+<div class="fs-pdv-mode-acc @(_open ? "is-open" : "")">
+    @* HEADER — só visível em narrow via CSS *@
+    <button type="button" class="fs-pdv-mode-acc-head" @onclick="@(() => _open = !_open)">
+        <div class="fs-pdv-mode-acc-ico">
+            <OmniIcon Name="@HeaderIcon" Size="ComponentSize.Sm" />
+        </div>
+        <span class="fs-pdv-mode-acc-title">@HeaderTitle</span>
+        <span class="fs-pdv-mode-acc-meta">@HeaderMeta</span>
+        @if (HeaderFee is not null)
+        {
+            <span class="fs-pdv-mode-acc-fee">@HeaderFee</span>
+        }
+        <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" Class="fs-pdv-mode-acc-caret" />
+    </button>
+
+    @* BODY — dispatcher pelo modo selecionado *@
+    <div class="fs-pdv-mode-acc-body">
+        <div class="fs-pdv-mode-details">
+            @switch (Order.Mode)
+            {
+                case OrderMode.Balcao:   <PdvBalcaoDetails />   break;
+                case OrderMode.Delivery: <PdvDeliveryDetails /> break;
+                case OrderMode.Retirada: <PdvRetiradaDetails /> break;
+                case OrderMode.Mesa:     <PdvMesaDetails />     break;
+                case OrderMode.Comanda:  <PdvComandaDetails />  break;
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+    private bool _open;  // accordion state — collapsed by default on mobile
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private string HeaderIcon => Order.Mode switch
+    {
+        OrderMode.Balcao   => "store",
+        OrderMode.Delivery => "truck",
+        OrderMode.Retirada => "package",
+        OrderMode.Mesa     => "grid",
+        OrderMode.Comanda  => "file-text",
+        _                  => "store",
+    };
+
+    private string HeaderTitle => Order.Mode switch
+    {
+        OrderMode.Balcao   => "Balcão",
+        OrderMode.Delivery => "Delivery",
+        OrderMode.Retirada => "Retirada",
+        OrderMode.Mesa     => "Mesa",
+        OrderMode.Comanda  => "Comanda",
+        _                  => "Balcão",
+    };
+
+    /// <summary>Texto descritivo à direita do título (truncável).</summary>
+    private string HeaderMeta => Order.Mode switch
+    {
+        OrderMode.Balcao   => "Consumo no local",
+        OrderMode.Delivery => Order.ModeDetails.Hood is { } h
+            ? $"{h.Name} · {h.EtaMin} min"
+            : "Selecione o bairro",
+        OrderMode.Retirada => string.IsNullOrEmpty(Order.ModeDetails.PickupName)
+            ? "Retira em loja"
+            : Order.ModeDetails.PickupName!,
+        OrderMode.Mesa     => Order.ModeDetails.TableNumber is { } t
+            ? $"Mesa {t}" + (Order.ModeDetails.Waiter is { Length: > 0 } w ? $" · {w}" : "")
+            : "Selecione a mesa",
+        OrderMode.Comanda  => Order.ModeDetails.TabNumber is { } tn
+            ? $"Comanda {tn:000}"
+            : "Comanda nova",
+        _                  => "",
+    };
+
+    /// <summary>Fee pill (Delivery R$ X,XX ou Mesa +10%). Null se não aplica.</summary>
+    private string? HeaderFee => Order.Mode switch
+    {
+        OrderMode.Delivery when Order.DeliveryFee > 0 => Order.DeliveryFee.ToString("C", _ptBr),
+        OrderMode.Mesa     when Order.ServiceFee > 0  => "+10%",
+        _                                              => null,
+    };
+}

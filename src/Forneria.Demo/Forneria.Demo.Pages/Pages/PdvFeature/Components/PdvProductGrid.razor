@@ -1,0 +1,30 @@
+@inject PdvOrderService Order
+
+@*  Grid de produtos filtrado por categoria + query. Click em um produto
+    adiciona ao carrinho via PdvOrderService. NÃO assina OnChange — o
+    grid em si é estático; só o carrinho à direita precisa re-renderizar
+    quando um produto entra. Isso poupa re-renders do grid de ~24 cards. *@
+<div class="omni-pdv-grid">
+    @foreach (var p in Filtered)
+    {
+        <PdvProductCard Product="@p" OnPick="@(() => Order.AddItem(p))" />
+    }
+    @if (!Filtered.Any())
+    {
+        <div class="omni-pdv-empty">
+            <p>Nenhum produto encontrado</p>
+            <span class="omni-muted">Tente outra busca ou categoria</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Query { get; set; } = "";
+    [Parameter] public string Category { get; set; } = "todos";
+
+    private IEnumerable<Product> Filtered =>
+        PdvMockData.Products.Where(p =>
+            (Category == "todos" || p.Category == Category) &&
+            (string.IsNullOrWhiteSpace(Query)
+                || p.Name.Contains(Query, StringComparison.OrdinalIgnoreCase)));
+}

@@ -1,0 +1,126 @@
+@page "/showcase/formfield"
+@layout ShowcaseLayout
+
+<PageTitle>FormField — Showcase</PageTitle>
+
+<ShowcasePage Title="FormField"
+              Subtitle="Wrapper que adiciona label, hint e mensagem de erro a qualquer input.">
+
+    <Overview>
+        <p>
+            O <code>OmniFormField</code> é o <strong>wrapper de campo</strong> que envolve um
+            input e adiciona estrutura ao redor dele: <code>Label</code>, texto de ajuda
+            (<code>Hint</code>), dica alinhada à direita (<code>HintRight</code>), indicador de
+            campo obrigatório (<code>Required</code>) e mensagem de erro.
+        </p>
+        <p>
+            Dentro de um <code>OmniForm</code>/<code>EditForm</code>, o parâmetro
+            <code>ValidationFor</code> (uma lambda apontando para o campo do modelo) faz o
+            FormField <strong>buscar a mensagem de validação automaticamente</strong> do
+            <code>EditContext</code>. O parâmetro <code>Error</code> permite definir um erro
+            ad-hoc que tem prioridade sobre a validação.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Sempre que um input precisa de label e/ou texto de ajuda.</li>
+            <li>Para exibir mensagens de validação ligadas a um campo do modelo.</li>
+            <li>Para marcar campos obrigatórios de forma consistente.</li>
+            <li>Quando o label precisa de layout livre — link "Esqueci senha" ao lado.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Resumo de todos os erros do formulário → use <code>OmniValidationSummary</code>.</li>
+            <li>Mensagem de erro inline sem wrapper de campo → use <code>OmniValidationMessage</code>.</li>
+            <li>Banner de erro persistente fora de formulário → use <code>OmniAlert</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="LABEL + HINT + ERROR"
+                         Description="Hint exibe abaixo; Error sobrescreve o hint e muda a cor."
+                         Code="@(@"<OmniFormField Label=""Nome completo"" Required>
+    <OmniTextBox @bind-Value=""nome"" Placeholder=""Maria Silva"" />
+</OmniFormField>
+<OmniFormField Label=""Senha"" Required Error=""Mínimo 8 caracteres"">
+    <OmniPassword @bind-Value=""senha"" />
+</OmniFormField>")">
+            <div class="omni-stack omni-stack-16">
+                <OmniFormField Label="Nome completo" Required>
+                    <OmniTextBox @bind-Value="nome" Placeholder="Maria Silva" />
+                </OmniFormField>
+
+                <OmniFormField Label="E-mail" Hint="Usado para login e recibos">
+                    <OmniTextBox @bind-Value="email" Placeholder="voce@email.com" LeadingIcon="mail" />
+                </OmniFormField>
+
+                <OmniFormField Label="Senha" Required Error="Mínimo 8 caracteres">
+                    <OmniPassword @bind-Value="senha" Placeholder="••••••••" />
+                </OmniFormField>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HINT À DIREITA"
+                         Description="Hint adicional alinhado à direita do label — útil para indicar formato esperado."
+                         Code="@(@"<OmniFormField Label=""CNPJ"" HintRight=""apenas números"" Required>
+    <OmniTextBox @bind-Value=""cnpj"" Placeholder=""00.000.000/0000-00"" />
+</OmniFormField>")">
+            <OmniFormField Label="CNPJ" HintRight="apenas números" Required>
+                <OmniTextBox @bind-Value="cnpj" Placeholder="00.000.000/0000-00" />
+            </OmniFormField>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LABEL CUSTOM (LabelContent)"
+                         Description="Slot LabelContent permite layout livre — útil para colocar link 'Esqueci' ao lado."
+                         Code="@(@"<OmniFormField For=""senha2"">
+    <LabelContent>
+        <span style=""flex:1;"">Senha</span>
+        <a href=""#"" class=""omni-auth-link"">Esqueci minha senha</a>
+    </LabelContent>
+    <ChildContent>
+        <OmniPassword @bind-Value=""senha2"" />
+    </ChildContent>
+</OmniFormField>")">
+            <OmniFormField For="senha2">
+                <LabelContent>
+                    <span style="flex:1;">Senha</span>
+                    <a href="#" class="omni-auth-link" style="font-weight:500; font-size: 12px;">Esqueci minha senha</a>
+                </LabelContent>
+                <ChildContent>
+                    <OmniPassword @bind-Value="senha2" Placeholder="••••••••" />
+                </ChildContent>
+            </OmniFormField>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Label" Type="string?" Default="null"
+                            Description="Texto do rótulo exibido acima do input." />
+            <ShowcaseApiRow Name="LabelContent" Type="RenderFragment?" Default="null"
+                            Description="Slot para rótulo com layout livre — vence sobre Label." />
+            <ShowcaseApiRow Name="Hint" Type="string?" Default="null"
+                            Description="Texto de ajuda exibido abaixo do input." />
+            <ShowcaseApiRow Name="HintRight" Type="string?" Default="null"
+                            Description="Dica adicional alinhada à direita do rótulo." />
+            <ShowcaseApiRow Name="Error" Type="string?" Default="null"
+                            Description="Erro explícito — vence sobre as mensagens do EditContext." />
+            <ShowcaseApiRow Name="For" Type="string?" Default="null"
+                            Description="Atributo HTML for do label (id do input associado)." />
+            <ShowcaseApiRow Name="Required" Type="bool" Default="false"
+                            Description="Marca o campo como obrigatório com indicador visual." />
+            <ShowcaseApiRow Name="ValidationFor" Type="Expression<Func<object?>>?" Default="null"
+                            Description="Lambda do campo do modelo — busca a validação do EditContext." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="O input envolvido pelo campo." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? nome, email, senha, senha2, cnpj;
+}

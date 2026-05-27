@@ -1,0 +1,134 @@
+@page "/showcase/skeleton"
+@layout ShowcaseLayout
+
+<PageTitle>Skeleton — Showcase</PageTitle>
+
+<ShowcasePage Title="Skeleton"
+              Subtitle="Placeholder animado que reserva o espaço do conteúdo enquanto ele carrega.">
+
+    <Overview>
+        <p>
+            O <code>OmniSkeleton</code> é um placeholder animado exibido <strong>enquanto os dados
+            ainda carregam</strong>. Em vez de uma tela em branco ou um spinner solto, ele desenha
+            a silhueta do conteúdo que está por vir — o que <strong>melhora a percepção de
+            performance</strong> e evita saltos de layout quando os dados chegam.
+        </p>
+        <p>
+            Tem três variantes: <code>Text</code> (linha de texto, com <code>Lines</code> para
+            parágrafos), <code>Rect</code> (bloco retangular para cards e imagens) e
+            <code>Circle</code> (placeholder circular para avatares). Aceita <code>Width</code> e
+            <code>Height</code> inline, é acessível (<code>aria-busy</code>) e respeita
+            <code>prefers-reduced-motion</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Carregamento inicial de listas, tabelas e cards.</li>
+            <li>Reservar o espaço exato do conteúdo para evitar saltos de layout.</li>
+            <li>Telas de detalhe que dependem de uma requisição assíncrona.</li>
+            <li>Substituir spinners genéricos por um placeholder estrutural.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Tarefa com percentual conhecido → use <code>OmniProgress</code>.</li>
+            <li>Espera curta de uma ação pontual (ex.: botão) → use <code>OmniSpinner</code>.</li>
+            <li>Estado de lista vazia (sem dados) → use um <code>EmptyTemplate</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="VARIANTES"
+                         Description="Text (linha), Rect (bloco), Circle (avatar)."
+                         Code="@(@"<OmniSkeleton Variant=""SkeletonVariant.Text"" />
+<OmniSkeleton Variant=""SkeletonVariant.Rect"" Height=""60px"" />
+<OmniSkeleton Variant=""SkeletonVariant.Circle"" Width=""48px"" Height=""48px"" />")">
+            <div class="omni-grid-3">
+                <div class="omni-stack omni-stack-8">
+                    <div class="omni-mono omni-muted" style="font-size: 10px;">TEXT</div>
+                    <OmniSkeleton Variant="SkeletonVariant.Text" />
+                </div>
+                <div class="omni-stack omni-stack-8">
+                    <div class="omni-mono omni-muted" style="font-size: 10px;">RECT</div>
+                    <OmniSkeleton Variant="SkeletonVariant.Rect" Height="60px" />
+                </div>
+                <div class="omni-stack omni-stack-8">
+                    <div class="omni-mono omni-muted" style="font-size: 10px;">CIRCLE</div>
+                    <OmniSkeleton Variant="SkeletonVariant.Circle" Width="48px" Height="48px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MÚLTIPLAS LINHAS"
+                         Description="Lines &gt; 1 renderiza um parágrafo (última linha 60% mais curta para parecer natural)."
+                         Code="@(@"<OmniSkeleton Variant=""SkeletonVariant.Text"" Lines=""4"" />")">
+            <OmniSkeleton Variant="SkeletonVariant.Text" Lines="4" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LAYOUTS COMUNS"
+                         Description="Padrões de card, lista e media."
+                         Code="@(@"<OmniCard>
+    <ChildContent>
+        <OmniSkeleton Variant=""SkeletonVariant.Circle"" Width=""40px"" Height=""40px"" />
+        <OmniSkeleton Variant=""SkeletonVariant.Text"" Width=""60%"" />
+        <OmniSkeleton Variant=""SkeletonVariant.Text"" Lines=""3"" />
+    </ChildContent>
+</OmniCard>")">
+            <div class="omni-grid-3">
+                <OmniCard>
+                    <ChildContent>
+                        <div class="omni-row omni-row-gap-12" style="margin-bottom: 14px;">
+                            <OmniSkeleton Variant="SkeletonVariant.Circle" Width="40px" Height="40px" />
+                            <div class="omni-stack omni-stack-8 omni-flex-1">
+                                <OmniSkeleton Variant="SkeletonVariant.Text" Width="60%" />
+                                <OmniSkeleton Variant="SkeletonVariant.Text" Width="40%" />
+                            </div>
+                        </div>
+                        <OmniSkeleton Variant="SkeletonVariant.Text" Lines="3" />
+                    </ChildContent>
+                </OmniCard>
+                <OmniCard>
+                    <ChildContent>
+                        <OmniSkeleton Variant="SkeletonVariant.Rect" Height="120px" />
+                        <div style="margin-top: 12px;">
+                            <OmniSkeleton Variant="SkeletonVariant.Text" Lines="2" />
+                        </div>
+                    </ChildContent>
+                </OmniCard>
+                <OmniCard>
+                    <ChildContent>
+                        <div class="omni-stack omni-stack-12">
+                            <OmniSkeleton Variant="SkeletonVariant.Text" Width="80%" />
+                            <OmniSkeleton Variant="SkeletonVariant.Rect" Height="60px" />
+                            <div class="omni-row omni-row-gap-8">
+                                <OmniSkeleton Variant="SkeletonVariant.Rect" Width="80px" Height="32px" />
+                                <OmniSkeleton Variant="SkeletonVariant.Rect" Width="110px" Height="32px" />
+                            </div>
+                        </div>
+                    </ChildContent>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ACESSIBILIDADE"
+                         Description="Skeletons têm aria-busy=true e respeitam prefers-reduced-motion (estático em vez de animado).">
+            <p class="omni-muted" style="font-size: 13px;">Verifique nas DevTools → Rendering → Emulate CSS media feature → prefers-reduced-motion: reduce.</p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Variant" Type="SkeletonVariant" Default="Text"
+                            Description="Forma do placeholder — Text, Rect, Circle." />
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura CSS inline — ex.: &quot;100%&quot;, &quot;240px&quot;." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="null"
+                            Description="Altura CSS inline — usada pelas variantes Rect e Circle." />
+            <ShowcaseApiRow Name="Lines" Type="int" Default="1"
+                            Description="Número de linhas de texto (variante Text); &gt; 1 forma um parágrafo." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

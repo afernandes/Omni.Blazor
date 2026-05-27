@@ -1,0 +1,269 @@
+@inject PdvOrderService Order
+@inject DialogService Dialog
+@inject NotificationService Toast
+@inject IJSRuntime JS
+@implements IDisposable
+
+@*  Omnibox — input principal do PDV. Lê comandos com OmniBoxParser:
+    códigos de produto (201, 2x201), códigos de pizza (G101/102.C),
+    busca por nome. Mostra sugestões dropdown + pizza panel inline. *@
+<div class="fs-pdv-omni-wrap">
+    <div class="fs-pdv-omni">
+        <OmniIcon Name="search" Size="ComponentSize.Sm" />
+        <input @ref="_input"
+               @bind="_value" @bind:event="oninput"
+               @bind:after="OnInput"
+               @onkeydown="OnKeyDown"
+               @onfocus="@(() => _focused = true)"
+               @onblur="OnBlur"
+               placeholder="Digite código (201), código de pizza (G101/102.C) ou nome do produto…" />
+        <button class="fs-pdv-omni-help" @onclick="OpenHelp" aria-label="Ajuda do omnibox">?</button>
+    </div>
+
+    @if (_focused && _pizzaCmd is not null)
+    {
+        <div class="fs-pdv-omni-panel">
+            <div class="fs-pdv-omni-panel-head">
+                <div class="fs-pdv-omni-panel-title">
+                    @(_flavor1?.Name ?? "Sabor 1")
+                    @if (_flavor2 is not null) { <text> · ½ @_flavor2.Name</text> }
+                    <span style="opacity:0.7; font-weight:400;">@PdvOrderService.PizzaSizeLabel(_pizzaSize)</span>
+                </div>
+                <div class="fs-pdv-omni-panel-price">@PizzaPreviewPrice.ToString("C", _ptBr)</div>
+            </div>
+
+            <div class="fs-pdv-omni-panel-tabs">
+                <button class="fs-pdv-omni-panel-tab @(_pizzaSize == PizzaSize.Broto ? "is-active" : "")"
+                        @onclick="@(() => _pizzaSize = PizzaSize.Broto)">Broto</button>
+                <button class="fs-pdv-omni-panel-tab @(_pizzaSize == PizzaSize.Grande ? "is-active" : "")"
+                        @onclick="@(() => _pizzaSize = PizzaSize.Grande)">Grande</button>
+                <button class="fs-pdv-omni-panel-tab @(_pizzaSize == PizzaSize.Familia ? "is-active" : "")"
+                        @onclick="@(() => _pizzaSize = PizzaSize.Familia)">Família</button>
+            </div>
+
+            <div class="fs-pdv-omni-panel-tabs">
+                @foreach (var b in PdvMockData.Bordas)
+                {
+                    var bo = b;
+                    <button class="fs-pdv-omni-panel-tab @(_borda?.Id == bo.Id ? "is-active" : "")"
+                            @onclick="@(() => _borda = bo.Id == "none" ? null : bo)">
+                        @bo.Name
+                    </button>
+                }
+            </div>
+
+            <div class="fs-pdv-omni-panel-foot">
+                <div class="fs-pdv-omni-panel-hints">
+                    <span><kbd>Enter</kbd> Adicionar</span>
+                    <span><kbd>Esc</kbd> Cancelar</span>
+                </div>
+                <button class="fs-pdv-btn fs-pdv-btn-primary" @onclick="ApplyPizza">
+                    <OmniIcon Name="plus" Size="ComponentSize.Sm" /> Adicionar pizza
+                </button>
+            </div>
+        </div>
+    }
+    else if (_focused && _suggestions.Count > 0)
+    {
+        <div class="fs-pdv-omni-sugg">
+            @for (var i = 0; i < _suggestions.Count; i++)
+            {
+                var idx = i;
+                var sg = _suggestions[i];
+                <div class="fs-pdv-omni-sugg-item @(idx == _activeIdx ? "is-active" : "")"
+                     @onclick="@(() => ApplyProduct(sg))"
+                     @onmouseenter="@(() => _activeIdx = idx)">
+                    <span class="fs-pdv-omni-sugg-code">@sg.Code</span>
+                    <span class="fs-pdv-omni-sugg-name">@sg.Name</span>
+                    <span class="fs-pdv-omni-sugg-price">@sg.Price.ToString("C", _ptBr)</span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+
+    private ElementReference _input;
+    private string _value = "";
+    private bool _focused;
+
+    // Pizza preview state
+    private OmniCommand.AddPizza? _pizzaCmd;
+    private PizzaFlavor? _flavor1;
+    private PizzaFlavor? _flavor2;
+    private PizzaSize _pizzaSize = PizzaSize.Grande;
+    private BordaOption? _borda;
+
+    // Product suggestions
+    private List<Product> _suggestions = new();
+    private int _activeIdx;
+
+    protected override void OnInitialized()
+    {
+        Order.OnChange += StateHasChanged;
+        Order.OmniFocus = FocusAsync;
+    }
+
+    public void Dispose()
+    {
+        Order.OnChange -= StateHasChanged;
+        if (Order.OmniFocus == FocusAsync) Order.OmniFocus = null;
+    }
+
+    public async Task FocusAsync()
+    {
+        try { await _input.FocusAsync(); }
+        catch { /* not yet rendered */ }
+    }
+
+    private void OnBlur()
+    {
+        // Pequeno delay para permitir click nas sugestões
+        Task.Delay(150).ContinueWith(_ =>
+        {
+            _focused = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void OnInput()
+    {
+        var cmd = OmniBoxParser.Parse(_value);
+        _activeIdx = 0;
+
+        // Pizza preview
+        if (cmd is OmniCommand.AddPizza p)
+        {
+            _pizzaCmd = p;
+            _flavor1 = PdvMockData.Flavors.FirstOrDefault(f => f.Code == p.Flavor1);
+            _flavor2 = p.Flavor2 is null
+                ? null
+                : PdvMockData.Flavors.FirstOrDefault(f => f.Code == p.Flavor2);
+            if (p.Size is { } sz) _pizzaSize = sz;
+            _borda = OmniBoxParser.ResolveBorda(p.BordaCode);
+            _suggestions.Clear();
+        }
+        else
+        {
+            _pizzaCmd = null;
+            _flavor1 = _flavor2 = null;
+            _borda = null;
+            BuildSuggestions(_value);
+        }
+    }
+
+    private void BuildSuggestions(string q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+        {
+            _suggestions.Clear();
+            return;
+        }
+        var qn = q.Trim();
+        _suggestions = PdvMockData.Products
+            .Where(p => p.Code.StartsWith(qn) || p.Name.Contains(qn, StringComparison.OrdinalIgnoreCase))
+            .Take(6)
+            .ToList();
+    }
+
+    private decimal PizzaPreviewPrice
+    {
+        get
+        {
+            if (_flavor1 is null) return 0m;
+            var p1 = _flavor1.Prices.For(_pizzaSize);
+            var p2 = _flavor2?.Prices.For(_pizzaSize) ?? p1;
+            return Math.Max(p1, p2) + (_borda?.PriceDelta ?? 0m);
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "Escape":
+                _value = "";
+                _pizzaCmd = null;
+                _suggestions.Clear();
+                break;
+
+            case "ArrowDown" when _suggestions.Count > 0:
+                _activeIdx = (_activeIdx + 1) % _suggestions.Count;
+                break;
+
+            case "ArrowUp" when _suggestions.Count > 0:
+                _activeIdx = (_activeIdx - 1 + _suggestions.Count) % _suggestions.Count;
+                break;
+
+            case "Enter":
+                ApplyCurrent();
+                break;
+        }
+    }
+
+    private void ApplyCurrent()
+    {
+        if (_pizzaCmd is not null) { ApplyPizza(); return; }
+
+        // Sugestão ativa primeiro
+        if (_suggestions.Count > 0)
+        {
+            ApplyProduct(_suggestions[_activeIdx]);
+            return;
+        }
+
+        // Tenta comando do parser direto
+        var cmd = OmniBoxParser.Parse(_value);
+        switch (cmd)
+        {
+            case OmniCommand.AddProduct ap when Order.TryAddByCode(ap.Code, ap.Qty):
+                Toast.Success($"Adicionado {ap.Qty}× código {ap.Code}");
+                ResetInput();
+                break;
+            case OmniCommand.Search s:
+                Toast.Info($"Nenhum resultado para “{s.Query}”");
+                break;
+            default:
+                Toast.Warning("Comando não reconhecido");
+                break;
+        }
+    }
+
+    private void ApplyProduct(Product p)
+    {
+        Order.AddItem(p);
+        Toast.Success($"{p.Name} adicionado");
+        ResetInput();
+    }
+
+    private void ApplyPizza()
+    {
+        if (_flavor1 is null)
+        {
+            Toast.Error($"Sabor {_pizzaCmd?.Flavor1} não encontrado");
+            return;
+        }
+        Order.AddPizza(_pizzaSize, _flavor1, _flavor2, _borda);
+        var name = _flavor2 is null
+            ? _flavor1.Name
+            : $"½ {_flavor1.Name} / ½ {_flavor2.Name}";
+        Toast.Success($"Pizza {PdvOrderService.PizzaSizeLabel(_pizzaSize)} — {name}");
+        ResetInput();
+    }
+
+    private void ResetInput()
+    {
+        _value = "";
+        _pizzaCmd = null;
+        _flavor1 = _flavor2 = null;
+        _suggestions.Clear();
+        _activeIdx = 0;
+    }
+
+    private async Task OpenHelp()
+    {
+        await Dialog.OpenAsync<PdvHelpCard>(title: "Ajuda — Omni Box", parameters: null);
+    }
+}

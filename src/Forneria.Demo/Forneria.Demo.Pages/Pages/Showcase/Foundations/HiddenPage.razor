@@ -1,0 +1,150 @@
+@page "/showcase/hidden"
+@layout ShowcaseLayout
+
+<PageTitle>OmniHidden — Showcase</PageTitle>
+
+<ShowcasePage Title="OmniHidden"
+              Subtitle="Render condicional por breakpoint — equivalente declarativo do MudHidden. Esconde sem renderizar.">
+
+    <Overview>
+        <p>
+            O <code>OmniHidden</code> renderiza condicionalmente sua subárvore com base no
+            breakpoint atual da viewport. Equivalente ao <code>MudHidden</code> do MudBlazor.
+            <strong>O conteúdo não é instanciado quando escondido</strong> — diferente de
+            <code>display: none</code>, evita o custo de inicialização (DataGrids pesados, charts,
+            forms duplicados).
+        </p>
+        <p>
+            Combina <code>Breakpoint</code> + <code>Mode</code> (Down/Up/Only) + <code>Invert</code>
+            para qualquer regra de visibilidade que <code>@@media</code> queries declarativas
+            cobririam.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Mobile vs desktop UI distintas</strong> — uma <code>BottomNav</code> só em mobile, uma <code>TopBar</code> só em desktop.</li>
+            <li><strong>Esconder DataGrids pesados em viewports estreitas</strong> sem pagar o custo de instanciar.</li>
+            <li><strong>Switch entre layouts complexos</strong> que CSS sozinho não consegue compor.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Quando uma simples regra <code>@@media</code> CSS resolve — não precisa de C#.</li>
+            <li>Quando o conteúdo é leve e deve ser indexado (SEO) mesmo invisível — use CSS.</li>
+            <li>Para mostrar/esconder por estado da aplicação (não viewport) — use <code>@@if</code> normal.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="MODO DOWN — esconde abaixo do breakpoint"
+                         Description="Conteúdo renderiza somente acima do Breakpoint. Ideal para UI que precisa de espaço (DataGrids, charts wide)."
+                         Code="@(@"<OmniHidden Breakpoint=""Breakpoint.Md"" Mode=""HiddenMode.Down"">
+    <DesktopOnlyView />
+</OmniHidden>")">
+            <p class="omni-muted">Atual viewport: <strong>@_currentLabel</strong></p>
+            <div style="padding: 16px; background: var(--omni-bg-elev); border-radius: 8px; border: 1px solid var(--omni-line);">
+                <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Down">
+                    <strong style="color: var(--omni-accent);">✓ Visível</strong>
+                    — viewport ≥ Md (1024px). Este bloco existe no DOM.
+                </OmniHidden>
+                <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Down" Invert>
+                    <strong style="color: var(--omni-fg-muted);">✗ Escondido</strong>
+                    — viewport &lt; Md. Conteúdo do bloco anterior <em>não foi renderizado</em>.
+                </OmniHidden>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MODO UP — esconde acima do breakpoint"
+                         Description="Inverso: conteúdo renderiza somente abaixo do Breakpoint. Ideal para BottomNav, mobile menus."
+                         Code="@(@"<OmniHidden Breakpoint=""Breakpoint.Md"" Mode=""HiddenMode.Up"">
+    <BottomNav />
+</OmniHidden>")">
+            <div style="padding: 16px; background: var(--omni-bg-elev); border-radius: 8px; border: 1px solid var(--omni-line);">
+                <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Up">
+                    <strong style="color: var(--omni-accent);">✓ Visível</strong> — viewport &lt; Md.
+                </OmniHidden>
+                <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Up" Invert>
+                    <strong style="color: var(--omni-fg-muted);">✗ Escondido</strong> — viewport ≥ Md.
+                </OmniHidden>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MODO ONLY — esconde apenas no breakpoint exato"
+                         Description="Útil para edge cases — uma transição visual específica de um único tier."
+                         Code="@(@"<OmniHidden Breakpoint=""Breakpoint.Md"" Mode=""HiddenMode.Only"">
+    <TabletTransitionBanner />
+</OmniHidden>")">
+            <div style="padding: 16px; background: var(--omni-bg-elev); border-radius: 8px; border: 1px solid var(--omni-line);">
+                <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Only" Invert>
+                    <strong style="color: var(--omni-accent);">✓ Visível</strong> — estamos em Md (apenas).
+                </OmniHidden>
+                <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Only">
+                    <strong style="color: var(--omni-fg-muted);">✗ Escondido</strong> — não estamos em Md.
+                </OmniHidden>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COMBO MOBILE/DESKTOP"
+                         Description="Padrão comum: mesma feature, duas versões (mobile vs desktop)."
+                         Code="@(@"<OmniHidden Breakpoint=""Breakpoint.Md"" Mode=""HiddenMode.Down"">
+    <DesktopDashboard />   @* Md+ *@
+</OmniHidden>
+<OmniHidden Breakpoint=""Breakpoint.Md"" Mode=""HiddenMode.Up"">
+    <MobileSwipeView />    @* < Md *@
+</OmniHidden>")">
+            <div class="omni-row-grid" style="--omni-row-gap: 16px;">
+                <div class="omni-col omni-col-12 omni-col-md-6">
+                    <OmniCard Title="Versão Desktop">
+                        <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Down">
+                            <p style="color: var(--omni-accent); font-weight: 600;">✓ ATIVA</p>
+                            <p class="omni-muted">DataGrid 12-cols + sidebar de filtros</p>
+                        </OmniHidden>
+                        <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Down" Invert>
+                            <p class="omni-muted">Não renderizada nesta viewport.</p>
+                        </OmniHidden>
+                    </OmniCard>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-md-6">
+                    <OmniCard Title="Versão Mobile">
+                        <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Up">
+                            <p style="color: var(--omni-accent); font-weight: 600;">✓ ATIVA</p>
+                            <p class="omni-muted">Swipe cards + bottom navigation</p>
+                        </OmniHidden>
+                        <OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Up" Invert>
+                            <p class="omni-muted">Não renderizada nesta viewport.</p>
+                        </OmniHidden>
+                    </OmniCard>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniHidden — Parâmetros">
+            <ShowcaseApiRow Name="Breakpoint" Type="Breakpoint" Default="Md"
+                            Description="Pivô da regra de visibilidade. Xs/Sm/Md/Lg/Xl/Xxl." />
+            <ShowcaseApiRow Name="Mode" Type="HiddenMode" Default="Down"
+                            Description="Down (esconde ≤Breakpoint), Up (esconde ≥), Only (apenas no exato)." />
+            <ShowcaseApiRow Name="Invert" Type="bool" Default="false"
+                            Description="Inverte a lógica — renderiza quando seria escondido." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo a mostrar/esconder. Não é instanciado quando hidden." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Diferenças vs MudHidden">
+            <ShowcaseApiRow Name="Mode enum" Type="enum" ShowDefault="false"
+                            Description="OmniHidden usa enum HiddenMode (Down/Up/Only). MudHidden usa Breakpoint composto (MdAndUp, SmAndDown)." />
+            <ShowcaseApiRow Name="Service-based" Type="—" ShowDefault="false"
+                            Description="OmniHidden assina BreakpointService (uma única JS subscription compartilhada). Sem listener duplicado." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    [CascadingParameter(Name = "Breakpoint")] public Breakpoint Current { get; set; } = Breakpoint.Md;
+
+    private string _currentLabel = "Md";
+
+    protected override void OnParametersSet() => _currentLabel = Current.ToString();
+}

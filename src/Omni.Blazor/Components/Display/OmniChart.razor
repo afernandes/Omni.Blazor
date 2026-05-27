@@ -1,0 +1,567 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@* SVG chart supporting Line, Area, Column, Bar, Pie and Donut series.
+   Single-component design: pass IEnumerable<ChartSeries> via the Series
+   parameter. Multiple cartesian series (Line/Area/Column/Bar) can coexist;
+   Pie/Donut take only the first series.
+
+   Renderização: ResizeObserver mede o container, viewBox usa PIXELS reais
+   (1 unidade SVG = 1 pixel). Sem isso, preserveAspectRatio="none" + viewBox
+   fixo 800x300 deformaria markers (círculos→elipses), text labels do eixo,
+   e textos do donut center em qualquer container de aspect ≠ 8:3.
+
+   IMPORTANT: SVG <text> elements are rendered via RenderTreeBuilder helpers
+   in @code (RenderSvgText). Razor reserves the literal <text> tag for its
+   own template directive, so we can't write <text>...</text> in markup. *@
+
+<div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+    @if (LegendPosition is ChartLegendPosition.Top && _series.Count > 0) { @LegendFragment }
+
+    @* @ref no SVG (não no wrapper) — wrapper inclui legenda, então tamanho
+       do wrapper ≠ tamanho do SVG. ResizeObserver no SVG mede o que importa. *@
+    <svg @ref="_hostEl" class="omni-chart-svg" viewBox="@ViewBox" preserveAspectRatio="none" role="img" aria-label="@(AriaLabel ?? Title ?? "Chart")">
+        @if (_isPie && _series.Count > 0)
+        {
+            @foreach (var slice in PieSlices())
+            {
+                <path d="@slice.Path" fill="@slice.Color"
+                      stroke="var(--omni-bg-elev)" stroke-width="1.5">
+                    <title>@slice.Label</title>
+                </path>
+            }
+            @if (_series[0].Type == ChartSeriesType.Donut && !string.IsNullOrEmpty(DonutCenterLabel))
+            {
+                @RenderSvgText(VW / 2, VH / 2 - 4, DonutCenterLabel!, "middle", "omni-chart-donut-label-top", null)
+            }
+            @if (_series[0].Type == ChartSeriesType.Donut && !string.IsNullOrEmpty(DonutCenterValue))
+            {
+                @RenderSvgText(VW / 2, VH / 2 + 14, DonutCenterValue!, "middle", "omni-chart-donut-value", null)
+            }
+        }
+        else if (_series.Count > 0 && _categories.Length > 0)
+        {
+            @* Grid *@
+            @if (ShowGrid)
+            {
+                @foreach (var yTick in YTicks())
+                {
+                    <line x1="@F(_marginL)" x2="@F(VW - _marginR)"
+                          y1="@F(yTick.Y)" y2="@F(yTick.Y)"
+                          stroke="var(--omni-line)" stroke-width="0.5" />
+                }
+            }
+
+            @* X axis line *@
+            <line x1="@F(_marginL)" x2="@F(VW - _marginR)"
+                  y1="@F(VH - _marginB)" y2="@F(VH - _marginB)"
+                  stroke="var(--omni-line-strong)" stroke-width="0.7" />
+
+            @* Y axis line *@
+            <line x1="@F(_marginL)" x2="@F(_marginL)"
+                  y1="@F(_marginT)" y2="@F(VH - _marginB)"
+                  stroke="var(--omni-line-strong)" stroke-width="0.7" />
+
+            @* Y tick labels *@
+            @foreach (var yTick in YTicks())
+            {
+                @RenderSvgText(_marginL - 5, yTick.Y + 3.5, yTick.Label, "end", "omni-chart-tick", null)
+            }
+
+            @* X tick labels — every Nth, plus always the last *@
+            @foreach (var (label, x, _) in XTickLabels())
+            {
+                @RenderSvgText(x, VH - _marginB + 12, label, "middle", "omni-chart-tick", null)
+            }
+
+            @* Columns *@
+            @foreach (var col in ColumnRects())
+            {
+                <rect x="@F(col.X)" y="@F(col.Y)" width="@F(col.W)" height="@F(col.H)" fill="@col.Color" rx="1">
+                    <title>@col.Title</title>
+                </rect>
+            }
+
+            @* Bars (horizontal) *@
+            @foreach (var bar in BarRects())
+            {
+                <rect x="@F(bar.X)" y="@F(bar.Y)" width="@F(bar.W)" height="@F(bar.H)" fill="@bar.Color" rx="1">
+                    <title>@bar.Title</title>
+                </rect>
+            }
+
+            @* Areas (fill under line + the line itself + optional markers) *@
+            @foreach (var s in _series.Where(s => s.Type == ChartSeriesType.Area))
+            {
+                var color = SeriesColor(s, _series.IndexOf(s));
+                <path d="@AreaPath(s)" fill="@color" fill-opacity="@F(s.AreaOpacity)" stroke="none" />
+                <path d="@LinePath(s)" fill="none" stroke="@color"
+                      stroke-width="@F(s.StrokeWidth)" stroke-linejoin="round" stroke-linecap="round" />
+                @if (s.ShowMarkers)
+                {
+                    @foreach (var (x, y, pt) in SeriePoints(s))
+                    {
+                        <circle cx="@F(x)" cy="@F(y)" r="2.5" fill="@color" stroke="var(--omni-bg-elev)" stroke-width="1">
+                            <title>@($"{s.Title}: {pt.Category} · {pt.Value:0.##}")</title>
+                        </circle>
+                    }
+                }
+            }
+
+            @* Lines *@
+            @foreach (var s in _series.Where(s => s.Type == ChartSeriesType.Line))
+            {
+                var color = SeriesColor(s, _series.IndexOf(s));
+                <path d="@LinePath(s)" fill="none" stroke="@color"
+                      stroke-width="@F(s.StrokeWidth)" stroke-linejoin="round" stroke-linecap="round" />
+                @if (s.ShowMarkers)
+                {
+                    @foreach (var (x, y, pt) in SeriePoints(s))
+                    {
+                        <circle cx="@F(x)" cy="@F(y)" r="2.5" fill="@color" stroke="var(--omni-bg-elev)" stroke-width="1">
+                            <title>@($"{s.Title}: {pt.Category} · {pt.Value:0.##}")</title>
+                        </circle>
+                    }
+                }
+            }
+        }
+    </svg>
+
+    @if (LegendPosition is ChartLegendPosition.Bottom && _series.Count > 0) { @LegendFragment }
+</div>
+
+@code {
+    /// <summary>As séries do chart. Para Pie/Donut, apenas a primeira é usada.</summary>
+    [Parameter, EditorRequired] public IEnumerable<ChartSeries> Series { get; set; } = Array.Empty<ChartSeries>();
+
+    /// <summary>Altura CSS do chart. Default <c>"260px"</c>.</summary>
+    [Parameter] public string Height { get; set; } = "260px";
+
+    /// <summary>Largura CSS do chart. Default <c>"100%"</c>.</summary>
+    [Parameter] public string Width { get; set; } = "100%";
+
+    /// <summary>Esquema de cores das séries. Default <c>Palette</c>.</summary>
+    [Parameter] public ChartColorScheme ColorScheme { get; set; } = ChartColorScheme.Palette;
+
+    /// <summary>Posição da legenda. Default <c>Bottom</c>.</summary>
+    [Parameter] public ChartLegendPosition LegendPosition { get; set; } = ChartLegendPosition.Bottom;
+
+    /// <summary>Mostra as linhas horizontais de grid. Default true.</summary>
+    [Parameter] public bool ShowGrid { get; set; } = true;
+
+    /// <summary>Título reservado para futuro header (atualmente não renderizado).</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Formatador customizado para o eixo de valores. Default <c>v.ToString("0.##")</c>.</summary>
+    [Parameter] public Func<double, string>? ValueFormatter { get; set; }
+
+    /// <summary>Número desejado de ticks no eixo de valores. Default 5.</summary>
+    [Parameter] public int ValueTicks { get; set; } = 5;
+
+    /// <summary>Rótulo central de um chart Donut (linha superior, pequena).</summary>
+    [Parameter] public string? DonutCenterLabel { get; set; }
+
+    /// <summary>Valor central de um chart Donut (linha inferior, grande).</summary>
+    [Parameter] public string? DonutCenterValue { get; set; }
+
+    /// <summary>aria-label customizado.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    // ─── Internal state ───────────────────────────────────────────────────
+    internal List<ChartSeries> _series = new();
+    internal string[] _categories = Array.Empty<string>();
+    private double _yMin, _yMax;
+    private bool _isPie;
+    private ElementReference _hostEl;
+    private DotNetObjectReference<OmniChart>? _selfRef;
+
+    // ParameterState: filtered series + categories + Y range only re-derive
+    // when the Series reference itself changes. ColorScheme/Height/etc. flow
+    // through their own getters.
+    private ParameterState<IEnumerable<ChartSeries>> _seriesState = null!;
+
+    protected override void OnInitialized()
+    {
+        _seriesState = RegisterParameter<IEnumerable<ChartSeries>>(nameof(Series))
+            .WithParameter(() => Series)
+            .WithChangeHandler(RecomputeFromSeries)
+            .Attach();
+    }
+
+    // viewBox em PIXELS REAIS — atualizado pelo ResizeObserver. Defaults
+    // razoáveis pro primeiro render antes do JS medir (evita SVG sem nada
+    // visível enquanto observer não dispara).
+    private double VW = 800;
+    private double VH = 300;
+    private double _marginL = 50, _marginR = 16, _marginT = 16, _marginB = 30;
+
+    private string RootCss => CssBuilder.Default("omni-chart")
+        .AddClass(Class)
+        .Build();
+    private string RootStyle => $"width:{Width};height:{Height};" + (Style ?? "");
+    private string ViewBox => $"0 0 {F(VW)} {F(VH)}";
+
+    private void RecomputeFromSeries()
+    {
+        _series = (Series ?? Array.Empty<ChartSeries>()).Where(s => s.Points.Any()).ToList();
+        if (_series.Count == 0) { _isPie = false; _categories = Array.Empty<string>(); return; }
+
+        _isPie = _series[0].Type is ChartSeriesType.Pie or ChartSeriesType.Donut;
+        if (_isPie)
+        {
+            _categories = _series[0].Points.Select(p => p.Category).ToArray();
+            _yMin = 0;
+            _yMax = _series[0].Points.Sum(p => p.Value);
+            return;
+        }
+
+        var allCats = new List<string>();
+        foreach (var p in _series.SelectMany(s => s.Points))
+            if (!allCats.Contains(p.Category)) allCats.Add(p.Category);
+        _categories = allCats.ToArray();
+
+        var allValues = _series.SelectMany(s => s.Points.Select(p => p.Value)).ToList();
+        _yMin = Math.Min(0, allValues.Min());
+        _yMax = allValues.Max();
+        if (_yMax - _yMin < 1e-9) _yMax = _yMin + 1;
+        _yMax += (_yMax - _yMin) * 0.05;
+        var range = _yMax - _yMin;
+        var step = NiceStep(range / ValueTicks);
+        _yMin = Math.Floor(_yMin / step) * step;
+        _yMax = Math.Ceiling(_yMax / step) * step;
+
+        // Horizontal Bar needs more room on the left for category labels.
+        if (_series.Any(s => s.Type == ChartSeriesType.Bar)) _marginL = 80;
+    }
+
+    private string SeriesColor(ChartSeries s, int idx)
+        => string.IsNullOrEmpty(s.Color) ? ChartPalette.ColorAt(ColorScheme, idx) : s.Color!;
+
+    // ─── Cartesian scales ─────────────────────────────────────────────────
+
+    private double CategoryX(int idx)
+    {
+        var plotW = VW - _marginL - _marginR;
+        if (_categories.Length == 1) return _marginL + plotW / 2;
+        return _marginL + plotW * idx / (_categories.Length - 1.0);
+    }
+
+    private double ValueY(double v)
+    {
+        var plotH = VH - _marginT - _marginB;
+        var norm = (v - _yMin) / (_yMax - _yMin);
+        return _marginT + plotH * (1 - norm);
+    }
+
+    private double ValueXHorizontal(double v)
+    {
+        var plotW = VW - _marginL - _marginR;
+        var norm = (v - _yMin) / (_yMax - _yMin);
+        return _marginL + plotW * norm;
+    }
+
+    private IEnumerable<(double Y, string Label)> YTicks()
+    {
+        var step = (_yMax - _yMin) / Math.Max(1, ValueTicks);
+        for (int i = 0; i <= ValueTicks; i++)
+        {
+            var v = _yMin + step * i;
+            yield return (ValueY(v),
+                ValueFormatter is not null
+                    ? ValueFormatter(v)
+                    : v.ToString("0.##", CultureInfo.InvariantCulture));
+        }
+    }
+
+    private IEnumerable<(string Label, double X, int Index)> XTickLabels()
+    {
+        var labelEvery = Math.Max(1, _categories.Length / 12);
+        for (int i = 0; i < _categories.Length; i++)
+        {
+            if (i % labelEvery != 0 && i != _categories.Length - 1) continue;
+            yield return (_categories[i], CategoryX(i), i);
+        }
+    }
+
+    private static double NiceStep(double raw)
+    {
+        if (raw <= 0) return 1;
+        var exp = Math.Floor(Math.Log10(raw));
+        var f = raw / Math.Pow(10, exp);
+        double nf = f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10;
+        return nf * Math.Pow(10, exp);
+    }
+
+    // ─── Column rects (precomputed flat list to keep markup simple) ──────
+
+    private IEnumerable<(double X, double Y, double W, double H, string Color, string Title)> ColumnRects()
+    {
+        var columnSeries = _series.Where(s => s.Type == ChartSeriesType.Column).ToList();
+        if (columnSeries.Count == 0) yield break;
+        var plotW = VW - _marginL - _marginR;
+        var slotW = plotW / _categories.Length;
+        var groupW = slotW * 0.7;
+        var barW = groupW / columnSeries.Count;
+        for (int s = 0; s < columnSeries.Count; s++)
+        {
+            var serie = columnSeries[s];
+            var color = SeriesColor(serie, _series.IndexOf(serie));
+            var pts = serie.Points.ToList();
+            for (int i = 0; i < _categories.Length; i++)
+            {
+                var pt = pts.FirstOrDefault(p => p.Category == _categories[i]);
+                if (pt is null) continue;
+                var yTop = ValueY(pt.Value);
+                var yBot = ValueY(Math.Max(0, _yMin));
+                var x = _marginL + i * slotW + (slotW - groupW) / 2 + s * barW + barW * 0.1;
+                var w = barW * 0.8;
+                var y = Math.Min(yTop, yBot);
+                var h = Math.Max(0.5, Math.Abs(yTop - yBot));
+                yield return (x, y, w, h, color, $"{serie.Title}: {pt.Category} · {pt.Value:0.##}");
+            }
+        }
+    }
+
+    private IEnumerable<(double X, double Y, double W, double H, string Color, string Title)> BarRects()
+    {
+        var barSeries = _series.Where(s => s.Type == ChartSeriesType.Bar).ToList();
+        if (barSeries.Count == 0) yield break;
+        var plotH = VH - _marginT - _marginB;
+        var slotH = plotH / _categories.Length;
+        var groupH = slotH * 0.7;
+        var barH = groupH / barSeries.Count;
+        for (int s = 0; s < barSeries.Count; s++)
+        {
+            var serie = barSeries[s];
+            var color = SeriesColor(serie, _series.IndexOf(serie));
+            var pts = serie.Points.ToList();
+            for (int i = 0; i < _categories.Length; i++)
+            {
+                var pt = pts.FirstOrDefault(p => p.Category == _categories[i]);
+                if (pt is null) continue;
+                var xRight = ValueXHorizontal(pt.Value);
+                var xLeft = ValueXHorizontal(Math.Max(0, _yMin));
+                var y = _marginT + i * slotH + (slotH - groupH) / 2 + s * barH + barH * 0.1;
+                var h = barH * 0.8;
+                var x = Math.Min(xLeft, xRight);
+                var w = Math.Max(0.5, Math.Abs(xRight - xLeft));
+                yield return (x, y, w, h, color, $"{serie.Title}: {pt.Category} · {pt.Value:0.##}");
+            }
+        }
+    }
+
+    // ─── Line / Area paths ────────────────────────────────────────────────
+
+    private IEnumerable<(double X, double Y, ChartDataPoint Pt)> SeriePoints(ChartSeries s)
+    {
+        foreach (var pt in s.Points)
+        {
+            var idx = Array.IndexOf(_categories, pt.Category);
+            if (idx < 0) continue;
+            yield return (CategoryX(idx), ValueY(pt.Value), pt);
+        }
+    }
+
+    private string LinePath(ChartSeries s)
+    {
+        var sb = new System.Text.StringBuilder();
+        var pts = SeriePoints(s).ToList();
+        if (pts.Count == 0) return "";
+
+        if (s.Interpolation == ChartInterpolation.Step)
+        {
+            for (int i = 0; i < pts.Count; i++)
+            {
+                if (i == 0) sb.Append('M').Append(F(pts[i].X)).Append(' ').Append(F(pts[i].Y));
+                else
+                {
+                    var midX = (pts[i].X + pts[i - 1].X) / 2;
+                    sb.Append(" L ").Append(F(midX)).Append(' ').Append(F(pts[i - 1].Y));
+                    sb.Append(" L ").Append(F(midX)).Append(' ').Append(F(pts[i].Y));
+                    sb.Append(" L ").Append(F(pts[i].X)).Append(' ').Append(F(pts[i].Y));
+                }
+            }
+        }
+        else if (s.Interpolation == ChartInterpolation.Smooth && pts.Count >= 2)
+        {
+            sb.Append('M').Append(F(pts[0].X)).Append(' ').Append(F(pts[0].Y));
+            for (int i = 1; i < pts.Count; i++)
+            {
+                var prev = pts[i - 1];
+                var cur = pts[i];
+                var cx1 = prev.X + (cur.X - prev.X) / 3;
+                var cy1 = prev.Y;
+                var cx2 = cur.X - (cur.X - prev.X) / 3;
+                var cy2 = cur.Y;
+                sb.Append(" C ").Append(F(cx1)).Append(' ').Append(F(cy1)).Append(' ')
+                  .Append(F(cx2)).Append(' ').Append(F(cy2)).Append(' ')
+                  .Append(F(cur.X)).Append(' ').Append(F(cur.Y));
+            }
+        }
+        else
+        {
+            for (int i = 0; i < pts.Count; i++)
+            {
+                sb.Append(i == 0 ? 'M' : 'L');
+                sb.Append(F(pts[i].X)).Append(' ').Append(F(pts[i].Y));
+                if (i < pts.Count - 1) sb.Append(' ');
+            }
+        }
+        return sb.ToString();
+    }
+
+    private string AreaPath(ChartSeries s)
+    {
+        var pts = SeriePoints(s).ToList();
+        if (pts.Count == 0) return "";
+        var baseline = ValueY(Math.Max(0, _yMin));
+        var sb = new System.Text.StringBuilder(LinePath(s));
+        sb.Append(" L ").Append(F(pts[^1].X)).Append(' ').Append(F(baseline));
+        sb.Append(" L ").Append(F(pts[0].X)).Append(' ').Append(F(baseline));
+        sb.Append(" Z");
+        return sb.ToString();
+    }
+
+    // ─── Pie / Donut slices ───────────────────────────────────────────────
+
+    private IEnumerable<(string Path, string Color, string Label)> PieSlices()
+    {
+        if (_series.Count == 0) yield break;
+        var serie = _series[0];
+        var pts = serie.Points.ToList();
+        var total = pts.Sum(p => p.Value);
+        if (total <= 0) yield break;
+
+        var cx = VW / 2; var cy = VH / 2;
+        var r = Math.Min(VW, VH) / 2 - 16;
+        var rInner = serie.Type == ChartSeriesType.Donut ? r * 0.55 : 0;
+
+        double angle = -Math.PI / 2;
+        for (int i = 0; i < pts.Count; i++)
+        {
+            var pt = pts[i];
+            var sweep = pt.Value / total * Math.PI * 2;
+            var end = angle + sweep;
+            var largeArc = sweep > Math.PI ? 1 : 0;
+
+            var x1 = cx + r * Math.Cos(angle);
+            var y1 = cy + r * Math.Sin(angle);
+            var x2 = cx + r * Math.Cos(end);
+            var y2 = cy + r * Math.Sin(end);
+
+            string path;
+            if (rInner > 0)
+            {
+                var xi1 = cx + rInner * Math.Cos(angle);
+                var yi1 = cy + rInner * Math.Sin(angle);
+                var xi2 = cx + rInner * Math.Cos(end);
+                var yi2 = cy + rInner * Math.Sin(end);
+                path = $"M {F(x1)} {F(y1)} A {F(r)} {F(r)} 0 {largeArc} 1 {F(x2)} {F(y2)} L {F(xi2)} {F(yi2)} A {F(rInner)} {F(rInner)} 0 {largeArc} 0 {F(xi1)} {F(yi1)} Z";
+            }
+            else
+            {
+                path = $"M {F(cx)} {F(cy)} L {F(x1)} {F(y1)} A {F(r)} {F(r)} 0 {largeArc} 1 {F(x2)} {F(y2)} Z";
+            }
+
+            var color = !string.IsNullOrEmpty(pt.Color) ? pt.Color!
+                       : !string.IsNullOrEmpty(serie.Color) ? serie.Color!
+                       : ChartPalette.ColorAt(ColorScheme, i);
+            var pct = (pt.Value / total * 100).ToString("0.#", CultureInfo.InvariantCulture);
+            yield return (path, color, $"{pt.Category}: {pt.Value:0.##} ({pct}%)");
+
+            angle = end;
+        }
+    }
+
+    // ─── Legend (built imperatively to avoid more SVG <text> issues) ─────
+
+    private RenderFragment LegendFragment => builder =>
+    {
+        var items = _isPie && _series.Count > 0
+            ? _series[0].Points.Select((p, i) => (
+                Label: p.Category,
+                Color: !string.IsNullOrEmpty(p.Color) ? p.Color! :
+                       !string.IsNullOrEmpty(_series[0].Color) ? _series[0].Color! :
+                       ChartPalette.ColorAt(ColorScheme, i)
+              )).ToList()
+            : _series.Select((s, i) => (
+                Label: string.IsNullOrEmpty(s.Title) ? $"Série {i + 1}" : s.Title,
+                Color: SeriesColor(s, i)
+              )).ToList();
+
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "omni-chart-legend");
+        foreach (var item in items)
+        {
+            builder.OpenElement(2, "div");
+            builder.AddAttribute(3, "class", "omni-chart-legend-item");
+            builder.OpenElement(4, "span");
+            builder.AddAttribute(5, "class", "omni-chart-legend-swatch");
+            builder.AddAttribute(6, "style", $"background: {item.Color};");
+            builder.CloseElement();
+            builder.OpenElement(7, "span");
+            builder.AddAttribute(8, "class", "omni-chart-legend-label");
+            builder.AddContent(9, item.Label);
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    // ─── SVG <text> helper (Razor reserves the literal <text> tag) ───────
+
+    private static RenderFragment RenderSvgText(double x, double y, string content,
+        string anchor, string cssClass, string? style) => builder =>
+    {
+        builder.OpenElement(0, "text");
+        builder.AddAttribute(1, "x", F(x));
+        builder.AddAttribute(2, "y", F(y));
+        builder.AddAttribute(3, "text-anchor", anchor);
+        builder.AddAttribute(4, "class", cssClass);
+        if (style is not null) builder.AddAttribute(5, "style", style);
+        builder.AddContent(6, content);
+        builder.CloseElement();
+    };
+
+    private static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+
+    // ─── Dynamic sizing via ResizeObserver ────────────────────────────────
+    // Mesmo padrão do OmniSparkline: medir o container e usar viewBox em
+    // pixels reais pra que circles fiquem redondos, text seja crisp, strokes
+    // tenham espessura uniforme — em qualquer aspect ratio.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.observeSparklineSize",
+                _hostEl, _selfRef, nameof(OnSizeChangedInternal));
+        }
+        catch { /* SSR / JS gone */ }
+    }
+
+    [JSInvokable]
+    public Task OnSizeChangedInternal(double w, double h)
+    {
+        if (Math.Abs(w - VW) < 0.5 && Math.Abs(h - VH) < 0.5) return Task.CompletedTask;
+        VW = Math.Max(1, w);
+        VH = Math.Max(1, h);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("omniBlazor.unobserveSparklineSize", _hostEl); } catch { }
+        _selfRef?.Dispose();
+        _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+}

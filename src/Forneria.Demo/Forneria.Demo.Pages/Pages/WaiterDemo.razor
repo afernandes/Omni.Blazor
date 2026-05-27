@@ -1,0 +1,244 @@
+@page "/garcom"
+@layout AppShellWaiter
+@using System.Globalization
+
+<PageTitle>Forneria · Garçom</PageTitle>
+
+@*  /garcom — Frente do garçom (tablet UI). 3 colunas full-screen:
+    LEFT (304px): tabs (Mesas/Comandas/Balcão) + busca + grid 2-col de mesas
+    CENTER:        head da mesa selecionada + categorias + grid de produtos
+    RIGHT (380px): comanda da mesa (head + pax + linhas + totais + footer)
+
+    Estilo "tile/lego" do PDV — divisores 1px, sem cards arejados. Cores e
+    estados das mesas: free / busy / attention / bill / selected.
+    Markup adaptado do mock garcom.html da Anthropic Design (sistema-pizzaria). *@
+
+<div class="omni-gx-body">
+
+    <!-- ──────── LEFT — mesas ──────── -->
+    <aside class="omni-gx-left">
+        <div class="omni-gx-left-tabs">
+            <button class="omni-gx-tab omni-gx-tab-on">Mesas</button>
+            <button class="omni-gx-tab">Comandas</button>
+            <button class="omni-gx-tab">Balcão</button>
+        </div>
+        <div class="omni-gx-left-search">
+            <label class="omni-gx-input">
+                <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                <input placeholder="Buscar mesa, comanda…" />
+            </label>
+        </div>
+
+        <div class="omni-gx-tables">
+            @foreach (var m in _mesas)
+            {
+                <button class="@MesaCss(m)">
+                    <div>
+                        <div class="omni-gx-mesa-num">@m.Numero</div>
+                        <div class="omni-gx-mesa-status">
+                            <span class="omni-gx-mesa-status-dot"></span>@m.StatusLabel
+                        </div>
+                    </div>
+                    <div class="omni-gx-mesa-bottom">
+                        @if (m.IsOpen)
+                        {
+                            <span class="omni-mono">@m.Time</span>
+                            <span class="omni-gx-mesa-val omni-mono">R$ @m.Total</span>
+                        }
+                        else
+                        {
+                            <span>@m.Seats lugares</span>
+                        }
+                    </div>
+                </button>
+            }
+        </div>
+    </aside>
+
+    <!-- ──────── CENTER — head + categorias + produtos ──────── -->
+    <main class="omni-gx-center">
+        <div class="omni-gx-mesa-head">
+            <div class="omni-gx-mesa-head-l">
+                <div class="omni-gx-mesa-head-num">07</div>
+                <div>
+                    <h1>Mesa 07</h1>
+                    <div class="omni-gx-mesa-head-sub">
+                        <span>3 pessoas</span>
+                        <span class="omni-gx-mesa-head-sep">·</span>
+                        <span>Aberta há 24 min</span>
+                        <span class="omni-gx-mesa-head-sep">·</span>
+                        <span class="omni-gx-mesa-head-good">Cozinha em 12 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="omni-gx-mesa-head-r">
+                <OmniButton Text="Dividir conta" Icon="check-circle" Variant="ButtonVariant.Default" Size="ComponentSize.Sm" />
+                <OmniButton Text="Pré-conta"      Icon="printer"      Variant="ButtonVariant.Default" Size="ComponentSize.Sm" />
+                <OmniButton Text="Fechar mesa"    Icon="arrow-right"  Variant="ButtonVariant.Primary" Size="ComponentSize.Sm" />
+            </div>
+        </div>
+
+        <div class="omni-gx-cats">
+            @foreach (var (cat, count, on) in _cats)
+            {
+                <button class="@($"omni-gx-cat {(on ? "omni-gx-cat-on" : "")}")">
+                    @cat
+                    <span class="omni-gx-cat-ct omni-mono">@count</span>
+                </button>
+            }
+        </div>
+
+        <div class="omni-gx-products">
+            @foreach (var p in _prods)
+            {
+                <button class="omni-gx-prod">
+                    @if (p.Tag is not null)
+                    {
+                        <span class="@($"omni-gx-prod-tag {p.TagCls}")">@p.Tag</span>
+                    }
+                    <div class="omni-gx-prod-name">@p.Name</div>
+                    <div class="omni-gx-prod-desc">@p.Desc</div>
+                    <div class="omni-gx-prod-foot">
+                        <span class="omni-gx-prod-price omni-mono">R$ @p.Price</span>
+                        <span class="omni-gx-prod-add">+</span>
+                    </div>
+                </button>
+            }
+        </div>
+    </main>
+
+    <!-- ──────── RIGHT — comanda ──────── -->
+    <aside class="omni-gx-right">
+        <div class="omni-gx-comanda-head">
+            <h2>Comanda <span class="omni-gx-comanda-num omni-mono">#0247</span></h2>
+            <span class="omni-gx-comanda-who">Ricardo M.</span>
+        </div>
+
+        <div class="omni-gx-pax">
+            <span>Pessoas na mesa</span>
+            <div class="omni-gx-pax-ctrl">
+                <button>−</button>
+                <span class="omni-gx-pax-v omni-mono">3</span>
+                <button>+</button>
+            </div>
+        </div>
+
+        <div class="omni-gx-comanda-list">
+            @foreach (var l in _linhas)
+            {
+                <div class="omni-gx-line">
+                    <div class="omni-gx-line-qty omni-mono">@l.Qty×</div>
+                    <div class="omni-gx-line-body">
+                        <div class="omni-gx-line-name">@l.Name</div>
+                        @foreach (var mod in l.Mods)
+                        {
+                            <div class="@($"omni-gx-line-mod {mod.Cls}")">@mod.Text</div>
+                        }
+                        <span class="@($"omni-gx-line-status {l.StatusCls}")">@l.StatusText</span>
+                    </div>
+                    <div class="omni-gx-line-price omni-mono">R$ @l.Price</div>
+                </div>
+            }
+        </div>
+
+        <div class="omni-gx-comanda-totals">
+            <div class="omni-gx-tt-row">
+                <span>Subtotal</span>
+                <span class="omni-gx-tt-v omni-mono">R$ 294,40</span>
+            </div>
+            <div class="omni-gx-tt-row">
+                <span>Serviço (10%)</span>
+                <span class="omni-gx-tt-v omni-mono">R$ 29,44</span>
+            </div>
+            <div class="omni-gx-tt-row omni-gx-tt-total">
+                <span>Total</span>
+                <span class="omni-gx-tt-v omni-mono">R$ 323,84</span>
+            </div>
+        </div>
+
+        <div class="omni-gx-comanda-foot">
+            <OmniButton Text="Limpar"      Icon="trash"     Variant="ButtonVariant.Default" Size="ComponentSize.Sm" />
+            <OmniButton Text="Observação"  Icon="file-text" Variant="ButtonVariant.Default" Size="ComponentSize.Sm" />
+            <button class="omni-gx-send">
+                Enviar para cozinha<span class="omni-gx-send-badge omni-mono">2 itens</span>
+            </button>
+        </div>
+    </aside>
+
+</div>
+
+@code {
+    // ─── mesas ───────────────────────────────────────────────────────
+    private record Mesa(string Numero, string State, string StatusLabel,
+                       bool IsOpen, string Time, string Total, int Seats,
+                       bool Selected = false);
+
+    private static readonly Mesa[] _mesas =
+    {
+        new("01", "free",      "Livre",    false, "", "",       4),
+        new("02", "busy",      "Ocupada",  true,  "00:42", "184", 0),
+        new("03", "busy",      "Ocupada",  true,  "00:18", "76",  0),
+        new("04", "free",      "Livre",    false, "", "",       2),
+        new("05", "attention", "Chamou",   true,  "01:12", "312", 0),
+        new("06", "busy",      "Ocupada",  true,  "00:32", "142", 0),
+        new("07", "busy",      "Ocupada",  true,  "00:24", "156", 0, Selected: true),
+        new("08", "bill",      "Conta",    true,  "01:38", "248", 0),
+        new("09", "free",      "Livre",    false, "", "",       4),
+        new("10", "busy",      "Ocupada",  true,  "00:08", "28",  0),
+        new("11", "attention", "Chamou",   true,  "00:54", "98",  0),
+        new("12", "free",      "Livre",    false, "", "",       6),
+    };
+
+    private string MesaCss(Mesa m) =>
+        $"omni-gx-mesa omni-gx-mesa-{m.State}" + (m.Selected ? " omni-gx-mesa-selected" : "");
+
+    // ─── categorias ──────────────────────────────────────────────────
+    private static readonly (string Name, int Count, bool On)[] _cats =
+    {
+        ("Pizzas Salgadas", 28, true),
+        ("Pizzas Doces",    12, false),
+        ("Burgers",          6, false),
+        ("Entradas",         9, false),
+        ("Saladas",          5, false),
+        ("Bebidas",         22, false),
+        ("Vinhos",          14, false),
+        ("Sobremesas",       7, false),
+    };
+
+    // ─── produtos ────────────────────────────────────────────────────
+    private record Prod(string Name, string Desc, string Price, string? Tag = null, string TagCls = "");
+
+    private static readonly Prod[] _prods =
+    {
+        new("Margherita",         "Mussarela de búfala, manjericão, San Marzano.",          "56,90", "Vegetariana", "omni-gx-prod-tag-veg"),
+        new("Calabresa",          "Calabresa fatiada, cebola, mussarela e azeitona preta.", "58,90"),
+        new("Portuguesa",         "Presunto, ovos, cebola, ervilha, azeitona e mussarela.", "64,90"),
+        new("Pepperoni Picante",  "Pepperoni curado, mussarela, óleo de pimenta calabresa.", "68,90", "Nova", "omni-gx-prod-tag-new"),
+        new("Quatro Queijos",     "Mussarela, gorgonzola, parmesão e provolone.",            "72,90"),
+        new("Frango c/ Catupiry", "Frango desfiado, catupiry original e milho.",            "62,90"),
+        new("Carbonara",          "Bacon, gema curada, parmesão e pimenta-do-reino.",       "70,90"),
+        new("Vegetariana",        "Abobrinha, berinjela, pimentão, tomate-cereja, cebola roxa.", "60,90", "Vegetariana", "omni-gx-prod-tag-veg"),
+        new("Búfala",             "Mussarela de búfala, tomate-cereja, manjericão.",        "66,90"),
+    };
+
+    // ─── comanda ─────────────────────────────────────────────────────
+    private record Mod(string Text, string Cls = "");
+    private record Linha(int Qty, string Name, string Price,
+                        string StatusText, string StatusCls, Mod[] Mods);
+
+    private static readonly Linha[] _linhas =
+    {
+        new(2, "Pizza Calabresa Grande", "137,80", "Enviado · 12min", "omni-gx-line-status-sent", new[]
+        {
+            new Mod("Borda de catupiry"),
+            new Mod("Sem azeitona", "omni-gx-line-mod-minus"),
+        }),
+        new(1, "Pizza Margherita Média", "48,90", "Enviado · 12min", "omni-gx-line-status-sent", Array.Empty<Mod>()),
+        new(3, "Heineken Long Neck",     "35,70", "Enviado · 18min", "omni-gx-line-status-sent", Array.Empty<Mod>()),
+        new(1, "Bruschetta da Casa",     "28,00", "Adicionar",       "omni-gx-line-status-draft", new[]
+        {
+            new Mod("Servir antes das pizzas", "omni-gx-line-mod-note"),
+        }),
+        new(2, "Petit Gâteau",           "44,00", "Adicionar",       "omni-gx-line-status-draft", Array.Empty<Mod>()),
+    };
+}

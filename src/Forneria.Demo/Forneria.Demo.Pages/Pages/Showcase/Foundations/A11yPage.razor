@@ -1,0 +1,240 @@
+@page "/showcase/a11y"
+@layout ShowcaseLayout
+
+<PageTitle>Acessibilidade — Showcase</PageTitle>
+
+<ShowcasePage Title="Acessibilidade (WCAG 2.1 AA)"
+              Subtitle="10 features automáticas — drawer overlay com focus trap + Esc, skip-link, prefers-* observers, safe-area, print styles.">
+
+    <Overview>
+        <p>
+            A biblioteca implementa as principais práticas de acessibilidade da WCAG 2.1 AA
+            <strong>automaticamente</strong>. Você não precisa de código adicional — toda a
+            cobertura está nos componentes core e no SCSS global. Esta página documenta o
+            que está ativo e como testar cada item.
+        </p>
+        <div class="omni-alert omni-alert-success" style="margin-top: 12px;">
+            <OmniIcon Name="check-circle" Size="ComponentSize.Sm" />
+            <div>
+                Implementado em ~150 linhas de SCSS + ~120 linhas de JS helpers + integrações nos
+                componentes existentes (OmniDrawer, OmniLayout, OmniMain, OmniTheme).
+            </div>
+        </div>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Sempre. A acessibilidade é responsabilidade de toda app — esta lib facilita.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="1 · PREFERS-COLOR-SCHEME — auto-sync com OS"
+                         Description="Quando o usuário não escolheu manualmente, a app segue o dark/light do sistema operacional. Sem FOUC (Flash of Unstyled Content)."
+                         Code="@(@"@* OmniTheme.razor inline script (in <head>) *@
+<script>
+  (function () {
+    var h = document.documentElement;
+    var dark = false;
+    var hasSaved = false;
+    try {
+      var saved = localStorage.getItem('omni.theme');
+      if (saved) { hasSaved = true; /* parse... */ }
+    } catch {}
+    if (!hasSaved && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      dark = true;
+    }
+    if (dark) h.setAttribute('data-theme', 'dark');
+  })();
+</script>")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> abra DevTools → Rendering → "Emulate CSS prefers-color-scheme: dark".
+                Limpe o localStorage. Recarregue. A app abre em dark sem flash.
+            </p>
+            <p class="omni-muted">
+                O <code>ThemeService</code> também assina <code>matchMedia change</code> via
+                <code>omniBlazor.subscribeColorScheme</code>, então mudanças do OS em runtime
+                aplicam ao vivo (sem F5).
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="2 · PREFERS-REDUCED-MOTION — desliga animações"
+                         Description="Respeita users com sensibilidade vestibular. SCSS global ativa transições mínimas (0.01ms) e desabilita keyframes."
+                         Code="@(@"@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> DevTools → Rendering → "Emulate prefers-reduced-motion: reduce".
+                Abra qualquer drawer overlay — abre instantâneo, sem slide-in.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="3 · BODY SCROLL LOCK — drawer overlay impede scroll de fundo"
+                         Description="ScrollManager counter-based: múltiplos overlays compõem corretamente (dialog dentro de drawer)."
+                         Code="@(@"// OmniDrawer.ActivateOverlayAsync
+await Scroll.LockScrollAsync(""html"");
+// ... when closes:
+await Scroll.UnlockScrollAsync(""html"");")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> redimensione para mobile (≤1024px). Abra o drawer pelo hamburger.
+                Tente rolar o main por trás do overlay — bloqueado.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="4 · ESC FECHA OVERLAY + FOCUS RESTORE"
+                         Description="JS overlay helper: keydown global captura Esc enquanto overlay ativo. Ao fechar, foco volta ao elemento de origem (hamburger)."
+                         Code="@(@"// omni.js setupOverlay(id, selector, onEsc)
+function escKey(e) {
+  if (e.key !== 'Escape') return;
+  onEsc.dotnet.invokeMethodAsync('OnEscape');
+}
+document.addEventListener('keydown', keyHandler, true);
+
+// On teardown: restore previously-focused element
+ctx.prevFocus.focus({ preventScroll: true });")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> Tab até o hamburger. Enter para abrir drawer.
+                Esc para fechar. Foco volta ao hamburger.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="5 · FOCUS TRAP — Tab cycla dentro do overlay"
+                         Description="JS focus trap: Tab/Shift+Tab loopam entre os elementos focáveis dentro do drawer overlay. Não escapa pro background."
+                         Code="@(@"// omni.js setupOverlay — Tab handler
+function trapKey(e) {
+  if (e.key !== 'Tab') return;
+  const items = focusableWithin(el);
+  if (e.shiftKey && document.activeElement === items[0]) {
+    e.preventDefault();
+    items[items.length - 1].focus();
+  }
+  // ... mirror for forward Tab
+}")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> abra drawer overlay. Tab repetido — foco circula entre os
+                itens do menu, sem escapar para o conteúdo de fundo.
+            </p>
+            <div style="background:var(--omni-accent-softer);border-left:3px solid var(--omni-accent);padding:10px 14px;border-radius:4px;margin-top:12px;">
+                <p style="margin:0;font-size:13px;">
+                    💡 A mesma primitiva JS habilita uma família de <strong>5 markers HTML</strong>
+                    para autofocus, Enter, Esc, Tab cycling e Enter-as-Tab — em overlays E em forms
+                    inline. Veja a página dedicada
+                    <a href="/showcase/ux-markers"><strong>UX Markers (HTML)</strong></a>.
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="6 · SKIP-TO-CONTENT — primeiro Tab pula chrome"
+                         Description="Link &lt;a class='omni-skip-link' href='#main'&gt; visível só ao foco. Renderizado pelo OmniLayout (opt-in via SkipToContent=true, default)."
+                         Code="@(@"<OmniLayout SkipToContent=""true"" SkipLabel=""Pular para o conteúdo"" SkipTarget=""#main"">
+    <OmniAppBar>...</OmniAppBar>
+    <OmniMain>@Body</OmniMain>  @* OmniMain renderiza id=""main"" + tabindex=""-1"" *@
+</OmniLayout>")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> aperte Tab no início da página. Aparece o link "Pular
+                para o conteúdo" no canto superior esquerdo. Enter → foco vai pro <code>&lt;main&gt;</code>.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="7 · SAFE-AREA-INSET — respeita notch do iPhone"
+                         Description="Requer viewport-fit=cover no host. AppBar/Drawer/Footer usam env(safe-area-inset-*) para padding adequado."
+                         Code="@(@"@* App.razor *@
+<meta name=""viewport"" content=""width=device-width, initial-scale=1.0, viewport-fit=cover"" />
+
+@* _components.scss *@
+.omni-appbar[data-pos=""top""] {
+  padding-top: max(0px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+}
+.omni-footer {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> DevTools → Toggle device → iPhone 14 Pro (com notch).
+                O AppBar respeita a área segura.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="8 · :FOCUS-VISIBLE — outline accent consistente"
+                         Description="Padrão moderno (não substitui :focus). Mostra outline custom só com keyboard nav, nunca em mouse click."
+                         Code="@(@":where(button, a, [role=""button""], [tabindex]:not([tabindex=""-1""]),
+       input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 2px;
+  border-radius: var(--omni-radius-sm, 6px);
+}")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> Tab em qualquer elemento focável — outline accent.
+                Clique no mesmo elemento com mouse — sem outline (graças ao <code>:focus-visible</code>).
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="9 · PRINT STYLES — esconde chrome ao imprimir"
+                         Description="@@media print remove AppBar/Drawer/Footer/toolbar/backdrop/skip-link. Main expande full-width B&W para economizar tinta."
+                         Code="@(@"@media print {
+  .omni-appbar, .omni-drawer, .omni-footer,
+  .omni-toolbar, .omni-drawer-toggle, .omni-skip-link {
+    display: none !important;
+  }
+  .omni-layout {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .omni-main {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  a[href]::after { content: "" ("" attr(href) "")""; }
+}")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> em qualquer rota, Ctrl+P. Preview mostra apenas o conteúdo
+                do main, sem AppBar/Drawer. URLs aparecem após links (acessível para impressão).
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="10 · DRAWER AUTO-CLOSE ON NAVIGATION"
+                         Description="Em modo overlay (Temporary ou Responsive-mobile), o drawer fecha automaticamente quando o user clica num link de menu."
+                         Code="@(@"// OmniDrawer.OnInitializedAsync
+Nav.LocationChanged += OnLocationChanged;
+
+private void OnLocationChanged(object? _, LocationChangedEventArgs e)
+{
+    if (IsOverlayMode && Open)
+        _ = InvokeAsync(async () => { await CloseAsync(); });
+}")">
+            <p class="omni-muted">
+                <strong>Como testar:</strong> redimensione para mobile. Abra drawer pelo hamburger.
+                Clique num item do menu — fecha sozinho. UX padrão mobile.
+            </p>
+            <p class="omni-muted">
+                Desabilite via <code>&lt;OmniDrawer AutoCloseOnNavigate="false"&gt;</code> se quiser
+                comportamento custom.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Onde está implementado">
+            <ShowcaseApiRow Name="OmniTheme.razor" Type="inline script" ShowDefault="false"
+                            Description="prefers-color-scheme initial read + ThemeService.OnColorSchemeChanged JSInvokable." />
+            <ShowcaseApiRow Name="OmniDrawer.razor" Type="component" ShowDefault="false"
+                            Description="Body lock, Esc handler, focus trap (via setupOverlay JS), auto-close on nav." />
+            <ShowcaseApiRow Name="OmniLayout.razor" Type="component" ShowDefault="false"
+                            Description="SkipToContent + SkipLabel + SkipTarget params (default ativo)." />
+            <ShowcaseApiRow Name="OmniMain.razor" Type="component" ShowDefault="false"
+                            Description='Renderiza <main id="main" tabindex="-1"> — alvo do skip-link.' />
+            <ShowcaseApiRow Name="_components.scss" Type="SCSS" ShowDefault="false"
+                            Description="prefers-reduced-motion, safe-area-inset, focus-visible, media print, skip-link styles." />
+            <ShowcaseApiRow Name="omni.js" Type="JS helpers" ShowDefault="false"
+                            Description="setupOverlay, teardownOverlay, subscribeColorScheme, unsubscribeColorScheme, prefersColorSchemeDark." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>

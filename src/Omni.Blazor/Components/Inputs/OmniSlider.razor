@@ -1,0 +1,426 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<double>
+@inject IJSRuntime JS
+@using System.Globalization
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*  Slider unificado — single ou range (2 thumbs) com Range=true.
+    Drag via pointer events + keyboard (←/→/Home/End/PageUp/PageDown).
+    Min/Max/Step, ticks visuais opcionais, labels de valor, marcas customizadas.
+
+    Two-way binding:
+      • Single:  @bind-Value="myDouble"
+      • Range:   @bind-ValueStart="from" @bind-ValueEnd="to" (Range=true)
+
+    A11y:
+      • role="slider" em cada thumb
+      • aria-valuemin/max/now atualizados ao vivo
+      • aria-orientation
+      • Foco visível, suporte completo a teclado *@
+
+<div @ref="_trackEl"
+     id="@Id"
+     class="@RootCss"
+     style="@RootStyle"
+     @onpointerdown="OnTrackPointerDown"
+     @onpointermove="OnTrackPointerMove"
+     @onpointerup="OnTrackPointerUp"
+     @onpointercancel="OnTrackPointerUp"
+     @attributes="Attributes">
+    @* Track inativa (faixa cinza completa) *@
+    <div class="omni-slider-track-bg"></div>
+
+    @* Track ativa (faixa accent entre os valores) *@
+    <div class="omni-slider-track-active" style="@ActiveTrackStyle"></div>
+
+    @* Ticks opcionais *@
+    @if (ShowTicks && _ticks.Count > 0)
+    {
+        @foreach (var tickPct in _ticks)
+        {
+            <div class="omni-slider-tick" style="@TickStyle(tickPct)"></div>
+        }
+    }
+
+    @* Marcas customizadas (label embaixo) *@
+    @if (Marks is not null)
+    {
+        @foreach (var mark in Marks)
+        {
+            var pct = ValueToPercent(mark.Value);
+            <div class="omni-slider-mark" style="@MarkStyle(pct)">
+                <div class="omni-slider-mark-dot"></div>
+                <div class="omni-slider-mark-label">@mark.Label</div>
+            </div>
+        }
+    }
+
+    @* Thumb 1 (sempre presente) — sem pointer handlers (track captura tudo).
+       Apenas keyboard handler. Pointer events ficam no root pra que setPointerCapture
+       funcione corretamente: capture redireciona events pro elemento capturado, que
+       precisa ser o mesmo que tem os handlers. *@
+    <div class="@ThumbCss(0)"
+         style="@ThumbStyle(_currentStart)"
+         tabindex="@(Disabled ? -1 : 0)"
+         role="slider"
+         aria-orientation="horizontal"
+         aria-valuemin="@F(Min)"
+         aria-valuemax="@F(Max)"
+         aria-valuenow="@F(_currentStart)"
+         aria-disabled="@Disabled"
+         aria-label="@(Range ? "Mínimo" : (AriaLabel ?? "Valor"))"
+         data-omni-thumb-idx="0"
+         @onkeydown="@(e => OnThumbKey(e, 0))">
+        @if (ShowValueLabel)
+        {
+            <div class="omni-slider-value-label">@FormatValueLabel(_currentStart)</div>
+        }
+    </div>
+
+    @* Thumb 2 (range mode) — também sem pointer handlers. *@
+    @if (Range)
+    {
+        <div class="@ThumbCss(1)"
+             style="@ThumbStyle(_currentEnd)"
+             tabindex="@(Disabled ? -1 : 0)"
+             role="slider"
+             aria-orientation="horizontal"
+             aria-valuemin="@F(Min)"
+             aria-valuemax="@F(Max)"
+             aria-valuenow="@F(_currentEnd)"
+             aria-disabled="@Disabled"
+             aria-label="Máximo"
+             data-omni-thumb-idx="1"
+             @onkeydown="@(e => OnThumbKey(e, 1))">
+            @if (ShowValueLabel)
+            {
+                <div class="omni-slider-value-label">@FormatValueLabel(_currentEnd)</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    // ─── Public API ────────────────────────────────────────────────────────
+
+    // Value / ValueChanged / ValueExpression / Required / Validation /
+    // OnlyValidateIfDirty / Disabled herdados de FormComponent<double>.
+    // (Note: em modo Range, Value não é usado; use ValueStart/ValueEnd diretos.
+    //  Por isso o FormComponent.Validation roda só em single mode.)
+
+    /// <summary>Range start (thumb esquerdo). Use com <c>Range=true</c>.</summary>
+    [Parameter] public double ValueStart { get; set; }
+    [Parameter] public EventCallback<double> ValueStartChanged { get; set; }
+
+    /// <summary>Range end (thumb direito). Use com <c>Range=true</c>.</summary>
+    [Parameter] public double ValueEnd { get; set; }
+    [Parameter] public EventCallback<double> ValueEndChanged { get; set; }
+
+    /// <summary>Quando true, renderiza 2 thumbs (range).</summary>
+    [Parameter] public bool Range { get; set; }
+
+    /// <summary>Valor mínimo. Default 0.</summary>
+    [Parameter] public double Min { get; set; } = 0;
+
+    /// <summary>Valor máximo. Default 100.</summary>
+    [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>Incremento mínimo. Default 1.</summary>
+    [Parameter] public double Step { get; set; } = 1;
+
+    /// <summary>Mostra ticks (pontos pequenos) em cada <c>Step</c>. Auto-desliga se houver
+    /// mais de 50 ticks para evitar poluição visual.</summary>
+    [Parameter] public bool ShowTicks { get; set; }
+
+    /// <summary>Mostra balão com o valor sobre o thumb.</summary>
+    [Parameter] public bool ShowValueLabel { get; set; } = true;
+
+    /// <summary>Formatador customizado para o balão do thumb. Default: <c>v.ToString("0.##")</c>.</summary>
+    [Parameter] public Func<double, string>? ValueFormatter { get; set; }
+
+    /// <summary>Marcas customizadas (ex: 0%, 25%, 50%...) renderizadas abaixo da track.</summary>
+    [Parameter] public IEnumerable<SliderMark>? Marks { get; set; }
+
+    /// <summary>Cor accent custom para a track ativa e thumbs. Default <c>--omni-accent</c>.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>aria-label do thumb (modo single).</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    // ─── Internal state ────────────────────────────────────────────────────
+
+    private ElementReference _trackEl;
+    internal double _currentStart;
+    internal double _currentEnd;
+    internal List<double> _ticks = new();
+    private int _activeThumb = -1;
+    private double _trackPx;
+    private double _trackLeft;
+
+    // Telemetry counters — internal so tests can verify ParameterState really
+    // skips recompute on unrelated re-renders. Each tracked-parameter change
+    // bumps the appropriate counter from the change handler.
+    internal int _currentRecomputeCount;
+    internal int _ticksRecomputeCount;
+
+    // ParameterState declarations:
+    //   _current* derived state recomputes on Range/Value/ValueStart/ValueEnd
+    //   and on Min/Max (clamp boundaries).
+    //   _ticks recomputes on Min/Max/Step/ShowTicks.
+    // Each parameter has its own state object; multiple state handlers can
+    // share a recompute method — DetectAllAsync is a single cycle per render
+    // so duplicate calls within the cycle are fine.
+    private ParameterState<bool> _rangeState = null!;
+    private ParameterState<double?> _valueState = null!;
+    private ParameterState<double> _valueStartState = null!;
+    private ParameterState<double> _valueEndState = null!;
+    private ParameterState<double> _minState = null!;
+    private ParameterState<double> _maxState = null!;
+    private ParameterState<double> _stepState = null!;
+    private ParameterState<bool> _showTicksState = null!;
+
+    protected override void OnInitialized()
+    {
+        _rangeState = RegisterParameter<bool>(nameof(Range))
+            .WithParameter(() => Range)
+            .WithChangeHandler(RecomputeCurrent)
+            .Attach();
+        _valueState = RegisterParameter<double?>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(RecomputeCurrent)
+            .Attach();
+        _valueStartState = RegisterParameter<double>(nameof(ValueStart))
+            .WithParameter(() => ValueStart)
+            .WithChangeHandler(RecomputeCurrent)
+            .Attach();
+        _valueEndState = RegisterParameter<double>(nameof(ValueEnd))
+            .WithParameter(() => ValueEnd)
+            .WithChangeHandler(RecomputeCurrent)
+            .Attach();
+        // Min/Max affect both clamping and tick positions.
+        _minState = RegisterParameter<double>(nameof(Min))
+            .WithParameter(() => Min)
+            .WithChangeHandler(RecomputeMinMax)
+            .Attach();
+        _maxState = RegisterParameter<double>(nameof(Max))
+            .WithParameter(() => Max)
+            .WithChangeHandler(RecomputeMinMax)
+            .Attach();
+        _stepState = RegisterParameter<double>(nameof(Step))
+            .WithParameter(() => Step)
+            .WithChangeHandler(RecomputeTicks)
+            .Attach();
+        _showTicksState = RegisterParameter<bool>(nameof(ShowTicks))
+            .WithParameter(() => ShowTicks)
+            .WithChangeHandler(RecomputeTicks)
+            .Attach();
+    }
+
+    private void RecomputeCurrent()
+    {
+        _currentRecomputeCount++;
+        if (Range)
+        {
+            _currentStart = Clamp(ValueStart);
+            _currentEnd = Clamp(ValueEnd);
+            if (_currentEnd < _currentStart) _currentEnd = _currentStart;
+        }
+        else
+        {
+            _currentStart = Clamp(Value);
+        }
+    }
+
+    private void RecomputeMinMax()
+    {
+        // Min/Max changes affect both clamp boundaries and tick positions.
+        RecomputeCurrent();
+        RecomputeTicks();
+    }
+
+    private void RecomputeTicks()
+    {
+        _ticksRecomputeCount++;
+        _ticks.Clear();
+        if (ShowTicks && Step > 0)
+        {
+            var count = (int)Math.Ceiling((Max - Min) / Step);
+            if (count <= 50)
+            {
+                for (int i = 0; i <= count; i++)
+                {
+                    var v = Min + i * Step;
+                    if (v > Max) v = Max;
+                    _ticks.Add(ValueToPercent(v));
+                }
+            }
+        }
+    }
+
+    // ─── Rendering helpers ─────────────────────────────────────────────────
+
+    private string RootCss => CssBuilder.Default("omni-slider")
+        .AddClass("omni-slider-range",  Range)
+        .AddClass("omni-slider-single", !Range)
+        .AddClass("omni-slider-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle =>
+        string.IsNullOrEmpty(Color) ? (Style ?? "") : $"--omni-slider-accent:{Color};" + (Style ?? "");
+
+    private string ThumbCss(int idx) => CssBuilder.Default("omni-slider-thumb")
+        .AddClass(idx == 0 ? "omni-slider-thumb-start" : "omni-slider-thumb-end")
+        .AddClass("omni-slider-thumb-active", _activeThumb == idx)
+        .Build();
+
+    private string ThumbStyle(double v)
+        => $"left:{F(ValueToPercent(v))}%;";
+
+    private string ActiveTrackStyle
+    {
+        get
+        {
+            var startPct = Range ? ValueToPercent(_currentStart) : 0;
+            var endPct = Range ? ValueToPercent(_currentEnd) : ValueToPercent(_currentStart);
+            return $"left:{F(startPct)}%;width:{F(endPct - startPct)}%;";
+        }
+    }
+
+    private string TickStyle(double pct) => $"left:{F(pct)}%;";
+    private string MarkStyle(double pct) => $"left:{F(pct)}%;";
+
+    private double ValueToPercent(double v)
+    {
+        if (Max - Min <= 0) return 0;
+        return Math.Clamp((v - Min) / (Max - Min) * 100, 0, 100);
+    }
+
+    private double PercentToValue(double pct)
+    {
+        var raw = Min + pct / 100 * (Max - Min);
+        return Snap(raw);
+    }
+
+    private double Snap(double v)
+    {
+        if (Step <= 0) return Clamp(v);
+        var steps = Math.Round((v - Min) / Step);
+        return Clamp(Min + steps * Step);
+    }
+
+    private double Clamp(double v) => Math.Clamp(v, Min, Max);
+
+    private string FormatValueLabel(double v)
+        => ValueFormatter is not null ? ValueFormatter(v) : v.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+
+    // ─── Pointer drag (handlers no ROOT, não no thumb) ─────────────────────
+    // O motivo do handler ficar no root: setPointerCapture redireciona TODOS os
+    // pointer events subsequentes do mesmo pointerId pro elemento capturado.
+    // Se o handler estivesse no thumb mas capturasse no root, o drag pararia
+    // assim que o cursor saísse da área do thumb (18px de largura).
+
+    private async Task OnTrackPointerDown(PointerEventArgs e)
+    {
+        if (Disabled) return;
+        try
+        {
+            var size = await JS.InvokeAsync<double[]>("omniBlazor.sliderMeasure", _trackEl);
+            if (size is { Length: 2 }) { _trackLeft = size[0]; _trackPx = size[1]; }
+            await JS.InvokeVoidAsync("omniBlazor.splitterCapture", Id, e.PointerId);
+        }
+        catch { return; }
+
+        if (_trackPx <= 0) return;
+
+        // Calcula o valor no ponto clicado
+        var pct = Math.Clamp((e.ClientX - _trackLeft) / _trackPx * 100, 0, 100);
+        var clickedValue = PercentToValue(pct);
+
+        // Em range: escolhe o thumb mais próximo do click.
+        // Em single: sempre o único thumb.
+        var idx = Range
+            ? (Math.Abs(clickedValue - _currentStart) <= Math.Abs(clickedValue - _currentEnd) ? 0 : 1)
+            : 0;
+        _activeThumb = idx;
+
+        // Click-to-jump: move o thumb pro ponto clicado já no pointerdown.
+        await SetThumbValueAsync(idx, clickedValue);
+    }
+
+    private Task OnTrackPointerMove(PointerEventArgs e)
+    {
+        if (_activeThumb < 0 || _trackPx <= 0) return Task.CompletedTask;
+        var pct = Math.Clamp((e.ClientX - _trackLeft) / _trackPx * 100, 0, 100);
+        var v = PercentToValue(pct);
+        return SetThumbValueAsync(_activeThumb, v);
+    }
+
+    private async Task OnTrackPointerUp(PointerEventArgs e)
+    {
+        if (_activeThumb < 0) return;
+        try { await JS.InvokeVoidAsync("omniBlazor.splitterRelease", Id, e.PointerId); } catch { }
+        _activeThumb = -1;
+        StateHasChanged();
+    }
+
+    // ─── Keyboard ──────────────────────────────────────────────────────────
+
+    private Task OnThumbKey(KeyboardEventArgs e, int idx)
+    {
+        if (Disabled) return Task.CompletedTask;
+        var current = idx == 0 ? _currentStart : _currentEnd;
+        var bigStep = (Max - Min) / 10;  // PageUp/PageDown = 10% do range
+        double? next = e.Key switch
+        {
+            "ArrowLeft" or "ArrowDown"  => current - Step,
+            "ArrowRight" or "ArrowUp"   => current + Step,
+            "Home"                       => Min,
+            "End"                        => Max,
+            "PageUp"                     => current + bigStep,
+            "PageDown"                   => current - bigStep,
+            _ => (double?)null,
+        };
+        if (next is null) return Task.CompletedTask;
+        return SetThumbValueAsync(idx, Snap(next.Value));
+    }
+
+    // ─── Value setter (handles single + range constraints) ─────────────────
+
+    private async Task SetThumbValueAsync(int idx, double v)
+    {
+        if (!Range)
+        {
+            v = Clamp(v);
+            if (Math.Abs(v - _currentStart) < 1e-9) return;
+            _currentStart = v;
+            // SetValueAsync (de FormComponent) cuida de: atribuição, ValueChanged,
+            // EditContext.NotifyFieldChanged, dispatch do Validation delegate.
+            await SetValueAsync(v);
+            StateHasChanged();
+            return;
+        }
+
+        // Range mode: enforce start <= end ordering
+        if (idx == 0)
+        {
+            v = Math.Clamp(v, Min, _currentEnd);
+            if (Math.Abs(v - _currentStart) < 1e-9) return;
+            _currentStart = v;
+            ValueStart = v;
+            if (ValueStartChanged.HasDelegate) await ValueStartChanged.InvokeAsync(v);
+        }
+        else
+        {
+            v = Math.Clamp(v, _currentStart, Max);
+            if (Math.Abs(v - _currentEnd) < 1e-9) return;
+            _currentEnd = v;
+            ValueEnd = v;
+            if (ValueEndChanged.HasDelegate) await ValueEndChanged.InvokeAsync(v);
+        }
+        StateHasChanged();
+    }
+}

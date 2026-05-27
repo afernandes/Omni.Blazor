@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <RootNamespace>FoodService.Pages</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Omni.Blazor\Omni.Blazor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Don't ship partials (_*.scss) as static assets; only the compiled bundle is served. -->
+    <Content Remove="wwwroot\css\_*.scss" />
+    <Content Remove="wwwroot\css\foodservice.scss" />
+  </ItemGroup>
+
+</Project>

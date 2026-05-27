@@ -1,0 +1,29 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Section wrapper do home — eyebrow label opcional + h2 + descrição.
+    ChildContent = cards/rows da seção. Aceita Class/Style/Attributes splat
+    via OmniComponentWithChildren para extensão pelo consumidor. *@
+<section class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Eyebrow))
+    {
+        <div class="fs-cd-section-label omni-mono">@Eyebrow</div>
+    }
+    <h2>@Title</h2>
+    @if (!string.IsNullOrEmpty(Description))
+    {
+        <p class="fs-cd-section-desc">@Description</p>
+    }
+    @ChildContent
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Eyebrow { get; set; }
+    [Parameter] public string? Description { get; set; }
+
+    private string RootCss => CssBuilder.Default("fs-cd-section")
+        .AddClass(Class)
+        .Build();
+}

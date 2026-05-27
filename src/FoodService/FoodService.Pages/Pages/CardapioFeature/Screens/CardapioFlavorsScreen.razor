@@ -1,0 +1,83 @@
+@inject CardapioDigitalState State
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Flavors screen — busca + filter chips + counter de seleção + lista de sabores. *@
+<div class="fs-cd-screen">
+    <CardapioAppBar Title="@($"{State.SelectedSize?.Name} · até {State.MaxFlavors} sabores")"
+                    Subtitle="@($"Passo 2 de 3 · escolha pelo menos 1 e no máximo {State.MaxFlavors}")"
+                    OnBack="State.Back" />
+
+    <div class="fs-cd-scroll" style="padding-bottom: 120px;">
+        <div style="padding: 12px 14px 0;">
+            <CardapioSearch Placeholder="Buscar sabor…"
+                            Value="@State.FlavorQuery"
+                            ValueChanged="State.SetFlavorQuery"
+                            Style="margin: 0;" />
+        </div>
+
+        <OmniSegmentedControl Class="fs-cd-flavor-filters"
+                              TValue="string"
+                              Value="@State.FlavorFilter"
+                              ValueChanged="State.SetFlavorFilter"
+                              Items="_filterItems" />
+
+        <div class="@CounterCss">
+            <span class="fs-cd-flavors-counter-cnt">
+                @if (State.IsFlavorSlotsFull)
+                {
+                    <text>@State.MaxFlavors sabores selecionados — pronto para continuar!</text>
+                }
+                else
+                {
+                    <text><b class="omni-mono">@State.SelectedFlavorIds.Count</b> de <b class="omni-mono">@State.MaxFlavors</b> sabores selecionados</text>
+                }
+            </span>
+            <span class="fs-cd-flavors-counter-progress">
+                @for (var i = 0; i < State.MaxFlavors; i++)
+                {
+                    <span @key="i" class="@DotCss(i < State.SelectedFlavorIds.Count)"></span>
+                }
+            </span>
+        </div>
+
+        <div class="fs-cd-flavor-list">
+            @foreach (var f in CardapioMockData.Flavors.Where(State.IsFlavorVisible))
+            {
+                <CardapioFlavorCard CdFlavor="f" />
+            }
+        </div>
+    </div>
+
+    <CardapioBottomBar Label="Continuar"
+                       TrailingText="@CardapioDigitalState.Brl(State.CombinedFlavorsPrice)"
+                       Disabled="@(State.SelectedFlavorIds.Count == 0)"
+                       OnClick="State.GoPreview"
+                       Column>
+        @if (State.SelectedFlavorIds.Count == 2 && State.PriorityFlavor is not null)
+        {
+            <div class="fs-cd-flavor-hint">
+                <OmniIcon Name="info" Size="ComponentSize.Sm" />
+                Cobramos o valor do sabor mais caro: <b>@State.PriorityFlavor.Name</b>
+            </div>
+        }
+    </CardapioBottomBar>
+</div>
+
+@code {
+    private static readonly IReadOnlyList<OmniSegmentedControl<string>.Item> _filterItems =
+        CardapioMockData.FlavorFilters
+            .Select(f => new OmniSegmentedControl<string>.Item(f, f))
+            .ToList();
+
+    private string CounterCss => CssBuilder.Default("fs-cd-flavors-counter")
+        .AddClass("fs-cd-flavors-counter-complete", State.IsFlavorSlotsFull)
+        .Build();
+
+    private static string DotCss(bool on) => CssBuilder.Default("fs-cd-flavors-counter-dot")
+        .AddClass("fs-cd-flavors-counter-dot-on", on)
+        .Build();
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

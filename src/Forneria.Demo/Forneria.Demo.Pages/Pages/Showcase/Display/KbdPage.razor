@@ -1,0 +1,88 @@
+@page "/showcase/kbd"
+@layout ShowcaseLayout
+
+<PageTitle>Kbd — Showcase</PageTitle>
+
+<ShowcasePage Title="Kbd"
+              Subtitle="Renderiza teclas de atalho com aparência de tecla física.">
+
+    <Overview>
+        <p>
+            O <code>OmniKbd</code> renderiza um elemento <code>&lt;kbd&gt;</code> estilizado para
+            representar uma <strong>tecla ou atalho de teclado</strong> — em monospace, com borda
+            sutil e leve relevo, lembrando uma tecla física. Use-o para comunicar atalhos ao
+            usuário (⌘+K, ESC, Enter).
+        </p>
+        <p>
+            Cada instância representa <strong>uma única tecla</strong>; para combinações, componha
+            várias com um separador entre elas. Aceita <code>Text</code> ou <code>ChildContent</code>
+            para conteúdo customizado.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Hints de atalho em menus, command palettes e tooltips.</li>
+            <li>Documentação de teclas de navegação (↑, ↓, Enter, ESC).</li>
+            <li>Códigos de cupom ou tokens curtos que devem se destacar do texto.</li>
+            <li>Onboarding que ensina atalhos do sistema.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Rótulo de status ou categoria → use <code>OmniBadge</code>.</li>
+            <li>Bloco de código de várias linhas → use uma <code>&lt;pre&gt;</code>.</li>
+            <li>Registrar de fato um atalho funcional → use <code>OmniHotkey</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="TECLAS INDIVIDUAIS"
+                         Description="Uma instância por tecla."
+                         Code="@(@"<OmniKbd Text=""⌘"" />
+<OmniKbd Text=""K"" />
+<OmniKbd Text=""ESC"" />
+<OmniKbd Text=""Enter"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniKbd Text="⌘" />
+                <OmniKbd Text="K" />
+                <OmniKbd Text="ESC" />
+                <OmniKbd Text="Enter" />
+                <OmniKbd Text="↑" />
+                <OmniKbd Text="↓" />
+                <OmniKbd Text="Tab" />
+                <OmniKbd Text="Shift" />
+                <OmniKbd Text="Ctrl" />
+                <OmniKbd Text="Alt" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EM USO"
+                         Description="Combinado com texto para hints contextuais."
+                         Code="@(@"Pressione <OmniKbd Text=""⌘"" /> + <OmniKbd Text=""K"" /> para abrir a busca.
+Use <OmniKbd Text=""↑"" /> e <OmniKbd Text=""↓"" /> para navegar.")">
+            <div class="omni-stack omni-stack-12">
+                <div>
+                    Pressione <OmniKbd Text="⌘" /> + <OmniKbd Text="K" /> para abrir a busca global.
+                </div>
+                <div>
+                    Use <OmniKbd Text="↑" /> e <OmniKbd Text="↓" /> para navegar, <OmniKbd Text="Enter" /> para selecionar, <OmniKbd Text="ESC" /> para fechar.
+                </div>
+                <div>
+                    Salvar: <OmniKbd Text="⌘" /> + <OmniKbd Text="S" /> · Duplicar: <OmniKbd Text="⌘" /> + <OmniKbd Text="D" />.
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto da tecla exibida." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo customizado (sobrescreve Text)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

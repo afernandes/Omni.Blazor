@@ -1,0 +1,115 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponentWithChildren
+@inject IJSRuntime JS
+@using Omni.Blazor.Utilities
+
+@*
+    A single drop bucket. Belongs to a <OmniDropZoneContainer>. Holds an
+    optional <Value> object the container uses to filter items into this zone.
+
+    Visual feedback while dragging:
+      - omni-can-drop applied when the current payload would be accepted.
+      - omni-no-drop applied when CanDrop returned false.
+      - The classes are cleared on dragleave / drop.
+*@
+
+<div @ref="_root"
+     class="@RootCss"
+     style="@Style"
+     @attributes="Attributes"
+     @ondragover="OnDragOver"
+     @ondragover:preventDefault="true"
+     @ondragleave="OnDragLeave"
+     @ondrop="OnDrop">
+    @ChildContent
+
+    @foreach (var item in Items)
+    {
+        var rendered = RenderArgs(item);
+        if (!rendered.Args.Visible) continue;
+
+        <CascadingValue Value="item" IsFixed="false">
+            <CascadingValue Value="this" IsFixed="true">
+                <OmniDropZoneItem TItem="TItem" ItemAttributes="rendered.Attrs" />
+            </CascadingValue>
+        </CascadingValue>
+    }
+
+    @Footer
+</div>
+
+@code {
+    [CascadingParameter] internal OmniDropZoneContainer<TItem>? Container { get; set; }
+
+    /// <summary>Opaque value the container's ItemSelector uses to bucket items into this zone (e.g. a status enum).</summary>
+    [Parameter] public object? Value { get; set; }
+
+    /// <summary>Optional footer rendered below the items (e.g. an "+ Add" button).</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    private ElementReference _root;
+    private string _stateClass = "";
+
+    private string RootCss => CssBuilder.Default("omni-dropzone")
+        .AddClass(_stateClass, !string.IsNullOrEmpty(_stateClass))
+        .AddClass(Class)
+        .Build();
+
+    /// <summary>Items the container's selector assigned to this zone.</summary>
+    public IEnumerable<TItem> Items
+    {
+        get
+        {
+            if (Container?.Data is null || Container.ItemSelector is null) return Array.Empty<TItem>();
+            return Container.Data.Where(i => Container.ItemSelector(i, this));
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("omniBlazor.prepareDrag", _root); }
+            catch { /* SSR or JS not ready yet — Razor handlers still work without it */ }
+        }
+    }
+
+    internal bool CheckCanDrop()
+    {
+        if (Container?.Payload is null) return false;
+        Container.Payload.ToZone = this;
+        return Container.CanDrop?.Invoke(Container.Payload) ?? true;
+    }
+
+    internal void OnDragOver(DragEventArgs args)
+    {
+        var allowed = CheckCanDrop();
+        if (args.DataTransfer is not null)
+        {
+            args.DataTransfer.DropEffect = allowed ? "move" : "none";
+        }
+        _stateClass = allowed ? "omni-can-drop" : "omni-no-drop";
+    }
+
+    private void OnDragLeave(DragEventArgs _) => _stateClass = "";
+
+    private async Task OnDrop(DragEventArgs _)
+    {
+        _stateClass = "";
+        await OnDropInternal();
+    }
+
+    internal async Task OnDropInternal()
+    {
+        if (!CheckCanDrop() || Container?.Payload is null) return;
+        await Container.Drop.InvokeAsync(Container.Payload);
+    }
+
+    private (DropZoneItemRenderEventArgs<TItem> Args, IReadOnlyDictionary<string, object>? Attrs) RenderArgs(TItem item)
+    {
+        var args = new DropZoneItemRenderEventArgs<TItem> { Zone = this, Item = item };
+        Container?.ItemRender?.Invoke(args);
+        return (args, args.Attributes.Count == 0 ? null : args.Attributes);
+    }
+}

@@ -1,0 +1,180 @@
+@inherits LayoutComponentBase
+@inject ThemeService Theme
+
+@*  Horizontal-nav app shell — recreation of the design "dashboard-horizontal".
+    Migrado para OmniLayout: AppBar (brand + search + actions) + ToolBar
+    (OmniMenuBar horizontal) + Main. Sem sidebar. *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniBrand Name="Forneria" Tenant="Forno do Bairro — Vila Madalena" />
+        <div class="omni-header-spacer"></div>
+        <div class="omni-hd-bar-search">
+            <OmniTextBox Placeholder="Buscar pedido, cliente, produto…" />
+        </div>
+        <div class="omni-header-spacer"></div>
+        <div class="omni-hd-bar-actions">
+            <OmniBadge Dot Variant="BadgeVariant.Danger" Overlap>
+                <OmniButton Icon="bell" IconOnly Variant="ButtonVariant.Ghost" />
+            </OmniBadge>
+            <OmniButton Icon="printer" IconOnly Variant="ButtonVariant.Ghost" />
+            <div class="omni-hd-divider"></div>
+            <UserMenu />
+        </div>
+    </OmniAppBar>
+
+    <OmniToolBar>
+        <OmniMenuBar AriaLabel="Navegação principal">
+            <ChildContent>
+                <OmniMenuBarItem Text="Visão geral" Icon="layout-dashboard" Path="/topnav" Match="NavLinkMatch.All" />
+
+                <OmniMenuBarItem Text="Pedidos" Icon="shopping-cart" Count="28"
+                                  FooterText="Ver todos os pedidos" FooterKbd="G P">
+                    <OmniMenuBarItem Icon="shopping-cart" Text="Em aberto" Description="Aguardando confirmação" Meta="4" />
+
+                    @* Multinível: Na cozinha → Por estação → Pizza → Por tamanho *@
+                    <OmniMenuBarItem Icon="zap" Text="Na cozinha" Description="Em preparação agora"
+                                      Meta="12" MetaKind="MenuMetaKind.Warn"
+                                      ChildrenLabel="Por estação">
+                        <OmniMenuBarItem Icon="zap" Text="Pizza" Description="Forno a lenha · 7 pedidos"
+                                          Meta="7" MetaKind="MenuMetaKind.Warn"
+                                          ChildrenLabel="Por tamanho">
+                            <OmniMenuBarItem Icon="package" Text="Média" Description="6 fatias · 30 cm" Meta="2" />
+                            <OmniMenuBarItem Icon="package" Text="Grande" Description="8 fatias · 35 cm" Meta="3" MetaKind="MenuMetaKind.Warn" />
+                            <OmniMenuBarItem Icon="package" Text="Família" Description="12 fatias · 45 cm" Meta="2" />
+                        </OmniMenuBarItem>
+                        <OmniMenuBarItem Icon="grid" Text="Burger" Description="Chapa · 3 pedidos" Meta="3" />
+                        <OmniMenuBarItem Icon="grid" Text="Fritura" Description="Fritadeira · 1 pedido" Meta="1" />
+                        <OmniMenuBarItem Icon="star" Text="Sobremesas" Description="Bancada doce · 1 pedido" Meta="1" />
+                    </OmniMenuBarItem>
+
+                    <OmniMenuBarItem Icon="package" Text="Prontos para retirada" Description="Esperando entregador / cliente" Meta="6" MetaKind="MenuMetaKind.Good" />
+
+                    @* Multinível: Em entrega → Por canal → Frota própria → Entregadores *@
+                    <OmniMenuBarItem Icon="truck" Text="Em entrega" Description="Saiu para entrega"
+                                      Meta="5" MetaKind="MenuMetaKind.Accent"
+                                      ChildrenLabel="Por canal">
+                        <OmniMenuBarItem Icon="truck" Text="Frota própria" Description="3 motos ativas"
+                                          Meta="3" MetaKind="MenuMetaKind.Accent"
+                                          ChildrenLabel="Entregadores">
+                            <OmniMenuBarItem Icon="users" Text="João Silva" Description="2 entregas · Vila Madalena" Meta="2" />
+                            <OmniMenuBarItem Icon="users" Text="Pedro Souza" Description="1 entrega · Pinheiros" Meta="1" />
+                            <OmniMenuBarItem Icon="users" Text="Rafa Lima" Description="Disponível agora" Meta="0" MetaKind="MenuMetaKind.Good" />
+                        </OmniMenuBarItem>
+                        <OmniMenuBarItem Icon="package" Text="iFood" Description="1 entregador a caminho" Meta="1" />
+                        <OmniMenuBarItem Icon="package" Text="Uber Direct" Description="1 entregador alocado" Meta="1" />
+                    </OmniMenuBarItem>
+
+                    @* Multinível: Concluídos → Período *@
+                    <OmniMenuBarItem Icon="check-circle" Text="Concluídos" Description="142 hoje · R$ 11.266,65"
+                                      Meta="142"
+                                      ChildrenLabel="Período">
+                        <OmniMenuBarItem Icon="clock" Text="Hoje" Description="142 pedidos" Meta="R$ 11.266,65" />
+                        <OmniMenuBarItem Icon="clock" Text="Últimos 7 dias" Description="983 pedidos" Meta="R$ 78.450,12" />
+                        <OmniMenuBarItem Icon="clock" Text="Últimos 30 dias" Description="4.182 pedidos" Meta="R$ 332.917,80" />
+                        <OmniMenuBarItem Icon="clock" Text="Período personalizado…" Description="Escolher datas" />
+                    </OmniMenuBarItem>
+
+                    <OmniMenuBarItem Icon="x" Text="Cancelados" Description="3 cancelados nas últimas 24h" Meta="3" MetaKind="MenuMetaKind.Danger" />
+                </OmniMenuBarItem>
+
+                <OmniMenuBarItem Text="Cardápio" Icon="grid">
+                    <DropdownContent>
+                        <div class="omni-menubar-mega-col">
+                            <div class="omni-menubar-dd-group">Catálogo</div>
+                            @MegaRow("package", "Produtos", "47 ativos · 4 categorias")
+                            @MegaRow("tag", "Sabores de pizza", "24 sabores · borda recheada")
+                            @MegaRow("list", "Categorias", "Pizzas, burgers, bebidas…")
+                            @MegaRow("plus", "Modificadores", "Adicionais, observações e regras")
+                        </div>
+                        <div class="omni-menubar-mega-col">
+                            <div class="omni-menubar-dd-group">Apresentação</div>
+                            @MegaRow("grid", "Cardápio digital", "Preview self-service via QR")
+                            @MegaRow("zap", "Promoções", "3 ativas · 28% de adesão", "NOVO", "omni-meta-accent")
+                            @MegaRow("star", "Combos", "Pacotes e cross-sell")
+                            @MegaRow("clock", "Horários e dispon.", "Janelas de venda por canal")
+                        </div>
+                        <div class="omni-menubar-mega-promo">
+                            <div class="omni-menubar-mega-promo-ico"><OmniIcon Name="zap" /></div>
+                            <div>
+                                <div class="omni-menubar-mega-promo-title">IA do Cardápio</div>
+                                <div class="omni-menubar-mega-promo-sub">Identifique pratos com margem baixa e otimize automaticamente</div>
+                            </div>
+                            <OmniButton Text="Experimentar" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                         Class="omni-menubar-mega-promo-cta" />
+                        </div>
+                    </DropdownContent>
+                </OmniMenuBarItem>
+
+                <OmniMenuBarItem Text="Clientes" Icon="users" FooterText="Novo cliente" FooterKbd="N">
+                    <OmniMenuBarItem Icon="users" Text="Lista completa" Description="2.341 cadastrados" />
+                    <OmniMenuBarItem Icon="star" Text="Programa fidelidade" Description="486 ativos · 12.4k pontos hoje" Meta="PRO" MetaKind="MenuMetaKind.Accent" />
+                    <OmniMenuBarItem Icon="zap" Text="Aniversariantes" Description="8 esta semana" Meta="8" MetaKind="MenuMetaKind.Good" />
+                    <OmniMenuBarItem Icon="list" Text="Segmentos" Description="VIP, recorrentes, inativos…" />
+                    <OmniMenuBarItem Icon="bell" Text="Campanhas" Description="WhatsApp e push" />
+                </OmniMenuBarItem>
+
+                <OmniMenuBarItem Text="Estoque" Icon="database">
+                    <OmniMenuBarItem Icon="package" Text="Insumos" Description="184 itens · 4 críticos" Meta="!" MetaKind="MenuMetaKind.Danger" />
+                    <OmniMenuBarItem Icon="truck" Text="Movimentações" Description="Entradas, saídas e ajustes" />
+                    <OmniMenuBarItem Icon="check-circle" Text="Inventário" Description="Última contagem · 18/05" />
+                    <OmniMenuBarItem Icon="database" Text="Fornecedores" Description="12 cadastrados" />
+                    <OmniMenuBarItem Icon="file-text" Text="Fichas técnicas" Description="Custo e CMV por produto" />
+                </OmniMenuBarItem>
+
+                <OmniMenuBarItem Text="Relatórios" Icon="bar-chart"
+                                  FooterText="Criar relatório personalizado" FooterKbd="⌘ R">
+                    <OmniMenuBarItem GroupLabel="Frequentes" Icon="dollar-sign" Text="Vendas" Description="Por período, canal e produto" />
+                    <OmniMenuBarItem Icon="dollar-sign" Text="Financeiro" Description="Fluxo de caixa e DRE" />
+                    <OmniMenuBarItem Icon="clock" Text="Operacional" Description="Tempos, ocupação e produtividade" />
+                    <OmniMenuBarItem Icon="bar-chart" Text="CMV e margem" Description="Análise por produto" />
+                    <OmniMenuBarItem Icon="users" Text="Equipe" Description="Performance por operador" />
+                </OmniMenuBarItem>
+
+                <OmniMenuBarItem Text="Integrações" Icon="zap">
+                    <OmniMenuBarItem Icon="package" Text="iFood" Description="Conectado · 18 pedidos hoje" Meta="OK" MetaKind="MenuMetaKind.Good" />
+                    <OmniMenuBarItem Icon="bell" Text="WhatsApp Business" Description="Conectado · +55 11 9…" Meta="OK" MetaKind="MenuMetaKind.Good" />
+                    <OmniMenuBarItem Icon="file-text" Text="NF-e / SAT" Description="Emissão automática" Meta="OK" MetaKind="MenuMetaKind.Good" />
+                    <OmniMenuBarItem Icon="dollar-sign" Text="Maquininhas" Description="Stone, Cielo, Rede" />
+                    <OmniMenuBarItem Icon="command" Text="API e webhooks" Description="Para desenvolvedores" />
+                    <OmniMenuBarItem Icon="grid" Text="Marketplace de apps" Description="42 apps disponíveis" Meta="NOVO" MetaKind="MenuMetaKind.Accent" />
+                </OmniMenuBarItem>
+            </ChildContent>
+            <Aux>
+                <OmniStatusBadge Label="Caixa aberto" Meta="04:32:18"
+                                  Kind="StatusBadgeKind.Good" Pulse="true" />
+            </Aux>
+        </OmniMenuBar>
+    </OmniToolBar>
+
+    <OmniMain>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    // Restaura accent + dark persistidos do localStorage no primeiro render.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* swallow — nunca bloqueia o shell por falha de tema */ }
+        }
+    }
+
+    private RenderFragment MegaRow(string icon, string name, string desc, string? meta = null, string? metaCls = null) => @<text>
+        <button type="button" class="omni-menubar-dd-item">
+            <span class="omni-menubar-dd-ico"><OmniIcon Name="@icon" Size="ComponentSize.Sm" /></span>
+            <span class="omni-menubar-dd-body">
+                <span class="omni-menubar-dd-name">@name</span>
+                <span class="omni-menubar-dd-desc">@desc</span>
+            </span>
+            @if (meta is not null)
+            {
+                <span class="omni-menubar-dd-meta @metaCls">@meta</span>
+            }
+        </button>
+    </text>;
+}

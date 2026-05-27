@@ -1,0 +1,281 @@
+@page "/showcase/bottom-sheet"
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+
+<PageTitle>Bottom Sheet — Showcase</PageTitle>
+
+<ShowcasePage Title="Bottom Sheet"
+              Subtitle="Material 3 bottom sheet — surface que sobe do bottom edge com drag handle + snap points opcionais.">
+
+    <Overview>
+        <p>
+            <code>OmniBottomSheet</code> implementa o
+            <a href="https://m3.material.io/components/bottom-sheets/overview" target="_blank">spec
+            Material 3 de bottom sheets</a> — surface que sobe do bottom edge, drag handle pra
+            redimensionar, e (opcionalmente) snap points pra estados intermediários.
+        </p>
+        <p>
+            <strong>Por que um componente novo:</strong> bottom sheet ≠ drawer Bottom-anchored.
+            UX é mobile-first com live drag (translateY acompanha o dedo a 60fps), snap points
+            (peek/half/full), arredondamento superior, e Material spec de drag handle (32×4px pill).
+            MudBlazor/Radzen não têm equivalente dedicado.
+        </p>
+        <p>
+            <strong>2 variants</strong> (Material 3): <strong>Modal</strong> (com backdrop, bloqueia
+            página — padrão pra forms/pickers) e <strong>Standard</strong> (sem backdrop, página
+            permanece interativa — Maps-style).
+            <strong>Adaptive opcional</strong>: em desktop (≥ Md), pode virar Dialog centralizado
+            ou Drawer lateral (M3 desaconselha bottom sheet em telas grandes).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Mobile pickers</strong>: seleção de data, filtros, ações contextuais.</li>
+            <li><strong>Formulários secundários</strong>: editar item sem sair da tela atual.</li>
+            <li><strong>Detalhes expansíveis</strong>: tap num item da lista abre sheet com info.</li>
+            <li><strong>Standard variant</strong>: detalhes coexistindo com mapa/lista (Uber, Maps).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Workflows com muitas etapas — use dialog full ou rota dedicada.</li>
+            <li>Desktop puro — use <code>OmniDialog</code> ou <code>OmniDrawer</code> (ou ative <code>Adaptive</code>).</li>
+            <li>Notificações transientes — use <code>OmniNotification</code>/toast.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+
+        @* ─── Básico ─── *@
+        <ShowcaseSection Title="MODAL BÁSICO"
+                         Description="Default = backdrop com blur, ESC fecha, click no backdrop fecha, foco trapado. Tema corporate sem snap points = altura única 60vh."
+                         Code='@("<OmniBottomSheet @bind-Open=\"_open\" Title=\"Filtros\">\n    <p>Conteúdo do sheet</p>\n</OmniBottomSheet>\n\n<OmniButton Text=\"Abrir\" OnClick=\"@(_ => _open = true)\" />")'>
+            <OmniButton Text="Abrir bottom sheet (modal)" Icon="layers"
+                         OnClick="@(_ => _basicOpen = true)" Variant="ButtonVariant.Primary" />
+
+            <OmniBottomSheet @bind-Open="_basicOpen" Title="Filtros de pedido">
+                <ChildContent>
+                    <p style="margin:0 0 12px">Selecione os filtros que deseja aplicar:</p>
+                    <div style="display:flex; flex-direction:column; gap:10px">
+                        <label class="bs-check"><input type="checkbox" /> <span>Em produção</span></label>
+                        <label class="bs-check"><input type="checkbox" /> <span>Pronto pra retirada</span></label>
+                        <label class="bs-check"><input type="checkbox" /> <span>Entregue</span></label>
+                        <label class="bs-check"><input type="checkbox" /> <span>Cancelado</span></label>
+                    </div>
+                </ChildContent>
+                <Footer>
+                    <OmniButton Text="Limpar" Variant="ButtonVariant.Ghost" OnClick="@(_ => _basicOpen = false)" />
+                    <OmniButton Text="Aplicar" Variant="ButtonVariant.Primary" OnClick="@(_ => _basicOpen = false)" />
+                </Footer>
+            </OmniBottomSheet>
+        </ShowcaseSection>
+
+        @* ─── Snap points ─── *@
+        <ShowcaseSection Title="SNAP POINTS — peek / half / full"
+                         Description="@DescSnap"
+                         Code='@("<OmniBottomSheet @bind-Open=\"_open\"\n                  Title=\"Endereços de entrega\"\n                  SnapPoints=\"new[] { 0.3, 0.6, 0.92 }\"\n                  InitialSnapIndex=\"1\">\n    ...\n</OmniBottomSheet>")'>
+            <OmniButton Text="Abrir com 3 snap points" Icon="move-vertical"
+                         OnClick="@(_ => _snapOpen = true)" Variant="ButtonVariant.Primary" />
+
+            <OmniBottomSheet @bind-Open="_snapOpen"
+                              Title="Endereços de entrega"
+                              SnapPoints="@(new[] { 0.3, 0.6, 0.92 })"
+                              InitialSnapIndex="1">
+                <p style="margin:0 0 16px;color:var(--omni-fg-soft);font-size:13px">
+                    Arraste o handle no topo pra mudar entre os 3 snap points.
+                </p>
+                <div style="display:flex; flex-direction:column; gap:8px">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <div class="bs-addr-card">
+                            <div>
+                                <strong>Endereço @i</strong>
+                                <div style="font-size:13px;color:var(--omni-fg-soft);margin-top:2px">
+                                    Rua Exemplo, @(100 + i * 50) · Bairro Demo
+                                </div>
+                            </div>
+                            <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+                        </div>
+                    }
+                </div>
+            </OmniBottomSheet>
+        </ShowcaseSection>
+
+        @* ─── Standard variant ─── *@
+        <ShowcaseSection Title="STANDARD — sem backdrop"
+                         Description='Variant="BottomSheetVariant.Standard" = sem backdrop, página continua interativa. Padrão Maps/Uber (detalhes do destino coexistem com o mapa). Snap points fazem ainda mais sentido aqui.'
+                         Code='@("<OmniBottomSheet @bind-Open=\"_open\"\n                  Variant=\"BottomSheetVariant.Standard\"\n                  SnapPoints=\"@(new[] { 0.2, 0.5 })\">\n    ...\n</OmniBottomSheet>")'>
+            <OmniButton Text="Abrir standard (sem backdrop)" Icon="map"
+                         OnClick="@(_ => _standardOpen = true)" Variant="ButtonVariant.Default" />
+
+            <OmniBottomSheet @bind-Open="_standardOpen"
+                              Variant="BottomSheetVariant.Standard"
+                              Title="Detalhes do destino"
+                              SnapPoints="@(new[] { 0.2, 0.5 })"
+                              InitialSnapIndex="0">
+                <ChildContent>
+                    <div style="display:flex; flex-direction:column; gap:10px; font-size:13px">
+                        <div><strong>Restaurante Demo</strong> · 2.3 km</div>
+                        <div style="color:var(--omni-fg-soft)">Rua Comercial, 1234 · Centro</div>
+                        <div style="color:var(--omni-fg-soft)">Aberto até 22h</div>
+                        <div style="margin-top:8px">
+                            Sheet standard mantém o "mapa" (essa página) clicável atrás. Útil pra apps
+                            de navegação ou seleção contextual onde o user precisa ver os dois.
+                        </div>
+                    </div>
+                </ChildContent>
+                <Footer>
+                    <OmniButton Text="Fechar" Variant="ButtonVariant.Ghost"
+                                 OnClick="@(_ => _standardOpen = false)" />
+                    <OmniButton Text="Pedir aqui" Variant="ButtonVariant.Primary" />
+                </Footer>
+            </OmniBottomSheet>
+        </ShowcaseSection>
+
+        @* ─── Sem drag handle ─── *@
+        <ShowcaseSection Title="SEM DRAG HANDLE — pickers simples"
+                         Description='ShowDragHandle="false" pra pickers/forms onde o user não deveria redimensionar. Fechar é só pelo header X, backdrop ou Esc.'
+                         Code='@("<OmniBottomSheet @bind-Open=\"_open\"\n                  Title=\"Confirmar pedido\"\n                  ShowDragHandle=\"false\">\n    ...\n</OmniBottomSheet>")'>
+            <OmniButton Text="Abrir sem drag handle" Icon="check-circle"
+                         OnClick="@(_ => _noHandleOpen = true)" />
+
+            <OmniBottomSheet @bind-Open="_noHandleOpen"
+                              Title="Confirmar pedido?"
+                              ShowDragHandle="false">
+                <ChildContent>
+                    <p style="margin:0">Total do pedido: <strong>R$ 87,50</strong></p>
+                    <p style="margin:8px 0 0;color:var(--omni-fg-soft);font-size:13px">
+                        Pagamento via Pix · Entrega estimada: 35 min
+                    </p>
+                </ChildContent>
+                <Footer>
+                    <OmniButton Text="Cancelar" Variant="ButtonVariant.Ghost"
+                                 OnClick="@(_ => _noHandleOpen = false)" />
+                    <OmniButton Text="Confirmar pedido" Variant="ButtonVariant.Primary"
+                                 OnClick="@(_ => _noHandleOpen = false)" />
+                </Footer>
+            </OmniBottomSheet>
+        </ShowcaseSection>
+
+        @* ─── Adaptive ─── *@
+        <ShowcaseSection Title="ADAPTIVE — desktop fallback"
+                         Description='Material 3 desaconselha bottom sheet em desktop. Adaptive=DialogOnDesktop ou DrawerOnDesktop = em telas ≥ Md (768px) vira dialog centralizado ou drawer lateral. Redimensione a janela e teste.'
+                         Code='@("<OmniBottomSheet @bind-Open=\"_open\"\n                  Title=\"Multi-device\"\n                  Adaptive=\"BottomSheetAdaptive.DialogOnDesktop\">\n    ...\n</OmniBottomSheet>")'>
+            <div class="omni-row omni-row-gap-8">
+                <OmniButton Text="Adaptive: Dialog" Icon="square"
+                             OnClick="@(_ => _adaptiveDialogOpen = true)" />
+                <OmniButton Text="Adaptive: Drawer" Icon="layout-dashboard"
+                             OnClick="@(_ => _adaptiveDrawerOpen = true)" />
+            </div>
+
+            <OmniBottomSheet @bind-Open="_adaptiveDialogOpen"
+                              Title="Sheet adaptado (Dialog desktop)"
+                              Adaptive="BottomSheetAdaptive.DialogOnDesktop">
+                <ChildContent>
+                    <p style="margin:0;font-size:13px">
+                        Em mobile sobe do bottom; em desktop (≥ 768px) vira dialog centralizado.
+                    </p>
+                </ChildContent>
+                <Footer>
+                    <OmniButton Text="OK" Variant="ButtonVariant.Primary"
+                                 OnClick="@(_ => _adaptiveDialogOpen = false)" />
+                </Footer>
+            </OmniBottomSheet>
+
+            <OmniBottomSheet @bind-Open="_adaptiveDrawerOpen"
+                              Title="Sheet adaptado (Drawer desktop)"
+                              Adaptive="BottomSheetAdaptive.DrawerOnDesktop">
+                <ChildContent>
+                    <p style="margin:0;font-size:13px">
+                        Em mobile sobe do bottom; em desktop vira drawer lateral direito.
+                    </p>
+                </ChildContent>
+                <Footer>
+                    <OmniButton Text="OK" Variant="ButtonVariant.Primary"
+                                 OnClick="@(_ => _adaptiveDrawerOpen = false)" />
+                </Footer>
+            </OmniBottomSheet>
+        </ShowcaseSection>
+
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniBottomSheet — parâmetros">
+            <ShowcaseApiRow Name="Open" Type="bool" Default="false"
+                            Description="@DescOpen" />
+            <ShowcaseApiRow Name="Variant" Type="BottomSheetVariant" Default="Modal"
+                            Description="Modal (com backdrop) ou Standard (sem)." />
+            <ShowcaseApiRow Name="SnapPoints" Type="double[]?" Default="null"
+                            Description="Frações viewport (0–1) onde o sheet pode 'snap'. Sem isso, abre fixo em 60vh." />
+            <ShowcaseApiRow Name="InitialSnapIndex" Type="int" Default="0"
+                            Description="Índice do snap point inicial. 0 = menor." />
+            <ShowcaseApiRow Name="ShowDragHandle" Type="bool" Default="true"
+                            Description="Pill no topo pra arrastar entre snaps. Esconda em pickers fixos." />
+            <ShowcaseApiRow Name="DragToDismiss" Type="bool" Default="true"
+                            Description="Drag pra baixo além do menor snap fecha o sheet." />
+            <ShowcaseApiRow Name="DismissThresholdPx" Type="double" Default="100"
+                            Description="Pixels que o drag precisa exceder pra fechar." />
+            <ShowcaseApiRow Name="CloseOnOverlayClick" Type="bool" Default="true"
+                            Description="Click no backdrop fecha (só Modal)." />
+            <ShowcaseApiRow Name="CloseOnEsc" Type="bool" Default="true"
+                            Description="Esc fecha (foco trapado + handler stack-aware)." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Título no header. Ignorado se Header for setado." />
+            <ShowcaseApiRow Name="ShowCloseButton" Type="bool" Default="true"
+                            Description="Botão X no header." />
+            <ShowcaseApiRow Name="Header" Type="RenderFragment?" Default="null"
+                            Description="Custom header (sobrescreve Title)." />
+            <ShowcaseApiRow Name="Footer" Type="RenderFragment?" Default="null"
+                            Description="Footer sticky (não scrolla com conteúdo)." />
+            <ShowcaseApiRow Name="Adaptive" Type="BottomSheetAdaptive" Default="Always"
+                            Description="Always / DrawerOnDesktop / DialogOnDesktop." />
+            <ShowcaseApiRow Name="DesktopBreakpoint" Type="Breakpoint" Default="Md"
+                            Description="Breakpoint que define 'desktop' pra Adaptive." />
+            <ShowcaseApiRow Name="OpenAsync() / CloseAsync() / SnapToAsync(int)" Type="Task" ShowDefault="false"
+                            Description="Controle programático via referência." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="BottomSheetVariant enum">
+            <ShowcaseApiRow Name="Modal" Type="0" ShowDefault="false" Description="Com backdrop. Padrão pra forms/pickers." />
+            <ShowcaseApiRow Name="Standard" Type="1" ShowDefault="false" Description="Sem backdrop. Maps/Uber-style." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="BottomSheetAdaptive enum">
+            <ShowcaseApiRow Name="Always" Type="0" ShowDefault="false" Description="Sempre bottom (default mobile-first)." />
+            <ShowcaseApiRow Name="DrawerOnDesktop" Type="1" ShowDefault="false" Description="Vira drawer lateral em desktop." />
+            <ShowcaseApiRow Name="DialogOnDesktop" Type="2" ShowDefault="false" Description="Vira dialog centralizado em desktop." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+<style>
+    .bs-check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .bs-check input { accent-color: var(--omni-accent); }
+    .bs-addr-card {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        background: var(--omni-bg);
+        border: 1px solid var(--omni-line);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 120ms;
+    }
+    .bs-addr-card:hover { background: var(--omni-bg-sunken); }
+</style>
+
+@code {
+    private bool _basicOpen;
+    private bool _snapOpen;
+    private bool _standardOpen;
+    private bool _noHandleOpen;
+    private bool _adaptiveDialogOpen;
+    private bool _adaptiveDrawerOpen;
+
+    // Strings com @ ou aspas — fora de attribute literal pra Razor não interpretar.
+    private const string DescOpen = "Estado aberto. Use @bind-Open pra two-way.";
+    private const string DescSnap = "Array de fração viewport (0–1). Drag handle navega entre snaps. SnapPoints + InitialSnapIndex definem altura inicial; drag-up vai pra full, drag-down volta pro peek (ou fecha se DragToDismiss).";
+}

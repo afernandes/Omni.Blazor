@@ -1,0 +1,176 @@
+name: Release
+
+# Triggered when a version tag is pushed (e.g. `git tag v1.2.3 && git push --tags`).
+# MinVer derives the package version from the tag automatically — no version
+# edits in the .csproj. Pre-release tags (`v1.2.3-beta.1`) ship as pre-release
+# packages to NuGet.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack only, do not push to NuGet'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # create GitHub Release
+  packages: write   # publish to GitHub Packages
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CI: true
+  PROJECT: src/Omni.Blazor/Omni.Blazor.csproj
+  ARTIFACTS: ./artifacts
+
+jobs:
+  pack:
+    name: Pack
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.minver.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve version (MinVer)
+        id: minver
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing Omni.Blazor v$VERSION"
+
+      - name: Restore
+        run: dotnet restore ${{ env.PROJECT }}
+
+      - name: Build (Release)
+        run: dotnet build ${{ env.PROJECT }} --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+
+      - name: Pack
+        run: |
+          dotnet pack ${{ env.PROJECT }} \
+            --configuration Release \
+            --no-build \
+            --output ${{ env.ARTIFACTS }} \
+            -p:ContinuousIntegrationBuild=true
+
+      - name: Verify package contents (static web assets present)
+        run: |
+          set -e
+          NUPKG=$(ls ${{ env.ARTIFACTS }}/Omni.Blazor.*.nupkg | grep -v symbols | head -n1)
+          echo "Inspecting $NUPKG"
+          unzip -l "$NUPKG" | tee /tmp/contents.txt
+          grep -q "staticwebassets/css/omni.css" /tmp/contents.txt || (echo "::error::omni.css not packed" && exit 1)
+          grep -q "staticwebassets/js/" /tmp/contents.txt || (echo "::error::no JS assets packed" && exit 1)
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg-${{ steps.minver.outputs.version }}
+          path: ${{ env.ARTIFACTS }}/*.*nupkg
+          retention-days: 90
+          if-no-files-found: error
+
+  publish-nuget:
+    name: Publish → NuGet.org
+    needs: pack
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: ${{ github.workspace }}/global.json
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg-${{ needs.pack.outputs.version }}
+          path: ./artifacts
+
+      - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY secret is not set"
+            exit 1
+          fi
+          dotnet nuget push "./artifacts/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+  publish-github:
+    name: Publish → GitHub Packages
+    needs: pack
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: ${{ github.workspace }}/global.json
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg-${{ needs.pack.outputs.version }}
+          path: ./artifacts
+
+      - name: Push to GitHub Packages
+        env:
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget push "./artifacts/*.nupkg" \
+            --api-key "$GH_TOKEN" \
+            --source "https://nuget.pkg.github.com/${GH_OWNER}/index.json" \
+            --skip-duplicate
+
+  github-release:
+    name: GitHub Release
+    needs: [pack, publish-nuget]
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg-${{ needs.pack.outputs.version }}
+          path: ./artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Omni.Blazor ${{ needs.pack.outputs.version }}
+          draft: false
+          prerelease: ${{ contains(needs.pack.outputs.version, '-') }}
+          generate_release_notes: true
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg

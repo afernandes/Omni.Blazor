@@ -1,0 +1,92 @@
+@* Standardised demo section for a component doc page:
+    - uppercase eyebrow title + optional "Código" toggle on the right
+    - optional one-liner description
+    - main demo content (any markup)
+    - collapsible Razor source preview (syntax-highlighted, copy button)
+*@
+@inject IJSRuntime JS
+
+<section class="omni-section">
+    <div class="omni-section-head">
+        <div class="omni-section-title">@Title</div>
+        @if (!string.IsNullOrEmpty(Code))
+        {
+            <button type="button" class="omni-section-code-toggle" @onclick="ToggleCode">
+                <OmniIcon Name="code" Size="ComponentSize.Sm" />
+                <span>@(_showCode ? "Ocultar código" : "Ver código")</span>
+            </button>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Description))
+    {
+        <p class="omni-section-desc">@Description</p>
+    }
+    <div class="@(Padded ? "omni-section-demo" : null)">
+        @ChildContent
+    </div>
+    @if (!string.IsNullOrEmpty(Code) && _showCode)
+    {
+        <div class="omni-code-block">
+            <button type="button" class="omni-code-copy" @onclick="CopyCodeAsync" title="Copiar código">
+                <OmniIcon Name="@(_copied ? "check" : "copy")" Size="ComponentSize.Sm" />
+                <span>@(_copied ? "Copiado!" : "Copiar")</span>
+            </button>
+            <pre class="omni-code"><code @ref="_codeEl" class="omni-code-lang">@Code</code></pre>
+        </div>
+    }
+</section>
+
+@code {
+    /// <summary>Uppercase eyebrow heading for the section.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    /// <summary>Optional one-line description under the title.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Razor source snippet. When set, a "Ver código" toggle appears.</summary>
+    [Parameter] public string? Code { get; set; }
+
+    /// <summary>Wrap the demo content in the bordered card surface. Default true.</summary>
+    [Parameter] public bool Padded { get; set; } = true;
+
+    /// <summary>The live demo markup.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _showCode;
+    private bool _copied;
+    private ElementReference _codeEl;
+    private bool _needsHighlight;
+
+    private void ToggleCode()
+    {
+        _showCode = !_showCode;
+        _copied = false;
+        if (_showCode) _needsHighlight = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_needsHighlight)
+        {
+            _needsHighlight = false;
+            try { await JS.InvokeVoidAsync("omniShowcase.highlightElement", _codeEl); }
+            catch { /* prerender / JS not ready */ }
+        }
+    }
+
+    private async Task CopyCodeAsync()
+    {
+        try
+        {
+            var ok = await JS.InvokeAsync<bool>("omniBlazor.copyText", Code);
+            if (ok)
+            {
+                _copied = true;
+                StateHasChanged();
+                await Task.Delay(1800);
+                _copied = false;
+            }
+        }
+        catch { /* ignore */ }
+    }
+}

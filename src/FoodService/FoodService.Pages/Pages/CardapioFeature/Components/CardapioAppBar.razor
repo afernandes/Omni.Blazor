@@ -1,0 +1,34 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*  Header mobile-style: botão back (esquerda) + título + subtítulo (centro).
+    Spacer 40px à direita pra manter título centralizado óticamente.
+    Usado nas screens Sizes/Flavors/Preview/Cart. *@
+<header class="@RootCss" style="@Style" @attributes="Attributes">
+    <OmniButton Icon="arrow-left"
+                IconOnly
+                Variant="ButtonVariant.Ghost"
+                Size="ComponentSize.Sm"
+                Class="fs-cd-appbar-btn"
+                OnClick="OnBack"
+                aria-label="Voltar" />
+    <div class="fs-cd-appbar-title">
+        <h1>@Title</h1>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <div class="fs-cd-appbar-sub">@Subtitle</div>
+        }
+    </div>
+    <div class="fs-cd-appbar-spacer"></div>
+</header>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+
+    private string RootCss => CssBuilder.Default("fs-cd-appbar")
+        .AddClass(Class)
+        .Build();
+}

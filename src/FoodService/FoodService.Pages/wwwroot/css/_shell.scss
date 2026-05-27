@@ -1,0 +1,263 @@
+// ============================================================================
+// SHELL — visual rules INTERNAS do PDV. O grid externo + slots (topbar, side,
+// body) agora vêm do OmniLayout/OmniAppBar/OmniDrawer/OmniMain (lib).
+// Este arquivo só estiliza o CONTEÚDO de cada slot.
+//
+// Removidas pós-OmniLayout (eram wrappers do shell custom):
+//   .fs-pdv-shell, .fs-pdv-topbar (wrapper), .fs-pdv-sidebar (wrapper),
+//   .fs-pdv-body, .fs-pdv-body-inner, .fs-pdv-shell-backdrop
+// ============================================================================
+
+// ─── TOP BAR — conteúdo interno (wrapper agora é OmniAppBar) ─────────
+.fs-pdv-topbar-spacer { flex: 1; }
+
+// Brand mark: 28×28 com dot accent overlay
+.fs-pdv-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fs-pdv-brand-mark {
+  position: relative;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--omni-fg);
+  color: var(--omni-bg-elev);
+  display: grid; place-items: center;
+  font-family: var(--omni-font-mono);
+  font-weight: 700; font-size: 13px;
+}
+.fs-pdv-brand-mark::after {
+  content: '';
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--omni-accent);
+}
+.fs-pdv-brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--omni-fg);
+}
+.fs-pdv-brand-sep {
+  color: var(--omni-fg-soft);
+  margin: 0 2px;
+}
+.fs-pdv-tenant {
+  font-size: 13px;
+  color: var(--omni-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+// Omnibox trigger inline no topbar (atalho ⌘K visual)
+// Omnibox hint inline (não pill button) — mock Forneria
+.fs-pdv-topbar-kbd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--omni-fg-muted);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.fs-pdv-topbar-kbd:hover { color: var(--omni-fg); }
+.fs-pdv-topbar-kbd > kbd {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border: 1px solid var(--omni-line);
+  border-radius: 4px;
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg-muted);
+}
+
+// Hamburger (mobile)
+.fs-pdv-hamburger {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  background: none; border: 0; cursor: pointer;
+  color: var(--omni-fg-muted);
+  border-radius: 6px;
+}
+.fs-pdv-hamburger:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
+
+// Action button na topbar (notifications, help, theme)
+.fs-pdv-topbar-iconbtn {
+  position: relative;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  background: none; border: 0; cursor: pointer;
+  color: var(--omni-fg-muted);
+  border-radius: 8px;
+}
+.fs-pdv-topbar-iconbtn:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
+// .fs-pdv-topbar-badge removida — substituída por <OmniBadge Overlap /> da Fase 1
+
+// User avatar + meta — mock has border-left divider
+.fs-pdv-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 4px 14px;
+  margin-left: 4px;
+  border-left: 1px solid var(--omni-line);
+  cursor: pointer;
+}
+.fs-pdv-topbar-user-av {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  font-weight: 700; font-size: 11px;
+}
+.fs-pdv-topbar-user-meta {
+  display: flex; flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+.fs-pdv-topbar-user-meta > b { font-size: 13px; font-weight: 500; color: var(--omni-fg); }
+.fs-pdv-topbar-user-meta > span { font-size: 11px; color: var(--omni-fg-muted); }
+
+// ─── SIDEBAR — conteúdo interno (wrapper agora é OmniDrawer) ────────
+// PdvSidebar renderiza OmniPanelMenu + OmniPanelMenuSection + OmniPanelMenuItem
+// dentro do OmniDrawer. As classes .fs-pdv-nav-label/-item/-count foram removidas
+// pós-Fase 2 — agora os items usam classes nativas da biblioteca:
+//   .omni-sidebar-section-label / .omni-panel-menu-item / .omni-panel-menu-count
+// O wrapper .fs-pdv-nav-section ainda é útil como agrupador semântico opcional.
+.fs-pdv-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+// Sidebar footer (plan card)
+.fs-pdv-side-footer {
+  margin-top: auto;
+  padding: 12px;
+  border: 1px solid var(--omni-line);
+  border-radius: 10px;
+  background: var(--omni-bg-elev);
+}
+.fs-pdv-side-plan-name { font-size: 12.5px; font-weight: 600; color: var(--omni-fg); }
+.fs-pdv-side-plan-meta {
+  font-family: var(--omni-font-mono);
+  font-size: 10.5px;
+  color: var(--omni-fg-muted);
+  margin-top: 4px;
+}
+.fs-pdv-side-plan-bar {
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--omni-bg-sunken);
+  overflow: hidden;
+}
+.fs-pdv-side-plan-bar > div {
+  height: 100%;
+  background: var(--omni-accent);
+  border-radius: 2px;
+  transition: width 200ms;
+}
+
+// ─── BODY — wrapper agora é OmniMain (NoPadding) ────────────────────
+// O body interno (page slot) é o próprio Pdv.razor renderizando .fs-pdv-page
+// como filho direto do OmniMain. Sem necessidade de wrappers extras.
+
+// ─── ACTION BAR — sub-toolbar com Comanda/Caixa/Cozinha/Histórico/Novo pedido ──
+.fs-pdv-actbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--omni-bg);
+  border-bottom: 1px solid var(--omni-line);
+  flex-shrink: 0;
+}
+.fs-pdv-actbar-spacer { flex: 1; }
+.fs-pdv-actbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+  transition: background-color 100ms, color 100ms;
+}
+.fs-pdv-actbar-btn:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
+.fs-pdv-actbar-btn > .omni-icon { width: 14px; height: 14px; }
+.fs-pdv-actbar-btn-icon {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+.fs-pdv-actbar-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  background: var(--omni-accent);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms;
+}
+.fs-pdv-actbar-primary:hover { background: var(--omni-accent-hover); }
+.fs-pdv-actbar-primary > .omni-icon { width: 14px; height: 14px; }
+
+// ─── PDV PAGE LAYOUT (within body) ─────────────────────────────────
+// 2-col interno: main flexible | aside 380px. Footer sticky bottom full width.
+.fs-pdv-page {
+  display: grid;
+  grid-template-columns: 1fr var(--fs-pdv-aside-w);
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "main aside"
+    "footer footer";
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.fs-pdv-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  padding: 16px 20px 0;
+  gap: 12px;
+}
+.fs-pdv-aside {
+  grid-area: aside;
+  background: var(--omni-bg-elev);
+  border-left: 1px solid var(--omni-line);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 14px;
+  gap: 12px;
+}
+.fs-pdv-page > .fs-pdv-footer {
+  grid-area: footer;
+}
+
+// Narrow-strip default — hidden em wide. Media queries em _responsive.scss ativam.
+.fs-pdv-narrow-strip { display: none; }

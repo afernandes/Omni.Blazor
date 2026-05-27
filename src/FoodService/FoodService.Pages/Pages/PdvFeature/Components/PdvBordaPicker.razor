@@ -1,0 +1,28 @@
+@*  Picker de borda — grid de chips, click seleciona. *@
+<div class="fs-pdv-borda-picker">
+    <div class="fs-pdv-borda-picker-label">Borda</div>
+    <div class="fs-pdv-borda-picker-grid">
+        @foreach (var b in PdvMockData.Bordas)
+        {
+            var bo = b;
+            var isActive = Current?.Id == bo.Id || (Current is null && bo.Id == "none");
+            <OmniChip Class="fs-pdv-borda-chip"
+                      Active="isActive"
+                      OnClick="@(() => OnSelect.InvokeAsync(bo))">
+                @bo.Name
+                @if (bo.PriceDelta > 0)
+                {
+                    <span class="fs-pdv-borda-chip-price">+@bo.PriceDelta.ToString("C", _ptBr)</span>
+                }
+            </OmniChip>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public BordaOption? Current { get; set; }
+    [Parameter] public EventCallback<BordaOption> OnSelect { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+}

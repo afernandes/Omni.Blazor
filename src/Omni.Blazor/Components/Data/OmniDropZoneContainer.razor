@@ -1,0 +1,65 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponentWithChildren
+@attribute [CascadingTypeParameter(nameof(TItem))]
+@using Omni.Blazor.Utilities
+
+@*
+    Kanban-style drag-and-drop container. Holds the source list and exposes
+    per-zone filtering, drop validation, and event callbacks. Inspired by
+    Radzen's RadzenDropZoneContainer.
+
+    Tree layout:
+        <OmniDropZoneContainer TItem="..."
+                                 Data="items"
+                                 ItemSelector="(item, zone) => item.Status == zone.Value"
+                                 CanDrop="ctx => true"
+                                 Drop="OnDrop">
+            <ChildContent>
+                <OmniDropZone Value="Status.Todo">...</OmniDropZone>
+                <OmniDropZone Value="Status.Doing">...</OmniDropZone>
+            </ChildContent>
+            <Template>
+                <strong>@context.Name</strong>
+            </Template>
+        </OmniDropZoneContainer>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <CascadingValue Value="this" IsFixed="true">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>Backing data list. Each <see cref="OmniDropZone{TItem}"/> filters this via <see cref="ItemSelector"/>.</summary>
+    [Parameter] public IEnumerable<TItem>? Data { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-dropzone-container")
+        .AddClass(Class)
+        .Build();
+
+    /// <summary>Returns true when an item belongs in the given zone.</summary>
+    [Parameter] public Func<TItem, OmniDropZone<TItem>, bool>? ItemSelector { get; set; }
+
+    /// <summary>Returns whether the current drag is allowed to drop on the target zone/item.</summary>
+    [Parameter] public Func<DropZoneItemEventArgs<TItem>, bool>? CanDrop { get; set; }
+
+    /// <summary>Per-item render hook — set attributes or hide individual items.</summary>
+    [Parameter] public Action<DropZoneItemRenderEventArgs<TItem>>? ItemRender { get; set; }
+
+    /// <summary>Render template for each item. Receives the item as <c>@context</c>.</summary>
+    [Parameter] public RenderFragment<TItem>? Template { get; set; }
+
+    /// <summary>Fires when an item is dropped on a zone (or another item).</summary>
+    [Parameter] public EventCallback<DropZoneItemEventArgs<TItem>> Drop { get; set; }
+
+    /// <summary>Fires when the user starts dragging an item.</summary>
+    [Parameter] public EventCallback<DropZoneItemEventArgs<TItem>> DragStart { get; set; }
+
+    /// <summary>Fires when the drag ends (with or without a drop).</summary>
+    [Parameter] public EventCallback<DropZoneItemEventArgs<TItem>> DragEnd { get; set; }
+
+    /// <summary>The in-flight drag payload. Set by item on dragstart, read by zones on dragover/drop.</summary>
+    internal DropZoneItemEventArgs<TItem>? Payload { get; set; }
+}

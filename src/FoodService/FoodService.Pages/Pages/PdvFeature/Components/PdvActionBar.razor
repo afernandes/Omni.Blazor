@@ -1,0 +1,52 @@
+@inject PdvOrderService Order
+@inject NotificationService Toast
+@implements IDisposable
+
+@*  Action bar alta — children diretos do OmniToolBar (sem wrapper duplo).
+    O OmniToolBar do AppShellPdv recebe Class="fs-pdv-actbar" e seus estilos
+    de padding/border/background. O spacer flex:1 funciona dentro dele
+    empurrando os botões para a direita. *@
+<div class="fs-pdv-actbar-spacer"></div>
+<OmniButton Class="fs-pdv-actbar-btn" Icon="printer" Size="ComponentSize.Sm"
+            OnClick="@(() => Toast.Info("Imprimir comanda"))">
+    <span class="fs-pdv-actbar-btn-lbl">Comanda</span>
+</OmniButton>
+<OmniButton Class="fs-pdv-actbar-btn" Icon="dollar-sign" Size="ComponentSize.Sm"
+            OnClick="@(() => Toast.Info("Abrir caixa"))">
+    <span class="fs-pdv-actbar-btn-lbl">Caixa</span>
+</OmniButton>
+<OmniButton Class="fs-pdv-actbar-btn" Icon="zap" Size="ComponentSize.Sm"
+            OnClick="@(() => Toast.Info("Status da cozinha"))">
+    <span class="fs-pdv-actbar-btn-lbl">Cozinha</span>
+</OmniButton>
+<OmniButton Class="fs-pdv-actbar-btn" Icon="clock" Size="ComponentSize.Sm"
+            OnClick="@(() => Toast.Info("Histórico de pedidos"))">
+    <span class="fs-pdv-actbar-btn-lbl">Histórico</span>
+</OmniButton>
+<OmniButton Class="fs-pdv-actbar-btn fs-pdv-actbar-btn-icon"
+            Icon="more-horizontal"
+            IconOnly
+            Size="ComponentSize.Sm"
+            aria-label="Mais ações" />
+<OmniButton Class="fs-pdv-actbar-primary" Icon="plus" Size="ComponentSize.Sm"
+            OnClick="NewOrder">
+    <span class="fs-pdv-actbar-primary-lbl">Novo pedido</span>
+</OmniButton>
+
+@code {
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private void NewOrder()
+    {
+        if (Order.Cart.Count > 0)
+        {
+            Order.PauseCurrent();
+            Toast.Info("Pedido pausado · novo pedido iniciado");
+        }
+        else
+        {
+            Toast.Info("Pronto para receber pedidos");
+        }
+    }
+}

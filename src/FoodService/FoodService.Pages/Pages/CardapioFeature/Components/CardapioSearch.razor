@@ -1,0 +1,26 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*  Search arredondado (pill style) usado no home (busca geral) e flavors
+    (busca de sabor). Wrapper visual ao redor de input nativo (deliberadamente
+    fora do OmniTextBox para preservar o look com OmniIcon embutido). *@
+<label class="@RootCss" style="@Style" @attributes="Attributes">
+    <OmniIcon Name="search" Size="ComponentSize.Sm" />
+    <input placeholder="@Placeholder"
+           value="@Value"
+           @oninput="OnInput" />
+</label>
+
+@code {
+    [Parameter] public string Placeholder { get; set; } = "Buscar…";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private string RootCss => CssBuilder.Default("fs-cd-search")
+        .AddClass(Class)
+        .Build();
+
+    private Task OnInput(ChangeEventArgs e) =>
+        ValueChanged.InvokeAsync(e.Value?.ToString() ?? "");
+}

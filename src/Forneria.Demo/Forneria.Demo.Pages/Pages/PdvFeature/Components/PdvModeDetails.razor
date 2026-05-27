@@ -1,0 +1,175 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Renderiza markup contextual conforme o modo selecionado:
+      • Balcão  → vazio (sem detalhes)
+      • Delivery → CEP + Endereço + Nº + Bairro + Complemento
+      • Retirada → nome para retirada
+      • Mesa     → número da mesa + garçom
+      • Comanda  → número da comanda *@
+<div class="omni-pdv-mode-details">
+    @switch (Order.Mode)
+    {
+        case OrderMode.Balcao:
+            // Sem detalhes
+            break;
+
+        case OrderMode.Delivery:
+            <div class="omni-pdv-deliv">
+                @* Linha CEP + Buscar *@
+                <div class="omni-pdv-deliv-label omni-mono">CEP</div>
+                <div class="omni-pdv-deliv-row">
+                    <input class="omni-pdv-deliv-input omni-mono"
+                           value="@(Order.ModeDetails.ZipCode ?? "")"
+                           @oninput="OnZipChange"
+                           placeholder="00000-000" />
+                    <button type="button" class="omni-pdv-deliv-cep-btn">
+                        <OmniIcon Name="search" Size="ComponentSize.Sm" /> Buscar
+                    </button>
+                </div>
+
+                @* Linha Endereço + Nº *@
+                <div class="omni-pdv-deliv-row">
+                    <input class="omni-pdv-deliv-input omni-pdv-deliv-input-grow"
+                           value="@(Order.ModeDetails.Address ?? "")"
+                           @oninput="OnAddressChange"
+                           placeholder="Rua, avenida…" />
+                    <input class="omni-pdv-deliv-input omni-pdv-deliv-num"
+                           value="@(Order.ModeDetails.AddressNumber ?? "")"
+                           @oninput="OnNumberChange"
+                           placeholder="Nº" />
+                </div>
+
+                @* Bairro *@
+                <div class="omni-pdv-deliv-label omni-mono">BAIRRO</div>
+                <select class="omni-pdv-deliv-select"
+                        @bind="HoodName"
+                        @bind:after="@(() => Order.NotifyModeDetailsChanged())">
+                    <option value="">Digite ou selecione o bairro…</option>
+                    @foreach (var h in PdvMockData.Hoods)
+                    {
+                        <option value="@h.Name">@h.Name · R$ @h.Fee.ToString("F2") · @h.EtaMin min</option>
+                    }
+                </select>
+
+                @* Complemento (link button) *@
+                <button type="button" class="omni-pdv-deliv-comp-btn"
+                        @onclick="ToggleComplement">
+                    <OmniIcon Name="plus" Size="ComponentSize.Sm" />
+                    Complemento ou referência
+                </button>
+                @if (_showComplement || !string.IsNullOrWhiteSpace(Order.ModeDetails.Complement))
+                {
+                    <input class="omni-pdv-deliv-input"
+                           value="@(Order.ModeDetails.Complement ?? "")"
+                           @oninput="OnComplementChange"
+                           placeholder="Apto, bloco, ponto de referência…" />
+                }
+            </div>
+            break;
+
+        case OrderMode.Retirada:
+            <label class="omni-pdv-mode-field">
+                <span>Nome para retirada</span>
+                <OmniTextBox Placeholder="Ex.: João Silva"
+                              Value="@(Order.ModeDetails.PickupName ?? "")"
+                              ValueChanged="@(v => { Order.ModeDetails.PickupName = v; Order.NotifyModeDetailsChanged(); })" />
+            </label>
+            break;
+
+        case OrderMode.Mesa:
+            <label class="omni-pdv-mode-field">
+                <span>Número da mesa</span>
+                <input type="number" min="1" max="99"
+                       value="@(Order.ModeDetails.TableNumber?.ToString() ?? "")"
+                       @oninput="OnTableChange"
+                       class="omni-pdv-mode-input"
+                       placeholder="07" />
+            </label>
+            <label class="omni-pdv-mode-field">
+                <span>Garçom</span>
+                <select @bind="WaiterName" @bind:after="@(() => Order.NotifyModeDetailsChanged())"
+                        class="omni-pdv-mode-select">
+                    <option value="">— escolha o garçom —</option>
+                    @foreach (var w in PdvMockData.Waiters)
+                    {
+                        <option value="@w">@w</option>
+                    }
+                </select>
+            </label>
+            <div class="omni-pdv-mode-hint">
+                <OmniIcon Name="info" Size="ComponentSize.Sm" />
+                <span>Modo Mesa adiciona <b>10% de serviço</b> ao total.</span>
+            </div>
+            break;
+
+        case OrderMode.Comanda:
+            <label class="omni-pdv-mode-field">
+                <span>Número da comanda</span>
+                <input type="number" min="1" max="999"
+                       value="@(Order.ModeDetails.TabNumber?.ToString() ?? "")"
+                       @oninput="OnTabChange"
+                       class="omni-pdv-mode-input"
+                       placeholder="042" />
+            </label>
+            break;
+    }
+</div>
+
+@code {
+    private bool _showComplement;
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    // Two-way binding helpers — encapsula o NotifyModeDetailsChanged
+    private string HoodName
+    {
+        get => Order.ModeDetails.Hood?.Name ?? "";
+        set => Order.ModeDetails.Hood = PdvMockData.Hoods.FirstOrDefault(h => h.Name == value);
+    }
+
+    private string WaiterName
+    {
+        get => Order.ModeDetails.Waiter ?? "";
+        set => Order.ModeDetails.Waiter = string.IsNullOrEmpty(value) ? null : value;
+    }
+
+    private void OnZipChange(ChangeEventArgs e)
+    {
+        Order.ModeDetails.ZipCode = e.Value?.ToString();
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnAddressChange(ChangeEventArgs e)
+    {
+        Order.ModeDetails.Address = e.Value?.ToString();
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnNumberChange(ChangeEventArgs e)
+    {
+        Order.ModeDetails.AddressNumber = e.Value?.ToString();
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnComplementChange(ChangeEventArgs e)
+    {
+        Order.ModeDetails.Complement = e.Value?.ToString();
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void ToggleComplement() => _showComplement = !_showComplement;
+
+    private void OnTableChange(ChangeEventArgs e)
+    {
+        Order.ModeDetails.TableNumber = int.TryParse(e.Value?.ToString(), out var n) ? n : null;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnTabChange(ChangeEventArgs e)
+    {
+        Order.ModeDetails.TabNumber = int.TryParse(e.Value?.ToString(), out var n) ? n : null;
+        Order.NotifyModeDetailsChanged();
+    }
+}

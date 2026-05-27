@@ -1,0 +1,62 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+<CascadingValue Value="this" IsFixed="true">
+    <div class="@RootCss" style="@Style" @attributes="Attributes">
+        <div class="omni-tabs-bar">
+            @foreach (var tab in _tabs)
+            {
+                var current = tab;
+                var active = current == _active;
+                <button @key="current"
+                        type="button"
+                        class="@TabCss(active)"
+                        @onclick="@(() => Activate(current))">
+                    @if (!string.IsNullOrEmpty(current.Icon)) { <OmniIcon Name="@current.Icon" Size="ComponentSize.Sm" /> }
+                    <span>@current.Title</span>
+                </button>
+            }
+        </div>
+        <div class="omni-tabs-body">
+            @ChildContent
+            @_active?.ChildContent
+        </div>
+    </div>
+</CascadingValue>
+
+@code {
+    private readonly List<OmniTabItem> _tabs = new();
+    private OmniTabItem? _active;
+
+    private string RootCss => CssBuilder.Default("omni-tabs")
+        .AddClass(Class)
+        .Build();
+
+    private static string TabCss(bool active) => CssBuilder.Default("omni-tab")
+        .AddClass("omni-active", active)
+        .Build();
+
+    internal void Register(OmniTabItem tab)
+    {
+        if (_tabs.Contains(tab)) return;
+        _tabs.Add(tab);
+        _active ??= tab;
+        StateHasChanged();
+    }
+
+    internal void Unregister(OmniTabItem tab)
+    {
+        _tabs.Remove(tab);
+        if (_active == tab) _active = _tabs.FirstOrDefault();
+        StateHasChanged();
+    }
+
+    internal bool IsActive(OmniTabItem tab) => _active == tab;
+
+    private void Activate(OmniTabItem tab)
+    {
+        _active = tab;
+        StateHasChanged();
+    }
+}

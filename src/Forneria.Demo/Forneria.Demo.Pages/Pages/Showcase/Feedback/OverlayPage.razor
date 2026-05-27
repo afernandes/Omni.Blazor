@@ -1,0 +1,177 @@
+@page "/showcase/overlay"
+@layout ShowcaseLayout
+
+<PageTitle>OmniOverlay — Showcase</PageTitle>
+
+<ShowcasePage Title="OmniOverlay"
+              Subtitle="Backdrop reutilizável + scroll lock + Esc handler + click-outside. Equivalente ao MudOverlay.">
+
+    <Overview>
+        <p>
+            <code>OmniOverlay</code> é o primitive de backdrop standalone — combina
+            scrim com blur, body scroll lock (refcount-safe), Esc handler e
+            click-to-close numa única abstração reutilizável. Reusa os tokens
+            <code>--omni-backdrop-*</code> consolidados que <code>OmniDialog</code>,
+            <code>OmniDrawer</code> e <code>OmniSplitView</code> também usam.
+        </p>
+        <p>
+            Útil pra <strong>loading screens</strong>, <strong>image lightbox</strong>,
+            <strong>confirmações inline</strong>, <strong>tour highlighters</strong>,
+            ou qualquer caso em que você precisa de "um pedaço escurecido por cima do
+            conteúdo + algo no centro". <em>Não substitui</em> Dialog/Drawer — esses
+            componentes têm features específicas (focus trap, auto-close-on-navigate,
+            stack management) que OmniOverlay não precisa.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Loading scrim</strong> bloqueando toda a app enquanto processa.</li>
+            <li><strong>Image lightbox / preview</strong> simples sem boilerplate de Dialog.</li>
+            <li><strong>Confirmação inline</strong> ad-hoc onde não vale criar um Dialog.</li>
+            <li><strong>Tour / onboarding</strong> com spotlight (overlay modeless + recorte).</li>
+            <li><strong>Overlay local</strong> dentro de um painel (com <code>Absolute</code>).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Modal/diálogo formal com título + footer → use <code>OmniDialog</code> (focus trap, stack, Esc por padrão).</li>
+            <li>Sidebar de navegação → use <code>OmniDrawer</code>.</li>
+            <li>Tooltip simples → use <code>OmniTooltip</code>.</li>
+            <li>Apenas o scrim de Dialog/Drawer/SplitView — esses já têm backdrop próprio.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="LOADING SCRIM — bloqueia app inteira"
+                         Description="Overlay fixed cobrindo viewport com spinner. Bloqueia interação enquanto algo processa. LockScroll true (default) impede scroll do body."
+                         Code="@(@"<OmniOverlay @bind-Visible=""_loading"">
+    <OmniCard Padding=""ComponentSize.Lg"">
+        <OmniStack Direction=""StackDirection.Row"" Gap=""12"" AlignItems=""StackAlign.Center"">
+            <OmniSpinner Size=""ComponentSize.Md"" />
+            <span>Processando...</span>
+        </OmniStack>
+    </OmniCard>
+</OmniOverlay>")">
+            <OmniButton Text="Simular loading (3s)" Variant="ButtonVariant.Primary"
+                         OnClick="@SimulateLoadingAsync" />
+
+            <OmniOverlay @bind-Visible="_loading">
+                <OmniCard Padding="ComponentSize.Lg">
+                    <OmniStack Direction="StackDirection.Row" Gap="12" AlignItems="StackAlign.Center">
+                        <OmniSpinner Size="ComponentSize.Md" />
+                        <span>Processando...</span>
+                    </OmniStack>
+                </OmniCard>
+            </OmniOverlay>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="AUTO-CLOSE — click no backdrop fecha"
+                         Description="AutoClose=true: clique fora do conteúdo seta Visible=false. O click no conteúdo NÃO fecha (stopPropagation interno)."
+                         Code='@("<OmniOverlay @bind-Visible=\"_lightbox\" AutoClose>\n    <img src=\"...\" style=\"max-width: 80vw; max-height: 80vh;\" />\n</OmniOverlay>")'>
+            <OmniButton Text="Abrir image lightbox" Icon="image" OnClick="@(_ => { _lightbox = true; return Task.CompletedTask; })" />
+
+            <OmniOverlay @bind-Visible="_lightbox" AutoClose>
+                <div style="background:var(--omni-bg-elev); padding:24px; border-radius:12px; box-shadow:var(--omni-shadow-lg); text-align:center; max-width: 80vw;">
+                    <div style="width:300px; height:200px; background:linear-gradient(135deg, var(--omni-accent) 0%, var(--omni-warn) 100%); border-radius:8px; margin-bottom:12px;"></div>
+                    <p class="omni-muted" style="font-size:12px;margin:0;">Click fora ou Esc fecha. Click dentro NÃO fecha.</p>
+                </div>
+            </OmniOverlay>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MODELESS — não bloqueia clicks por trás"
+                         Description="Modal=false aplica pointer-events:none no scrim. O user continua interagindo com o que está atrás (tour highlighter / decorative overlay)."
+                         Code='@("<OmniOverlay @bind-Visible=\"_decor\" Modal=\"false\">\n    <div class=\"tour-hint\">↑ Continue clicando os botões — overlay não bloqueia</div>\n</OmniOverlay>")'>
+            <OmniStack Direction="StackDirection.Row" Gap="8">
+                <OmniButton Text="Toggle modeless" Icon="eye" OnClick="@(_ => { _decor = !_decor; return Task.CompletedTask; })" />
+                <OmniButton Text="Click me!" Variant="ButtonVariant.Primary"
+                             OnClick="@(_ => { _clicks++; return Task.CompletedTask; })" />
+                <span class="omni-muted omni-mono" style="font-size:11px; align-self:center;">
+                    Clicks: <strong>@_clicks</strong>
+                </span>
+            </OmniStack>
+            <p class="omni-muted" style="font-size:11px; margin-top:6px;">
+                Liga "modeless" e tenta clicar "Click me!". O overlay decora mas não bloqueia.
+            </p>
+
+            <OmniOverlay @bind-Visible="_decor" Modal="false">
+                <div style="background:var(--omni-accent-softer); color:var(--omni-accent); padding:14px 20px; border-radius:8px; border:2px dashed var(--omni-accent); font-weight:600;">
+                    👀 Modo decorativo — clicks atravessam
+                </div>
+            </OmniOverlay>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ABSOLUTE — overlay dentro de um painel"
+                         Description="Absolute=true: position:absolute (em vez de fixed). Cobre só o ancestral mais próximo com position:relative. Útil pra loading state de um card/painel específico, não da app inteira."
+                         Code='@("<div style=\"position: relative\">\n    <OmniCard Title=\"Pedidos\">...</OmniCard>\n    <OmniOverlay @bind-Visible=\"_panelBusy\" Absolute>\n        <OmniSpinner />\n    </OmniOverlay>\n</div>")'>
+            <div style="position: relative; min-height: 220px;">
+                <OmniCard Title="Painel de pedidos" Padding="ComponentSize.Md">
+                    <p>Cards de pedidos, gráficos, lista...</p>
+                    <p>Quando clicar em "Recarregar painel", só ESTE bloco fica bloqueado.</p>
+                    <OmniButton Text="Recarregar painel" Icon="refresh" OnClick="@SimulatePanelLoadAsync" />
+                </OmniCard>
+
+                <OmniOverlay @bind-Visible="_panelBusy" Absolute>
+                    <OmniStack Direction="StackDirection.Row" Gap="10" AlignItems="StackAlign.Center"
+                                Style="background:var(--omni-bg-elev); padding:12px 18px; border-radius:8px; box-shadow:var(--omni-shadow-md);">
+                        <OmniSpinner Size="ComponentSize.Sm" />
+                        <span class="omni-mono" style="font-size:13px;">Atualizando...</span>
+                    </OmniStack>
+                </OmniOverlay>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniOverlay — parâmetros">
+            <ShowcaseApiRow Name="Visible / VisibleChanged" Type="bool" Default="false"
+                            Description='@("Two-way: @bind-Visible. Controla a visibilidade.")' />
+            <ShowcaseApiRow Name="AutoClose" Type="bool" Default="false"
+                            Description="Click no backdrop fecha (seta Visible=false). Conteúdo interno não dispara." />
+            <ShowcaseApiRow Name="CloseOnEsc" Type="bool" Default="true"
+                            Description="Esc fecha. Default true. Setar false ignora Esc." />
+            <ShowcaseApiRow Name="LockScroll" Type="bool" Default="true"
+                            Description="Bloqueia scroll do <body> enquanto visível. Refcount-safe. Ignorado em modo Absolute." />
+            <ShowcaseApiRow Name="Modal" Type="bool" Default="true"
+                            Description="false = pointer-events:none no scrim. Permite clicks no que está atrás (tour highlighter, overlay decorativo)." />
+            <ShowcaseApiRow Name="Absolute" Type="bool" Default="false"
+                            Description="position:absolute em vez de fixed. Cobre só o ancestor com position:relative. Container precisa ter o positioning." />
+            <ShowcaseApiRow Name="ZIndex" Type="int?" Default="null (CSS=500)"
+                            Description="Override do z-index. null = usa default do .omni-overlay (500)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo centrado no overlay. null = scrim puro (loading bloqueio, fade-in decorativo)." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback<MouseEventArgs>" Default="empty"
+                            Description="Callback do click no backdrop. Dispara mesmo com AutoClose (AutoClose só decide se fecha)." />
+            <ShowcaseApiRow Name="OnClosed" Type="EventCallback" Default="empty"
+                            Description="Disparado quando o overlay fecha (via AutoClose, Esc, bind ou CloseAsync())." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool _loading;
+    private bool _lightbox;
+    private bool _decor;
+    private bool _panelBusy;
+    private int _clicks;
+
+    private async Task SimulateLoadingAsync()
+    {
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(3000);
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SimulatePanelLoadAsync()
+    {
+        _panelBusy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(1500);
+        _panelBusy = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}

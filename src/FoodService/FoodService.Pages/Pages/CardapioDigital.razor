@@ -1,0 +1,27 @@
+@page "/cardapio"
+@layout AppShellCardapio
+@inject CardapioDigitalState State
+@implements IDisposable
+
+<PageTitle>Forneria Don Tonhão · Cardápio</PageTitle>
+
+@*  /cardapio — Cardápio digital. State machine de 7 telas (Home → Sizes →
+    Flavors → Preview → Cart → Checkout → Tracking → reset). Cada screen é
+    um componente próprio consumindo CardapioDigitalState (Scoped). Mobile-first
+    com breakpoints @768px (2-col) e @1200px (3-col) gerenciados pelo CSS. *@
+
+@switch (State.Screen)
+{
+    case CardapioScreen.Home:     <CardapioHomeScreen     /> break;
+    case CardapioScreen.Sizes:    <CardapioSizesScreen    /> break;
+    case CardapioScreen.Flavors:  <CardapioFlavorsScreen  /> break;
+    case CardapioScreen.Preview:  <CardapioPreviewScreen  /> break;
+    case CardapioScreen.Cart:     <CardapioCartScreen     /> break;
+    case CardapioScreen.Checkout: <CardapioCheckoutScreen /> break;
+    case CardapioScreen.Tracking: <CardapioTrackingScreen /> break;
+}
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

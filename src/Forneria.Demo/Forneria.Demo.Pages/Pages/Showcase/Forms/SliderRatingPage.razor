@@ -1,0 +1,206 @@
+@page "/showcase/slider-rating"
+@layout ShowcaseLayout
+
+<PageTitle>Slider & Rating — Showcase</PageTitle>
+
+<ShowcasePage Title="Slider & Rating"
+              Subtitle="Slider unificado (single ou range com Range=true) + Rating em estrelas. Drag + keyboard, com a11y completa.">
+
+    <Overview>
+        <p>
+            <code>OmniSlider</code> é um único componente que opera em modo single
+            (<code>@@bind-Value</code>) ou range com dois thumbs
+            (<code>Range="true"</code> + <code>@@bind-ValueStart</code> +
+            <code>@@bind-ValueEnd</code>). Suporta Min/Max/Step, ticks visuais, marcas
+            customizadas e formatador de label.
+        </p>
+        <p>
+            <code>OmniRating</code> renderiza N estrelas (default 5) com hover preview,
+            opção de half-step e teclado completo (setas, Home/End, dígitos 0-9 setam direto).
+            Use modo <code>ReadOnly</code> para exibir avaliações sem permitir interação.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Slider</strong>: filtro de preço, % desconto, brilho/volume, qualquer escala numérica contínua.</li>
+            <li><strong>RangeSlider</strong>: filtro "de até" — preço entre R$ X e R$ Y, faixa de data.</li>
+            <li><strong>Rating</strong>: avaliação pós-pedido, NPS, qualidade de produto, classificação de funcionários.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SLIDER — single value"
+                         Description="Drag o thumb ou use as setas do teclado quando focado. Min/Max e Step configuráveis."
+                         Code="@(@"<OmniSlider @bind-Value=""volume"" Min=""0"" Max=""100"" Step=""5"" />")">
+            <OmniStack Gap="14">
+                <div>
+                    <OmniLabel Text="@($"Volume: {_volume}%")" Size="ComponentSize.Sm" />
+                    <OmniSlider @bind-Value="_volume" Min="0" Max="100" Step="5" />
+                </div>
+                <div>
+                    <OmniLabel Text="@($"Brilho: {_brilho}%")" Size="ComponentSize.Sm" />
+                    <OmniSlider @bind-Value="_brilho" Min="0" Max="100" Step="1" Color="var(--omni-warn)" />
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SLIDER — com ticks visuais"
+                         Description="ShowTicks=true desenha um dot em cada Step (auto-desliga se >50 ticks)."
+                         Code="@(@"<OmniSlider @bind-Value=""desconto"" Min=""0"" Max=""100"" Step=""10"" ShowTicks />")">
+            <div>
+                <OmniLabel Text="@($"Desconto: {_desconto}%")" Size="ComponentSize.Sm" />
+                <OmniSlider @bind-Value="_desconto" Min="0" Max="100" Step="10" ShowTicks />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SLIDER — com marcas customizadas"
+                         Description="Marks adiciona labels embaixo da track em valores específicos."
+                         Code="@(@"<OmniSlider @bind-Value=""qualidade"" Min=""0"" Max=""100"" Step=""25""
+              Marks=""@_qualidadeMarks"" />")">
+            <div style="padding-bottom:24px;">
+                <OmniLabel Text="@($"Qualidade: {_qualidade}")" Size="ComponentSize.Sm" />
+                <OmniSlider @bind-Value="_qualidade" Min="0" Max="100" Step="25"
+                             Marks="@_qualidadeMarks" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RANGE SLIDER — 2 thumbs"
+                         Description="Range=true habilita 2 thumbs. Bind via ValueStart + ValueEnd. ValueEnd nunca passa de ValueStart (auto-clamp)."
+                         Code="@(@"<OmniSlider Range=""true""
+              @bind-ValueStart=""precoMin""
+              @bind-ValueEnd=""precoMax""
+              Min=""0"" Max=""500"" Step=""10""
+              ValueFormatter=""@(v => $""R$ {v:0}"")"" />")">
+            <div>
+                <OmniLabel Text="@($"Faixa de preço: R$ {_precoMin} — R$ {_precoMax}")" Size="ComponentSize.Sm" />
+                <OmniSlider Range="true"
+                             @bind-ValueStart="_precoMin"
+                             @bind-ValueEnd="_precoMax"
+                             Min="0" Max="500" Step="10"
+                             ValueFormatter="@(v => $"R$ {v:0}")" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SLIDER — disabled"
+                         Description="Disabled bloqueia drag e keyboard, visual fica acinzentado."
+                         Code="@(@"<OmniSlider Value=""42"" Disabled />")">
+            <OmniSlider Value="42" Disabled />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RATING — básico"
+                         Description="5 estrelas (default). Click seta o valor, hover mostra preview. ↑/↓/←/→ no teclado também funcionam."
+                         Code="@(@"<OmniRating @bind-Value=""nota"" />
+<OmniRating @bind-Value=""nota"" Size=""ComponentSize.Lg"" />
+<OmniRating @bind-Value=""nota"" Size=""ComponentSize.Xl"" ShowValue />")">
+            <OmniStack Gap="12">
+                <OmniRating @bind-Value="_nota" />
+                <OmniRating @bind-Value="_nota" Size="ComponentSize.Lg" />
+                <OmniRating @bind-Value="_nota" Size="ComponentSize.Xl" ShowValue />
+            </OmniStack>
+            <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                Bind: _nota = <strong>@_nota</strong> (todas as 3 instâncias acima compartilham o mesmo valor)
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RATING — N estrelas (não só 5)"
+                         Description="Max controla quantas estrelas. Útil p/ escalas de 3 ou 10."
+                         Code="@(@"<OmniRating @bind-Value=""nps"" Max=""10"" ShowValue />")">
+            <OmniStack Gap="10">
+                <OmniLabel Text="NPS (0-10)" Size="ComponentSize.Sm" />
+                <OmniRating @bind-Value="_nps" Max="10" ShowValue />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RATING — readonly (display only)"
+                         Description="ReadOnly=true: sem hover, sem click, role='img'. Use p/ exibir avaliação média."
+                         Code="@(@"<OmniRating Value=""4.5"" ReadOnly HalfStep ShowValue />")">
+            <OmniStack Gap="8">
+                <div>
+                    <OmniLabel Text="Avaliação média do produto" Size="ComponentSize.Sm" />
+                    <OmniRating Value="4.5" ReadOnly HalfStep ShowValue />
+                </div>
+                <div>
+                    <OmniLabel Text="Atendimento" Size="ComponentSize.Sm" />
+                    <OmniRating Value="3" ReadOnly ShowValue />
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RATING — AllowClear"
+                         Description="AllowClear=true: clicar na estrela JÁ selecionada zera o valor (toggle)."
+                         Code="@(@"<OmniRating @bind-Value=""clear"" AllowClear ShowValue />")">
+            <OmniStack Gap="6">
+                <OmniRating @bind-Value="_allowClear" AllowClear ShowValue />
+                <p class="omni-muted" style="font-size:11px;">Clica na mesma estrela 2 vezes para zerar.</p>
+            </OmniStack>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSlider — parâmetros principais">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="double" Default="0"
+                            Description="Single-value bind (use com Range=false)." />
+            <ShowcaseApiRow Name="ValueStart / ValueEnd (Changed)" Type="double" Default="0"
+                            Description="Bind para modo range (Range=true). End ≥ Start auto-clamp." />
+            <ShowcaseApiRow Name="Range" Type="bool" Default="false"
+                            Description="Quando true, renderiza 2 thumbs." />
+            <ShowcaseApiRow Name="Min / Max / Step" Type="double" Default="0 / 100 / 1"
+                            Description="Limites e incremento." />
+            <ShowcaseApiRow Name="ShowTicks" Type="bool" Default="false"
+                            Description="Dots em cada Step. Auto-desliga se >50 ticks." />
+            <ShowcaseApiRow Name="ShowValueLabel" Type="bool" Default="true"
+                            Description="Tooltip com valor no hover/focus do thumb." />
+            <ShowcaseApiRow Name="ValueFormatter" Type="Func&lt;double, string&gt;?" Default="null"
+                            Description="Formatador do balão do thumb." />
+            <ShowcaseApiRow Name="Marks" Type="IEnumerable&lt;SliderMark&gt;?" Default="null"
+                            Description="Marcas customizadas com label." />
+            <ShowcaseApiRow Name="Color" Type="string?" Default="null"
+                            Description="Cor accent override (qualquer CSS color)." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Bloqueia drag/keyboard." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniRating — parâmetros principais">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="double" Default="0"
+                            Description="Valor atual. Aceita meios (X.5) quando HalfStep." />
+            <ShowcaseApiRow Name="Max" Type="int" Default="5"
+                            Description="Quantidade total de estrelas." />
+            <ShowcaseApiRow Name="HalfStep" Type="bool" Default="false"
+                            Description="Permite valores fracionados (1.5, 2.5, ...)." />
+            <ShowcaseApiRow Name="ReadOnly" Type="bool" Default="false"
+                            Description="Display only — sem interação." />
+            <ShowcaseApiRow Name="AllowClear" Type="bool" Default="false"
+                            Description="Click na estrela selecionada zera o valor." />
+            <ShowcaseApiRow Name="ShowValue" Type="bool" Default="false"
+                            Description="Mostra valor numérico ao lado das estrelas." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Sm / Md / Lg / Xl." />
+            <ShowcaseApiRow Name="EmptyIconName / FullIconName" Type="string" Default="&quot;star&quot;"
+                            Description="Customize ícones (heart, thumbs-up, etc.)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private double _volume = 60;
+    private double _brilho = 75;
+    private double _desconto = 30;
+    private double _qualidade = 50;
+    private double _precoMin = 80;
+    private double _precoMax = 320;
+
+    private double _nota = 3;
+    private double _nps = 8;
+    private double _allowClear = 4;
+
+    private readonly SliderMark[] _qualidadeMarks =
+    {
+        new(0,   "Ruim"),
+        new(25,  "Fraco"),
+        new(50,  "OK"),
+        new(75,  "Bom"),
+        new(100, "Excelente"),
+    };
+}

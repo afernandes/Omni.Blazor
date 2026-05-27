@@ -1,0 +1,118 @@
+@page "/showcase/tabs"
+@layout ShowcaseLayout
+
+<PageTitle>Tabs — Showcase</PageTitle>
+
+<ShowcasePage Title="Tabs"
+              Subtitle="Painéis horizontais que dividem conteúdo relacionado num mesmo espaço.">
+
+    <Overview>
+        <p>
+            O <code>OmniTabs</code> agrupa vários <code>OmniTabItem</code> e exibe apenas o
+            conteúdo da aba ativa — útil para <strong>condensar conteúdo relacionado</strong> num
+            mesmo pane sem forçar scroll ou navegação. A primeira aba registrada fica ativa por
+            padrão; o usuário troca por clique.
+        </p>
+        <p>
+            Cada <code>OmniTabItem</code> exige um <code>Title</code> e aceita um <code>Icon</code>
+            opcional. O corpo da aba é o <code>ChildContent</code> — qualquer markup, incluindo
+            formulários, grids ou estatísticas.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Dividir o detalhe de um registro em seções (dados, histórico, permissões).</li>
+            <li>Alternar entre views de um mesmo dataset sem recarregar a página.</li>
+            <li>Reduzir scroll agrupando conteúdo extenso em painéis.</li>
+            <li>Organizar configurações por categoria dentro de um único modal ou pane.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Navegação entre páginas distintas → use <code>OmniPanelMenu</code>.</li>
+            <li>Fluxo sequencial com ordem obrigatória → use <code>OmniStepper</code>.</li>
+            <li>Toggle entre 2-4 opções equivalentes → use <code>OmniSegmentedControl</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="TABS COM ÍCONE"
+                         Description="Cada OmniTabItem aceita um Icon ao lado do título."
+                         Code="@(@"<OmniTabs>
+    <OmniTabItem Title=""Detalhes"" Icon=""file-text"">
+        <p>Formulário principal de edição.</p>
+    </OmniTabItem>
+    <OmniTabItem Title=""Histórico"" Icon=""clock"">
+        <p>Eventos, alterações, audit log.</p>
+    </OmniTabItem>
+    <OmniTabItem Title=""Permissões"" Icon=""lock"">
+        <p>Papéis e escopos.</p>
+    </OmniTabItem>
+</OmniTabs>")">
+            <OmniTabs>
+                <OmniTabItem Title="Detalhes" Icon="file-text">
+                    <p>Conteúdo da aba <strong>Detalhes</strong>. Aqui ficaria o formulário principal de edição.</p>
+                    <p class="omni-muted">Inclui campos, configurações, descrições.</p>
+                </OmniTabItem>
+                <OmniTabItem Title="Histórico" Icon="clock">
+                    <p>Conteúdo da aba <strong>Histórico</strong> — eventos, alterações, audit log.</p>
+                    <div class="omni-stack omni-stack-8" style="margin-top: 12px;">
+                        <div class="omni-row omni-row-gap-12"><OmniBadge Text="ATUALIZADO" Variant="BadgeVariant.Good" /> <span>Marina C. · ontem 14h32</span></div>
+                        <div class="omni-row omni-row-gap-12"><OmniBadge Text="CRIADO" Variant="BadgeVariant.Plain" /> <span>Sistema · há 2 dias</span></div>
+                    </div>
+                </OmniTabItem>
+                <OmniTabItem Title="Permissões" Icon="lock">
+                    <p>Conteúdo da aba <strong>Permissões</strong> — papéis e escopos.</p>
+                </OmniTabItem>
+                <OmniTabItem Title="Integrações" Icon="external-link">
+                    <p>Conteúdo da aba <strong>Integrações</strong> — webhooks, APIs, conectores.</p>
+                </OmniTabItem>
+            </OmniTabs>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEM ÍCONE"
+                         Description="Versão minimalista — apenas labels de texto."
+                         Code="@(@"<OmniTabs>
+    <OmniTabItem Title=""Resumo"">
+        <p>Versão minimalista, apenas com labels de texto.</p>
+    </OmniTabItem>
+    <OmniTabItem Title=""Métricas"">
+        <OmniStat Label=""VISITAS"" Value=""12.3k"" Delta=""+18%"" />
+    </OmniTabItem>
+</OmniTabs>")">
+            <OmniTabs>
+                <OmniTabItem Title="Resumo">
+                    <p>Versão minimalista, apenas com labels de texto.</p>
+                </OmniTabItem>
+                <OmniTabItem Title="Métricas">
+                    <div class="omni-grid-3">
+                        <OmniStat Label="VISITAS" Value="12.3k" Delta="+18%" />
+                        <OmniStat Label="CONVERSÃO" Value="3,4%" Delta="+0,2%" />
+                        <OmniStat Label="RECEITA" Value="R$ 4.2k" Delta="+12%" />
+                    </div>
+                </OmniTabItem>
+                <OmniTabItem Title="Comentários">
+                    <p>Sem comentários ainda.</p>
+                </OmniTabItem>
+            </OmniTabs>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniTabItem — Parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string" Default="&quot;&quot;"
+                            Description="Rótulo exibido na barra de abas. Obrigatório." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Nome do ícone exibido antes do título." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo do painel — renderizado apenas quando a aba está ativa." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniTabs — Slots">
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os componentes OmniTabItem que compõem o conjunto." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

@@ -1,0 +1,157 @@
+@page "/cadastros/produtos"
+@layout CadastrosLayout
+
+<PageTitle>Produtos — Forneria</PageTitle>
+
+<OmniPaneHeader Title="Produtos" Subtitle="Todos os itens do cardápio" />
+
+<OmniPaneToolbar>
+    <OmniTextBox @bind-Value="search" Placeholder="Buscar produto..." LeadingIcon="search" Class="omni-pane-toolbar-search" />
+    <div class="omni-pane-toolbar-chips">
+        <OmniChip Text="Todos" Active="@(filter is null)" Accent OnClick="@(_ => SetFilter(null))" />
+        @foreach (var c in categorias)
+        {
+            <OmniChip Text="@c" Active="@(filter == c)" OnClick="@(_ => SetFilter(c))" />
+        }
+    </div>
+    <div class="omni-pane-toolbar-spacer"></div>
+    <OmniButton Text="Novo produto" Icon="plus" Variant="ButtonVariant.Primary" />
+</OmniPaneToolbar>
+
+<OmniDataGrid TItem="Produto"
+               Data="@Filtered"
+               AllowPaging PageSize="14"
+               Embed
+               EditMode="DataGridEditMode.Row"
+               RowUpdated="OnRowUpdated"
+               AllowExport
+               ExportFilename="produtos.csv"
+               AllowColumnVisibility>
+    <Columns>
+        <OmniDataGridColumn TItem="Produto" Title="Produto" Property="@(p => p.Nome)">
+            <Template>
+                <div>
+                    <div style="font-weight:600;">@context.Nome</div>
+                    <div class="omni-muted" style="font-size:11px;">@context.Descricao</div>
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Produto" Title="Categoria" Property="@(p => p.Categoria)">
+            <Template>
+                <OmniBadge Text="@context.Categoria" Variant="BadgeVariant.Plain" />
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Produto" Title="Preço" Property="@(p => (object)p.Preco)">
+            <Template>
+                <span class="omni-mono">R$ @context.Preco.ToString("N2", new System.Globalization.CultureInfo("pt-BR"))</span>
+            </Template>
+            <EditTemplate>
+                <OmniNumeric TValue="decimal" Value="@context.Preco"
+                              ValueChanged="@((decimal v) => context.Preco = v)"
+                              Prefix="R$" Decimals="2" Min="0" />
+            </EditTemplate>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Produto" Title="Tamanho" Sortable="false">
+            <Template>
+                @if (!string.IsNullOrEmpty(context.Tamanho))
+                {
+                    <OmniBadge Text="@context.Tamanho" Variant="BadgeVariant.Plain" />
+                }
+                else
+                {
+                    <span class="omni-soft">—</span>
+                }
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Produto" Title="NCM" Property="@(p => p.Ncm)">
+            <Template>
+                <span class="omni-mono omni-muted">@context.Ncm</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Produto" Title="Status" Property="@(p => (object)p.Ativo)">
+            <Template>
+                <OmniBadge Text="@(context.Ativo ? "Ativo" : "Inativo")"
+                            Variant="@(context.Ativo ? BadgeVariant.Good : BadgeVariant.Plain)" />
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Produto" Title="" Sortable="false" Width="140px">
+            <Template>
+                <div class="omni-row omni-row-gap-4 omni-row-end">
+                    <OmniButton IconOnly Icon="settings" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    @if (context.Ativo)
+                    {
+                        <OmniButton IconOnly Icon="x"     Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    }
+                    else
+                    {
+                        <OmniButton IconOnly Icon="check" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    }
+                    <OmniButton IconOnly Icon="trash" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>
+
+@code {
+    private class Produto
+    {
+        public string Nome { get; set; } = "";
+        public string Descricao { get; set; } = "";
+        public string Categoria { get; set; } = "";
+        public decimal Preco { get; set; }
+        public string? Tamanho { get; set; }
+        public string Ncm { get; set; } = "";
+        public bool Ativo { get; set; }
+
+        public Produto(string nome, string descricao, string categoria, decimal preco, string? tamanho, string ncm, bool ativo)
+            => (Nome, Descricao, Categoria, Preco, Tamanho, Ncm, Ativo) = (nome, descricao, categoria, preco, tamanho, ncm, ativo);
+    }
+
+    private string? search;
+    private string? filter;
+
+    private readonly string[] categorias = new[] { "Pizza", "Burger", "Bebida", "Sobremesa", "Entrada", "Outro" };
+
+    private readonly List<Produto> produtos = new()
+    {
+        new("Pizza Média",        "Pizza artesanal 6 fatias",   "Pizza",    42.00m, "M · 6 fts",   "1905.90.90", true),
+        new("Pizza Grande",       "Pizza artesanal 8 fatias",   "Pizza",    58.00m, "G · 8 fts",   "1905.90.90", true),
+        new("Pizza Família",      "Pizza artesanal 12 fatias",  "Pizza",    72.00m, "GG · 12 fts", "1905.90.90", true),
+        new("Cheeseburger Duplo", "Blend 180g + queijo duplo",  "Burger",   28.00m, null,          "1602.32.00", true),
+        new("Burger da Casa",     "Blend especial da casa",     "Burger",   32.00m, null,          "1602.32.00", true),
+        new("Coca-Cola 350ml",    "Gelada, lata 350ml",         "Bebida",    7.50m, null,          "2202.10.00", true),
+        new("Guaraná 2L",         "Garrafa 2 litros",           "Bebida",   14.00m, null,          "2202.10.00", true),
+        new("Petit Gâteau",       "Bolo quente recheado",       "Sobremesa",22.00m, null,          "1905.90.90", false),
+        new("Batata Rústica",     "Porção 300g c/ molho",       "Entrada",  24.00m, null,          "2004.10.00", true),
+        new("Mussarela 4 Queijos","Pizza com 4 queijos",        "Pizza",    62.00m, "G · 8 fts",   "1905.90.90", true),
+        new("Smash Bacon",        "Smash duplo com bacon",      "Burger",   36.00m, null,          "1602.32.00", true),
+        new("Suco Natural Laranja","Espremido na hora 500ml",   "Bebida",    9.00m, null,          "2009.19.00", true),
+        new("Brownie c/ Sorvete", "Brownie quente + sorvete",   "Sobremesa",26.00m, null,          "1905.90.90", true),
+        new("Pão de Alho",        "4 unidades grelhadas",       "Entrada",  18.00m, null,          "1905.90.90", true),
+        new("Pizza Doce Romeu",   "Goiabada + queijo",          "Pizza",    52.00m, "M · 6 fts",   "1905.90.90", true),
+        new("Refri Lata 350ml",   "Coca, Guaraná, Sprite",      "Bebida",    7.00m, null,          "2202.10.00", true),
+        new("Pudim da Casa",      "Pudim cremoso fatia",        "Sobremesa",16.00m, null,          "1905.90.90", true),
+        new("Wrap Vegano",        "Wrap de grão-de-bico",       "Outro",    28.00m, null,          "1905.90.90", true),
+    };
+
+    private Task SetFilter(string? value)
+    {
+        filter = value;
+        return Task.CompletedTask;
+    }
+
+    private IEnumerable<Produto> Filtered => produtos.Where(p =>
+        (filter is null || p.Categoria == filter) &&
+        (string.IsNullOrWhiteSpace(search)
+            || p.Nome.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || p.Descricao.Contains(search, StringComparison.OrdinalIgnoreCase)));
+
+    [Inject] NotificationService Toast { get; set; } = default!;
+
+    private Task OnRowUpdated(Produto p)
+    {
+        Toast.Success("Atualizado", $"{p.Nome} — novo preço R$ {p.Preco:N2}", 2500);
+        return Task.CompletedTask;
+    }
+}

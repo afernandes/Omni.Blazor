@@ -1,0 +1,394 @@
+@page "/kds"
+@layout AppShellKds
+@implements IDisposable
+@using System.Globalization
+
+<PageTitle>Forneria · KDS Cozinha</PageTitle>
+
+@*  /kds — Kitchen Display System (tela principal de cozinha). Dark theme
+    escopado em .omni-k. Cards de pedido com status calculado por elapsed
+    (new < 10min, prep < 20min, delay < 30min, urgent >= 30min, ready
+    quando manual). Timer 1s incrementa elapsed + atualiza clock; quando
+    elapsed cruza threshold, o card muda de status (mudança de cor + animação).
+
+    Adaptado do mock 01-kds-principal.html (sistema-pizzaria / Anthropic Design).
+    Iconografia mantém os emojis do design original (🍕🛵🍽️🏃🔔⏱⚠✓▶📣🔴)
+    porque o KDS depende de pictogramas grandes para leitura rápida na cozinha. *@
+
+<div class="omni-k">
+
+    @* ─── TOP BAR ─── *@
+    <header class="omni-k-top">
+        <div style="display:flex; align-items:center;">
+            <div class="omni-k-brand">
+                <div class="omni-k-brand-mark">F</div>
+                <div>
+                    <div class="omni-k-brand-name">Forneria</div>
+                    <div class="omni-k-brand-meta omni-mono">KDS · v2.4</div>
+                </div>
+            </div>
+            <button class="omni-k-sector">
+                <span class="omni-k-sector-ico">🍕</span>
+                <span>Setor Pizza</span>
+                <span class="omni-k-sector-ch">▾</span>
+            </button>
+        </div>
+
+        <div class="omni-k-clock-block">
+            <div class="omni-k-clock omni-mono">@_clock</div>
+            <div class="omni-k-counter omni-mono"><b>@OpenCount</b> · pedidos em aberto</div>
+        </div>
+
+        <div class="omni-k-actions">
+            <a class="omni-k-navlink omni-k-navlink-on" href="#">Principal</a>
+            <a class="omni-k-navlink" href="#">Expedição<span style="margin-left:6px; color:var(--omni-k-st-ready); font-weight:700;">·1</span></a>
+            <a class="omni-k-navlink" href="#">Histórico</a>
+            <span class="omni-k-online omni-mono"><span class="omni-k-online-dot"></span>Online</span>
+            <button class="omni-k-iconbtn" aria-label="Configurações">
+                <OmniIcon Name="sliders" Size="ComponentSize.Sm" />
+            </button>
+        </div>
+    </header>
+
+    @* ─── FILTER BAR ─── *@
+    <div class="omni-k-filters">
+        <div class="omni-k-pills">
+            <button class="@PillCss("all", "")"      @onclick="@(() => _filter = "all")">Todos<span class="omni-k-pill-ct omni-mono">@Count("all")</span></button>
+            <button class="@PillCss("new", "info")"   @onclick="@(() => _filter = "new")">Novos<span class="omni-k-pill-ct omni-mono">@Count("new")</span></button>
+            <button class="@PillCss("prep", "warn")"  @onclick="@(() => _filter = "prep")">Em preparo<span class="omni-k-pill-ct omni-mono">@Count("prep")</span></button>
+            <button class="@PillCss("delay", "danger")" @onclick="@(() => _filter = "delay")">Atrasados<span class="omni-k-pill-ct omni-mono">@Count("delay")</span></button>
+            <button class="@PillCss("urgent", "urgent")" @onclick="@(() => _filter = "urgent")">Urgente<span class="omni-k-pill-ct omni-mono">@Count("urgent")</span></button>
+        </div>
+        <button class="omni-k-sort">
+            <span class="omni-k-sort-lbl">Ordenar por:</span>
+            <span>Hora de chegada</span>
+            <span style="font-size:11px; opacity:0.6;">▾</span>
+        </button>
+    </div>
+
+    @* ─── GRID DE PEDIDOS ─── *@
+    <div class="omni-k-grid">
+        @foreach (var o in VisibleOrders)
+        {
+            var st = StatusOf(o);
+            var allDone = o.Items.All(i => i.Done);
+            var doneCount = o.Items.Count(i => i.Done);
+            var itemsQty = o.Items.Sum(i => i.Qty);
+
+            <article class="omni-k-card" data-status="@st">
+                <div class="omni-k-card-head">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="omni-k-type omni-mono" data-type="@o.Type">@TypeLabel(o)</span>
+                        <span class="omni-k-no omni-mono">#@o.Id</span>
+                    </div>
+                    <div class="omni-k-timer omni-mono">
+                        <span class="omni-k-timer-ic">⏱</span>
+                        <span>@FmtTime(o.Elapsed)</span>
+                    </div>
+                </div>
+
+                <div class="omni-k-cust">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <div class="omni-k-cust-name">@o.Customer</div>
+                        <span class="omni-k-statuspill omni-mono" data-status="@st">
+                            <span class="omni-k-statuspill-dot"></span>@StatusLabel(st)
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(o.Meta))
+                    {
+                        <div class="omni-k-cust-meta">@o.Meta</div>
+                    }
+                    @if (!string.IsNullOrEmpty(o.Obs))
+                    {
+                        <div class="omni-k-cust-obs">⚠ @o.Obs</div>
+                    }
+                </div>
+
+                <div class="omni-k-items">
+                    <div class="omni-k-items-label omni-mono">
+                        <span>Itens · @itemsQty</span>
+                        <span>@doneCount/@o.Items.Count marcados</span>
+                    </div>
+                    @for (var idx = 0; idx < o.Items.Count; idx++)
+                    {
+                        var i = idx;
+                        var it = o.Items[i];
+                        <div class="@($"omni-k-item {(it.Done ? "omni-k-item-done" : "")}")"
+                             @onclick="@(() => ToggleItem(o, i))">
+                            <div class="omni-k-item-check">
+                                <span>✓</span>
+                            </div>
+                            <div class="omni-k-item-body">
+                                <div class="omni-k-item-name">
+                                    <span class="omni-k-item-qty omni-mono">@it.Qty×</span>@it.Name
+                                </div>
+                                @foreach (var m in it.Mods)
+                                {
+                                    var cls = m.StartsWith("½")
+                                        ? "omni-k-item-mod omni-k-item-mod-split"
+                                        : (m.StartsWith("Sem ") || m.StartsWith("sem "))
+                                            ? "omni-k-item-mod omni-k-item-mod-minus"
+                                            : "omni-k-item-mod";
+                                    <div class="@cls">@(m.StartsWith("½") ? m.Substring(1).Trim() : m)</div>
+                                }
+                                @if (!string.IsNullOrEmpty(it.Obs))
+                                {
+                                    <div class="omni-k-item-obs">⚠ @it.Obs</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="omni-k-actions-row">
+                    @if (st == "ready")
+                    {
+                        <button class="omni-k-btn omni-mono" @onclick="@(() => Undo(o))">Desfazer</button>
+                        <button class="omni-k-btn omni-k-btn-deliver omni-mono" @onclick="@(() => Deliver(o))">📣 Chamar / Entregar</button>
+                    }
+                    else
+                    {
+                        <button class="omni-k-btn omni-k-btn-prep omni-mono"
+                                disabled="@(st != "new")"
+                                @onclick="@(() => StartPrep(o))">
+                            @(st == "new" ? "▶ Em preparo" : "✓ Em preparo")
+                        </button>
+                        <button class="omni-k-btn omni-k-btn-ready omni-mono"
+                                disabled="@(!allDone)"
+                                @onclick="@(() => MarkReady(o))">
+                            ✓ Pedido pronto
+                        </button>
+                    }
+                </div>
+            </article>
+        }
+    </div>
+
+</div>
+
+@code {
+    // ─── Models ──────────────────────────────────────
+    private class Item
+    {
+        public string Name { get; set; } = "";
+        public int Qty { get; set; }
+        public List<string> Mods { get; set; } = new();
+        public string? Obs { get; set; }
+        public bool Done { get; set; }
+    }
+    private class Order
+    {
+        public int Id { get; set; }
+        public string Type { get; set; } = "";    // delivery | table | counter
+        public int? TableNum { get; set; }
+        public string Customer { get; set; } = "";
+        public string Meta { get; set; } = "";
+        public string? Obs { get; set; }
+        public int Elapsed { get; set; }          // segundos
+        public List<Item> Items { get; set; } = new();
+        public string? ForceStatus { get; set; }  // ready (manual)
+        public bool Delivered { get; set; }
+    }
+
+    private const int T_PREP   = 10 * 60;
+    private const int T_DELAY  = 20 * 60;
+    private const int T_URGENT = 30 * 60;
+
+    private string StatusOf(Order o) =>
+        o.ForceStatus is not null ? o.ForceStatus :
+        o.Delivered ? "delivered" :
+        o.Elapsed >= T_URGENT ? "urgent" :
+        o.Elapsed >= T_DELAY  ? "delay"  :
+        o.Elapsed >= T_PREP   ? "prep"   : "new";
+
+    private string StatusLabel(string s) => s switch
+    {
+        "new"    => "🔔 NOVO",
+        "prep"   => "EM PREPARO",
+        "delay"  => "ATRASADO",
+        "urgent" => "🔴 URGENTE",
+        "ready"  => "✓ PRONTO",
+        _        => s.ToUpperInvariant(),
+    };
+
+    private string TypeLabel(Order o) => o.Type switch
+    {
+        "delivery" => "🛵 DELIVERY",
+        "table"    => $"🍽️ MESA {o.TableNum}",
+        "counter"  => "🏃 BALCÃO",
+        _          => o.Type.ToUpperInvariant(),
+    };
+
+    private static string FmtTime(int secs)
+    {
+        var h = secs / 3600;
+        var m = (secs % 3600) / 60;
+        var s = secs % 60;
+        return h > 0
+            ? $"{h:D2}:{m:D2}:{s:D2}"
+            : $"{m:D2}:{s:D2}";
+    }
+
+    // ─── State ───────────────────────────────────────
+    private string _clock = DateTime.Now.ToString("HH:mm:ss");
+    private string _filter = "all";
+    private System.Threading.Timer? _ticker;
+    private List<Order> _orders = new();
+
+    private int OpenCount => _orders.Count(o => !o.Delivered && StatusOf(o) != "ready");
+
+    private IEnumerable<Order> VisibleOrders =>
+        _orders.Where(o => !o.Delivered &&
+                           (_filter == "all" || StatusOf(o) == _filter));
+
+    private int Count(string filter) =>
+        _orders.Count(o => !o.Delivered &&
+                           (filter == "all" || StatusOf(o) == filter));
+
+    private string PillCss(string filter, string tone) =>
+        $"omni-k-pill {(string.IsNullOrEmpty(tone) ? "" : $"omni-k-pill-{tone}")} {(_filter == filter ? "omni-k-pill-on" : "")}";
+
+    // ─── Actions ─────────────────────────────────────
+    private void ToggleItem(Order o, int idx)
+    {
+        o.Items[idx].Done = !o.Items[idx].Done;
+    }
+    private void StartPrep(Order o)
+    {
+        // Pula elapsed para entrar em "prep" — efeito imediato no card
+        o.Elapsed = Math.Max(o.Elapsed, T_PREP + 5);
+    }
+    private void MarkReady(Order o) => o.ForceStatus = "ready";
+    private void Undo(Order o)      => o.ForceStatus = null;
+    private void Deliver(Order o)   => o.Delivered = true;
+
+    // ─── Lifecycle ───────────────────────────────────
+    protected override void OnInitialized()
+    {
+        _orders = SeedOrders();
+
+        _ticker = new System.Threading.Timer(_ =>
+        {
+            _clock = DateTime.Now.ToString("HH:mm:ss");
+            foreach (var o in _orders)
+            {
+                if (!o.Delivered && o.ForceStatus is null) o.Elapsed++;
+            }
+            _ = InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
+    public void Dispose() => _ticker?.Dispose();
+
+    // ─── Seed ────────────────────────────────────────
+    private static List<Order> SeedOrders() => new()
+    {
+        new()
+        {
+            Id = 4725, Type = "delivery", Customer = "Carlos Mendes",
+            Meta = "R. das Acácias, 142 · 2.4km",
+            Obs = "Campainha não funciona, ligar ao chegar",
+            Elapsed = 84,
+            Items =
+            {
+                new Item { Name = "Pizza G · Calabresa + 4 Queijos", Qty = 1,
+                           Mods = new() { "Borda Catupiry", "Meio a meio" },
+                           Obs = "sem cebola na calabresa" },
+                new Item { Name = "Pizza G · Portuguesa", Qty = 1,
+                           Mods = new() { "Borda Cheddar" } },
+                new Item { Name = "Coca-Cola 2L", Qty = 1 },
+            },
+        },
+        new()
+        {
+            Id = 4724, Type = "table", TableNum = 12, Customer = "Mesa 12",
+            Meta = "Garçom Ricardo · 3 pessoas",
+            Elapsed = 168,
+            Items =
+            {
+                new Item { Name = "Pizza M · Margherita", Qty = 2,
+                           Mods = new() { "Mussarela de búfala" } },
+                new Item { Name = "Heineken Long Neck", Qty = 1 },
+                new Item { Name = "Bruschetta da Casa", Qty = 1, Obs = "servir antes da pizza" },
+            },
+        },
+        new()
+        {
+            Id = 4723, Type = "counter", Customer = "João Silva",
+            Meta = "Retirada · senha 23",
+            Elapsed = 692,
+            Items =
+            {
+                new Item { Name = "Pizza G · Pepperoni Picante", Qty = 1,
+                           Mods = new() { "Borda tradicional" } },
+                new Item { Name = "Suco de Laranja 500ml", Qty = 1, Done = true },
+            },
+        },
+        new()
+        {
+            Id = 4722, Type = "delivery", Customer = "Maria Fernandes",
+            Meta = "Av. Brasil, 2210 · ap 84 · 3.1km",
+            Elapsed = 848,
+            Items =
+            {
+                new Item { Name = "Pizza G · Quatro Queijos", Qty = 1, Done = true },
+                new Item { Name = "Pizza M · Meio a meio", Qty = 1,
+                           Mods = new() { "½ Frango c/ Catupiry", "½ Margherita", "Borda Catupiry" } },
+                new Item { Name = "Coca-Cola Lata", Qty = 2 },
+            },
+        },
+        new()
+        {
+            Id = 4720, Type = "table", TableNum = 7, Customer = "Mesa 07",
+            Meta = "Garçom Ricardo M. · 3 pessoas",
+            Elapsed = 1002,
+            Items =
+            {
+                new Item { Name = "Pizza G · Calabresa", Qty = 2,
+                           Mods = new() { "Borda Catupiry", "Sem azeitona" } },
+                new Item { Name = "Pizza M · Margherita", Qty = 1 },
+                new Item { Name = "Heineken Long Neck", Qty = 3, Done = true },
+            },
+        },
+        new()
+        {
+            Id = 4719, Type = "delivery", Customer = "Pedro Lopes",
+            Meta = "R. Cardoso, 45 · 1.8km",
+            Elapsed = 1395,
+            Items =
+            {
+                new Item { Name = "Pizza G · Vegetariana", Qty = 1,
+                           Mods = new() { "Borda Catupiry" },
+                           Obs = "caprichar no manjericão" },
+                new Item { Name = "Pizza G · Búfala", Qty = 1 },
+            },
+        },
+        new()
+        {
+            Id = 4716, Type = "table", TableNum = 5, Customer = "Mesa 05",
+            Meta = "Garçom Felipe · 4 pessoas",
+            Elapsed = 2092,
+            Items =
+            {
+                new Item { Name = "Pizza G · Carbonara", Qty = 1,
+                           Mods = new() { "Borda tradicional" } },
+                new Item { Name = "Pizza G · Portuguesa", Qty = 1,
+                           Mods = new() { "Sem ovo" },
+                           Obs = "cliente alérgico" },
+                new Item { Name = "Stella Artois 600ml", Qty = 2, Done = true },
+            },
+        },
+        new()
+        {
+            Id = 4718, Type = "table", TableNum = 3, Customer = "Mesa 03",
+            Meta = "Garçom Felipe · 2 pessoas",
+            Elapsed = 1268,
+            ForceStatus = "ready",
+            Items =
+            {
+                new Item { Name = "Pizza G · Margherita", Qty = 2,
+                           Mods = new() { "Borda Catupiry" }, Done = true },
+            },
+        },
+    };
+}

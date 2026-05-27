@@ -1,0 +1,746 @@
+@page "/cardapio"
+@layout AppShellPublic
+@using System.Globalization
+
+<PageTitle>Forneria Don Tonhão · Cardápio</PageTitle>
+
+@*  /cardapio — Cardápio digital fiel ao mock cardapio.html + pizza.css.
+    Multi-screen via state machine (Home → Sizes → Flavors → Preview → Cart).
+    Mobile-first com breakpoints @768px (2-col) e @1200px (3-col) para
+    sections, flavor-list, size-list e borda-list. Bottombar sticky em todas
+    as screens exceto Home (que usa cart-bar accent).
+    Adaptado de pizza-app.jsx / pizza-screens-*.jsx / pizza-data.jsx / pizza.css. *@
+
+<div class="omni-cd-frame">
+
+    @switch (_screen)
+    {
+        case Screen.Home:    @CardapioHome    break;
+        case Screen.Sizes:   @CardapioSizes   break;
+        case Screen.Flavors: @CardapioFlavors break;
+        case Screen.Preview: @CardapioPreview break;
+        case Screen.Cart:    @CardapioCart    break;
+    }
+
+</div>
+
+@code {
+    // ─── State machine ──────────────────────────────────────────────
+    private enum Screen { Home, Sizes, Flavors, Preview, Cart }
+    private Screen _screen = Screen.Home;
+
+    // ─── Models ─────────────────────────────────────────────────────
+    private record PizzaSize(string Id, string Name, string Desc, int MaxFlavors, int FromCents);
+
+    private record Flavor(string Id, string Name, string Group, string Ing, string Tag,
+                          Dictionary<string, int> PriceBySize);
+
+    private record Borda(string Id, string Name, int Cents);
+
+    private record Drink(string Id, string Name, string Desc, int Cents);
+
+    private record CartItem(string Key, string Display, string Detail, string? Obs, int UnitCents,
+                            int Qty);
+
+    // ─── Static data (adaptado de pizza-data.jsx) ──────────────────
+    private static readonly PizzaSize[] _sizes =
+    {
+        new("g", "Pizza Grande", "40cm · 8 fatias", 2, 5900),
+        new("b", "Pizza Broto",  "25cm · 4 fatias", 2, 3900),
+    };
+
+    private static readonly Flavor[] _flavors =
+    {
+        new("cal", "Calabresa",          "Tradicionais", "Calabresa fatiada, muçarela, cebola, orégano", "",    new(){ ["g"]=5900, ["b"]=3900 }),
+        new("mar", "Margherita",         "Tradicionais", "Molho, muçarela, tomate fresco, manjericão",   "veg", new(){ ["g"]=6400, ["b"]=4400 }),
+        new("4q",  "4 Queijos",          "Especiais",    "Muçarela, gorgonzola, parmesão, catupiry",     "veg", new(){ ["g"]=7400, ["b"]=5200 }),
+        new("fc",  "Frango c/ Catupiry", "Tradicionais", "Frango desfiado, catupiry, orégano",           "",    new(){ ["g"]=6900, ["b"]=4800 }),
+        new("por", "Portuguesa",         "Tradicionais", "Presunto, ovos, cebola, azeitona, muçarela",   "",    new(){ ["g"]=6900, ["b"]=4800 }),
+        new("pep", "Pepperoni",          "Especiais",    "Pepperoni curado, muçarela, orégano",          "",    new(){ ["g"]=7400, ["b"]=5200 }),
+        new("nap", "Napolitana",         "Tradicionais", "Tomate, muçarela, alho, manjericão, azeite",   "veg", new(){ ["g"]=6400, ["b"]=4400 }),
+        new("atu", "Atum",               "Especiais",    "Atum, cebola, azeitona, muçarela",             "",    new(){ ["g"]=6400, ["b"]=4400 }),
+        new("3qs", "3 Queijos Scala",    "Especiais",    "Muçarela, gorgonzola, parmesão gratinado",     "veg", new(){ ["g"]=7900, ["b"]=5500 }),
+        new("bcr", "Bacon Crocante",     "Especiais",    "Bacon, cheddar, muçarela, orégano",            "",    new(){ ["g"]=6900, ["b"]=4800 }),
+        new("fch", "Frango c/ Cheddar",  "Especiais",    "Frango, cheddar, cebola caramelizada",         "",    new(){ ["g"]=7200, ["b"]=5000 }),
+        new("brb", "Brócolis c/ Bacon",  "Especiais",    "Brócolis, bacon, muçarela, alho",              "",    new(){ ["g"]=6700, ["b"]=4700 }),
+    };
+
+    private static readonly Borda[] _bordas =
+    {
+        new("no", "Sem borda",                  0),
+        new("fi", "Fina",                       0),
+        new("tr", "Tradicional",                0),
+        new("ca", "Recheada com Catupiry",   1000),
+        new("ch", "Recheada com Cheddar",    1000),
+        new("cc", "Recheada com Cream Cheese", 1200),
+    };
+
+    private static readonly Drink[] _drinks =
+    {
+        new("d1", "Coca-Cola 2L",                 "Gelada, ideal para a pizza grande.", 1400),
+        new("d2", "Suco Natural de Laranja 500ml","Espremido na hora, sem açúcar.",     1250),
+        new("d3", "Heineken Long Neck 330ml",     "Long neck gelado.",                  1190),
+        new("d4", "Água Mineral c/ Gás 500ml",    "Crystal com gás.",                   700),
+    };
+
+    private static readonly (string Id, string Name, string Emoji)[] _categories =
+    {
+        ("destaques",  "Destaques",       "🔥"),
+        ("salgadas",   "Pizzas Salgadas", "🍕"),
+        ("doces",      "Pizzas Doces",    "🍫"),
+        ("veganas",    "Veganas",         "🌱"),
+        ("bebidas",    "Bebidas",         "🥤"),
+        ("adicionais", "Adicionais",      "🍟"),
+    };
+
+    // ─── Flow state ────────────────────────────────────────────────
+    private string _activeCat = "destaques";
+    private PizzaSize? _selectedSize;
+    private List<string> _selectedFlavors = new();
+    private string _flavorFilter = "Todos";
+    private string _flavorQuery = "";
+    private Borda _selectedBorda = _bordas.First(b => b.Id == "tr");
+    private string _obs = "";
+
+    // Cart
+    private List<CartItem> _cart = new();
+    private string _coupon = "";
+    private string _mode = "delivery";
+
+    // ─── Helpers ───────────────────────────────────────────────────
+    private static readonly CultureInfo _ptBr = new("pt-BR");
+    private static string Brl(int cents) => $"R$ {(cents / 100m).ToString("N2", _ptBr)}";
+
+    private int FlavorPrice(Flavor f) =>
+        _selectedSize is null ? 0 : f.PriceBySize.GetValueOrDefault(_selectedSize.Id, 0);
+
+    // Strategy: cobra o sabor mais caro (highest)
+    private int CombinedFlavorsPrice =>
+        _selectedSize is null || _selectedFlavors.Count == 0 ? 0 :
+        _selectedFlavors
+            .Select(id => _flavors.First(f => f.Id == id))
+            .Max(f => f.PriceBySize.GetValueOrDefault(_selectedSize.Id, 0));
+
+    private Flavor? PriorityFlavor =>
+        _selectedSize is null || _selectedFlavors.Count == 0 ? null :
+        _selectedFlavors
+            .Select(id => _flavors.First(f => f.Id == id))
+            .OrderByDescending(f => f.PriceBySize.GetValueOrDefault(_selectedSize.Id, 0))
+            .First();
+
+    private int CartSubtotal => _cart.Sum(i => i.UnitCents * i.Qty);
+    private int CartItemCount => _cart.Sum(i => i.Qty);
+    private int CartDelivery => _mode == "delivery" ? 800 : 0;
+    private int CartDiscount =>
+        _coupon == "PIZZA10" ? (int)Math.Round(CartSubtotal * 0.1) : 0;
+    private int CartTotal => CartSubtotal + CartDelivery - CartDiscount;
+
+    // ─── Navigation ────────────────────────────────────────────────
+    private void GoSizes() { _selectedFlavors.Clear(); _selectedSize = null; _screen = Screen.Sizes; }
+    private void GoFlavors(PizzaSize s) { _selectedSize = s; _selectedFlavors.Clear(); _screen = Screen.Flavors; }
+    private void GoPreview() { _selectedBorda = _bordas.First(b => b.Id == "tr"); _obs = ""; _screen = Screen.Preview; }
+    private void GoCart() { _screen = Screen.Cart; }
+    private void GoHome() { _screen = Screen.Home; }
+
+    private void Back()
+    {
+        _screen = _screen switch
+        {
+            Screen.Sizes   => Screen.Home,
+            Screen.Flavors => Screen.Sizes,
+            Screen.Preview => Screen.Flavors,
+            Screen.Cart    => Screen.Home,
+            _              => Screen.Home,
+        };
+    }
+
+    // ─── Flavor selection ──────────────────────────────────────────
+    private void ToggleFlavor(Flavor f)
+    {
+        if (_selectedFlavors.Contains(f.Id))
+            _selectedFlavors.Remove(f.Id);
+        else if (_selectedSize is not null && _selectedFlavors.Count < _selectedSize.MaxFlavors)
+            _selectedFlavors.Add(f.Id);
+    }
+
+    private bool IsFlavorVisible(Flavor f)
+    {
+        if (_flavorFilter != "Todos"
+            && f.Group != _flavorFilter
+            && !(_flavorFilter == "Veganos" && f.Tag == "veg"))
+            return false;
+        if (!string.IsNullOrEmpty(_flavorQuery)
+            && !(f.Name + " " + f.Ing).Contains(_flavorQuery, StringComparison.OrdinalIgnoreCase))
+            return false;
+        return true;
+    }
+
+    // ─── Add to cart ───────────────────────────────────────────────
+    private void AddPizzaToCart()
+    {
+        if (_selectedSize is null || _selectedFlavors.Count == 0) return;
+        var flavorNames = string.Join(" + ",
+            _selectedFlavors.Select(id => _flavors.First(f => f.Id == id).Name));
+
+        var basePrice = CombinedFlavorsPrice;
+        var bordaPrice = _selectedBorda.Cents;
+        var total = basePrice + bordaPrice;
+
+        var detail = $"{_selectedSize.Name} · {flavorNames}";
+        if (_selectedBorda.Cents > 0)
+            detail += $" · Borda {_selectedBorda.Name.Replace("Recheada com ", "")}";
+
+        _cart.Add(new CartItem(
+            Key: Guid.NewGuid().ToString("N"),
+            Display: $"🍕 Pizza {_selectedSize.Name}",
+            Detail: detail,
+            Obs: string.IsNullOrWhiteSpace(_obs) ? null : _obs,
+            UnitCents: total,
+            Qty: 1));
+        _screen = Screen.Cart;
+    }
+
+    private void AddDrinkToCart(Drink d)
+    {
+        var existing = _cart.FirstOrDefault(c => c.Key == d.Id);
+        if (existing is not null)
+        {
+            _cart[_cart.IndexOf(existing)] = existing with { Qty = existing.Qty + 1 };
+        }
+        else
+        {
+            _cart.Add(new CartItem(
+                Key: d.Id,
+                Display: $"🥤 {d.Name}",
+                Detail: d.Desc,
+                Obs: null,
+                UnitCents: d.Cents,
+                Qty: 1));
+        }
+    }
+
+    private void UpdateQty(CartItem item, int delta)
+    {
+        var idx = _cart.IndexOf(item);
+        if (idx < 0) return;
+        var newQty = Math.Max(1, item.Qty + delta);
+        _cart[idx] = item with { Qty = newQty };
+    }
+
+    // Setter absoluto usado pelo OmniQtyStepper (que emite o novo valor diretamente).
+    private void SetQty(CartItem item, int newQty)
+    {
+        var idx = _cart.IndexOf(item);
+        if (idx < 0) return;
+        _cart[idx] = item with { Qty = Math.Max(1, newQty) };
+    }
+
+    private void RemoveCartItem(CartItem item) => _cart.Remove(item);
+
+    // ─── Render fragments (cada screen é um RenderFragment para clareza) ────
+    private RenderFragment CardapioHome => @<text>
+        <div class="omni-cd-screen">
+            <div class="omni-cd-scroll" style="@($"padding-bottom: {(CartItemCount > 0 ? 96 : 24)}px;")">
+
+                <!-- Cover gradient + logo overlap -->
+                <div class="omni-cd-cover">
+                    <div class="omni-cd-cover-top">
+                        <button class="omni-cd-cover-btn" aria-label="Voltar">
+                            <OmniIcon Name="arrow-left" Size="ComponentSize.Sm" />
+                        </button>
+                        <button class="omni-cd-cover-btn" aria-label="Compartilhar">
+                            <OmniIcon Name="share" Size="ComponentSize.Sm" />
+                        </button>
+                    </div>
+                    <div class="omni-cd-cover-bottom">
+                        <div class="omni-cd-logo">D</div>
+                        <div class="omni-cd-cover-info">
+                            <div class="omni-cd-name">Forneria<br />Don Tonhão</div>
+                            <div class="omni-cd-cover-meta">
+                                <span class="omni-cd-meta-open">Aberto agora</span>
+                                <span class="omni-cd-meta-sep">·</span>
+                                <span>Entrega 35–50min</span>
+                                <span class="omni-cd-meta-sep">·</span>
+                                <span>★ 4,8 (1.247)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search arredondado -->
+                <label class="omni-cd-search">
+                    <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                    <input placeholder="Buscar pizza, bebida…" />
+                </label>
+
+                <!-- Sticky categorias -->
+                <nav class="omni-cd-cats">
+                    @foreach (var c in _categories)
+                    {
+                        <button class="@($"omni-cd-cat {(_activeCat == c.Id ? "omni-cd-cat-on" : "")}")"
+                                @onclick="@(() => _activeCat = c.Id)">
+                            <span>@c.Emoji</span>@c.Name
+                        </button>
+                    }
+                </nav>
+
+                <!-- Destaques -->
+                <section class="omni-cd-section">
+                    <div class="omni-cd-section-label omni-mono">Mais pedidas</div>
+                    <h2>Destaques da casa</h2>
+                    <p class="omni-cd-section-desc">As campeãs da semana em pedidos</p>
+                    <button class="omni-cd-feat" @onclick="GoSizes">
+                        <div class="omni-cd-feat-th">
+                            <span class="omni-cd-feat-badge omni-mono">+ pedida</span>
+                        </div>
+                        <div class="omni-cd-feat-bd">
+                            <div class="omni-cd-feat-nm">Calabresa Premium</div>
+                            <div class="omni-cd-feat-ds">Calabresa artesanal, mussarela, cebola roxa, azeitona preta.</div>
+                            <div class="omni-cd-feat-pr omni-mono">a partir de R$ 59,00</div>
+                        </div>
+                    </button>
+                    <button class="omni-cd-feat" @onclick="GoSizes">
+                        <div class="omni-cd-feat-th">
+                            <span class="omni-cd-feat-badge omni-mono">Novidade</span>
+                        </div>
+                        <div class="omni-cd-feat-bd">
+                            <div class="omni-cd-feat-nm">3 Queijos Scala</div>
+                            <div class="omni-cd-feat-ds">Muçarela, gorgonzola, parmesão gratinado finalizado no forno a lenha.</div>
+                            <div class="omni-cd-feat-pr omni-mono">a partir de R$ 79,00</div>
+                        </div>
+                    </button>
+                </section>
+
+                <!-- Pizzas Salgadas -->
+                <section class="omni-cd-section">
+                    <h2>Pizzas Salgadas</h2>
+                    <p class="omni-cd-section-desc">Monte sua pizza · escolha o tamanho e até 2 sabores</p>
+                    <button class="omni-cd-itemrow" @onclick="GoSizes">
+                        <div class="omni-cd-itemrow-thumb"></div>
+                        <div class="omni-cd-itemrow-body">
+                            <div class="omni-cd-itemrow-name">Pizza · até 2 sabores</div>
+                            <div class="omni-cd-itemrow-desc">12 sabores salgados. Massa artesanal, fermentação 48h, forno a lenha.</div>
+                            <div class="omni-cd-itemrow-price omni-mono"><span class="omni-cd-itemrow-from">a partir de</span>R$ 39,00</div>
+                        </div>
+                    </button>
+                </section>
+
+                <!-- Pizzas Doces -->
+                <section class="omni-cd-section">
+                    <h2>Pizzas Doces</h2>
+                    <p class="omni-cd-section-desc">Para fechar a noite com chave de ouro</p>
+                    <button class="omni-cd-itemrow" @onclick="GoSizes">
+                        <div class="omni-cd-itemrow-thumb omni-cd-thumb-sweet"></div>
+                        <div class="omni-cd-itemrow-body">
+                            <div class="omni-cd-itemrow-name">Pizza Doce · até 2 sabores</div>
+                            <div class="omni-cd-itemrow-desc">Brigadeiro, romeu e julieta, banana c/ canela, prestígio.</div>
+                            <div class="omni-cd-itemrow-price omni-mono"><span class="omni-cd-itemrow-from">a partir de</span>R$ 44,00</div>
+                        </div>
+                    </button>
+                </section>
+
+                <!-- Bebidas -->
+                <section class="omni-cd-section">
+                    <h2>Bebidas</h2>
+                    <p class="omni-cd-section-desc">Geladas, prontas para chegar com a pizza</p>
+                    @foreach (var d in _drinks)
+                    {
+                        <button class="omni-cd-itemrow" @onclick="@(() => AddDrinkToCart(d))">
+                            <div class="omni-cd-itemrow-thumb omni-cd-thumb-drink"></div>
+                            <div class="omni-cd-itemrow-body">
+                                <div class="omni-cd-itemrow-name">@d.Name</div>
+                                <div class="omni-cd-itemrow-desc">@d.Desc</div>
+                                <div class="omni-cd-itemrow-price omni-mono">@Brl(d.Cents)</div>
+                            </div>
+                        </button>
+                    }
+                </section>
+
+            </div>
+
+            @if (CartItemCount > 0)
+            {
+                <div class="omni-cd-cart-bar" @onclick="GoCart">
+                    <span class="omni-cd-cart-bar-lhs">
+                        <span class="omni-cd-cart-bar-count omni-mono">@CartItemCount</span>
+                        <OmniIcon Name="shopping-cart" Size="ComponentSize.Sm" />
+                        Ver pedido
+                    </span>
+                    <span class="omni-cd-cart-bar-total omni-mono">@Brl(CartSubtotal)</span>
+                </div>
+            }
+        </div>
+    </text>;
+
+    private RenderFragment CardapioSizes => @<text>
+        <div class="omni-cd-screen">
+            <header class="omni-cd-appbar">
+                <button class="omni-cd-appbar-btn" @onclick="Back" aria-label="Voltar">
+                    <OmniIcon Name="arrow-left" Size="ComponentSize.Sm" />
+                </button>
+                <div class="omni-cd-appbar-title">
+                    <h1>Pizzas Salgadas</h1>
+                    <div class="omni-cd-appbar-sub">Passo 1 de 3 · escolha o tamanho</div>
+                </div>
+                <div style="width: 40px;"></div>
+            </header>
+
+            <div class="omni-cd-scroll" style="padding-bottom: 100px;">
+                <div class="omni-cd-section-pad">
+                    <h2>Pizzas Salgadas</h2>
+                    <div class="omni-cd-section-pad-sub">Monte sua pizza escolhendo o tamanho e até 2 sabores salgados.</div>
+                </div>
+
+                <div class="omni-cd-req-row">
+                    <span class="omni-cd-req-label">Escolha o tamanho</span>
+                    <span class="omni-cd-req-tag omni-mono">Obrigatório · 1</span>
+                </div>
+
+                <div class="omni-cd-size-list">
+                    @foreach (var s in _sizes)
+                    {
+                        var on = _selectedSize?.Id == s.Id;
+                        <button class="@($"omni-cd-size-card {(on ? "omni-cd-size-card-on" : "")}")"
+                                @onclick="@(() => _selectedSize = s)">
+                            <div>
+                                <div class="omni-cd-size-nm">@s.Name</div>
+                                <div class="omni-cd-size-ds">@s.Desc · até @s.MaxFlavors sabores</div>
+                            </div>
+                            <div class="omni-cd-size-pr omni-mono">
+                                @Brl(s.FromCents)
+                                <small>a partir de</small>
+                            </div>
+                            <div class="omni-cd-radio"></div>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="omni-cd-bottombar">
+                <button class="omni-cd-btn omni-cd-btn-accent"
+                        disabled="@(_selectedSize is null)"
+                        @onclick="@(() => { if (_selectedSize is not null) GoFlavors(_selectedSize); })">
+                    <span>Escolher Sabores</span>
+                    <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+                </button>
+            </div>
+        </div>
+    </text>;
+
+    private RenderFragment CardapioFlavors => @<text>
+        <div class="omni-cd-screen">
+            <header class="omni-cd-appbar">
+                <button class="omni-cd-appbar-btn" @onclick="Back" aria-label="Voltar">
+                    <OmniIcon Name="arrow-left" Size="ComponentSize.Sm" />
+                </button>
+                <div class="omni-cd-appbar-title">
+                    <h1>@(_selectedSize?.Name) · até @(_selectedSize?.MaxFlavors) sabores</h1>
+                    <div class="omni-cd-appbar-sub">Passo 2 de 3 · escolha pelo menos 1 e no máximo @(_selectedSize?.MaxFlavors)</div>
+                </div>
+                <div style="width: 40px;"></div>
+            </header>
+
+            <div class="omni-cd-scroll" style="padding-bottom: 120px;">
+                <div style="padding: 12px 14px 0;">
+                    <label class="omni-cd-search" style="margin: 0;">
+                        <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                        <input placeholder="Buscar sabor…" @bind="_flavorQuery" @bind:event="oninput" />
+                    </label>
+                </div>
+
+                <div class="omni-cd-flavor-filters">
+                    @foreach (var f in new[] { "Todos", "Tradicionais", "Especiais", "Veganos" })
+                    {
+                        <button class="@($"omni-cd-flavor-filter {(_flavorFilter == f ? "omni-cd-flavor-filter-on" : "")}")"
+                                @onclick="@(() => _flavorFilter = f)">@f</button>
+                    }
+                </div>
+
+                @{
+                    var max = _selectedSize?.MaxFlavors ?? 2;
+                    var isFull = _selectedFlavors.Count == max;
+                }
+                <div class="@($"omni-cd-flavors-counter {(isFull ? "omni-cd-flavors-counter-complete" : "")}")">
+                    <span class="omni-cd-flavors-counter-cnt">
+                        @if (isFull)
+                        {
+                            <text>@max sabores selecionados — pronto para continuar!</text>
+                        }
+                        else
+                        {
+                            <text><b class="omni-mono">@_selectedFlavors.Count</b> de <b class="omni-mono">@max</b> sabores selecionados</text>
+                        }
+                    </span>
+                    <span class="omni-cd-flavors-counter-progress">
+                        @for (var i = 0; i < max; i++)
+                        {
+                            <span class="@($"omni-cd-flavors-counter-dot {(i < _selectedFlavors.Count ? "omni-cd-flavors-counter-dot-on" : "")}")"></span>
+                        }
+                    </span>
+                </div>
+
+                <div class="omni-cd-flavor-list">
+                    @foreach (var f in _flavors.Where(IsFlavorVisible))
+                    {
+                        var on = _selectedFlavors.Contains(f.Id);
+                        var disabled = !on && isFull;
+                        <button class="@($"omni-cd-flavor {(on ? "omni-cd-flavor-on" : "")} {(disabled ? "omni-cd-flavor-disabled" : "")}")"
+                                disabled="@disabled"
+                                @onclick="@(() => ToggleFlavor(f))">
+                            <div class="@($"omni-cd-flavor-thumb {(f.Tag == "veg" ? "omni-cd-thumb-veg" : "")}")"></div>
+                            <div class="omni-cd-flavor-body">
+                                <div class="omni-cd-flavor-name">@f.Name</div>
+                                <div class="omni-cd-flavor-ing">@f.Ing</div>
+                                <div class="omni-cd-flavor-price omni-mono">@Brl(FlavorPrice(f))</div>
+                            </div>
+                            <div class="omni-cd-checkbox">
+                                @if (on)
+                                {
+                                    <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                                }
+                            </div>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="omni-cd-bottombar omni-cd-bottombar-col">
+                @if (_selectedFlavors.Count == 2 && PriorityFlavor is not null)
+                {
+                    <div class="omni-cd-flavor-hint">
+                        <OmniIcon Name="info" Size="ComponentSize.Sm" />
+                        Cobramos o valor do sabor mais caro: <b>@PriorityFlavor.Name</b>
+                    </div>
+                }
+                <button class="omni-cd-btn omni-cd-btn-accent"
+                        disabled="@(_selectedFlavors.Count == 0)"
+                        @onclick="GoPreview">
+                    <span>Continuar</span>
+                    <span class="omni-cd-btn-total omni-mono">@Brl(CombinedFlavorsPrice)</span>
+                </button>
+            </div>
+        </div>
+    </text>;
+
+    private RenderFragment CardapioPreview => @<text>
+        <div class="omni-cd-screen">
+            <header class="omni-cd-appbar">
+                <button class="omni-cd-appbar-btn" @onclick="Back" aria-label="Voltar">
+                    <OmniIcon Name="arrow-left" Size="ComponentSize.Sm" />
+                </button>
+                <div class="omni-cd-appbar-title">
+                    <h1>Confirme sua pizza</h1>
+                    <div class="omni-cd-appbar-sub">Passo 3 de 3 · revise e adicione</div>
+                </div>
+                <div style="width: 40px;"></div>
+            </header>
+
+            <div class="omni-cd-scroll" style="padding-bottom: 100px;">
+                <!-- Visual halves -->
+                <div class="omni-cd-preview-card">
+                    <div class="omni-cd-preview-meta">
+                        <div class="omni-cd-preview-name">@(_selectedSize?.Name)</div>
+                        <span class="omni-cd-preview-badge omni-mono">@(_selectedFlavors.Count) @(_selectedFlavors.Count == 1 ? "SABOR" : "SABORES")</span>
+                    </div>
+                    <div class="@($"omni-cd-pizza-halves {(_selectedFlavors.Count == 1 ? "omni-cd-pizza-halves-solo" : "")}")">
+                        @foreach (var id in _selectedFlavors)
+                        {
+                            var fl = _flavors.First(x => x.Id == id);
+                            <div class="omni-cd-pizza-half">
+                                <div class="omni-cd-pizza-half-label">@(_selectedFlavors.Count == 2 ? "½" : "")</div>
+                                @fl.Name
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Flavor cards -->
+                    @foreach (var (id, idx) in _selectedFlavors.Select((id, idx) => (id, idx)))
+                    {
+                        var fl = _flavors.First(x => x.Id == id);
+                        <div class="omni-cd-flavor-card">
+                            <div class="omni-cd-flavor-card-top">
+                                <div class="omni-cd-flavor-card-thumb"></div>
+                                <div>
+                                    @if (_selectedFlavors.Count == 2)
+                                    {
+                                        <span class="omni-cd-flavor-card-frac omni-mono">½</span>
+                                    }
+                                    <span class="omni-cd-flavor-card-name">@fl.Name</span>
+                                    <div class="omni-cd-flavor-card-ing">@fl.Ing</div>
+                                    <div class="omni-cd-flavor-card-price omni-mono">@Brl(FlavorPrice(fl))</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Bordas -->
+                <div class="omni-cd-req-row">
+                    <span class="omni-cd-req-label">Borda</span>
+                    <span class="omni-cd-req-help">Opcional</span>
+                </div>
+                <div class="omni-cd-borda-list">
+                    @foreach (var b in _bordas)
+                    {
+                        var on = _selectedBorda.Id == b.Id;
+                        <button class="@($"omni-cd-borda {(on ? "omni-cd-borda-on" : "")}")"
+                                @onclick="@(() => _selectedBorda = b)">
+                            <div class="omni-cd-radio @(on ? "omni-cd-radio-on" : "")"></div>
+                            <span class="omni-cd-borda-nm">@b.Name</span>
+                            <span class="@($"omni-cd-borda-pr omni-mono {(b.Cents == 0 ? "omni-cd-borda-pr-free" : "")}")">
+                                @(b.Cents == 0 ? "Grátis" : "+ " + Brl(b.Cents))
+                            </span>
+                        </button>
+                    }
+                </div>
+
+                <!-- Observação -->
+                <div class="omni-cd-obs">
+                    <label>Alguma observação?</label>
+                    <textarea placeholder="Ex.: sem cebola, ponto da massa mais alto…" @bind="_obs"></textarea>
+                </div>
+
+                <!-- Price summary -->
+                <div class="omni-cd-price-summary">
+                    <div class="omni-cd-price-row">
+                        <span>Sabor (@PriorityFlavor?.Name)</span>
+                        <span class="omni-cd-price-v omni-mono">@Brl(CombinedFlavorsPrice)</span>
+                    </div>
+                    @if (_selectedBorda.Cents > 0)
+                    {
+                        <div class="omni-cd-price-row">
+                            <span>Borda @_selectedBorda.Name</span>
+                            <span class="omni-cd-price-v omni-mono omni-cd-price-v-add">+ @Brl(_selectedBorda.Cents)</span>
+                        </div>
+                    }
+                    <div class="omni-cd-price-total">
+                        <span>Total</span>
+                        <span class="omni-cd-price-v omni-mono">@Brl(CombinedFlavorsPrice + _selectedBorda.Cents)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="omni-cd-bottombar">
+                <button class="omni-cd-btn omni-cd-btn-accent" @onclick="AddPizzaToCart">
+                    <span>Adicionar ao pedido</span>
+                    <span class="omni-cd-btn-total omni-mono">@Brl(CombinedFlavorsPrice + _selectedBorda.Cents)</span>
+                </button>
+            </div>
+        </div>
+    </text>;
+
+    private RenderFragment CardapioCart => @<text>
+        <div class="omni-cd-screen">
+            <header class="omni-cd-appbar">
+                <button class="omni-cd-appbar-btn" @onclick="GoHome" aria-label="Voltar">
+                    <OmniIcon Name="arrow-left" Size="ComponentSize.Sm" />
+                </button>
+                <div class="omni-cd-appbar-title">
+                    <h1>Seu pedido</h1>
+                    <div class="omni-cd-appbar-sub">@_cart.Count @(_cart.Count == 1 ? "item" : "itens")</div>
+                </div>
+                <div style="width: 40px;"></div>
+            </header>
+
+            <div class="omni-cd-scroll" style="padding-bottom: 100px;">
+                <div class="omni-cd-cart-list">
+                    @if (_cart.Count == 0)
+                    {
+                        <div style="padding: 40px; text-align: center; color: var(--omni-fg-muted);">
+                            Seu carrinho está vazio.
+                            <button @onclick="GoHome" style="color: var(--omni-accent); font-weight: 600; background: none; border: 0;">Voltar ao cardápio</button>
+                        </div>
+                    }
+                    @foreach (var item in _cart)
+                    {
+                        <div class="omni-cd-cart-item">
+                            <div class="omni-cd-cart-item-top">
+                                <div style="flex: 1;">
+                                    <div class="omni-cd-cart-item-name">@item.Display</div>
+                                    <div class="omni-cd-cart-item-meta">@item.Detail</div>
+                                    @if (!string.IsNullOrEmpty(item.Obs))
+                                    {
+                                        <div class="omni-cd-cart-item-obs">Obs: @item.Obs</div>
+                                    }
+                                </div>
+                                <button class="omni-cd-cart-trash" @onclick="@(() => RemoveCartItem(item))">
+                                    <OmniIcon Name="trash" Size="ComponentSize.Sm" />
+                                </button>
+                            </div>
+                            <div class="omni-cd-cart-item-foot">
+                                <OmniQtyStepper Size="ComponentSize.Sm"
+                                                 Value="@item.Qty"
+                                                 ValueChanged="@(q => SetQty(item, q))" />
+
+                                <div class="omni-cd-cart-item-price omni-mono">@Brl(item.UnitCents * item.Qty)</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (_cart.Count > 0)
+                {
+                    <!-- Coupon -->
+                    <div class="omni-cd-coupon">
+                        <div class="omni-cd-coupon-ic">🎟️</div>
+                        <div class="omni-cd-coupon-body">
+                            <div class="omni-cd-coupon-t">@(_coupon == "PIZZA10" ? "10% OFF aplicado" : "Adicionar cupom")</div>
+                            <input placeholder="Tente PIZZA10" @bind="_coupon" @bind:event="oninput"
+                                   @onchange="@(() => _coupon = _coupon.ToUpper())" />
+                        </div>
+                    </div>
+
+                    <!-- Modes -->
+                    <div class="omni-cd-req-row" style="padding-bottom: 0;">
+                        <span class="omni-cd-req-label">Tipo de pedido</span>
+                    </div>
+                    <div class="omni-cd-delivery-modes">
+                        @foreach (var (id, ic, label) in new[] { ("delivery", "🛵", "Delivery"), ("retirada", "🏃", "Retirada"), ("mesa", "🍽️", "Mesa") })
+                        {
+                            <button class="@($"omni-cd-dmode {(_mode == id ? "omni-cd-dmode-on" : "")}")"
+                                    @onclick="@(() => _mode = id)">
+                                <span class="omni-cd-dmode-ic">@ic</span>@label
+                            </button>
+                        }
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="omni-cd-totals">
+                        <div class="omni-cd-totals-row">
+                            <span>Subtotal</span>
+                            <span class="omni-cd-totals-v omni-mono">@Brl(CartSubtotal)</span>
+                        </div>
+                        @if (_mode == "delivery")
+                        {
+                            <div class="omni-cd-totals-row">
+                                <span>Entrega</span>
+                                <span class="omni-cd-totals-v omni-mono">@Brl(CartDelivery)</span>
+                            </div>
+                        }
+                        @if (CartDiscount > 0)
+                        {
+                            <div class="omni-cd-totals-row">
+                                <span>Desconto PIZZA10</span>
+                                <span class="omni-cd-totals-v omni-mono omni-cd-totals-v-discount">− @Brl(CartDiscount)</span>
+                            </div>
+                        }
+                        <div class="omni-cd-totals-total">
+                            <span>Total</span>
+                            <span class="omni-cd-totals-v omni-mono">@Brl(CartTotal)</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (_cart.Count > 0)
+            {
+                <div class="omni-cd-bottombar">
+                    <button class="omni-cd-btn omni-cd-btn-accent">
+                        <span>Finalizar pedido</span>
+                        <span class="omni-cd-btn-total omni-mono">@Brl(CartTotal)</span>
+                    </button>
+                </div>
+            }
+        </div>
+    </text>;
+}

@@ -1,0 +1,97 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ThemeService Theme
+
+@*  Shell exclusivo do PDV Forneria.Demo — migrado para OmniLayout completo
+    (padrão Wf11 PdvWorkspace). Mesma estratégia do FoodService:
+      • OmniAppBar       — topbar full-width (brand + omnibox + actions + user)
+      • OmniDrawer       — sidebar Responsive (Persistent ≥Md, overlay <Md)
+      • OmniDrawerToggle — hamburger nativo via Layout registry
+      • OmniMain         — body com a página /pdv
+
+    Sem state custom de toggle: o OmniDrawer Responsive já cuida de
+    body scroll lock + focus trap + Esc handler + backdrop em mobile. *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle />
+        <OmniBrand Initial="F" Name="Forneria" Tenant="Forno do Bairro — Unidade Vila Madalena" />
+
+        <div class="omni-header-spacer"></div>
+
+        <button class="omni-pdv-omnibox-trigger" type="button" aria-label="Buscar">
+            <OmniKbd Text="⌘K" />
+            <span>Buscar pedido, cliente ou produto</span>
+        </button>
+
+        <div class="omni-header-spacer"></div>
+
+        <OmniBadge Content="3" Variant="BadgeVariant.Danger" Overlap>
+            <OmniButton Icon="bell" IconOnly Variant="ButtonVariant.Ghost"
+                        Size="ComponentSize.Sm" aria-label="Notificações" />
+        </OmniBadge>
+        <OmniButton Icon="info" IconOnly Variant="ButtonVariant.Ghost"
+                    Size="ComponentSize.Sm" aria-label="Ajuda" />
+
+        <div class="omni-header-user">
+            <OmniAvatar Initials="CR" Size="AvatarSize.Sm" />
+            <div class="omni-stack omni-stack-2">
+                <span class="omni-header-user-name">Carla Rocha</span>
+                <span class="omni-header-user-role omni-mono">Caixa · PDV-02</span>
+            </div>
+        </div>
+    </OmniAppBar>
+
+    <OmniDrawer Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md">
+        <OmniPanelMenu>
+            <OmniPanelMenuSection Label="Operação">
+                <OmniPanelMenuItem Text="PDV"              Icon="shopping-cart" Path="/pdv"
+                                    Count="2" CountKind="MenuMetaKind.Accent" />
+                <OmniPanelMenuItem Text="Montar Pizza"     Icon="package"       Path="#" />
+                <OmniPanelMenuItem Text="HUB de Pedidos"   Icon="grid"          Path="#"
+                                    Count="10" />
+                <OmniPanelMenuItem Text="Cardápio Digital" Icon="file-text"     Path="/cardapio" />
+            </OmniPanelMenuSection>
+
+            <OmniPanelMenuSection Label="Salão">
+                <OmniPanelMenuItem Text="Garçom" Icon="users" Path="/garcom" />
+            </OmniPanelMenuSection>
+
+            <OmniPanelMenuSection Label="Gestão">
+                <OmniPanelMenuItem Text="Cadastros" Icon="database" Path="/cadastros/clientes" />
+            </OmniPanelMenuSection>
+
+            <OmniPanelMenuSection Label="Tenant">
+                <OmniPanelMenuItem Text="Configurações" Icon="sliders" Path="#" />
+            </OmniPanelMenuSection>
+        </OmniPanelMenu>
+
+        <div class="omni-header-spacer"></div>
+
+        <div class="omni-pdv-side-plan">
+            <div class="omni-pdv-side-plan-name">Plano Pro</div>
+            <div class="omni-pdv-side-plan-meta omni-mono">2.341 / 5.000 pedidos · este mês</div>
+            <div class="omni-pdv-side-plan-bar">
+                <div style="width: 47%;"></div>
+            </div>
+        </div>
+    </OmniDrawer>
+
+    <OmniMain NoPadding>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* swallow */ }
+        }
+    }
+
+    public void Dispose() { }
+}

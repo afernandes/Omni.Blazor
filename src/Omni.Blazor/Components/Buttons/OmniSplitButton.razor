@@ -1,0 +1,107 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  Split button: ação primária à esquerda + chevron de dropdown à direita.
+    Use quando há UMA ação principal mas MÚLTIPLAS variações relacionadas.
+    Padrão clássico em PDV/ERP: "Salvar" / "Salvar e imprimir" /
+    "Salvar e enviar email" — o usuário clica na ação primária 90% do tempo
+    e usa o chevron quando quer a variação.
+
+    Composição: OmniButton (primária) + OmniPopover (chevron + menu).
+    Visualmente são 2 botões grudados — borda direita do primeiro removida,
+    border-radius compartilhado nas extremidades.
+
+    Usage:
+        <OmniSplitButton Text="Salvar" Icon="save" Variant="ButtonVariant.Primary"
+                          OnClick="OnSave">
+            <OmniMenuItem Text="Salvar e imprimir" Icon="printer" OnClick="OnSavePrint" />
+            <OmniMenuItem Text="Salvar e enviar e-mail" Icon="mail" OnClick="OnSaveEmail" />
+            <OmniMenuSeparator />
+            <OmniMenuItem Text="Salvar como rascunho" Icon="file" OnClick="OnSaveDraft" />
+        </OmniSplitButton>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @* Botão primário *@
+    <OmniButton Text="@Text"
+                 Icon="@Icon"
+                 Variant="@Variant"
+                 Size="@Size"
+                 Disabled="@Disabled"
+                 Loading="@Loading"
+                 LoadingText="@LoadingText"
+                 OnClick="HandlePrimaryClick"
+                 Class="omni-split-btn-primary" />
+
+    @* Chevron + popover dropdown (sem arrow/balão; alinhado à borda do botão) *@
+    <OmniPopover Position="@MenuPosition"
+                  ShowArrow="false"
+                  AlignEnd="@MenuAlignEnd"
+                  Offset="4">
+        <Trigger>
+            <OmniButton Icon="chevron-down"
+                         IconOnly="true"
+                         Variant="@Variant"
+                         Size="@Size"
+                         Disabled="@(Disabled || Loading)"
+                         Class="omni-split-btn-chevron"
+                         aria-label="@(MenuAriaLabel ?? "Mais opções")" />
+        </Trigger>
+        <ChildContent>
+            <OmniMenu>
+                @ChildContent
+            </OmniMenu>
+        </ChildContent>
+    </OmniPopover>
+</div>
+
+@code {
+    /// <summary>Texto do botão primário.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Ícone do botão primário.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Variante visual (compartilhada por ambos os botões).</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Tamanho (compartilhado).</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Desabilita ambos os botões.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Loading state — desabilita ambos e mostra spinner no primário.</summary>
+    [Parameter] public bool Loading { get; set; }
+
+    /// <summary>Texto alternativo do botão primário enquanto Loading.</summary>
+    [Parameter] public string? LoadingText { get; set; }
+
+    /// <summary>Posição do popover. Default <c>Bottom</c>.</summary>
+    [Parameter] public PopoverPosition MenuPosition { get; set; } = PopoverPosition.Bottom;
+
+    /// <summary>Alinha o popover ao FIM (direita) do chevron — extende para a esquerda
+    /// embaixo do conjunto (primário + chevron). Útil quando o SplitButton está perto
+    /// da borda direita da tela e o menu padrão (alinhado à esquerda do chevron) sairia
+    /// da viewport. Default <c>false</c>.</summary>
+    [Parameter] public bool MenuAlignEnd { get; set; }
+
+    /// <summary>aria-label do chevron. Default "Mais opções".</summary>
+    [Parameter] public string? MenuAriaLabel { get; set; }
+
+    /// <summary>Click no botão primário (ação default).</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-split-btn")
+        .AddClass($"omni-split-btn-{Size.ToString().ToLowerInvariant()}")
+        .AddClass(Class)
+        .Build();
+
+    private async Task HandlePrimaryClick(MouseEventArgs args)
+    {
+        if (Disabled || Loading) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(args);
+    }
+}

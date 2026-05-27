@@ -1,0 +1,131 @@
+@page "/showcase/get-started"
+@layout ShowcaseLayout
+
+<PageTitle>Começar — Omni.Blazor</PageTitle>
+
+<ShowcasePage Title="Começar"
+              Subtitle="Adicione a Omni.Blazor ao seu projeto em 6 passos.">
+
+    <Overview>
+        <p>
+            A <code>Omni.Blazor</code> é uma biblioteca de componentes para
+            <strong>.NET 10</strong> — 77 componentes prontos para apps de negócio
+            (PDV, CRUD, dashboards). Esta página mostra o setup mínimo. Cada bloco
+            tem o snippet pronto para copiar.
+        </p>
+        <p>
+            Pré-requisito: um projeto <strong>Blazor</strong> em .NET 10 com um modo
+            de render interativo (<code>InteractiveServer</code> ou
+            <code>InteractiveWebAssembly</code>).
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="1 · Instalar o pacote"
+                         Description="Via NuGet, ou ProjectReference se a lib está no mesmo monorepo."
+                         Code="@(@"dotnet add package Omni.Blazor")">
+            <p class="omni-muted">
+                Adiciona a <code>Omni.Blazor</code> às dependências do projeto.
+                Em monorepo, use um <code>&lt;ProjectReference&gt;</code> apontando
+                para <code>Omni.Blazor.csproj</code>.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="2 · Importar os namespaces"
+                         Description="No _Imports.razor do seu projeto."
+                         Code="@(@"@using Omni.Blazor
+@using Omni.Blazor.Components
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services")">
+            <p class="omni-muted">
+                Disponibiliza os componentes (<code>Omni.Blazor.Components</code>),
+                enums/records (<code>Models</code>) e serviços (<code>Services</code>)
+                em todas as páginas sem qualificar o namespace.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="3 · Registrar os serviços"
+                         Description="No Program.cs — registra Dialog, Notification, Tooltip, ContextMenu, Theme, Hotkey, ScrollManager, Breakpoint e KeyInterceptor."
+                         Code="@(@"builder.Services.AddOmniComponents();")">
+            <p class="omni-muted">
+                Uma única chamada registra os 9 serviços da biblioteca como
+                <code>Scoped</code>.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="4 · Configurar o tema"
+                         Description="No <head> do App.razor. Injeta o CSS e aplica o acento inicial sem flash."
+                         Code="@(@"<head>
+    ...
+    <OmniTheme Accent=""amber"" />
+</head>")">
+            <p class="omni-muted">
+                O <code>OmniTheme</code> injeta a folha de estilo
+                <code>omni.css</code> (com cache-busting) e aplica o
+                <code>data-accent</code> no <code>&lt;html&gt;</code> antes do
+                corpo renderizar. Acentos: <code>amber</code> (padrão),
+                <code>emerald</code>, <code>blue</code>, <code>violet</code>,
+                <code>crimson</code>. Use <code>Dark="true"</code> para iniciar
+                em dark mode. A troca em runtime fica com o <code>ThemeService</code>.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="5 · Incluir o JavaScript"
+                         Description="No App.razor, antes do blazor.*.js."
+                         Code="@(@"<script src=""_content/Omni.Blazor/js/omni.js""></script>")">
+            <p class="omni-muted">
+                O <code>omni.js</code> traz os helpers de scroll-lock,
+                click-outside, atalhos de teclado e posicionamento de popovers.
+                Em projetos Blazor Web App, prefira
+                <code>@@Assets["_content/Omni.Blazor/js/omni.js"]</code> para
+                versionamento automático.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="6 · Adicionar o host de overlays"
+                         Description="Uma vez, no layout raiz. Dialog, Notification, Tooltip e ContextMenu compartilham este host."
+                         Code="@(@"<OmniOverlayHosts />")">
+            <p class="omni-muted">
+                Coloque <code>&lt;OmniOverlayHosts /&gt;</code> no layout principal
+                (ex: <code>MainLayout.razor</code>). Sem ele, os serviços de
+                Dialog/Notification/Tooltip/ContextMenu não têm onde renderizar.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Pronto — use os componentes"
+                         Description="Exemplo mínimo numa página."
+                         Code="@(@"<OmniButton Text=""Olá"" Variant=""ButtonVariant.Primary""
+             OnClick=""@(() => Toast.Success(""Funcionou!""))"" />
+
+@code {
+    [Inject] NotificationService Toast { get; set; } = default!;
+}")">
+            <div class="omni-stack omni-stack-12">
+                <p class="omni-muted">
+                    Com os 6 passos prontos, qualquer componente da biblioteca já
+                    funciona. Explore o restante da documentação pela barra lateral.
+                </p>
+                <div>
+                    <OmniButton Text="Olá" Variant="ButtonVariant.Primary"
+                                 OnClick="@(() => Toast.Success("Funcionou!", "A Omni.Blazor está pronta."))" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Nota sobre render mode" Padded="false">
+            <OmniAlert Severity="NotificationSeverity.Info" Title="Server, WebAssembly — evite Auto">
+                Os componentes exigem interatividade. Fixe um render mode por host
+                (<code>InteractiveServer</code> <em>ou</em>
+                <code>InteractiveWebAssembly</code>). O modo <code>InteractiveAuto</code>
+                tem um bug conhecido de Hot Reload no .NET 10 que trava o app ao
+                recarregar a página — por isso recomendamos render mode fixo, como
+                fazem MudBlazor e Radzen.
+            </OmniAlert>
+        </ShowcaseSection>
+    </ChildContent>
+
+</ShowcasePage>
+
+@code {
+    [Inject] NotificationService Toast { get; set; } = default!;
+}

@@ -1,0 +1,44 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (Items is not null)
+    {
+        foreach (var item in Items)
+        {
+            var current = item;
+            var active = EqualityComparer<TValue>.Default.Equals(Value, current.Value);
+            <button @key="current.Value"
+                    type="button"
+                    class="@ItemCss(active)"
+                    @onclick="@(() => Select(current.Value))">
+                @current.Label
+            </button>
+        }
+    }
+</div>
+
+@code {
+    public record Item(TValue Value, string Label);
+
+    [Parameter] public TValue? Value { get; set; }
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public IEnumerable<Item>? Items { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-segmented")
+        .AddClass(Class)
+        .Build();
+
+    private static string ItemCss(bool active) => CssBuilder.Default()
+        .AddClass("omni-active", active)
+        .Build();
+
+    private async Task Select(TValue v)
+    {
+        if (EqualityComparer<TValue>.Default.Equals(Value, v)) return;
+        Value = v;
+        if (ValueChanged.HasDelegate) await ValueChanged.InvokeAsync(v);
+    }
+}

@@ -1,0 +1,203 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IOmniFormComponent
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Linq.Expressions
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Time picker. Lives at the bottom of the calendar popover — edge-to-edge,
+    no horizontal padding, looking like a modal footer. Numbers share the
+    monospace size of the calendar day cells for visual coherence. AM/PM,
+    when shown, sits inline next to the hour so "12 PM" vs "12 AM" is
+    unambiguous at a glance.
+
+    Reuses <OmniNumeric> for each unit (with spinners off — keyboard ↑↓
+    still works) so we get the same focus styling, paste validation, and
+    keypress filtering.
+
+    Bind with @bind-Time:
+        <OmniTimePicker @bind-Time="time" HourFormat="12" ShowSeconds="true" />
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="omni-time-cells">
+        <div class="omni-time-cell">
+            <span class="omni-time-label">HORA</span>
+            <div class="omni-time-cell-row">
+                <OmniNumeric TValue="int"
+                               Value="@DisplayHour"
+                               ValueChanged="OnHourChangedAsync"
+                               Min="@HourMin" Max="@HourMax" Step="1"
+                               Format="00" Wrap="true"
+                               ShowSpinButtons="false"
+                               Class="omni-time-numeric" />
+                @if (HourFormat == "12")
+                {
+                    <div class="omni-time-ampm" role="group" aria-label="AM/PM">
+                        <button type="button"
+                                class="@(IsAm ? "omni-time-ampm-btn omni-active" : "omni-time-ampm-btn")"
+                                @onclick="@(_ => SetAmPmAsync(true))">AM</button>
+                        <button type="button"
+                                class="@(!IsAm ? "omni-time-ampm-btn omni-active" : "omni-time-ampm-btn")"
+                                @onclick="@(_ => SetAmPmAsync(false))">PM</button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <span class="omni-time-sep">:</span>
+
+        <div class="omni-time-cell">
+            <span class="omni-time-label">MIN</span>
+            <OmniNumeric TValue="int"
+                           Value="Time.Minute"
+                           ValueChanged="OnMinuteChangedAsync"
+                           Min="0" Max="59" Step="@MinutesStep"
+                           Format="00" Wrap="true"
+                           ShowSpinButtons="false"
+                           Class="omni-time-numeric" />
+        </div>
+
+        @if (ShowSeconds)
+        {
+            <span class="omni-time-sep">:</span>
+
+            <div class="omni-time-cell">
+                <span class="omni-time-label">SEG</span>
+                <OmniNumeric TValue="int"
+                               Value="Time.Second"
+                               ValueChanged="OnSecondChangedAsync"
+                               Min="0" Max="59" Step="@SecondsStep"
+                               Format="00" Wrap="true"
+                               ShowSpinButtons="false"
+                               Class="omni-time-numeric" />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public TimeOnly Time { get; set; }
+    [Parameter] public EventCallback<TimeOnly> TimeChanged { get; set; }
+
+    /// <summary>"24" (default) or "12" — adds AM/PM toggle inline with the hour.</summary>
+    [Parameter] public string HourFormat { get; set; } = "24";
+    [Parameter] public bool ShowSeconds { get; set; }
+    [Parameter] public int MinutesStep { get; set; } = 1;
+    [Parameter] public int SecondsStep { get; set; } = 1;
+
+    private string RootCss => CssBuilder.Default("omni-time-picker")
+        .AddClass(Class)
+        .Build();
+
+    private bool IsAm => Time.Hour < 12;
+    private int HourMin => HourFormat == "12" ? 1 : 0;
+    private int HourMax => HourFormat == "12" ? 12 : 23;
+
+    private int DisplayHour
+    {
+        get
+        {
+            if (HourFormat != "12") return Time.Hour;
+            var h = Time.Hour % 12;
+            return h == 0 ? 12 : h;
+        }
+    }
+
+    private Task OnHourChangedAsync(int h)
+    {
+        int hour24;
+        if (HourFormat == "12")
+        {
+            var pm = !IsAm;
+            hour24 = (h % 12) + (pm ? 12 : 0);
+        }
+        else
+        {
+            hour24 = h;
+        }
+        return EmitAsync(new TimeOnly(Math.Clamp(hour24, 0, 23), Time.Minute, Time.Second));
+    }
+
+    private Task OnMinuteChangedAsync(int m)
+        => EmitAsync(new TimeOnly(Time.Hour, Math.Clamp(m, 0, 59), Time.Second));
+
+    private Task OnSecondChangedAsync(int s)
+        => EmitAsync(new TimeOnly(Time.Hour, Time.Minute, Math.Clamp(s, 0, 59)));
+
+    private Task SetAmPmAsync(bool am)
+    {
+        if (am == IsAm) return Task.CompletedTask;
+        var newH = am ? Time.Hour - 12 : Time.Hour + 12;
+        return EmitAsync(new TimeOnly(Math.Clamp(newH, 0, 23), Time.Minute, Time.Second));
+    }
+
+    private async Task EmitAsync(TimeOnly newTime)
+    {
+        if (newTime == Time) return;
+        Time = newTime;
+        if (TimeChanged.HasDelegate) await TimeChanged.InvokeAsync(newTime);
+        // Notifica EditContext (sibling validators reagem).
+        if (_hasFieldId) _editContext?.NotifyFieldChanged(_fieldId);
+    }
+
+    // ── IOmniFormComponent — descoberta por validators irmãos ──
+    /// <summary>Expression pra integração com EditContext + validators irmãos.</summary>
+    [Parameter] public Expression<Func<TimeOnly>>? TimeExpression { get; set; }
+
+    /// <summary>Nome lógico — registra com OmniForm para validators irmãos.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    [CascadingParameter] protected EditContext? _editContext { get; set; }
+    [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
+
+    private FieldIdentifier _fieldId;
+    private bool _hasFieldId;
+
+    string IOmniFormComponent.ResolvedName => Name ?? (_hasFieldId ? _fieldId.FieldName : string.Empty);
+    FieldIdentifier IOmniFormComponent.FieldIdentifier => _fieldId;
+    object? IOmniFormComponent.GetValue() => Time;
+    bool IOmniFormComponent.HasValue => Time != default;
+
+    // ParameterState fires only when TimeExpression is rebound — the
+    // FieldIdentifier doesn't need rebuilding on every render.
+    private readonly ParameterState<Expression<Func<TimeOnly>>?> _timeExprState;
+
+    // Test-only counter: increments every time the expression-driven recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniTimePicker()
+    {
+        _timeExprState = RegisterParameter<Expression<Func<TimeOnly>>?>(nameof(TimeExpression))
+            .WithParameter(() => TimeExpression)
+            .WithChangeHandler(RecomputeFieldId)
+            .Attach();
+    }
+
+    private void RecomputeFieldId()
+    {
+        if (TimeExpression is not null)
+        {
+            _fieldId = FieldIdentifier.Create(TimeExpression);
+            _hasFieldId = true;
+        }
+        else
+        {
+            _hasFieldId = false;
+        }
+        RecomputeCount++;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
+        {
+            FormRegistry?.RegisterComponent(this);
+        }
+    }
+
+    public void Dispose() => FormRegistry?.UnregisterComponent(this);
+}

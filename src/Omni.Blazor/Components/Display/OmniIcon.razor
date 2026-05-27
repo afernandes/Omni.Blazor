@@ -1,0 +1,49 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*  Render nothing when the icon name is unknown — emitting an empty wrapper
+    span would (1) reserve layout space for a glyph that won't paint and
+    (2) defeat CSS-only `:empty`/`:has()` consumers (e.g. the panel-menu dot
+    fallback) which legitimately want to detect "no icon set". Consumers that
+    must reserve a slot can always provide their own surrounding element. *@
+@if (_path is not null)
+{
+    <span @ref="_el"
+          class="@RootCss"
+          style="@Style"
+          aria-hidden="true"
+          @attributes="Attributes">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            @((MarkupString)_path)
+        </svg>
+    </span>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    private ElementReference _el;
+    private string? _path;
+
+    private string SizeClass => Size switch
+    {
+        ComponentSize.Sm => "omni-icon-sm",
+        ComponentSize.Md => "omni-icon-md",
+        ComponentSize.Lg => "omni-icon-lg",
+        ComponentSize.Xl => "omni-icon-xl",
+        _ => "omni-icon-md"
+    };
+
+    private string RootCss => CssBuilder.Default("omni-icon")
+        .AddClass(SizeClass)
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnParametersSet()
+    {
+        _path = OmniIconLibrary.GetPath(Name);
+        Element = _el;
+    }
+}

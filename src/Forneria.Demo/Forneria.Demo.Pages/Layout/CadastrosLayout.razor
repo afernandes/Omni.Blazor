@@ -1,0 +1,26 @@
+@inherits LayoutComponentBase
+@layout AppShell
+
+@*  Demo-specific layout: composes the generic <OmniSplitView> from the lib
+    with the cadastros sub-navigation. The CSS classes used by OmniSplitView
+    are domain-agnostic (.omni-split / .omni-split-aside / .omni-split-main).
+
+    Sem Mini/collapse — esse pattern mora no OmniDrawer (AppShell.razor).
+    Aqui só precisamos do sub-nav lateral fixo + main scrollable. *@
+
+<OmniSplitView>
+    <AsideContent>
+        <OmniSplitAsideLabel Text="Cadastros" />
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="Produtos"         Icon="package"  Path="/cadastros/produtos" />
+            <OmniPanelMenuItem Text="Categorias"       Icon="grid"     Path="/cadastros/categorias" />
+            <OmniPanelMenuItem Text="Clientes"         Icon="users"    Path="/cadastros/clientes" />
+            <OmniPanelMenuItem Text="Usuários"         Icon="user"     Path="/cadastros/usuarios" />
+            <OmniPanelMenuItem Text="Promoções"        Icon="tag"      Path="/cadastros/promocoes" />
+            <OmniPanelMenuItem Text="Zonas de entrega" Icon="map-pin"  Path="/cadastros/zonas" />
+        </OmniPanelMenu>
+    </AsideContent>
+    <ChildContent>
+        @Body
+    </ChildContent>
+</OmniSplitView>

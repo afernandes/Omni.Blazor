@@ -1,0 +1,176 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using System.Globalization
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+@using Omni.Blazor.Models
+
+@* Renders a 1D barcode (Code128 / Code39 / EAN-13 / EAN-8 / UPC-A) as inline
+   SVG. The encoder produces a bit-string (1 = bar, 0 = space); we collapse
+   consecutive bars into single <rect> elements for a compact DOM. *@
+
+<div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+    @if (_error is not null)
+    {
+        <div class="omni-barcode-error" role="alert">@_error</div>
+    }
+    else if (_bits is not null && _bits.Length > 0)
+    {
+        <svg viewBox="@ViewBox" preserveAspectRatio="@(Stretch ? "none" : "xMidYMid meet")"
+             role="img" aria-label="@(AriaLabel ?? DisplayValue ?? Value)" class="omni-barcode-svg">
+            @if (!string.IsNullOrEmpty(Background))
+            {
+                <rect x="0" y="0" width="@F(_totalWidth)" height="@F(_totalHeight)" fill="@Background" />
+            }
+            @foreach (var bar in BarRects())
+            {
+                <rect x="@F(bar.X)" y="@F(bar.Y)" width="@F(bar.W)" height="@F(bar.H)" fill="@Foreground" />
+            }
+            @if (ShowValue && !string.IsNullOrEmpty(DisplayValue))
+            {
+                @SvgText(_totalWidth / 2, _totalHeight - 2, DisplayValue!,
+                         "middle", "omni-barcode-text",
+                         $"font-size: {F(FontSize)}px; font-family: var(--omni-font-mono);")
+            }
+        </svg>
+    }
+</div>
+
+@code {
+    /// <summary>Conteúdo a codificar. Vazio renderiza placeholder vazio.</summary>
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+
+    /// <summary>Símbologia. Default <c>Code128</c>.</summary>
+    [Parameter] public BarcodeType Type { get; set; } = BarcodeType.Code128;
+
+    /// <summary>Cor das barras (qualquer CSS color). Default <c>--omni-fg</c>.</summary>
+    [Parameter] public string Foreground { get; set; } = "var(--omni-fg)";
+
+    /// <summary>Cor de fundo. Default vazio (transparente — herda o container).</summary>
+    [Parameter] public string Background { get; set; } = "";
+
+    /// <summary>Altura das barras em unidades de viewBox. Default 60.</summary>
+    [Parameter] public double BarHeight { get; set; } = 60;
+
+    /// <summary>Margem em torno do código (em módulos). Default 10 (recomendação ISO).</summary>
+    [Parameter] public int QuietZoneModules { get; set; } = 10;
+
+    /// <summary>Exibir o valor decifrado embaixo do código. Default true.</summary>
+    [Parameter] public bool ShowValue { get; set; } = true;
+
+    /// <summary>Tamanho da fonte do texto inferior em unidades de viewBox. Default 10.</summary>
+    [Parameter] public double FontSize { get; set; } = 10;
+
+    /// <summary>Esticar o SVG para preencher o container (preserveAspectRatio=none).
+    /// Default true — permite controle exclusivo via CSS width/height.</summary>
+    [Parameter] public bool Stretch { get; set; } = true;
+
+    /// <summary>aria-label customizado. Default = Value.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>CSS width inline (atalho para style). Ex: "240px".</summary>
+    [Parameter] public string? Width { get; set; }
+
+    /// <summary>CSS height inline. Ex: "80px".</summary>
+    [Parameter] public string? Height { get; set; }
+
+    private string? _bits;
+    private string? _error;
+    internal string? DisplayValue;
+    private double _totalWidth => (_bits?.Length ?? 0) + 2 * QuietZoneModules;
+    private double _totalHeight => BarHeight + (ShowValue ? FontSize + 4 : 0);
+
+    // ParameterState: encode only fires on actual Value/Type changes.
+    // Width/Height/Style/Class go through RootStyle/RootCss getters — no
+    // recompute on unrelated re-renders.
+    private ParameterState<string> _valueState = null!;
+    private ParameterState<BarcodeType> _typeState = null!;
+
+    protected override void OnInitialized()
+    {
+        _valueState = RegisterParameter<string>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(Recompute)
+            .Attach();
+        _typeState = RegisterParameter<BarcodeType>(nameof(Type))
+            .WithParameter(() => Type)
+            .WithChangeHandler(Recompute)
+            .Attach();
+    }
+
+    private string RootCss => CssBuilder.Default("omni-barcode")
+        .AddClass(Class)
+        .Build();
+
+    // Build inline style from Width/Height shortcuts (concatenated with user
+    // Style). Done as a getter (not mutating Style in OnParametersSet) so
+    // unrelated re-renders don't accumulate the shortcuts twice.
+    private string RootStyle => StyleBuilder.Default(Style)
+        .AddStyle("width", Width, !string.IsNullOrEmpty(Width))
+        .AddStyle("height", Height, !string.IsNullOrEmpty(Height))
+        .Build();
+
+    private string ViewBox => $"0 0 {F(_totalWidth)} {F(_totalHeight)}";
+
+    private void Recompute()
+    {
+        _error = null;
+        _bits = null;
+        DisplayValue = null;
+        if (string.IsNullOrEmpty(Value)) return;
+
+        try
+        {
+            _bits = BarcodeEncoder.Encode(Value, Type);
+            DisplayValue = BarcodeEncoder.DisplayText(Value, Type);
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message;
+        }
+        // ViewBox sizing (_totalWidth / _totalHeight) is computed via getters
+        // from _bits.Length + quiet zone, so it tracks BarHeight/FontSize/
+        // ShowValue/QuietZoneModules changes without re-encoding.
+    }
+
+    /// <summary>Walks the bit string and emits one rect per contiguous run of '1's.</summary>
+    private IEnumerable<(double X, double Y, double W, double H)> BarRects()
+    {
+        if (_bits is null) yield break;
+        double x = QuietZoneModules;
+        int i = 0;
+        while (i < _bits.Length)
+        {
+            if (_bits[i] == '1')
+            {
+                int run = 1;
+                while (i + run < _bits.Length && _bits[i + run] == '1') run++;
+                yield return (x, 0, run, BarHeight);
+                x += run;
+                i += run;
+            }
+            else
+            {
+                x += 1;
+                i += 1;
+            }
+        }
+    }
+
+    private static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+
+    /// <summary>Renders an SVG &lt;text&gt; via RenderTreeBuilder. Done in code
+    /// (not markup) because Razor reserves the literal <c>text</c> tag.</summary>
+    private static RenderFragment SvgText(double x, double y, string content,
+        string anchor, string cssClass, string style) => builder =>
+    {
+        builder.OpenElement(0, "text");
+        builder.AddAttribute(1, "x", F(x));
+        builder.AddAttribute(2, "y", F(y));
+        builder.AddAttribute(3, "text-anchor", anchor);
+        builder.AddAttribute(4, "class", cssClass);
+        builder.AddAttribute(5, "style", style);
+        builder.AddContent(6, content);
+        builder.CloseElement();
+    };
+}

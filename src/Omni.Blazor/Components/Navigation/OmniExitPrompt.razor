@@ -1,0 +1,107 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject NavigationManager Nav
+@inject DialogService Dialogs
+@inject IJSRuntime JS
+
+@*
+    Intercepts navigation attempts when `When` returns true and asks the user to
+    confirm. Inspired by MudBlazor's MudExitPrompt, but the prompt is gated by a
+    predicate (most apps only want to prompt while there are unsaved changes).
+
+      <OmniExitPrompt When="@(() => form.IsModified && !saved)" />
+
+    Covers two cases:
+      1. In-app navigation (Blazor route change) — uses NavigationManager.
+         RegisterLocationChangingHandler + DialogService.Confirm (or window.confirm
+         when UseNativePrompt=true). Blocks via context.PreventNavigation().
+      2. Browser unload (tab close / refresh / typing a new URL) — JS hooks
+         window.beforeunload. The browser always shows its native prompt; custom
+         text is intentionally ignored by modern browsers.
+
+    Renders nothing.
+*@
+
+@code {
+    [Parameter] public Func<bool>? When { get; set; }
+    [Parameter] public string Title { get; set; } = "Sair sem salvar?";
+    [Parameter] public string Text { get; set; } = "Você tem alterações não salvas. Deseja sair mesmo assim?";
+    [Parameter] public string ConfirmText { get; set; } = "Sair sem salvar";
+    [Parameter] public string CancelText { get; set; } = "Continuar editando";
+    [Parameter] public bool UseNativePrompt { get; set; }
+
+    private readonly string _id = $"ep-{Guid.NewGuid():N}";
+    private IDisposable? _locationHandle;
+    private bool _beforeUnloadActive;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        // Intercepting Blazor route changes is free — register once and let the
+        // handler short-circuit when When() is false. This avoids tearing the
+        // handler down and rebuilding it on every parameter toggle.
+        _locationHandle = Nav.RegisterLocationChangingHandler(OnLocationChanging);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_disposed) return;
+        var shouldGuard = When?.Invoke() ?? true;
+        await SyncBeforeUnload(shouldGuard);
+    }
+
+    private async ValueTask SyncBeforeUnload(bool shouldGuard)
+    {
+        if (shouldGuard == _beforeUnloadActive) return;
+        try
+        {
+            if (shouldGuard) await JS.InvokeVoidAsync("omniBlazor.enableExitPrompt",  _id);
+            else             await JS.InvokeVoidAsync("omniBlazor.disableExitPrompt", _id);
+            _beforeUnloadActive = shouldGuard;
+        }
+        catch { /* JS may not be ready during prerender — retry next OnParametersSet */ }
+    }
+
+    private async ValueTask OnLocationChanging(LocationChangingContext context)
+    {
+        if (_disposed) return;
+        var shouldGuard = When?.Invoke() ?? true;
+        if (!shouldGuard) return;
+
+        bool? confirmed;
+        if (UseNativePrompt)
+        {
+            try { confirmed = await JS.InvokeAsync<bool>("window.confirm", Text); }
+            catch { confirmed = true; /* fail-open if JS unavailable */ }
+        }
+        else
+        {
+            confirmed = await Dialogs.Confirm(Text, Title, new Models.ConfirmOptions
+            {
+                OkButtonText = ConfirmText,
+                CancelButtonText = CancelText,
+                Icon = "alert-triangle"
+            });
+        }
+
+        if (confirmed != true)
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _locationHandle?.Dispose();
+        _locationHandle = null;
+        if (_beforeUnloadActive)
+        {
+            try { await JS.InvokeVoidAsync("omniBlazor.disableExitPrompt", _id); }
+            catch { }
+            _beforeUnloadActive = false;
+        }
+    }
+}

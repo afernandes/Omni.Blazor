@@ -1,0 +1,628 @@
+// ============================================================================
+// ASIDE — customer head + mode tabs + mode details + loyalty
+// ============================================================================
+
+// ─── Customer head ─────────────────────────────────────────────────
+.fs-pdv-cust {
+  position: relative;
+}
+.fs-pdv-cust-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 56px;
+  padding: 0 14px;
+  border: 1.5px dashed var(--omni-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--omni-fg-muted);
+  font: inherit; font-size: 13px;
+  cursor: pointer;
+  transition: border-color 100ms, color 100ms;
+}
+.fs-pdv-cust-empty:hover { border-style: solid; border-color: var(--omni-accent); color: var(--omni-accent); }
+.fs-pdv-cust-empty > kbd {
+  margin-left: auto;
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--omni-line);
+  border-radius: 4px;
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg-muted);
+}
+
+.fs-pdv-cust-card {
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 100ms;
+}
+.fs-pdv-cust-card:hover { border-color: var(--omni-line-strong); }
+.fs-pdv-cust-card-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fs-pdv-cust-av {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 12px;
+  flex-shrink: 0;
+}
+// Mock Forneria: ícone genérico (não iniciais) — círculo accent-soft + ícone accent
+.fs-pdv-cust-ico {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  color: var(--omni-fg-muted);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.fs-pdv-cust-ico > .omni-icon { width: 16px; height: 16px; }
+.fs-pdv-cust-info { flex: 1; min-width: 0; }
+.fs-pdv-cust-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--omni-fg);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-pdv-cust-meta {
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11.5px;
+  font-family: var(--omni-font-mono);
+  color: var(--omni-fg-muted);
+}
+.fs-pdv-cust-meta .dot-sep { color: var(--omni-fg-soft); }
+.fs-pdv-cust-pts { color: var(--omni-accent); font-weight: 700; }
+.fs-pdv-cust-x {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  color: var(--omni-fg-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 100ms, border-color 100ms;
+}
+.fs-pdv-cust-x:hover { color: var(--omni-danger); border-color: var(--omni-danger); }
+
+// Delivery: dashed-top separated area inside the customer card
+.fs-pdv-cust-delivery {
+  border-top: 1px dashed var(--omni-line);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fs-pdv-cust-delivery-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--omni-font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--omni-fg-soft);
+}
+.fs-pdv-cust-delivery-head > .omni-icon { width: 11px; height: 11px; }
+
+.fs-pdv-cust-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-radius: 7px;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--omni-fg);
+  cursor: pointer;
+  width: 100%;
+  font: inherit;
+  transition: border-color 100ms;
+}
+.fs-pdv-cust-address:hover { border-color: var(--omni-accent); }
+.fs-pdv-cust-address.is-empty {
+  border-style: dashed;
+  color: var(--omni-fg-muted);
+  font-style: italic;
+}
+.fs-pdv-cust-address.is-empty:hover {
+  color: var(--omni-accent);
+  font-style: normal;
+}
+.fs-pdv-cust-address-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-pdv-cust-address-edit {
+  font-size: 11px;
+  color: var(--omni-accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// Customer search popover
+.fs-pdv-cust-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 10px;
+  box-shadow: var(--omni-shadow-lg);
+  padding: 8px;
+  z-index: 100;
+}
+.fs-pdv-cust-pop-label {
+  font-family: var(--omni-font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--omni-fg-soft);
+  padding: 6px 8px 4px;
+}
+
+// ─── Mode tabs ──────────────────────────────────────────────────────
+.fs-pdv-modes {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  background: var(--omni-bg-sunken);
+  border-radius: 8px;
+  padding: 2px;
+}
+.fs-pdv-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  background: none; border: 0;
+  font: inherit; font-size: 11px;
+  font-weight: 500;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+  transition: background-color 100ms, color 100ms, box-shadow 120ms;
+}
+.fs-pdv-mode:hover { color: var(--omni-fg); }
+.fs-pdv-mode.is-active {
+  background: var(--omni-bg-elev);
+  color: var(--omni-fg);
+  font-weight: 600;
+  box-shadow: var(--omni-shadow-sm);
+}
+.fs-pdv-mode > .omni-icon { width: 16px; height: 16px; }
+
+// ─── Mode accordion (collapsible em mobile, sempre aberto em wide) ──
+.fs-pdv-mode-acc {
+  display: flex;
+  flex-direction: column;
+}
+.fs-pdv-mode-acc-head {
+  display: none; // hidden por default; mobile media query revela
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--omni-bg-elev);
+  border-top: 1px solid var(--omni-line);
+  border-bottom: 1px solid var(--omni-line);
+  border-left: 0; border-right: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: var(--omni-fg);
+  transition: background-color 100ms;
+  width: 100%;
+}
+.fs-pdv-mode-acc-head:hover { background: var(--omni-bg-sunken); }
+.fs-pdv-mode-acc.is-open .fs-pdv-mode-acc-head {
+  background: var(--omni-bg-sunken);
+}
+.fs-pdv-mode-acc-ico {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg-muted);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  transition: background-color 100ms, color 100ms;
+}
+.fs-pdv-mode-acc.is-open .fs-pdv-mode-acc-ico {
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+}
+.fs-pdv-mode-acc-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  flex-shrink: 0;
+}
+.fs-pdv-mode-acc-meta {
+  flex: 1; min-width: 0;
+  font-size: 12px;
+  color: var(--omni-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  font-family: var(--omni-font-mono);
+}
+.fs-pdv-mode-acc-caret {
+  color: var(--omni-fg-soft);
+  transition: transform 200ms cubic-bezier(.2,.7,.3,1);
+  flex-shrink: 0;
+}
+.fs-pdv-mode-acc.is-open .fs-pdv-mode-acc-caret {
+  transform: rotate(180deg);
+  color: var(--omni-accent);
+}
+.fs-pdv-mode-acc-fee {
+  font-family: var(--omni-font-mono);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--omni-accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--omni-accent-soft);
+  flex-shrink: 0;
+}
+.fs-pdv-mode-acc-body {
+  // Em wide: sempre visível
+  // Em mobile: media query controla via :not(.is-open)
+}
+
+// ─── Mode details container ─────────────────────────────────────────
+.fs-pdv-mode-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fs-pdv-mode-label {
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--omni-fg-soft);
+}
+.fs-pdv-mode-input,
+.fs-pdv-mode-select {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--omni-bg);
+  border: 1px solid var(--omni-line);
+  border-radius: 8px;
+  font: inherit; font-size: 13px;
+  color: var(--omni-fg);
+  outline: none;
+  transition: border-color 100ms;
+}
+.fs-pdv-mode-input:focus, .fs-pdv-mode-select:focus { border-color: var(--omni-accent); }
+.fs-pdv-mode-input::placeholder { color: var(--omni-fg-soft); }
+.fs-pdv-mode-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+// Delivery: CEP + Buscar row
+.fs-pdv-deliv-cep-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 8px;
+  font: inherit; font-size: 12.5px;
+  color: var(--omni-fg);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fs-pdv-deliv-cep-btn:hover { border-color: var(--omni-accent); color: var(--omni-accent); }
+.fs-pdv-deliv-num { flex: 0 0 64px; text-align: center; }
+
+// Neighborhood combo (custom dropdown)
+.fs-pdv-hood-combo {
+  position: relative;
+}
+.fs-pdv-hood-info {
+  margin-top: 6px;
+  padding: 9px 12px;
+  background: var(--omni-bg-sunken);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--omni-fg-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+}
+.fs-pdv-hood-info.is-match {
+  background: color-mix(in oklab, var(--omni-good) 10%, transparent);
+  border-color: color-mix(in oklab, var(--omni-good) 20%, transparent);
+  color: var(--omni-good);
+}
+.fs-pdv-hood-info.is-block {
+  background: color-mix(in oklab, var(--omni-danger) 10%, transparent);
+  border-color: color-mix(in oklab, var(--omni-danger) 20%, transparent);
+  color: var(--omni-danger);
+}
+.fs-pdv-hood-info > b { font-weight: 700; }
+.fs-pdv-hood-info-fee {
+  font-family: var(--omni-font-mono);
+  font-weight: 700;
+  margin-left: auto;
+  font-size: 12.5px;
+}
+
+// Complement toggle
+.fs-pdv-deliv-comp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px dashed var(--omni-line);
+  border-radius: 7px;
+  font: inherit; font-size: 12px;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+}
+.fs-pdv-deliv-comp-btn:hover { border-color: var(--omni-accent); color: var(--omni-accent); }
+
+// Mesa picker grid (5×8 = 40 mesas)
+.fs-pdv-mesa-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 6px;
+  background: var(--omni-bg-sunken);
+  border-radius: 8px;
+}
+.fs-pdv-mesa-cell {
+  aspect-ratio: 1;
+  border: 1px solid var(--omni-line);
+  border-radius: 6px;
+  background: var(--omni-bg-elev);
+  font-family: var(--omni-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--omni-fg);
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: all 100ms;
+}
+.fs-pdv-mesa-cell:hover { border-color: var(--omni-accent); color: var(--omni-accent); }
+.fs-pdv-mesa-cell.is-busy {
+  background: color-mix(in oklab, var(--omni-danger) 10%, transparent);
+  color: var(--omni-danger);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.fs-pdv-mesa-cell.is-selected {
+  background: var(--omni-accent);
+  color: #fff;
+  border-color: var(--omni-accent);
+}
+
+// Comanda
+.fs-pdv-comanda-input {
+  font-family: var(--omni-font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+.fs-pdv-comanda-gen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 8px;
+  font: inherit; font-size: 12.5px;
+  color: var(--omni-accent);
+  cursor: pointer;
+}
+.fs-pdv-comanda-gen-btn:hover { background: var(--omni-accent-soft); border-color: var(--omni-accent); }
+
+// Retirada — ETA buttons (wrapper) — interior agora é OmniSegmentedControl
+// Removido pós-Fase 1: .fs-pdv-eta-btn (substituído por `.omni-segmented button`)
+.fs-pdv-eta-btns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+// Mode fee badge
+.fs-pdv-mode-fee {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: color-mix(in oklab, var(--omni-warn) 10%, transparent);
+  color: var(--omni-warn);
+  border-radius: 999px;
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+// ─── Loyalty mini ───────────────────────────────────────────────────
+.fs-pdv-loyalty {
+  border: 1px solid color-mix(in oklab, var(--omni-accent) 22%, var(--omni-line));
+  border-radius: 12px;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--omni-accent) 5%, var(--omni-bg-elev));
+  transition: border-color 140ms, background-color 140ms;
+}
+.fs-pdv-loyalty.is-applied {
+  border-color: color-mix(in oklab, var(--omni-good) 30%, var(--omni-line));
+  background: color-mix(in oklab, var(--omni-good) 6%, var(--omni-bg-elev));
+}
+.fs-pdv-loyalty-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent; border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--omni-fg);
+}
+.fs-pdv-loyalty-toggle:hover {
+  background: color-mix(in oklab, var(--omni-accent) 4%, transparent);
+}
+.fs-pdv-loyalty.is-applied .fs-pdv-loyalty-toggle:hover {
+  background: color-mix(in oklab, var(--omni-good) 6%, transparent);
+}
+.fs-pdv-loyalty-ico {
+  position: relative;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--omni-accent);
+  color: #fff;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  transition: background-color 140ms;
+}
+.fs-pdv-loyalty.is-applied .fs-pdv-loyalty-ico {
+  background: var(--omni-good);
+}
+.fs-pdv-loyalty:not(.is-applied) .fs-pdv-loyalty-ico::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--omni-accent);
+  opacity: 0.5;
+  animation: fs-loy-pulse 2s ease-out infinite;
+}
+@keyframes fs-loy-pulse {
+  0%   { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.5);  opacity: 0;   }
+}
+.fs-pdv-loyalty-body { flex: 1; min-width: 0; }
+.fs-pdv-loyalty-eyebrow {
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--omni-accent);
+}
+.fs-pdv-loyalty.is-applied .fs-pdv-loyalty-eyebrow { color: var(--omni-good); }
+.fs-pdv-loyalty-summary {
+  font-size: 12.5px;
+  color: var(--omni-fg);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-pdv-loyalty-summary > b { font-family: var(--omni-font-mono); }
+.fs-pdv-loyalty-savings-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--omni-good) 14%, transparent);
+  color: var(--omni-good);
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid color-mix(in oklab, var(--omni-good) 22%, transparent);
+}
+// Potential savings pill (savings available but NOT applied) — accent-tinted, not green
+.fs-pdv-loyalty-savings-potential {
+  background: color-mix(in oklab, var(--omni-accent) 14%, transparent);
+  color: var(--omni-accent);
+  border-color: color-mix(in oklab, var(--omni-accent) 22%, transparent);
+}
+.fs-pdv-loyalty-caret {
+  color: var(--omni-fg-muted);
+  transition: transform 160ms;
+}
+.fs-pdv-loyalty.is-open .fs-pdv-loyalty-caret { transform: rotate(180deg); }
+
+.fs-pdv-loyalty-body-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 12px 12px;
+  border-top: 1px solid var(--omni-line);
+}
+.fs-pdv-loyalty-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--omni-line);
+  border-radius: 8px;
+  background: var(--omni-bg);
+  cursor: pointer;
+}
+.fs-pdv-loyalty-row:hover { border-color: var(--omni-accent); background: var(--omni-accent-softer); }
+.fs-pdv-loyalty-row.is-applied {
+  border-color: var(--omni-good);
+  background: color-mix(in oklab, var(--omni-good) 8%, transparent);
+}
+.fs-pdv-loyalty-row-checkbox {
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--omni-line);
+  border-radius: 4px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  transition: background-color 100ms, border-color 100ms;
+}
+.fs-pdv-loyalty-row.is-applied .fs-pdv-loyalty-row-checkbox {
+  background: var(--omni-good);
+  border-color: var(--omni-good);
+  color: #fff;
+}
+.fs-pdv-loyalty-row-body { flex: 1; min-width: 0; }
+.fs-pdv-loyalty-row-label { font-size: 12.5px; font-weight: 600; color: var(--omni-fg); }
+.fs-pdv-loyalty-row-meta { font-size: 11px; color: var(--omni-fg-muted); margin-top: 1px; }
+.fs-pdv-loyalty-row-value {
+  font-family: var(--omni-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--omni-good);
+  text-align: right;
+  white-space: nowrap;
+}

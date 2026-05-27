@@ -1,0 +1,97 @@
+@page "/showcase/tooltip"
+@layout ShowcaseLayout
+
+<PageTitle>Tooltip — Showcase</PageTitle>
+
+<ShowcasePage Title="Tooltip"
+              Subtitle="Hint contextual programático. TooltipService.Open(x, y, text) — você controla quando aparece.">
+
+    <Overview>
+        <p>
+            O <code>TooltipService</code> exibe um <strong>hint contextual</strong> — um balão de
+            texto curto posicionado por coordenadas de tela. Diferente de tooltips puramente CSS,
+            ele é <strong>programático</strong>: você decide quando abrir e fechar, normalmente
+            ligando <code>Open</code> ao <code>onmouseenter</code> e <code>Close</code> ao
+            <code>onmouseleave</code> de um elemento.
+        </p>
+        <p>
+            Há duas sobrecargas de <code>Open</code>: uma recebe <code>string</code> de texto e
+            outra um <code>RenderFragment</code> para conteúdo arbitrário. Existe apenas um tooltip
+            por vez — uma nova chamada substitui o anterior.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Explicar o significado de um ícone ou botão sem rótulo.</li>
+            <li>Revelar um atalho de teclado ou detalhe extra ao passar o mouse.</li>
+            <li>Mostrar o valor completo de um texto truncado por ellipsis.</li>
+            <li>Dar microcontexto a um elemento sem ocupar espaço permanente na tela.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Conteúdo interativo (links, mini-forms, menus) → use <code>OmniPopover</code>.</li>
+            <li>Informação essencial que não pode depender de hover → exiba inline na página.</li>
+            <li>Mensagem de feedback após uma ação → use <code>NotificationService</code> (Toast).</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="ON HOVER"
+                         Description="Use os eventos onmouseenter/onmouseleave para abrir e fechar."
+                         Code="@(@"<span @onmouseenter=""@(e => Tooltip.Open(e.ClientX, e.ClientY, ""Atalho ⌘+K abre a busca""))""
+      @onmouseleave=""@(_ => Tooltip.Close())"">
+    Buscar
+</span>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16">
+                <span style="border-bottom: 1px dashed var(--omni-line-strong); cursor: help;"
+                      @onmouseenter="@(e => ShowTooltip(e, "Atalho ⌘+K abre a busca global"))"
+                      @onmouseleave="@(_ => Tooltip.Close())">
+                    Buscar
+                </span>
+                <span style="border-bottom: 1px dashed var(--omni-line-strong); cursor: help;"
+                      @onmouseenter="@(e => ShowTooltip(e, "Usuários online agora: 4"))"
+                      @onmouseleave="@(_ => Tooltip.Close())">
+                    Status da equipe
+                </span>
+                <OmniButton IconOnly Icon="help-circle" Variant="ButtonVariant.Ghost"
+                             @onmouseenter="@(e => ShowTooltip(e, "Documentação completa em /docs"))"
+                             @onmouseleave="@(_ => Tooltip.Close())" />
+            </div>
+            <p class="omni-muted" style="font-size: 13px; margin-top: 16px;">
+                <strong>API:</strong> <code class="omni-mono">Tooltip.Open(x, y, "texto")</code> e <code class="omni-mono">Tooltip.Close()</code>.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Métodos" ShowDefault="false">
+            <ShowcaseApiRow Name="Open" Type="void" ShowDefault="false"
+                            Description="Abre o tooltip nas coordenadas (x, y). Aceita um string de texto ou um RenderFragment de conteúdo." />
+            <ShowcaseApiRow Name="Close" Type="void" ShowDefault="false"
+                            Description="Fecha o tooltip atualmente visível." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Propriedades">
+            <ShowcaseApiRow Name="IsOpen" Type="bool" Default="false"
+                            Description="Indica se há um tooltip visível no momento." />
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto do tooltip ativo (quando aberto via string)." />
+            <ShowcaseApiRow Name="Content" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo do tooltip ativo (quando aberto via RenderFragment)." />
+            <ShowcaseApiRow Name="X" Type="double" Default="0"
+                            Description="Coordenada horizontal de tela do tooltip." />
+            <ShowcaseApiRow Name="Y" Type="double" Default="0"
+                            Description="Coordenada vertical de tela do tooltip." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    [Inject] TooltipService Tooltip { get; set; } = default!;
+
+    private void ShowTooltip(MouseEventArgs e, string text)
+        => Tooltip.Open(e.ClientX, e.ClientY, text);
+}

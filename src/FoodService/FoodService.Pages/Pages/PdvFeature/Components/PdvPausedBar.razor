@@ -1,0 +1,58 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Bar de pedidos pausados (multi-order management).
+    Mostra: label "PEDIDOS EM ATENDIMENTO" + tab atual + tabs pausados + btn Pause &amp; Start. *@
+<div class="fs-pdv-paused-bar">
+    <span class="fs-pdv-paused-label">
+        <OmniIcon Name="shopping-cart" Size="ComponentSize.Sm" />
+        Pedidos em atendimento
+    </span>
+
+    @* Tab atual (sempre presente) *@
+    <button class="fs-pdv-paused-tab is-current">
+        <span class="fs-pdv-paused-tab-dot"></span>
+        <span>@CurrentLabel</span>
+        @if (Order.ItemCount > 0)
+        {
+            <span class="fs-pdv-paused-tab-count">@Order.ItemCount</span>
+        }
+    </button>
+
+    @* Tabs pausados *@
+    @foreach (var po in Order.Paused)
+    {
+        var p = po;
+        <div class="fs-pdv-paused-tab" @onclick="@(() => Order.Resume(p.Id))" style="cursor: pointer;">
+            <OmniIcon Name="clock" Size="ComponentSize.Sm" />
+            <span>@p.Label</span>
+            <span class="fs-pdv-paused-tab-count">@p.ItemCount</span>
+            <span class="fs-pdv-paused-tab-amount">@p.Total.ToString("C", _ptBr)</span>
+            <button class="fs-pdv-paused-tab-x" @onclick:stopPropagation
+                    @onclick="@(() => Order.DiscardPaused(p.Id))" aria-label="Descartar">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        </div>
+    }
+
+    @* Botão de pausa (só se tem itens) *@
+    @if (Order.Cart.Count > 0)
+    {
+        <button class="fs-pdv-paused-pause-btn" @onclick="Order.PauseCurrent">
+            <OmniIcon Name="clock" Size="ComponentSize.Sm" />
+            Pausar e iniciar novo
+            <kbd>Ctrl+N</kbd>
+        </button>
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private string CurrentLabel =>
+        !string.IsNullOrWhiteSpace(Order.Identification) ? Order.Identification
+        : Order.Customer?.Name ?? "Pedido atual";
+}

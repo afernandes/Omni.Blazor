@@ -1,0 +1,87 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  Item dentro de um OmniFabMenu — botão circular menor com label opcional
+    ao lado (padrão Material: tooltip-style label flutuante).
+
+    Equivalente ao RadzenFabMenuItem mas com Label visível (Radzen é só
+    Text dentro do botão, sem padrão de label-ao-lado).
+
+    Usage:
+        <OmniFabMenu>
+            <OmniFabMenuItem Icon="folder" Label="Pasta"
+                              OnClick="@(_ => NewFolder())" />
+            <OmniFabMenuItem Icon="message-square" Label="Chat"
+                              OnClick="@(_ => NewChat())" />
+        </OmniFabMenu> *@
+
+<div class="@RootCss" style="@Style" role="menuitem" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Label) && LabelPosition != FabMenuItemLabelPosition.None)
+    {
+        <span class="omni-fab-item-label">@Label</span>
+    }
+    <OmniButton Icon="@Icon"
+                 IconOnly="true"
+                 Variant="@Variant"
+                 Size="@Size"
+                 Disabled="@Disabled"
+                 OnClick="HandleClickAsync"
+                 Class="omni-fab-item-btn"
+                 title="@(Title ?? Label)"
+                 aria-label="@(AriaLabel ?? Title ?? Label)" />
+</div>
+
+@code {
+    /// <summary>Ícone do item. Obrigatório (FAB items são icon-first).</summary>
+    [Parameter, EditorRequired] public string Icon { get; set; } = "circle";
+
+    /// <summary>Label flutuante ao lado do botão. Padrão Material — chip pequeno
+    /// com fundo opaco, visível só quando o menu está aberto.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Posição do label em relação ao botão. Default <c>Auto</c> — segue
+    /// a direção do menu (Left/Right) ou esconde (Up/Down).</summary>
+    [Parameter] public FabMenuItemLabelPosition LabelPosition { get; set; } = FabMenuItemLabelPosition.Auto;
+
+    /// <summary>Tooltip nativo. Fallback: Label.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>aria-label. Fallback: Title → Label.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Variant do botão interno. Default <c>Default</c> — neutro, contrasta
+    /// com o FAB principal (Primary).</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Tamanho. Default <c>Md</c> — items são menores que o FAB principal.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    /// <summary>Cascading do FabMenu pai. Permite fechar o menu ao clicar no item.</summary>
+    [CascadingParameter] private OmniFabMenu? ParentMenu { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-fab-item")
+        .AddClass(LabelPosition switch
+        {
+            FabMenuItemLabelPosition.Left  => "omni-fab-item-label-left",
+            FabMenuItemLabelPosition.Right => "omni-fab-item-label-right",
+            FabMenuItemLabelPosition.None  => "omni-fab-item-no-label",
+            _                              => "omni-fab-item-label-auto", // Auto — CSS decide via parent direction
+        })
+        .AddClass(Class)
+        .Build();
+
+    private async Task HandleClickAsync(MouseEventArgs e)
+    {
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(e);
+        // Fecha o menu pai se ele estiver setado pra fechar em item-click.
+        if (ParentMenu is not null && ParentMenu.CloseOnItemClick)
+        {
+            await ParentMenu.CloseAsync();
+        }
+    }
+}

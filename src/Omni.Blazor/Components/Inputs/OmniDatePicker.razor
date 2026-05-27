@@ -1,0 +1,473 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits FormComponent<TValue>
+@implements IDisposable
+@inject IJSRuntime JS
+@using System.Globalization
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Date / time picker with calendar popover. Bound to DateOnly?, DateTime? or
+    TimeOnly? (TimeOnly auto-enables TimeOnly mode).
+
+    Features added vs the original (mirrored from Radzen):
+      • Inline         — render calendar without input/popover (filter panels).
+      • ShowTime       — add hour/minute selector below the calendar.
+      • TimeOnly       — time-only picker (no calendar).
+      • ParseInput     — custom string → DateTime parser callback.
+      • Keyboard nav   — arrows/PageUp/PageDown/Home/End/Enter/Esc.
+*@
+
+@if (Inline)
+{
+    <div class="@RootCss omni-datepicker-inline" style="@Style" @attributes="Attributes">
+        @if (!IsTimeOnlyMode)
+        {
+            <OmniCalendar Selected="@_selected"
+                            MinDate="@MinDate" MaxDate="@MaxDate"
+                            DisableWeekends="@DisableWeekends"
+                            DisabledDates="@DisabledDates"
+                            DateRender="@DateRender"
+                            InitialViewDate="@InitialViewDate"
+                            ShowWeekNumbers="@ShowWeekNumbers"
+                            FirstDayOfWeek="@FirstDayOfWeek"
+                            AutoFocus="false"
+                            Footer="@CombinedFooter"
+                            OnDateSelected="OnDateSelected" />
+        }
+        else
+        {
+            <div class="omni-datepicker-time-block">
+                <OmniTimePicker Time="_time" TimeChanged="OnTimeUpdatedAsync"
+                                  HourFormat="@HourFormat" ShowSeconds="@ShowSeconds"
+                                  MinutesStep="@MinutesStep" SecondsStep="@SecondsStep" />
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="@RootCss" style="@Style" data-omni-dpid="@_id" @attributes="Attributes">
+        <input class="omni-input omni-datepicker-input"
+               type="text"
+               value="@_textValue"
+               placeholder="@(Placeholder ?? EffectivePlaceholder)"
+               disabled="@Disabled"
+               readonly="@ReadOnly"
+               name="@Name"
+               @oninput="OnInput"
+               @onblur="OnBlur"
+               @onfocus="@(_ => Open())" />
+        @if (Clearable && !Disabled && !ReadOnly && HasValue)
+        {
+            <button type="button"
+                    class="omni-input-group-ico omni-input-group-ico-right omni-input-clear"
+                    tabindex="-1"
+                    aria-label="Limpar"
+                    @onclick="ClearAsync">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        }
+        else
+        {
+            <button type="button"
+                    class="omni-input-group-ico omni-input-group-ico-right omni-datepicker-trigger"
+                    tabindex="-1"
+                    disabled="@Disabled"
+                    aria-label="Abrir calendário"
+                    @onclick="Toggle">
+                <OmniIcon Name="@TriggerIcon" Size="ComponentSize.Sm" />
+            </button>
+        }
+
+        @if (_open)
+        {
+            <div class="omni-datepicker-popover" @onclick:stopPropagation>
+                @if (!IsTimeOnlyMode)
+                {
+                    <OmniCalendar Selected="@_selected"
+                                    MinDate="@MinDate" MaxDate="@MaxDate"
+                                    DisableWeekends="@DisableWeekends"
+                                    DisabledDates="@DisabledDates"
+                                    DateRender="@DateRender"
+                                    InitialViewDate="@InitialViewDate"
+                                    ShowWeekNumbers="@ShowWeekNumbers"
+                                    FirstDayOfWeek="@FirstDayOfWeek"
+                                    AutoFocus="true"
+                                    Footer="@CombinedFooter"
+                                    OnDateSelected="OnDateSelected"
+                                    OnEscape="CloseAsync" />
+                }
+                else
+                {
+                    <div class="omni-datepicker-time-block">
+                        <OmniTimePicker Time="_time" TimeChanged="OnTimeUpdatedAsync"
+                                          HourFormat="@HourFormat" ShowSeconds="@ShowSeconds"
+                                          MinutesStep="@MinutesStep" SecondsStep="@SecondsStep" />
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public string DateFormat { get; set; } = "dd/MM/yyyy";
+
+    [Parameter] public DateOnly? MinDate { get; set; }
+    [Parameter] public DateOnly? MaxDate { get; set; }
+    [Parameter] public bool DisableWeekends { get; set; }
+    [Parameter] public Func<DateOnly, bool>? DisabledDates { get; set; }
+
+    /// <summary>Per-day render hook (holidays, special markers, tooltips, ad-hoc disabling).</summary>
+    [Parameter] public Action<DateRenderEventArgs>? DateRender { get; set; }
+    /// <summary>Month/year shown the first time the popover opens.</summary>
+    [Parameter] public DateOnly? InitialViewDate { get; set; }
+    /// <summary>Show the ISO 8601 week number column.</summary>
+    [Parameter] public bool ShowWeekNumbers { get; set; }
+    /// <summary>Override the first day of the week. Default = current culture.</summary>
+    [Parameter] public DayOfWeek? FirstDayOfWeek { get; set; }
+    /// <summary>Slot rendered below the day grid (e.g. a "Hoje" button).</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>Render the calendar in place (no input/popover). Useful for filter panels or sidebars.</summary>
+    [Parameter] public bool Inline { get; set; }
+
+    /// <summary>Show hour/minute selector below the calendar (or alone when <see cref="ShowTimeOnly"/>).</summary>
+    [Parameter] public bool ShowTime { get; set; }
+    /// <summary>Hide the calendar — picker shows time only. Auto-true when TValue is <see cref="System.TimeOnly"/>.</summary>
+    [Parameter] public bool ShowTimeOnly { get; set; }
+    /// <summary>"24" (default) or "12" with AM/PM toggle.</summary>
+    [Parameter] public string HourFormat { get; set; } = "24";
+    /// <summary>Show the seconds field next to hour/minute.</summary>
+    [Parameter] public bool ShowSeconds { get; set; }
+    /// <summary>Step for minutes spinner. Default 1.</summary>
+    [Parameter] public int MinutesStep { get; set; } = 1;
+    /// <summary>Step for seconds spinner. Default 1.</summary>
+    [Parameter] public int SecondsStep { get; set; } = 1;
+
+    /// <summary>
+    /// Custom string-to-DateTime parser. When set, replaces the default
+    /// <c>DateOnly.TryParseExact(DateFormat)</c>. Return <c>null</c> for invalid
+    /// inputs. Useful for accepting multiple formats or natural-language dates.
+    /// </summary>
+    [Parameter] public Func<string, DateTime?>? ParseInput { get; set; }
+
+    private bool _open;
+    private DateOnly? _selected;
+    private TimeOnly _time = TimeOnly.MinValue;
+    private string _textValue = "";
+    private string _id = $"dp-{Guid.NewGuid():N}";
+
+    // ParameterState fires only on consumer-driven Value changes. User edits
+    // go through SetValueAsync, which mutates Value before the next detect
+    // cycle reads it — so the handler doesn't re-fire and clobber the user's
+    // mid-typing text.
+    private readonly ParameterState<TValue?> _valueState;
+
+    // Test-only counter: increments every time the Value-driven recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniDatePicker()
+    {
+        _valueState = RegisterParameter<TValue?>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(RecomputeFromValue)
+            .Attach();
+    }
+
+    private void RecomputeFromValue()
+    {
+        _selected = ToDateOnly(Value);
+        _time     = ToTimeOnly(Value) ?? _time;
+        _textValue = FormatValue(Value);
+        RecomputeCount++;
+    }
+
+    private bool IsTimeOnlyMode => ShowTimeOnly || IsTimeOnlyType;
+    private bool EffectiveShowTime => ShowTime || IsTimeOnlyMode || IsDateTimeType;
+
+    private string TriggerIcon => IsTimeOnlyMode ? "clock" : "calendar";
+    private bool HasValue => Value is not null;
+
+    private string RootCss => CssBuilder.Default("omni-input-group")
+        .AddClass("omni-input-group-right")
+        .AddClass("omni-datepicker")
+        .AddClass("omni-input-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-input-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-invalid",            IsInvalid)
+        .AddClass("omni-datepicker-open",    _open)
+        .AddClass("omni-datepicker-inline-root", Inline)
+        .AddClass(Class)
+        .Build();
+
+    private static bool IsDateOnlyType => UnderlyingType == typeof(DateOnly);
+    private static bool IsDateTimeType => UnderlyingType == typeof(DateTime);
+    private static bool IsTimeOnlyType => UnderlyingType == typeof(TimeOnly);
+    private static Type UnderlyingType => Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+
+    /// <summary>
+    /// Culture used for formatting/parsing the input. Most of the time it's
+    /// just <see cref="CultureInfo.CurrentCulture"/>, but when the user asks
+    /// for 12-hour mode (HourFormat="12" or "tt"/"t" in the format string)
+    /// and the current culture has empty AM/PM designators — which is the
+    /// pt-BR default — we clone the culture and force "AM"/"PM" so the
+    /// formatted output actually shows the marker. Without this, a value of
+    /// 13:20:30 in pt-BR + format "hh:mm:ss tt" renders as "01:20:30 " (trailing
+    /// blank from the empty designator), which looked indistinguishable from
+    /// 01:20:30 AM.
+    /// </summary>
+    private CultureInfo EffectiveCulture
+    {
+        get
+        {
+            var current = CultureInfo.CurrentCulture;
+            var wants12h = HourFormat == "12" || DateFormat.Contains("tt");
+            if (!wants12h) return current;
+            if (!string.IsNullOrEmpty(current.DateTimeFormat.AMDesignator)) return current;
+            var clone = (CultureInfo)current.Clone();
+            clone.DateTimeFormat.AMDesignator = "AM";
+            clone.DateTimeFormat.PMDesignator = "PM";
+            return clone;
+        }
+    }
+
+    /// <summary>Default format used when the consumer doesn't override DateFormat — adapts to HourFormat / ShowTime / ShowSeconds.</summary>
+    private string ResolvedDateFormat
+    {
+        get
+        {
+            // Honor a custom DateFormat verbatim — the consumer knows best.
+            if (DateFormat != "dd/MM/yyyy") return DateFormat;
+            if (IsTimeOnlyMode)
+            {
+                if (HourFormat == "12") return ShowSeconds ? "hh:mm:ss tt" : "hh:mm tt";
+                return ShowSeconds ? "HH:mm:ss" : "HH:mm";
+            }
+            if (EffectiveShowTime)
+            {
+                if (HourFormat == "12") return ShowSeconds ? "dd/MM/yyyy hh:mm:ss tt" : "dd/MM/yyyy hh:mm tt";
+                return ShowSeconds ? "dd/MM/yyyy HH:mm:ss" : "dd/MM/yyyy HH:mm";
+            }
+            return DateFormat;
+        }
+    }
+
+    private string FormatValue(TValue? value)
+    {
+        if (value is null) return "";
+        var fmt = ResolvedDateFormat;
+        var ci  = EffectiveCulture;
+        if (IsTimeOnlyMode && value is TimeOnly t) return t.ToString(fmt, ci);
+        if (value is DateOnly d)  return d.ToString(fmt, ci);
+        if (value is DateTime dt) return dt.ToString(fmt, ci);
+        return value.ToString() ?? "";
+    }
+
+    private static DateOnly? ToDateOnly(TValue? value)
+    {
+        if (value is null) return null;
+        if (value is DateOnly d)    return d;
+        if (value is DateTime dt)   return DateOnly.FromDateTime(dt);
+        return null;
+    }
+
+    private static TimeOnly? ToTimeOnly(TValue? value)
+    {
+        if (value is null) return null;
+        if (value is DateTime dt) return TimeOnly.FromDateTime(dt);
+        if (value is TimeOnly t)  return t;
+        return null;
+    }
+
+    /// <summary>Build the bound value from current _selected and _time according to TValue.</summary>
+    private TValue? BuildValue()
+    {
+        var t = UnderlyingType;
+        if (t == typeof(DateOnly))  return _selected.HasValue ? (TValue)(object)_selected.Value : default;
+        if (t == typeof(TimeOnly))  return (TValue)(object)_time;
+        if (t == typeof(DateTime))
+        {
+            if (!_selected.HasValue && !IsTimeOnlyMode) return default;
+            var d  = _selected ?? DateOnly.FromDateTime(DateTime.Today);
+            return (TValue)(object)d.ToDateTime(EffectiveShowTime ? _time : TimeOnly.MinValue);
+        }
+        return default;
+    }
+
+    private async Task OnDateSelected(DateOnly date)
+    {
+        _selected = date;
+        // When ShowTime is on, DON'T auto-close — user may still want to set the time.
+        // When it's off, picking a date commits and closes.
+        await SetValueAsync(BuildValue());
+        _textValue = FormatValue(Value);
+        if (!EffectiveShowTime && !Inline)
+        {
+            _open = false;
+            await UnregisterOutsideAsync();
+        }
+    }
+
+    private async Task OnTimeChangedAsync()
+    {
+        await SetValueAsync(BuildValue());
+        _textValue = FormatValue(Value);
+    }
+
+    private Task OnInput(ChangeEventArgs e)
+    {
+        _textValue = e.Value?.ToString() ?? "";
+        if (TryParseUserInput(_textValue, out var parsed))
+        {
+            if (parsed is DateOnly d)  { _selected = d; }
+            if (parsed is DateTime dt) { _selected = DateOnly.FromDateTime(dt); _time = TimeOnly.FromDateTime(dt); }
+            if (parsed is TimeOnly t)  { _time = t; }
+            return SetValueAsync(BuildValue());
+        }
+        return Task.CompletedTask;
+    }
+
+    private bool TryParseUserInput(string text, out object? parsed)
+    {
+        parsed = null;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        // Custom parser wins.
+        if (ParseInput is not null)
+        {
+            var custom = ParseInput(text);
+            if (custom.HasValue) { parsed = custom.Value; return true; }
+            return false;
+        }
+        var ci = EffectiveCulture;
+        if (IsTimeOnlyMode)
+        {
+            if (System.TimeOnly.TryParse(text, ci, DateTimeStyles.None, out var t))
+            { parsed = t; return true; }
+            return false;
+        }
+        // Try the exact format first (with our effective culture so "PM" parses back),
+        // then fall back to a permissive parse.
+        if (DateTime.TryParseExact(text, ResolvedDateFormat, ci, DateTimeStyles.None, out var exact))
+        {
+            parsed = exact; return true;
+        }
+        if (DateTime.TryParse(text, ci, DateTimeStyles.None, out var fuzzy))
+        {
+            parsed = fuzzy; return true;
+        }
+        return false;
+    }
+
+    private Task OnBlur(FocusEventArgs _)
+    {
+        _textValue = FormatValue(Value);
+        return Task.CompletedTask;
+    }
+
+    private async Task ClearAsync()
+    {
+        _selected = null;
+        _time     = TimeOnly.MinValue;
+        _textValue = "";
+        _open = false;
+        await UnregisterOutsideAsync();
+        await SetValueAsync(default);
+    }
+
+    private async Task Toggle()
+    {
+        if (Disabled || ReadOnly) return;
+        if (_open) { await CloseAsync(); } else { await OpenAsync(); }
+    }
+
+    private void Open() => _ = OpenAsync();
+
+    private async Task OpenAsync()
+    {
+        if (Disabled || ReadOnly || _open) return;
+        _open = true;
+        StateHasChanged();
+        try
+        {
+            var dotnet = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+                _id, $"[data-omni-dpid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+        }
+        catch { /* prerender */ }
+    }
+
+    [JSInvokable]
+    public Task OnClickOutsideAsync() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!_open) return;
+        _open = false;
+        await UnregisterOutsideAsync();
+        StateHasChanged();
+    }
+
+    private async Task UnregisterOutsideAsync()
+    {
+        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
+        catch { /* ignore */ }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _ = UnregisterOutsideAsync();
+    }
+
+    /// <summary>Smart placeholder default: time-only mode shows "HH:mm", time+date shows "dd/MM/yyyy HH:mm", just date shows DateFormat.</summary>
+    private string EffectivePlaceholder
+    {
+        get
+        {
+            if (IsTimeOnlyMode) return ShowSeconds ? "HH:MM:SS" : "HH:MM";
+            if (EffectiveShowTime && DateFormat == "dd/MM/yyyy") return ShowSeconds ? "DD/MM/YYYY HH:MM:SS" : "DD/MM/YYYY HH:MM";
+            return DateFormat.ToUpperInvariant();
+        }
+    }
+
+    /// <summary>
+    /// Footer rendered below the calendar grid. When ShowTime is on, the time
+    /// picker is injected on top; otherwise it's just the user's <see cref="Footer"/>.
+    /// </summary>
+    private RenderFragment? CombinedFooter
+    {
+        get
+        {
+            if (!EffectiveShowTime && Footer is null) return null;
+            return builder =>
+            {
+                int seq = 0;
+                if (EffectiveShowTime)
+                {
+                    builder.OpenComponent<OmniTimePicker>(seq++);
+                    builder.AddComponentParameter(seq++, "Time", _time);
+                    builder.AddComponentParameter(seq++, "TimeChanged",
+                        EventCallback.Factory.Create<TimeOnly>(this, OnTimeUpdatedAsync));
+                    builder.AddComponentParameter(seq++, "HourFormat",  HourFormat);
+                    builder.AddComponentParameter(seq++, "ShowSeconds", ShowSeconds);
+                    builder.AddComponentParameter(seq++, "MinutesStep", MinutesStep);
+                    builder.AddComponentParameter(seq++, "SecondsStep", SecondsStep);
+                    builder.CloseComponent();
+                }
+                if (Footer is not null) builder.AddContent(seq, Footer);
+            };
+        }
+    }
+
+    private async Task OnTimeUpdatedAsync(TimeOnly newTime)
+    {
+        _time = newTime;
+        await SetValueAsync(BuildValue());
+        _textValue = FormatValue(Value);
+    }
+}

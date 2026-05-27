@@ -1,0 +1,73 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@inject NotificationService Notif
+@implements IDisposable
+
+@if (Notif.Messages.Count > 0)
+{
+    <div class="@HostCss">
+        @foreach (var m in Notif.Messages)
+        {
+            <div class="@ToastCss(m)" @onclick="@(() => OnClick(m))" role="alert">
+                <div class="omni-toast-ico">
+                    <OmniIcon Name="@IconFor(m.Severity)" Size="ComponentSize.Sm" />
+                </div>
+                <div>
+                    @if (!string.IsNullOrEmpty(m.Summary))
+                    {
+                        <div class="omni-toast-summary">@m.Summary</div>
+                    }
+                    @if (m.DetailContent is not null) { @m.DetailContent }
+                    else if (!string.IsNullOrEmpty(m.Detail)) { <div class="omni-toast-detail">@m.Detail</div> }
+                </div>
+                <button class="omni-toast-close" type="button" @onclick="@(() => Close(m))" @onclick:stopPropagation>
+                    <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                </button>
+                @if (m.ShowProgress && m.Duration > 0)
+                {
+                    <div class="omni-toast-progress">
+                        <div style="animation-duration: @(m.Duration.ToString(System.Globalization.CultureInfo.InvariantCulture))ms"></div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Notif.OnChange += Refresh;
+    public void Dispose() => Notif.OnChange -= Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private void Close(NotificationMessage m) => Notif.Remove(m);
+    private void OnClick(NotificationMessage m)
+    {
+        m.OnClick?.Invoke(m);
+        if (m.CloseOnClick) Notif.Remove(m);
+    }
+
+    private string HostCss => "omni-toast-host " + Notif.Position switch
+    {
+        NotificationPosition.TopLeft     => "omni-toast-host-top-left",
+        NotificationPosition.BottomRight => "omni-toast-host-bot-right",
+        NotificationPosition.BottomLeft  => "omni-toast-host-bot-left",
+        _ => ""
+    };
+
+    private string ToastCss(NotificationMessage m) => "omni-toast " + m.Severity switch
+    {
+        NotificationSeverity.Info    => "omni-toast-info",
+        NotificationSeverity.Success => "omni-toast-success",
+        NotificationSeverity.Warning => "omni-toast-warn",
+        NotificationSeverity.Error   => "omni-toast-error",
+        _ => "omni-toast-info"
+    };
+
+    private static string IconFor(NotificationSeverity s) => s switch
+    {
+        NotificationSeverity.Success => "check-circle",
+        NotificationSeverity.Warning => "alert-triangle",
+        NotificationSeverity.Error   => "alert-circle",
+        _ => "info"
+    };
+}

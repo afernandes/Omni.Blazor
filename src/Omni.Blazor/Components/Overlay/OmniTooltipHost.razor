@@ -1,0 +1,18 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@inject TooltipService Tooltip
+@implements IDisposable
+
+@if (Tooltip.IsOpen)
+{
+    <div class="omni-tooltip" style="left:@(Tooltip.X)px; top:@(Tooltip.Y + 10)px; transform: translate(-50%, 0);">
+        @if (Tooltip.Content is not null) { @Tooltip.Content }
+        else { @Tooltip.Text }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Tooltip.OnChange += Refresh;
+    public void Dispose() => Tooltip.OnChange -= Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+}

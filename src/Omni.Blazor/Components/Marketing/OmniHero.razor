@@ -1,0 +1,42 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+<section class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (EyebrowContent is not null) { @EyebrowContent }
+    else if (!string.IsNullOrEmpty(Eyebrow))
+    {
+        <OmniEyebrow Text="@Eyebrow" />
+    }
+
+    @if (TitleContent is not null) { @TitleContent }
+    else if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="omni-hero-title">@((MarkupString)Title)</h1>
+    }
+
+    @if (!string.IsNullOrEmpty(Subtitle))
+    {
+        <p class="omni-hero-sub">@Subtitle</p>
+    }
+
+    @if (CtaContent is not null)
+    {
+        <div class="omni-hero-cta-row">@CtaContent</div>
+    }
+
+    @ChildContent
+</section>
+
+@code {
+    [Parameter] public string? Eyebrow { get; set; }
+    [Parameter] public RenderFragment? EyebrowContent { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? TitleContent { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public RenderFragment? CtaContent { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-hero")
+        .AddClass(Class)
+        .Build();
+}

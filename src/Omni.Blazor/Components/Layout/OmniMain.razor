@@ -1,0 +1,50 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Área principal de conteúdo do <c>OmniLayout</c>. Equivalente a
+    <c>MudMainContent</c> (MudBlazor) / <c>RadzenBody</c> (Radzen) / Bootstrap
+    <c>&lt;main&gt;</c>.
+
+    Props:
+      • NoPadding (bool, default false) — remove o padding interno padrão.
+        Útil para kiosks e telas que controlam o próprio espaçamento.
+      • Container (ContainerMaxWidth?, default null) — quando setado,
+        envelopa o ChildContent num <c>OmniContainer</c> centralizado com
+        o max-width indicado. Ideal para marketing/landing pages.
+
+    Uso:
+      <OmniMain>
+        @Body
+      </OmniMain>
+
+      <OmniMain Container="ContainerMaxWidth.Xl">
+        <Hero />
+      </OmniMain>
+*@
+<main id="main" tabindex="-1" class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (Container is ContainerMaxWidth max)
+    {
+        <OmniContainer MaxWidth="max">
+            @ChildContent
+        </OmniContainer>
+    }
+    else
+    {
+        @ChildContent
+    }
+</main>
+
+@code {
+    /// <summary>Remove o padding interno padrão. Default false.</summary>
+    [Parameter] public bool NoPadding { get; set; }
+
+    /// <summary>Envelopa em <c>OmniContainer</c> com o max-width indicado. Default null (sem container).</summary>
+    [Parameter] public ContainerMaxWidth? Container { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-body")   // CSS class kept for backward compat — _components.scss has .omni-body rules
+        .AddClass("omni-main")
+        .AddClass("omni-main-no-padding", NoPadding)
+        .AddClass(Class)
+        .Build();
+}

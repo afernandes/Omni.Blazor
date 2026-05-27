@@ -1,0 +1,142 @@
+@inject CardapioDigitalState State
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Tracking screen — pós checkout: hero com ETA + número, timeline 4 etapas
+    (recebido/preparo/saiu/entregue), resumo, CTA "Novo pedido" + WhatsApp. *@
+<div class="fs-cd-screen">
+    <CardapioAppBar Title="Acompanhe seu pedido"
+                    Subtitle="@($"Pedido {State.OrderNumber}")"
+                    OnBack="@(() => State.GoHome())" />
+
+    <div class="fs-cd-scroll" style="padding-bottom: 110px;">
+        <div class="fs-cd-track-hero">
+            <div class="fs-cd-track-eyebrow omni-mono">CHEGADA ESTIMADA</div>
+            <div class="fs-cd-track-eta">@Eta</div>
+            <div class="fs-cd-track-sub">Pedido @State.OrderNumber · Forneria Don Tonhão</div>
+        </div>
+
+        <div class="fs-cd-timeline">
+            @foreach (var step in _steps)
+            {
+                var current = step;
+                <div @key="current.Title" class="@TimelineStepCss(current.State)">
+                    <div class="fs-cd-timeline-icon">@current.Icon</div>
+                    <div class="fs-cd-timeline-body">
+                        <div class="fs-cd-timeline-t">@current.Title</div>
+                        <div class="fs-cd-timeline-s">@current.Sub</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="fs-cd-section-pad fs-cd-section-pad-tight">
+            <h2 class="fs-cd-section-pad-h">Resumo do pedido</h2>
+        </div>
+        <div class="fs-cd-totals" style="margin: 0 14px 14px;">
+            <div class="fs-cd-totals-row">
+                <span>Total pago</span>
+                <span class="fs-cd-totals-v omni-mono" style="font-weight: 700;">@CardapioDigitalState.Brl(State.CartTotal)</span>
+            </div>
+            <div class="fs-cd-totals-row">
+                <span>Forma de pagamento</span>
+                <span class="fs-cd-totals-v">@PayLabel</span>
+            </div>
+            <div class="fs-cd-totals-row">
+                <span>@DeliveryLabel</span>
+                <span class="fs-cd-totals-v">@DeliveryValue</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="fs-cd-bottombar">
+        <div class="fs-cd-bottombar-row">
+            <OmniButton Class="fs-cd-btn"
+                        Variant="ButtonVariant.Default"
+                        Size="ComponentSize.Lg"
+                        OnClick="@(() => State.GoHome(resetCart: true))">
+                Novo pedido
+            </OmniButton>
+            <OmniButton Class="fs-cd-btn fs-cd-btn-good"
+                        Variant="ButtonVariant.Primary"
+                        Size="ComponentSize.Lg"
+                        OnClick="OnWhatsApp">
+                WhatsApp
+            </OmniButton>
+        </div>
+    </div>
+</div>
+
+@code {
+    private record Step(string Title, string Sub, string Icon, string State);
+
+    private string Eta => State.Mode switch
+    {
+        CdDeliveryMode.Mesa     => "em 12min",
+        CdDeliveryMode.Retirada => "em 25min",
+        _                       => "~40 minutos"
+    };
+
+    private string PayLabel => State.PayMethod switch
+    {
+        CdPayMethod.Pix  => "PIX",
+        CdPayMethod.Card => "Cartão",
+        _                => "Dinheiro"
+    };
+
+    private string DeliveryLabel => State.Mode switch
+    {
+        CdDeliveryMode.Mesa     => "Mesa",
+        CdDeliveryMode.Retirada => "Retirar em",
+        _                       => "Entregar em"
+    };
+
+    private string DeliveryValue => State.Mode switch
+    {
+        CdDeliveryMode.Mesa     => "Mesa " + State.Mesa,
+        _                       => "Vila Madalena"
+    };
+
+    private Step[] _steps = Array.Empty<Step>();
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+        RebuildSteps();
+    }
+
+    protected override void OnParametersSet() => RebuildSteps();
+
+    private void RebuildSteps()
+    {
+        var thirdTitle = State.Mode switch
+        {
+            CdDeliveryMode.Mesa     => "A caminho da mesa",
+            CdDeliveryMode.Retirada => "Pronto para retirada",
+            _                       => "Saiu para entrega"
+        };
+        var thirdIcon = State.Mode == CdDeliveryMode.Delivery ? "🛵" : "✅";
+        var lastTitle = State.Mode == CdDeliveryMode.Delivery ? "Entregue" : "Servido";
+
+        _steps = new[]
+        {
+            new Step("Pedido recebido", "Confirmamos seu pedido às 21:42",          "📥",       "done"),
+            new Step("Em preparo",      "Massa esticada, indo pro forno a lenha",   "🔥",       "current"),
+            new Step(thirdTitle,        "Em breve",                                 thirdIcon,  ""),
+            new Step(lastTitle,         "—",                                        "🏠",       ""),
+        };
+    }
+
+    private static string TimelineStepCss(string state) =>
+        CssBuilder.Default("fs-cd-timeline-step")
+            .AddClass("fs-cd-timeline-step-done",    state == "done")
+            .AddClass("fs-cd-timeline-step-current", state == "current")
+            .Build();
+
+    private void OnWhatsApp()
+    {
+        // Stub — real impl integraria com link wa.me. Por enquanto, só visual.
+    }
+
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

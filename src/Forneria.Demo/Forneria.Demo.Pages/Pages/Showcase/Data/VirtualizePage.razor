@@ -1,0 +1,182 @@
+@page "/showcase/virtualize"
+@layout ShowcaseLayout
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@inject NotificationService Toast
+
+<PageTitle>Virtualize — Showcase</PageTitle>
+
+<ShowcasePage Title="Virtualize"
+              Subtitle="Render só do que está na viewport. Wrapper sobre o Virtualize&lt;T&gt; built-in do Blazor com placeholder shimmer e empty state padronizados.">
+
+    <Overview>
+        <p>
+            O <code>OmniVirtualize</code> é um wrapper fino sobre o <code>Virtualize&lt;T&gt;</code>
+            nativo do Blazor. Ele renderiza <strong>apenas as linhas visíveis</strong> na viewport —
+            uma lista de 50.000 itens mantém só ~10 nós no DOM. Acrescenta a superfície visual da
+            biblioteca, um <strong>empty state</strong> padronizado e um placeholder shimmer.
+        </p>
+        <p>
+            Suporta dois modos de dados: <code>Items</code> para listas síncronas em memória, e
+            <code>ItemsProvider</code> para <strong>paginação assíncrona</strong> server-side — o
+            componente pede a fatia de que precisa e você responde com os itens + total. O
+            <code>ItemSize</code> (altura estimada da linha) é obrigatório para o cálculo da janela.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Renderizar listas longas (milhares de linhas) sem travar o navegador.</li>
+            <li>Carregar dados sob demanda conforme o usuário rola (ItemsProvider).</li>
+            <li>Feeds, logs ou catálogos extensos que crescem indefinidamente.</li>
+            <li>Qualquer container de altura fixa onde a maior parte do conteúdo está fora da tela.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Listas curtas (dezenas de itens) → renderize com um <code>@@foreach</code> simples.</li>
+            <li>Tabela de dados com ordenação, filtro e paginação → use <code>OmniDataGrid</code>.</li>
+            <li>Linhas de altura muito variável e imprevisível, onde ItemSize não funciona bem.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="50.000 ITENS IN-MEMORY"
+                         Description="Half a million bytes de modelo na memória — só ~10 linhas DOM. Role o container e veja só o necessário."
+                         Code="@(@"<OmniVirtualize TItem=""ProductRow"" Items=""@all"" ItemSize=""56"" Height=""420px"">
+    <ItemContent Context=""p"">
+        <div class=""omni-virt-row"">#@p.Id · @p.Name</div>
+    </ItemContent>
+</OmniVirtualize>")">
+
+            <OmniVirtualize TItem="ProductRow" Items="@all" ItemSize="56" Height="420px">
+                <ItemContent Context="p">
+                    <div class="omni-virt-row">
+                        <div class="omni-virt-row-id">#@p.Id</div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@p.Name</div>
+                            <div class="omni-meta">@p.Category</div>
+                        </div>
+                        <div class="omni-virt-row-price">@p.Price.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))</div>
+                    </div>
+                </ItemContent>
+            </OmniVirtualize>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ITEMS PROVIDER (ASYNC)"
+                         Description="ItemsProvider permite paging server-side: o componente pede o slice que precisa, você responde com a fatia + total. Aqui simulamos com 200ms de delay por página."
+                         Code="@(@"<OmniVirtualize TItem=""ProductRow"" ItemsProvider=""LoadAsync"" ItemSize=""56"" Height=""360px"">
+    <ItemContent Context=""p""><div class=""omni-virt-row"">@p.Name</div></ItemContent>
+</OmniVirtualize>
+
+async ValueTask<ItemsProviderResult<ProductRow>> LoadAsync(ItemsProviderRequest req)
+{
+    var slice = _data.Skip(req.StartIndex).Take(req.Count).ToArray();
+    return new ItemsProviderResult<ProductRow>(slice, _data.Count);
+}")">
+
+            <OmniVirtualize TItem="ProductRow" ItemsProvider="LoadAsync" ItemSize="56" Height="360px">
+                <ItemContent Context="p">
+                    <div class="omni-virt-row">
+                        <div class="omni-virt-row-id">#@p.Id</div>
+                        <div style="flex:1;">@p.Name <span class="omni-meta">· @p.Category</span></div>
+                        <div class="omni-virt-row-price">@p.Price.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))</div>
+                    </div>
+                </ItemContent>
+            </OmniVirtualize>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EMPTY STATE"
+                         Description="Quando Items está vazio, mostra um placeholder textual (ou EmptyContent customizado)."
+                         Code="@(@"<OmniVirtualize TItem=""ProductRow"" Items=""empty"" ItemSize=""56"" Height=""160px""
+                  DefaultEmptyText=""Nenhum produto cadastrado ainda."">
+    <ItemContent>nope</ItemContent>
+</OmniVirtualize>")">
+            <OmniVirtualize TItem="ProductRow" Items="empty" ItemSize="56" Height="160px"
+                              DefaultEmptyText="Nenhum produto cadastrado ainda.">
+                <ItemContent>nope</ItemContent>
+            </OmniVirtualize>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Items" Type="ICollection&lt;TItem&gt;?" Default="null"
+                            Description="Fonte de dados síncrona em memória. Mutuamente exclusiva com ItemsProvider." />
+            <ShowcaseApiRow Name="ItemsProvider" Type="ItemsProviderDelegate&lt;TItem&gt;?" Default="null"
+                            Description="Fonte de dados assíncrona / server-side via o contrato ItemsProviderRequest." />
+            <ShowcaseApiRow Name="ItemSize" Type="float" Default="50"
+                            Description="Altura estimada de cada linha em pixels. Dirige o overscan e a altura do placeholder." />
+            <ShowcaseApiRow Name="ItemContent" Type="RenderFragment&lt;TItem&gt;" Default="—"
+                            Description="Template renderizado para cada item visível (obrigatório)." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="&quot;400px&quot;"
+                            Description="Altura fixa da viewport rolável. Passe null para deixar o pai dimensionar." />
+            <ShowcaseApiRow Name="OverscanCount" Type="int" Default="3"
+                            Description="Número de itens extras renderizados fora da viewport." />
+            <ShowcaseApiRow Name="Placeholder" Type="RenderFragment&lt;PlaceholderContext&gt;?" Default="null"
+                            Description="Template exibido para itens ainda em carregamento (modo ItemsProvider)." />
+            <ShowcaseApiRow Name="EmptyContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo de empty state customizado. Se nulo, usa DefaultEmptyText." />
+            <ShowcaseApiRow Name="DefaultEmptyText" Type="string" Default="&quot;Nada por aqui.&quot;"
+                            Description="Texto exibido quando Items está vazio e EmptyContent não foi definido." />
+            <ShowcaseApiRow Name="SpacerElement" Type="string" Default="&quot;div&quot;"
+                            Description="Tag HTML dos spacers/placeholders. Use &quot;tr&quot; ao virtualizar dentro de um tbody." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+<style>
+    .omni-virt-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--omni-line);
+        height: 56px;
+        box-sizing: border-box;
+    }
+    .omni-virt-row-id    { font-family: var(--omni-font-mono); font-size: 11px; color: var(--omni-fg-soft); min-width: 56px; }
+    .omni-virt-row-price { font-family: var(--omni-font-mono); font-size: 13px; font-weight: 600; }
+</style>
+
+@code {
+    private record ProductRow(int Id, string Name, string Category, decimal Price);
+
+    private static readonly string[] Categories =
+        { "Pizza", "Bebida", "Sobremesa", "Acompanhamento", "Salada", "Lanche" };
+
+    private List<ProductRow> all = new();
+    private List<ProductRow> empty = new();
+    private List<ProductRow> _provider = new();
+
+    protected override void OnInitialized()
+    {
+        all = Enumerable.Range(1, 50_000)
+            .Select(i => new ProductRow(
+                i,
+                $"Produto #{i:D5} — variante {(i * 37) % 100}",
+                Categories[i % Categories.Length],
+                (decimal)(((i * 31) % 9000) + 1000) / 100m))
+            .ToList();
+
+        // Pool separado pro ItemsProvider — finge ser uma "fonte remota".
+        _provider = Enumerable.Range(1, 10_000)
+            .Select(i => new ProductRow(
+                100_000 + i,
+                $"API item {i:D5}",
+                Categories[(i + 2) % Categories.Length],
+                (decimal)(((i * 17) % 6000) + 800) / 100m))
+            .ToList();
+    }
+
+    private async ValueTask<ItemsProviderResult<ProductRow>> LoadAsync(ItemsProviderRequest request)
+    {
+        await Task.Delay(200, request.CancellationToken);
+        var slice = _provider
+            .Skip(request.StartIndex)
+            .Take(request.Count)
+            .ToArray();
+        return new ItemsProviderResult<ProductRow>(slice, _provider.Count);
+    }
+}

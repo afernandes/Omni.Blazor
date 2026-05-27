@@ -1,0 +1,438 @@
+@page "/showcase/chart"
+@layout ShowcaseLayout
+
+<PageTitle>Chart — Showcase</PageTitle>
+
+<ShowcasePage Title="Chart"
+              Subtitle="Gráficos SVG full-featured: Line, Area, Column, Bar, Pie e Donut. Múltiplas séries, eixos, legenda e tooltip.">
+
+    <Overview>
+        <p>
+            O <code>OmniChart</code> é um componente único que aceita uma coleção de
+            <code>ChartSeries</code> e renderiza tudo em SVG puro — sem D3, sem Chart.js, sem
+            dependências externas. Suporta seis tipos de série combináveis (Line/Area/Column/Bar
+            simultâneos no mesmo chart; Pie/Donut isolados).
+        </p>
+        <p>
+            Cada série tem <code>Title</code>, <code>Type</code>, <code>Color</code> (opcional —
+            puxa do <code>ColorScheme</code>) e uma lista de <code>ChartDataPoint</code>
+            (<code>Category</code> + <code>Value</code>). O eixo de valores ganha ticks
+            automáticos com escala "nice" (1/2/5 × 10ⁿ). Tooltips usam <code>title</code>
+            nativo do SVG — passe o mouse sobre uma barra/ponto/fatia.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Dashboards com tendências temporais (Line/Area).</li>
+            <li>Comparação entre categorias (Column/Bar).</li>
+            <li>Distribuição percentual (Pie/Donut).</li>
+            <li>KPIs visuais com múltiplas séries (Line + Column combinados).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Mini-chart inline em célula → use <code>OmniSparkline</code>.</li>
+            <li>> 10k pontos por série → considere agregar primeiro (chart é DOM-based).</li>
+            <li>Mapas, treemap, sankey → não suportados (escopo é cartesiano + pie).</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="LINE — TENDÊNCIA SIMPLES"
+                         Description="Uma série temporal de receita semanal."
+                         Code="@(@"<OmniChart Series=""@_revenueLine"" Height=""240px"" />
+
+@code {
+    private List<ChartSeries> _revenueLine = new() {
+        new() { Title = ""Receita"", Type = ChartSeriesType.Line, ShowMarkers = true,
+                Points = new[] {
+                    new ChartDataPoint { Category = ""Seg"", Value = 8200 },
+                    new ChartDataPoint { Category = ""Ter"", Value = 9100 },
+                    // ...
+                }}
+    };
+}")">
+            <OmniChart Series="@_revenueLine" Height="240px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="AREA — DESTAQUE DE VOLUME"
+                         Description="Adicione AreaOpacity para suavizar visualmente."
+                         Code="@(@"<OmniChart Series=""@series"" Height=""240px"" />
+@* Type = Area, AreaOpacity = 0.25 *@")">
+            <OmniChart Series="@_revenueArea" Height="240px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LINE COM INTERPOLAÇÃO"
+                         Description="Linear (default), Smooth (curva Bézier) e Step (escada)."
+                         Code="@(@"new() { Type = ChartSeriesType.Line, Interpolation = ChartInterpolation.Smooth }
+new() { Type = ChartSeriesType.Line, Interpolation = ChartInterpolation.Step }")">
+            <div class="omni-grid-3">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">LINEAR</p>
+                    <OmniChart Series="@_interpolationLinear" Height="180px" LegendPosition="ChartLegendPosition.None" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">SMOOTH</p>
+                    <OmniChart Series="@_interpolationSmooth" Height="180px" LegendPosition="ChartLegendPosition.None" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">STEP</p>
+                    <OmniChart Series="@_interpolationStep" Height="180px" LegendPosition="ChartLegendPosition.None" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COLUMN — COMPARAÇÃO"
+                         Description="Múltiplas séries de colunas ficam agrupadas lado a lado por categoria."
+                         Code="@(@"<OmniChart Series=""@_columnGrouped"" Height=""280px"" />")">
+            <OmniChart Series="@_columnGrouped" Height="280px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="BAR — HORIZONTAL"
+                         Description="Use Bar quando há muitas categorias ou nomes longos no eixo."
+                         Code="@(@"<OmniChart Series=""@_barCities"" Height=""280px"" />
+@* Type = Bar *@")">
+            <OmniChart Series="@_barCities" Height="280px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LINHA + COLUNA (MIXED)"
+                         Description="Combine tipos diferentes — colunas atrás, linhas na frente."
+                         Code="@(@"new ChartSeries { Type = ChartSeriesType.Column, Title = ""Pedidos"", ... }
+new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)"", ShowMarkers = true, ... }")">
+            <OmniChart Series="@_mixedTypes" Height="280px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PIE — DISTRIBUIÇÃO"
+                         Description="Pie usa uma única série; cada Point vira uma fatia."
+                         Code="@(@"new ChartSeries { Type = ChartSeriesType.Pie, Points = ... }")">
+            <OmniChart Series="@_pieSlices" Height="280px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DONUT COM LABEL CENTRAL"
+                         Description="DonutCenterLabel/DonutCenterValue preenchem o vazio do meio."
+                         Code="@(@"<OmniChart Series=""@_donut"" Height=""300px""
+            DonutCenterLabel=""TOTAL""
+            DonutCenterValue=""R$ 89k"" />")">
+            <OmniChart Series="@_donutSlices" Height="300px"
+                        DonutCenterLabel="TOTAL"
+                        DonutCenterValue="R$ 89k" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESQUEMAS DE COR"
+                         Description="Palette (default), Accent (monocromático), Pastel, Semantic."
+                         Code="@(@"<OmniChart Series=""@series"" ColorScheme=""ChartColorScheme.Palette"" />
+<OmniChart Series=""@series"" ColorScheme=""ChartColorScheme.Accent"" />
+<OmniChart Series=""@series"" ColorScheme=""ChartColorScheme.Pastel"" />
+<OmniChart Series=""@series"" ColorScheme=""ChartColorScheme.Semantic"" />")">
+            <div class="omni-grid-2">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">PALETTE</p>
+                    <OmniChart Series="@_schemeDemo" Height="180px" ColorScheme="ChartColorScheme.Palette" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">ACCENT</p>
+                    <OmniChart Series="@_schemeDemo" Height="180px" ColorScheme="ChartColorScheme.Accent" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">PASTEL</p>
+                    <OmniChart Series="@_schemeDemo" Height="180px" ColorScheme="ChartColorScheme.Pastel" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">SEMANTIC</p>
+                    <OmniChart Series="@_schemeDemo" Height="180px" ColorScheme="ChartColorScheme.Semantic" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="FORMATADOR DE VALORES"
+                         Description="ValueFormatter customiza o eixo Y (e os tooltips)."
+                         Code="@(@"<OmniChart Series=""@_revenueArea"" Height=""240px""
+            ValueFormatter=""@(v => $""R$ {v:N0}"")"" />")">
+            <OmniChart Series="@_revenueArea" Height="240px"
+                        ValueFormatter="@(v => $"R$ {v:N0}")" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniChart">
+            <ShowcaseApiRow Name="Series" Type="IEnumerable<ChartSeries>" Default="empty"
+                            Description="Coleção de séries (obrigatório)." />
+            <ShowcaseApiRow Name="Height" Type="string" Default="&quot;260px&quot;"
+                            Description="Altura CSS do chart." />
+            <ShowcaseApiRow Name="Width" Type="string" Default="&quot;100%&quot;"
+                            Description="Largura CSS." />
+            <ShowcaseApiRow Name="ColorScheme" Type="ChartColorScheme" Default="Palette"
+                            Description="Palette | Accent | Pastel | Semantic." />
+            <ShowcaseApiRow Name="LegendPosition" Type="ChartLegendPosition" Default="Bottom"
+                            Description="Top | Right | Bottom | Left | None." />
+            <ShowcaseApiRow Name="ShowGrid" Type="bool" Default="true"
+                            Description="Linhas de grid horizontais no plot area." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Reservado para futuro título no header." />
+            <ShowcaseApiRow Name="ValueFormatter" Type="Func<double, string>?" Default="null"
+                            Description="Formatador customizado do eixo de valores." />
+            <ShowcaseApiRow Name="ValueTicks" Type="int" Default="5"
+                            Description="Número desejado de ticks no eixo Y." />
+            <ShowcaseApiRow Name="DonutCenterLabel" Type="string?" Default="null"
+                            Description="Texto pequeno acima do valor central (Donut)." />
+            <ShowcaseApiRow Name="DonutCenterValue" Type="string?" Default="null"
+                            Description="Valor central (Donut)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="ChartSeries">
+            <ShowcaseApiRow Name="Title" Type="string" Default="&quot;&quot;"
+                            Description="Nome exibido na legenda/tooltip." />
+            <ShowcaseApiRow Name="Type" Type="ChartSeriesType" Default="Line"
+                            Description="Line | Area | Column | Bar | Pie | Donut." />
+            <ShowcaseApiRow Name="Color" Type="string?" Default="null"
+                            Description="Override de cor; quando nulo, puxa do ColorScheme." />
+            <ShowcaseApiRow Name="Points" Type="IEnumerable<ChartDataPoint>" Default="empty"
+                            Description="Pontos da série." />
+            <ShowcaseApiRow Name="Interpolation" Type="ChartInterpolation" Default="Linear"
+                            Description="Linear | Smooth | Step (Line/Area)." />
+            <ShowcaseApiRow Name="StrokeWidth" Type="double" Default="2"
+                            Description="Espessura da linha (Line/Area)." />
+            <ShowcaseApiRow Name="ShowMarkers" Type="bool" Default="false"
+                            Description="Mostra círculos nos pontos (Line/Area)." />
+            <ShowcaseApiRow Name="AreaOpacity" Type="double" Default="0.18"
+                            Description="Opacidade do preenchimento (Area)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="ChartDataPoint">
+            <ShowcaseApiRow Name="Category" Type="string" Default="&quot;&quot;"
+                            Description="Label no eixo categórico (ou fatia em Pie/Donut)." />
+            <ShowcaseApiRow Name="Value" Type="double" Default="0"
+                            Description="Valor numérico." />
+            <ShowcaseApiRow Name="Color" Type="string?" Default="null"
+                            Description="Cor opcional (Pie/Donut — override por fatia)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    // ─── Sample data ─────────────────────────────────────────────────────
+
+    private List<ChartSeries> _revenueLine = new()
+    {
+        new ChartSeries
+        {
+            Title = "Receita",
+            Type = ChartSeriesType.Line,
+            ShowMarkers = true,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Seg", Value = 8200 },
+                new ChartDataPoint { Category = "Ter", Value = 9100 },
+                new ChartDataPoint { Category = "Qua", Value = 8800 },
+                new ChartDataPoint { Category = "Qui", Value = 10500 },
+                new ChartDataPoint { Category = "Sex", Value = 13200 },
+                new ChartDataPoint { Category = "Sáb", Value = 15800 },
+                new ChartDataPoint { Category = "Dom", Value = 12480 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _revenueArea = new()
+    {
+        new ChartSeries
+        {
+            Title = "Receita 2024",
+            Type = ChartSeriesType.Area,
+            AreaOpacity = 0.25,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Jan", Value = 24800 },
+                new ChartDataPoint { Category = "Fev", Value = 28100 },
+                new ChartDataPoint { Category = "Mar", Value = 32400 },
+                new ChartDataPoint { Category = "Abr", Value = 29800 },
+                new ChartDataPoint { Category = "Mai", Value = 35600 },
+                new ChartDataPoint { Category = "Jun", Value = 38900 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _interpolationLinear = new()
+    {
+        new ChartSeries { Title = "Linear", Type = ChartSeriesType.Line, Interpolation = ChartInterpolation.Linear, ShowMarkers = true,
+            Points = InterpolationSample() }
+    };
+    private List<ChartSeries> _interpolationSmooth = new()
+    {
+        new ChartSeries { Title = "Smooth", Type = ChartSeriesType.Line, Interpolation = ChartInterpolation.Smooth, ShowMarkers = true,
+            Points = InterpolationSample() }
+    };
+    private List<ChartSeries> _interpolationStep = new()
+    {
+        new ChartSeries { Title = "Step", Type = ChartSeriesType.Line, Interpolation = ChartInterpolation.Step, ShowMarkers = true,
+            Points = InterpolationSample() }
+    };
+
+    private static IEnumerable<ChartDataPoint> InterpolationSample() => new[]
+    {
+        new ChartDataPoint { Category = "A", Value = 4 },
+        new ChartDataPoint { Category = "B", Value = 9 },
+        new ChartDataPoint { Category = "C", Value = 6 },
+        new ChartDataPoint { Category = "D", Value = 14 },
+        new ChartDataPoint { Category = "E", Value = 10 },
+        new ChartDataPoint { Category = "F", Value = 18 },
+    };
+
+    private List<ChartSeries> _columnGrouped = new()
+    {
+        new ChartSeries
+        {
+            Title = "Pizzas",
+            Type = ChartSeriesType.Column,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Seg", Value = 84 },
+                new ChartDataPoint { Category = "Ter", Value = 92 },
+                new ChartDataPoint { Category = "Qua", Value = 88 },
+                new ChartDataPoint { Category = "Qui", Value = 105 },
+                new ChartDataPoint { Category = "Sex", Value = 142 },
+                new ChartDataPoint { Category = "Sáb", Value = 168 },
+                new ChartDataPoint { Category = "Dom", Value = 134 },
+            }
+        },
+        new ChartSeries
+        {
+            Title = "Bebidas",
+            Type = ChartSeriesType.Column,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Seg", Value = 52 },
+                new ChartDataPoint { Category = "Ter", Value = 58 },
+                new ChartDataPoint { Category = "Qua", Value = 49 },
+                new ChartDataPoint { Category = "Qui", Value = 71 },
+                new ChartDataPoint { Category = "Sex", Value = 98 },
+                new ChartDataPoint { Category = "Sáb", Value = 124 },
+                new ChartDataPoint { Category = "Dom", Value = 95 },
+            }
+        },
+    };
+
+    private List<ChartSeries> _barCities = new()
+    {
+        new ChartSeries
+        {
+            Title = "Pedidos",
+            Type = ChartSeriesType.Bar,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Pinheiros", Value = 240 },
+                new ChartDataPoint { Category = "Vila Madalena", Value = 188 },
+                new ChartDataPoint { Category = "Itaim Bibi", Value = 168 },
+                new ChartDataPoint { Category = "Moema", Value = 145 },
+                new ChartDataPoint { Category = "Brooklin", Value = 98 },
+                new ChartDataPoint { Category = "Vila Olímpia", Value = 76 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _mixedTypes = new()
+    {
+        new ChartSeries
+        {
+            Title = "Pedidos (qtd)",
+            Type = ChartSeriesType.Column,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Seg", Value = 84 },
+                new ChartDataPoint { Category = "Ter", Value = 92 },
+                new ChartDataPoint { Category = "Qua", Value = 88 },
+                new ChartDataPoint { Category = "Qui", Value = 105 },
+                new ChartDataPoint { Category = "Sex", Value = 142 },
+                new ChartDataPoint { Category = "Sáb", Value = 168 },
+                new ChartDataPoint { Category = "Dom", Value = 134 },
+            }
+        },
+        new ChartSeries
+        {
+            Title = "Ticket médio (R$ × 1)",
+            Type = ChartSeriesType.Line,
+            ShowMarkers = true,
+            Color = "var(--omni-accent)",
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Seg", Value = 48 },
+                new ChartDataPoint { Category = "Ter", Value = 52 },
+                new ChartDataPoint { Category = "Qua", Value = 51 },
+                new ChartDataPoint { Category = "Qui", Value = 56 },
+                new ChartDataPoint { Category = "Sex", Value = 62 },
+                new ChartDataPoint { Category = "Sáb", Value = 68 },
+                new ChartDataPoint { Category = "Dom", Value = 64 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _pieSlices = new()
+    {
+        new ChartSeries
+        {
+            Title = "Categoria",
+            Type = ChartSeriesType.Pie,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Pizzas tradicionais", Value = 48 },
+                new ChartDataPoint { Category = "Pizzas especiais", Value = 28 },
+                new ChartDataPoint { Category = "Bebidas", Value = 16 },
+                new ChartDataPoint { Category = "Sobremesas", Value = 8 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _donutSlices = new()
+    {
+        new ChartSeries
+        {
+            Title = "Receita",
+            Type = ChartSeriesType.Donut,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Delivery", Value = 52000 },
+                new ChartDataPoint { Category = "Balcão", Value = 24000 },
+                new ChartDataPoint { Category = "Salão", Value = 13000 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _schemeDemo = new()
+    {
+        new ChartSeries
+        {
+            Type = ChartSeriesType.Column,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "A", Value = 8 },
+                new ChartDataPoint { Category = "B", Value = 14 },
+                new ChartDataPoint { Category = "C", Value = 11 },
+                new ChartDataPoint { Category = "D", Value = 18 },
+            }
+        },
+        new ChartSeries
+        {
+            Type = ChartSeriesType.Column,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "A", Value = 6 },
+                new ChartDataPoint { Category = "B", Value = 10 },
+                new ChartDataPoint { Category = "C", Value = 16 },
+                new ChartDataPoint { Category = "D", Value = 12 },
+            }
+        },
+        new ChartSeries
+        {
+            Type = ChartSeriesType.Column,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "A", Value = 4 },
+                new ChartDataPoint { Category = "B", Value = 7 },
+                new ChartDataPoint { Category = "C", Value = 9 },
+                new ChartDataPoint { Category = "D", Value = 14 },
+            }
+        }
+    };
+}

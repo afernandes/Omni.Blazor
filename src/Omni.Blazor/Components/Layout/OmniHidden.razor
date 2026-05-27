@@ -1,0 +1,84 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IAsyncDisposable
+@inject Omni.Blazor.Services.BreakpointService Breakpoints
+
+@*  Renderiza condicionalmente subárvore baseado no breakpoint atual da
+    viewport. Equivalente ao <c>MudHidden</c> do MudBlazor.
+
+    Modos (parâmetro <see cref="Mode"/>):
+      • Down — esconde quando viewport ≤ <see cref="Breakpoint"/> (default)
+      • Up   — esconde quando viewport ≥ <see cref="Breakpoint"/>
+      • Only — esconde APENAS no breakpoint exato
+
+    Com <see cref="Invert"/>=true a lógica é invertida (renderiza quando
+    seria escondido). Equivalente ao <c>Invert</c> do MudHidden.
+
+    Por que render condicional (e não <c>display:none</c>):
+      • Conteúdo NÃO é instanciado quando escondido — economiza render +
+        evita estados duplicados (e.g., 2 instâncias do mesmo form).
+      • Componentes pesados (DataGrid, charts) não pagam custo inicial.
+
+    Uso típico:
+      &lt;OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Down"&gt;
+          &lt;TopNav /&gt;        (só desktop)
+      &lt;/OmniHidden&gt;
+      &lt;OmniHidden Breakpoint="Breakpoint.Md" Mode="HiddenMode.Up"&gt;
+          &lt;BottomNav /&gt;     (só mobile)
+      &lt;/OmniHidden&gt;
+*@
+@if (Visible)
+{
+    @ChildContent
+}
+
+@code {
+    /// <summary>Breakpoint que serve de pivô para a regra de visibilidade. Default Md.</summary>
+    [Parameter] public Breakpoint Breakpoint { get; set; } = Breakpoint.Md;
+
+    /// <summary>Modo de comparação: Down (default — esconde abaixo/igual ao breakpoint),
+    /// Up (esconde acima/igual), Only (esconde apenas no breakpoint exato).</summary>
+    [Parameter] public HiddenMode Mode { get; set; } = HiddenMode.Down;
+
+    /// <summary>Inverte a lógica de visibilidade. Útil para renderizar SOMENTE
+    /// quando a regra de hide seria true.</summary>
+    [Parameter] public bool Invert { get; set; }
+
+    private Breakpoint _current = Breakpoint.Md;
+    private IAsyncDisposable? _subscription;
+
+    /// <summary>True quando o ChildContent deve ser renderizado.</summary>
+    public bool Visible
+    {
+        get
+        {
+            var hide = Mode switch
+            {
+                HiddenMode.Down => _current <= Breakpoint,
+                HiddenMode.Up   => _current >= Breakpoint,
+                HiddenMode.Only => _current == Breakpoint,
+                _               => false,
+            };
+            return Invert ? hide : !hide;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subscription = await Breakpoints.SubscribeAsync(bp =>
+        {
+            if (bp == _current) return;
+            _current = bp;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_subscription is not null)
+        {
+            try { await _subscription.DisposeAsync(); } catch { }
+            _subscription = null;
+        }
+    }
+}

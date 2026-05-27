@@ -1,0 +1,30 @@
+@inject PdvOrderService Order
+
+@*  Uma linha do carrinho: nome+meta · OmniQtyStepper · preço total · botão remover.
+    Não precisa subscrever OnChange — o pai (PdvCart) re-renderiza por inteiro
+    quando a lista muda, e como esse componente recebe Item via [Parameter],
+    Blazor re-renderiza só ao mudar a referência. *@
+<div class="omni-pdv-cart-item">
+    <div class="omni-pdv-cart-item-body">
+        <div class="omni-pdv-cart-item-name">@Item.Name</div>
+        <div class="omni-pdv-cart-item-meta omni-mono">
+            @Item.UnitPrice.ToString("C", _ptBr) · un.
+        </div>
+    </div>
+    <OmniQtyStepper Size="ComponentSize.Sm"
+                     Value="@Item.Qty"
+                     ValueChanged="@(q => Order.UpdateQty(Item.Id, q))" />
+    <div class="omni-pdv-cart-item-price omni-mono">@LineTotal.ToString("C", _ptBr)</div>
+    <button type="button" class="omni-pdv-cart-item-x"
+            @onclick="@(() => Order.Remove(Item.Id))"
+            aria-label="Remover item">
+        <OmniIcon Name="trash" Size="ComponentSize.Sm" />
+    </button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CartItem Item { get; set; } = default!;
+
+    private decimal LineTotal => Item.UnitPrice * Item.Qty;
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+}

@@ -1,0 +1,30 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@inject CardapioDigitalState State
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Sticky category chips do home — scroll horizontal. Click muda
+    State.ActiveCategory. Cada chip = emoji + nome (delegado ao OmniChip
+    para variant accent/active gerido pelo design system). *@
+<nav class="@RootCss" style="@Style" @attributes="Attributes">
+    @foreach (var cat in CardapioMockData.Categories)
+    {
+        var current = cat;
+        <OmniChip @key="current.Id"
+                  Class="fs-cd-cat"
+                  Active="@(State.ActiveCategory == current.Id)"
+                  OnClick="@(() => State.SetCategory(current.Id))">
+            <span>@current.Emoji</span>@current.Name
+        </OmniChip>
+    }
+</nav>
+
+@code {
+    private string RootCss => CssBuilder.Default("fs-cd-cats")
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

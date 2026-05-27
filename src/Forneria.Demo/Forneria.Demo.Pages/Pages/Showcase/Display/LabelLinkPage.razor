@@ -1,0 +1,149 @@
+@page "/showcase/label-link"
+@layout ShowcaseLayout
+
+<PageTitle>Label & Link — Showcase</PageTitle>
+
+<ShowcasePage Title="Label & Link"
+              Subtitle="Dois primitivos básicos: OmniLabel (rótulo standalone com indicador required) + OmniLink (a estilizado com variantes e tratamento de target=_blank).">
+
+    <Overview>
+        <p>
+            <code>OmniLabel</code> é uma label HTML semântica
+            (<code>&lt;label for=...&gt;</code> ou <code>&lt;span&gt;</code>) com
+            indicador de obrigatório, texto auxiliar opcional, 3 tamanhos e estado disabled.
+            Use quando precisar de label para um controle não-input (ex: grupo de toggles)
+            — quando wrappar 1 input, prefira <code>OmniFormField</code>.
+        </p>
+        <p>
+            <code>OmniLink</code> é um <code>&lt;a&gt;</code> estilizado com 3 variantes
+            (Default/Muted/Danger), ícones antes/depois, e tratamento automático de
+            <code>target="_blank"</code> (adiciona <code>rel="noopener noreferrer"</code>
+            e mostra ícone external por padrão).
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="LABEL — tamanhos e estados"
+                         Description="3 tamanhos: Sm (uppercase + tracking, próximo de inputs), Md (default), Lg (destaque). Required adiciona asterisco vermelho. Helper text é renderizado em linha abaixo."
+                         Code="@(@"<OmniLabel Text=""Email"" Size=""ComponentSize.Sm"" For=""email"" Required />
+<OmniLabel Text=""Nome completo"" Required />
+<OmniLabel Text=""CNPJ"" Helper=""Use 14 dígitos sem máscara"" Required />
+<OmniLabel Text=""Disabled label"" Disabled />")">
+            <OmniStack Gap="12">
+                <OmniLabel Text="Email (Sm)" Size="ComponentSize.Sm" For="email-demo" Required />
+                <OmniLabel Text="Nome completo (Md)" Required />
+                <OmniLabel Text="Endereço (Lg)" Size="ComponentSize.Lg" Required />
+                <OmniLabel Text="CNPJ" Required Helper="Use 14 dígitos sem máscara" />
+                <OmniLabel Text="Campo desabilitado" Disabled />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LABEL + INPUT NÃO-WRAPPADO"
+                         Description="Padrão quando o controle não é um único input — ex: grupo de toggles ou seletor customizado."
+                         Code="@(@"<OmniLabel Text=""Vias de pagamento"" Size=""ComponentSize.Sm"" Required />
+<OmniCheckBoxList TValue=""string""
+                   Items=""@(new[] { ""Dinheiro"", ""Pix"", ""Crédito"", ""Débito"" })""
+                   @bind-Value=""pagamentos""
+                   Orientation=""Orientation.Horizontal"" />")">
+            <OmniStack Gap="6">
+                <OmniLabel Text="Vias de pagamento" Size="ComponentSize.Sm" Required />
+                <OmniCheckBoxList TValue="string"
+                                   Items="@(new[] { "Dinheiro", "Pix", "Crédito", "Débito" })"
+                                   @bind-Value="_pagamentos"
+                                   Orientation="Orientation.Horizontal" />
+                <span class="omni-muted omni-mono" style="font-size:11px;">Selecionados: @string.Join(", ", _pagamentos ?? Array.Empty<string>())</span>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LINK — variantes"
+                         Description="Default (accent), Muted (secundário), Danger (destrutivo)."
+                         Code="@(@"<OmniLink Href=""/showcase"" Text=""Link padrão (Default)"" />
+<OmniLink Href=""#"" Text=""Link secundário (Muted)"" Variant=""LinkVariant.Muted"" />
+<OmniLink Href=""#"" Text=""Link destrutivo (Danger)"" Variant=""LinkVariant.Danger"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="20" Wrap="true">
+                <OmniLink Href="/showcase" Text="Link padrão (Default)" />
+                <OmniLink Href="#" Text="Link secundário (Muted)" Variant="LinkVariant.Muted" />
+                <OmniLink Href="#" Text="Link destrutivo (Danger)" Variant="LinkVariant.Danger" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LINK — com ícones"
+                         Description="Icon antes (leading) ou TrailingIcon depois do texto."
+                         Code="@(@"<OmniLink Href=""/showcase"" Text=""Voltar"" Icon=""chevron-left"" />
+<OmniLink Href=""/showcase"" Text=""Avançar"" TrailingIcon=""chevron-right"" />
+<OmniLink Href=""#"" Text=""Baixar relatório"" Icon=""download"" Variant=""LinkVariant.Muted"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="20" Wrap="true">
+                <OmniLink Href="/showcase" Text="Voltar" Icon="chevron-left" />
+                <OmniLink Href="/showcase" Text="Avançar" TrailingIcon="chevron-right" />
+                <OmniLink Href="#" Text="Baixar relatório" Icon="download" Variant="LinkVariant.Muted" />
+                <OmniLink Href="#" Text="Excluir conta" Icon="trash" Variant="LinkVariant.Danger" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LINK — externo (target=_blank)"
+                         Description="Adiciona rel='noopener noreferrer' e ícone external-link automaticamente. Use ShowExternalIcon=false para ocultar."
+                         Code="@(@"<OmniLink Href=""https://blazor.net"" Text=""Documentação Blazor"" Target=""_blank"" />
+<OmniLink Href=""https://mudblazor.com"" Text=""MudBlazor"" Target=""_blank"" ShowExternalIcon=""false"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="20" Wrap="true">
+                <OmniLink Href="https://blazor.net" Text="Documentação Blazor" Target="_blank" />
+                <OmniLink Href="https://mudblazor.com" Text="MudBlazor (sem ícone external)" Target="_blank" ShowExternalIcon="false" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LINK — disabled e OnClick puro"
+                         Description="Disabled renderiza como span sem href. OnClick previne navegação default — bom para SPAs onde href é fallback de a11y."
+                         Code="@(@"<OmniLink Text=""Link desabilitado"" Disabled />
+<OmniLink Text=""Click handler (sem navegação)"" Href=""#""
+           OnClick=""@(_ => { _clicks++; return Task.CompletedTask; })"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="20" Wrap="true" AlignItems="StackAlign.Center">
+                <OmniLink Text="Link desabilitado" Disabled />
+                <OmniLink Text="@($"Click handler ({_clicks} clicks)")" Href="#"
+                           OnClick="@(_ => { _clicks++; return Task.CompletedTask; })" />
+            </OmniStack>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniLabel — parâmetros">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto da label." />
+            <ShowcaseApiRow Name="For" Type="string?" Default="null"
+                            Description="ID do elemento associado. Quando vazio, renderiza span sem associação." />
+            <ShowcaseApiRow Name="Required" Type="bool" Default="false"
+                            Description="Adiciona asterisco vermelho após o texto." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Estilo desabilitado (opacity 0.5)." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Sm (11px caps), Md (14px), Lg (16px bold)." />
+            <ShowcaseApiRow Name="Helper" Type="string?" Default="null"
+                            Description="Texto auxiliar exibido em linha abaixo (muted, fonte menor)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniLink — parâmetros">
+            <ShowcaseApiRow Name="Href" Type="string?" Default="null"
+                            Description="URL/path de destino." />
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto do link." />
+            <ShowcaseApiRow Name="Icon / TrailingIcon" Type="string?" Default="null"
+                            Description="Ícones antes / depois do texto." />
+            <ShowcaseApiRow Name="Variant" Type="LinkVariant" Default="Default"
+                            Description="Default (accent), Muted (fg-soft), Danger (vermelho)." />
+            <ShowcaseApiRow Name="Target" Type="string?" Default="null"
+                            Description="target do a. _blank adiciona rel='noopener noreferrer' + ícone external (se ShowExternalIcon)." />
+            <ShowcaseApiRow Name="ShowExternalIcon" Type="bool" Default="true"
+                            Description="Mostra ícone external-link automaticamente quando Target=_blank." />
+            <ShowcaseApiRow Name="Underline" Type="bool" Default="false"
+                            Description="Sublinha o texto sempre (sem precisar de hover)." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Renderiza como span sem href, opacity 0.6." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback&lt;MouseEventArgs&gt;" Default="empty"
+                            Description="Callback opcional. Quando definido, previne navegação default." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private IEnumerable<string>? _pagamentos = new[] { "Pix" };
+    private int _clicks;
+}

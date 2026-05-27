@@ -1,0 +1,90 @@
+@inject CardapioDigitalState State
+@implements IDisposable
+
+@*  Home screen do cardápio digital — Cover + Search + sticky Categorias +
+    Sections (Destaques/Salgadas/Doces/Bebidas) + cart-bar accent flutuante. *@
+<div class="fs-cd-screen">
+    <div class="fs-cd-scroll" style="@($"padding-bottom: {(State.CartItemCount > 0 ? 96 : 24)}px;")">
+
+        <CardapioCover LogoInitial="D"
+                       NameHtml="Forneria<br />Don Tonhão"
+                       IsOpen="true"
+                       DeliveryEta="35–50min"
+                       Rating="4,8"
+                       RatingCount="1.247" />
+
+        <CardapioSearch Placeholder="Buscar pizza, bebida…"
+                        Value="@_query"
+                        ValueChanged="@(v => _query = v)" />
+
+        <CardapioCategoryChips />
+
+        <CardapioSection Eyebrow="Mais pedidas"
+                         Title="Destaques da casa"
+                         Description="As campeãs da semana em pedidos">
+            <CardapioFeatCard Name="Calabresa Premium"
+                              Description="Calabresa artesanal, mussarela, cebola roxa, azeitona preta."
+                              Price="R$ 59,00"
+                              Badge="+ pedida"
+                              OnClick="State.GoSizes" />
+            <CardapioFeatCard Name="3 Queijos Scala"
+                              Description="Muçarela, gorgonzola, parmesão gratinado finalizado no forno a lenha."
+                              Price="R$ 79,00"
+                              Badge="Novidade"
+                              OnClick="State.GoSizes" />
+        </CardapioSection>
+
+        <CardapioSection Title="Pizzas Salgadas"
+                         Description="Monte sua pizza · escolha o tamanho e até 2 sabores">
+            <CardapioItemRow Name="Pizza · até 2 sabores"
+                             Description="12 sabores salgados. Massa artesanal, fermentação 48h, forno a lenha."
+                             Price="R$ 39,00"
+                             PriceFrom
+                             OnClick="State.GoSizes" />
+        </CardapioSection>
+
+        <CardapioSection Title="Pizzas Doces"
+                         Description="Para fechar a noite com chave de ouro">
+            <CardapioItemRow Name="Pizza Doce · até 2 sabores"
+                             Description="Brigadeiro, romeu e julieta, banana c/ canela, prestígio."
+                             Price="R$ 44,00"
+                             PriceFrom
+                             ThumbVariant="sweet"
+                             OnClick="State.GoSizes" />
+        </CardapioSection>
+
+        <CardapioSection Title="Bebidas"
+                         Description="Geladas, prontas para chegar com a pizza">
+            @foreach (var d in CardapioMockData.Drinks)
+            {
+                var drink = d;
+                <CardapioItemRow Name="@drink.Name"
+                                 Description="@drink.Desc"
+                                 Price="@CardapioDigitalState.Brl(drink.Cents)"
+                                 ThumbVariant="drink"
+                                 OnClick="@(() => State.AddDrinkToCart(drink))" />
+            }
+        </CardapioSection>
+    </div>
+
+    @if (State.CartItemCount > 0)
+    {
+        <div class="fs-cd-cart-bar" @onclick="State.GoCart" role="button" tabindex="0">
+            <span class="fs-cd-cart-bar-lhs">
+                <span class="fs-cd-cart-bar-count omni-mono">@State.CartItemCount</span>
+                <OmniIcon Name="shopping-cart" Size="ComponentSize.Sm" />
+                Ver pedido
+            </span>
+            <span class="fs-cd-cart-bar-total omni-mono">@CardapioDigitalState.Brl(State.CartSubtotal)</span>
+        </div>
+    }
+</div>
+
+@code {
+    private string _query = "";
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}
+
+

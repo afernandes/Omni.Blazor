@@ -1,0 +1,331 @@
+@page "/showcase/wireframes/pdv-workspace"
+@layout WireframeLayout
+
+<PageTitle>WF-11 · PDV Workspace (AppBar + ToolBar + Drawer + Main com aside interno)</PageTitle>
+
+@*  WIREFRAME 11 — POS / dashboard denso usando OmniLayout completo.
+    Cenário: balcão de atendimento (PDV/POS) com:
+      • OmniAppBar    — brand + tenant + omnibox hint + notif/help/user
+      • OmniToolBar   — action buttons (Comanda/Caixa/Cozinha/...)
+      • OmniDrawer    — sidebar Responsive com PanelMenu + plan card
+      • OmniMain      — body com layout interno 2-col + footer interno
+
+    O aside direito (cart cliente 380px) **NÃO é um Drawer** — é uma coluna
+    interna do main porque semanticamente faz parte do flow PDV (sempre
+    visível em desktop; vira narrow strip em mobile via CSS local).
+
+    Em ≤ Md (1024px) o drawer vira overlay com hamburger automático.
+    Hamburger toggle não precisa de @ref — o `OmniDrawerToggle` no AppBar
+    auto-encontra o drawer via `OmniLayout` registry.
+*@
+<OmniLayout>
+    <OmniAppBar Class="pdv-wf-appbar">
+        <OmniDrawerToggle />
+        <OmniBrand Initial="F" Name="FoodService" Tenant="Restaurante Central — Loja 01" />
+
+        <div class="omni-header-spacer"></div>
+
+        <button class="pdv-wf-omnibox" type="button" aria-label="Abrir busca">
+            <OmniKbd Text="⌘K" />
+            <span>Buscar pedido, cliente ou produto</span>
+        </button>
+
+        <div class="omni-header-spacer"></div>
+
+        <OmniBadge Content="3" Variant="BadgeVariant.Danger" Overlap>
+            <OmniButton Icon="bell" IconOnly Variant="ButtonVariant.Ghost"
+                        Size="ComponentSize.Sm" aria-label="Notificações" />
+        </OmniBadge>
+        <OmniButton Icon="help-circle" IconOnly Variant="ButtonVariant.Ghost"
+                    Size="ComponentSize.Sm" aria-label="Ajuda" />
+        <OmniAvatar Initials="AF" Size="AvatarSize.Sm" />
+    </OmniAppBar>
+
+    <OmniToolBar Class="pdv-wf-actbar">
+        <div class="omni-header-spacer"></div>
+        <OmniButton Icon="printer"     Size="ComponentSize.Sm">Comanda</OmniButton>
+        <OmniButton Icon="dollar-sign" Size="ComponentSize.Sm">Caixa</OmniButton>
+        <OmniButton Icon="zap"         Size="ComponentSize.Sm">Cozinha</OmniButton>
+        <OmniButton Icon="clock"       Size="ComponentSize.Sm">Histórico</OmniButton>
+        <OmniButton Icon="more-horizontal" IconOnly Size="ComponentSize.Sm"
+                    aria-label="Mais ações" />
+        <OmniButton Icon="plus" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm">
+            Novo pedido
+        </OmniButton>
+    </OmniToolBar>
+
+    <OmniDrawer Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md">
+        <OmniPanelMenu>
+            <OmniPanelMenuSection Label="Operação">
+                <OmniPanelMenuItem Text="PDV"            Icon="shopping-cart"
+                                    Count="4" CountKind="MenuMetaKind.Accent" />
+                <OmniPanelMenuItem Text="Montar Pizza"   Icon="package" />
+                <OmniPanelMenuItem Text="HUB de Pedidos" Icon="grid"      Count="12" />
+                <OmniPanelMenuItem Text="Cardápio"       Icon="file-text" />
+            </OmniPanelMenuSection>
+
+            <OmniPanelMenuSection Label="Salão">
+                <OmniPanelMenuItem Text="Mesas" Icon="users" />
+            </OmniPanelMenuSection>
+
+            <OmniPanelMenuSection Label="Gestão">
+                <OmniPanelMenuItem Text="Clientes"   Icon="database" />
+                <OmniPanelMenuItem Text="Relatórios" Icon="bar-chart" />
+            </OmniPanelMenuSection>
+
+            <OmniPanelMenuSection Label="Tenant">
+                <OmniPanelMenuItem Text="Configurações" Icon="sliders" />
+            </OmniPanelMenuSection>
+        </OmniPanelMenu>
+
+        <div class="omni-header-spacer"></div>
+
+        <div class="pdv-wf-plan">
+            <div class="pdv-wf-plan-name">Plano Pro</div>
+            <div class="pdv-wf-plan-meta omni-mono">1.205 / 5.000 pedidos · este mês</div>
+            <div class="pdv-wf-plan-bar"><div style="width: 24%;"></div></div>
+        </div>
+    </OmniDrawer>
+
+    <OmniMain NoPadding>
+        <div class="pdv-wf-body">
+            @* coluna principal *@
+            <section class="pdv-wf-main">
+                <div class="pdv-wf-omni-search">
+                    <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                    <span class="omni-muted">Digite código (201), código de barras ou nome do produto…</span>
+                </div>
+
+                <div class="pdv-wf-pane-head">
+                    <div>
+                        <div class="pdv-wf-pane-title">Itens do pedido</div>
+                        <div class="pdv-wf-pane-sub">4 item(s) · 2 linha(s)</div>
+                    </div>
+                </div>
+
+                <div class="pdv-wf-cart-rows">
+                    <OmniCard NoPadding>
+                        <div style="padding: 14px;">
+                            <strong>Cheeseburger Duplo</strong>
+                            <div class="omni-muted" style="font-size: 12px;">2 × R$ 28,00 · Lanche</div>
+                        </div>
+                    </OmniCard>
+                    <OmniCard NoPadding>
+                        <div style="padding: 14px;">
+                            <strong>Pizza Margherita (meio-a-meio)</strong>
+                            <div class="omni-muted" style="font-size: 12px;">Tamanho G · borda recheada</div>
+                        </div>
+                    </OmniCard>
+                </div>
+            </section>
+
+            @* coluna lateral (cart cliente) — interna do main, NÃO é drawer *@
+            <aside class="pdv-wf-aside">
+                <div class="pdv-wf-aside-head">Cliente</div>
+                <div class="pdv-wf-cust-card">
+                    <OmniAvatar Initials="MT" Size="AvatarSize.Md" />
+                    <div style="flex:1; min-width: 0;">
+                        <strong>Marina Toledo</strong>
+                        <div class="omni-mono" style="font-size: 12px; color: var(--omni-fg-muted);">
+                            (11) 98823-1204 · 842 pts
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdv-wf-aside-head" style="margin-top: 12px;">Modo</div>
+                <OmniSegmentedControl TValue="string" Value="@_mode" ValueChanged="@(v => _mode = v ?? "balcao")"
+                                      Items="_modeItems" />
+
+                <div class="pdv-wf-aside-head" style="margin-top: 12px;">Loyalty</div>
+                <div class="pdv-wf-loyalty">
+                    <OmniIcon Name="star" Size="ComponentSize.Sm" />
+                    <span><strong>842</strong> pts</span>
+                    <span class="omni-muted">·</span>
+                    <span><strong>BEM-VINDO15</strong></span>
+                </div>
+            </aside>
+
+            @* footer interno do main (NÃO é OmniFooter global — é parte do flow PDV) *@
+            <footer class="pdv-wf-footer">
+                <div class="pdv-wf-footer-meta">
+                    <div><span class="omni-muted">Itens</span> <strong>4</strong></div>
+                    <div class="pdv-wf-divider"></div>
+                    <div><span class="omni-muted">Subtotal</span> <strong>R$ 71,00</strong></div>
+                </div>
+                <div class="pdv-wf-footer-actions">
+                    <OmniButton Variant="ButtonVariant.Ghost">% Ajustar</OmniButton>
+                    <div class="pdv-wf-total">
+                        <span class="omni-mono" style="font-size: 10px; color: var(--omni-fg-soft);">TOTAL A PAGAR</span>
+                        <strong style="font-size: 22px;">R$ 71,00</strong>
+                    </div>
+                    <OmniButton Icon="credit-card" Variant="ButtonVariant.Primary" Size="ComponentSize.Lg">
+                        Finalizar <OmniKbd Text="F5" />
+                    </OmniButton>
+                </div>
+            </footer>
+        </div>
+    </OmniMain>
+</OmniLayout>
+
+@code {
+    private string _mode = "balcao";
+
+    private static readonly IReadOnlyList<OmniSegmentedControl<string>.Item> _modeItems = new[]
+    {
+        new OmniSegmentedControl<string>.Item("balcao",   "Balcão"),
+        new OmniSegmentedControl<string>.Item("delivery", "Delivery"),
+        new OmniSegmentedControl<string>.Item("retirada", "Retirada"),
+        new OmniSegmentedControl<string>.Item("mesa",     "Mesa"),
+        new OmniSegmentedControl<string>.Item("comanda",  "Comanda"),
+    };
+}
+
+<style>
+    /* AppBar adaptações — densidade tighter pra PDV */
+    .pdv-wf-appbar { gap: 16px; padding: 0 16px; }
+    .pdv-wf-omnibox {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 6px 12px; min-width: 280px; max-width: 480px;
+        background: var(--omni-bg-sunken);
+        border: 1px solid var(--omni-line);
+        border-radius: 8px;
+        color: var(--omni-fg-muted);
+        font: inherit; font-size: 13px;
+        cursor: pointer;
+    }
+    .pdv-wf-omnibox:hover { border-color: var(--omni-line-strong); }
+
+    /* ToolBar action bar — encosta à direita */
+    .pdv-wf-actbar {
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 16px;
+    }
+
+    /* Plano card no fundo do drawer */
+    .pdv-wf-plan {
+        margin: 12px;
+        padding: 10px 12px;
+        border: 1px solid var(--omni-line);
+        border-radius: 10px;
+        background: var(--omni-bg-elev);
+    }
+    .pdv-wf-plan-name { font-weight: 600; font-size: 12.5px; }
+    .pdv-wf-plan-meta {
+        color: var(--omni-fg-muted); font-size: 10.5px;
+        margin-top: 2px;
+    }
+    .pdv-wf-plan-bar {
+        height: 4px; border-radius: 999px;
+        background: var(--omni-bg-sunken);
+        margin-top: 8px; overflow: hidden;
+    }
+    .pdv-wf-plan-bar > div {
+        height: 100%; background: var(--omni-accent);
+        border-radius: 999px;
+    }
+
+    /* Body do main — grid 2-col (main + aside) + footer interno */
+    .pdv-wf-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 380px;
+        grid-template-rows: 1fr auto;
+        grid-template-areas:
+            "main   aside"
+            "footer footer";
+        height: 100%; min-height: 0;
+    }
+    .pdv-wf-main {
+        grid-area: main;
+        padding: 16px 22px;
+        display: flex; flex-direction: column; gap: 12px;
+        min-width: 0; overflow-y: auto;
+    }
+    .pdv-wf-aside {
+        grid-area: aside;
+        background: var(--omni-bg-elev);
+        border-left: 1px solid var(--omni-line);
+        padding: 16px;
+        display: flex; flex-direction: column; gap: 8px;
+        overflow-y: auto;
+    }
+    .pdv-wf-footer {
+        grid-area: footer;
+        background: var(--omni-bg-elev);
+        border-top: 1px solid var(--omni-line);
+        padding: 12px 22px;
+        display: flex; align-items: center; gap: 14px;
+    }
+
+    /* Componentes internos do main */
+    .pdv-wf-omni-search {
+        display: flex; align-items: center; gap: 10px;
+        padding: 11px 14px;
+        background: var(--omni-bg-elev);
+        border: 1.5px solid color-mix(in oklab, var(--omni-accent) 25%, var(--omni-line));
+        border-radius: 10px;
+    }
+    .pdv-wf-pane-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 4px 0;
+    }
+    .pdv-wf-pane-title { font-weight: 600; font-size: 14px; }
+    .pdv-wf-pane-sub { font-size: 11.5px; color: var(--omni-fg-muted); margin-top: 1px; }
+    .pdv-wf-cart-rows { display: flex; flex-direction: column; gap: 8px; }
+
+    /* Aside */
+    .pdv-wf-aside-head {
+        font-size: 11px; text-transform: uppercase;
+        letter-spacing: 0.06em; color: var(--omni-fg-soft); font-weight: 600;
+    }
+    .pdv-wf-cust-card {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px;
+        background: var(--omni-bg-sunken);
+        border-radius: 10px;
+    }
+    .pdv-wf-loyalty {
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px;
+        background: var(--omni-bg-sunken);
+        border: 1px solid var(--omni-line);
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
+    /* Footer interno */
+    .pdv-wf-footer-meta {
+        display: flex; align-items: center; gap: 16px;
+        font-size: 13px; flex: 1; min-width: 0;
+    }
+    .pdv-wf-divider {
+        width: 1px; height: 20px;
+        background: var(--omni-line);
+    }
+    .pdv-wf-footer-actions {
+        display: flex; align-items: center; gap: 10px;
+    }
+    .pdv-wf-total {
+        display: flex; flex-direction: column; align-items: flex-end;
+        padding: 0 8px;
+    }
+
+    /* Responsive: ≤ Md (1024px) — aside vira coluna no topo do main, footer single row */
+    @@media (max-width: 1024px) {
+        .pdv-wf-body {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "aside"
+                "main"
+                "footer";
+        }
+        .pdv-wf-aside {
+            border-left: 0;
+            border-bottom: 1px solid var(--omni-line);
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 12px 16px;
+        }
+        .pdv-wf-aside-head { display: none; }
+    }
+</style>

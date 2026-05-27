@@ -1,0 +1,88 @@
+@namespace Omni.Blazor.Components
+
+@*
+    Theme bootstrap — drop into the <head> of your App.razor.
+
+    Does two things:
+      1. Injects the library stylesheet (omni.css), version-stamped so the
+         browser cache busts on every library update.
+      2. Emits an inline <script> that applies the initial accent + dark mode
+         on <html> while the head is still parsing — no flash of unstyled
+         content (FOUC).
+
+         The script reads localStorage FIRST (key "omni.theme", same format
+         as ThemeService persists: "accent|dark"). If a saved preference
+         exists, it wins over the @Accent / @Dark defaults. This eliminates
+         the post-F5 flash that would happen if we only read localStorage
+         from ThemeService.InitializeAsync (which runs only after Blazor
+         connects — too late, the browser already painted with the default).
+
+    Runtime theme switching (changing accent / toggling dark after load) stays
+    with ThemeService — this component only seeds the initial state.
+
+    Usage (App.razor <head>):
+        <OmniTheme Accent="amber" />
+        <OmniTheme Accent="emerald" Dark="true" />
+*@
+
+<link rel="stylesheet" href="@CssHref" />
+<script>
+    (function () {
+        var h = document.documentElement;
+        var accent = '@SafeAccent';
+        var dark = @(Dark ? "true" : "false");
+        var hasSaved = false;
+        // 1. Read user's persisted preference from localStorage BEFORE applying
+        //    the defaults — same key/format as ThemeService.PersistAsync.
+        try {
+            var saved = window.localStorage && window.localStorage.getItem('omni.theme');
+            if (saved) {
+                hasSaved = true;
+                var parts = saved.split('|');
+                if (parts[0]) accent = parts[0];
+                if (parts.length >= 2) dark = (parts[1] === '1' || parts[1] === 'true');
+            }
+        } catch (e) { /* storage blocked — fall back to defaults */ }
+        // 2. If no saved preference, follow the OS's prefers-color-scheme.
+        //    Users with dark-mode-OS arrive in dark mode automatically; users
+        //    on light-OS get the component's Dark default. Either way, zero
+        //    FOUC because this runs synchronously in <head>.
+        if (!hasSaved) {
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    dark = true;
+                }
+            } catch (e) { /* matchMedia missing in ancient browsers */ }
+        }
+        h.setAttribute('data-accent', accent);
+        if (dark) h.setAttribute('data-theme', 'dark');
+    })();
+</script>
+
+@code {
+    /// <summary>
+    /// Initial accent. 12 cores suportadas: <c>amber</c> (default), <c>emerald</c>,
+    /// <c>blue</c>, <c>violet</c>, <c>crimson</c>, <c>rose</c>, <c>orange</c>,
+    /// <c>teal</c>, <c>cyan</c>, <c>indigo</c>, <c>fuchsia</c>, <c>lime</c>.
+    /// Unknown values fall back to <c>amber</c>.
+    /// </summary>
+    [Parameter] public string Accent { get; set; } = "amber";
+
+    /// <summary>Start in dark mode. Default false.</summary>
+    [Parameter] public bool Dark { get; set; }
+
+    private static readonly string[] KnownAccents =
+    {
+        "amber", "emerald", "blue", "violet", "crimson",
+        "rose", "orange", "teal", "cyan", "indigo", "fuchsia", "lime",
+    };
+
+    private string SafeAccent =>
+        KnownAccents.Contains(Accent) ? Accent : "amber";
+
+    private static readonly string AssemblyVersion =
+        typeof(OmniTheme).Assembly.GetName().Version?.ToString() ?? "1.0.0.0";
+
+    private string CssHref =>
+        $"_content/Omni.Blazor/css/omni.css?v={AssemblyVersion}";
+}

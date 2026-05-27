@@ -1,0 +1,338 @@
+@page "/topnav"
+@layout AppShellTop
+@using System.Globalization
+@using System.Text
+
+<PageTitle>Forneria — Visão Geral</PageTitle>
+
+<div class="omni-hd-page">
+
+    @* ─── Page head — título · ações · sub-tabs de período ─── *@
+    <OmniPaneHeader Title="Visão geral"
+                     Subtitle="22 de maio · quinta-feira · atualizado há 12s">
+        <Actions>
+            <OmniButton Text="Personalizar" Icon="sliders" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+            <OmniButton Text="Exportar" Icon="download" Size="ComponentSize.Sm" />
+            <OmniButton Text="Novo pedido" Icon="plus" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm" />
+        </Actions>
+        <Subtabs>
+            <OmniSegmentedControl TValue="string" Value="@_period"
+                                   ValueChanged="@(v => _period = v)" Items="@_periodItems" />
+        </Subtabs>
+    </OmniPaneHeader>
+
+    @* ─── KPIs — OmniStat dentro de grid 12-col ─── *@
+    <OmniRow Gap="14">
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="dollar-sign" Label="Receita" Value="R$ 11.266,65"
+                       Delta="▲ +18,4%" DeltaCaption="vs ontem">
+                <Visual>@Spark(_sparkRevenue, "var(--omni-accent)")</Visual>
+            </OmniStat>
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="shopping-cart" Label="Pedidos" Value="142"
+                       Delta="▲ +9,2%" DeltaCaption="vs ontem">
+                <Visual>@Spark(_sparkOrders, "var(--omni-accent)")</Visual>
+            </OmniStat>
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="credit-card" Label="Ticket médio" Value="R$ 79,34"
+                       Delta="▲ +8,4%" DeltaCaption="vs ontem">
+                <Visual>@Spark(_sparkTicket, "#7c3aed")</Visual>
+            </OmniStat>
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Icon="clock" Label="Tempo médio" Value="24'18"
+                       Delta="▼ −2'04" DeltaDown DeltaCaption="meta 25'00">
+                <Visual>@Spark(_sparkTime, "#16a34a")</Visual>
+            </OmniStat>
+        </OmniCol>
+    </OmniRow>
+
+    @* ─── Chart + Channels ─── *@
+    <div class="omni-hd-row">
+        <OmniCard Title="Vendas por hora"
+                   Subtitle="@($"Pico às 20:00 · total parcial R$ {TotalRev.ToString("N2", _pt)}")" NoPadding>
+            <HeaderActions>
+                <OmniSegmentedControl TValue="string" Value="@_chartMode"
+                                       ValueChanged="@(v => _chartMode = v)" Items="@_chartModeItems" />
+            </HeaderActions>
+            <ChildContent>
+                <div class="omni-hd-chart">
+                    <svg viewBox="0 0 720 220" width="100%" height="100%" preserveAspectRatio="none">
+                        @((MarkupString)_chartInner)
+                    </svg>
+                </div>
+            </ChildContent>
+        </OmniCard>
+
+        <OmniCard Title="Canais" Subtitle="Distribuição da receita" NoPadding>
+            <div class="omni-hd-channels">
+                @foreach (var c in _channels)
+                {
+                    <div class="omni-hd-channel">
+                        <div class="omni-hd-channel-name">
+                            <span class="omni-hd-cdot" style="background:@c.Color;"></span>
+                            @c.Name
+                        </div>
+                        <OmniProgress Value="@c.Pct" Color="@c.Color" Size="ComponentSize.Sm" />
+                        <div class="omni-hd-channel-val">
+                            R$ @c.Total.ToString("N2", _pt)
+                            <div class="omni-hd-channel-pct">@c.Pct%</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </OmniCard>
+    </div>
+
+    @* ─── Recent orders + Top products / Events ─── *@
+    <div class="omni-hd-row">
+        <OmniCard Title="Pedidos recentes" Subtitle="28 ativos · 4 canais — tempo real">
+            <HeaderActions>
+                <OmniButton Text="Ver todos" Variant="ButtonVariant.Link" Size="ComponentSize.Sm" />
+            </HeaderActions>
+            <ChildContent>
+                <OmniDataGrid TItem="Order" Data="@_orders" AllowPaging="false" AllowSorting="false">
+                    <Columns>
+                        <OmniDataGridColumn TItem="Order" Title="Pedido" Width="130px">
+                            <Template Context="o">
+                                <div class="omni-mono" style="font-weight:600;">@o.Id</div>
+                                <div class="omni-mono omni-muted" style="font-size:11.5px;">@o.Time</div>
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Cliente / Mesa">
+                            <Template Context="o">
+                                <div style="font-weight:600;">@o.Cust</div>
+                                <div class="omni-muted" style="font-size:11.5px;">@o.Items</div>
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Canal" Width="110px">
+                            <Template Context="o">
+                                <OmniBadge Text="@o.Channel.ToUpperInvariant()" Variant="@ChannelVariant(o.Channel)" />
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Status" Width="130px">
+                            <Template Context="o">
+                                <OmniBadge Text="@StatusLabel(o.Status)" Variant="@StatusVariant(o.Status)" />
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Total" Width="120px">
+                            <Template Context="o">
+                                <div class="omni-mono" style="font-weight:700; text-align:right;">
+                                    R$ @o.Total.ToString("N2", _pt)
+                                </div>
+                            </Template>
+                        </OmniDataGridColumn>
+                    </Columns>
+                </OmniDataGrid>
+            </ChildContent>
+        </OmniCard>
+
+        <div class="omni-hd-stack">
+            <OmniCard Title="Mais vendidos" Subtitle="Top 7 · por receita" NoPadding>
+                <div class="omni-hd-top">
+                    @{ var rank = 0; }
+                    @foreach (var p in _topProducts)
+                    {
+                        rank++;
+                        <div class="omni-hd-top-row">
+                            <div class="omni-hd-top-rank">@rank.ToString("00")</div>
+                            <div>
+                                <div class="omni-hd-top-name">@p.Name</div>
+                                <OmniProgress Value="@p.Share" Size="ComponentSize.Sm" Style="margin-top:6px;" />
+                            </div>
+                            <div class="omni-hd-top-value">
+                                R$ @p.Value.ToString("N2", _pt)
+                                <div class="omni-hd-top-units">@p.Qty un.</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </OmniCard>
+
+            <OmniCard Title="Eventos do turno" Subtitle="Alertas e marcos operacionais" NoPadding>
+                <div class="omni-hd-events">
+                    @foreach (var e in _events)
+                    {
+                        <div class="omni-hd-event">
+                            <div class="omni-hd-event-ico @e.Kind"><OmniIcon Name="@e.Icon" Size="ComponentSize.Sm" /></div>
+                            <div class="omni-hd-event-text">@((MarkupString)e.Text)</div>
+                            <div class="omni-hd-event-time">@e.Time</div>
+                        </div>
+                    }
+                </div>
+            </OmniCard>
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly CultureInfo _pt = new("pt-BR");
+    private static readonly CultureInfo _ci = CultureInfo.InvariantCulture;
+    private static string F(double v) => v.ToString("0.#", _ci);
+
+    private readonly IEnumerable<OmniSegmentedControl<string>.Item> _periodItems = new[]
+    {
+        new OmniSegmentedControl<string>.Item("Hoje", "Hoje"),
+        new OmniSegmentedControl<string>.Item("7 dias", "7 dias"),
+        new OmniSegmentedControl<string>.Item("30 dias", "30 dias"),
+        new OmniSegmentedControl<string>.Item("Mês", "Mês"),
+        new OmniSegmentedControl<string>.Item("Personalizado", "Personalizado"),
+    };
+    private string _period = "Hoje";
+
+    private readonly IEnumerable<OmniSegmentedControl<string>.Item> _chartModeItems = new[]
+    {
+        new OmniSegmentedControl<string>.Item("Receita", "Receita"),
+        new OmniSegmentedControl<string>.Item("Pedidos", "Pedidos"),
+        new OmniSegmentedControl<string>.Item("Itens", "Itens"),
+    };
+    private string _chartMode = "Receita";
+
+    private readonly int[] _sales =
+    {
+        120, 80, 60, 40, 30, 50, 110, 240, 380, 420, 510, 680,
+        920, 1050, 880, 640, 540, 720, 1180, 1640, 1820, 1490, 980, 420,
+    };
+    private double TotalRev => _sales.Sum();
+
+    private readonly int[] _sparkRevenue = { 110, 240, 380, 420, 510, 680, 920, 1050, 880, 640, 540, 720, 1180, 1640, 1820, 1490, 980, 420 };
+    private readonly int[] _sparkOrders  = { 18, 22, 28, 24, 32, 30, 40, 38, 46, 52, 58, 62 };
+    private readonly int[] _sparkTicket  = { 62, 64, 66, 68, 70, 72, 74, 76, 78, 79, 80, 79 };
+    private readonly int[] _sparkTime    = { 28, 26, 29, 27, 26, 25, 24, 23, 25, 24, 23, 24 };
+
+    private record Channel(string Name, int Pct, decimal Total, string Color);
+    private readonly Channel[] _channels =
+    {
+        new("PDV Balcão", 38, 4280.50m, "#1a1612"),
+        new("Cardápio digital", 27, 3042.00m, "var(--omni-accent)"),
+        new("iFood", 18, 2028.40m, "#ea1d2c"),
+        new("Mesa / Salão", 12, 1352.30m, "#16a34a"),
+        new("Garçom", 5, 563.45m, "#7c3aed"),
+    };
+
+    private record Product(string Name, int Qty, decimal Value, int Share);
+    private readonly Product[] _topProducts =
+    {
+        new("Pizza Calabresa G", 142, 8236.00m, 100),
+        new("Cheeseburger Duplo", 118, 3304.00m, 80),
+        new("Pizza Quatro Queijos G", 96, 6528.00m, 64),
+        new("Coca-Cola 2L", 87, 1218.00m, 53),
+        new("Pizza Margherita G", 74, 4588.00m, 44),
+        new("Combo Smash + Fritas", 62, 2356.00m, 36),
+        new("Brownie c/ Sorvete", 58, 1044.00m, 32),
+    };
+
+    private record Order(string Id, string Cust, string Items, decimal Total, string Channel, string Status, string Time);
+    private readonly Order[] _orders =
+    {
+        new("#4287", "Marina Costa", "1× Pizza Calabresa G, 1× Coca 2L", 87.80m, "digital", "cozinha", "há 2 min"),
+        new("#4286", "João Pereira", "2× Cheeseburger Duplo, 1× Brownie", 78.00m, "pdv", "pronto", "há 4 min"),
+        new("#4285", "Mesa 12", "1× Família 4Q ½ Margherita, 2× Cerveja LN", 96.00m, "mesa", "aberto", "há 6 min"),
+        new("#4284", "Pedro Lima", "1× Combo Smash + Fritas, 1× Guaraná 2L", 52.00m, "ifood", "entrega", "há 12 min"),
+        new("#4283", "Carla Mendes", "1× Veggie Burger, 1× Suco Laranja", 35.00m, "digital", "entrega", "há 18 min"),
+        new("#4282", "Mesa 03", "1× Pizza Pepperoni G, 1× Petit Gâteau", 86.00m, "garcom", "cozinha", "há 22 min"),
+        new("#4281", "Lucas Andrade", "1× Frango c/ Catupiry G, 1× Cerveja LN", 74.00m, "pdv", "pronto", "há 24 min"),
+    };
+
+    private record ShiftEvent(string Kind, string Icon, string Text, string Time);
+    private readonly ShiftEvent[] _events =
+    {
+        new("alert", "zap", "<b>Estoque crítico</b> — Muçarela 4kg restantes (cobertura 1,8h)", "11:42"),
+        new("warn", "clock", "<b>iFood</b> — 2 pedidos com tempo de preparo acima da meta", "11:30"),
+        new("ok", "zap", "<b>Promoção \"Calabresa + Coca\"</b> ativada · 28% de adesão hoje", "10:15"),
+        new("acc", "dollar-sign", "<b>Caixa PDV-02</b> aberto por Carla Rocha · R$ 200,00 fundo", "08:12"),
+    };
+
+    private static string StatusLabel(string s) => s switch
+    {
+        "cozinha" => "Na cozinha",
+        "entrega" => "Em entrega",
+        "pronto" => "Pronto",
+        _ => "Aberto",
+    };
+
+    private static BadgeVariant ChannelVariant(string c) => c switch
+    {
+        "digital" => BadgeVariant.Accent,
+        "ifood" => BadgeVariant.Danger,
+        "mesa" => BadgeVariant.Good,
+        "garcom" => BadgeVariant.Info,
+        _ => BadgeVariant.Plain,
+    };
+
+    private static BadgeVariant StatusVariant(string s) => s switch
+    {
+        "cozinha" => BadgeVariant.Warn,
+        "entrega" => BadgeVariant.Accent,
+        "pronto" => BadgeVariant.Good,
+        _ => BadgeVariant.Plain,
+    };
+
+    // ── Chart geometry (ported from the design's SalesChart) ──
+    private const double ChW = 720, ChH = 220, PadL = 36, PadR = 8, PadT = 12, PadB = 28;
+    private double InnerW => ChW - PadL - PadR;
+    private double InnerH => ChH - PadT - PadB;
+    private string _linePath = "", _areaPath = "", _chartInner = "";
+    private readonly List<(double Y, string Label)> _yTicks = new();
+    private readonly List<(double X, string Label)> _xLabels = new();
+    private readonly List<(double X, double Y)> _peakDots = new();
+
+    protected override void OnInitialized()
+    {
+        double max = _sales.Max();
+        double step = InnerW / (_sales.Length - 1);
+        var pts = _sales.Select((v, i) => (X: PadL + i * step, Y: PadT + InnerH - v / max * InnerH)).ToArray();
+        _linePath = string.Join(" ", pts.Select((p, i) => (i == 0 ? "M" : "L") + F(p.X) + "," + F(p.Y)));
+        _areaPath = _linePath + $" L{F(PadL + InnerW)},{F(PadT + InnerH)} L{F(PadL)},{F(PadT + InnerH)} Z";
+
+        foreach (var t in new[] { 0.0, 0.25, 0.5, 0.75, 1.0 })
+        {
+            double lbl = Math.Round(max * t);
+            _yTicks.Add((PadT + InnerH * (1 - t), lbl >= 1000 ? (lbl / 1000).ToString("0.#", _ci) + "k" : lbl.ToString("0", _ci)));
+        }
+        foreach (var h in new[] { 0, 4, 8, 12, 16, 20 })
+            _xLabels.Add((PadL + h * step, h.ToString("00") + "h"));
+
+        _peakDots.Add((pts[20].X, pts[20].Y));
+
+        // Build the chart SVG content as markup (avoids the reserved Razor <text> tag).
+        var sb = new StringBuilder();
+        sb.Append("<g class=\"omni-hd-chart-grid\">");
+        foreach (var t in _yTicks)
+            sb.Append($"<line x1=\"36\" x2=\"712\" y1=\"{F(t.Y)}\" y2=\"{F(t.Y)}\" />");
+        sb.Append("</g><g class=\"omni-hd-chart-axis\">");
+        foreach (var t in _yTicks)
+            sb.Append($"<text x=\"30\" y=\"{F(t.Y + 3)}\" text-anchor=\"end\">{t.Label}</text>");
+        foreach (var x in _xLabels)
+            sb.Append($"<text x=\"{F(x.X)}\" y=\"210\" text-anchor=\"middle\">{x.Label}</text>");
+        sb.Append("</g>");
+        sb.Append($"<path d=\"{_areaPath}\" class=\"omni-hd-chart-area\" />");
+        sb.Append($"<path d=\"{_linePath}\" class=\"omni-hd-chart-line\" />");
+        foreach (var p in _peakDots)
+            sb.Append($"<circle cx=\"{F(p.X)}\" cy=\"{F(p.Y)}\" r=\"3.5\" class=\"omni-hd-chart-dot\" />");
+        _chartInner = sb.ToString();
+    }
+
+    // ── Sparkline RenderFragment for the KPI's Visual slot ──
+    private RenderFragment Spark(int[] data, string color) => @<text>
+        <svg width="100" height="32" viewBox="0 0 100 32">
+            <path d="@SparkArea(data, 100, 32)" fill="@color" opacity="0.12" />
+            <path d="@SparkLine(data, 100, 32)" fill="none" stroke="@color" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    </text>;
+
+    private static string SparkLine(int[] d, int w, int h)
+    {
+        double max = d.Max(), min = d.Min();
+        double range = max - min == 0 ? 1 : max - min;
+        double step = (double)w / (d.Length - 1);
+        return string.Join(" ", d.Select((v, i) =>
+            (i == 0 ? "M" : "L") + F(i * step) + "," + F(h - (v - min) / range * h)));
+    }
+
+    private static string SparkArea(int[] d, int w, int h)
+        => SparkLine(d, w, h) + $" L{w},{h} L0,{h} Z";
+}

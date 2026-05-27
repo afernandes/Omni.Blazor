@@ -1,0 +1,35 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*
+    Pure-CSS circular spinner. Inherits `currentColor` so it adapts to whatever
+    text colour its parent uses (button, badge, link, etc.).
+
+    Usage: <OmniSpinner Size="ComponentSize.Sm" />
+*@
+
+<span class="@RootCss" style="@Style" role="status" aria-label="@(Label ?? "Carregando")" @attributes="Attributes">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <circle cx="12" cy="12" r="9" />
+    </svg>
+</span>
+
+@code {
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public string? Label { get; set; }
+
+    private string SizeClass => Size switch
+    {
+        ComponentSize.Sm => "omni-spinner-sm",
+        ComponentSize.Md => "omni-spinner-md",
+        ComponentSize.Lg => "omni-spinner-lg",
+        ComponentSize.Xl => "omni-spinner-xl",
+        _ => "omni-spinner-md"
+    };
+
+    private string RootCss => CssBuilder.Default("omni-spinner")
+        .AddClass(SizeClass)
+        .AddClass(Class)
+        .Build();
+}

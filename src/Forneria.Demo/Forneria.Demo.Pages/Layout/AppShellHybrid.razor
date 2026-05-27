@@ -1,0 +1,228 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject ThemeService Theme
+
+@*  Hybrid shell — combina nav horizontal (OmniMenuBar dentro de OmniToolBar)
+    com sidebar vertical contextual (OmniDrawer + OmniPanelMenu). O módulo
+    selecionado troca o conteúdo da sidebar; o body é owned pela página.
+
+    Demonstra a composição LEGO: AppBar topo + ToolBar (menu horizontal) +
+    Drawer esquerdo (responsive) + Main — tudo via :has(). *@
+<OmniLayout>
+
+    @* ─── Top brand row ─── *@
+    <OmniAppBar>
+        <OmniDrawerToggle Target="_drawer" />
+        <OmniBrand Name="Forneria" Tenant="Forno do Bairro — Vila Madalena" />
+        <div class="omni-header-spacer"></div>
+        <div class="omni-header-kbd-hint">
+            <OmniIcon Name="search" Size="ComponentSize.Sm" />
+            <span>Buscar cliente, pedido, produto…</span>
+            <OmniKbd Text="⌘K" />
+        </div>
+        <div class="omni-header-user">
+            <OmniAvatar Initials="CR" />
+            <div class="omni-stack omni-stack-2">
+                <span class="omni-header-user-name">Carla Rocha</span>
+                <span class="omni-header-user-role">Gerente · PDV-02</span>
+            </div>
+        </div>
+    </OmniAppBar>
+
+    @* ─── Horizontal module nav (toolbar row) ─── *@
+    <OmniToolBar>
+        <OmniMenuBar AriaLabel="Módulos" Style="border-bottom:0;">
+            <ChildContent>
+                <OmniMenuBarItem Text="Início"        Icon="layout-dashboard"
+                                  OnClick="@(() => SwitchModule("inicio"))"
+                                  Class="@ModuleCss("inicio")" />
+                <OmniMenuBarItem Text="Operação"      Icon="zap" Count="28"
+                                  OnClick="@(() => SwitchModule("operacao"))"
+                                  Class="@ModuleCss("operacao")" />
+                <OmniMenuBarItem Text="Gestão"        Icon="sliders"
+                                  OnClick="@(() => SwitchModule("gestao"))"
+                                  Class="@ModuleCss("gestao")" />
+                <OmniMenuBarItem Text="Cardápio"      Icon="grid"
+                                  OnClick="@(() => SwitchModule("cardapio"))"
+                                  Class="@ModuleCss("cardapio")" />
+                <OmniMenuBarItem Text="Análise"       Icon="bar-chart"
+                                  OnClick="@(() => SwitchModule("analise"))"
+                                  Class="@ModuleCss("analise")" />
+                <OmniMenuBarItem Text="Configurações" Icon="lock"
+                                  OnClick="@(() => SwitchModule("config"))"
+                                  Class="@ModuleCss("config")" />
+            </ChildContent>
+            <Aux>
+                <OmniStatusBadge Label="Caixa aberto" Meta="04:32:18"
+                                  Kind="StatusBadgeKind.Good" Pulse="true" />
+            </Aux>
+        </OmniMenuBar>
+    </OmniToolBar>
+
+    @* ─── Vertical contextual sidebar — content switches with selected module ─── *@
+    <OmniDrawer @ref="_drawer" Anchor="DrawerAnchor.Left" Variant="DrawerVariant.Responsive">
+        @switch (_module)
+        {
+            case "inicio":
+                <OmniPanelMenuSection Label="Geral">
+                    <OmniPanelMenuItem Text="Visão geral"   Icon="layout-dashboard" />
+                    <OmniPanelMenuItem Text="Agenda do dia" Icon="clock" />
+                    <OmniPanelMenuItem Text="Metas"         Icon="star">
+                        <OmniPanelMenuItem Text="Vendas"         CountText="74%" CountKind="MenuMetaKind.Good" />
+                        <OmniPanelMenuItem Text="Ticket médio"   CountText="92%" CountKind="MenuMetaKind.Good" />
+                        <OmniPanelMenuItem Text="Novos clientes" CountText="48%" CountKind="MenuMetaKind.Warn" />
+                    </OmniPanelMenuItem>
+                </OmniPanelMenuSection>
+                break;
+
+            case "operacao":
+                <OmniPanelMenuSection Label="Pedidos">
+                    <OmniPanelMenuItem Text="PDV"            Icon="shopping-cart" />
+                    <OmniPanelMenuItem Text="HUB de pedidos" Icon="grid" Count="28" CountKind="MenuMetaKind.Warn">
+                        <OmniPanelMenuItem Text="Em aberto"  Count="4" />
+                        <OmniPanelMenuItem Text="Na cozinha" Icon="zap" Count="12" CountKind="MenuMetaKind.Warn">
+                            <OmniPanelMenuItem Text="Pizza"           Count="6" CountKind="MenuMetaKind.Warn" />
+                            <OmniPanelMenuItem Text="Burger / grelha" Count="4" />
+                            <OmniPanelMenuItem Text="Fritura"         Count="2" />
+                        </OmniPanelMenuItem>
+                        <OmniPanelMenuItem Text="Prontos"    Count="6" CountKind="MenuMetaKind.Good" />
+                        <OmniPanelMenuItem Text="Em entrega" Icon="truck" Count="5" CountKind="MenuMetaKind.Accent" />
+                    </OmniPanelMenuItem>
+                    <OmniPanelMenuItem Text="Cozinha"        Icon="zap"   Count="12" CountKind="MenuMetaKind.Warn" />
+                    <OmniPanelMenuItem Text="Entregas"       Icon="truck" Count="5" />
+                </OmniPanelMenuSection>
+                <OmniPanelMenuSection Label="Atendimento">
+                    <OmniPanelMenuItem Text="Garçom"           Icon="users" />
+                    <OmniPanelMenuItem Text="Mesas"            Icon="grid" Count="8" />
+                    <OmniPanelMenuItem Text="Cardápio digital" Icon="tag" />
+                </OmniPanelMenuSection>
+                break;
+
+            case "gestao":
+                <OmniPanelMenuSection Label="Pessoas">
+                    <OmniPanelMenuItem Text="Clientes" Icon="user" Count="2341" Path="/hybrid">
+                        <OmniPanelMenuItem Text="Todos"              Icon="user"      Count="2341" />
+                        <OmniPanelMenuItem Text="VIPs"               Icon="star"      Count="86"  CountKind="MenuMetaKind.Accent" />
+                        <OmniPanelMenuItem Text="Gold"               Icon="star"      Count="214" />
+                        <OmniPanelMenuItem Text="Recorrentes"        Icon="shopping-cart" Count="612" />
+                        <OmniPanelMenuItem Text="Novos"              Icon="sparkle"   Count="124" CountKind="MenuMetaKind.Good">
+                            <OmniPanelMenuItem Text="Últimos 7 dias"  Count="28" CountKind="MenuMetaKind.Good" />
+                            <OmniPanelMenuItem Text="Últimos 30 dias" Count="124" />
+                            <OmniPanelMenuItem Text="Vindos do iFood" Count="42" />
+                        </OmniPanelMenuItem>
+                        <OmniPanelMenuItem Text="Inativos"           Icon="clock"     Count="482" />
+                        <OmniPanelMenuItem Text="Em risco de churn"  Icon="zap"       Count="38"  CountKind="MenuMetaKind.Danger" />
+                    </OmniPanelMenuItem>
+                    <OmniPanelMenuItem Text="Fidelidade" Icon="star">
+                        <OmniPanelMenuItem Text="Pontos &amp; resgates"          Icon="dollar-sign" />
+                        <OmniPanelMenuItem Text="Níveis (Bronze/Prata/Ouro)"     Icon="sliders" />
+                        <OmniPanelMenuItem Text="Regras de acúmulo"              Icon="menu" />
+                    </OmniPanelMenuItem>
+                    <OmniPanelMenuItem Text="Equipe" Icon="users">
+                        <OmniPanelMenuItem Text="Operadores" />
+                        <OmniPanelMenuItem Text="Garçons" />
+                        <OmniPanelMenuItem Text="Cozinha" />
+                        <OmniPanelMenuItem Text="Entregadores" />
+                    </OmniPanelMenuItem>
+                    <OmniPanelMenuItem Text="Permissões" Icon="lock" />
+                </OmniPanelMenuSection>
+                <OmniPanelMenuSection Label="Operacional">
+                    <OmniPanelMenuItem Text="Estoque" Icon="store" CountText="!" CountKind="MenuMetaKind.Danger">
+                        <OmniPanelMenuItem Text="Insumos críticos" Count="4"   CountKind="MenuMetaKind.Danger" />
+                        <OmniPanelMenuItem Text="Todos os insumos" Count="184" />
+                        <OmniPanelMenuItem Text="Perdas e quebras" />
+                    </OmniPanelMenuItem>
+                    <OmniPanelMenuItem Text="Fornecedores"   Icon="truck" />
+                    <OmniPanelMenuItem Text="Movimentações"  Icon="shopping-cart" />
+                    <OmniPanelMenuItem Text="Fichas técnicas" Icon="file-text" />
+                </OmniPanelMenuSection>
+                break;
+
+            case "cardapio":
+                <OmniPanelMenuSection Label="Catálogo">
+                    <OmniPanelMenuItem Text="Produtos"      Icon="package" Count="47" />
+                    <OmniPanelMenuItem Text="Sabores"       Icon="pizza"   Count="24" />
+                    <OmniPanelMenuItem Text="Categorias"    Icon="sliders" />
+                    <OmniPanelMenuItem Text="Modificadores" Icon="plus" />
+                </OmniPanelMenuSection>
+                <OmniPanelMenuSection Label="Apresentação">
+                    <OmniPanelMenuItem Text="Cardápio digital" Icon="tag" />
+                    <OmniPanelMenuItem Text="Promoções"        Icon="sparkle" Count="3" CountKind="MenuMetaKind.Accent" />
+                    <OmniPanelMenuItem Text="Combos"           Icon="star" />
+                </OmniPanelMenuSection>
+                break;
+
+            case "analise":
+                <OmniPanelMenuSection Label="Vendas">
+                    <OmniPanelMenuItem Text="Receita"     Icon="dollar-sign" />
+                    <OmniPanelMenuItem Text="Por produto" Icon="package" />
+                    <OmniPanelMenuItem Text="Por canal"   Icon="grid" />
+                </OmniPanelMenuSection>
+                <OmniPanelMenuSection Label="Operacional">
+                    <OmniPanelMenuItem Text="Tempos e SLAs" Icon="clock" />
+                    <OmniPanelMenuItem Text="CMV e margem" Icon="pizza" />
+                    <OmniPanelMenuItem Text="Performance"   Icon="users" />
+                </OmniPanelMenuSection>
+                break;
+
+            case "config":
+                <OmniPanelMenuSection Label="Conta">
+                    <OmniPanelMenuItem Text="Empresa"  Icon="store" />
+                    <OmniPanelMenuItem Text="Plano"    Icon="star" />
+                    <OmniPanelMenuItem Text="Cobrança" Icon="credit-card" />
+                </OmniPanelMenuSection>
+                <OmniPanelMenuSection Label="Integrações">
+                    <OmniPanelMenuItem Text="Apps conectados" Icon="sparkle" />
+                    <OmniPanelMenuItem Text="API e webhooks"  Icon="command" />
+                </OmniPanelMenuSection>
+                break;
+        }
+    </OmniDrawer>
+
+    <OmniMain>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    private string _module = "gestao";
+    private OmniDrawer? _drawer;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    // Restaura accent + dark persistidos do localStorage no primeiro render.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* swallow — nunca bloqueia o shell por falha de tema */ }
+        }
+    }
+
+    private string ModuleCss(string id)
+        => _module == id ? "omni-menubar-item-active" : "";
+
+    private void SwitchModule(string id)
+    {
+        if (_module == id) return;
+        _module = id;
+        StateHasChanged();
+    }
+
+    private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (_drawer is { IsOverlayMode: true, IsOpen: true })
+        {
+            _ = InvokeAsync(async () => { await _drawer.CloseAsync(); StateHasChanged(); });
+        }
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

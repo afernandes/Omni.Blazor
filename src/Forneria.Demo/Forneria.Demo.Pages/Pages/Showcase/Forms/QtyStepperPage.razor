@@ -1,0 +1,114 @@
+@page "/showcase/qty-stepper"
+@layout ShowcaseLayout
+
+<PageTitle>QtyStepper — Showcase</PageTitle>
+
+<ShowcasePage Title="QtyStepper"
+              Subtitle="Stepper compacto − / valor / + arredondado, touch-friendly. Otimizado para incrementos inteiros discretos (cart items, mode details, numpad).">
+
+    <Overview>
+        <p>
+            O <code>OmniQtyStepper</code> é um controle de quantidade reduzido —
+            dois botões (− / +) e um valor central, em uma pílula arredondada.
+            Pensado para uso onde o usuário só precisa incrementar/decrementar
+            quantidade inteira: <strong>linha de carrinho</strong>, <strong>passageiros
+            em mesa</strong>, <strong>doses em receita</strong>, <strong>numpad de PDV</strong>.
+        </p>
+        <p>
+            Inspirado em <code>RadzenNumeric</code> (com botões) e <code>MudNumericField</code>,
+            mas sem o input numérico — o foco é touch e velocidade. Para entrada
+            livre de números (com casas decimais, formatação BRL, debounce), use
+            <code>OmniNumeric</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Linhas de carrinho — alterar quantidade sem teclar.</li>
+            <li>Contadores rápidos: número de pessoas na mesa, doses, paradas.</li>
+            <li>Numpad de PDV/checkout.</li>
+            <li>Sempre que o valor é <strong>inteiro</strong> e os incrementos são <strong>discretos</strong>.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Valores decimais ou monetários → use <code>OmniNumeric</code> (com input).</li>
+            <li>Range com 100+ valores → use <code>OmniNumeric</code> ou um slider.</li>
+            <li>Quantidades opcionais que aceitam 0 → ajuste <code>Min="0"</code> no QtyStepper.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Two-way binding via bind-Value. Default Min=1."
+                         Code="@(@"<OmniQtyStepper @bind-Value=""qty"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="12" AlignItems="StackAlign.Center">
+                <OmniQtyStepper @bind-Value="qty" />
+                <span class="omni-muted omni-mono">Valor: @qty</span>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS — Sm / Md / Lg"
+                         Description="Três tamanhos predefinidos. Sm para listas densas, Md (default) para a maioria, Lg para touch primário em tablets."
+                         Code="@(@"<OmniQtyStepper Size=""ComponentSize.Sm"" @bind-Value=""qty"" />
+<OmniQtyStepper Size=""ComponentSize.Md"" @bind-Value=""qty"" />
+<OmniQtyStepper Size=""ComponentSize.Lg"" @bind-Value=""qty"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="16" AlignItems="StackAlign.Center">
+                <OmniQtyStepper Size="ComponentSize.Sm" @bind-Value="qtySm" />
+                <OmniQtyStepper Size="ComponentSize.Md" @bind-Value="qtyMd" />
+                <OmniQtyStepper Size="ComponentSize.Lg" @bind-Value="qtyLg" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LIMITES — Min / Max"
+                         Description="Botões − e + desabilitam ao atingir os limites. Aqui Min=2 e Max=8."
+                         Code="@(@"<OmniQtyStepper @bind-Value=""qty"" Min=""2"" Max=""8"" />")">
+            <OmniStack Direction="StackDirection.Row" Gap="12" AlignItems="StackAlign.Center">
+                <OmniQtyStepper @bind-Value="qtyClamped" Min="2" Max="8" />
+                <span class="omni-muted omni-mono">@qtyClamped (entre 2 e 8)</span>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EM CONTEXTO — linha de carrinho"
+                         Description="Padrão real do PDV: nome + stepper + preço + remover.">
+            <div style="border: 1px solid var(--omni-line); padding: 14px 16px; border-radius: 10px;">
+                <OmniStack Direction="StackDirection.Row" Gap="12" AlignItems="StackAlign.Center">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600;">Pizza G · Calabresa</div>
+                        <div class="omni-muted omni-mono" style="font-size: 11px;">R$ 56,90 · un.</div>
+                    </div>
+                    <OmniQtyStepper Size="ComponentSize.Sm" @bind-Value="qty" />
+                    <div class="omni-mono" style="font-weight: 700; min-width: 70px; text-align: right;">
+                        R$ @LineTotal
+                    </div>
+                </OmniStack>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniQtyStepper — parâmetros">
+            <ShowcaseApiRow Name="Value" Type="int" Default="0"
+                            Description="Valor inteiro atual. Two-way via bind-Value." />
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<int>" Default="—"
+                            Description="Callback disparado a cada mudança (− ou +). Recebe o novo valor já clamped." />
+            <ShowcaseApiRow Name="Min" Type="int" Default="1"
+                            Description="Limite inferior inclusivo. Botão − desabilita ao atingir." />
+            <ShowcaseApiRow Name="Max" Type="int?" Default="null"
+                            Description="Limite superior inclusivo (opcional). Botão + desabilita ao atingir. Sem limite quando null." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Sm (24×24), Md (28×28, default), Lg (36×36)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int qty = 3;
+    private int qtySm = 1;
+    private int qtyMd = 3;
+    private int qtyLg = 5;
+    private int qtyClamped = 5;
+    private string LineTotal => (56.90m * qty).ToString("F2");
+}

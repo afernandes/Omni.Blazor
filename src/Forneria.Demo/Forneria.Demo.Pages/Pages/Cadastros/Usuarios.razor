@@ -1,0 +1,99 @@
+@page "/cadastros/usuarios"
+@layout CadastrosLayout
+
+<PageTitle>Usuários — Forneria</PageTitle>
+
+<OmniPaneHeader Title="Usuários" Subtitle="@($"{users.Count} usuários · {users.Count(u => u.Online)} online agora")" />
+
+<OmniPaneToolbar>
+    <OmniTextBox @bind-Value="search" Placeholder="Buscar usuário..." LeadingIcon="search" Class="omni-pane-toolbar-search" />
+    <div class="omni-pane-toolbar-chips">
+        <OmniChip Text="Todos" Active="@(papel is null)" Accent OnClick="@(_ => SetPapel(null))" />
+        @foreach (var p in papeis)
+        {
+            <OmniChip Text="@p" Active="@(papel == p)" OnClick="@(_ => SetPapel(p))" />
+        }
+    </div>
+    <div class="omni-pane-toolbar-spacer"></div>
+    <OmniButton Text="Convidar usuário" Icon="plus" Variant="ButtonVariant.Primary" />
+</OmniPaneToolbar>
+
+<OmniDataGrid TItem="Usuario" Data="@Filtered" AllowPaging PageSize="14" Embed>
+    <Columns>
+        <OmniDataGridColumn TItem="Usuario" Title="Usuário" Property="@(u => u.Nome)">
+            <Template>
+                <div class="omni-row omni-row-gap-10">
+                    <OmniAvatar Initials="@context.Iniciais" />
+                    <div>
+                        <div style="font-weight:600;">@context.Nome</div>
+                        <div class="omni-muted" style="font-size:11px;">@context.Email</div>
+                    </div>
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Usuario" Title="Papel" Property="@(u => u.Papel)">
+            <Template>
+                <OmniBadge Text="@context.Papel" Variant="@PapelVariant(context.Papel)" />
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Usuario" Title="Último acesso" Property="@(u => u.UltimoAcesso)">
+            <Template>
+                <span class="omni-muted">@context.UltimoAcesso</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Usuario" Title="Status" Width="140px">
+            <Template>
+                <div class="omni-row omni-row-gap-6">
+                    <span class="omni-chip-dot" style="background: @(context.Online ? "var(--omni-good)" : "var(--omni-fg-soft)");"></span>
+                    <span class="omni-mono" style="font-size:11px; color: var(--omni-fg-muted);">@(context.Online ? "ONLINE" : "OFFLINE")</span>
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Usuario" Title="" Sortable="false" Width="120px">
+            <Template>
+                <div class="omni-row omni-row-gap-4 omni-row-end">
+                    <OmniButton IconOnly Icon="edit"  Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    <OmniButton IconOnly Icon="trash" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>
+
+@code {
+    private record Usuario(string Nome, string Iniciais, string Email, string Papel, string UltimoAcesso, bool Online);
+
+    private string? search;
+    private string? papel;
+    private readonly string[] papeis = new[] { "Dono", "Gerente", "Caixa", "Garçom", "Cozinha" };
+
+    private Task SetPapel(string? value) { papel = value; return Task.CompletedTask; }
+
+    private static BadgeVariant PapelVariant(string p) => p switch
+    {
+        "Dono"     => BadgeVariant.Accent,
+        "Gerente"  => BadgeVariant.Info,
+        "Garçom"   => BadgeVariant.Plain,
+        "Cozinha"  => BadgeVariant.Warn,
+        "Caixa"    => BadgeVariant.Good,
+        _ => BadgeVariant.Default
+    };
+
+    private readonly List<Usuario> users = new()
+    {
+        new("Anderson F.",   "AF", "anderson@forno.com.br",   "Dono",    "agora",            true),
+        new("Marina Costa",  "MC", "marina@forno.com.br",     "Gerente", "agora",            true),
+        new("Lucas P.",      "LP", "lucas@forno.com.br",      "Caixa",   "há 3 min",         true),
+        new("Beatriz M.",    "BM", "beatriz@forno.com.br",    "Garçom",  "há 12 min",        true),
+        new("Rafael S.",     "RS", "rafa@forno.com.br",       "Cozinha", "há 32 min",        false),
+        new("Fernanda S.",   "FS", "fer@forno.com.br",        "Garçom",  "ontem · 22h47",    false),
+        new("Bruno L.",      "BL", "bruno@forno.com.br",      "Cozinha", "há 2 dias",        false),
+        new("Joana M.",      "JM", "joana@forno.com.br",      "Caixa",   "há 1 semana",      false),
+    };
+
+    private IEnumerable<Usuario> Filtered => users.Where(u =>
+        (papel is null || u.Papel == papel) &&
+        (string.IsNullOrWhiteSpace(search)
+            || u.Nome.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || u.Email.Contains(search, StringComparison.OrdinalIgnoreCase)));
+}

@@ -1,0 +1,112 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+<button @ref="_el"
+        type="@TypeAttr"
+        class="@RootCss"
+        style="@Style"
+        disabled="@(Disabled || Loading)"
+        aria-busy="@(Loading ? "true" : "false")"
+        @onclick="HandleClickAsync"
+        @attributes="Attributes">
+    @if (Loading)
+    {
+        <OmniSpinner Size="@IconSize" />
+        @if (!string.IsNullOrEmpty(LoadingText))
+        {
+            <span>@LoadingText</span>
+        }
+        else if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else if (!string.IsNullOrEmpty(Text))
+        {
+            <span>@Text</span>
+        }
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <OmniIcon Name="@Icon" Size="@IconSize" />
+        }
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else if (!string.IsNullOrEmpty(Text))
+        {
+            <span>@Text</span>
+        }
+        @if (!string.IsNullOrEmpty(TrailingIcon))
+        {
+            <OmniIcon Name="@TrailingIcon" Size="@IconSize" />
+        }
+    }
+</button>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? TrailingIcon { get; set; }
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public bool IconOnly { get; set; }
+    [Parameter] public bool Block { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Type { get; set; } = "button";
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    /// <summary>
+    /// When true, renders an inline <c>OmniSpinner</c> in place of the leading icon,
+    /// disables click and sets <c>aria-busy="true"</c>. Width is preserved so the
+    /// surrounding layout doesn't shift.
+    /// </summary>
+    [Parameter] public bool Loading { get; set; }
+
+    /// <summary>Optional alternate label shown while <c>Loading</c> is true.</summary>
+    [Parameter] public string? LoadingText { get; set; }
+
+    private ElementReference _el;
+    private string TypeAttr => Type;
+
+    private string RootCss => CssBuilder.Default("omni-btn")
+        .AddClass(Variant switch
+        {
+            ButtonVariant.Primary => "omni-btn-primary",
+            ButtonVariant.Ghost   => "omni-btn-ghost",
+            ButtonVariant.Danger  => "omni-btn-danger",
+            ButtonVariant.Link    => "omni-btn-link",
+            _ => null
+        })
+        .AddClass(Size switch
+        {
+            ComponentSize.Sm => "omni-btn-sm",
+            ComponentSize.Lg => "omni-btn-lg",
+            ComponentSize.Xl => "omni-btn-xl",
+            _ => "omni-btn-md"
+        })
+        .AddClass("omni-btn-icon",    IconOnly)
+        .AddClass("omni-btn-block",   Block)
+        .AddClass("omni-btn-loading", Loading)
+        .AddClass(Class)
+        .Build();
+
+    private ComponentSize IconSize => Size switch
+    {
+        ComponentSize.Sm => ComponentSize.Sm,
+        ComponentSize.Lg => ComponentSize.Md,
+        ComponentSize.Xl => ComponentSize.Lg,
+        _ => ComponentSize.Sm
+    };
+
+    protected override void OnAfterRender(bool firstRender) => Element = _el;
+
+    private async Task HandleClickAsync(MouseEventArgs args)
+    {
+        if (Disabled || Loading) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(args);
+    }
+}

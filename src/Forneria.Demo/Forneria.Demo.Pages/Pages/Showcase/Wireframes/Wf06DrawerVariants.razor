@@ -1,0 +1,108 @@
+@page "/showcase/wireframes/drawer-variants"
+@layout WireframeLayout
+
+<PageTitle>WF-6 · Drawer Variants (live toggle)</PageTitle>
+
+@*  WIREFRAME 6 — Demonstra as 4 variantes de drawer com botões para
+    alternar a variante ativa. Como múltiplos drawers no mesmo Anchor
+    confundiriam o grid, usamos um switch e re-renderizamos. *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle />
+        <OmniBrand Name="Variantes" Tenant="Persistent · Mini · Temporary · Responsive" />
+        <div class="omni-header-spacer"></div>
+        <div class="omni-segmented" role="tablist" style="display:inline-flex; gap:4px;">
+            @foreach (var v in _variants)
+            {
+                <button type="button"
+                        class="@($"wf-var-btn{(_current == v ? " is-active" : "")}")"
+                        @onclick="@(() => _current = v)">
+                    @v.ToString()
+                </button>
+            }
+        </div>
+        <OmniKbd Text="WF-6" />
+    </OmniAppBar>
+
+    @* ExpandOnHover=true só pra Mini (Persistent/Responsive não fazem sentido).
+       Sem isso, Mini fica sempre icon-only — user precisaria clicar pra ver labels. *@
+    <OmniDrawer Variant="_current"
+                 Breakpoint="Breakpoint.Md"
+                 ExpandOnHover="@(_current == DrawerVariant.Mini)">
+        <OmniPanelMenuSection Label="Demo">
+            <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" />
+            <OmniPanelMenuItem Text="Pedidos"   Icon="package" Count="12" />
+            <OmniPanelMenuItem Text="Clientes"  Icon="users" />
+            <OmniPanelMenuItem Text="Estoque"   Icon="store" />
+            <OmniPanelMenuItem Text="Análise"   Icon="bar-chart" />
+        </OmniPanelMenuSection>
+    </OmniDrawer>
+
+    <OmniMain>
+        <div class="wf-demo-content">
+            <h1>Drawer Variants — clique nos botões acima</h1>
+            <p class="omni-muted">
+                As 4 variantes da mesma instância de <code>OmniDrawer</code>, alternadas em
+                runtime. Repare como cada uma afeta o grid de forma diferente:
+            </p>
+            <div class="omni-row-grid" style="--omni-row-gap: 16px; margin-top: 16px;">
+                <div class="omni-col omni-col-12 omni-col-md-6 omni-col-lg-3">
+                    <OmniCard Title="Persistent">
+                        Sempre visível. Empurra o Main para a direita. Ideal para desktops
+                        com espaço sobrando.
+                    </OmniCard>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-md-6 omni-col-lg-3">
+                    <OmniCard Title="Mini">
+                        Icon-only por default. <strong>Passe o mouse</strong> sobre o drawer —
+                        ele se expande temporariamente sem empurrar nada.
+                    </OmniCard>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-md-6 omni-col-lg-3">
+                    <OmniCard Title="Temporary">
+                        Fechado por default. Clique no hamburger para abrir como overlay
+                        com backdrop clicável.
+                    </OmniCard>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-md-6 omni-col-lg-3">
+                    <OmniCard Title="Responsive">
+                        Persistent acima de <code>Breakpoint</code>, Temporary abaixo.
+                        Redimensione a janela para ver a transição automática.
+                    </OmniCard>
+                </div>
+            </div>
+        </div>
+    </OmniMain>
+</OmniLayout>
+
+<style>
+    .wf-var-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid var(--omni-line);
+        border-radius: 6px;
+        background: var(--omni-bg);
+        color: var(--omni-fg-muted);
+        cursor: pointer;
+        transition: all 120ms ease;
+    }
+    .wf-var-btn:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
+    .wf-var-btn.is-active {
+        background: var(--omni-accent);
+        color: #fff;
+        border-color: var(--omni-accent);
+    }
+</style>
+
+@code {
+    private static readonly DrawerVariant[] _variants =
+    {
+        DrawerVariant.Persistent,
+        DrawerVariant.Mini,
+        DrawerVariant.Temporary,
+        DrawerVariant.Responsive,
+    };
+
+    private DrawerVariant _current = DrawerVariant.Persistent;
+}

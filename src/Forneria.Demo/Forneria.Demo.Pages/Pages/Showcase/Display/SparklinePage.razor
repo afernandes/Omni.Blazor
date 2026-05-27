@@ -1,0 +1,268 @@
+@page "/showcase/sparkline"
+@layout ShowcaseLayout
+
+<PageTitle>Sparkline — Showcase</PageTitle>
+
+<ShowcasePage Title="Sparkline"
+              Subtitle="Mini chart inline (sem eixos, sem legenda) para realçar tendência dentro de células, KPIs e listas.">
+
+    <Overview>
+        <p>
+            O <code>OmniSparkline</code> é um gráfico em miniatura desenhado em SVG puro —
+            sem eixos, sem legenda, sem tooltip. Ideal para colocar <strong>dentro</strong> de
+            outro componente: ao lado de um <code>OmniStat</code>, dentro de uma linha de
+            <code>OmniDataGrid</code>, ou inline no meio de uma frase.
+        </p>
+        <p>
+            Aceita qualquer <code>IEnumerable&lt;double&gt;</code> como dado. <strong>5 variantes</strong>
+            usam o mesmo input: <strong>Line</strong> (default), <strong>Area</strong>, <strong>Column</strong>,
+            <strong>Bar</strong> e <strong>Pie</strong> (pizza/donut). Opção <strong>Smooth</strong>
+            usa interpolação <em>monotone cubic Bezier</em> (mesmo algoritmo do
+            <code>RadzenLineSeries Smooth="true"</code>) — preserva monotonicidade dos dados
+            sem inventar picos/vales artificiais. A cor segue <code>--omni-accent</code>
+            por padrão; sobrescreva com a prop <code>Color</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Indicar tendência dentro de uma célula de tabela ou linha de KPI.</li>
+            <li>Visualização "ambiente" em dashboards densos — quando o eixo não importa.</li>
+            <li>Mostrar histórico de 7/30 dias de uma métrica em pouco espaço.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Comparação precisa entre pontos → use <code>OmniChart</code>.</li>
+            <li>Múltiplas séries simultâneas → use <code>OmniChart</code>.</li>
+            <li>Quando o usuário precisa do valor exato → adicione um label próximo.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="VARIANTES"
+                         Description="5 shapes. Mesmo dado, mesmo tamanho — só a estética muda. Pie usa viewBox quadrado e fatias proporcionais."
+                         Code="@(@"<OmniSparkline Data=""@data"" Variant=""SparklineVariant.Line"" />
+<OmniSparkline Data=""@data"" Variant=""SparklineVariant.Area"" />
+<OmniSparkline Data=""@data"" Variant=""SparklineVariant.Column"" />
+<OmniSparkline Data=""@data"" Variant=""SparklineVariant.Bar"" />
+<OmniSparkline Data=""@data"" Variant=""SparklineVariant.Pie"" />")">
+            <div class="omni-grid-3" style="row-gap:18px">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">LINE</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Line" style="width:160px;height:48px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">AREA</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Area" style="width:160px;height:48px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">COLUMN</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Column" style="width:160px;height:48px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">BAR</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Bar" style="width:160px;height:48px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">PIE</p>
+                    <OmniSparkline Data="@_pieSample" Variant="SparklineVariant.Pie" style="width:60px;height:60px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">PIE (donut)</p>
+                    <OmniSparkline Data="@_pieSample" Variant="SparklineVariant.Pie" PieInnerRadius="0.55" style="width:60px;height:60px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SMOOTH — curvas suaves (Radzen-equivalent)"
+                         Description='Smooth="true" usa monotone cubic Bezier (mesmo algoritmo do RadzenLineSeries) — preserva monotonicidade dos dados. Direita: reto (segmentos M/L). Esquerda: smooth.'
+                         Code='@("<OmniSparkline Data=\"@data\" Smooth=\"true\" Variant=\"SparklineVariant.Line\" />\n<OmniSparkline Data=\"@data\" Smooth=\"true\" Variant=\"SparklineVariant.Area\" />")'>
+            <div class="omni-grid-2" style="row-gap:18px">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">LINE · smooth</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Line" Smooth="true" StrokeWidth="2"
+                                    style="width:240px;height:60px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">LINE · reto</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Line" StrokeWidth="2"
+                                    style="width:240px;height:60px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">AREA · smooth</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Area" Smooth="true" ShowMarker
+                                    style="width:240px;height:60px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">AREA · reto</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Area" ShowMarker
+                                    style="width:240px;height:60px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MARKERS — último ponto vs todos"
+                         Description="ShowMarker destaca o último ponto. ShowAllMarkers exibe um círculo em CADA data point (estilo dashboards analíticos)."
+                         Code='@("<!-- só o último -->\n<OmniSparkline Data=\"@data\" Variant=\"SparklineVariant.Line\" ShowMarker />\n\n<!-- todos -->\n<OmniSparkline Data=\"@data\" Variant=\"SparklineVariant.Line\" Smooth=\"true\" ShowAllMarkers />")'>
+            <div class="omni-grid-2" style="row-gap:14px">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">ShowMarker (último)</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Line" Smooth="true" ShowMarker StrokeWidth="1.8"
+                                    style="width:280px;height:54px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">ShowAllMarkers (todos)</p>
+                    <OmniSparkline Data="@_sample" Variant="SparklineVariant.Line" Smooth="true" ShowAllMarkers StrokeWidth="1.8"
+                                    style="width:280px;height:54px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TABELA STYLE RADZEN — quiz scores por aluno"
+                         Description="O caso mais comum (e o que o RadzenSparkline mostra no demo deles): uma linha por entidade com sparklines lado a lado pra diferentes visões da mesma série."
+                         Code='@("<table>\n    @foreach (var p in people) {\n        <tr>\n            <td>@p.Name</td>\n            <td><OmniSparkline Data=\"@p.Scores\" Variant=\"SparklineVariant.Area\" Smooth /></td>\n            <td><OmniSparkline Data=\"@p.Scores\" Variant=\"SparklineVariant.Line\" Smooth ShowAllMarkers /></td>\n            <td><OmniSparkline Data=\"@p.Scores\" Variant=\"SparklineVariant.Column\" /></td>\n            <td><OmniSparkline Data=\"@p.Scores\" Variant=\"SparklineVariant.Pie\" PieInnerRadius=\"0.55\" /></td>\n        </tr>\n    }\n</table>")'>
+            <div class="sparkline-quiz-table">
+                <div class="sparkline-quiz-head">
+                    <span>Aluno</span><span>Area smooth</span><span>Line + markers</span><span>Column</span><span>Donut</span>
+                </div>
+                @foreach (var p in _people)
+                {
+                    <div class="sparkline-quiz-row">
+                        <strong>@p.Name</strong>
+                        <OmniSparkline Data="@p.Scores" Variant="SparklineVariant.Area" Smooth="true" style="width:100%;height:36px" />
+                        <OmniSparkline Data="@p.Scores" Variant="SparklineVariant.Line"  Smooth="true" ShowAllMarkers="true" StrokeWidth="1.6" style="width:100%;height:36px" />
+                        <OmniSparkline Data="@p.Scores" Variant="SparklineVariant.Column" style="width:100%;height:36px" />
+                        <OmniSparkline Data="@p.Scores" Variant="SparklineVariant.Pie" PieInnerRadius="0.55" style="width:36px;height:36px" />
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DENTRO DE STAT"
+                         Description="O caso clássico — mini-gráfico embaixo de um KPI mostrando os últimos 7 dias."
+                         Code="@(@"<OmniStat Card Label=""RECEITA"" Value=""R$ 12.480"" Delta=""+18%"">
+    <OmniSparkline Data=""@daily"" Variant=""SparklineVariant.Area""
+                    ShowMarker style=""width:100%;height:36px;margin-top:8px"" />
+</OmniStat>")">
+            <div class="omni-grid-3">
+                <OmniStat Card Label="RECEITA" Value="R$ 12.480" Delta="+18% vs ontem">
+                    <OmniSparkline Data="@_revenue" Variant="SparklineVariant.Area" ShowMarker style="width:100%;height:36px;margin-top:8px" />
+                </OmniStat>
+                <OmniStat Card Label="PEDIDOS" Value="2.341" Delta="+12%">
+                    <OmniSparkline Data="@_orders" Variant="SparklineVariant.Line" StrokeWidth="2" style="width:100%;height:36px;margin-top:8px" Color="var(--omni-good)" />
+                </OmniStat>
+                <OmniStat Card Label="DEVOLUÇÕES" Value="R$ 234" Delta="-15%" DeltaDown>
+                    <OmniSparkline Data="@_returns" Variant="SparklineVariant.Column" style="width:100%;height:36px;margin-top:8px" Color="var(--omni-danger)" />
+                </OmniStat>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="INLINE EM TEXTO"
+                         Description="Sparkline pode ir no meio de uma frase — ajuste a largura/altura por style."
+                         Code="@(@"Receita desta semana <OmniSparkline Data=""@daily"" style=""width:80px;height:20px;"" /> com tendência de alta.")">
+            <p style="margin:0;font-size:15px;line-height:1.7">
+                Receita desta semana
+                <OmniSparkline Data="@_revenue" style="width:80px;height:20px;" />
+                com tendência de alta;
+                pedidos
+                <OmniSparkline Data="@_orders" Color="var(--omni-good)" style="width:80px;height:20px;" />
+                acompanharam.
+                Por outro lado, devoluções
+                <OmniSparkline Data="@_returns" Color="var(--omni-danger)" Variant="SparklineVariant.Column" style="width:80px;height:20px;" />
+                desaceleraram nos últimos 3 dias.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CORES & MARCADOR"
+                         Description="Color aceita qualquer CSS color; ShowMarker destaca o último ponto."
+                         Code="@(@"<OmniSparkline Data=""@data"" Variant=""SparklineVariant.Area""
+                Color=""var(--omni-good)"" ShowMarker />")">
+            <div class="omni-grid-4">
+                <OmniSparkline Data="@_sample" Variant="SparklineVariant.Area" ShowMarker Color="var(--omni-accent)" style="width:160px;height:60px" />
+                <OmniSparkline Data="@_sample" Variant="SparklineVariant.Area" ShowMarker Color="var(--omni-good)" style="width:160px;height:60px" />
+                <OmniSparkline Data="@_sample" Variant="SparklineVariant.Area" ShowMarker Color="var(--omni-warn)" style="width:160px;height:60px" />
+                <OmniSparkline Data="@_sample" Variant="SparklineVariant.Area" ShowMarker Color="var(--omni-danger)" style="width:160px;height:60px" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Data" Type="IEnumerable<double>?" Default="null"
+                            Description="Sequência de números a plotar." />
+            <ShowcaseApiRow Name="Variant" Type="SparklineVariant" Default="Line"
+                            Description="Line | Area | Column | Bar | Pie." />
+            <ShowcaseApiRow Name="Smooth" Type="bool" Default="false"
+                            Description="Suaviza curva (Line/Area) usando monotone cubic Bezier — mesmo algoritmo do RadzenLineSeries. Preserva monotonicidade dos dados." />
+            <ShowcaseApiRow Name="Color" Type="string?" Default="null"
+                            Description="Cor do traço/preenchimento. Default = var(--omni-accent)." />
+            <ShowcaseApiRow Name="StrokeWidth" Type="double" Default="1.6"
+                            Description="Espessura do traço (Line/Area), em unidades de viewBox." />
+            <ShowcaseApiRow Name="AreaOpacity" Type="double" Default="0.18"
+                            Description="Opacidade do preenchimento de Area (0..1)." />
+            <ShowcaseApiRow Name="ShowMarker" Type="bool" Default="false"
+                            Description="Destaca o último ponto com um círculo (Line/Area)." />
+            <ShowcaseApiRow Name="ShowAllMarkers" Type="bool" Default="false"
+                            Description="Marca TODOS os pontos com círculos (Line/Area). Sobrescreve ShowMarker se true." />
+            <ShowcaseApiRow Name="BarGap" Type="double" Default="0.6"
+                            Description="Espaço entre barras/colunas em unidades de viewBox." />
+            <ShowcaseApiRow Name="PiePalette" Type="IReadOnlyList<string>?" Default="null"
+                            Description="Paleta de cores pro variant Pie. Se null, deriva tons do accent (mix com bg-elev)." />
+            <ShowcaseApiRow Name="PieInnerRadius" Type="double" Default="0"
+                            Description="Raio interno do donut em Pie (0–0.9). 0 = pizza sólida; 0.55 = donut clássico." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string?" Default="null"
+                            Description="Override do aria-label do SVG." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+<style>
+    /* Layout Radzen-style do quiz scores */
+    .sparkline-quiz-table {
+        background: var(--omni-bg-elev);
+        border: 1px solid var(--omni-line);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .sparkline-quiz-head, .sparkline-quiz-row {
+        display: grid;
+        grid-template-columns: 110px 1fr 1fr 1fr 50px;
+        gap: 16px;
+        padding: 12px 18px;
+        align-items: center;
+    }
+    .sparkline-quiz-head {
+        background: var(--omni-bg);
+        font: 600 11px var(--omni-font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--omni-fg-soft);
+        border-bottom: 1px solid var(--omni-line);
+    }
+    .sparkline-quiz-row {
+        border-bottom: 1px solid var(--omni-line);
+    }
+    .sparkline-quiz-row:last-child { border-bottom: 0; }
+    .sparkline-quiz-row strong { font-size: 14px; }
+</style>
+
+@code {
+    private double[] _sample = { 4, 7, 5, 12, 8, 14, 11, 18, 15, 22, 19, 25 };
+    private double[] _revenue = { 8200, 9100, 8800, 10500, 11200, 10800, 12480 };
+    private double[] _orders = { 1850, 1920, 2050, 2180, 2090, 2240, 2341 };
+    private double[] _returns = { 380, 420, 360, 310, 290, 250, 234 };
+    private double[] _pieSample = { 38, 27, 22, 13 }; // ~ slices: 38%, 27%, 22%, 13%
+
+    // Dados estilo Radzen quiz scores demo
+    private record Person(string Name, double[] Scores);
+    private Person[] _people = new[]
+    {
+        new Person("Alfred", new double[] { 58, 93, 84, 65 }),
+        new Person("Angela", new double[] { 53, 99, 89, 71 }),
+        new Person("Bob",    new double[] { 92, 58, 52, 61 }),
+        new Person("Brett",  new double[] { 52, 52, 73, 64 }),
+    };
+}

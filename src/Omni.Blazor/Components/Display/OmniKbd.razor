@@ -1,0 +1,16 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+<kbd class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (ChildContent is not null) { @ChildContent }
+    else { @Text }
+</kbd>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-kbd")
+        .AddClass(Class)
+        .Build();
+}

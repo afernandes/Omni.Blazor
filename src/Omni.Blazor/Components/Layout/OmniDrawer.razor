@@ -1,0 +1,331 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+@inject Omni.Blazor.Services.BreakpointService Breakpoints
+@inject Omni.Blazor.Services.ScrollManager Scroll
+@using Omni.Blazor.Utilities
+
+@*  Drawer / sidebar genérico — equivalente ao <c>MudDrawer</c> (MudBlazor),
+    <c>RadzenSidebar</c> (Radzen) e <c>.offcanvas</c> (Bootstrap).
+
+    Variantes (parâmetro <see cref="Variant"/>):
+      • Persistent — sempre visível, empurra o main (default)
+      • Mini       — sempre visível mas icon-only; expande on-hover
+      • Temporary  — overlay com backdrop, fechado por default
+      • Responsive — visível em desktop, overlay em mobile (abaixo de Breakpoint)
+
+    Ancoragem (<see cref="Anchor"/>): Left (default) ou Right.
+
+    Em modo overlay (Temporary, ou Responsive em mobile) o drawer gerencia
+    automaticamente: body scroll lock (via ScrollManager), focus trap (Tab
+    cycla dentro do drawer), Esc handler (fecha + restaura foco), e
+    auto-close on navigation (quando o usuário navega para outra rota). *@
+<CascadingValue Value="this" IsFixed="true">
+    <CascadingValue Name="DrawerCollapsed" Value="@IsCollapsed">
+        <aside id="@Id"
+               class="@RootCss"
+               data-anchor="@AnchorAttr"
+               data-variant="@VariantAttr"
+               data-open="@(IsOpen ? "1" : null)"
+               data-mobile="@(IsMobile ? "1" : null)"
+               data-expand-hover="@(ExpandOnHover ? "1" : null)"
+               style="@RootStyle"
+               @attributes="Attributes">
+            @if (Header is not null)
+            {
+                <div class="omni-drawer-header">@Header</div>
+            }
+            <div class="omni-drawer-body">@ChildContent</div>
+            @if (Footer is not null)
+            {
+                <div class="omni-drawer-footer-slot">@Footer</div>
+            }
+        </aside>
+        @if (IsOverlayMode && IsOpen)
+        {
+            <div class="omni-drawer-backdrop" @onclick="CloseAsync"></div>
+        }
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    /// <summary>Layout pai (auto-cascateado). Usado para auto-registro.</summary>
+    [CascadingParameter] public OmniLayout? Layout { get; set; }
+
+    /// <summary>Ancoragem do drawer no layout. Default Left.</summary>
+    [Parameter] public DrawerAnchor Anchor { get; set; } = DrawerAnchor.Left;
+
+    /// <summary>Variante de comportamento. Default Responsive.</summary>
+    [Parameter] public DrawerVariant Variant { get; set; } = DrawerVariant.Responsive;
+
+    /// <summary>Breakpoint a partir do qual o Responsive vira overlay. Default Md (~1024px).</summary>
+    [Parameter] public Breakpoint Breakpoint { get; set; } = Breakpoint.Md;
+
+    /// <summary>Largura quando aberto. Default usa CSS var <c>--omni-drawer-w</c> (232px).</summary>
+    [Parameter] public string? Width { get; set; }
+
+    /// <summary>Largura quando em modo Mini (icon-only). Default usa <c>--omni-drawer-w-mini</c> (72px).</summary>
+    [Parameter] public string? MiniWidth { get; set; }
+
+    /// <summary>Estado aberto/fechado. Two-way binding com <c>@bind-Open</c>.
+    /// Persistent: ignora (sempre visível); demais variantes: alterna visibilidade.</summary>
+    [Parameter] public bool Open { get; set; } = true;
+
+    /// <summary>Notifica mudança do estado <see cref="Open"/>.</summary>
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Força modo collapsed (icon-only) independente da variante. Útil para Mini estático.</summary>
+    [Parameter] public bool? Collapsed { get; set; }
+
+    /// <summary>Se true (default), o drawer fecha automaticamente em modo
+    /// overlay quando o usuário navega para outra rota. Útil em mobile —
+    /// elimina boilerplate no AppShell consumidor.</summary>
+    [Parameter] public bool AutoCloseOnNavigate { get; set; } = true;
+
+    /// <summary>Quando true, o drawer Mini expande on-hover (ficando full-width)
+    /// e retorna ao icon-only quando o mouse sai. Útil para combinar
+    /// densidade visual com acesso rápido aos labels. Default false.</summary>
+    [Parameter] public bool ExpandOnHover { get; set; }
+
+    /// <summary>Slot opcional renderizado no topo do drawer — antes do
+    /// ChildContent. Útil para logo do app, info do usuário, busca rápida.
+    /// Inspirado em <c>MudDrawerHeader</c>.</summary>
+    [Parameter] public RenderFragment? Header { get; set; }
+
+    /// <summary>Slot opcional renderizado no rodapé do drawer — após o
+    /// ChildContent. Útil para card de plano/upgrade, link de logout,
+    /// versão do app. Padrão Slack/Discord/shadcn.</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>Quando true, persiste o estado <see cref="Open"/> em
+    /// localStorage (chave <c>omni.drawer.{Id}</c> ou <see cref="PersistKey"/>).
+    /// Sobrevive a F5 e navegação. Default false. Padrão shadcn/ui.</summary>
+    [Parameter] public bool Persist { get; set; }
+
+    /// <summary>Chave custom para persistência. Útil quando há múltiplos
+    /// drawers e o Id auto-gerado mudaria entre sessões. Default null —
+    /// usa o <see cref="OmniComponent.Id"/>.</summary>
+    [Parameter] public string? PersistKey { get; set; }
+
+    private bool _jsRegistered;
+    private bool _registeredLayout;
+    private bool _isMobileViewport;          // abaixo do Breakpoint, p/ Responsive
+    private bool _navHooked;
+    private bool _persistLoaded;             // first read from localStorage done
+    private DotNetObjectReference<OmniDrawer>? _selfRef;
+    private IAsyncDisposable? _bpSub;
+    // Body lock + focus trap + Esc handler centralizados em OverlayLifecycle —
+    // mesmo helper que OmniOverlay/Dialog/SplitView usam. Mantém só o estado
+    // "ativo" via _overlay.IsActive, sem flag duplicada.
+    private Omni.Blazor.Services.OverlayLifecycle? _overlay;
+
+    private string PersistStorageKey => $"omni.drawer.{PersistKey ?? Id}";
+
+    /// <summary>True quando o drawer está em modo icon-only (Mini sempre, ou Persistent forçado).</summary>
+    public bool IsCollapsed => Collapsed
+        ?? (Variant == DrawerVariant.Mini && !Open);
+
+    /// <summary>True quando o drawer está visível no momento.</summary>
+    public bool IsOpen => Variant switch
+    {
+        DrawerVariant.Persistent => true,
+        DrawerVariant.Mini       => true,
+        DrawerVariant.Temporary  => Open,
+        DrawerVariant.Responsive => Open,
+        _                        => Open,
+    };
+
+    /// <summary>True quando o drawer flutua sobre o conteúdo (Temporary, ou Responsive em mobile).</summary>
+    public bool IsOverlayMode => Variant == DrawerVariant.Temporary
+        || (Variant == DrawerVariant.Responsive && _isMobileViewport);
+
+    /// <summary>Indica se a viewport atual está abaixo do <see cref="Breakpoint"/>.</summary>
+    public bool IsMobile => _isMobileViewport;
+
+    private string AnchorAttr => Anchor == DrawerAnchor.Right ? "right" : "left";
+    private string VariantAttr => Variant.ToString().ToLowerInvariant();
+
+    private string RootCss => CssBuilder.Default("omni-sidebar")
+        .AddClass("omni-drawer")
+        .AddClass("omni-sidebar-collapsed omni-drawer-collapsed", IsCollapsed)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle
+    {
+        get
+        {
+            var parts = new List<string>(3);
+            if (!string.IsNullOrWhiteSpace(Width)) parts.Add($"--omni-drawer-w: {Width}");
+            if (!string.IsNullOrWhiteSpace(MiniWidth)) parts.Add($"--omni-drawer-w-mini: {MiniWidth}");
+            if (!string.IsNullOrWhiteSpace(Style)) parts.Add(Style!);
+            return string.Join("; ", parts);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Auto-registra no Layout para que DrawerToggle em outros slots
+        // (AppBar) consiga encontrar este drawer via cascade do layout.
+        if (Layout is not null && !_registeredLayout)
+        {
+            Layout.RegisterDrawer(this);
+            _registeredLayout = true;
+        }
+
+        // Hook navigation events for auto-close (only when overlay variant
+        // could ever be active — Persistent/Mini won't ever close).
+        if (AutoCloseOnNavigate && Variant != DrawerVariant.Persistent && Variant != DrawerVariant.Mini)
+        {
+            Nav.LocationChanged += OnLocationChanged;
+            _navHooked = true;
+        }
+
+        // Assina mudanças de viewport para a variante Responsive.
+        if (Variant == DrawerVariant.Responsive)
+        {
+            _bpSub = await Breakpoints.SubscribeAsync(bp =>
+            {
+                var wasMobile = _isMobileViewport;
+                var nowMobile = bp < Breakpoint;
+                _isMobileViewport = nowMobile;
+                if (wasMobile != nowMobile)
+                {
+                    // Mobile → desktop: abre o drawer (default visível no grid).
+                    // Desktop → mobile: fecha o drawer (default oculto, hamburger abre).
+                    var newOpen = !nowMobile;
+                    if (newOpen != Open)
+                    {
+                        Open = newOpen;
+                        if (OpenChanged.HasDelegate) _ = OpenChanged.InvokeAsync(Open);
+                    }
+                }
+                StateHasChanged();
+            });
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_jsRegistered)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("omniBlazor.registerPanelMenuFlyout", Id, "#" + Id);
+                _jsRegistered = true;
+            }
+            catch { /* SSR / disconnected — JS will reregister on next render */ }
+        }
+
+        // First-render load of persisted state. JS interop não funciona em
+        // OnInitializedAsync (pré-interativo) — só após primeiro paint.
+        if (firstRender && Persist && !_persistLoaded)
+        {
+            _persistLoaded = true;
+            try
+            {
+                var saved = await JS.InvokeAsync<string?>("omniBlazor.storageGet", PersistStorageKey);
+                if (!string.IsNullOrEmpty(saved))
+                {
+                    var newOpen = saved == "1" || saved == "true";
+                    if (newOpen != Open)
+                    {
+                        Open = newOpen;
+                        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(Open);
+                        StateHasChanged();
+                    }
+                }
+            }
+            catch { /* SSR / storage blocked */ }
+        }
+
+        // Sync overlay-active state: when the drawer becomes an open overlay,
+        // engage body lock + focus trap + Esc handler. When it closes (or
+        // returns to in-grid mode), release them. OverlayLifecycle helper centraliza
+        // a lógica de lock/unlock+setupOverlay/teardownOverlay reusada por
+        // OmniOverlay/Dialog/SplitView.
+        _overlay ??= new Omni.Blazor.Services.OverlayLifecycle(JS, Scroll, Id);
+        var shouldBeActive = IsOverlayMode && IsOpen;
+        if (shouldBeActive && !_overlay.IsActive)
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            await _overlay.ActivateAsync(_selfRef);
+        }
+        else if (!shouldBeActive && _overlay.IsActive)
+        {
+            await _overlay.DeactivateAsync();
+        }
+    }
+
+    /// <summary>Invoked by JS when Esc is pressed while this overlay is active.</summary>
+    [JSInvokable]
+    public Task OnEscape() => CloseAsync();
+
+    /// <summary>Auto-close handler — fires when the URL changes while drawer is
+    /// open in overlay mode. Prevents stale overlays when the user clicks a
+    /// menu item that navigates.</summary>
+    private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (IsOverlayMode && Open)
+        {
+            _ = InvokeAsync(async () => { await CloseAsync(); });
+        }
+    }
+
+    /// <summary>Abre o drawer programaticamente.</summary>
+    public async Task OpenAsync()
+    {
+        if (Open) return;
+        Open = true;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(true);
+        await SavePersistedStateAsync();
+        StateHasChanged();
+    }
+
+    /// <summary>Fecha o drawer programaticamente.</summary>
+    public async Task CloseAsync()
+    {
+        if (!Open) return;
+        Open = false;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(false);
+        await SavePersistedStateAsync();
+        StateHasChanged();
+    }
+
+    private async Task SavePersistedStateAsync()
+    {
+        if (!Persist || !_persistLoaded) return;
+        try { await JS.InvokeVoidAsync("omniBlazor.storageSet", PersistStorageKey, Open ? "1" : "0"); }
+        catch { /* storage blocked */ }
+    }
+
+    /// <summary>Alterna o estado aberto/fechado. Usado pelo <c>OmniDrawerToggle</c>.</summary>
+    public Task ToggleAsync() => Open ? CloseAsync() : OpenAsync();
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_navHooked)
+        {
+            Nav.LocationChanged -= OnLocationChanged;
+            _navHooked = false;
+        }
+        if (_overlay is not null) await _overlay.DisposeAsync();
+        if (_registeredLayout)
+        {
+            Layout?.UnregisterDrawer(this);
+            _registeredLayout = false;
+        }
+        if (_bpSub is not null)
+        {
+            try { await _bpSub.DisposeAsync(); } catch { }
+        }
+        if (_jsRegistered)
+        {
+            try { await JS.InvokeVoidAsync("omniBlazor.unregisterPanelMenuFlyout", Id); } catch { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+}

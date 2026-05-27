@@ -1,0 +1,127 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    Standalone pager — use anywhere outside of DataGrid (cards, timelines,
+    custom lists). DataGrid uses this internally so the look stays consistent.
+
+    Usage:
+        <OmniPagination @bind-CurrentPage="page" TotalCount="@items.Count" PageSize="10" />
+
+    Compact variant only shows prev/next; ShowSummary adds the "1–10 de N" text.
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (ShowSummary && TotalCount > 0)
+    {
+        <span class="omni-pagination-summary">@_pageStart–@_pageEnd de @TotalCount</span>
+    }
+
+    <div class="omni-pagination-controls">
+        <OmniButton IconOnly Icon="chevron-left" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                     Disabled="@(CurrentPage <= 0)"
+                     OnClick="@(_ => SetPageAsync(CurrentPage - 1))" />
+
+        @if (!Compact)
+        {
+            @foreach (var token in _tokens)
+            {
+                @if (token is null)
+                {
+                    <span class="omni-pagination-ellipsis">…</span>
+                }
+                else
+                {
+                    var pageIndex = token.Value;
+                    var active = pageIndex == CurrentPage;
+                    <button type="button"
+                            class="@("omni-pagination-btn" + (active ? " omni-active" : ""))"
+                            disabled="@active"
+                            @onclick="@(_ => SetPageAsync(pageIndex))">@(pageIndex + 1)</button>
+                }
+            }
+        }
+        else
+        {
+            <span class="omni-pagination-current">@(CurrentPage + 1) / @TotalPages</span>
+        }
+
+        <OmniButton IconOnly Icon="chevron-right" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                     Disabled="@(CurrentPage >= TotalPages - 1)"
+                     OnClick="@(_ => SetPageAsync(CurrentPage + 1))" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public int CurrentPage { get; set; }
+    [Parameter] public EventCallback<int> CurrentPageChanged { get; set; }
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public int PageSize { get; set; } = 10;
+
+    /// <summary>Maximum number of numeric page buttons to show (excluding ellipsis). Default 7.</summary>
+    [Parameter] public int MaxVisible { get; set; } = 7;
+
+    /// <summary>If true, hides numeric buttons and shows just "N / Total" between the arrows.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    /// <summary>If true, shows the "1–10 de 200" summary to the left.</summary>
+    [Parameter] public bool ShowSummary { get; set; }
+
+    private int _pageStart;
+    private int _pageEnd;
+    private List<int?> _tokens = new();
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
+
+    private string RootCss => CssBuilder.Default("omni-pagination")
+        .AddClass(Compact ? "omni-pagination-compact" : "omni-pagination-full")
+        .AddClass("omni-pagination-with-summary", ShowSummary)
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnParametersSet()
+    {
+        if (CurrentPage < 0) CurrentPage = 0;
+        if (CurrentPage >= TotalPages) CurrentPage = Math.Max(0, TotalPages - 1);
+
+        _pageStart = TotalCount == 0 ? 0 : CurrentPage * PageSize + 1;
+        _pageEnd   = Math.Min(TotalCount, (CurrentPage + 1) * PageSize);
+
+        BuildTokens();
+    }
+
+    private async Task SetPageAsync(int page)
+    {
+        page = Math.Max(0, Math.Min(TotalPages - 1, page));
+        if (page == CurrentPage) return;
+        CurrentPage = page;
+        if (CurrentPageChanged.HasDelegate) await CurrentPageChanged.InvokeAsync(page);
+    }
+
+    /// <summary>
+    /// Build the visible page tokens. Null entries render as ellipsis.
+    /// Always includes first and last page, and a window around the current page.
+    /// </summary>
+    private void BuildTokens()
+    {
+        _tokens = new();
+        var total = TotalPages;
+        if (total <= MaxVisible)
+        {
+            for (int i = 0; i < total; i++) _tokens.Add(i);
+            return;
+        }
+
+        var side = Math.Max(1, (MaxVisible - 5) / 2);   // pages adjacent to current
+        var left  = Math.Max(1, CurrentPage - side);
+        var right = Math.Min(total - 2, CurrentPage + side);
+
+        _tokens.Add(0);
+        if (left > 1) _tokens.Add(null);
+        for (int i = left; i <= right; i++) _tokens.Add(i);
+        if (right < total - 2) _tokens.Add(null);
+        _tokens.Add(total - 1);
+    }
+}

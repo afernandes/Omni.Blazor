@@ -1,0 +1,92 @@
+@page "/cadastros/promocoes"
+@layout CadastrosLayout
+
+<PageTitle>Promoções — Forneria</PageTitle>
+
+<OmniPaneHeader Title="Promoções" Subtitle="@($"{promos.Count} campanhas · {promos.Count(p => p.Ativa)} ativas")" />
+
+<OmniPaneToolbar>
+    <OmniTextBox @bind-Value="search" Placeholder="Buscar promoção..." LeadingIcon="search" Class="omni-pane-toolbar-search" />
+    <div class="omni-pane-toolbar-chips">
+        <OmniChip Text="Todas"     Active="@(filter is null)"         Accent OnClick="@(_ => SetFilter(null))" />
+        <OmniChip Text="Ativas"    Active="@(filter == "ativas")"     OnClick="@(_ => SetFilter("ativas"))" />
+        <OmniChip Text="Agendadas" Active="@(filter == "agendadas")"  OnClick="@(_ => SetFilter("agendadas"))" />
+        <OmniChip Text="Expiradas" Active="@(filter == "expiradas")"  OnClick="@(_ => SetFilter("expiradas"))" />
+    </div>
+    <div class="omni-pane-toolbar-spacer"></div>
+    <OmniButton Text="Nova promoção" Icon="plus" Variant="ButtonVariant.Primary" />
+</OmniPaneToolbar>
+
+<OmniDataGrid TItem="Promo" Data="@Filtered" AllowPaging PageSize="14" Embed>
+    <Columns>
+        <OmniDataGridColumn TItem="Promo" Title="Promoção" Property="@(p => p.Nome)">
+            <Template>
+                <div>
+                    <div style="font-weight:600;">@context.Nome</div>
+                    <div class="omni-muted" style="font-size:11px;">@context.Descricao</div>
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Promo" Title="Código" Property="@(p => p.Codigo)">
+            <Template>
+                <span class="omni-kbd">@context.Codigo</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Promo" Title="Desconto" Property="@(p => (object)p.Desconto)">
+            <Template>
+                <span class="omni-mono omni-accent-fg" style="font-weight:600;">−@context.Desconto%</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Promo" Title="Validade" Property="@(p => p.Validade)">
+            <Template>
+                <span class="omni-muted">@context.Validade</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Promo" Title="Usos" Property="@(p => (object)p.Usos)" Width="100px">
+            <Template>
+                <span class="omni-mono">@context.Usos</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Promo" Title="Status" Property="@(p => (object)p.Ativa)">
+            <Template>
+                <OmniBadge Text="@(context.Ativa ? "Ativa" : "Encerrada")"
+                            Variant="@(context.Ativa ? BadgeVariant.Good : BadgeVariant.Plain)" />
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Promo" Title="" Sortable="false" Width="140px">
+            <Template>
+                <div class="omni-row omni-row-gap-4 omni-row-end">
+                    <OmniButton IconOnly Icon="copy"  Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    <OmniButton IconOnly Icon="edit"  Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    <OmniButton IconOnly Icon="trash" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>
+
+@code {
+    private record Promo(string Nome, string Descricao, string Codigo, int Desconto, string Validade, int Usos, bool Ativa, string Estado);
+
+    private string? search;
+    private string? filter;
+    private Task SetFilter(string? v) { filter = v; return Task.CompletedTask; }
+
+    private readonly List<Promo> promos = new()
+    {
+        new("Pizza terça",       "Pizzas grandes na terça",       "TERCA10",    10, "Toda terça",         412, true,  "ativas"),
+        new("Combo família",     "10% no combo de 4 pessoas",     "FAMILIA",    10, "Permanente",         128, true,  "ativas"),
+        new("Lançamento Calabresa","Promoção de lançamento",      "CALABNOVA",  20, "Até 31/05/2026",      48, true,  "ativas"),
+        new("Black Friday 2025", "Sexta de descontos absurdos",   "BF25",       30, "28/11/2025",        1842, false, "expiradas"),
+        new("Dia das Mães",      "20% para pedidos do dia",       "MAES2026",   20, "11/05/2026",         312, false, "expiradas"),
+        new("Volta às aulas",    "Almoço de seg a sex",           "VOLTASEG",   15, "01/08 — 31/08/2026",   0, false, "agendadas"),
+        new("Aniversariante",    "Free sobremesa no aniversário", "ANIVER",    100, "Permanente",          63, true,  "ativas"),
+        new("Cupom primeira",    "Primeira compra do cliente",    "FIRST15",    15, "Permanente",         224, true,  "ativas"),
+    };
+
+    private IEnumerable<Promo> Filtered => promos.Where(p =>
+        (filter is null || p.Estado == filter) &&
+        (string.IsNullOrWhiteSpace(search)
+            || p.Nome.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || p.Codigo.Contains(search, StringComparison.OrdinalIgnoreCase)));
+}

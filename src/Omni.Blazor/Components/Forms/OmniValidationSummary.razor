@@ -1,0 +1,87 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Styled validation summary — like Blazor's <ValidationSummary> but uses the
+    `omni-alert omni-alert-danger` look. Place inside an <EditForm>/<OmniForm>.
+    Re-renders whenever the form's validation state changes.
+*@
+
+@if (_messages.Length > 0)
+{
+    <div class="@RootCss" role="alert" style="@Style" @attributes="Attributes">
+        <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
+        <div class="omni-alert-body">
+            @if (!string.IsNullOrEmpty(Title))
+            {
+                <div class="omni-alert-title">@Title</div>
+            }
+            <ul class="omni-validation-summary-list">
+                @foreach (var msg in _messages)
+                {
+                    <li>@msg</li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+    [Parameter] public string? Title { get; set; } = "Corrija os erros abaixo:";
+
+    private EditContext? _subscribed;
+    private string[] _messages = Array.Empty<string>();
+
+    private string RootCss => CssBuilder.Default("omni-alert")
+        .AddClass("omni-alert-danger")
+        .AddClass(Class)
+        .Build();
+
+    // ParameterState: rebind the EditContext subscription only when the
+    // cascading context changes — a normal re-render that doesn't swap
+    // context shouldn't tear down + re-attach the validation listener.
+    private readonly ParameterState<EditContext?> _editContextState;
+
+    // Test-only counter: increments every time the context-driven recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniValidationSummary()
+    {
+        _editContextState = RegisterParameter<EditContext?>(nameof(EditContext))
+            .WithParameter(() => EditContext)
+            .WithChangeHandler(RebindContextSubscription)
+            .Attach();
+    }
+
+    private void RebindContextSubscription()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnChanged;
+        _subscribed = EditContext;
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged += OnChanged;
+        Refresh();
+        RecomputeCount++;
+    }
+
+    private void OnChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        Refresh();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Refresh()
+    {
+        _messages = EditContext is null
+            ? Array.Empty<string>()
+            : EditContext.GetValidationMessages().Distinct().ToArray();
+    }
+
+    public void Dispose()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnChanged;
+    }
+}

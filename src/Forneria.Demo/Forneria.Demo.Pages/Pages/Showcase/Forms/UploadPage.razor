@@ -1,0 +1,212 @@
+@page "/showcase/upload"
+@layout ShowcaseLayout
+@inject NotificationService Toast
+@inject HttpClient Http
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>FileUpload — Showcase</PageTitle>
+
+<ShowcasePage Title="FileUpload"
+              Subtitle="Drop-zone com drag-and-drop, lista de arquivos e restrições de tipo e tamanho.">
+
+    <Overview>
+        <p>
+            O <code>OmniFileUpload</code> envolve o <code>&lt;InputFile&gt;</code> do Blazor com
+            uma <strong>drop-zone estilizada</strong> que aceita drag-and-drop, exibe a lista de
+            arquivos selecionados com tamanho e botão de remover, e aplica restrições.
+        </p>
+        <p>
+            Restrições disponíveis: <code>Accept</code> (tipos MIME ou extensões),
+            <code>MaxFileSize</code> (limite por arquivo, padrão 10 MB), <code>MaxFileCount</code>
+            (máximo de arquivos no modo <code>Multiple</code>). O evento
+            <code>OnFilesSelected</code> entrega os <code>IBrowserFile</code> selecionados —
+            o consumidor decide o que fazer (preview, upload via HTTP, etc.).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Anexar documentos a um cadastro — contratos, notas, comprovantes.</li>
+            <li>Upload de imagens — galeria de produto, foto de perfil.</li>
+            <li>Importação de planilhas/arquivos de dados.</li>
+            <li>Qualquer fluxo que precise de drag-and-drop com validação de tipo/tamanho.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Entrada de texto ou URL de um recurso → use <code>OmniTextBox</code>.</li>
+            <li>Seleção de itens já existentes no sistema → use <code>OmniAutoComplete</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SINGLE FILE"
+                         Description="Sem Multiple. Apenas um arquivo por vez (substitui o anterior)."
+                         Code="@(@"<OmniFileUpload LabelText=""Anexar contrato""
+                 HintText=""PDF · até 10 MB"" Accept="".pdf""
+                 OnFilesSelected=""@(files => { Toast.Info(""Selecionado"", files[0].Name); return Task.CompletedTask; })"" />")">
+            <OmniFileUpload OnFilesSelected="@(files => { Toast.Info("Arquivo selecionado", files[0].Name); return Task.CompletedTask; })"
+                              LabelText="Anexar contrato" HintText="PDF · até 10 MB" Accept=".pdf" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MULTI (IMAGENS)"
+                         Description="Aceita até 5 arquivos, só imagens, máximo 5 MB cada."
+                         Code="@(@"<OmniFileUpload Multiple
+                 Accept=""image/*""
+                 MaxFileSize=""@(5L * 1024 * 1024)""
+                 MaxFileCount=""5""
+                 LabelText=""Galeria de fotos do produto"" />")">
+            <OmniFileUpload Multiple
+                              Accept="image/*"
+                              MaxFileSize="@(5L * 1024 * 1024)"
+                              MaxFileCount="5"
+                              LabelText="Galeria de fotos do produto"
+                              OnFilesSelected="@(files => { Toast.Success($"{files.Count} arquivo(s)", string.Join(", ", files.Select(f => f.Name))); return Task.CompletedTask; })" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="QUALQUER ARQUIVO"
+                         Description="Sem Accept = qualquer tipo aceito."
+                         Code="@(@"<OmniFileUpload Multiple LabelText=""Qualquer arquivo"" />")">
+            <OmniFileUpload Multiple LabelText="Qualquer arquivo" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="UPLOAD REAL"
+                         Description="Lê os bytes do arquivo via IBrowserFile.OpenReadStream(), faz POST multipart pra /api/uploads, e exibe abaixo o que foi salvo no servidor (preview pra imagens, link pra PDFs)."
+                         Code="@(@"<OmniFileUpload Multiple Accept=""image/*,.pdf""
+                 MaxFileSize=""@(10L * 1024 * 1024)""
+                 MaxFileCount=""5""
+                 OnFilesSelected=""UploadAsync"" />")">
+            <OmniFileUpload Multiple
+                             Accept="image/*,.pdf"
+                             MaxFileSize="@(10L * 1024 * 1024)"
+                             MaxFileCount="5"
+                             LabelText="Envia mesmo — solta uma imagem ou PDF"
+                             HintText="JPG / PNG / PDF · até 10 MB"
+                             OnFilesSelected="UploadAsync" />
+
+            @if (_uploading)
+            {
+                <div class="omni-row omni-row-gap-8" style="margin-top:12px;">
+                    <OmniSpinner Size="ComponentSize.Sm" />
+                    <span class="omni-meta">Enviando @_pendingCount arquivo(s)…</span>
+                </div>
+            }
+
+            @if (_uploaded.Count > 0)
+            {
+                <div class="omni-stack omni-stack-8" style="margin-top:16px;">
+                    <div class="omni-eyebrow-text">SALVOS NO SERVIDOR</div>
+                    <div class="omni-row omni-row-wrap omni-row-gap-12">
+                        @foreach (var up in _uploaded)
+                        {
+                            <OmniCard Style="width: 220px;">
+                                @if (up.ContentType.StartsWith("image/"))
+                                {
+                                    <img src="@up.Url" alt="@up.Name"
+                                         style="width:100%; height:120px; object-fit:cover; border-radius:6px; display:block;" />
+                                }
+                                else
+                                {
+                                    <div style="height:120px; display:flex; align-items:center; justify-content:center; background:var(--omni-bg-sunken); border-radius:6px;">
+                                        <OmniIcon Name="file-text" Size="ComponentSize.Lg" />
+                                    </div>
+                                }
+                                <div class="omni-stack omni-stack-4" style="margin-top:8px;">
+                                    <div style="font-size:13px; font-weight:600; word-break:break-all;">@up.Name</div>
+                                    <div class="omni-meta">@FormatSize(up.Size)</div>
+                                    <a href="@up.Url" target="_blank" rel="noopener" style="font-size:12px; color:var(--omni-accent);">
+                                        Abrir <OmniIcon Name="external-link" Size="ComponentSize.Sm" />
+                                    </a>
+                                </div>
+                            </OmniCard>
+                        }
+                    </div>
+                </div>
+            }
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Multiple" Type="bool" Default="false"
+                            Description="Permite selecionar vários arquivos de uma vez." />
+            <ShowcaseApiRow Name="Accept" Type="string?" Default="null"
+                            Description="Tipos MIME ou extensões aceitos (ex: image/*,.pdf)." />
+            <ShowcaseApiRow Name="MaxFileSize" Type="long" Default="10 MB"
+                            Description="Tamanho máximo por arquivo em bytes. 0 = sem limite." />
+            <ShowcaseApiRow Name="MaxFileCount" Type="int" Default="0"
+                            Description="Máximo de arquivos no modo Multiple. 0 = sem limite." />
+            <ShowcaseApiRow Name="LabelText" Type="string" Default="Arraste arquivos..."
+                            Description="Texto principal exibido na drop-zone." />
+            <ShowcaseApiRow Name="HintText" Type="string?" Default="null"
+                            Description="Texto secundário de dica. Inferido de Accept/MaxFileSize se omitido." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnFilesSelected" Type="EventCallback<IReadOnlyList<IBrowserFile>>" ShowDefault="false"
+                            Description="Disparado quando arquivos válidos são selecionados." />
+            <ShowcaseApiRow Name="OnFileRemoved" Type="EventCallback<IBrowserFile>" ShowDefault="false"
+                            Description="Disparado quando um arquivo é removido da lista." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool _uploading;
+    private int _pendingCount;
+    private readonly List<UploadedFile> _uploaded = new();
+
+    private async Task UploadAsync(IReadOnlyList<IBrowserFile> files)
+    {
+        if (files.Count == 0) return;
+        _uploading = true;
+        _pendingCount = files.Count;
+        StateHasChanged();
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            foreach (var f in files)
+            {
+                // Cap at 10 MB to match server policy and avoid SignalR throttling.
+                var stream = f.OpenReadStream(maxAllowedSize: 10L * 1024 * 1024);
+                var streamContent = new StreamContent(stream);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrEmpty(f.ContentType) ? "application/octet-stream" : f.ContentType);
+                content.Add(streamContent, "files", f.Name);
+            }
+
+            var resp = await Http.PostAsync("api/uploads", content);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var msg = await resp.Content.ReadAsStringAsync();
+                Toast.Error("Falha no upload", string.IsNullOrEmpty(msg) ? resp.ReasonPhrase : msg);
+                return;
+            }
+
+            var saved = await resp.Content.ReadFromJsonAsync<List<UploadedFile>>() ?? new();
+            _uploaded.InsertRange(0, saved);
+            Toast.Success("Upload concluído", $"{saved.Count} arquivo(s) salvo(s)");
+        }
+        catch (Exception ex)
+        {
+            Toast.Error("Erro no upload", ex.Message);
+        }
+        finally
+        {
+            _uploading = false;
+            _pendingCount = 0;
+            StateHasChanged();
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:N1} KB";
+        return $"{bytes / (1024.0 * 1024):N1} MB";
+    }
+
+    private sealed record UploadedFile(string Name, long Size, string ContentType, string Url);
+}

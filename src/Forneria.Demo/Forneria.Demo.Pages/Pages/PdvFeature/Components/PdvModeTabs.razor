@@ -1,0 +1,26 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  5 abas de modo (Balcão/Delivery/Retirada/Mesa/Comanda) usando
+    OmniSegmentedControl. O bind dispara SetMode no service, que reseta
+    os detalhes contextuais. *@
+<div class="omni-pdv-mode-tabs">
+    <OmniSegmentedControl TValue="OrderMode"
+                           Value="@Order.Mode"
+                           ValueChanged="@(m => Order.SetMode(m))"
+                           Items="@_items" />
+</div>
+
+@code {
+    private static readonly OmniSegmentedControl<OrderMode>.Item[] _items =
+    {
+        new(OrderMode.Balcao,    "Balcão"),
+        new(OrderMode.Delivery,  "Delivery"),
+        new(OrderMode.Retirada,  "Retirada"),
+        new(OrderMode.Mesa,      "Mesa"),
+        new(OrderMode.Comanda,   "Comanda"),
+    };
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+}

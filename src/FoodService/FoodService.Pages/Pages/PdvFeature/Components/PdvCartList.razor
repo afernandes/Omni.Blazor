@@ -1,0 +1,83 @@
+@inject PdvOrderService Order
+@inject DialogService Dialog
+@implements IDisposable
+
+@*  Dispatcher do carrinho: header (Itens do pedido), empty state ou lista.
+    Cada linha é PdvCartItemRegular ou PdvCartItemPizza conforme tipo. *@
+<div class="fs-pdv-cart-main">
+    <div class="fs-pdv-cart-head">
+        <div>
+            <div class="fs-pdv-cart-head-title">Itens do pedido</div>
+            <div class="fs-pdv-cart-head-sub">
+                @if (Order.Cart.Count == 0)
+                {
+                    <span>Nenhum item</span>
+                }
+                else
+                {
+                    <span>@Order.ItemCount item(s) · @Order.Cart.Count linha(s)</span>
+                }
+            </div>
+        </div>
+        <div class="fs-pdv-cart-head-actions">
+            <button class="fs-pdv-cart-head-btn">
+                <OmniIcon Name="file-text" Size="ComponentSize.Sm" />
+                Cardápio
+                <kbd>F2</kbd>
+            </button>
+            @if (Order.Cart.Count > 0)
+            {
+                <button class="fs-pdv-cart-head-btn fs-pdv-cart-head-btn-ghost" @onclick="ConfirmClear">
+                    <OmniIcon Name="trash" Size="ComponentSize.Sm" />
+                    Limpar
+                    <kbd>F9</kbd>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="fs-pdv-cart-list">
+        @if (Order.Cart.Count == 0)
+        {
+            <div class="fs-pdv-cart-empty">
+                <div class="fs-pdv-cart-empty-ico">
+                    <OmniIcon Name="shopping-cart" Size="ComponentSize.Lg" />
+                </div>
+                <div class="fs-pdv-cart-empty-title">Pedido vazio</div>
+                <div class="fs-pdv-cart-empty-sub">
+                    Use o Omni Box acima para adicionar itens — código do produto, código da pizza
+                    (ex.: <b>G101/102.C</b>) ou busca por nome.
+                </div>
+                <button class="fs-pdv-cart-empty-link">
+                    Ver atalhos
+                    <OmniIcon Name="help-circle" Size="ComponentSize.Sm" />
+                </button>
+            </div>
+        }
+        else
+        {
+            @foreach (var item in Order.Cart)
+            {
+                @if (item.Halves is { Count: > 0 })
+                {
+                    <PdvCartItemPizza Item="item" @key="item.Id" />
+                }
+                else
+                {
+                    <PdvCartItemRegular Item="item" @key="item.Id" />
+                }
+            }
+        }
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private async Task ConfirmClear()
+    {
+        var ok = await Dialog.Confirm("Limpar todos os itens do pedido atual?", "Limpar pedido");
+        if (ok == true) Order.Clear();
+    }
+}

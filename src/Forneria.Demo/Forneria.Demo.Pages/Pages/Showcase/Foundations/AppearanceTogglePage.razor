@@ -1,0 +1,228 @@
+@page "/showcase/appearance-toggle"
+@layout ShowcaseLayout
+@inject Omni.Blazor.Services.ThemeService Theme
+@using Omni.Blazor.Models
+
+<PageTitle>Appearance Toggle — Showcase</PageTitle>
+
+<ShowcasePage Title="Appearance Toggle"
+              Subtitle="3-state theme switcher (Light / Dark / System). Equivalente ao RadzenAppearanceToggle com System adicionado.">
+
+    <Overview>
+        <p>
+            <code>OmniAppearanceToggle</code> dá ao usuário controle sobre o tema da aplicação,
+            com 3 modos: <strong>Light</strong>, <strong>Dark</strong> e <strong>System</strong>
+            (segue o <code>prefers-color-scheme</code> do SO).
+        </p>
+        <p>
+            Internamente usa o <code>ThemeService</code>. Quando o usuário escolhe Light ou Dark,
+            a preferência é persistida em <code>localStorage</code>. Em System, o app segue o SO em
+            tempo real (via <code>media query listener</code>) e desinscreve quando o usuário escolhe
+            manualmente.
+        </p>
+        <p>
+            3 visuais via <code>Variant</code>: <strong>Dropdown</strong> (default, botão + popover
+            com 3 opções), <strong>Segmented</strong> (3 botões inline estilo GitHub), e
+            <strong>Cycle</strong> (botão único que cicla a cada clique).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Header global da aplicação — usuário quer controle do tema sempre acessível.</li>
+            <li>Settings page — Segmented com labels mostra todas as opções claramente.</li>
+            <li>Toolbar densa — Cycle pra economizar espaço em mobile/compact.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>App com tema fixo — não exponha controle se o design depende de um tema só.</li>
+            <li>Páginas de marketing — tema deve ser do usuário, não da landing page.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+
+        @* ─── Modo atual + indicador live ─── *@
+        <ShowcaseSection Title="ESTADO ATUAL"
+                         Description="Live state do ThemeService. Os toggles abaixo refletem essa mesma instância — clicar em qualquer um atualiza todos.">
+            <div class="apt-status">
+                <span class="apt-status-row">
+                    <span class="apt-status-lbl">Modo atual:</span>
+                    <strong class="apt-status-val">@CurrentModeLabel</strong>
+                </span>
+                <span class="apt-status-row">
+                    <span class="apt-status-lbl">Dark efetivo:</span>
+                    <strong class="apt-status-val">@(Theme.Dark ? "sim" : "não")</strong>
+                </span>
+                <span class="apt-status-row">
+                    <span class="apt-status-lbl">User-picked:</span>
+                    <strong class="apt-status-val">@(Theme.IsUserPicked ? "sim (override do SO)" : "não (segue SO)")</strong>
+                </span>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── Dropdown (default) ─── *@
+        <ShowcaseSection Title="DROPDOWN — default"
+                         Description="Botão icon-only que abre popover com 3 opções. Padrão pra header de aplicação — compacto, descobrível."
+                         Code='@("<OmniAppearanceToggle />\n\n<!-- com labels visíveis -->\n<OmniAppearanceToggle ShowLabels=\"true\" />")'>
+            <div class="apt-row">
+                <div class="apt-cell">
+                    <span class="apt-grid-label">icon-only</span>
+                    <OmniAppearanceToggle />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">com label</span>
+                    <OmniAppearanceToggle ShowLabels="true" />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">Primary variant</span>
+                    <OmniAppearanceToggle ButtonVariant="ButtonVariant.Primary" />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">Ghost variant</span>
+                    <OmniAppearanceToggle ButtonVariant="ButtonVariant.Ghost" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── Segmented ─── *@
+        <ShowcaseSection Title="SEGMENTED — 3 botões inline"
+                         Description="Pattern estilo GitHub — todas as 3 opções visíveis ao mesmo tempo. Mais espaço, mas zero clicks pra trocar."
+                         Code='@("<OmniAppearanceToggle Variant=\"AppearanceToggleVariant.Segmented\" />\n\n<!-- com labels -->\n<OmniAppearanceToggle Variant=\"AppearanceToggleVariant.Segmented\" ShowLabels=\"true\" />")'>
+            <div class="apt-row">
+                <div class="apt-cell">
+                    <span class="apt-grid-label">só ícones</span>
+                    <OmniAppearanceToggle Variant="AppearanceToggleVariant.Segmented" />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">com labels</span>
+                    <OmniAppearanceToggle Variant="AppearanceToggleVariant.Segmented" ShowLabels="true" />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">Sm</span>
+                    <OmniAppearanceToggle Variant="AppearanceToggleVariant.Segmented" Size="ComponentSize.Sm" />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">Lg + labels</span>
+                    <OmniAppearanceToggle Variant="AppearanceToggleVariant.Segmented"
+                                            Size="ComponentSize.Lg" ShowLabels="true" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── Cycle ─── *@
+        <ShowcaseSection Title="CYCLE — botão único cíclico"
+                         Description="Clica e cicla Light → Dark → System → Light. Mais compacto possível, hide pra usuários que querem só alternar rápido."
+                         Code='@("<OmniAppearanceToggle Variant=\"AppearanceToggleVariant.Cycle\" />")'>
+            <div class="apt-row">
+                <div class="apt-cell">
+                    <span class="apt-grid-label">cycle</span>
+                    <OmniAppearanceToggle Variant="AppearanceToggleVariant.Cycle" />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">cycle + label</span>
+                    <OmniAppearanceToggle Variant="AppearanceToggleVariant.Cycle" ShowLabels="true" />
+                </div>
+                <div class="apt-cell">
+                    <span class="apt-grid-label">cycle Primary</span>
+                    <OmniAppearanceToggle Variant="AppearanceToggleVariant.Cycle"
+                                            ButtonVariant="ButtonVariant.Primary" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── Customização de labels ─── *@
+        <ShowcaseSection Title="LABELS CUSTOMIZADOS — i18n"
+                         Description="Pra apps multi-idioma, passe LightLabel / DarkLabel / SystemLabel.">
+            <OmniAppearanceToggle Variant="AppearanceToggleVariant.Segmented"
+                                    ShowLabels="true"
+                                    LightLabel="Light"
+                                    DarkLabel="Dark"
+                                    SystemLabel="Auto" />
+        </ShowcaseSection>
+
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniAppearanceToggle — parâmetros">
+            <ShowcaseApiRow Name="Variant" Type="AppearanceToggleVariant" Default="Dropdown"
+                            Description="Dropdown (default) / Segmented / Cycle." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Tamanho do toggle." />
+            <ShowcaseApiRow Name="ButtonVariant" Type="ButtonVariant" Default="Default"
+                            Description="Variant do OmniButton interno (afeta Dropdown e Cycle)." />
+            <ShowcaseApiRow Name="ShowLabels" Type="bool" Default="false"
+                            Description="Mostra texto junto do ícone." />
+            <ShowcaseApiRow Name="LightLabel / DarkLabel / SystemLabel" Type="string"
+                            Default='"Claro" / "Escuro" / "Sistema"'
+                            Description="Texto de cada modo. Use pra i18n." />
+            <ShowcaseApiRow Name="LightIcon / DarkIcon / SystemIcon" Type="string"
+                            Default='"sun" / "moon" / "monitor"' Description="Ícones de cada modo." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string?" Default="null"
+                            Description="aria-label do grupo." />
+            <ShowcaseApiRow Name="OnModeChanged" Type="EventCallback<ThemeMode>" ShowDefault="false"
+                            Description="Disparado quando o usuário muda o modo." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="ThemeMode enum">
+            <ShowcaseApiRow Name="Light" Type="0" ShowDefault="false" Description="Tema claro explicitamente escolhido." />
+            <ShowcaseApiRow Name="Dark" Type="1" ShowDefault="false" Description="Tema escuro explicitamente escolhido." />
+            <ShowcaseApiRow Name="System" Type="2" ShowDefault="false" Description="Segue o prefers-color-scheme do SO." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="AppearanceToggleVariant enum">
+            <ShowcaseApiRow Name="Dropdown" Type="0" ShowDefault="false" Description="Botão + popover com 3 opções (default)." />
+            <ShowcaseApiRow Name="Segmented" Type="1" ShowDefault="false" Description="3 botões inline estilo GitHub." />
+            <ShowcaseApiRow Name="Cycle" Type="2" ShowDefault="false" Description="Botão único que cicla Light→Dark→System." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Métodos públicos via referência">
+            <ShowcaseApiRow Name="SetModeAsync(ThemeMode)" Type="Task" ShowDefault="false"
+                            Description="Define um modo específico programaticamente." />
+            <ShowcaseApiRow Name="CycleAsync()" Type="Task" ShowDefault="false"
+                            Description="Avança pro próximo modo na ordem Light → Dark → System." />
+            <ShowcaseApiRow Name="CurrentMode (prop)" Type="ThemeMode" ShowDefault="false"
+                            Description="Modo derivado do ThemeService atual." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+<style>
+    .apt-status {
+        display: flex; flex-direction: column; gap: 8px;
+        padding: 16px 18px;
+        background: var(--omni-bg-elev);
+        border: 1px solid var(--omni-line);
+        border-radius: 10px;
+    }
+    .apt-status-row { display: flex; gap: 10px; align-items: center; }
+    .apt-status-lbl { font-size: 13px; color: var(--omni-fg-soft); min-width: 130px; }
+    .apt-status-val { font: 600 14px var(--omni-font-mono); color: var(--omni-accent); }
+
+    .apt-row {
+        display: flex; flex-wrap: wrap;
+        gap: 18px 24px;
+        padding: 14px 0;
+    }
+    .apt-cell { display: flex; flex-direction: column; gap: 8px; }
+    .apt-grid-label {
+        font: 700 10px/1 var(--omni-font-mono);
+        color: var(--omni-fg-soft);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+</style>
+
+@code {
+    private string CurrentModeLabel =>
+        !Theme.IsUserPicked ? "Sistema (auto)" :
+        Theme.Dark           ? "Escuro" : "Claro";
+
+    protected override void OnInitialized() => Theme.OnChange += HandleThemeChange;
+    private void HandleThemeChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Theme.OnChange -= HandleThemeChange;
+}

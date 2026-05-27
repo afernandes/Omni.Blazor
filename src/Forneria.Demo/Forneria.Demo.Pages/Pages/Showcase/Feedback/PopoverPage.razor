@@ -1,0 +1,152 @@
+@page "/showcase/popover"
+@layout ShowcaseLayout
+@inject NotificationService Toast
+
+<PageTitle>Popover — Showcase</PageTitle>
+
+<ShowcasePage Title="Popover"
+              Subtitle="Tooltip interativo: aceita conteúdo arbitrário (links, mini-forms, menus). Fecha em click-outside ou ESC.">
+
+    <Overview>
+        <p>
+            O <code>OmniPopover</code> é um balão flutuante <strong>interativo</strong> ancorado a
+            um elemento. Diferente do <code>Tooltip</code>, aceita <strong>conteúdo arbitrário</strong>
+            — links, mini-formulários, menus — e o usuário pode clicar dentro dele. É declarativo:
+            o slot <code>Trigger</code> define o que abre o popover e <code>ChildContent</code> é o
+            conteúdo flutuante.
+        </p>
+        <p>
+            Abre no clique do trigger e fecha em <strong>click-outside</strong> ou <code>ESC</code>.
+            A propriedade <code>Position</code> controla o lado (<code>Bottom</code>, <code>Top</code>,
+            <code>Left</code>, <code>Right</code>) e <code>Width</code> fixa a largura do painel.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Menu de ações disparado por um botão (combine com <code>OmniMenu</code>).</li>
+            <li>Mini-formulário inline para edições rápidas sem abrir um modal.</li>
+            <li>Detalhes ou preview de um item ao clicar, com links navegáveis dentro.</li>
+            <li>Seletor customizado (cores, ícones, filtros) ancorado a um controle.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Apenas um texto curto de hint, sem interação → use <code>TooltipService</code>.</li>
+            <li>Menu de clique direito ou posicionado por cursor → use <code>ContextMenuService</code>.</li>
+            <li>Fluxo que exige foco total ou várias etapas → use <code>DialogService</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="MENU DE AÇÕES"
+                         Description="Substituto natural para ContextMenu acionado por botão."
+                         Code="@(@"<OmniPopover Position=""PopoverPosition.Bottom"">
+    <Trigger><OmniButton Text=""Mais opções"" Icon=""more-horizontal"" /></Trigger>
+    <ChildContent>
+        <OmniMenu>
+            <OmniMenuItem Text=""Renomear"" Icon=""edit"" OnClick=""OnRename"" />
+            <OmniMenuSeparator />
+            <OmniMenuItem Text=""Excluir"" Icon=""trash"" IsDanger OnClick=""OnDelete"" />
+        </OmniMenu>
+    </ChildContent>
+</OmniPopover>")">
+            <OmniPopover Position="PopoverPosition.Bottom">
+                <Trigger>
+                    <OmniButton Text="Mais opções" Icon="more-horizontal" />
+                </Trigger>
+                <ChildContent>
+                    <OmniMenu>
+                        <OmniMenuItem Text="Renomear" Icon="edit" OnClick="@(_ => { Toast.Info("Renomeado"); return Task.CompletedTask; })" />
+                        <OmniMenuItem Text="Duplicar" Icon="copy" Shortcut="⌘D" OnClick="@(_ => { Toast.Info("Duplicado"); return Task.CompletedTask; })" />
+                        <OmniMenuItem Text="Compartilhar" Icon="external-link" OnClick="@(_ => { Toast.Info("Compartilhar"); return Task.CompletedTask; })" />
+                        <OmniMenuSeparator />
+                        <OmniMenuItem Text="Excluir" Icon="trash" IsDanger OnClick="@(_ => { Toast.Warning("Excluído"); return Task.CompletedTask; })" />
+                    </OmniMenu>
+                </ChildContent>
+            </OmniPopover>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="4 POSIÇÕES"
+                         Description="Position controla de que lado o balão aparece em relação ao trigger."
+                         Code="@(@"<OmniPopover Position=""PopoverPosition.Top"">
+    <Trigger><OmniButton Text=""Top"" /></Trigger>
+    <ChildContent><div style=""padding:14px;"">Aparece acima.</div></ChildContent>
+</OmniPopover>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-24" style="padding: 60px 20px;">
+                <OmniPopover Position="PopoverPosition.Bottom">
+                    <Trigger><OmniButton Text="Bottom" /></Trigger>
+                    <ChildContent><div style="padding: 14px;">Aparece abaixo do trigger.</div></ChildContent>
+                </OmniPopover>
+                <OmniPopover Position="PopoverPosition.Top">
+                    <Trigger><OmniButton Text="Top" /></Trigger>
+                    <ChildContent><div style="padding: 14px;">Aparece acima do trigger.</div></ChildContent>
+                </OmniPopover>
+                <OmniPopover Position="PopoverPosition.Right">
+                    <Trigger><OmniButton Text="Right" /></Trigger>
+                    <ChildContent><div style="padding: 14px;">Aparece à direita.</div></ChildContent>
+                </OmniPopover>
+                <OmniPopover Position="PopoverPosition.Left">
+                    <Trigger><OmniButton Text="Left" /></Trigger>
+                    <ChildContent><div style="padding: 14px;">Aparece à esquerda.</div></ChildContent>
+                </OmniPopover>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MINI FORM"
+                         Description="Form inline dentro do popover — útil para edições rápidas."
+                         Code="@(@"<OmniPopover Width=""280px"">
+    <Trigger><OmniButton Text=""Renomear etiqueta"" Icon=""edit"" /></Trigger>
+    <ChildContent>
+        <div class=""omni-stack omni-stack-12"" style=""padding:14px;"">
+            <OmniFormField Label=""Novo nome"">
+                <OmniTextBox @bind-Value=""newName"" />
+            </OmniFormField>
+            <OmniButton Text=""Salvar"" Variant=""ButtonVariant.Primary"" Size=""ComponentSize.Sm"" />
+        </div>
+    </ChildContent>
+</OmniPopover>")">
+            <OmniPopover Width="280px">
+                <Trigger>
+                    <OmniButton Text="Renomear etiqueta" Icon="edit" Variant="ButtonVariant.Primary" />
+                </Trigger>
+                <ChildContent>
+                    <div class="omni-stack omni-stack-12" style="padding: 14px;">
+                        <OmniFormField Label="Novo nome"><OmniTextBox @bind-Value="newName" Placeholder="Etiqueta" /></OmniFormField>
+                        <div class="omni-row omni-row-end omni-row-gap-8">
+                            <OmniButton Text="Salvar" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                         OnClick="@(_ => { Toast.Success("Renomeado", newName ?? "(vazio)"); return Task.CompletedTask; })" />
+                        </div>
+                    </div>
+                </ChildContent>
+            </OmniPopover>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Trigger" Type="RenderFragment?" Default="null"
+                            Description="Slot do elemento que abre o popover ao ser clicado (obrigatório)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo flutuante exibido dentro do balão." />
+            <ShowcaseApiRow Name="Position" Type="PopoverPosition" Default="Bottom"
+                            Description="Lado em que o balão aparece — Bottom, Top, Left, Right." />
+            <ShowcaseApiRow Name="Open" Type="bool" Default="false"
+                            Description="Controla o estado aberto/fechado de forma vinculável (bind-Open)." />
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura fixa do balão — ex. &quot;280px&quot;." />
+            <ShowcaseApiRow Name="CloseOnContentClick" Type="bool" Default="false"
+                            Description="Fecha o popover ao clicar dentro do conteúdo." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OpenChanged" Type="EventCallback&lt;bool&gt;" ShowDefault="false"
+                            Description="Disparado quando o popover abre ou fecha (suporta two-way binding com Open)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? newName;
+}

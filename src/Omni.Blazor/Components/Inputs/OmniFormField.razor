@@ -1,0 +1,143 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IDisposable
+@using System.Linq.Expressions
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Field wrapper around an input. Shows label + helper text + validation error.
+
+    Validation message resolution priority:
+      1. Explicit `Error` parameter (wins — useful for ad-hoc errors).
+      2. The first message from `EditContext` for `For` (lambda) when inside
+         an <EditForm> / <OmniForm>. Mirrors Blazor's <ValidationMessage For="..."/>.
+
+    Usage:
+        <OmniFormField Label="Email" For="@(() => model.Email)" Required>
+            <OmniTextBox @bind-Value="model.Email" />
+        </OmniFormField>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Label) || LabelContent is not null || !string.IsNullOrEmpty(HintRight))
+    {
+        <div class="omni-field-row">
+            <label class="@LabelCss" for="@For">
+                @if (LabelContent is not null) { @LabelContent }
+                else { @Label }
+            </label>
+            @if (!string.IsNullOrEmpty(HintRight))
+            {
+                <span class="omni-field-hint">@HintRight</span>
+            }
+        </div>
+    }
+    @ChildContent
+    @if (!string.IsNullOrEmpty(EffectiveError))
+    {
+        <span class="omni-field-error">@EffectiveError</span>
+    }
+    else if (!string.IsNullOrEmpty(Hint))
+    {
+        <span class="omni-field-hint">@Hint</span>
+    }
+</div>
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? LabelContent { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string? HintRight { get; set; }
+    /// <summary>Explicit error to display (wins over EditContext messages).</summary>
+    [Parameter] public string? Error { get; set; }
+    /// <summary>HTML `for` attribute on the label.</summary>
+    [Parameter] public string? For { get; set; }
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>
+    /// Lambda pointing at the bound model field (e.g. <c>() => model.Email</c>).
+    /// When provided AND an <see cref="EditContext"/> is in scope, the first
+    /// validation message for the field is shown automatically.
+    /// </summary>
+    [Parameter] public Expression<Func<object?>>? ValidationFor { get; set; }
+
+    private EditContext? _subscribed;
+    private FieldIdentifier _fieldId;
+    private bool _hasFieldId;
+
+    // ParameterStates: split the original OnParametersSet into focused
+    // handlers — the FieldIdentifier only needs rebuilding when ValidationFor
+    // changes, and the EditContext subscription only re-binds when the
+    // cascading context itself changes.
+    private readonly ParameterState<Expression<Func<object?>>?> _validationForState;
+    private readonly ParameterState<EditContext?> _editContextState;
+
+    // Test-only counter: increments every time any tracked-param recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniFormField()
+    {
+        _validationForState = RegisterParameter<Expression<Func<object?>>?>(nameof(ValidationFor))
+            .WithParameter(() => ValidationFor)
+            .WithChangeHandler(RecomputeFieldId)
+            .Attach();
+        _editContextState = RegisterParameter<EditContext?>(nameof(EditContext))
+            .WithParameter(() => EditContext)
+            .WithChangeHandler(RebindContextSubscription)
+            .Attach();
+    }
+
+    private void RecomputeFieldId()
+    {
+        if (ValidationFor is not null)
+        {
+            _fieldId = FieldIdentifier.Create(ValidationFor);
+            _hasFieldId = true;
+        }
+        else
+        {
+            _hasFieldId = false;
+        }
+        RecomputeCount++;
+    }
+
+    private void RebindContextSubscription()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+        _subscribed = EditContext;
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged += OnValidationStateChanged;
+        RecomputeCount++;
+    }
+
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+        => InvokeAsync(StateHasChanged);
+
+    private string? EffectiveError
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(Error)) return Error;
+            if (_hasFieldId && EditContext is not null)
+                return EditContext.GetValidationMessages(_fieldId).FirstOrDefault();
+            return null;
+        }
+    }
+
+    private string RootCss => CssBuilder.Default("omni-field")
+        .AddClass("omni-field-invalid", !string.IsNullOrEmpty(EffectiveError))
+        .AddClass(Class)
+        .Build();
+
+    private string LabelCss => CssBuilder.Default("omni-field-label")
+        .AddClass("omni-field-required", Required)
+        .Build();
+
+    public void Dispose()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+    }
+}

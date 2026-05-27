@@ -1,0 +1,103 @@
+@page "/showcase/wireframes/hybrid"
+@layout WireframeLayout
+
+<PageTitle>WF-10 · Hybrid (AppBar + ToolBar + Drawer + Main)</PageTitle>
+
+@*  WIREFRAME 10 — Combo poderoso: módulos horizontais na ToolBar +
+    drawer contextual à esquerda + Main. Reflete o padrão usado pelo
+    AppShellHybrid do Forneria.Demo (/hybrid). *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle Target="_drawer" />
+        <OmniBrand Name="Hybrid" Tenant="módulos + sidebar contextual" />
+        <div class="omni-header-spacer"></div>
+        <OmniKbd Text="WF-10" />
+        <OmniAvatar Initials="CR" />
+    </OmniAppBar>
+
+    <OmniToolBar>
+        <OmniMenuBar AriaLabel="Módulos">
+            <ChildContent>
+                @foreach (var (id, label, icon) in _modules)
+                {
+                    <OmniMenuBarItem Text="@label"
+                                      Icon="@icon"
+                                      OnClick="@(() => _module = id)"
+                                      Class="@(_module == id ? "omni-menubar-item-active" : "")" />
+                }
+            </ChildContent>
+            <Aux>
+                <span class="omni-muted" style="font-size:12px;">módulo:</span>
+                <strong>@_modules.First(m => m.Item1 == _module).Item2</strong>
+            </Aux>
+        </OmniMenuBar>
+    </OmniToolBar>
+
+    <OmniDrawer @ref="_drawer" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md">
+        @switch (_module)
+        {
+            case "inicio":
+                <OmniPanelMenuSection Label="Visão geral">
+                    <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" />
+                    <OmniPanelMenuItem Text="Agenda do dia" Icon="clock" />
+                    <OmniPanelMenuItem Text="Metas" Icon="star" />
+                </OmniPanelMenuSection>
+                break;
+            case "operacao":
+                <OmniPanelMenuSection Label="Pedidos">
+                    <OmniPanelMenuItem Text="PDV" Icon="shopping-cart" />
+                    <OmniPanelMenuItem Text="HUB" Icon="grid" Count="28" />
+                    <OmniPanelMenuItem Text="Cozinha" Icon="zap" Count="12" />
+                </OmniPanelMenuSection>
+                break;
+            case "gestao":
+                <OmniPanelMenuSection Label="Pessoas">
+                    <OmniPanelMenuItem Text="Clientes" Icon="users" Count="847" />
+                    <OmniPanelMenuItem Text="Equipe" Icon="users" />
+                    <OmniPanelMenuItem Text="Permissões" Icon="lock" />
+                </OmniPanelMenuSection>
+                break;
+            case "analise":
+                <OmniPanelMenuSection Label="Relatórios">
+                    <OmniPanelMenuItem Text="Vendas" Icon="bar-chart" />
+                    <OmniPanelMenuItem Text="Operacional" Icon="zap" />
+                </OmniPanelMenuSection>
+                break;
+        }
+    </OmniDrawer>
+
+    <OmniMain>
+        <div class="wf-demo-content">
+            <h1>Módulo ativo: @_modules.First(m => m.Item1 == _module).Item2</h1>
+            <p class="omni-muted">
+                Combo de <strong>ToolBar (módulos)</strong> + <strong>Drawer (contextual)</strong>.
+                A ToolBar troca o módulo ativo; o Drawer reage com conteúdo diferente. Padrão
+                replicado pelo <code>AppShellHybrid</code> do Forneria.Demo (rota
+                <a href="/hybrid">/hybrid</a> — usa o mesmo modelo, com mais módulos e profundidade).
+            </p>
+            <OmniCard Title="Como combinar 4 slots">
+                <ul>
+                    <li><code>OmniAppBar</code> + hamburger (<code>OmniDrawerToggle</code>)</li>
+                    <li><code>OmniToolBar</code> com <code>OmniMenuBar</code> dos módulos</li>
+                    <li><code>OmniDrawer</code> contextual (conteúdo varia com módulo)</li>
+                    <li><code>OmniMain</code> com o conteúdo da rota</li>
+                </ul>
+                Tudo no mesmo grid 4×3 — só plugar.
+            </OmniCard>
+        </div>
+    </OmniMain>
+</OmniLayout>
+
+@code {
+    private OmniDrawer? _drawer;
+    private string _module = "inicio";
+
+    private static readonly (string, string, string)[] _modules =
+    {
+        ("inicio",   "Início",   "home"),
+        ("operacao", "Operação", "zap"),
+        ("gestao",   "Gestão",   "sliders"),
+        ("analise",  "Análise",  "bar-chart"),
+    };
+
+}

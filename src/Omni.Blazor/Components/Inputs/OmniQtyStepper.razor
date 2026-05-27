@@ -1,0 +1,66 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<int>
+@using Omni.Blazor.Utilities
+
+@*  Stepper de quantidade — botões − / valor / +, arredondado, compacto.
+    Reutilizável em qualquer formulário (linha de carrinho, mode details,
+    numpad de pagamento). Inspirado em RadzenNumeric (com botões) e
+    MudNumericField, mas otimizado para uso touch onde apenas incrementos
+    inteiros importam.
+
+    Props:
+      • Value (int)              — valor atual (two-way via ValueChanged)
+      • Min (int, default 1)     — limite inferior; desabilita − quando atingido
+      • Max (int?, opcional)     — limite superior; desabilita + quando atingido
+      • Size (ComponentSize)     — Sm / Md (default) / Lg
+*@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <button type="button"
+            @onclick="Decrement"
+            disabled="@CanDecrement"
+            aria-label="Diminuir quantidade">−</button>
+    <span class="omni-qty-stepper-v omni-mono">@Value</span>
+    <button type="button"
+            @onclick="Increment"
+            disabled="@CanIncrement"
+            aria-label="Aumentar quantidade">+</button>
+</div>
+
+@code {
+    // Value / ValueChanged / ValueExpression / Required / Validation /
+    // OnlyValidateIfDirty / Disabled / ReadOnly herdados de FormComponent<int>.
+
+    /// <summary>Limite inferior (inclusivo). Default 1 — o botão − desabilita ao atingir.</summary>
+    [Parameter] public int Min { get; set; } = 1;
+
+    /// <summary>Limite superior (inclusivo). Opcional; quando definido, o botão + desabilita ao atingir.</summary>
+    [Parameter] public int? Max { get; set; }
+
+    /// <summary>Tamanho visual. Sm (24×24), Md (28×28, default), Lg (36×36).</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    private string RootCss => CssBuilder.Default("omni-qty-stepper")
+        .AddClass(Size switch
+        {
+            ComponentSize.Sm => "omni-qty-stepper-sm",
+            ComponentSize.Lg => "omni-qty-stepper-lg",
+            _ => null,
+        })
+        .AddClass(Class)
+        .Build();
+
+    private bool CanDecrement => Value <= Min;
+    private bool CanIncrement => Max.HasValue && Value >= Max.Value;
+
+    private Task Decrement() => SetAsync(Value - 1);
+    private Task Increment() => SetAsync(Value + 1);
+
+    private async Task SetAsync(int next)
+    {
+        var clamped = Math.Max(Min, Max is int m ? Math.Min(m, next) : next);
+        if (clamped == Value) return;
+        // SetValueAsync (de FormComponent) cuida de: atribuição, ValueChanged,
+        // EditContext.NotifyFieldChanged, dispatch do Validation delegate.
+        await SetValueAsync(clamped);
+    }
+}

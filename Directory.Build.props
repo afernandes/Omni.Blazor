@@ -1,0 +1,81 @@
+<Project>
+
+  <!-- =====================================================================
+       Language & analysis
+       ===================================================================== -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RazorLangVersion>latest</RazorLangVersion>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Default</AnalysisMode>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591;BL9991</NoWarn>
+    <NeutralLanguage>en-US</NeutralLanguage>
+  </PropertyGroup>
+
+  <!-- =====================================================================
+       Common package metadata (libs override Description / PackageTags)
+       ===================================================================== -->
+  <PropertyGroup>
+    <Authors>Anderson Fernandes</Authors>
+    <Company>Omni</Company>
+    <Copyright>Copyright © $([System.DateTime]::UtcNow.Year) Anderson Fernandes</Copyright>
+    <Product>Omni.Blazor</Product>
+    <PackageProjectUrl>https://github.com/afernandes/Omni.Blazor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/afernandes/Omni.Blazor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <!-- =====================================================================
+       Reproducible builds & symbols
+       Source Link + deterministic build kick in on CI (CI=true is set by
+       GitHub Actions). PDBs are embedded locally for fast F11; portable
+       PDBs go into the .snupkg when packing for distribution.
+       ===================================================================== -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true' or '$(GITHUB_ACTIONS)' == 'true' or '$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <!-- =====================================================================
+       Opt-in packaging
+       Default is NOT packable; only library projects (Omni.Blazor) flip
+       <IsPackable>true</IsPackable>. Demos / consumers stay non-packable.
+       ===================================================================== -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile Condition="'$(IsPackable)' == 'true'">true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- =====================================================================
+       Source Link + MinVer wired automatically for any packable project
+       Conditionally added so demos don't drag these dependencies.
+       ===================================================================== -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- =====================================================================
+       MinVer defaults — derive version from git tags (vX.Y.Z).
+       When no tag is reachable (e.g. fresh clone, no history), MinVer falls
+       back to <MinVerDefaultPreReleaseIdentifiers> and emits 0.0.0-alpha.0.
+       ===================================================================== -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
+</Project>

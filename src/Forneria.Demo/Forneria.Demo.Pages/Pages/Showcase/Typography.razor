@@ -1,0 +1,109 @@
+@page "/showcase/typography"
+@layout ShowcaseLayout
+
+<PageTitle>Typography — Showcase</PageTitle>
+
+<ShowcasePage Title="Typography"
+              Subtitle="O sistema tipográfico da biblioteca — Inter para a interface, JetBrains Mono para números.">
+
+    <Overview>
+        <p>
+            A tipografia da biblioteca combina <strong>duas famílias</strong> com papéis bem
+            definidos. <code>Inter</code> é a fonte de interface: usada em títulos, parágrafos,
+            labels de formulário e qualquer texto de leitura. É uma sans-serif neutra, com
+            excelente legibilidade em telas e ótimo rendering em tamanhos pequenos.
+        </p>
+        <p>
+            <code>JetBrains Mono</code> é a fonte monoespaçada, reservada para conteúdo
+            <strong>numérico e técnico</strong>: valores monetários, métricas, IDs, eyebrows e
+            labels em caixa-alta. O espaçamento fixo alinha colunas de números verticalmente —
+            crítico em telas de PDV, dashboards e relatórios.
+        </p>
+        <p>
+            A escala visual segue a hierarquia <code>H1</code> → <code>H2</code> → <code>H3</code>
+            para títulos, com <code>Lead</code> (introdução), <code>Body</code> (corpo padrão) e
+            os modificadores <code>.omni-muted</code> e <code>.omni-soft</code> para texto
+            secundário e fineprint. As famílias são expostas como CSS variables
+            (<code>--omni-font</code> e <code>--omni-font-mono</code>), permitindo override por
+            projeto sem tocar nos componentes.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Inter: títulos, parágrafos, labels e qualquer texto de leitura corrida.</li>
+            <li>JetBrains Mono: valores monetários, métricas e contadores que precisam alinhar.</li>
+            <li>JetBrains Mono: IDs, códigos, eyebrows e labels em caixa-alta.</li>
+            <li>Hierarquia H1/H2/H3 para estruturar o conteúdo de uma tela.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Não use a fonte mono para texto de leitura longa — cansa a vista.</li>
+            <li>Evite mais de um H1 por tela — quebra a hierarquia semântica.</li>
+            <li>Não sobrescreva tamanhos inline quando uma classe de escala já existe.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="INTER — INTERFACE"
+                         Description="A escala de leitura: títulos, lead, corpo e os modificadores muted/soft."
+                         Code="@(@"<h1>O ponto de venda feito para quem cozinha.</h1>
+<h2>Tudo que sua operação precisa.</h2>
+<h3>HUB de pedidos unificado</h3>
+<p>Body · texto de corpo padrão.</p>
+<p class=""omni-muted"">Muted · texto secundário.</p>
+<p class=""omni-soft"">Soft · hints e fineprint.</p>")">
+            <h1 style="margin: 0 0 8px;">H1 · O ponto de venda feito para quem cozinha.</h1>
+            <h2 style="margin: 0 0 8px;">H2 · Tudo que sua operação precisa.</h2>
+            <h3 style="margin: 0 0 8px;">H3 · HUB de pedidos unificado</h3>
+            <p style="font-size: 17px; margin: 0 0 8px;">Lead · Texto introdutório, ligeiramente maior. Leve, espaçado.</p>
+            <p style="margin: 0 0 8px;">Body · A pizza margherita está pronta para entrega no balcão 3. Confira a temperatura antes de despachar.</p>
+            <p class="omni-muted" style="margin: 0 0 8px;">Muted · Texto secundário, usado em metadata.</p>
+            <p class="omni-soft" style="margin: 0 0 8px;">Soft · Quase-fantasma, para hints e fineprint.</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="JETBRAINS MONO — NUMÉRICO"
+                         Description="Valores monetários, métricas e labels em caixa-alta, aplicados via --omni-font-mono."
+                         Code="@(@"<div style=""font-family: var(--omni-font-mono); font-size: 36px;"">R$ 12.480,00</div>
+<div style=""font-family: var(--omni-font-mono); font-size: 24px;"">2.341 pedidos · 14 min preparo</div>
+<div style=""font-family: var(--omni-font-mono); text-transform: uppercase;"">EYEBROW / LABEL</div>")">
+            <div class="omni-stack omni-stack-8">
+                <div style="font-family: var(--omni-font-mono); font-size: 36px; font-weight: 600;">R$ 12.480,00</div>
+                <div style="font-family: var(--omni-font-mono); font-size: 24px;">2.341 pedidos · 14 min preparo</div>
+                <div style="font-family: var(--omni-font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--omni-fg-soft);">EYEBROW / LABEL</div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EYEBROWS"
+                         Description="O OmniEyebrow encapsula o padrão de label monoespaçado em caixa-alta."
+                         Code="@(@"<OmniEyebrow Text=""14 DIAS GRÁTIS · SEM CARTÃO"" />
+<OmniEyebrow Text=""STATUS · 99,98% UPTIME"" />
+<OmniEyebrow Text=""NOVO"" />")">
+            <div class="omni-stack omni-stack-12">
+                <OmniEyebrow Text="14 DIAS GRÁTIS · SEM CARTÃO" />
+                <OmniEyebrow Text="STATUS · 99,98% UPTIME" />
+                <OmniEyebrow Text="NOVO" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="CSS variables" NameHeader="Variável">
+            <ShowcaseApiRow Name="--omni-font" Type="font-family" Default="Inter"
+                            Description="Família tipográfica de interface — títulos, parágrafos e labels." />
+            <ShowcaseApiRow Name="--omni-font-mono" Type="font-family" Default="JetBrains Mono"
+                            Description="Família monoespaçada — números, métricas, IDs e eyebrows." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Classes utilitárias" NameHeader="Classe" ShowDefault="false">
+            <ShowcaseApiRow Name=".omni-muted" Type="text" ShowDefault="false"
+                            Description="Texto secundário — usado em metadata e descrições." />
+            <ShowcaseApiRow Name=".omni-soft" Type="text" ShowDefault="false"
+                            Description="Texto quase-fantasma — hints e fineprint." />
+            <ShowcaseApiRow Name=".omni-mono" Type="text" ShowDefault="false"
+                            Description="Aplica a família monoespaçada a um trecho de texto." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

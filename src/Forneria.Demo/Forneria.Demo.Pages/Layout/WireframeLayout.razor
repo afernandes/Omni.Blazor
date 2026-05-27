@@ -1,0 +1,90 @@
+@inherits LayoutComponentBase
+@inject ThemeService Theme
+
+@*  Layout minimalista para as 10 páginas de demonstração de wireframe em
+    tela cheia. Não renderiza shell próprio — cada página assume controle
+    total e mostra seu próprio OmniLayout. Adiciona apenas uma pílula
+    flutuante "← Voltar" no canto inferior direito para retornar ao
+    índice /showcase/wireframes.
+
+    Restaura accent + dark mode persistidos no localStorage no primeiro
+    render (paridade com AppShell.razor / AppShellHybrid.razor). Sem isso,
+    um F5 numa página de wireframe perderia o accent salvo, voltando ao
+    default do App.razor. *@
+@Body
+
+<a href="/showcase/wireframes" class="wf-back-pill" title="Voltar à galeria de wireframes">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5" />
+        <path d="M12 19l-7-7 7-7" />
+    </svg>
+    <span>Voltar à galeria</span>
+</a>
+
+<OmniOverlayHosts />
+
+<style>
+    .wf-back-pill {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1000;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        background: var(--omni-accent);
+        color: #fff;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: var(--omni-shadow-lg);
+        transition: transform 120ms ease, background-color 120ms ease;
+    }
+    .wf-back-pill:hover {
+        transform: translateY(-1px);
+        background: var(--omni-accent-hover, var(--omni-accent));
+        color: #fff;
+        text-decoration: none;
+    }
+    .wf-back-pill:focus-visible {
+        outline: 2px solid var(--omni-fg);
+        outline-offset: 2px;
+    }
+
+    /* Conteúdo padrão das 10 páginas de demo (Wf01..Wf10) — bloco
+       centralizado com max-width, padding generoso e tipografia. */
+    .wf-demo-content {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 24px 80px;
+    }
+    .wf-demo-content > h1 {
+        font-size: 28px;
+        line-height: 1.2;
+        margin: 0 0 12px;
+        color: var(--omni-fg);
+    }
+    .wf-demo-content > p {
+        color: var(--omni-fg-muted);
+        line-height: 1.6;
+        font-size: 15px;
+        margin: 0 0 20px;
+    }
+    .wf-demo-content > .omni-card { margin-top: 16px; }
+</style>
+
+@code {
+    /// <summary>Restaura accent + dark persistidos no primeiro render.
+    /// Sem isso, um F5 numa página de wireframe volta ao accent default
+    /// do App.razor (perdendo a preferência do usuário).</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* swallow — nunca bloqueia o shell por falha de tema */ }
+        }
+    }
+}

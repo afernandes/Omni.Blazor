@@ -1,0 +1,49 @@
+@page "/showcase/wireframes/appbar-left-drawer-responsive"
+@layout WireframeLayout
+
+<PageTitle>WF-3 · AppBar + Left Drawer (Responsive)</PageTitle>
+
+@*  WIREFRAME 3 — AppBar + Left Drawer Responsive + Hamburger.
+    Drawer auto-comporta-se: Persistent acima de Md, Temporary (overlay)
+    abaixo. O OmniDrawerToggle no AppBar auto-encontra o drawer
+    cascateado e alterna seu estado. *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle />
+        <OmniBrand Name="App" Tenant="Responsive drawer" />
+        <div class="omni-header-spacer"></div>
+        <OmniKbd Text="WF-3" />
+        <OmniAvatar Initials="CR" />
+    </OmniAppBar>
+
+    <OmniDrawer Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md">
+        <OmniPanelMenuSection Label="Operação">
+            <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" />
+            <OmniPanelMenuItem Text="PDV"       Icon="shopping-cart"    Count="3" CountKind="MenuMetaKind.Accent" />
+            <OmniPanelMenuItem Text="KDS"       Icon="zap"              Count="8" CountKind="MenuMetaKind.Warn" />
+        </OmniPanelMenuSection>
+        <OmniPanelMenuSection Label="Gestão">
+            <OmniPanelMenuItem Text="Clientes" Icon="users"   Count="847" />
+            <OmniPanelMenuItem Text="Estoque"  Icon="package" CountText="!" CountKind="MenuMetaKind.Danger" />
+        </OmniPanelMenuSection>
+    </OmniDrawer>
+
+    <OmniMain>
+        <div class="wf-demo-content">
+            <h1>AppBar + Left Drawer (Responsive) + Hamburger</h1>
+            <p class="omni-muted">
+                Acima do <code>Breakpoint</code> (default Md = 1024px) o drawer é
+                <strong>Persistent</strong> e ocupa a coluna do grid. Abaixo, vira
+                <strong>Temporary</strong> (overlay com backdrop) — o hamburger no AppBar fica
+                visível e alterna o estado.
+            </p>
+            <OmniCard Title="Teste de responsividade">
+                Redimensione a janela para baixo de 1024px de largura — você verá o drawer
+                desaparecer do grid e o conteúdo se expandir. Clique no hamburger para abrir
+                o drawer como overlay; clique no backdrop ou em um item do menu para fechar.
+                O <code>BreakpointService</code> da lib observa <code>window.resize</code> e
+                avisa o drawer via subscription.
+            </OmniCard>
+        </div>
+    </OmniMain>
+</OmniLayout>

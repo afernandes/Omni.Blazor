@@ -1,0 +1,150 @@
+@page "/showcase/numeric"
+@layout ShowcaseLayout
+
+<PageTitle>Numeric — Showcase</PageTitle>
+
+<ShowcasePage Title="Numeric"
+              Subtitle="Input numérico genérico com spinner, prefix/suffix e formatação culture-aware.">
+
+    <Overview>
+        <p>
+            O <code>OmniNumeric&lt;TValue&gt;</code> é um input numérico <strong>genérico</strong> —
+            funciona sobre <code>int</code>, <code>long</code>, <code>decimal</code>,
+            <code>double</code>, <code>float</code> e suas variantes <code>nullable</code>.
+            É <strong>culture-aware</strong>: usa o separador decimal da cultura corrente
+            e reformata o valor no blur.
+        </p>
+        <p>
+            Suporta <code>Min</code>/<code>Max</code> com clamp automático, <code>Step</code>
+            para os botões de spinner (<code>ShowSpinButtons</code>), slots <code>Prefix</code>/
+            <code>Suffix</code> para símbolos monetários e unidades, e <code>Decimals</code>
+            para controlar as casas decimais exibidas.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Quantidades, preços, percentuais — qualquer entrada estritamente numérica.</li>
+            <li>Campos que se beneficiam de spinner +/- e limites mín/máx.</li>
+            <li>Valores monetários ou com unidade — <code>Prefix="R$"</code>, <code>Suffix="kg"</code>.</li>
+            <li>Inputs que precisam de formatação decimal consistente por cultura.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Texto livre ou alfanumérico → use <code>OmniTextBox</code>.</li>
+            <li>Número com formato fixo (telefone, CEP) → use <code>OmniMaskedTextBox</code>.</li>
+            <li>Datas e horas → use <code>OmniDatePicker</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="TIPOS GENÉRICOS"
+                         Description="Generic sobre qualquer tipo numérico (incluindo nullables)."
+                         Code="@(@"<OmniNumeric TValue=""int"" @bind-Value=""iv"" Min=""0"" Max=""999"" />
+<OmniNumeric TValue=""decimal?"" @bind-Value=""dv"" Decimals=""2"" />
+<OmniNumeric TValue=""double?"" @bind-Value=""db"" Decimals=""3"" />")">
+            <div class="omni-grid-3">
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">int não-nulo</label>
+                    <OmniNumeric TValue="int" @bind-Value="iv" Min="0" Max="999" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">decimal?</label>
+                    <OmniNumeric TValue="decimal?" @bind-Value="dv" Decimals="2" />
+                </div>
+                <div class="omni-stack omni-stack-4">
+                    <label class="omni-field-label">double?</label>
+                    <OmniNumeric TValue="double?" @bind-Value="db" Decimals="3" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PREFIX & SUFFIX"
+                         Description="Símbolos monetários, unidades, percentagens."
+                         Code="@(@"<OmniNumeric TValue=""decimal?"" @bind-Value=""preco"" Prefix=""R$"" Decimals=""2"" Min=""0"" />
+<OmniNumeric TValue=""int"" @bind-Value=""qtd"" Suffix=""un"" Min=""0"" Max=""9999"" />
+<OmniNumeric TValue=""decimal?"" @bind-Value=""pct"" Suffix=""%"" Decimals=""1""
+              Min=""0"" Max=""100"" Step=""0.5m"" />")">
+            <div class="omni-grid-3">
+                <OmniNumeric TValue="decimal?" @bind-Value="preco" Prefix="R$" Decimals="2" Min="0" />
+                <OmniNumeric TValue="int"      @bind-Value="qtd"   Suffix="un" Min="0" Max="9999" />
+                <OmniNumeric TValue="decimal?" @bind-Value="pct"   Suffix="%" Decimals="1" Min="0" Max="100" Step="0.5m" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEM SPINNER"
+                         Description="Esconde os botões +/- para campos compactos."
+                         Code="@(@"<OmniNumeric TValue=""int"" @bind-Value=""ns1""
+              ShowSpinButtons=""false"" Placeholder=""Apenas digitar"" />
+<OmniNumeric TValue=""decimal?"" @bind-Value=""ns2"" Prefix=""kg""
+              ShowSpinButtons=""false"" Decimals=""3"" />")">
+            <div class="omni-grid-3">
+                <OmniNumeric TValue="int" @bind-Value="ns1" ShowSpinButtons="false" Placeholder="Apenas digitar" />
+                <OmniNumeric TValue="decimal?" @bind-Value="ns2" Prefix="kg" ShowSpinButtons="false" Decimals="3" />
+                <OmniNumeric TValue="int" @bind-Value="ns3" Size="ComponentSize.Sm" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESTADOS"
+                         Description="Disabled / ReadOnly."
+                         Code="@(@"<OmniNumeric TValue=""decimal?"" Value=""1234.56m"" Disabled Prefix=""R$"" Decimals=""2"" />
+<OmniNumeric TValue=""int"" Value=""42"" ReadOnly Suffix=""ms"" />")">
+            <div class="omni-grid-2">
+                <OmniNumeric TValue="decimal?" Value="1234.56m" Disabled Prefix="R$" Decimals="2" />
+                <OmniNumeric TValue="int" Value="42" ReadOnly Suffix="ms" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="TValue?" Default="default"
+                            Description="Valor numérico bound. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto de dica exibido quando o campo está vazio." />
+            <ShowcaseApiRow Name="Prefix" Type="string?" Default="null"
+                            Description="Texto fixo exibido à esquerda do número (ex: R$)." />
+            <ShowcaseApiRow Name="Suffix" Type="string?" Default="null"
+                            Description="Texto fixo exibido à direita do número (ex: %, kg)." />
+            <ShowcaseApiRow Name="Min" Type="decimal?" Default="null"
+                            Description="Valor mínimo permitido — aplica clamp." />
+            <ShowcaseApiRow Name="Max" Type="decimal?" Default="null"
+                            Description="Valor máximo permitido — aplica clamp." />
+            <ShowcaseApiRow Name="Step" Type="decimal" Default="1"
+                            Description="Incremento aplicado pelos botões de spinner e setas." />
+            <ShowcaseApiRow Name="Decimals" Type="int?" Default="null"
+                            Description="Casas decimais exibidas no blur. Inferido de TValue se omitido." />
+            <ShowcaseApiRow Name="Format" Type="string?" Default="null"
+                            Description="Formato ToString customizado — vence sobre Decimals." />
+            <ShowcaseApiRow Name="Wrap" Type="bool" Default="false"
+                            Description="Ao passar de Max, cicla para Min e vice-versa (requer Min e Max)." />
+            <ShowcaseApiRow Name="ShowSpinButtons" Type="bool" Default="true"
+                            Description="Exibe os botões +/- de incremento." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Altura do campo — Sm, Md, Lg." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita a interação com o campo." />
+            <ShowcaseApiRow Name="ReadOnly" Type="bool" Default="false"
+                            Description="Campo somente leitura." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<TValue?>" ShowDefault="false"
+                            Description="Disparado quando o valor numérico muda." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int iv = 1;
+    private decimal? dv;
+    private double? db;
+    private decimal? preco = 42.90m;
+    private int qtd = 1;
+    private decimal? pct = 18m;
+    private int ns1;
+    private decimal? ns2;
+    private int ns3;
+}

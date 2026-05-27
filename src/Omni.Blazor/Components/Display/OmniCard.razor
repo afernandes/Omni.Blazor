@@ -1,0 +1,118 @@
+@namespace Omni.Blazor.Components
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+@inherits OmniComponentWithChildren
+
+@*  Structural card container — a flex column whose direct children carry
+    roles (header / body / media / footer), mirroring Bootstrap's `.card`.
+    The body auto-wrapper dissolves (display:contents) when the consumer
+    composes structural parts (OmniCardMedia / OmniCardBody), so any
+    Bootstrap or Metronic card layout is reproducible. A body whose sole
+    child is a grid/table/list/image goes edge-to-edge automatically.  *@
+<div @ref="_el"
+     class="@RootCss"
+     style="@Style"
+     @onclick="HandleClickAsync"
+     @attributes="Attributes">
+    @if (HeaderContent is not null || !string.IsNullOrEmpty(Title) || !string.IsNullOrEmpty(Subtitle) || HeaderActions is not null)
+    {
+        <div class="omni-card-header">
+            <div class="omni-stack omni-stack-2 omni-flex-1">
+                @if (HeaderContent is not null)
+                {
+                    @HeaderContent
+                }
+                else
+                {
+                    @if (!string.IsNullOrEmpty(Title))    { <h3 class="omni-card-title">@Title</h3> }
+                    @if (!string.IsNullOrEmpty(Subtitle)) { <p class="omni-card-sub">@Subtitle</p> }
+                }
+            </div>
+            @if (HeaderActions is not null)
+            {
+                <div class="omni-row omni-row-gap-8">@HeaderActions</div>
+            }
+        </div>
+    }
+
+    @if (ChildContent is not null)
+    {
+        <div class="@BodyCss" style="@BodyStyle">@ChildContent</div>
+    }
+
+    @if (FooterContent is not null)
+    {
+        <div class="omni-card-footer">@FooterContent</div>
+    }
+</div>
+
+@code {
+    /// <summary>Title shown in the card header.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Subtitle shown below the title.</summary>
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>Custom header content (overrides <see cref="Title"/>/<see cref="Subtitle"/>).</summary>
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+
+    /// <summary>Actions rendered on the right side of the header.</summary>
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
+
+    /// <summary>Footer content (CTAs, metadata).</summary>
+    [Parameter] public RenderFragment? FooterContent { get; set; }
+
+    /// <summary>Adds a shadow to lift the card.</summary>
+    [Parameter] public bool Elevated { get; set; }
+
+    /// <summary>Removes the border — variant for secondary regions.</summary>
+    [Parameter] public bool Flat { get; set; }
+
+    /// <summary>Applies pointer cursor + hover lift (card-as-link).</summary>
+    [Parameter] public bool Clickable { get; set; }
+
+    /// <summary>Escape-hatch: forces the body flush (no padding) even for mixed content.</summary>
+    [Parameter] public bool NoPadding { get; set; }
+
+    /// <summary>When set, the body scrolls internally at this max height (scrollable card).</summary>
+    [Parameter] public string? MaxBodyHeight { get; set; }
+
+    /// <summary>Visual variant: Default surface, Accent muted frame, or Outline.</summary>
+    [Parameter] public CardVariant Variant { get; set; } = CardVariant.Default;
+
+    /// <summary>Thematic colour. Filled on the Default variant; border-only on Outline.</summary>
+    [Parameter] public CardTone Tone { get; set; } = CardTone.None;
+
+    /// <summary>Lays the card out horizontally (media beside body).</summary>
+    [Parameter] public bool Horizontal { get; set; }
+
+    /// <summary>Raised when the card is clicked (also enables the clickable style).</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private ElementReference _el;
+
+    private string RootCss => CssBuilder.Default("omni-card")
+        .AddClass("omni-card-elevated", Elevated)
+        .AddClass("omni-card-flat", Flat)
+        .AddClass("omni-card-clickable", Clickable || OnClick.HasDelegate)
+        .AddClass("omni-card-horizontal", Horizontal)
+        .AddClass($"omni-card-{Variant.ToString().ToLowerInvariant()}", Variant != CardVariant.Default)
+        .AddClass("omni-card-toned", Tone != CardTone.None)
+        .AddClass($"omni-card-tone-{Tone.ToString().ToLowerInvariant()}", Tone != CardTone.None)
+        .AddClass(Class)
+        .Build();
+
+    private string BodyCss => CssBuilder.Default("omni-card-body")
+        .AddClass("omni-card-body-flush", NoPadding)
+        .AddClass("omni-card-body-scroll", !string.IsNullOrEmpty(MaxBodyHeight))
+        .Build();
+
+    private string? BodyStyle => string.IsNullOrEmpty(MaxBodyHeight) ? null : $"max-height: {MaxBodyHeight}";
+
+    protected override void OnAfterRender(bool firstRender) => Element = _el;
+
+    private async Task HandleClickAsync(MouseEventArgs args)
+    {
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(args);
+    }
+}

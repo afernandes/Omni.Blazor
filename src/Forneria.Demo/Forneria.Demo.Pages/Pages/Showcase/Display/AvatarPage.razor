@@ -1,0 +1,119 @@
+@page "/showcase/avatar"
+@layout ShowcaseLayout
+
+<PageTitle>Avatar — Showcase</PageTitle>
+
+<ShowcasePage Title="Avatar"
+              Subtitle="Representação visual compacta de um usuário ou entidade — iniciais ou imagem.">
+
+    <Overview>
+        <p>
+            O <code>OmniAvatar</code> exibe a identidade de uma pessoa ou entidade em formato
+            compacto. Quando há <code>ImageUrl</code>, renderiza a foto; caso contrário, mostra
+            as <code>Initials</code> sobre um fundo no acento atual do tema. É o elemento ideal
+            para <strong>identificar usuários em listas, tabelas e cabeçalhos</strong>.
+        </p>
+        <p>
+            Oferece cinco tamanhos (<code>Sm</code>, <code>Md</code>, <code>Lg</code>,
+            <code>Xl</code>, <code>XXl</code>) com a fonte das iniciais escalando junto. O formato
+            é circular por padrão e fica quadrado com <code>Square</code> — útil para logos de
+            empresa e thumbnails de produto.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Identificar o usuário logado no cabeçalho ou menu de conta.</li>
+            <li>Linhas de DataGrid ou listas de pessoas (equipe, clientes).</li>
+            <li>Logos de empresa ou thumbnails de produto com o formato <code>Square</code>.</li>
+            <li>Autor de um comentário, atividade ou registro de auditoria.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Indicador de status numérico ou contagem → use <code>OmniBadge</code>.</li>
+            <li>Ícone decorativo sem identidade associada → use <code>OmniIcon</code>.</li>
+            <li>Imagem de destaque grande de um produto → use uma <code>&lt;img&gt;</code> direta.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Sm a 2xl. Fonte escala com o tamanho."
+                         Code="@(@"<OmniAvatar Initials=""AF"" Size=""AvatarSize.Sm"" />
+<OmniAvatar Initials=""MC"" Size=""AvatarSize.Md"" />
+<OmniAvatar Initials=""LP"" Size=""AvatarSize.Lg"" />
+<OmniAvatar Initials=""JS"" Size=""AvatarSize.Xl"" />
+<OmniAvatar Initials=""BM"" Size=""AvatarSize.XXl"" />")">
+            <div class="omni-row omni-row-gap-16" style="align-items: center;">
+                <OmniAvatar Initials="AF" Size="AvatarSize.Sm" />
+                <OmniAvatar Initials="MC" Size="AvatarSize.Md" />
+                <OmniAvatar Initials="LP" Size="AvatarSize.Lg" />
+                <OmniAvatar Initials="JS" Size="AvatarSize.Xl" />
+                <OmniAvatar Initials="BM" Size="AvatarSize.XXl" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="QUADRADO"
+                         Description="Use Square para logos de empresa / cards de produto."
+                         Code="@(@"<OmniAvatar Initials=""F1"" Size=""AvatarSize.Md"" Square />
+<OmniAvatar Initials=""F2"" Size=""AvatarSize.Lg"" Square />
+<OmniAvatar Initials=""F3"" Size=""AvatarSize.Xl"" Square />")">
+            <div class="omni-row omni-row-gap-16" style="align-items: center;">
+                <OmniAvatar Initials="F1" Size="AvatarSize.Md" Square />
+                <OmniAvatar Initials="F2" Size="AvatarSize.Lg" Square />
+                <OmniAvatar Initials="F3" Size="AvatarSize.Xl" Square />
+                <OmniAvatar Initials="F4" Size="AvatarSize.XXl" Square />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EM USO — LISTAS"
+                         Description="Combinado com texto secundário para linhas de DataGrid."
+                         Code="@(@"<div class=""omni-row omni-row-gap-12"">
+    <OmniAvatar Initials=""@u.Initials"" />
+    <div>
+        <div>@u.Nome</div>
+        <div class=""omni-muted"">@u.Papel · @u.Email</div>
+    </div>
+</div>")">
+            <div class="omni-stack omni-stack-12">
+                @foreach (var u in pessoas)
+                {
+                    <div class="omni-row omni-row-gap-12">
+                        <OmniAvatar Initials="@u.Initials" />
+                        <div>
+                            <div style="font-weight:600;font-size:13px;">@u.Nome</div>
+                            <div class="omni-muted" style="font-size:11px;">@u.Papel · @u.Email</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Initials" Type="string?" Default="null"
+                            Description="Iniciais exibidas quando não há imagem." />
+            <ShowcaseApiRow Name="ImageUrl" Type="string?" Default="null"
+                            Description="URL da foto; quando presente, sobrescreve as iniciais." />
+            <ShowcaseApiRow Name="Size" Type="AvatarSize" Default="Md"
+                            Description="Tamanho do avatar — Sm, Md, Lg, Xl, XXl." />
+            <ShowcaseApiRow Name="Square" Type="bool" Default="false"
+                            Description="Renderiza em formato quadrado em vez de circular." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private record Pessoa(string Initials, string Nome, string Papel, string Email);
+    private readonly Pessoa[] pessoas = new[]
+    {
+        new Pessoa("AF","Anderson F.",  "Dono",    "anderson@forno.com.br"),
+        new Pessoa("MC","Marina Costa", "Gerente", "marina@forno.com.br"),
+        new Pessoa("LP","Lucas P.",     "Caixa",   "lucas@forno.com.br"),
+        new Pessoa("BM","Beatriz M.",   "Garçom",  "beatriz@forno.com.br"),
+    };
+}

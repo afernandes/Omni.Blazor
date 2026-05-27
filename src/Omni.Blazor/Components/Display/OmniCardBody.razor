@@ -1,0 +1,23 @@
+@namespace Omni.Blazor.Components
+@using Omni.Blazor.Utilities
+@inherits OmniComponentWithChildren
+
+@*  Structural card part — an explicit padded body section. Use to compose
+    multi-section cards (image + body + list + body, settings panels). Carries
+    the `omni-card-part` marker so the parent card's body auto-wrapper dissolves
+    and this becomes a direct flex child of the card.  *@
+<div class="@RootCss" style="@Style" @attributes="Attributes">@ChildContent</div>
+
+@code {
+    /// <summary>Removes the section padding (flush content).</summary>
+    [Parameter] public bool NoPadding { get; set; }
+
+    /// <summary>Draws a divider line above this section (Metronic-style grouped card).</summary>
+    [Parameter] public bool Divided { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-card-part omni-card-body")
+        .AddClass("omni-card-body-flush", NoPadding)
+        .AddClass("omni-card-body-divided", Divided)
+        .AddClass(Class)
+        .Build();
+}

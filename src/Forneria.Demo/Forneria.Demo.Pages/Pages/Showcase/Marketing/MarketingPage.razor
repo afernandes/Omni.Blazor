@@ -1,0 +1,146 @@
+@page "/showcase/marketing"
+@layout ShowcaseLayout
+
+<PageTitle>Marketing — Showcase</PageTitle>
+
+<ShowcasePage Title="Hero, Eyebrow & Mosaic"
+              Subtitle="Componentes de composição para landing pages e seções introdutórias.">
+
+    <Overview>
+        <p>
+            Este trio cobre o topo de uma landing page. O <code>OmniHero</code> é o bloco
+            principal — eyebrow + título (suporta <code>&lt;em&gt;</code> via markup) + subtítulo +
+            CTAs. O <code>OmniEyebrow</code> é a pílula pequena uppercase com ponto colorido,
+            usada como rótulo de seção ou selo de "novidade". O <code>OmniMosaic</code> com
+            <code>OmniMosaicCard</code> monta o grid de features.
+        </p>
+        <p>
+            São componentes <strong>puramente de apresentação</strong> — sem estado nem interop.
+            Cada um aceita um slot de conteúdo livre, então você compõe a partir de
+            <code>OmniButton</code>, ícones e markup conforme necessário. O mosaic suporta cards
+            <code>Wide</code> (ocupa as 2 colunas) e <code>Featured</code> (destaque em fundo
+            escuro).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Topo de uma landing page ou seção introdutória de produto.</li>
+            <li>Painel visual lateral de telas de autenticação (login / signup).</li>
+            <li>Rótulo de seção ou selo de "novo / beta / lançamento" com o eyebrow.</li>
+            <li>Grid de features ou diferenciais com o mosaic.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Cabeçalho de uma tela interna de aplicação → use <code>OmniPaneHeader</code>.</li>
+            <li>Card de conteúdo genérico dentro do app → use <code>OmniCard</code>.</li>
+            <li>Rótulo de status numa tabela ou linha → use <code>OmniChip</code> / <code>OmniBadge</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="EYEBROW"
+                         Description="Pílula pequena uppercase com ponto colorido — bom para 'novidade' ou rótulos de seção."
+                         Code="@(@"<OmniEyebrow Text=""14 DIAS GRÁTIS · SEM CARTÃO"" />
+<OmniEyebrow Text=""NOVO"" />
+<OmniEyebrow Text=""BETA"" ShowDot=""false"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniEyebrow Text="14 DIAS GRÁTIS · SEM CARTÃO" />
+                <OmniEyebrow Text="NOVO" />
+                <OmniEyebrow Text="STATUS · 99,98% UPTIME" />
+                <OmniEyebrow Text="BETA" ShowDot="false" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HERO"
+                         Description="Hero completo: eyebrow + title (suporta <em>) + subtitle + CTAs."
+                         Code="@(@"<OmniHero Title=""Componentes Blazor <em>feitos para você.</em>""
+           Subtitle=""Inspirados no design Forneria."">
+    <EyebrowContent>
+        <OmniEyebrow Text=""LANÇAMENTO · SPRINT 2"" />
+    </EyebrowContent>
+    <CtaContent>
+        <OmniButton Text=""Ver componentes"" Variant=""ButtonVariant.Primary""
+                     Size=""ComponentSize.Lg"" TrailingIcon=""arrow-right"" />
+        <OmniButton Text=""Documentação"" Size=""ComponentSize.Lg"" />
+    </CtaContent>
+</OmniHero>")">
+            <OmniHero Title="Componentes Blazor &lt;em&gt;feitos para você.&lt;/em&gt;"
+                       Subtitle="Inspirados no design Forneria — paleta cream/âmbar, tipografia premium, OKLCH tokens.">
+                <EyebrowContent>
+                    <OmniEyebrow Text="LANÇAMENTO · SPRINT 2" />
+                </EyebrowContent>
+                <CtaContent>
+                    <OmniButton Text="Ver componentes" Variant="ButtonVariant.Primary" Size="ComponentSize.Lg" TrailingIcon="arrow-right" />
+                    <OmniButton Text="Documentação" Size="ComponentSize.Lg" />
+                </CtaContent>
+            </OmniHero>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MOSAIC"
+                         Description="Grid 2-col com cards de feature. Suporta variantes Wide (2 cols) e Featured (dark/destaque)."
+                         Code="@(@"<OmniMosaic>
+    <OmniMosaicCard Name=""Burgers"" Meta=""PONTO · COMBO"" Icon=""package"" />
+    <OmniMosaicCard Name=""HUB"" Meta=""4 CANAIS"" Icon=""bar-chart"" Featured />
+    <OmniMosaicCard Name=""Cardápio · QR"" Meta=""SEM APP"" Icon=""grid"" Wide />
+</OmniMosaic>")">
+            <OmniMosaic>
+                <OmniMosaicCard Name="Burgers" Meta="PONTO · COMBO" Icon="package" />
+                <OmniMosaicCard Name="HUB" Meta="4 CANAIS · TEMPO REAL" Icon="bar-chart" Featured />
+                <OmniMosaicCard Name="Pizzas" Meta="SABORES · 1/2+1/2" Icon="pizza" />
+                <OmniMosaicCard Name="Cardápio digital · QR" Meta="SEM APP · SEM COMISSÃO" Icon="grid" Wide />
+                <OmniMosaicCard Name="Bares" Meta="COMANDA · 24H" Icon="coffee" />
+            </OmniMosaic>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EM USO" Description="Veja o layout Marketing completo em /login e /signup (lado direito).">
+            <p class="omni-muted">Os componentes funcionam bem juntos. O mosaic é especialmente útil em landing pages e telas de auth com painel visual.</p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniHero — parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Título principal — renderizado como markup, suporta tags como <em>." />
+            <ShowcaseApiRow Name="TitleContent" Type="RenderFragment?" Default="null"
+                            Description="Slot que sobrescreve Title com markup arbitrário." />
+            <ShowcaseApiRow Name="Subtitle" Type="string?" Default="null"
+                            Description="Parágrafo de apoio abaixo do título." />
+            <ShowcaseApiRow Name="Eyebrow" Type="string?" Default="null"
+                            Description="Texto do eyebrow — renderiza um OmniEyebrow automaticamente." />
+            <ShowcaseApiRow Name="EyebrowContent" Type="RenderFragment?" Default="null"
+                            Description="Slot que sobrescreve Eyebrow com markup próprio." />
+            <ShowcaseApiRow Name="CtaContent" Type="RenderFragment?" Default="null"
+                            Description="Slot para botões/CTAs na linha de ação do hero." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo extra renderizado ao final do hero." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniEyebrow — parâmetros">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto da pílula (use ChildContent para markup)." />
+            <ShowcaseApiRow Name="ShowDot" Type="bool" Default="true"
+                            Description="Exibe o ponto colorido à esquerda do texto." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo da pílula — tem precedência sobre Text." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniMosaicCard — parâmetros">
+            <ShowcaseApiRow Name="Name" Type="string" Default="—"
+                            Description="Título do card (obrigatório)." />
+            <ShowcaseApiRow Name="Meta" Type="string?" Default="null"
+                            Description="Linha secundária uppercase abaixo do nome." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Nome do ícone exibido no canto do card." />
+            <ShowcaseApiRow Name="Wide" Type="bool" Default="false"
+                            Description="Faz o card ocupar as 2 colunas do grid." />
+            <ShowcaseApiRow Name="Featured" Type="bool" Default="false"
+                            Description="Aplica o estilo de destaque (fundo escuro)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniMosaic — parâmetros">
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os OmniMosaicCard que compõem o grid." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

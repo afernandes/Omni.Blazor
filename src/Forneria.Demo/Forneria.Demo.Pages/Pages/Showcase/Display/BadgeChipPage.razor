@@ -1,0 +1,323 @@
+@page "/showcase/badge-chip"
+@layout ShowcaseLayout
+
+<PageTitle>Badge & Chip — Showcase</PageTitle>
+
+<ShowcasePage Title="Badge & Chip"
+              Subtitle="Pílulas compactas para status (Badge, estático) e filtros/tags (Chip, interativo).">
+
+    <Overview>
+        <p>
+            O <code>OmniBadge</code> é uma pílula <strong>estática</strong> para rotular estado
+            ou categoria — status de pedido, etiqueta de produto, nível de plano. Renderiza em
+            caixa alta monospace, com oito variantes de cor e suporte a <code>Icon</code>.
+        </p>
+        <p>
+            O <code>OmniChip</code> é a contraparte <strong>interativa</strong>: um botão em
+            formato pílula usado para filtros, tags removíveis e seleção. Suporta o estado
+            <code>Active</code>, um ponto indicador (<code>ShowDot</code>), o realce
+            <code>Accent</code> e o evento <code>OnClick</code>. Com <code>Static</code> ele se
+            comporta como rótulo não-clicável.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Badge:</strong> status de pedido, etiquetas de produto, nível de plano.</li>
+            <li><strong>Badge:</strong> contadores e indicadores que não exigem interação.</li>
+            <li><strong>Chip:</strong> barras de filtro onde o usuário liga/desliga categorias.</li>
+            <li><strong>Chip:</strong> tags de seleção e listas de itens marcáveis.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Mensagem contextual extensa na página → use <code>OmniAlert</code>.</li>
+            <li>Ação primária ou secundária de formulário → use <code>OmniButton</code>.</li>
+            <li>Identidade de um usuário → use <code>OmniAvatar</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BADGE"
+                         Description="8 variantes de cor. Renderizado em monospace caixa alta."
+                         Code="@(@"<OmniBadge Text=""Default"" />
+<OmniBadge Text=""Good"" Variant=""BadgeVariant.Good"" Icon=""check"" />
+<OmniBadge Text=""Warn"" Variant=""BadgeVariant.Warn"" Icon=""alert-triangle"" />
+<OmniBadge Text=""Danger"" Variant=""BadgeVariant.Danger"" Icon=""alert-circle"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniBadge Text="Default" />
+                <OmniBadge Text="Good" Variant="BadgeVariant.Good" Icon="check" />
+                <OmniBadge Text="Warn" Variant="BadgeVariant.Warn" Icon="alert-triangle" />
+                <OmniBadge Text="Danger" Variant="BadgeVariant.Danger" Icon="alert-circle" />
+                <OmniBadge Text="Info" Variant="BadgeVariant.Info" />
+                <OmniBadge Text="Accent" Variant="BadgeVariant.Accent" />
+                <OmniBadge Text="Plain" Variant="BadgeVariant.Plain" />
+                <OmniBadge Text="Solid" Variant="BadgeVariant.Solid" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="BADGE EM USO"
+                         Description="Status de pedidos, etiquetas de produto."
+                         Code="@(@"<OmniBadge Text=""Pronto"" Variant=""BadgeVariant.Good"" />
+<OmniBadge Text=""Em preparo"" Variant=""BadgeVariant.Warn"" />
+<OmniBadge Text=""Cancelado"" Variant=""BadgeVariant.Danger"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniBadge Text="Pronto" Variant="BadgeVariant.Good" />
+                <OmniBadge Text="Em preparo" Variant="BadgeVariant.Warn" />
+                <OmniBadge Text="Cancelado" Variant="BadgeVariant.Danger" />
+                <OmniBadge Text="Entregue" Variant="BadgeVariant.Plain" />
+                <OmniBadge Text="VIP" Variant="BadgeVariant.Accent" />
+                <OmniBadge Text="Novo" Variant="BadgeVariant.Solid" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CHIP — FILTROS"
+                         Description="Chips interativos com Active e OnClick, podem ter dot indicador."
+                         Code="@(@"<OmniChip Text=""Todos"" Active=""@(filter is null)"" Accent
+          OnClick=""@(_ => { filter = null; return Task.CompletedTask; })"" />
+<OmniChip Text=""@f"" Active=""@(filter == f)"" ShowDot
+          OnClick=""@(_ => { filter = f; return Task.CompletedTask; })"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniChip Text="Todos"      Active="@(filter is null)" Accent OnClick="@(_ => { filter = null; return Task.CompletedTask; })" />
+                @foreach (var f in filters)
+                {
+                    <OmniChip Text="@f" Active="@(filter == f)" ShowDot OnClick="@(_ => { filter = f; return Task.CompletedTask; })" />
+                }
+            </div>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">SELECIONADO → @(filter ?? "todos")</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CHIP — STATIC"
+                         Description="Sem hover/click, apenas display."
+                         Code="@(@"<OmniChip Text=""React"" Static />
+<OmniChip Text=""Blazor"" Static />
+<OmniChip Text=""Vue"" Static />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniChip Text="React" Static />
+                <OmniChip Text="Blazor" Static />
+                <OmniChip Text="Vue" Static />
+                <OmniChip Text="Svelte" Static />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="BADGE OVERLAY — sobre um botão"
+                         Description="Coloque um Badge no canto de qualquer elemento. Mesma API do MudBadge: passe o alvo como ChildContent e use Content/Dot/Overlap/Bordered/Origin."
+                         Code="@(@"<OmniBadge Content=""@unread"" Variant=""BadgeVariant.Danger"" Overlap Bordered>
+    <OmniButton Icon=""mail"" Variant=""ButtonVariant.Ghost"" />
+</OmniBadge>
+
+<OmniBadge Content=""3"" Variant=""BadgeVariant.Accent"" Overlap>
+    <OmniButton Icon=""bell"" Variant=""ButtonVariant.Ghost"" />
+</OmniBadge>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-20" style="align-items:center;">
+                <OmniBadge Content="@_unread" Variant="BadgeVariant.Danger" Overlap Bordered>
+                    <OmniButton Icon="mail" Variant="ButtonVariant.Ghost" />
+                </OmniBadge>
+                <OmniBadge Content="3" Variant="BadgeVariant.Accent" Overlap>
+                    <OmniButton Icon="bell" Variant="ButtonVariant.Ghost" />
+                </OmniBadge>
+                <OmniBadge Content="12" Variant="BadgeVariant.Info" Overlap Bordered>
+                    <OmniButton Icon="message-circle" Variant="ButtonVariant.Ghost" />
+                </OmniBadge>
+                <OmniBadge Content="@_unread" Variant="BadgeVariant.Warn" Overlap Bordered>
+                    <OmniButton Icon="shopping-cart" Variant="ButtonVariant.Ghost" />
+                </OmniBadge>
+            </div>
+            <p class="omni-muted omni-mono" style="font-size:11px; margin-top:12px;">
+                <button type="button" style="background:none;border:0;color:var(--omni-accent);cursor:pointer;padding:0;font:inherit;text-decoration:underline;" @onclick="@(() => _unread = Math.Min(150, _unread + 7))">+ MAIS UM ALERTA</button>
+                &nbsp;·&nbsp;
+                <button type="button" style="background:none;border:0;color:var(--omni-accent);cursor:pointer;padding:0;font:inherit;text-decoration:underline;" @onclick="@(() => _unread = Math.Max(0, _unread - 5))">- MARCAR LIDOS</button>
+                &nbsp;·&nbsp; Não lidos: @_unread (badge mostra "@(_unread > 99 ? "99+" : _unread.ToString())" — Max=99)
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DOT — indicador sem texto"
+                         Description="Dot=true vira um círculo pequeno sem conteúdo. Útil para 'tem novidade' sem precisar mostrar quantos."
+                         Code="@(@"<OmniBadge Dot Variant=""BadgeVariant.Danger"" Overlap Bordered>
+    <OmniButton Icon=""bell"" Variant=""ButtonVariant.Ghost"" />
+</OmniBadge>
+
+<OmniBadge Dot Variant=""BadgeVariant.Good"" Overlap Origin=""BadgeOrigin.BottomEnd"" Bordered>
+    <OmniAvatar Initials=""MS"" Size=""AvatarSize.Lg"" />
+</OmniBadge>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-20" style="align-items:center;">
+                <OmniBadge Dot Variant="BadgeVariant.Danger" Overlap Bordered>
+                    <OmniButton Icon="bell" Variant="ButtonVariant.Ghost" />
+                </OmniBadge>
+                <OmniBadge Dot Variant="BadgeVariant.Warn" Overlap Bordered>
+                    <OmniButton Icon="mail" Variant="ButtonVariant.Ghost" />
+                </OmniBadge>
+                <OmniBadge Dot Variant="BadgeVariant.Good" Overlap Origin="BadgeOrigin.BottomEnd" Bordered>
+                    <OmniAvatar Initials="MS" Size="AvatarSize.Lg" />
+                </OmniBadge>
+                <OmniBadge Dot Variant="BadgeVariant.Info" Overlap Origin="BadgeOrigin.BottomEnd" Bordered>
+                    <OmniAvatar Initials="JD" Size="AvatarSize.Lg" />
+                </OmniBadge>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ORIGIN — galeria de 4 cantos"
+                         Description="Origin define o canto onde o badge gruda. Start/End são RTL-friendly."
+                         Code="@(@"<OmniBadge Content=""5"" Origin=""BadgeOrigin.TopEnd"">...</OmniBadge>
+<OmniBadge Content=""5"" Origin=""BadgeOrigin.TopStart"">...</OmniBadge>
+<OmniBadge Content=""5"" Origin=""BadgeOrigin.BottomEnd"">...</OmniBadge>
+<OmniBadge Content=""5"" Origin=""BadgeOrigin.BottomStart"">...</OmniBadge>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-28" style="align-items:center; padding:12px 0;">
+                @foreach (var o in new[] { BadgeOrigin.TopEnd, BadgeOrigin.TopStart, BadgeOrigin.BottomEnd, BadgeOrigin.BottomStart })
+                {
+                    <div style="text-align:center;">
+                        <OmniBadge Content="5" Variant="BadgeVariant.Danger" Origin="@o" Bordered>
+                            <div style="width:56px; height:56px; background:var(--omni-bg-sunken); border:1px solid var(--omni-line); border-radius:8px; display:grid; place-items:center; font-family:var(--omni-font-mono); font-size:11px; color:var(--omni-fg-muted);">
+                                box
+                            </div>
+                        </OmniBadge>
+                        <p class="omni-muted omni-mono" style="font-size:10px; margin:8px 0 0;">@o.ToString()</p>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="OVERLAP — sobrepor o alvo"
+                         Description="Overlap=true puxa o badge para dentro do alvo. Ideal para alvos redondos (avatares, ícones)."
+                         Code="@(@"@* SEM Overlap — badge fica totalmente fora *@
+<OmniBadge Content=""8""><OmniAvatar Initials=""AF"" Size=""AvatarSize.Lg"" /></OmniBadge>
+
+@* COM Overlap — badge fica parcialmente sobre o alvo *@
+<OmniBadge Content=""8"" Overlap Bordered><OmniAvatar Initials=""AF"" Size=""AvatarSize.Lg"" /></OmniBadge>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-24" style="align-items:center;">
+                <div style="text-align:center;">
+                    <OmniBadge Content="8" Variant="BadgeVariant.Danger">
+                        <OmniAvatar Initials="AF" Size="AvatarSize.Lg" />
+                    </OmniBadge>
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:6px 0 0;">SEM OVERLAP</p>
+                </div>
+                <div style="text-align:center;">
+                    <OmniBadge Content="8" Variant="BadgeVariant.Danger" Overlap Bordered>
+                        <OmniAvatar Initials="AF" Size="AvatarSize.Lg" />
+                    </OmniBadge>
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:6px 0 0;">COM OVERLAP + BORDERED</p>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VISIBLE — toggle controlado"
+                         Description="Visible=false esconde o badge sem desmontar o alvo. Bom para 'sem novidades' quando o contador zera."
+                         Code="@(@"<OmniBadge Content=""@count"" Visible=""@(count > 0)"" Variant=""BadgeVariant.Danger"" Overlap Bordered>
+    <OmniButton Icon=""mail"" Variant=""ButtonVariant.Ghost"" />
+</OmniBadge>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16" style="align-items:center;">
+                <OmniBadge Content="@_visibleCount" Visible="@(_visibleCount > 0)" Variant="BadgeVariant.Danger" Overlap Bordered>
+                    <OmniButton Icon="mail" Variant="ButtonVariant.Ghost" />
+                </OmniBadge>
+                <OmniButton Text="+1" Size="ComponentSize.Sm" OnClick="@(_ => { _visibleCount++; return Task.CompletedTask; })" />
+                <OmniButton Text="−1" Size="ComponentSize.Sm" OnClick="@(_ => { _visibleCount = Math.Max(0, _visibleCount - 1); return Task.CompletedTask; })" />
+                <OmniButton Text="ZERAR" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost" OnClick="@(_ => { _visibleCount = 0; return Task.CompletedTask; })" />
+                <span class="omni-muted omni-mono" style="font-size:11px;">count = @_visibleCount</span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ONCLICK — bubble clicável"
+                         Description="OnClick dispara no badge (não no alvo). Útil p/ 'limpar notificações' sem clicar no botão de baixo."
+                         Code="@(@"<OmniBadge Content=""@_clickCount"" Variant=""BadgeVariant.Danger""
+            Overlap Bordered OnClick=""@(_ => _clickCount = 0)"">
+    <OmniButton Icon=""bell"" Variant=""ButtonVariant.Ghost"" />
+</OmniBadge>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16" style="align-items:center;">
+                <OmniBadge Content="@_clickCount" Visible="@(_clickCount > 0)" Variant="BadgeVariant.Danger" Overlap Bordered OnClick="@(_ => { _clickCount = 0; return Task.CompletedTask; })">
+                    <OmniButton Icon="bell" Variant="ButtonVariant.Ghost" OnClick="@(_ => { _clickCount++; return Task.CompletedTask; })" />
+                </OmniBadge>
+                <span class="omni-muted omni-mono" style="font-size:11px;">
+                    Clique no SINO p/ +1. Clique no BADGE para zerar.
+                    &nbsp;·&nbsp; count = @_clickCount
+                </span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MAX — capeamento numérico"
+                         Description="Content > Max renderiza como 'Max+'. Padrão é 99."
+                         Code="@(@"<OmniBadge Content=""5""    Max=""99"" Variant=""BadgeVariant.Danger"" Overlap Bordered>...</OmniBadge>
+<OmniBadge Content=""42""   Max=""99"" Variant=""BadgeVariant.Danger"" Overlap Bordered>...</OmniBadge>
+<OmniBadge Content=""150""  Max=""99"" Variant=""BadgeVariant.Danger"" Overlap Bordered>...</OmniBadge>   @* mostra ""99+"" *@
+<OmniBadge Content=""1500"" Max=""999"" Variant=""BadgeVariant.Danger"" Overlap Bordered>...</OmniBadge> @* mostra ""999+"" *@")">
+            <div class="omni-row omni-row-wrap omni-row-gap-20" style="align-items:center;">
+                @foreach (var (n, max) in new (int, int)[] { (5, 99), (42, 99), (150, 99), (1500, 999) })
+                {
+                    <div style="text-align:center;">
+                        <OmniBadge Content="@n" Max="@max" Variant="BadgeVariant.Danger" Overlap Bordered>
+                            <OmniButton Icon="bell" Variant="ButtonVariant.Ghost" />
+                        </OmniBadge>
+                        <p class="omni-muted omni-mono" style="font-size:10px; margin:6px 0 0;">@n  (max @max)</p>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniBadge — modo standalone (pílula)">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto exibido na pílula." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Ícone exibido antes do texto." />
+            <ShowcaseApiRow Name="Variant" Type="BadgeVariant" Default="Default"
+                            Description="Cor da pílula — Default, Good, Warn, Danger, Info, Accent, Plain, Solid." />
+            <ShowcaseApiRow Name="Content" Type="object?" Default="null"
+                            Description="Alternativa a Text — aceita int (com capeamento Max) ou string." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniBadge — modo overlay (envolve um alvo)">
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Quando definido, ativa o modo overlay. O ChildContent é o ALVO (botão, ícone, avatar) que recebe o badge." />
+            <ShowcaseApiRow Name="Content" Type="object?" Default="null"
+                            Description="Conteúdo do badge. int → string com cap Max. string → texto literal." />
+            <ShowcaseApiRow Name="Dot" Type="bool" Default="false"
+                            Description="Renderiza um pequeno círculo (sem texto/ícone). Indicador 'tem novidade'." />
+            <ShowcaseApiRow Name="Overlap" Type="bool" Default="false"
+                            Description="Puxa o badge para dentro do alvo. Recomendado para alvos redondos (avatares, ícones)." />
+            <ShowcaseApiRow Name="Bordered" Type="bool" Default="false"
+                            Description="Adiciona um anel de contraste em torno do badge para destacá-lo do alvo." />
+            <ShowcaseApiRow Name="Visible" Type="bool" Default="true"
+                            Description="Quando false, esconde apenas o badge (alvo continua renderizado)." />
+            <ShowcaseApiRow Name="Max" Type="int" Default="99"
+                            Description="Cap numérico. Content (int) > Max é renderizado como 'Max+' (ex.: '99+')." />
+            <ShowcaseApiRow Name="Origin" Type="BadgeOrigin" Default="TopEnd"
+                            Description="Canto onde o badge gruda — TopEnd, TopStart, BottomEnd, BottomStart (Start/End = RTL-friendly)." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback&lt;MouseEventArgs&gt;" Default="empty"
+                            Description="Disparado quando o badge é clicado. NÃO propaga para o alvo. Útil p/ 'limpar notificações'." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string?" Default="null"
+                            Description="aria-label do bubble. O badge usa role='status' + aria-live='polite' por padrão." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Parâmetros — OmniChip">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto exibido no chip." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Ícone exibido antes do texto." />
+            <ShowcaseApiRow Name="Active" Type="bool" Default="false"
+                            Description="Marca o chip como selecionado/ativo." />
+            <ShowcaseApiRow Name="ShowDot" Type="bool" Default="false"
+                            Description="Exibe um ponto indicador antes do conteúdo." />
+            <ShowcaseApiRow Name="Accent" Type="bool" Default="false"
+                            Description="Aplica o realce de acento ao chip." />
+            <ShowcaseApiRow Name="Static" Type="bool" Default="false"
+                            Description="Desativa hover/click — comporta-se como rótulo." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo customizado (sobrescreve Text)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos — OmniChip" ShowDefault="false">
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback&lt;MouseEventArgs&gt;" ShowDefault="false"
+                            Description="Disparado quando o chip é clicado." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? filter;
+    private readonly string[] filters = new[] { "Pendentes", "Em preparo", "Prontos", "Entregues", "Cancelados" };
+
+    // Overlay-mode demos
+    private int _unread = 8;
+    private int _visibleCount = 3;
+    private int _clickCount;
+}

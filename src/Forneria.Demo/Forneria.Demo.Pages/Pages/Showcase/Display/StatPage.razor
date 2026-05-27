@@ -1,0 +1,110 @@
+@page "/showcase/stat"
+@layout ShowcaseLayout
+
+<PageTitle>Stat — Showcase</PageTitle>
+
+<ShowcasePage Title="Stat"
+              Subtitle="Métrica de destaque com rótulo, valor e variação para dashboards e KPIs.">
+
+    <Overview>
+        <p>
+            O <code>OmniStat</code> apresenta uma <strong>métrica única em destaque</strong> —
+            um <code>Label</code> curto, um <code>Value</code> grande e, opcionalmente, um
+            <code>Delta</code> indicando a variação. É o bloco fundamental de dashboards, painéis
+            de KPI e cabeçalhos de relatório.
+        </p>
+        <p>
+            O <code>Delta</code> aparece em verde por padrão (positivo) e em vermelho com
+            <code>DeltaDown</code> (negativo). Com <code>Card=true</code>, a métrica ganha um
+            container com borda e padding, ideal para alinhar várias em grade. Valores curtos
+            ficam especialmente legíveis na fonte monospace.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Cards de KPI em dashboards (receita, pedidos, ticket médio).</li>
+            <li>Resumos numéricos no topo de relatórios e telas de detalhe.</li>
+            <li>Indicadores de tendência com variação percentual (Delta).</li>
+            <li>Métricas de produto destacadas (MRR, churn, LTV).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Avanço de uma tarefa ou quota → use <code>OmniProgress</code>.</li>
+            <li>Rótulo de status compacto → use <code>OmniBadge</code>.</li>
+            <li>Tabela de muitos valores comparáveis → use <code>OmniDataGrid</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SIMPLES"
+                         Description="Label + Value são suficientes."
+                         Code="@(@"<OmniStat Label=""UPTIME"" Value=""99,98%"" />
+<OmniStat Label=""PEDIDOS"" Value=""2.341"" />
+<OmniStat Label=""TICKET MÉDIO"" Value=""R$ 53,30"" />")">
+            <div class="omni-grid-4">
+                <OmniStat Label="UPTIME" Value="99,98%" />
+                <OmniStat Label="PEDIDOS" Value="2.341" />
+                <OmniStat Label="TICKET MÉDIO" Value="R$ 53,30" />
+                <OmniStat Label="TEMPO COZINHA" Value="14 min" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM DELTA"
+                         Description="Delta verde (positivo) ou vermelho (DeltaDown)."
+                         Code="@(@"<OmniStat Label=""FATURAMENTO"" Value=""R$ 12.480"" Delta=""+18% vs ontem"" />
+<OmniStat Label=""CANCELAMENTOS"" Value=""1,2%"" Delta=""+0,3%"" DeltaDown />")">
+            <div class="omni-grid-4">
+                <OmniStat Label="FATURAMENTO" Value="R$ 12.480" Delta="+18% vs ontem" />
+                <OmniStat Label="PEDIDOS" Value="2.341" Delta="+12%" />
+                <OmniStat Label="CANCELAMENTOS" Value="1,2%" Delta="+0,3%" DeltaDown />
+                <OmniStat Label="DEVOLUÇÕES" Value="R$ 234" Delta="-15%" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EM CARD"
+                         Description="Card=true adiciona container com borda e padding."
+                         Code="@(@"<OmniStat Card Label=""ASSINATURAS"" Value=""1.842"" Delta=""+24"" />
+<OmniStat Card Label=""MRR"" Value=""R$ 89k"" Delta=""+8% MoM"" />
+<OmniStat Card Label=""CHURN"" Value=""2,4%"" Delta=""+0,1%"" DeltaDown />")">
+            <div class="omni-grid-4">
+                <OmniStat Card Label="ASSINATURAS" Value="1.842" Delta="+24" />
+                <OmniStat Card Label="MRR" Value="R$ 89k" Delta="+8% MoM" />
+                <OmniStat Card Label="CHURN" Value="2,4%" Delta="+0,1%" DeltaDown />
+                <OmniStat Card Label="LTV" Value="R$ 1.240" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VALORES DESTAQUE"
+                         Description="Use valores curtos em mono para impacto visual. JetBrains Mono brilha aqui."
+                         Code="@(@"<OmniStat Card Label=""MAIS PEDIDA"" Value=""Margherita"" />
+<OmniStat Card Label=""PICO DO DIA"" Value=""20h12"" />
+<OmniStat Card Label=""MELHOR DIA"" Value=""Sábado"" />")">
+            <div class="omni-grid-3">
+                <OmniStat Card Label="MAIS PEDIDA" Value="Margherita" />
+                <OmniStat Card Label="PICO DO DIA" Value="20h12" />
+                <OmniStat Card Label="MELHOR DIA" Value="Sábado" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Label" Type="string?" Default="null"
+                            Description="Rótulo curto exibido acima do valor." />
+            <ShowcaseApiRow Name="Value" Type="string" Default="&quot;&quot;"
+                            Description="Valor da métrica em destaque (obrigatório)." />
+            <ShowcaseApiRow Name="Delta" Type="string?" Default="null"
+                            Description="Texto de variação exibido abaixo do valor." />
+            <ShowcaseApiRow Name="DeltaDown" Type="bool" Default="false"
+                            Description="Renderiza o delta em vermelho (variação negativa)." />
+            <ShowcaseApiRow Name="Card" Type="bool" Default="false"
+                            Description="Envolve a métrica em um container com borda e padding." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo extra renderizado após o delta." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

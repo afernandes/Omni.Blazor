@@ -1,0 +1,255 @@
+@page "/showcase/layout"
+@layout ShowcaseLayout
+
+<PageTitle>Layout & SplitView — Showcase</PageTitle>
+
+<ShowcasePage Title="Layout & SplitView"
+              Subtitle="Primitivas de estrutura: app shell, master/detail e bandas fixas de pane.">
+
+    <Overview>
+        <p>
+            O <code>OmniLayout</code> é o <strong>container raiz</strong> de qualquer shell.
+            Funciona como peças LEGO: você encaixa <code>OmniAppBar</code>, <code>OmniDrawer</code>
+            (esquerda/direita), <code>OmniToolBar</code>, <code>OmniMain</code> e <code>OmniFooter</code>
+            em qualquer combinação — o grid CSS auto-detecta via <code>:has()</code> quais slots existem
+            e colapsa os que faltam. Sem parâmetros de estado, sem código repetido.
+        </p>
+        <p>
+            Para os <strong>wireframes prontos</strong> (galeria de 10 combinações), veja
+            <code>/showcase/wireframes</code>. Esta página foca nas primitivas individuais.
+        </p>
+        <p>
+            O <code>OmniSplitView</code> é uma primitiva <strong>master/detail</strong> aninhada:
+            um <code>AsideContent</code> (sub-navegação) ao lado de um <code>ChildContent</code>
+            (conteúdo principal). Cada coluna tem seu próprio scroll, o que permite que
+            <code>OmniPaneHeader</code> e <code>OmniPaneToolbar</code> fiquem fixos no topo.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Estruturar o shell de uma aplicação com sidebar + header + body.</li>
+            <li>Telas master/detail onde uma sub-navegação acompanha o conteúdo principal.</li>
+            <li>Panes com scroll interno que precisam de cabeçalho e toolbar fixos.</li>
+            <li>Layouts com proporções específicas (PDV, editores) via <code>AsideWidth</code>.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Navegação hierárquica em si — isso é função do <code>OmniPanelMenu</code>.</li>
+            <li>Páginas de marketing sem chrome de app → use o <code>MarketingLayout</code>.</li>
+            <li>Separar conteúdo em abas dentro de um mesmo pane → use <code>OmniTabs</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="OMNI LAYOUT — APP SHELL"
+                         Description="Composição LEGO: encaixe AppBar + Drawer + Main + Footer e o grid se ajusta sozinho via :has()."
+                         Code="@(@"<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle />
+        <OmniBrand Name=""Forneria"" Tenant=""Pizzaria do Forno"" />
+    </OmniAppBar>
+    <OmniDrawer Variant=""DrawerVariant.Responsive"">
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text=""Dashboard"" Path=""/dashboard"" />
+        </OmniPanelMenu>
+    </OmniDrawer>
+    <OmniMain>@Body</OmniMain>
+    <OmniFooter>&copy; 2026</OmniFooter>
+</OmniLayout>")">
+            <div class="omni-stack omni-stack-8">
+                <p class="omni-muted">Estrutura usada por toda a app — qualquer slot é opcional:</p>
+                <pre class="omni-code"><code>&lt;OmniLayout&gt;
+    &lt;OmniAppBar&gt;
+        &lt;OmniDrawerToggle /&gt;
+        &lt;OmniBrand Name="Forneria" Tenant="Pizzaria do Forno" /&gt;
+    &lt;/OmniAppBar&gt;
+
+    &lt;OmniDrawer Variant="DrawerVariant.Responsive"&gt;
+        &lt;OmniPanelMenu&gt;
+            &lt;OmniPanelMenuItem Text="Dashboard" Path="/dashboard" /&gt;
+        &lt;/OmniPanelMenu&gt;
+    &lt;/OmniDrawer&gt;
+
+    &lt;OmniMain&gt;@@Body&lt;/OmniMain&gt;
+    &lt;OmniFooter&gt;&amp;copy; 2026&lt;/OmniFooter&gt;
+&lt;/OmniLayout&gt;</code></pre>
+                <p class="omni-muted" style="font-size: 13px;">
+                    <strong>Drawer Responsive:</strong> Persistent (lado a lado) em desktop, Temporary (overlay) abaixo do Breakpoint.
+                    <strong>DrawerToggle:</strong> hamburger que auto-encontra o drawer e alterna via cascading.
+                    <strong>Galeria completa:</strong> <code class="omni-mono">/showcase/wireframes</code>.
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="OMNI BRAND"
+                         Description="Logomark + nome + tenant secundário (opcional)."
+                         Code="@(@"<OmniBrand Initial=""F"" Name=""Forneria"" />
+<OmniBrand Initial=""F"" Name=""Forneria"" Tenant=""Pizzaria do Forno"" />
+<OmniBrand Initial=""F"" Name=""Forneria"" Tenant=""Vila Madalena"" Large />")">
+            <div class="omni-stack omni-stack-12">
+                <OmniBrand Initial="F" Name="Forneria" />
+                <OmniBrand Initial="F" Name="Forneria" Tenant="Pizzaria do Forno" />
+                <OmniBrand Initial="F" Name="Forneria" Tenant="Vila Madalena" Large />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="OMNI SPLITVIEW"
+                         Description="Layout aninhado: aside + main. Usado por /cadastros e por este próprio showcase."
+                         Code="@(@"<OmniSplitView AsideSize=""ComponentSize.Md"">
+    <AsideContent>
+        <OmniSplitAsideLabel Text=""Cadastros"" />
+        <OmniPanelMenu> ... </OmniPanelMenu>
+    </AsideContent>
+    <ChildContent>
+        <OmniPaneHeader Title=""Produtos"" />
+        <OmniDataGrid Embed ... />
+    </ChildContent>
+</OmniSplitView>")">
+                <p class="omni-muted">
+                    Estrutura: <code class="omni-mono">&lt;OmniSplitView&gt;</code> dentro do <code class="omni-mono">OmniBody</code>.
+                    Aceita <code class="omni-mono">AsideContent</code> (sub-navegação) e <code class="omni-mono">ChildContent</code> (main).
+                </p>
+                <pre class="omni-code"><code>&lt;OmniSplitView AsideSize="ComponentSize.Md"&gt;
+    &lt;AsideContent&gt;
+        &lt;OmniSplitAsideLabel Text="Cadastros" /&gt;
+        &lt;OmniPanelMenu&gt; ... &lt;/OmniPanelMenu&gt;
+    &lt;/AsideContent&gt;
+    &lt;ChildContent&gt;
+        &lt;OmniPaneHeader Title="Produtos" /&gt;
+        &lt;OmniPaneToolbar&gt; ... &lt;/OmniPaneToolbar&gt;
+        &lt;OmniDataGrid Embed ... /&gt;
+    &lt;/ChildContent&gt;
+&lt;/OmniSplitView&gt;</code></pre>
+                <p class="omni-muted" style="font-size: 13px; margin-top: 12px;">
+                    <strong>AsideSize</strong>: Sm=200px · Md=228px (padrão) · Lg=280px. <strong>AsideRight=true</strong> coloca o aside à direita.
+                </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PANE HEADER + TOOLBAR"
+                         Description="Bandas fixas no topo de qualquer pane com scroll. Estão sendo usadas nesta mesma página."
+                         Code="@(@"<OmniPaneHeader Title=""Produtos"" Subtitle=""Todos os itens"">
+    <Actions>
+        <OmniButton Text=""Exportar"" Icon=""download"" />
+    </Actions>
+</OmniPaneHeader>
+
+<OmniPaneToolbar>
+    <OmniTextBox Placeholder=""Buscar..."" />
+    <div class=""omni-pane-toolbar-spacer""></div>
+    <OmniButton Text=""Novo"" Variant=""ButtonVariant.Primary"" />
+</OmniPaneToolbar>")">
+                <p class="omni-muted">
+                    <code class="omni-mono">OmniPaneHeader</code> aceita Title, Subtitle e slot Actions à direita.
+                    <code class="omni-mono">OmniPaneToolbar</code> é um slot livre — você compõe search + chips + botões.
+                </p>
+                <pre class="omni-code"><code>&lt;OmniPaneHeader Title="Produtos" Subtitle="Todos os itens"&gt;
+    &lt;Actions&gt;
+        &lt;OmniButton Text="Exportar" Icon="download" /&gt;
+    &lt;/Actions&gt;
+&lt;/OmniPaneHeader&gt;
+
+&lt;OmniPaneToolbar&gt;
+    &lt;OmniTextBox Class="omni-pane-toolbar-search" Placeholder="Buscar..." /&gt;
+    &lt;div class="omni-pane-toolbar-spacer"&gt;&lt;/div&gt;
+    &lt;OmniButton Text="Novo" Variant="ButtonVariant.Primary" /&gt;
+&lt;/OmniPaneToolbar&gt;</code></pre>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniLayout — Parâmetros">
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="AppBar, Drawer, ToolBar, Main e Footer que compõem o shell. Todos opcionais — o grid usa :has() para colapsar slots vazios." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniAppBar — Parâmetros">
+            <ShowcaseApiRow Name="Position" Type="BarPosition" Default="Top"
+                            Description="Top (default) ou Bottom — para nav inferior mobile-style." />
+            <ShowcaseApiRow Name="Fixed" Type="bool" Default="true"
+                            Description="Fixa visualmente (não rola junto com o Main)." />
+            <ShowcaseApiRow Name="Elevated" Type="bool" Default="true"
+                            Description="Sombra fina abaixo." />
+            <ShowcaseApiRow Name="Bordered" Type="bool" Default="true"
+                            Description="Borda inferior." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniDrawer — Parâmetros">
+            <ShowcaseApiRow Name="Anchor" Type="DrawerAnchor" Default="Left"
+                            Description="Left (default) ou Right." />
+            <ShowcaseApiRow Name="Variant" Type="DrawerVariant" Default="Responsive"
+                            Description="Persistent | Mini | Temporary | Responsive (Persistent acima de Breakpoint, Temporary abaixo)." />
+            <ShowcaseApiRow Name="Breakpoint" Type="Breakpoint" Default="Lg"
+                            Description="Limite a partir do qual o Responsive vira Persistent." />
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura quando aberto (CSS var --omni-drawer-w, default 232px)." />
+            <ShowcaseApiRow Name="Open" Type="bool" Default="true"
+                            Description="Estado aberto/fechado. Two-way binding via bind-Open." />
+            <ShowcaseApiRow Name="Collapsed" Type="bool?" Default="null"
+                            Description="Força icon-only (útil para Mini estático)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniMain — Parâmetros">
+            <ShowcaseApiRow Name="NoPadding" Type="bool" Default="false"
+                            Description="Remove o padding interno padrão (kiosk / full-bleed)." />
+            <ShowcaseApiRow Name="Container" Type="ContainerMaxWidth?" Default="null"
+                            Description="Envelopa em OmniContainer com max-width. Ideal para marketing/landing." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniFooter — Parâmetros">
+            <ShowcaseApiRow Name="Bordered" Type="bool" Default="true"
+                            Description="Borda superior fina." />
+            <ShowcaseApiRow Name="Fixed" Type="bool" Default="false"
+                            Description="Fixa ao rodapé da viewport (sticky)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniContainer — Parâmetros">
+            <ShowcaseApiRow Name="MaxWidth" Type="ContainerMaxWidth" Default="Lg"
+                            Description="Sm=640 · Md=1024 · Lg=1280 · Xl=1440 · Xxl=1920 · Full." />
+            <ShowcaseApiRow Name="Fluid" Type="bool" Default="false"
+                            Description="Atalho para MaxWidth=Full." />
+            <ShowcaseApiRow Name="Gutters" Type="bool" Default="true"
+                            Description="Padding lateral nas bordas." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniDrawerToggle — Parâmetros">
+            <ShowcaseApiRow Name="Target" Type="OmniDrawer?" Default="null"
+                            Description="Referência manual ao drawer alvo. Se null, usa o cascateado mais próximo." />
+            <ShowcaseApiRow Name="Icon" Type="string" Default="menu"
+                            Description="Ícone Lucide." />
+            <ShowcaseApiRow Name="Title" Type="string" Default="Abrir menu"
+                            Description="aria-label + tooltip." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniSplitView — Parâmetros">
+            <ShowcaseApiRow Name="AsideContent" Type="RenderFragment?" Default="null"
+                            Description="Sub-navegação renderizada na coluna lateral." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo principal da coluna main." />
+            <ShowcaseApiRow Name="AsideRight" Type="bool" Default="false"
+                            Description="Coloca o aside à direita em vez da esquerda padrão." />
+            <ShowcaseApiRow Name="AsideSize" Type="ComponentSize" Default="Md"
+                            Description="Preset de largura do aside — Sm=200px, Md=228px, Lg=280px." />
+            <ShowcaseApiRow Name="AsideWidth" Type="string?" Default="null"
+                            Description="Largura arbitrária (ex: 380px, 25%) — sobrescreve AsideSize." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniPaneHeader — Parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Título principal do pane." />
+            <ShowcaseApiRow Name="Subtitle" Type="string?" Default="null"
+                            Description="Texto secundário abaixo do título." />
+            <ShowcaseApiRow Name="TitleContent" Type="RenderFragment?" Default="null"
+                            Description="Markup customizado no lugar do Title de texto." />
+            <ShowcaseApiRow Name="Actions" Type="RenderFragment?" Default="null"
+                            Description="Slot de botões alinhados à direita do header." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniBrand — Parâmetros">
+            <ShowcaseApiRow Name="Initial" Type="string" Default="F"
+                            Description="Letra exibida no logomark." />
+            <ShowcaseApiRow Name="Name" Type="string" Default="Forneria"
+                            Description="Nome do produto ao lado do logomark." />
+            <ShowcaseApiRow Name="Tenant" Type="string?" Default="null"
+                            Description="Nome secundário (tenant) após uma barra." />
+            <ShowcaseApiRow Name="Href" Type="string?" Default="null"
+                            Description="Quando setado, renderiza o brand como link." />
+            <ShowcaseApiRow Name="Large" Type="bool" Default="false"
+                            Description="Usa o logomark em tamanho ampliado." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

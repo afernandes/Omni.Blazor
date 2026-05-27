@@ -1,0 +1,373 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject Omni.Blazor.Services.ScrollManager Scroll
+@inject Omni.Blazor.Services.BreakpointService Breakpoints
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Omni.Blazor.Utilities
+@using System.Globalization
+
+@*  Material 3 Bottom Sheet — surface slides up from the bottom edge with
+    optional drag handle + snap points.
+
+    Inspirado no Material 3 spec (https://m3.material.io/components/bottom-sheets/overview).
+    Equivalente conceitual ao MudDrawer Anchor=Bottom mas com drag handle real,
+    snap points, e adaptação opcional pra desktop (M3 desaconselha bottom
+    sheet em telas largas — usa drawer ou dialog).
+
+    2 variants:
+      • Modal (default) — backdrop, foco trapado, Esc fecha
+      • Standard — sem backdrop, página continua interativa
+
+    Snap points (opcional): array de fração 0–1 da viewport (ex: [0.3, 0.6, 0.92]
+    = peek / metade / quase total). Drag handle navega entre snaps. Drag-down
+    além do menor snap fecha (se DragToDismiss=true).
+
+    Usage — modal simples:
+        <OmniBottomSheet @bind-Open="_open" Title="Detalhes">
+            <p>Conteúdo aqui</p>
+        </OmniBottomSheet>
+
+    Usage — com snap points e footer:
+        <OmniBottomSheet @bind-Open="_open"
+                          SnapPoints="@(new[] { 0.3, 0.6, 0.92 })"
+                          InitialSnapIndex="1">
+            <p>Conteúdo</p>
+            <Footer>
+                <OmniButton Text="Salvar" Variant="ButtonVariant.Primary" />
+            </Footer>
+        </OmniBottomSheet> *@
+
+@* Backdrop só em Modal. Click fecha (se CloseOnOverlayClick). *@
+@if (_isOpen && Variant == BottomSheetVariant.Modal && !_useDesktopFallback)
+{
+    <div class="omni-bs-backdrop" @onclick="HandleBackdropClick" aria-hidden="true"></div>
+}
+
+@if (_isOpen)
+{
+    @* Em desktop adaptativo, delega pra Dialog ou Drawer. Senão, renderiza o
+       sheet real (bottom). *@
+    @if (_useDesktopFallback && Adaptive == BottomSheetAdaptive.DialogOnDesktop)
+    {
+        <div class="omni-bs-dialog-backdrop" @onclick="HandleBackdropClick" aria-hidden="true"></div>
+        <div class="@DesktopDialogCss" style="@Style" role="dialog" aria-modal="@AriaModal" aria-labelledby="@TitleId" @attributes="Attributes">
+            @RenderHeader
+            <div class="omni-bs-body">@ChildContent</div>
+            @if (Footer is not null) { <div class="omni-bs-footer">@Footer</div> }
+        </div>
+    }
+    else if (_useDesktopFallback && Adaptive == BottomSheetAdaptive.DrawerOnDesktop)
+    {
+        <div class="omni-bs-dialog-backdrop" @onclick="HandleBackdropClick" aria-hidden="true"></div>
+        <div class="@DesktopDrawerCss" style="@Style" role="dialog" aria-modal="@AriaModal" aria-labelledby="@TitleId" @attributes="Attributes">
+            @RenderHeader
+            <div class="omni-bs-body">@ChildContent</div>
+            @if (Footer is not null) { <div class="omni-bs-footer">@Footer</div> }
+        </div>
+    }
+    else
+    {
+        @* Bottom sheet "real" — slide up do bottom edge. *@
+        <div @ref="_sheetEl"
+             class="@SheetCss"
+             style="@SheetInlineStyle"
+             role="dialog"
+             aria-modal="@AriaModal"
+             aria-labelledby="@TitleId"
+             data-omni-focus-trap="@(Variant == BottomSheetVariant.Modal ? "1" : null)"
+             @attributes="Attributes">
+
+            @if (ShowDragHandle)
+            {
+                @* Drag handle area — pointer events vão via JS interop (live drag).
+                   Mantém visual subtle (pill 32×4) com hit area maior pra mobile. *@
+                <div @ref="_handleEl" class="omni-bs-handle-area" aria-hidden="true">
+                    <div class="omni-bs-handle"></div>
+                </div>
+            }
+
+            @RenderHeader
+            <div class="omni-bs-body">@ChildContent</div>
+            @if (Footer is not null) { <div class="omni-bs-footer">@Footer</div> }
+        </div>
+    }
+}
+
+@code {
+    /// <summary>Estado aberto/fechado. Two-way bind via <c>@@bind-Open</c>.</summary>
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Modal (com backdrop) ou Standard (sem). Default <c>Modal</c>.</summary>
+    [Parameter] public BottomSheetVariant Variant { get; set; } = BottomSheetVariant.Modal;
+
+    /// <summary>Snap points como fração viewport (0–1). Ex: <c>[0.3, 0.6, 0.92]</c>
+    /// = peek 30%, half 60%, full 92%. Sem snap points, sheet abre em 60% por default.</summary>
+    [Parameter] public double[]? SnapPoints { get; set; }
+
+    /// <summary>Índice inicial em <see cref="SnapPoints"/>. Default 0 (menor).</summary>
+    [Parameter] public int InitialSnapIndex { get; set; }
+
+    /// <summary>Mostra drag handle (pill no topo). Default <c>true</c>.</summary>
+    [Parameter] public bool ShowDragHandle { get; set; } = true;
+
+    /// <summary>Drag pra baixo além do menor snap fecha. Default <c>true</c>.</summary>
+    [Parameter] public bool DragToDismiss { get; set; } = true;
+
+    /// <summary>Click no backdrop fecha (só Modal). Default <c>true</c>.</summary>
+    [Parameter] public bool CloseOnOverlayClick { get; set; } = true;
+
+    /// <summary>Esc fecha. Default <c>true</c>.</summary>
+    [Parameter] public bool CloseOnEsc { get; set; } = true;
+
+    /// <summary>Título mostrado no header. Se <c>Header</c> for setado, ignorado.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Mostra botão X no header pra fechar. Default <c>true</c> se Title ou Header.</summary>
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    /// <summary>Custom header (sobrescreve <see cref="Title"/>).</summary>
+    [Parameter] public RenderFragment? Header { get; set; }
+
+    /// <summary>Conteúdo principal scrollável.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Footer sticky (não scrolla com conteúdo).</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>Comportamento em desktop. Default <c>Always</c> (sempre bottom).
+    /// <c>DrawerOnDesktop</c>/<c>DialogOnDesktop</c> = adapta em telas largas
+    /// (M3 desaconselha bottom sheet em desktop).</summary>
+    [Parameter] public BottomSheetAdaptive Adaptive { get; set; } = BottomSheetAdaptive.Always;
+
+    /// <summary>Breakpoint que define "desktop" pra <see cref="Adaptive"/>.
+    /// Default <c>Md</c> (≥ 768px).</summary>
+    [Parameter] public Breakpoint DesktopBreakpoint { get; set; } = Breakpoint.Md;
+
+    /// <summary>Pixels que o user precisa arrastar pra baixo (além do menor snap)
+    /// pra fechar quando <see cref="DragToDismiss"/>=true. Default 100.</summary>
+    [Parameter] public double DismissThresholdPx { get; set; } = 100;
+
+    private ElementReference _sheetEl;
+    private ElementReference _handleEl;
+    private DotNetObjectReference<OmniBottomSheet>? _selfRef;
+    private OverlayLifecycle? _lifecycle;
+    private bool _isOpen;
+    private int _snapIndex;
+    private bool _useDesktopFallback;
+    private string _id = $"omni-bs-{Guid.NewGuid():N}";
+    private string TitleId => $"{_id}-title";
+    private string AriaModal => Variant == BottomSheetVariant.Modal ? "true" : "false";
+
+    /// <summary>Frações de snap normalizadas. Sem SnapPoints, default = [0.6].
+    /// Sempre ordenado ASC (menor primeiro).</summary>
+    private double[] _effectiveSnaps = new[] { 0.6 };
+
+    /// <summary>Altura atual do sheet em vh (0–100). Aplicado via inline style
+    /// no transform: translateY(...) — quanto menor o snap, mais translateY.</summary>
+    private double CurrentSnapVh => _effectiveSnaps.Length > 0
+        ? _effectiveSnaps[Math.Clamp(_snapIndex, 0, _effectiveSnaps.Length - 1)] * 100
+        : 60;
+
+    private string SheetCss => CssBuilder.Default("omni-bs-sheet")
+        .AddClass(Variant == BottomSheetVariant.Standard ? "omni-bs-standard" : "omni-bs-modal")
+        .AddClass("omni-bs-no-handle", !ShowDragHandle)
+        .AddClass(Class)
+        .Build();
+
+    /// <summary>Inline style: --omni-bs-height controla altura do sheet em vh,
+    /// --omni-bs-drag (atualizado por JS durante drag) acompanha o dedo.</summary>
+    private string SheetInlineStyle =>
+        $"--omni-bs-height: {CurrentSnapVh.ToString("0.##", CultureInfo.InvariantCulture)}vh; {Style}";
+
+    private string DesktopDialogCss => CssBuilder.Default("omni-bs-desktop-dialog")
+        .AddClass(Class)
+        .Build();
+    private string DesktopDrawerCss => CssBuilder.Default("omni-bs-desktop-drawer")
+        .AddClass(Class)
+        .Build();
+
+    private RenderFragment RenderHeader => builder =>
+    {
+        var hasHeader = Header is not null || !string.IsNullOrEmpty(Title);
+        if (!hasHeader) return;
+        builder.OpenElement(0, "header");
+        builder.AddAttribute(1, "class", "omni-bs-header");
+        if (Header is not null)
+        {
+            builder.AddContent(2, Header);
+        }
+        else
+        {
+            builder.OpenElement(3, "h3");
+            builder.AddAttribute(4, "class", "omni-bs-title");
+            builder.AddAttribute(5, "id", TitleId);
+            builder.AddContent(6, Title);
+            builder.CloseElement();
+        }
+        if (ShowCloseButton)
+        {
+            builder.OpenComponent<OmniButton>(7);
+            builder.AddAttribute(8, "Icon", "x");
+            builder.AddAttribute(9, "IconOnly", true);
+            builder.AddAttribute(10, "Variant", ButtonVariant.Ghost);
+            builder.AddAttribute(11, "Size", ComponentSize.Sm);
+            builder.AddAttribute(12, "Class", "omni-bs-close");
+            builder.AddAttribute(13, "title", "Fechar");
+            builder.AddAttribute(14, "aria-label", "Fechar");
+            builder.AddAttribute(15, "OnClick",
+                EventCallback.Factory.Create<MouseEventArgs>(this, () => CloseAsync()));
+            builder.CloseComponent();
+        }
+        builder.CloseElement();
+    };
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        var prevOpen = Open;
+        await base.SetParametersAsync(parameters);
+        // Sync external Open → internal _isOpen quando muda
+        if (Open != _isOpen) _isOpen = Open;
+        // Normaliza snap points (clamp 0..1, sort ascending, default [0.6])
+        if (SnapPoints is { Length: > 0 })
+        {
+            var arr = SnapPoints.Where(v => v > 0 && v <= 1).OrderBy(v => v).ToArray();
+            _effectiveSnaps = arr.Length > 0 ? arr : new[] { 0.6 };
+        }
+        else _effectiveSnaps = new[] { 0.6 };
+        _snapIndex = Math.Clamp(InitialSnapIndex, 0, _effectiveSnaps.Length - 1);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Detecta desktop pra adaptive
+        var newDesktop = _isOpen
+            && Adaptive != BottomSheetAdaptive.Always
+            && Breakpoints.Current.AtLeast(DesktopBreakpoint);
+        if (newDesktop != _useDesktopFallback)
+        {
+            _useDesktopFallback = newDesktop;
+            StateHasChanged();
+        }
+
+        // Ativa/desativa overlay lifecycle quando muda estado open
+        if (_isOpen && _lifecycle is null)
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _lifecycle = new OverlayLifecycle(JS, Scroll, _id);
+            try
+            {
+                await _lifecycle.ActivateAsync(_selfRef, nameof(OnEscInternal),
+                    lockScroll: Variant == BottomSheetVariant.Modal);
+            }
+            catch { }
+
+            // Attach drag listener se tem handle (e não está em fallback desktop)
+            if (ShowDragHandle && !_useDesktopFallback)
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync("omniBlazor.bottomSheetAttachDrag",
+                        _handleEl, _selfRef, new { onSnap = nameof(OnDragEndInternal) });
+                }
+                catch { }
+            }
+        }
+        else if (!_isOpen && _lifecycle is not null)
+        {
+            try { await _lifecycle.DeactivateAsync(); } catch { }
+            _lifecycle = null;
+        }
+    }
+
+    /// <summary>Esc handler — chamado pelo OverlayLifecycle via JS.</summary>
+    [JSInvokable] public Task OnEscInternal() => CloseOnEsc ? CloseAsync() : Task.CompletedTask;
+
+    /// <summary>Drag end callback do JS — recebe delta Y em pixels (positivo = pra baixo).
+    /// Decide: snap acima/abaixo, dismiss, ou volta pro snap atual.</summary>
+    [JSInvokable]
+    public async Task OnDragEndInternal(double deltaY)
+    {
+        if (_effectiveSnaps.Length == 0) { if (deltaY > DismissThresholdPx && DragToDismiss) await CloseAsync(); return; }
+
+        // Converte delta px → fração viewport
+        var vh = await GetViewportHeightAsync();
+        if (vh <= 0) vh = 800; // fallback
+        var deltaFrac = deltaY / vh;
+        var currentFrac = _effectiveSnaps[_snapIndex];
+        var newFrac = currentFrac - deltaFrac; // arrastar pra baixo = diminuir altura
+
+        // Threshold pra mudar de snap: 25% da diferença pro próximo snap
+        // (gera UX "agarrada" — drag pequeno volta, drag médio passa)
+        if (newFrac < _effectiveSnaps[0] && DragToDismiss && deltaY > DismissThresholdPx)
+        {
+            await CloseAsync();
+            return;
+        }
+
+        // Encontra o snap mais próximo de newFrac
+        var nearestIdx = 0;
+        var nearestDist = double.MaxValue;
+        for (int i = 0; i < _effectiveSnaps.Length; i++)
+        {
+            var d = Math.Abs(_effectiveSnaps[i] - newFrac);
+            if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+        }
+        _snapIndex = nearestIdx;
+        StateHasChanged();
+    }
+
+    private async Task<double> GetViewportHeightAsync()
+    {
+        try { return await JS.InvokeAsync<double>("eval", "window.innerHeight"); }
+        catch { return 0; }
+    }
+
+    private async Task HandleBackdropClick()
+    {
+        if (CloseOnOverlayClick) await CloseAsync();
+    }
+
+    /// <summary>Abre o sheet (no-op se já aberto).</summary>
+    public async Task OpenAsync()
+    {
+        if (_isOpen) return;
+        _isOpen = true;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(true);
+        StateHasChanged();
+    }
+
+    /// <summary>Fecha o sheet (no-op se já fechado).</summary>
+    public async Task CloseAsync()
+    {
+        if (!_isOpen) return;
+        _isOpen = false;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    /// <summary>Programaticamente snap pra um índice específico.</summary>
+    public Task SnapToAsync(int index)
+    {
+        if (_effectiveSnaps.Length == 0) return Task.CompletedTask;
+        _snapIndex = Math.Clamp(index, 0, _effectiveSnaps.Length - 1);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("omniBlazor.bottomSheetDetachDrag", _handleEl); } catch { }
+        if (_lifecycle is not null)
+        {
+            try { await _lifecycle.DeactivateAsync(); } catch { }
+            _lifecycle = null;
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+}

@@ -1,0 +1,109 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Styled <a> tag for navigation/text links. Diferente do `OmniButton`
+    (que é uma ação): este renderiza um link semântico de verdade — para
+    navegação interna (rotas Blazor), URLs externas, mailto/tel, etc.
+
+    Variantes visuais (Variant): Default (accent), Muted (fg-soft) e
+    Danger (vermelho). Ícone opcional antes ou depois do texto.
+    Quando `Target="_blank"`, adiciona automaticamente:
+      • rel="noopener noreferrer" (segurança)
+      • Ícone external-link após o texto (se ShowExternalIcon for true) *@
+
+@if (Disabled)
+{
+    @* Desabilitado renderiza como span (não é clicável e não tem href) *@
+    <span class="@RootCss" style="@Style" aria-disabled="true" @attributes="Attributes">
+        @if (!string.IsNullOrEmpty(Icon)) { <OmniIcon Name="@Icon" Size="ComponentSize.Sm" /> }
+        @if (ChildContent is not null) { @ChildContent }
+        else if (!string.IsNullOrEmpty(Text)) { <span>@Text</span> }
+        @if (!string.IsNullOrEmpty(TrailingIcon)) { <OmniIcon Name="@TrailingIcon" Size="ComponentSize.Sm" /> }
+    </span>
+}
+else
+{
+    <a class="@RootCss" style="@Style"
+       href="@Href"
+       target="@Target"
+       rel="@Rel"
+       @onclick="HandleClickAsync"
+       @onclick:preventDefault="@OnClick.HasDelegate"
+       @attributes="Attributes">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
+        }
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else if (!string.IsNullOrEmpty(Text))
+        {
+            <span>@Text</span>
+        }
+        @if (!string.IsNullOrEmpty(TrailingIcon))
+        {
+            <OmniIcon Name="@TrailingIcon" Size="ComponentSize.Sm" />
+        }
+        else if (ShowExternalIcon && IsExternal)
+        {
+            <OmniIcon Name="external-link" Size="ComponentSize.Sm" />
+        }
+    </a>
+}
+
+@code {
+    /// <summary>URL/path de destino. Para click handler puro sem navegação, use <c>OnClick</c>.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Texto do link. Ignorado quando ChildContent é definido.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Ícone antes do texto.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Ícone após o texto.</summary>
+    [Parameter] public string? TrailingIcon { get; set; }
+
+    /// <summary>Variante visual: Default (accent), Muted (fg-soft), Danger.</summary>
+    [Parameter] public LinkVariant Variant { get; set; } = LinkVariant.Default;
+
+    /// <summary>Atributo <c>target</c> da tag <c>a</c>. <c>_blank</c> ativa <c>rel="noopener noreferrer"</c> automaticamente.</summary>
+    [Parameter] public string? Target { get; set; }
+
+    /// <summary>Mostra ícone de "external-link" automaticamente quando <c>Target="_blank"</c>. Default true.</summary>
+    [Parameter] public bool ShowExternalIcon { get; set; } = true;
+
+    /// <summary>Sublinha o texto. Default false (sublinha só no hover).</summary>
+    [Parameter] public bool Underline { get; set; }
+
+    /// <summary>Estado desabilitado — renderiza como span sem href.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Callback opcional. Quando definido, previne navegação default (href é só para fallback de a11y).</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private bool IsExternal => string.Equals(Target, "_blank", StringComparison.OrdinalIgnoreCase);
+
+    private string? Rel => IsExternal ? "noopener noreferrer" : null;
+
+    private string RootCss => CssBuilder.Default("omni-link")
+        .AddClass(Variant switch
+        {
+            LinkVariant.Muted  => "omni-link-muted",
+            LinkVariant.Danger => "omni-link-danger",
+            _                   => "omni-link-default",
+        })
+        .AddClass("omni-link-underline", Underline)
+        .AddClass("omni-link-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private async Task HandleClickAsync(MouseEventArgs args)
+    {
+        if (Disabled) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(args);
+    }
+}

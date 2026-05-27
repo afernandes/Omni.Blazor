@@ -1,0 +1,293 @@
+@page "/showcase/menubar"
+@layout ShowcaseLayout
+@inject NotificationService Toast
+@inject NavigationManager Nav
+
+<PageTitle>Menu bar — Showcase</PageTitle>
+
+<ShowcasePage Title="Menu bar"
+              Subtitle="Navegação horizontal estilo abas com dropdowns ricos, mega-menu e badges.">
+
+    <Overview>
+        <p>
+            O <code>OmniMenuBar</code> é a navegação <strong>horizontal</strong>: itens de topo
+            em formato de aba, cada um com um sublinhado de acento quando ativo.
+            <code>OmniMenuBarItem</code> é recursivo — aninhar itens cria um dropdown rico
+            (ícone · nome · descrição · pílula de metadados).
+        </p>
+        <p>
+            Um item de topo aceita um <code>Count</code> (badge). O dropdown aceita um rodapé
+            (<code>FooterText</code>/<code>FooterKbd</code>) e rótulos de grupo
+            (<code>GroupLabel</code>). Para um mega-menu, passe <code>DropdownContent</code>.
+            <code>Trigger</code> escolhe entre abrir no clique ou no hover; uma vez aberto,
+            passar o mouse sobre outro item troca o menu.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Apps com poucas seções de topo, portais e telas amplas.</li>
+            <li>Quando a barra lateral ocuparia espaço horizontal precioso.</li>
+            <li>Mega-menu para agrupar muitos destinos sob um único item.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Hierarquia profunda de back-office → use <code>OmniPanelMenu</code> (sidebar).</li>
+            <li>Menu de ações sobre um elemento → use <code>OmniMenu</code> + <code>OmniPopover</code>.</li>
+            <li>Abas de conteúdo dentro de uma página → use <code>OmniTabs</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Abas de topo; um item com filhos abre um dropdown rico."
+                         Code="@(@"<OmniMenuBar>
+    <OmniMenuBarItem Text=""Visão geral"" Icon=""layout-dashboard"" />
+    <OmniMenuBarItem Text=""Pedidos"" Icon=""shopping-cart"" Count=""28"">
+        <OmniMenuBarItem Icon=""zap"" Text=""Na cozinha"" Description=""Em preparação"" Meta=""12"" MetaKind=""MenuMetaKind.Warn"" />
+        <OmniMenuBarItem Icon=""package"" Text=""Prontos"" Description=""Aguardando retirada"" Meta=""6"" MetaKind=""MenuMetaKind.Good"" />
+    </OmniMenuBarItem>
+</OmniMenuBar>")">
+            <OmniMenuBar>
+                <OmniMenuBarItem Text="Visão geral" Icon="layout-dashboard" OnClick="@(() => Pick("Visão geral"))" />
+                <OmniMenuBarItem Text="Pedidos" Icon="shopping-cart" Count="28">
+                    <OmniMenuBarItem Icon="shopping-cart" Text="Em aberto" Description="Aguardando confirmação" Meta="4" OnClick="@(() => Pick("Em aberto"))" />
+                    <OmniMenuBarItem Icon="zap" Text="Na cozinha" Description="Em preparação agora" Meta="12" MetaKind="MenuMetaKind.Warn" OnClick="@(() => Pick("Na cozinha"))" />
+                    <OmniMenuBarItem Icon="package" Text="Prontos para retirada" Description="Aguardando entregador" Meta="6" MetaKind="MenuMetaKind.Good" OnClick="@(() => Pick("Prontos"))" />
+                    <OmniMenuBarItem Icon="truck" Text="Em entrega" Description="Saiu para entrega" Meta="5" MetaKind="MenuMetaKind.Accent" OnClick="@(() => Pick("Em entrega"))" />
+                </OmniMenuBarItem>
+                <OmniMenuBarItem Text="Relatórios" Icon="bar-chart" OnClick="@(() => Pick("Relatórios"))" />
+            </OmniMenuBar>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="GRUPO + RODAPÉ"
+                         Description="GroupLabel rotula uma seção; FooterText/FooterKbd adicionam um rodapé."
+                         Code="@(@"<OmniMenuBarItem Text=""Relatórios"" Icon=""bar-chart""
+                  FooterText=""Criar relatório personalizado"" FooterKbd=""⌘ R"">
+    <OmniMenuBarItem GroupLabel=""Frequentes"" Icon=""dollar-sign"" Text=""Vendas"" Description=""Por período e canal"" />
+    <OmniMenuBarItem Icon=""dollar-sign"" Text=""Financeiro"" Description=""Fluxo de caixa e DRE"" />
+</OmniMenuBarItem>")">
+            <OmniMenuBar>
+                <OmniMenuBarItem Text="Relatórios" Icon="bar-chart"
+                                  FooterText="Criar relatório personalizado" FooterKbd="⌘ R">
+                    <OmniMenuBarItem GroupLabel="Frequentes" Icon="dollar-sign" Text="Vendas" Description="Por período, canal e produto" OnClick="@(() => Pick("Vendas"))" />
+                    <OmniMenuBarItem Icon="dollar-sign" Text="Financeiro" Description="Fluxo de caixa e DRE" OnClick="@(() => Pick("Financeiro"))" />
+                    <OmniMenuBarItem Icon="clock" Text="Operacional" Description="Tempos e produtividade" OnClick="@(() => Pick("Operacional"))" />
+                    <OmniMenuBarItem Icon="users" Text="Equipe" Description="Performance por operador" OnClick="@(() => Pick("Equipe"))" />
+                </OmniMenuBarItem>
+                <OmniMenuBarItem Text="Clientes" Icon="users" FooterText="Novo cliente" FooterKbd="N">
+                    <OmniMenuBarItem Icon="users" Text="Lista completa" Description="2.341 cadastrados" OnClick="@(() => Pick("Lista"))" />
+                    <OmniMenuBarItem Icon="star" Text="Fidelidade" Description="486 ativos" Meta="PRO" MetaKind="MenuMetaKind.Accent" OnClick="@(() => Pick("Fidelidade"))" />
+                </OmniMenuBarItem>
+            </OmniMenuBar>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MEGA-MENU"
+                         Description="DropdownContent substitui os itens por um painel de colunas + faixa promo."
+                         Code="@(@"<OmniMenuBarItem Text=""Cardápio"" Icon=""grid"">
+    <DropdownContent>
+        <div class=""omni-menubar-mega-col"">
+            <div class=""omni-menubar-dd-group"">Catálogo</div>
+            <button class=""omni-menubar-dd-item"">…</button>
+        </div>
+        <div class=""omni-menubar-mega-promo"">…</div>
+    </DropdownContent>
+</OmniMenuBarItem>")">
+            <OmniMenuBar>
+                <OmniMenuBarItem Text="Início" Icon="layout-dashboard" OnClick="@(() => Pick("Início"))" />
+                <OmniMenuBarItem Text="Cardápio" Icon="grid">
+                    <DropdownContent>
+                        <div class="omni-menubar-mega-col">
+                            <div class="omni-menubar-dd-group">Catálogo</div>
+                            @MegaRow("package", "Produtos", "47 ativos · 4 categorias")
+                            @MegaRow("tag", "Sabores de pizza", "24 sabores")
+                            @MegaRow("list", "Categorias", "Pizzas, burgers, bebidas")
+                        </div>
+                        <div class="omni-menubar-mega-col">
+                            <div class="omni-menubar-dd-group">Apresentação</div>
+                            @MegaRow("grid", "Cardápio digital", "Self-service via QR")
+                            @MegaRow("zap", "Promoções", "3 ativas", "NOVO")
+                            @MegaRow("star", "Combos", "Pacotes e cross-sell")
+                        </div>
+                        <div class="omni-menubar-mega-promo">
+                            <div class="omni-menubar-mega-promo-ico"><OmniIcon Name="zap" /></div>
+                            <div>
+                                <div class="omni-menubar-mega-promo-title">IA do Cardápio</div>
+                                <div class="omni-menubar-mega-promo-sub">Otimize pratos com margem baixa</div>
+                            </div>
+                            <OmniButton Text="Experimentar" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                         Class="omni-menubar-mega-promo-cta" />
+                        </div>
+                    </DropdownContent>
+                </OmniMenuBarItem>
+                <OmniMenuBarItem Text="Ajuda" Icon="help-circle" OnClick="@(() => Pick("Ajuda"))" />
+            </OmniMenuBar>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SUBMENUS MULTINÍVEL"
+                         Description="Aninhe OmniMenuBarItem dentro de outro para abrir um flyout lateral. Recursivo em qualquer profundidade; use ChildrenLabel para rotular a seção do flyout."
+                         Code="@(@"<OmniMenuBarItem Text=""Pedidos"" Icon=""shopping-cart"" Count=""28"">
+    <OmniMenuBarItem Icon=""zap"" Text=""Na cozinha"" Description=""Em preparo"" Meta=""12""
+                      MetaKind=""MenuMetaKind.Warn""
+                      ChildrenLabel=""Por estação"">
+        <OmniMenuBarItem Icon=""zap"" Text=""Pizza"" Description=""Forno a lenha"" Meta=""7""
+                          ChildrenLabel=""Por tamanho"">
+            <OmniMenuBarItem Icon=""package"" Text=""Média""  Description=""30 cm"" Meta=""2"" />
+            <OmniMenuBarItem Icon=""package"" Text=""Grande"" Description=""35 cm"" Meta=""3"" />
+            <OmniMenuBarItem Icon=""package"" Text=""Família"" Description=""45 cm"" Meta=""2"" />
+        </OmniMenuBarItem>
+        <OmniMenuBarItem Icon=""grid"" Text=""Burger""  Description=""Chapa""  Meta=""3"" />
+    </OmniMenuBarItem>
+</OmniMenuBarItem>")">
+            <OmniMenuBar>
+                <OmniMenuBarItem Text="Pedidos" Icon="shopping-cart" Count="28">
+                    <OmniMenuBarItem Icon="shopping-cart" Text="Em aberto" Description="Aguardando confirmação" Meta="4" OnClick="@(() => Pick("Em aberto"))" />
+                    <OmniMenuBarItem Icon="zap" Text="Na cozinha" Description="Em preparação agora"
+                                      Meta="12" MetaKind="MenuMetaKind.Warn"
+                                      ChildrenLabel="Por estação">
+                        <OmniMenuBarItem Icon="zap" Text="Pizza" Description="Forno a lenha · 7 pedidos"
+                                          Meta="7" MetaKind="MenuMetaKind.Warn"
+                                          ChildrenLabel="Por tamanho">
+                            <OmniMenuBarItem Icon="package" Text="Média"   Description="6 fatias · 30 cm" Meta="2" OnClick="@(() => Pick("Pizza Média"))" />
+                            <OmniMenuBarItem Icon="package" Text="Grande"  Description="8 fatias · 35 cm" Meta="3" MetaKind="MenuMetaKind.Warn" OnClick="@(() => Pick("Pizza Grande"))" />
+                            <OmniMenuBarItem Icon="package" Text="Família" Description="12 fatias · 45 cm" Meta="2" OnClick="@(() => Pick("Pizza Família"))" />
+                        </OmniMenuBarItem>
+                        <OmniMenuBarItem Icon="grid"  Text="Burger"     Description="Chapa · 3 pedidos"    Meta="3" OnClick="@(() => Pick("Burger"))" />
+                        <OmniMenuBarItem Icon="grid"  Text="Fritura"    Description="Fritadeira · 1 pedido" Meta="1" OnClick="@(() => Pick("Fritura"))" />
+                        <OmniMenuBarItem Icon="star"  Text="Sobremesas" Description="Bancada doce · 1 pedido" Meta="1" OnClick="@(() => Pick("Sobremesas"))" />
+                    </OmniMenuBarItem>
+                    <OmniMenuBarItem Icon="truck" Text="Em entrega" Description="Saiu para entrega"
+                                      Meta="5" MetaKind="MenuMetaKind.Accent"
+                                      ChildrenLabel="Por canal">
+                        <OmniMenuBarItem Icon="truck" Text="Frota própria" Description="3 motos ativas"
+                                          Meta="3" MetaKind="MenuMetaKind.Accent"
+                                          ChildrenLabel="Entregadores">
+                            <OmniMenuBarItem Icon="users" Text="João Silva" Description="2 entregas · Vila Madalena" Meta="2" OnClick="@(() => Pick("João"))" />
+                            <OmniMenuBarItem Icon="users" Text="Pedro Souza" Description="1 entrega · Pinheiros"      Meta="1" OnClick="@(() => Pick("Pedro"))" />
+                            <OmniMenuBarItem Icon="users" Text="Rafa Lima"  Description="Disponível agora" Meta="0" MetaKind="MenuMetaKind.Good" OnClick="@(() => Pick("Rafa"))" />
+                        </OmniMenuBarItem>
+                        <OmniMenuBarItem Icon="package" Text="iFood"        Description="1 entregador a caminho" Meta="1" OnClick="@(() => Pick("iFood"))" />
+                        <OmniMenuBarItem Icon="package" Text="Uber Direct"  Description="1 entregador alocado"   Meta="1" OnClick="@(() => Pick("Uber"))" />
+                    </OmniMenuBarItem>
+                </OmniMenuBarItem>
+            </OmniMenuBar>
+            <p class="omni-muted" style="margin-top:10px;">
+                Passe o mouse em <strong>Na cozinha</strong> → <strong>Pizza</strong> para ver 3 níveis.
+                <strong>Em entrega</strong> → <strong>Frota própria</strong> → <strong>Entregadores</strong> chega a 4.
+                A revelação é por CSS hover/foco (zero round-trip no Blazor Server), com um período de
+                graça de ~220&nbsp;ms ao sair para evitar fechamentos no &ldquo;gap diagonal&rdquo;.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="GATILHO — HOVER vs CLICK"
+                         Description="Trigger define se o dropdown abre ao passar o mouse ou ao clicar."
+                         Code="@(@"<OmniMenuBar Trigger=""MenuTrigger.Hover"">…</OmniMenuBar>
+<OmniMenuBar Trigger=""MenuTrigger.Click"">…</OmniMenuBar>")">
+            <div class="omni-stack omni-stack-16">
+                <div>
+                    <div class="omni-eyebrow" style="margin-bottom:6px;">Trigger = Hover</div>
+                    <OmniMenuBar Trigger="MenuTrigger.Hover">
+                        <OmniMenuBarItem Text="Arquivo" Icon="file-text">
+                            <OmniMenuBarItem Icon="plus" Text="Novo" OnClick="@(() => Pick("Novo"))" />
+                            <OmniMenuBarItem Icon="grid" Text="Abrir" OnClick="@(() => Pick("Abrir"))" />
+                        </OmniMenuBarItem>
+                        <OmniMenuBarItem Text="Editar" Icon="edit">
+                            <OmniMenuBarItem Icon="refresh" Text="Desfazer" OnClick="@(() => Pick("Desfazer"))" />
+                        </OmniMenuBarItem>
+                    </OmniMenuBar>
+                </div>
+                <div>
+                    <div class="omni-eyebrow" style="margin-bottom:6px;">Trigger = Click</div>
+                    <OmniMenuBar Trigger="MenuTrigger.Click">
+                        <OmniMenuBarItem Text="Arquivo" Icon="file-text">
+                            <OmniMenuBarItem Icon="plus" Text="Novo" OnClick="@(() => Pick("Novo"))" />
+                            <OmniMenuBarItem Icon="grid" Text="Abrir" OnClick="@(() => Pick("Abrir"))" />
+                        </OmniMenuBarItem>
+                        <OmniMenuBarItem Text="Editar" Icon="edit">
+                            <OmniMenuBarItem Icon="refresh" Text="Desfazer" OnClick="@(() => Pick("Desfazer"))" />
+                        </OmniMenuBarItem>
+                    </OmniMenuBar>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LAYOUT COMPLETO"
+                         Description="O OmniMenuBar como navegação principal de um app, sem sidebar."
+                         Code="@(@"@* layout AppShellTop — brand bar + OmniMenuBar *@")">
+            <div class="omni-stack omni-stack-12">
+                <p class="omni-muted">
+                    A página <code>/topnav</code> recria o dashboard de referência usando o
+                    <code>OmniMenuBar</code> como navegação principal.
+                </p>
+                <div>
+                    <OmniButton Text="Abrir dashboard horizontal" Icon="external-link"
+                                 Variant="ButtonVariant.Primary"
+                                 OnClick="@(() => Nav.NavigateTo("/topnav"))" />
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniMenuBar — parâmetros">
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os OmniMenuBarItem de topo." />
+            <ShowcaseApiRow Name="Trigger" Type="MenuTrigger" Default="Click"
+                            Description="Click (abre ao clicar) ou Hover (abre ao passar o mouse)." />
+            <ShowcaseApiRow Name="Aux" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo fixado à direita da barra (status, relógio…)." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string" Default="&quot;Menu&quot;"
+                            Description="Rótulo acessível do landmark de navegação." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniMenuBarItem — parâmetros">
+            <ShowcaseApiRow Name="Text" Type="string" Default="&quot;&quot;"
+                            Description="Rótulo do item." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Ícone à esquerda." />
+            <ShowcaseApiRow Name="Count" Type="int?" Default="null"
+                            Description="Badge numérico numa aba de topo." />
+            <ShowcaseApiRow Name="Description" Type="string?" Default="null"
+                            Description="Linha de descrição secundária (linha de dropdown)." />
+            <ShowcaseApiRow Name="Meta" Type="string?" Default="null"
+                            Description="Pílula de metadados (linha de dropdown)." />
+            <ShowcaseApiRow Name="MetaKind" Type="MenuMetaKind" Default="Neutral"
+                            Description="Cor da pílula: Neutral, Accent, Good, Warn, Danger." />
+            <ShowcaseApiRow Name="GroupLabel" Type="string?" Default="null"
+                            Description="Rótulo de seção em maiúsculas acima da linha." />
+            <ShowcaseApiRow Name="ChildrenLabel" Type="string?" Default="null"
+                            Description="Rótulo de seção no topo do flyout deste item (quando tem filhos)." />
+            <ShowcaseApiRow Name="Path" Type="string?" Default="null"
+                            Description="URL de navegação (acende a rota ativa)." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback" Default="—"
+                            Description="Handler para itens sem Path nem dropdown." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Itens aninhados → dropdown." />
+            <ShowcaseApiRow Name="DropdownContent" Type="RenderFragment?" Default="null"
+                            Description="Painel livre (mega-menu)." />
+            <ShowcaseApiRow Name="FooterText / FooterKbd / FooterPath" Type="string?" Default="null"
+                            Description="Rodapé do dropdown — link + atalho de teclado." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private void Pick(string item) => Toast.Info("Menu bar", $"Você selecionou: {item}");
+
+    private RenderFragment MegaRow(string icon, string name, string desc, string? meta = null) => @<text>
+        <button type="button" class="omni-menubar-dd-item" @onclick="@(() => Pick(name))">
+            <span class="omni-menubar-dd-ico"><OmniIcon Name="@icon" Size="ComponentSize.Sm" /></span>
+            <span class="omni-menubar-dd-body">
+                <span class="omni-menubar-dd-name">@name</span>
+                <span class="omni-menubar-dd-desc">@desc</span>
+            </span>
+            @if (meta is not null)
+            {
+                <span class="omni-menubar-dd-meta omni-meta-accent">@meta</span>
+            }
+        </button>
+    </text>;
+}

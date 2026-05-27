@@ -1,0 +1,193 @@
+@page "/showcase/theme-picker"
+@layout ShowcaseLayout
+@inject ThemeService Theme
+@implements IDisposable
+
+<PageTitle>OmniThemePicker & Density — Showcase</PageTitle>
+
+<ShowcasePage Title="OmniThemePicker + Layout Density"
+              Subtitle="Dropdown plug-and-play para trocar accent, dark mode e densidade — auto-conectado ao ThemeService.">
+
+    <Overview>
+        <p>
+            O <code>OmniThemePicker</code> é o componente UI pronto para expor as preferências
+            de tema ao usuário. Pluga em qualquer slot de <code>OmniAppBar</code> e oferece:
+        </p>
+        <ul>
+            <li><strong>Grid de 12 swatches</strong> de accent (amber/emerald/blue/violet/crimson/rose/orange/teal/cyan/indigo/fuchsia/lime)</li>
+            <li><strong>Toggle 3-state</strong> de modo: Claro / Escuro / <em>Sistema</em> (segue <code>prefers-color-scheme</code>)</li>
+            <li><strong>Toggle de densidade</strong> Compact / Comfortable / Spacious (P3.3)</li>
+        </ul>
+        <p>
+            Todas as escolhas persistem em <code>localStorage</code> chave <code>omni.theme</code>
+            no formato <code>accent|dark|density</code>. Format migration-safe: leituras antigas
+            (2 partes, sem density) caem no default <code>Comfortable</code>.
+        </p>
+        <div class="omni-alert omni-alert-info" style="margin-top: 12px;">
+            <OmniIcon Name="info" Size="ComponentSize.Sm" />
+            <div>
+                A <strong>Layout Density</strong> aplica <code>data-density</code> em <code>&lt;html&gt;</code>
+                e re-cascateia CSS vars (<code>--omni-density-scale</code>, <code>--omni-topbar-h</code>,
+                <code>--omni-radius</code>, etc.). Padrão Salesforce/Material design — nenhum framework
+                Blazor atual oferece.
+            </div>
+        </div>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Pluga no AppBar de qualquer shell</strong> — admin, public, marketing.</li>
+            <li>Apps multi-tenant onde cada cliente quer cor própria → 12 paletas pré-prontas.</li>
+            <li>Power-users de back-office adoram density Compact (mais info na tela).</li>
+            <li>Apps responsivas — Spacious melhora touch targets em tablet.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Apps com brand único e sem opção de tema — chame <code>ThemeService.SetAccentAsync</code> diretamente em <code>App.razor</code>.</li>
+            <li>Quando a UX exige picker custom (cores específicas, preview prévio) — copie a estrutura mas escreva seu próprio.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="ESTADO ATUAL DO TEMA"
+                         Description="O ThemeService mantém Accent + Dark + Density em runtime. Mude no dropdown e observe os valores atualizarem.">
+            <div class="omni-row-grid" style="--omni-row-gap: 16px;">
+                <div class="omni-col omni-col-12 omni-col-md-4">
+                    <OmniCard Title="Accent">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span style="display:inline-block; width:32px; height:32px; border-radius:50%; background: var(--omni-accent); box-shadow: 0 0 0 1px rgba(0,0,0,.1);"></span>
+                            <div>
+                                <strong style="font-family: var(--omni-font-mono); font-size: 14px;">@Theme.Accent</strong>
+                                <div class="omni-muted" style="font-size: 12px;">var(--omni-accent)</div>
+                            </div>
+                        </div>
+                    </OmniCard>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-md-4">
+                    <OmniCard Title="Modo">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <OmniIcon Name="@(Theme.Dark ? "moon" : "sun")" Size="ComponentSize.Lg" />
+                            <div>
+                                <strong>@(Theme.Dark ? "Escuro" : "Claro")</strong>
+                                <div class="omni-muted" style="font-size: 12px;">
+                                    @(Theme.IsUserPicked ? "Escolha manual" : "Seguindo o sistema")
+                                </div>
+                            </div>
+                        </div>
+                    </OmniCard>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-md-4">
+                    <OmniCard Title="Densidade">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span style="font-size: 28px; font-weight: 700;">
+                                @(Theme.Density switch
+                                {
+                                    LayoutDensity.Compact => "≡",
+                                    LayoutDensity.Spacious => "⫶",
+                                    _ => "☰"
+                                })
+                            </span>
+                            <div>
+                                <strong>@Theme.Density</strong>
+                                <div class="omni-muted" style="font-size: 12px;">data-density</div>
+                            </div>
+                        </div>
+                    </OmniCard>
+                </div>
+            </div>
+            <p class="omni-muted" style="margin-top: 14px; font-size: 13px;">
+                Clique no <strong>botão de tema no topo direito da AppBar</strong>
+                (sol/lua + swatch) para abrir o picker. As mudanças são instantâneas e persistentes.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="USO MÍNIMO"
+                         Description="Pluga em qualquer slot do AppBar. Zero configuração — auto-conecta no ThemeService via DI."
+                         Code="@(@"<OmniAppBar>
+    <OmniBrand Name=""App"" />
+    <div class=""omni-header-spacer""></div>
+    <OmniThemePicker />
+</OmniAppBar>")">
+            <p class="omni-muted">Este próprio showcase tem um <code>OmniThemePicker</code> no AppBar (canto superior direito).</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESCONDER SECÇÃO DE DENSIDADE"
+                         Description="Para apps que não querem expor density, basta ShowDensity=false."
+                         Code="@(@"<OmniThemePicker ShowDensity=""false"" />")">
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LIMITAR PALETAS"
+                         Description="Apps multi-tenant podem restringir as 12 cores default a um subset específico do branding."
+                         Code="@(@"<OmniThemePicker Accents=""new[] { ""crimson"", ""indigo"", ""teal"" }"" />")">
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DENSITY TOKENS — O QUE MUDA"
+                         Description="Cada modo redefine variáveis CSS em cascata. Use no seu CSS via var(--omni-density-scale, 1)."
+                         Code="@(@":root[data-density='compact'] {
+  --omni-density-scale:     0.85;
+  --omni-density-row-gap:   12px;
+  --omni-density-card-pad:  12px;
+  --omni-topbar-h:          48px;
+  --omni-radius:            8px;
+  /* ... */
+}")">
+            <div class="omni-row-grid" style="--omni-row-gap: 16px;">
+                <div class="omni-col omni-col-12 omni-col-sm-4">
+                    <strong style="font-size:14px;">Compact (×0.85)</strong>
+                    <ul class="omni-muted" style="font-size:13px; margin:6px 0;">
+                        <li>topbar 48px</li>
+                        <li>card padding 12px</li>
+                        <li>font-size 13px</li>
+                    </ul>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-sm-4">
+                    <strong style="font-size:14px;">Comfortable (×1.0)</strong>
+                    <ul class="omni-muted" style="font-size:13px; margin:6px 0;">
+                        <li>topbar 56px</li>
+                        <li>card padding 16px</li>
+                        <li>font-size 14px</li>
+                    </ul>
+                </div>
+                <div class="omni-col omni-col-12 omni-col-sm-4">
+                    <strong style="font-size:14px;">Spacious (×1.15)</strong>
+                    <ul class="omni-muted" style="font-size:13px; margin:6px 0;">
+                        <li>topbar 64px</li>
+                        <li>card padding 24px</li>
+                        <li>font-size 15px</li>
+                    </ul>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniThemePicker — Parâmetros">
+            <ShowcaseApiRow Name="Accents" Type="IReadOnlyList<string>" Default="(12 cores)"
+                            Description="Lista de accents oferecidos. Default inclui as 12 cores Tailwind-harmonizadas." />
+            <ShowcaseApiRow Name="ShowDensity" Type="bool" Default="true"
+                            Description="Mostra a seção de densidade (Compact/Comfortable/Spacious)." />
+            <ShowcaseApiRow Name="Title" Type="string" Default="Tema"
+                            Description="aria-label e tooltip do botão." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="ThemeService — métodos relevantes">
+            <ShowcaseApiRow Name="SetAccentAsync(string)" Type="Task" ShowDefault="false"
+                            Description="Troca o accent e persiste. Auto-disable do system-follow." />
+            <ShowcaseApiRow Name="SetDarkAsync(bool)" Type="Task" ShowDefault="false"
+                            Description="Troca dark e persiste." />
+            <ShowcaseApiRow Name="SetDensityAsync(LayoutDensity)" Type="Task" ShowDefault="false"
+                            Description="Troca density (Compact/Comfortable/Spacious) e persiste." />
+            <ShowcaseApiRow Name="UseSystemColorSchemeAsync()" Type="Task" ShowDefault="false"
+                            Description="Volta a seguir prefers-color-scheme do OS. Limpa localStorage." />
+            <ShowcaseApiRow Name="IsUserPicked" Type="bool" ShowDefault="false"
+                            Description="True quando user escolheu manualmente; false quando segue OS." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    protected override void OnInitialized() => Theme.OnChange += OnThemeChange;
+    private void OnThemeChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Theme.OnChange -= OnThemeChange;
+}

@@ -1,0 +1,130 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Omni.Blazor.Utilities
+
+@*
+    Thin wrapper over Blazor's built-in <Virtualize TItem="...">. The native
+    component already does the heavy lifting — we add:
+      - The Omni surface (Class/Style/Attributes splatted on the scrolling
+        container), an empty-state slot, and a default placeholder template
+        styled like the rest of the library.
+
+    Two data modes — exactly the same as the underlying Virtualize<T>:
+      • Items="@list" — synchronous, in-memory.
+      • ItemsProvider="@LoadAsync" — async / server-side paging via the
+        ItemsProviderRequest contract.
+
+    Usage:
+        <OmniVirtualize TItem="Product" Items="products" ItemSize="48">
+            <ItemContent>
+                <div class="omni-row">@context.Name · @context.Price</div>
+            </ItemContent>
+        </OmniVirtualize>
+*@
+
+@if (SpacerElement == "tr")
+{
+    @* Modo table-row: sem wrapper <div>. Assumimos que o consumidor está dentro de <tbody>. *@
+    @if (Items is null || Items.Count > 0)
+    {
+        <Virtualize TItem="TItem"
+                    Items="@Items"
+                    ItemsProvider="@ItemsProvider"
+                    ItemSize="@ItemSize"
+                    OverscanCount="@OverscanCount"
+                    SpacerElement="@SpacerElement">
+            <ItemContent Context="item">
+                @ItemContent(item)
+            </ItemContent>
+            <Placeholder Context="ctx">
+                @if (Placeholder is not null) { @Placeholder(ctx) }
+                else { <tr class="omni-virtualize-placeholder" style="height:@(ItemSize)px;"></tr> }
+            </Placeholder>
+        </Virtualize>
+    }
+}
+else
+{
+    <div class="@RootCss" style="@WrapperStyle" @attributes="Attributes">
+        @if (Items is not null && Items.Count == 0)
+        {
+            @if (EmptyContent is not null) { @EmptyContent }
+            else { <div class="omni-virtualize-empty">@DefaultEmptyText</div> }
+        }
+        else
+        {
+            <Virtualize TItem="TItem"
+                        Items="@Items"
+                        ItemsProvider="@ItemsProvider"
+                        ItemSize="@ItemSize"
+                        OverscanCount="@OverscanCount"
+                        SpacerElement="@SpacerElement">
+                <ItemContent Context="item">
+                    @ItemContent(item)
+                </ItemContent>
+                <Placeholder Context="ctx">
+                    @if (Placeholder is not null) { @Placeholder(ctx) }
+                    else { <div class="omni-virtualize-placeholder" style="height:@(ItemSize)px;"></div> }
+                </Placeholder>
+            </Virtualize>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Synchronous data source. Mutually exclusive with <see cref="ItemsProvider"/>.</summary>
+    [Parameter] public ICollection<TItem>? Items { get; set; }
+
+    /// <summary>Async/server-side data source. Mutually exclusive with <see cref="Items"/>.</summary>
+    [Parameter] public ItemsProviderDelegate<TItem>? ItemsProvider { get; set; }
+
+    /// <summary>Estimated height of each row, in pixels. Default 50. Drives overscan + placeholder height.</summary>
+    [Parameter] public float ItemSize { get; set; } = 50;
+
+    /// <summary>Number of extra items to render outside the viewport. Default 3 (Blazor default).</summary>
+    [Parameter] public int OverscanCount { get; set; } = 3;
+
+    /// <summary>Template for each rendered item.</summary>
+    [Parameter, EditorRequired] public RenderFragment<TItem> ItemContent { get; set; } = default!;
+
+    /// <summary>Template shown for items still being fetched (ItemsProvider mode).</summary>
+    [Parameter] public RenderFragment<PlaceholderContext>? Placeholder { get; set; }
+
+    /// <summary>Custom empty state. If null, shows <see cref="DefaultEmptyText"/>.</summary>
+    [Parameter] public RenderFragment? EmptyContent { get; set; }
+
+    /// <summary>Text shown when <see cref="Items"/> is empty and <see cref="EmptyContent"/> isn't set.</summary>
+    [Parameter] public string DefaultEmptyText { get; set; } = "Nada por aqui.";
+
+    /// <summary>
+    /// Fixed height for the scrolling viewport (default <c>400px</c>). Pass
+    /// <c>null</c> to let the parent size the container — useful when the
+    /// virtualize lives inside a flex/grid pane that already constrains
+    /// height. <see cref="Virtualize{TItem}"/> requires a bounded height to
+    /// virtualize correctly; without one it will render every item.
+    /// </summary>
+    [Parameter] public string? Height { get; set; } = "400px";
+
+    /// <summary>
+    /// HTML tag usada para os placeholders/spacers do <see cref="Virtualize{TItem}"/>.
+    /// Default <c>"div"</c>. Use <c>"tr"</c> quando virtualizar dentro de um
+    /// <c>&lt;tbody&gt;</c> (mantém semântica de tabela).
+    /// </summary>
+    [Parameter] public string SpacerElement { get; set; } = "div";
+
+    private string RootCss => CssBuilder.Default("omni-virtualize")
+        .AddClass(Class)
+        .Build();
+
+    private string WrapperStyle
+    {
+        get
+        {
+            var s = Style?.TrimEnd(';');
+            if (string.IsNullOrEmpty(Height)) return s ?? "";
+            return string.IsNullOrEmpty(s) ? $"height:{Height}; overflow:auto;" : $"{s}; height:{Height}; overflow:auto;";
+        }
+    }
+}

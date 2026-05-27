@@ -1,0 +1,161 @@
+@inject CardapioDigitalState State
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Checkout screen — resumo colapsado + endereço/mesa contextual + radio
+    pagamento (PIX/Cartão/Dinheiro) + troco condicional + CTA confirmar. *@
+<div class="fs-cd-screen">
+    <CardapioAppBar Title="Pagamento"
+                    Subtitle="@($"Total {CardapioDigitalState.Brl(State.CartTotal)}")"
+                    OnBack="State.Back" />
+
+    <div class="fs-cd-scroll" style="padding-bottom: 110px;">
+        <div class="fs-cd-collapse">
+            <div class="fs-cd-collapse-head">
+                <span class="fs-cd-collapse-t">
+                    Resumo do pedido · @State.Cart.Count @(State.Cart.Count == 1 ? "item" : "itens")
+                </span>
+                <span class="fs-cd-collapse-v omni-mono">
+                    @CardapioDigitalState.Brl(State.CartSubtotal)
+                    <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" Class="fs-cd-collapse-chev" />
+                </span>
+            </div>
+        </div>
+
+        <div class="fs-cd-req-row" style="padding-bottom: 0;">
+            <span class="fs-cd-req-label">@AddressLabel</span>
+        </div>
+        <div class="fs-cd-address-card">
+            <div class="fs-cd-address-ic">@AddressIcon</div>
+            <div class="fs-cd-address-body">
+                @if (State.Mode == CdDeliveryMode.Mesa)
+                {
+                    <div class="fs-cd-address-t">Mesa @State.Mesa</div>
+                    <div class="fs-cd-address-s">Salão Principal · pedido cai direto na cozinha.</div>
+                }
+                else if (State.Mode == CdDeliveryMode.Retirada)
+                {
+                    <div class="fs-cd-address-t">Forneria Don Tonhão</div>
+                    <div class="fs-cd-address-s">R. Aspicuelta, 582 — Vila Madalena · pronto em 25–35min</div>
+                    <span class="fs-cd-address-change">Como chegar</span>
+                }
+                else
+                {
+                    <div class="fs-cd-address-t">Casa</div>
+                    <div class="fs-cd-address-s">R. Harmonia, 142, apto 41 — Vila Madalena, São Paulo</div>
+                    <span class="fs-cd-address-change">Trocar endereço</span>
+                }
+            </div>
+        </div>
+
+        @if (State.Mode == CdDeliveryMode.Mesa)
+        {
+            <div class="fs-cd-obs">
+                <label>Número da mesa</label>
+                <OmniTextBox Value="@State.Mesa"
+                             ValueChanged="State.SetMesa"
+                             Placeholder="Ex: 07" />
+            </div>
+        }
+
+        <div class="fs-cd-req-row" style="padding-bottom: 0;">
+            <span class="fs-cd-req-label">Forma de pagamento</span>
+            <span class="fs-cd-req-tag">OBRIGATÓRIO · 1</span>
+        </div>
+        <div class="fs-cd-pay-list">
+            @foreach (var option in _payOptions)
+            {
+                var current = option;
+                var on = State.PayMethod == current.Method;
+                <button @key="current.Method"
+                        type="button"
+                        class="@PayCss(on)"
+                        @onclick="@(() => State.SetPayMethod(current.Method))">
+                    <div class="fs-cd-pay-ic">@current.Icon</div>
+                    <div class="fs-cd-pay-body">
+                        <div class="fs-cd-pay-t">@(current.Method == CdPayMethod.Card ? $"Cartão {CardLabel}" : current.Title)</div>
+                        <div class="fs-cd-pay-s">@current.Subtitle</div>
+                    </div>
+                    <div class="@RadioCss(on)"></div>
+                </button>
+            }
+        </div>
+
+        @if (State.PayMethod == CdPayMethod.Cash)
+        {
+            <div class="fs-cd-obs">
+                <label>Troco para</label>
+                <OmniTextBox Value="@State.Troco"
+                             ValueChanged="State.SetTroco"
+                             Placeholder="Ex: R$ 100,00 (deixe em branco se exato)" />
+            </div>
+        }
+
+        <div class="fs-cd-totals" style="margin-top: 14px;">
+            <div class="fs-cd-totals-row">
+                <span>Subtotal</span>
+                <span class="fs-cd-totals-v omni-mono">@CardapioDigitalState.Brl(State.CartSubtotal)</span>
+            </div>
+            @if (State.CartDelivery > 0)
+            {
+                <div class="fs-cd-totals-row">
+                    <span>Entrega</span>
+                    <span class="fs-cd-totals-v omni-mono">@CardapioDigitalState.Brl(State.CartDelivery)</span>
+                </div>
+            }
+            @if (State.CartDiscount > 0)
+            {
+                <div class="fs-cd-totals-row">
+                    <span>Desconto</span>
+                    <span class="fs-cd-totals-v omni-mono fs-cd-totals-v-discount">− @CardapioDigitalState.Brl(State.CartDiscount)</span>
+                </div>
+            }
+            <div class="fs-cd-totals-total">
+                <span>Total</span>
+                <span class="fs-cd-totals-v omni-mono">@CardapioDigitalState.Brl(State.CartTotal)</span>
+            </div>
+        </div>
+    </div>
+
+    <CardapioBottomBar Label="Confirmar pedido"
+                       TrailingText="@CardapioDigitalState.Brl(State.CartTotal)"
+                       OnClick="State.GoTracking" />
+</div>
+
+@code {
+    private record PayOption(CdPayMethod Method, string Icon, string Title, string Subtitle);
+
+    private static readonly PayOption[] _payOptions =
+    {
+        new(CdPayMethod.Pix,  "📱", "PIX",      "5% OFF · pagamento na hora do pedido"),
+        new(CdPayMethod.Card, "💳", "Cartão",   "Crédito ou débito · todas as bandeiras"),
+        new(CdPayMethod.Cash, "💵", "Dinheiro", "Informe o troco abaixo se precisar"),
+    };
+
+    private string CardLabel => State.Mode == CdDeliveryMode.Delivery ? "na entrega" : "na maquininha";
+
+    private string AddressLabel => State.Mode switch
+    {
+        CdDeliveryMode.Mesa     => "Mesa",
+        CdDeliveryMode.Retirada => "Retirar em",
+        _                       => "Endereço de entrega"
+    };
+
+    private string AddressIcon => State.Mode switch
+    {
+        CdDeliveryMode.Mesa     => "🍽️",
+        CdDeliveryMode.Retirada => "🏪",
+        _                       => "📍"
+    };
+
+    private static string PayCss(bool on) => CssBuilder.Default("fs-cd-pay")
+        .AddClass("fs-cd-pay-on", on)
+        .Build();
+
+    private static string RadioCss(bool on) => CssBuilder.Default("fs-cd-radio")
+        .AddClass("fs-cd-radio-on", on)
+        .Build();
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

@@ -1,0 +1,28 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@using Omni.Blazor.Utilities
+
+<textarea class="@RootCss"
+          style="@Style"
+          rows="@Rows"
+          placeholder="@Placeholder"
+          disabled="@Disabled"
+          readonly="@ReadOnly"
+          maxlength="@MaxLength"
+          name="@Name"
+          @oninput="OnInput"
+          @attributes="Attributes">@Value</textarea>
+
+@code {
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public int Rows { get; set; } = 4;
+    [Parameter] public int? MaxLength { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-input")
+        .AddClass("omni-textarea")
+        .AddClass("omni-invalid", IsInvalid)
+        .AddClass(Class)
+        .Build();
+
+    private Task OnInput(ChangeEventArgs e) => SetValueAsync(e.Value?.ToString());
+}

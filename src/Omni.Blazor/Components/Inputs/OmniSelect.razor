@@ -1,0 +1,59 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits FormComponent<TValue>
+@using Omni.Blazor.Utilities
+
+<select class="@RootCss"
+        style="@Style"
+        disabled="@Disabled"
+        name="@Name"
+        value="@FormatValue(Value)"
+        @onchange="OnChange"
+        @attributes="Attributes">
+    @if (Placeholder is not null)
+    {
+        <option value="" disabled selected="@(Value is null)">@Placeholder</option>
+    }
+    @if (Items is not null)
+    {
+        foreach (var item in Items)
+        {
+            var v = FormatValue(ValueSelector is not null ? ValueSelector(item) : default);
+            var t = TextSelector is not null ? TextSelector(item) : item?.ToString() ?? "";
+            <option value="@v">@t</option>
+        }
+    }
+    @ChildContent
+</select>
+
+@code {
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public IEnumerable<TValue>? Items { get; set; }
+    [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
+    [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-select")
+        .AddClass("omni-invalid", IsInvalid)
+        .AddClass(Class)
+        .Build();
+
+    private string? FormatValue(TValue? v) => v?.ToString();
+
+    private Task OnChange(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+        if (string.IsNullOrEmpty(raw)) return SetValueAsync(default);
+        try
+        {
+            var target = typeof(TValue);
+            target = Nullable.GetUnderlyingType(target) ?? target;
+            var converted = (TValue?)Convert.ChangeType(raw, target, System.Globalization.CultureInfo.InvariantCulture);
+            return SetValueAsync(converted);
+        }
+        catch
+        {
+            return SetValueAsync(default);
+        }
+    }
+}

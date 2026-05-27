@@ -1,0 +1,26 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ThemeService Theme
+
+@*  Shell customer-facing para o /cardapio digital — full-screen mobile-first,
+    sem chrome corporativo (cada screen gerencia seu próprio AppBar/BottomBar).
+    Equivalente ao AppShellPublic do Forneria.Demo, mas com OmniOverlayHosts
+    pra dialogs (caso adicione no futuro). *@
+<div class="fs-cd-frame">
+    @Body
+</div>
+
+<OmniOverlayHosts />
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* swallow — nunca bloqueia a página por falha de tema */ }
+        }
+    }
+
+    public void Dispose() { }
+}

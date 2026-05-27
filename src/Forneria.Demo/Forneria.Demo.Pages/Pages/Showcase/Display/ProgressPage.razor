@@ -1,0 +1,136 @@
+@page "/showcase/progress"
+@layout ShowcaseLayout
+
+<PageTitle>Progress — Showcase</PageTitle>
+
+<ShowcasePage Title="Progress"
+              Subtitle="Barra de progresso linear contínua ou segmentada para indicar avanço.">
+
+    <Overview>
+        <p>
+            O <code>OmniProgress</code> visualiza o avanço de uma tarefa ou o preenchimento de uma
+            quota. No modo <strong>linear</strong> (padrão), exibe uma barra contínua proporcional a
+            <code>Value</code> sobre <code>Max</code> — com variantes de cor (<code>Accent</code>,
+            <code>Good</code>, <code>Warn</code>, <code>Danger</code>) e três tamanhos.
+        </p>
+        <p>
+            Quando <code>Segments</code> é maior que zero, renderiza no modo <strong>segmentado</strong>:
+            uma régua de blocos onde <code>Active</code> define quantos estão preenchidos. Esse modo
+            é o padrão para <strong>indicadores de força de senha</strong> e medidores de etapas
+            discretas, com a cor escalando conforme o nível.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Upload, importação ou processamento com percentual conhecido.</li>
+            <li>Quotas e limites de plano (pedidos usados, armazenamento).</li>
+            <li>Força de senha e medidores discretos com o modo segmentado.</li>
+            <li>Progresso de onboarding ou preenchimento de perfil.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Espera sem percentual definido → use <code>OmniSpinner</code>.</li>
+            <li>Reservar layout enquanto dados carregam → use <code>OmniSkeleton</code>.</li>
+            <li>Fluxo de etapas navegáveis → use <code>OmniStepper</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="LINEAR"
+                         Description="Variantes de cor: accent (padrão), good, warn, danger."
+                         Code="@(@"<OmniProgress Value=""28"" />
+<OmniProgress Value=""62"" Variant=""BadgeVariant.Good"" />
+<OmniProgress Value=""84"" Variant=""BadgeVariant.Warn"" />
+<OmniProgress Value=""96"" Variant=""BadgeVariant.Danger"" />")">
+            <div class="omni-stack omni-stack-12">
+                <div>
+                    <div class="omni-row omni-row-spread" style="margin-bottom: 6px;">
+                        <span class="omni-mono omni-muted" style="font-size: 11px;">UPLOAD</span>
+                        <span class="omni-mono" style="font-size: 11px;">28%</span>
+                    </div>
+                    <OmniProgress Value="28" />
+                </div>
+                <div>
+                    <div class="omni-row omni-row-spread" style="margin-bottom: 6px;">
+                        <span class="omni-mono omni-muted" style="font-size: 11px;">PEDIDOS DO PLANO</span>
+                        <span class="omni-mono" style="font-size: 11px;">62%</span>
+                    </div>
+                    <OmniProgress Value="62" Variant="BadgeVariant.Good" />
+                </div>
+                <div>
+                    <div class="omni-row omni-row-spread" style="margin-bottom: 6px;">
+                        <span class="omni-mono omni-muted" style="font-size: 11px;">ARMAZENAMENTO</span>
+                        <span class="omni-mono" style="font-size: 11px;">84%</span>
+                    </div>
+                    <OmniProgress Value="84" Variant="BadgeVariant.Warn" />
+                </div>
+                <div>
+                    <div class="omni-row omni-row-spread" style="margin-bottom: 6px;">
+                        <span class="omni-mono omni-muted" style="font-size: 11px;">QUOTA EXCEDIDA</span>
+                        <span class="omni-mono" style="font-size: 11px;">96%</span>
+                    </div>
+                    <OmniProgress Value="96" Variant="BadgeVariant.Danger" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Sm 4px, Md 6px (padrão), Lg 10px."
+                         Code="@(@"<OmniProgress Value=""40"" Size=""ComponentSize.Sm"" />
+<OmniProgress Value=""40"" Size=""ComponentSize.Md"" />
+<OmniProgress Value=""40"" Size=""ComponentSize.Lg"" />")">
+            <div class="omni-stack omni-stack-12">
+                <OmniProgress Value="40" Size="ComponentSize.Sm" />
+                <OmniProgress Value="40" Size="ComponentSize.Md" />
+                <OmniProgress Value="40" Size="ComponentSize.Lg" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEGMENTADO"
+                         Description="Padrão usado para força de senha. Cor escala s1/s2/s3/s4 conforme Active."
+                         Code="@(@"<OmniProgress Segments=""4"" Active=""1"" />
+<OmniProgress Segments=""4"" Active=""2"" />
+<OmniProgress Segments=""4"" Active=""3"" />
+<OmniProgress Segments=""4"" Active=""4"" />")">
+            <div class="omni-stack omni-stack-12">
+                <div>
+                    <OmniProgress Segments="4" Active="1" />
+                    <div class="omni-mono omni-muted" style="font-size: 10px; margin-top: 4px;">FRACA</div>
+                </div>
+                <div>
+                    <OmniProgress Segments="4" Active="2" />
+                    <div class="omni-mono omni-muted" style="font-size: 10px; margin-top: 4px;">MÉDIA</div>
+                </div>
+                <div>
+                    <OmniProgress Segments="4" Active="3" />
+                    <div class="omni-mono omni-muted" style="font-size: 10px; margin-top: 4px;">FORTE</div>
+                </div>
+                <div>
+                    <OmniProgress Segments="4" Active="4" />
+                    <div class="omni-mono omni-muted" style="font-size: 10px; margin-top: 4px;">EXCELENTE</div>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="double" Default="0"
+                            Description="Valor atual do progresso (modo linear)." />
+            <ShowcaseApiRow Name="Max" Type="double" Default="100"
+                            Description="Valor máximo usado para calcular o percentual." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Espessura da barra — Sm 4px, Md 6px, Lg 10px." />
+            <ShowcaseApiRow Name="Variant" Type="BadgeVariant" Default="Accent"
+                            Description="Cor da barra (modo linear) — Accent, Good, Warn, Danger." />
+            <ShowcaseApiRow Name="Segments" Type="int" Default="0"
+                            Description="Se maior que 0, renderiza no modo segmentado (força de senha)." />
+            <ShowcaseApiRow Name="Active" Type="int" Default="0"
+                            Description="Número de segmentos preenchidos no modo segmentado (1 a 4)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

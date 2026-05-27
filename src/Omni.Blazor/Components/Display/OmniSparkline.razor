@@ -1,0 +1,381 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using System.Globalization
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*  Mini chart inline em SVG — pra trends rápidos em Stat cards, células de
+    tabela, headers de listas, parágrafos de texto. 5 variants: Line, Area,
+    Column, Bar, Pie. Equivalente ao RadzenSparkline (que internamente é um
+    RadzenChart configurado) mas com API simples (IEnumerable<double>).
+
+    Renderização: ResizeObserver mede o container, viewBox usa PIXELS reais
+    (1 unidade SVG = 1 pixel) — círculos ficam redondos em qualquer aspect
+    ratio. Sem isso, preserveAspectRatio="none" + viewBox fixo deformaria
+    markers (bolinhas viravam elipses em containers wide). *@
+
+<div @ref="_hostEl" class="@RootCss" style="@Style" @attributes="Attributes">
+    <svg viewBox="@ViewBox" preserveAspectRatio="none"
+         width="100%" height="100%"
+         role="img" aria-label="@(AriaLabel ?? "Sparkline")">
+        @if (_normalized.Length >= 1 && _w > 0 && _h > 0)
+        {
+            @if (Variant == SparklineVariant.Area && _normalized.Length > 1)
+            {
+                <path d="@AreaPath" fill="@AreaFillColor" stroke="none" />
+                <path d="@LinePath" fill="none" stroke="@StrokeColor" stroke-width="@SW" stroke-linejoin="round" stroke-linecap="round" />
+            }
+            else if (Variant == SparklineVariant.Line && _normalized.Length > 1)
+            {
+                <path d="@LinePath" fill="none" stroke="@StrokeColor" stroke-width="@SW" stroke-linejoin="round" stroke-linecap="round" />
+            }
+            else if (Variant == SparklineVariant.Column)
+            {
+                @foreach (var r in ColumnRects())
+                {
+                    <rect x="@F(r.X)" y="@F(r.Y)" width="@F(r.W)" height="@F(r.H)" fill="@StrokeColor" rx="0.6" />
+                }
+            }
+            else if (Variant == SparklineVariant.Bar)
+            {
+                @foreach (var r in BarRects())
+                {
+                    <rect x="@F(r.X)" y="@F(r.Y)" width="@F(r.W)" height="@F(r.H)" fill="@StrokeColor" rx="0.6" />
+                }
+            }
+            else if (Variant == SparklineVariant.Pie)
+            {
+                @foreach (var slice in PieSlices())
+                {
+                    <path d="@slice.D" fill="@slice.Fill" stroke="var(--omni-bg-elev)" stroke-width="0.5" />
+                }
+            }
+
+            @* Markers — só pra Line/Area, em todos os pontos ou apenas o último.
+               Renderizados em pixels reais → círculos sempre redondos. *@
+            @if ((ShowMarker || ShowAllMarkers) && Variant is SparklineVariant.Line or SparklineVariant.Area && _points.Length >= 1)
+            {
+                var indexes = ShowAllMarkers
+                    ? Enumerable.Range(0, _points.Length)
+                    : new[] { _points.Length - 1 };
+                @foreach (var i in indexes)
+                {
+                    var (mx, my) = _points[i];
+                    <circle cx="@F(mx)" cy="@F(my)" r="@F(MarkerRadius)" fill="@StrokeColor"
+                            stroke="var(--omni-bg-elev)" stroke-width="@F(MarkerStroke)" />
+                }
+            }
+        }
+    </svg>
+</div>
+
+@code {
+    /// <summary>Sequence of numbers to chart. Empty/null = nothing rendered.</summary>
+    [Parameter] public IEnumerable<double>? Data { get; set; }
+
+    /// <summary>Visual variant — Line, Area, Column, Bar, Pie.</summary>
+    [Parameter] public SparklineVariant Variant { get; set; } = SparklineVariant.Line;
+
+    /// <summary>Suaviza a curva (Line/Area) usando monotone cubic Bezier —
+    /// preserva monotonicidade dos dados (não inventa picos/vales).
+    /// Mesmo algoritmo que <c>RadzenLineSeries Smooth="true"</c> usa.
+    /// Não tem efeito em Column/Bar/Pie. Default <c>false</c>.</summary>
+    [Parameter] public bool Smooth { get; set; }
+
+    /// <summary>Stroke/fill color (any CSS color). Defaults to <c>--omni-accent</c>.</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Stroke width em PIXELS. Default 1.8.</summary>
+    [Parameter] public double StrokeWidth { get; set; } = 1.8;
+
+    /// <summary>Fill opacity for Area variant. 0–1, default 0.18.</summary>
+    [Parameter] public double AreaOpacity { get; set; } = 0.18;
+
+    /// <summary>Show a dot at the LAST data point (Line/Area only).</summary>
+    [Parameter] public bool ShowMarker { get; set; }
+
+    /// <summary>Show dots at ALL data points (Line/Area only). Sobrescreve
+    /// <see cref="ShowMarker"/> — se true, marca todos.</summary>
+    [Parameter] public bool ShowAllMarkers { get; set; }
+
+    /// <summary>Spacing between bars/columns in PIXELS. Default 2.</summary>
+    [Parameter] public double BarGap { get; set; } = 2;
+
+    /// <summary>Paleta de cores pro variant Pie. Se vazia, usa accent com
+    /// variação de opacidade pra distinguir slices. Cores são repetidas
+    /// ciclicamente se houver mais valores que cores.</summary>
+    [Parameter] public IReadOnlyList<string>? PiePalette { get; set; }
+
+    /// <summary>Raio interno do donut em Pie (0–0.9 do raio externo).
+    /// 0 = pie sólido, 0.5 = donut médio. Default 0 (pie). </summary>
+    [Parameter] public double PieInnerRadius { get; set; }
+
+    /// <summary>aria-label override. Defaults to "Sparkline".</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    private ElementReference _hostEl;
+    private DotNetObjectReference<OmniSparkline>? _selfRef;
+
+    // Dimensões medidas em pixels — atualizadas pelo ResizeObserver.
+    // Defaults razoáveis pro primeiro render antes do JS medir
+    // (evita SVG vazio enquanto ResizeObserver não dispara).
+    private double _w = 160;
+    private double _h = 32;
+
+    internal double[] _normalized = Array.Empty<double>();
+    internal (double X, double Y)[] _points = Array.Empty<(double, double)>();
+    private double _min, _max;
+
+    // ParameterState: normalization (Data.ToArray + Min/Max) only re-runs when
+    // the Data reference itself changes. Color/Variant/Smooth/Class etc. flow
+    // through getters with zero recompute cost.
+    private ParameterState<IEnumerable<double>?> _dataState = null!;
+
+    private string ViewBox => $"0 0 {F(_w)} {F(_h)}";
+
+    private string StrokeColor => string.IsNullOrEmpty(Color) ? "var(--omni-accent)" : Color;
+    private string AreaFillColor => string.IsNullOrEmpty(Color)
+        ? $"color-mix(in oklab, var(--omni-accent) {(int)Math.Round(AreaOpacity * 100)}%, transparent)"
+        : Color;
+    private string SW => F(StrokeWidth);
+    private double MarkerRadius => Math.Max(StrokeWidth + 0.6, 2.2);
+    private double MarkerStroke => 1;
+
+    private string RootCss => CssBuilder.Default("omni-sparkline")
+        .AddClass(Variant switch
+        {
+            SparklineVariant.Area   => "omni-sparkline-area",
+            SparklineVariant.Column => "omni-sparkline-column",
+            SparklineVariant.Bar    => "omni-sparkline-bar",
+            SparklineVariant.Pie    => "omni-sparkline-pie",
+            _                       => "omni-sparkline-line",
+        })
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnInitialized()
+    {
+        _dataState = RegisterParameter<IEnumerable<double>?>(nameof(Data))
+            .WithParameter(() => Data)
+            .WithChangeHandler(RecomputeFromData)
+            .Attach();
+    }
+
+    private void RecomputeFromData()
+    {
+        _normalized = (Data ?? Array.Empty<double>()).ToArray();
+        if (_normalized.Length == 0)
+        {
+            _min = 0; _max = 0;
+            _points = Array.Empty<(double, double)>();
+            return;
+        }
+        _min = _normalized.Min();
+        _max = _normalized.Max();
+        if (_max - _min < 1e-9) { _min -= 0.5; _max += 0.5; }
+        RecomputePoints();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.observeSparklineSize",
+                _hostEl, _selfRef, nameof(OnSizeChangedInternal));
+        }
+        catch { /* SSR / JS gone */ }
+    }
+
+    /// <summary>Callback do ResizeObserver em JS — recebe dimensões reais
+    /// do container em pixels. Re-renderiza só se mudou (evita render loop).</summary>
+    [JSInvokable]
+    public Task OnSizeChangedInternal(double w, double h)
+    {
+        if (Math.Abs(w - _w) < 0.5 && Math.Abs(h - _h) < 0.5) return Task.CompletedTask;
+        _w = Math.Max(1, w);
+        _h = Math.Max(1, h);
+        RecomputePoints();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void RecomputePoints()
+    {
+        if (_normalized.Length == 0)
+        {
+            _points = Array.Empty<(double, double)>();
+            return;
+        }
+        _points = new (double, double)[_normalized.Length];
+        for (int i = 0; i < _normalized.Length; i++) _points[i] = PointAt(i);
+    }
+
+    private (double X, double Y) PointAt(int i)
+    {
+        var x = _normalized.Length == 1
+            ? _w / 2
+            : (double)i / (_normalized.Length - 1) * _w;
+        var norm = (_normalized[i] - _min) / (_max - _min);
+        // Inset evita stroke/marker ser clipado pelas bordas do viewBox.
+        var inset = Math.Max(StrokeWidth, MarkerRadius) + 0.5;
+        var y = (1 - norm) * (_h - 2 * inset) + inset;
+        return (x, y);
+    }
+
+    private string LinePath
+    {
+        get
+        {
+            if (_points.Length < 2) return string.Empty;
+            if (Smooth) return MonotoneSpline.Path(_points);
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < _points.Length; i++)
+            {
+                sb.Append(i == 0 ? 'M' : 'L');
+                sb.Append(F(_points[i].X)); sb.Append(' '); sb.Append(F(_points[i].Y));
+                if (i < _points.Length - 1) sb.Append(' ');
+            }
+            return sb.ToString();
+        }
+    }
+
+    private string AreaPath
+    {
+        get
+        {
+            if (_points.Length < 2) return string.Empty;
+            var sb = new System.Text.StringBuilder(LinePath);
+            sb.Append(" L ").Append(F(_points[^1].X)).Append(' ').Append(F(_h));
+            sb.Append(" L ").Append(F(_points[0].X)).Append(' ').Append(F(_h));
+            sb.Append(" Z");
+            return sb.ToString();
+        }
+    }
+
+    private IEnumerable<(double X, double Y, double W, double H)> ColumnRects()
+    {
+        if (_normalized.Length == 0) yield break;
+        var total = _normalized.Length;
+        var slot = _w / total;
+        var w = Math.Max(slot - BarGap, 1);
+        for (int i = 0; i < total; i++)
+        {
+            var norm = (_normalized[i] - _min) / (_max - _min);
+            var h = Math.Max(norm * _h, 1);
+            var x = i * slot + (slot - w) / 2;
+            var y = _h - h;
+            yield return (x, y, w, h);
+        }
+    }
+
+    private IEnumerable<(double X, double Y, double W, double H)> BarRects()
+    {
+        if (_normalized.Length == 0) yield break;
+        var total = _normalized.Length;
+        var slot = _h / total;
+        var h = Math.Max(slot - BarGap, 1);
+        for (int i = 0; i < total; i++)
+        {
+            var norm = (_normalized[i] - _min) / (_max - _min);
+            var w = Math.Max(norm * _w, 1);
+            var x = 0d;
+            var y = i * slot + (slot - h) / 2;
+            yield return (x, y, w, h);
+        }
+    }
+
+    /// <summary>Slices SVG <path> pro Pie. Centro = (_w/2, _h/2), raio externo =
+    /// min(_w, _h)/2 - inset. Usa min() pra ficar circular mesmo em containers
+    /// não-quadrados (recomendamos passar width=height pra pie).</summary>
+    private IEnumerable<(string D, string Fill)> PieSlices()
+    {
+        if (_normalized.Length == 0) yield break;
+        var positives = _normalized.Select(v => Math.Max(0, v)).ToArray();
+        var total = positives.Sum();
+        if (total <= 0) yield break;
+
+        var palette = ResolvePiePalette(positives.Length);
+        var cx = _w / 2.0;
+        var cy = _h / 2.0;
+        var rOuter = Math.Min(_w, _h) / 2.0 - 1;
+        var rInner = Math.Clamp(PieInnerRadius, 0, 0.9) * rOuter;
+        if (rOuter <= 0) yield break;
+
+        var startAngle = -Math.PI / 2;
+        for (int i = 0; i < positives.Length; i++)
+        {
+            var sliceAngle = (positives[i] / total) * (Math.PI * 2);
+            if (sliceAngle <= 0) continue;
+            var endAngle = startAngle + sliceAngle;
+            var d = BuildArcPath(cx, cy, rOuter, rInner, startAngle, endAngle);
+            yield return (d, palette[i % palette.Count]);
+            startAngle = endAngle;
+        }
+    }
+
+    private IReadOnlyList<string> ResolvePiePalette(int count)
+    {
+        if (PiePalette is { Count: > 0 }) return PiePalette;
+        var baseColor = StrokeColor;
+        var palette = new string[Math.Min(count, 8)];
+        var mixes = new[] { 100, 78, 92, 65, 85, 55, 72, 45 };
+        for (int i = 0; i < palette.Length; i++)
+        {
+            palette[i] = mixes[i] == 100
+                ? baseColor
+                : $"color-mix(in oklab, {baseColor} {mixes[i]}%, var(--omni-bg-elev))";
+        }
+        return palette;
+    }
+
+    private static string BuildArcPath(double cx, double cy, double rOuter, double rInner,
+                                       double a0, double a1)
+    {
+        var x0 = cx + rOuter * Math.Cos(a0);
+        var y0 = cy + rOuter * Math.Sin(a0);
+        var x1 = cx + rOuter * Math.Cos(a1);
+        var y1 = cy + rOuter * Math.Sin(a1);
+        var largeArc = (a1 - a0) > Math.PI ? 1 : 0;
+        var sb = new System.Text.StringBuilder();
+        if (rInner <= 0)
+        {
+            sb.Append('M').Append(F(cx)).Append(' ').Append(F(cy));
+            sb.Append(" L ").Append(F(x0)).Append(' ').Append(F(y0));
+            sb.Append(" A ").Append(F(rOuter)).Append(' ').Append(F(rOuter))
+              .Append(" 0 ").Append(largeArc).Append(" 1 ")
+              .Append(F(x1)).Append(' ').Append(F(y1));
+            sb.Append(" Z");
+        }
+        else
+        {
+            var ix0 = cx + rInner * Math.Cos(a0);
+            var iy0 = cy + rInner * Math.Sin(a0);
+            var ix1 = cx + rInner * Math.Cos(a1);
+            var iy1 = cy + rInner * Math.Sin(a1);
+            sb.Append('M').Append(F(x0)).Append(' ').Append(F(y0));
+            sb.Append(" A ").Append(F(rOuter)).Append(' ').Append(F(rOuter))
+              .Append(" 0 ").Append(largeArc).Append(" 1 ")
+              .Append(F(x1)).Append(' ').Append(F(y1));
+            sb.Append(" L ").Append(F(ix1)).Append(' ').Append(F(iy1));
+            sb.Append(" A ").Append(F(rInner)).Append(' ').Append(F(rInner))
+              .Append(" 0 ").Append(largeArc).Append(" 0 ")
+              .Append(F(ix0)).Append(' ').Append(F(iy0));
+            sb.Append(" Z");
+        }
+        return sb.ToString();
+    }
+
+    private static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("omniBlazor.unobserveSparklineSize", _hostEl); } catch { }
+        _selfRef?.Dispose();
+        _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+}

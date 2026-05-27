@@ -1,0 +1,64 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ThemeService Theme
+
+@*  Live Operations shell — migrado para OmniLayout. OmniAppBar fina (52px)
+    com live-dot pulsante + título + segmented control (Operação/Cozinha/
+    Entrega/Salão) + relógio ao vivo. OmniMain NoPadding com fundo bg-sunken
+    para os tiles "flutuarem" sobre superfície neutra. Sem sidebar. *@
+<OmniLayout Class="omni-lo-app">
+    <OmniAppBar Class="omni-lo-bar">
+        <div class="omni-lo-title">
+            <span class="omni-lo-live-dot"></span>
+            Live Operations
+        </div>
+        <OmniSegmentedControl Class="omni-lo-segments"
+                              TValue="string"
+                              Value="@_view"
+                              ValueChanged="@(v => _view = v ?? "Operação")"
+                              Items="_segmentItems" />
+        <div class="omni-header-spacer"></div>
+        <div class="omni-lo-clock omni-mono">@_clock</div>
+    </OmniAppBar>
+
+    <OmniMain NoPadding>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    private static readonly IReadOnlyList<OmniSegmentedControl<string>.Item> _segmentItems = new[]
+    {
+        new OmniSegmentedControl<string>.Item("Operação", "Operação"),
+        new OmniSegmentedControl<string>.Item("Cozinha",  "Cozinha"),
+        new OmniSegmentedControl<string>.Item("Entrega",  "Entrega"),
+        new OmniSegmentedControl<string>.Item("Salão",    "Salão"),
+    };
+    private string _view = "Operação";
+
+    private string _clock = DateTime.Now.ToString("HH:mm:ss");
+    private System.Threading.Timer? _ticker;
+
+    protected override void OnInitialized()
+    {
+        // Tick a cada 1s — só atualiza no servidor; em SSR o relógio fica estático.
+        _ticker = new System.Threading.Timer(_ =>
+        {
+            _clock = DateTime.Now.ToString("HH:mm:ss");
+            _ = InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* nunca bloqueia o shell por falha de tema */ }
+        }
+    }
+
+    public void Dispose() => _ticker?.Dispose();
+}

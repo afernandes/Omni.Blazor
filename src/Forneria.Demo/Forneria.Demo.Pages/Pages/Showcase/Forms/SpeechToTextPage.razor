@@ -1,0 +1,829 @@
+@page "/showcase/speech-to-text"
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+
+<PageTitle>Speech-to-Text — Showcase</PageTitle>
+
+<ShowcasePage Title="Speech to Text"
+              Subtitle="Reconhecimento de voz via Web Speech API. Botão pronto, headless, ou integrado em qualquer campo.">
+
+    <Overview>
+        <p>
+            Dois componentes complementares: <code>OmniSpeechToText</code> é o
+            <strong>headless</strong> (render-prop, zero visual) e
+            <code>OmniSpeechToTextButton</code> é o <strong>botão pronto</strong> com
+            ícone mic/stop animado em cima do primeiro. Equivalentes ao
+            <code>RadzenSpeechToTextButton</code>, com 4 vantagens: <strong>feature-detect
+            proativo</strong> (botão já renderiza disabled em Firefox), <strong>OnError</strong>
+            (Radzen ignora <code>onerror</code>), <strong>InterimResults + IsFinal</strong>
+            (resultado parcial ao vivo), <strong>Confidence</strong> no payload.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Campos longos</strong>: descrição de produto, observação de pedido, anotação livre.</li>
+            <li><strong>Acessibilidade</strong>: pessoas com mobilidade reduzida ditando ao invés de digitar.</li>
+            <li><strong>Hands-free / cozinha / motoristas / atendimento de balcão</strong>.</li>
+            <li><strong>Busca rápida por voz</strong>: igual ao botão de mic do Google.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Apps que precisam funcionar em Firefox — Web Speech API não é suportada.</li>
+            <li>Cenários offline — depende do motor de reconhecimento online do browser.</li>
+            <li>Dados sensíveis transmitidos para servidores do browser-vendor (Google, Apple).</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        @* ─── HERO: mic grande + ondas concêntricas + transcript glow ─── *@
+        <ShowcaseSection Title="HERO — clique no mic e fale"
+                         Description="Ondas concêntricas pulsantes quando gravando, halo laranja, cursor piscando no texto interim. Tudo CSS puro (sem JS de animação)."
+                         Code='@("<OmniSpeechToText Language=\"pt-BR\" InterimResults\n                   OnResult=\"@OnHero\" Context=\"sp\">\n    <button @onclick=\"@sp.ToggleAsync\" class=\"hero-mic\">\n        <OmniIcon Name=\"@(sp.IsRecording ? \\\"stop-circle\\\" : \\\"mic\\\")\" />\n    </button>\n</OmniSpeechToText>")'>
+            <div class="stt-hero">
+                <OmniSpeechToText @ref="_heroStt"
+                                   Language="pt-BR" InterimResults
+                                   OnResult="@OnHero"
+                                   OnError="@OnHeroError"
+                                   OnUnsupported="@OnHeroUnsupported"
+                                   Context="sp">
+                    <div class="stt-hero-mic-wrap"
+                         data-recording="@(sp.IsRecording ? "1" : null)"
+                         data-busy="@(sp.IsBusy ? "1" : null)"
+                         data-state="@sp.State.ToString().ToLowerInvariant()">
+                        <span class="stt-wave stt-wave-1"></span>
+                        <span class="stt-wave stt-wave-2"></span>
+                        <span class="stt-wave stt-wave-3"></span>
+                        <button type="button" class="stt-hero-mic"
+                                @onclick="@sp.ToggleAsync"
+                                disabled="@(_heroUnsupported || sp.IsBusy)"
+                                title="@HeroMicTitle(sp)"
+                                aria-label="@HeroMicAriaLabel(sp)"
+                                aria-pressed="@(sp.IsRecording ? "true" : "false")"
+                                aria-busy="@(sp.IsBusy ? "true" : "false")">
+                            <OmniIcon Name="@HeroMicIcon(sp)" Size="ComponentSize.Lg" />
+                        </button>
+                    </div>
+                    <div class="stt-hero-content">
+                        <div class="stt-hero-status">
+                            @if (_heroUnsupported)
+                            {
+                                <span class="stt-status-pill stt-status-error">⚠ NÃO SUPORTADO</span>
+                                <span class="stt-status-detail">Tente em Chrome ou Edge.</span>
+                            }
+                            else if (sp.State == SpeechRecognitionState.Connecting)
+                            {
+                                <span class="stt-status-pill stt-status-busy">🔌 CONECTANDO</span>
+                                <span class="stt-status-detail">
+                                    Aguardando mic ficar pronto…
+                                    @if (_heroEngine == "edge")
+                                    {
+                                        <span class="stt-engine-hint">Edge: pode tentar várias vezes</span>
+                                    }
+                                </span>
+                            }
+                            else if (sp.State == SpeechRecognitionState.Recording)
+                            {
+                                <span class="stt-status-pill stt-status-live">● LIVE</span>
+                                <span class="stt-status-detail">Ouvindo em pt-BR — pode falar agora.</span>
+                            }
+                            else if (sp.State == SpeechRecognitionState.Stopping)
+                            {
+                                <span class="stt-status-pill stt-status-busy">⏸ PARANDO</span>
+                                <span class="stt-status-detail">Encerrando a sessão…</span>
+                            }
+                            else if (sp.State == SpeechRecognitionState.Error)
+                            {
+                                <span class="stt-status-pill stt-status-error">⚠ ERRO</span>
+                                <span class="stt-status-detail">@FormatErrorPtBr(_heroLastError)</span>
+                            }
+                            else
+                            {
+                                <span class="stt-status-pill stt-status-idle">○ IDLE</span>
+                                <span class="stt-status-detail">
+                                    Pressione o mic para começar.
+                                    @if (_heroEngine == "edge")
+                                    {
+                                        <span class="stt-engine-hint" title="Edge usa Microsoft Speech Service — cold start mais lento que Chrome">
+                                            · Edge: primeira fala pode demorar ~5s
+                                        </span>
+                                    }
+                                </span>
+                            }
+                        </div>
+                        <div class="stt-hero-transcript">
+                            @if (string.IsNullOrEmpty(_heroFinal) && string.IsNullOrEmpty(_heroInterim))
+                            {
+                                <span class="stt-transcript-placeholder">A transcrição aparece aqui em tempo real…</span>
+                            }
+                            else
+                            {
+                                <span class="stt-transcript-final">@_heroFinal</span>
+                                @if (!string.IsNullOrEmpty(_heroInterim))
+                                {
+                                    <span class="stt-transcript-interim">@_heroInterim</span>
+                                    <span class="stt-cursor">▎</span>
+                                }
+                            }
+                        </div>
+                        @if (_heroLastConfidence > 0)
+                        {
+                            <div class="stt-confidence-bar" title="Confiança da última transcrição">
+                                <div class="stt-confidence-fill" style="@($"width:{_heroLastConfidence * 100:F0}%")"></div>
+                                <span class="stt-confidence-label">@($"{_heroLastConfidence:P0}")</span>
+                            </div>
+                        }
+                    </div>
+                </OmniSpeechToText>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── BROWSER SUPPORT MATRIX ─── *@
+        <ShowcaseSection Title="SUPORTE POR BROWSER"
+                         Description="Web Speech API tem cobertura desigual. O componente faz feature-detect proativo: em Firefox, o botão já renderiza disabled com tooltip, sem esperar o user clicar.">
+            <div class="stt-browser-matrix">
+                <div class="stt-browser-card stt-browser-ok">
+                    <div class="stt-browser-icon">🌐</div>
+                    <div class="stt-browser-name">Chrome</div>
+                    <div class="stt-browser-status">SUPORTE TOTAL</div>
+                    <div class="stt-browser-detail">Continuous + Interim + 100+ idiomas</div>
+                </div>
+                <div class="stt-browser-card stt-browser-ok">
+                    <div class="stt-browser-icon">🌊</div>
+                    <div class="stt-browser-name">Edge</div>
+                    <div class="stt-browser-status">SUPORTE TOTAL</div>
+                    <div class="stt-browser-detail">Microsoft Speech Service — cold start ~4–6s; auto-retry de rede; abort() fallback aplicado</div>
+                </div>
+                <div class="stt-browser-card stt-browser-partial">
+                    <div class="stt-browser-icon">🍎</div>
+                    <div class="stt-browser-name">Safari</div>
+                    <div class="stt-browser-status">PARCIAL</div>
+                    <div class="stt-browser-detail">Funciona em macOS/iOS, sem continuous em iOS</div>
+                </div>
+                <div class="stt-browser-card stt-browser-none">
+                    <div class="stt-browser-icon">🦊</div>
+                    <div class="stt-browser-name">Firefox</div>
+                    <div class="stt-browser-status">NÃO SUPORTADO</div>
+                    <div class="stt-browser-detail">Web Speech API não implementada (2024)</div>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── DEMO 1: Anotação de pedido (real-world PDV/garçom) ─── *@
+        <ShowcaseSection Title="REAL-WORLD #1 — anotação de pedido"
+                         Description="PDV/garçom: cliente fala a observação, vira nota com timestamp na lista. Padrão típico em apps de food service onde digitar é lento."
+                         Code='@("<OmniSpeechToTextButton Language=\"pt-BR\"\n                         Icon=\"mic\" Size=\"ComponentSize.Sm\"\n                         OnResult=\"@AddNote\" />\n@foreach (var n in _notes) { <NoteCard n=\"n\" /> }")'>
+            <div class="stt-order">
+                <div class="stt-order-header">
+                    <div>
+                        <div class="stt-order-table">Mesa 7 · Pedido #2341</div>
+                        <div class="stt-order-meta">Anotações da comanda</div>
+                    </div>
+                    <OmniSpeechToTextButton Language="pt-BR"
+                                              Variant="ButtonVariant.Primary"
+                                              Icon="mic" StopIcon="stop-circle"
+                                              Text="Anotar" RecordingText="Ouvindo..."
+                                              OnResult="@AddOrderNote" />
+                </div>
+                <div class="stt-order-notes">
+                    @if (_orderNotes.Count == 0)
+                    {
+                        <div class="stt-order-empty">
+                            <OmniIcon Name="volume-2" Size="ComponentSize.Lg" />
+                            <p>Nenhuma anotação. Clique em <strong>Anotar</strong> e fale: <em>"Sem cebola na pizza, capricha no queijo"</em>.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var n in _orderNotes)
+                        {
+                            <div class="stt-order-note">
+                                <div class="stt-order-note-time">@n.Time.ToString("HH:mm:ss")</div>
+                                <div class="stt-order-note-text">@n.Text</div>
+                                <button type="button" class="stt-order-note-remove"
+                                        @onclick="@(_ => _orderNotes.Remove(n))" aria-label="Remover">
+                                    <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                                </button>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── DEMO 2: Busca por voz (como Google) ─── *@
+        <ShowcaseSection Title="REAL-WORLD #2 — busca por voz"
+                         Description="Input de busca com mic acoplado à direita. Resultado da fala vai direto pro campo — user pode editar antes de buscar.">
+            <div class="stt-search">
+                <div class="stt-search-bar">
+                    <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                    <input type="text" @bind="_searchText" @bind:event="oninput"
+                           placeholder="Buscar produtos, clientes, pedidos..."
+                           class="stt-search-input" />
+                    <OmniSpeechToTextButton Language="pt-BR"
+                                              Variant="ButtonVariant.Ghost"
+                                              Size="ComponentSize.Sm"
+                                              OnResult="@(r => { if (r.IsFinal) _searchText = r.Transcript; })" />
+                </div>
+                @if (!string.IsNullOrEmpty(_searchText))
+                {
+                    <div class="stt-search-hint">
+                        Buscando por: <strong>@_searchText</strong>
+                        <button type="button" class="stt-search-clear"
+                                @onclick="@(_ => _searchText = string.Empty)">limpar</button>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+
+        @* ─── DEMO 3: Multi-idioma com cards visuais ─── *@
+        <ShowcaseSection Title="REAL-WORLD #3 — multi-idioma"
+                         Description="Mesmo motor reconhece 100+ idiomas. Clique numa bandeira pra mudar o lang code e teste em outro idioma.">
+            <div class="stt-lang-grid">
+                @foreach (var lang in _languages)
+                {
+                    <button type="button"
+                            class="@($"stt-lang-card{(lang.Code == _lang ? " is-active" : "")}")"
+                            @onclick="@(_ => _lang = lang.Code)">
+                        <span class="stt-lang-flag">@lang.Flag</span>
+                        <span class="stt-lang-name">@lang.Name</span>
+                        <span class="stt-lang-code">@lang.Code</span>
+                    </button>
+                }
+            </div>
+            <div class="stt-lang-test">
+                <OmniSpeechToTextButton Language="@_lang"
+                                          Variant="ButtonVariant.Primary"
+                                          Size="ComponentSize.Lg"
+                                          Text="@($"Falar em {_languages.First(l => l.Code == _lang).Name}")"
+                                          RecordingText="Ouvindo..."
+                                          OnResult="@(r => { if (r.IsFinal) _multiLangText = r.Transcript; })" />
+                <div class="stt-lang-result">
+                    @if (string.IsNullOrEmpty(_multiLangText))
+                    {
+                        <em class="omni-muted">Aguardando voz em <strong>@_lang</strong>…</em>
+                    }
+                    else
+                    {
+                        <span>@_multiLangText</span>
+                    }
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSpeechToText — parâmetros (headless)">
+            <ShowcaseApiRow Name="Language" Type="string?" Default="null"
+                            Description="BCP-47: pt-BR, en-US, es-ES, etc. Null = idioma default do browser." />
+            <ShowcaseApiRow Name="Continuous" Type="bool" Default="true"
+                            Description="true = continua até user parar. false = para após silêncio longo." />
+            <ShowcaseApiRow Name="InterimResults" Type="bool" Default="false"
+                            Description="true dispara OnResult com IsFinal=false durante a fala (rascunho)." />
+            <ShowcaseApiRow Name="MaxAlternatives" Type="int" Default="1"
+                            Description="Quantas alternativas pedir do motor por trecho." />
+            <ShowcaseApiRow Name="OnResult" Type="EventCallback<SpeechRecognitionResult>" Default="empty"
+                            Description="Disparado a cada onresult. Recebe Transcript + IsFinal + Confidence." />
+            <ShowcaseApiRow Name="OnStart / OnEnd" Type="EventCallback" Default="empty"
+                            Description="Disparados em start / end do reconhecimento." />
+            <ShowcaseApiRow Name="OnError" Type="EventCallback<string>" Default="empty"
+                            Description="Códigos: not-allowed, no-speech, audio-capture, network, aborted, start-timeout, invalid-state, ctor-failed." />
+            <ShowcaseApiRow Name="OnStateChange" Type="EventCallback<SpeechRecognitionState>" Default="empty"
+                            Description="Disparado em cada transição: Idle ↔ Starting ↔ Recording ↔ Stopping ↔ Error. Fonte de verdade pra UI." />
+            <ShowcaseApiRow Name="OnUnsupported" Type="EventCallback" Default="empty"
+                            Description="Browser sem Web Speech API (Firefox). Mostre fallback." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment<SpeechContext>?" Default="null"
+                            Description="Render-prop com State / IsRecording / IsBusy / LastError / IsSupportedAsync / ToggleAsync / StartAsync / StopAsync." />
+            <ShowcaseApiRow Name="State (prop)" Type="SpeechRecognitionState" Default="Idle"
+                            Description="Estado da state machine. Use pra reflect em UI customizada." />
+            <ShowcaseApiRow Name="IsBusy (prop)" Type="bool" Default="false"
+                            Description="True durante Starting/Stopping (browser respondendo). Desabilite cliques nesse estado." />
+            <ShowcaseApiRow Name="LastError (prop)" Type="string?" Default="null"
+                            Description="Último código de erro recebido. Limpa em nova sessão (volta pra Idle)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniSpeechToTextButton — visuais extra">
+            <ShowcaseApiRow Name="Icon / StopIcon / BusyIcon / ErrorIcon" Type="string"
+                            Default='"mic" / "stop-circle" / "loader" / "alert-circle"'
+                            Description="Ícone para cada estado da state machine. Trocados automaticamente." />
+            <ShowcaseApiRow Name="Text / RecordingText / BusyText" Type="string?" Default="null"
+                            Description="Texto pra cada estado. Vazio = icon-only." />
+            <ShowcaseApiRow Name="Title / StopTitle / BusyTitle / UnsupportedTitle" Type="string" ShowDefault="false"
+                            Description="Tooltip/aria-label nos 4 estados (incluindo unsupported)." />
+            <ShowcaseApiRow Name="AllowInterrupt" Type="bool" Default="false"
+                            Description="false (default) = botão fica desabilitado durante Starting/Stopping. true = permite cliques rápidos (JS debounceia)." />
+            <ShowcaseApiRow Name="Variant / Size / Disabled" Type="ButtonVariant / ComponentSize / bool" ShowDefault="false"
+                            Description="Pass-through pro OmniButton interno. Detecção proativa de unsupported aplica disabled automaticamente em browsers sem Web Speech API." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="SpeechRecognitionState — estados da state machine">
+            <ShowcaseApiRow Name="Idle" Type="0" ShowDefault="false"
+                            Description="Sem sessão. Pronto pra começar (botão mostra mic)." />
+            <ShowcaseApiRow Name="Connecting" Type="1" ShowDefault="false"
+                            Description="Reconhecedor criado mas mic AINDA NÃO está capturando. Cobre o intervalo até onaudiostart + retries silenciosos no Edge. Botão mostra 'Conectando…' — NUNCA diga 'Ouvindo' aqui." />
+            <ShowcaseApiRow Name="Recording" Type="2" ShowDefault="false"
+                            Description="Mic capturando áudio de FATO (onaudiostart disparou). Único estado em que o usuário pode falar e ser ouvido. Botão pulsa vermelho." />
+            <ShowcaseApiRow Name="Stopping" Type="3" ShowDefault="false"
+                            Description="User pediu stop; aguardando onend. Cancela auto-retry pendente. Spinner em transição." />
+            <ShowcaseApiRow Name="Error" Type="4" ShowDefault="false"
+                            Description="Falha recente. LastError contém o código (connect-timeout, not-allowed, etc.). Volta pra Idle no próximo onend." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@* ═════════════════════════════════════════════════════════════════════════
+   SCSS scoped pra essa página (em <style> pra não poluir _components.scss
+   com regras de showcase). Padrão: variáveis de tema da lib, mas com
+   personalidade visual única — radio-wave / sonic-broadcast aesthetic.
+   ════════════════════════════════════════════════════════════════════════ *@
+<style>
+    /* ─── HERO: mic central + ondas + transcript em glow ─────────────── */
+    .stt-hero {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 32px;
+        align-items: center;
+        padding: 28px 16px;
+        background:
+            radial-gradient(circle at 20% 50%, color-mix(in oklab, var(--omni-accent) 8%, transparent), transparent 40%),
+            var(--omni-bg-sunken);
+        border: 1px solid var(--omni-line);
+        border-radius: 16px;
+    }
+    @@media (max-width: 720px) {
+        .stt-hero { grid-template-columns: 1fr; text-align: center; }
+    }
+
+    /* Wrapper do mic com ondas concêntricas */
+    .stt-hero-mic-wrap {
+        position: relative;
+        width: 140px; height: 140px;
+        display: grid; place-items: center;
+        flex-shrink: 0;
+        margin: 0 auto;
+    }
+
+    /* Botão mic central — tactile, glow ativo */
+    .stt-hero-mic {
+        position: relative;
+        z-index: 3;
+        width: 88px; height: 88px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, var(--omni-accent), color-mix(in oklab, var(--omni-accent) 70%, #ff5500));
+        color: var(--omni-accent-fg);
+        cursor: pointer;
+        display: grid; place-items: center;
+        font-size: 28px;
+        box-shadow:
+            0 8px 24px color-mix(in oklab, var(--omni-accent) 30%, transparent),
+            inset 0 -3px 8px rgba(0, 0, 0, 0.15);
+        transition: transform 120ms, box-shadow 240ms;
+    }
+    .stt-hero-mic:hover:not(:disabled) {
+        transform: scale(1.06);
+        box-shadow:
+            0 12px 32px color-mix(in oklab, var(--omni-accent) 40%, transparent),
+            inset 0 -3px 8px rgba(0, 0, 0, 0.15);
+    }
+    .stt-hero-mic:active:not(:disabled) { transform: scale(0.96); }
+    .stt-hero-mic:disabled {
+        background: var(--omni-bg-sunken);
+        color: var(--omni-fg-muted);
+        cursor: not-allowed;
+        opacity: 0.6;
+        box-shadow: none;
+    }
+    .stt-hero-mic-wrap[data-recording] .stt-hero-mic {
+        background: linear-gradient(135deg, var(--omni-danger), #ff3030);
+        animation: stt-mic-pulse 1.4s ease-in-out infinite;
+    }
+    /* Busy (starting/stopping): cor neutra + spin no ícone */
+    .stt-hero-mic-wrap[data-busy] .stt-hero-mic {
+        background: linear-gradient(135deg, var(--omni-warn, #f59e0b), color-mix(in oklab, var(--omni-warn, #f59e0b) 70%, #ff8800));
+        cursor: progress;
+    }
+    .stt-hero-mic-wrap[data-busy] .stt-hero-mic .omni-icon {
+        animation: stt-mic-spin 1s linear infinite;
+    }
+    /* Error: cor de aviso forte + shake breve */
+    .stt-hero-mic-wrap[data-state="error"] .stt-hero-mic {
+        background: linear-gradient(135deg, var(--omni-danger), #b00020);
+        animation: stt-mic-shake 0.45s ease-in-out;
+    }
+    @@keyframes stt-mic-spin { to { transform: rotate(360deg); } }
+    @@keyframes stt-mic-shake {
+        0%, 100% { transform: translateX(0); }
+        25%      { transform: translateX(-3px); }
+        75%      { transform: translateX(3px); }
+    }
+
+    /* Ondas concêntricas — só visíveis quando recording */
+    .stt-wave {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 88px; height: 88px;
+        border-radius: 50%;
+        border: 2px solid color-mix(in oklab, var(--omni-danger) 60%, transparent);
+        opacity: 0;
+        pointer-events: none;
+    }
+    .stt-hero-mic-wrap[data-recording] .stt-wave-1 { animation: stt-wave 2s ease-out infinite; }
+    .stt-hero-mic-wrap[data-recording] .stt-wave-2 { animation: stt-wave 2s ease-out infinite 0.66s; }
+    .stt-hero-mic-wrap[data-recording] .stt-wave-3 { animation: stt-wave 2s ease-out infinite 1.33s; }
+
+    @@keyframes stt-wave {
+        0%   { transform: scale(1);   opacity: 0.7; }
+        100% { transform: scale(2.2); opacity: 0; }
+    }
+    @@keyframes stt-mic-pulse {
+        0%, 100% { box-shadow: 0 8px 24px color-mix(in oklab, var(--omni-danger) 30%, transparent), 0 0 0 0 color-mix(in oklab, var(--omni-danger) 40%, transparent); }
+        50%      { box-shadow: 0 12px 36px color-mix(in oklab, var(--omni-danger) 50%, transparent), 0 0 0 12px color-mix(in oklab, var(--omni-danger) 0%, transparent); }
+    }
+    @@media (prefers-reduced-motion: reduce) {
+        .stt-wave, .stt-hero-mic { animation: none !important; }
+    }
+
+    /* Conteúdo à direita (status pill + transcript + confidence) */
+    .stt-hero-content {
+        display: flex; flex-direction: column; gap: 14px;
+        min-width: 0;
+    }
+    .stt-hero-status {
+        display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    .stt-status-pill {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font: 600 11px/1 var(--omni-font-mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    .stt-status-idle  { background: var(--omni-bg-elev); color: var(--omni-fg-soft); border: 1px solid var(--omni-line); }
+    .stt-status-live  { background: color-mix(in oklab, var(--omni-danger) 12%, transparent); color: var(--omni-danger); animation: stt-blink 1s steps(1) infinite; }
+    .stt-status-busy  { background: color-mix(in oklab, var(--omni-warn) 12%, transparent); color: var(--omni-warn); }
+    .stt-status-error { background: color-mix(in oklab, var(--omni-danger) 12%, transparent); color: var(--omni-danger); border: 1px solid color-mix(in oklab, var(--omni-danger) 30%, transparent); }
+    .stt-status-detail { font-size: 12px; color: var(--omni-fg-soft); }
+    .stt-engine-hint {
+        display: inline-block;
+        margin-left: 4px;
+        padding: 2px 6px;
+        font: 600 10px/1.2 var(--omni-font-mono);
+        color: var(--omni-warn);
+        background: color-mix(in oklab, var(--omni-warn) 8%, transparent);
+        border-radius: 4px;
+        letter-spacing: 0.04em;
+    }
+
+    @@keyframes stt-blink {
+        0%, 50%   { opacity: 1; }
+        51%, 100% { opacity: 0.55; }
+    }
+
+    /* Transcript display — terminal/voice-recorder feel */
+    .stt-hero-transcript {
+        font: 16px/1.5 var(--omni-font-mono);
+        background: var(--omni-bg);
+        border: 1px solid var(--omni-line);
+        border-radius: 10px;
+        padding: 16px 18px;
+        min-height: 80px;
+        color: var(--omni-fg);
+        position: relative;
+        overflow: hidden;
+    }
+    .stt-transcript-placeholder { color: var(--omni-fg-muted); font-style: italic; }
+    .stt-transcript-final { color: var(--omni-fg); font-weight: 500; }
+    .stt-transcript-interim { color: var(--omni-fg-soft); font-style: italic; padding-left: 4px; }
+    .stt-cursor {
+        color: var(--omni-accent);
+        animation: stt-cursor-blink 1s steps(1) infinite;
+        margin-left: 2px;
+    }
+    @@keyframes stt-cursor-blink {
+        0%, 50%   { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+
+    /* Confidence bar */
+    .stt-confidence-bar {
+        position: relative;
+        height: 6px;
+        background: var(--omni-bg-elev);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .stt-confidence-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--omni-warn), var(--omni-good));
+        transition: width 240ms ease-out;
+    }
+    .stt-confidence-label {
+        position: absolute;
+        right: 4px; top: -2px;
+        font: 9px/1 var(--omni-font-mono);
+        color: var(--omni-fg-soft);
+        background: var(--omni-bg);
+        padding: 1px 4px;
+    }
+
+    /* ─── BROWSER MATRIX (4 cards) ──────────────────────────────────── */
+    .stt-browser-matrix {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+    }
+    .stt-browser-card {
+        border: 1px solid var(--omni-line);
+        border-radius: 12px;
+        padding: 18px 16px;
+        background: var(--omni-bg-elev);
+        position: relative;
+        overflow: hidden;
+        transition: transform 120ms;
+    }
+    .stt-browser-card:hover { transform: translateY(-2px); }
+    .stt-browser-card::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 4px;
+    }
+    .stt-browser-ok::before      { background: var(--omni-good); }
+    .stt-browser-partial::before { background: var(--omni-warn); }
+    .stt-browser-none::before    { background: var(--omni-danger); }
+    .stt-browser-icon { font-size: 32px; line-height: 1; }
+    .stt-browser-name { font: 600 15px var(--omni-font-ui); margin-top: 6px; }
+    .stt-browser-status {
+        font: 700 10px/1 var(--omni-font-mono);
+        letter-spacing: 0.08em;
+        margin-top: 8px;
+    }
+    .stt-browser-ok      .stt-browser-status { color: var(--omni-good); }
+    .stt-browser-partial .stt-browser-status { color: var(--omni-warn); }
+    .stt-browser-none    .stt-browser-status { color: var(--omni-danger); }
+    .stt-browser-detail { font-size: 11px; color: var(--omni-fg-soft); margin-top: 4px; line-height: 1.4; }
+
+    /* ─── DEMO 1: anotação de pedido ────────────────────────────────── */
+    .stt-order {
+        border: 1px solid var(--omni-line);
+        border-radius: 12px;
+        background: var(--omni-bg-elev);
+        overflow: hidden;
+    }
+    .stt-order-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 14px 18px;
+        background: var(--omni-bg);
+        border-bottom: 1px solid var(--omni-line);
+        flex-wrap: wrap; gap: 12px;
+    }
+    .stt-order-table { font: 600 14px var(--omni-font-ui); }
+    .stt-order-meta  { font: 10px/1.2 var(--omni-font-mono); color: var(--omni-fg-soft); margin-top: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .stt-order-notes { padding: 14px 18px; min-height: 120px; display: flex; flex-direction: column; gap: 8px; }
+    .stt-order-empty {
+        text-align: center; padding: 24px 16px;
+        color: var(--omni-fg-muted);
+        display: flex; flex-direction: column; gap: 8px; align-items: center;
+    }
+    .stt-order-empty p { margin: 0; font-size: 13px; }
+    .stt-order-note {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 12px; align-items: start;
+        padding: 10px 12px;
+        background: var(--omni-bg);
+        border: 1px solid var(--omni-line);
+        border-left: 3px solid var(--omni-accent);
+        border-radius: 6px;
+        animation: stt-note-in 240ms ease-out;
+    }
+    @@keyframes stt-note-in {
+        from { opacity: 0; transform: translateY(-4px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .stt-order-note-time {
+        font: 600 11px/1.4 var(--omni-font-mono);
+        color: var(--omni-accent);
+        white-space: nowrap;
+    }
+    .stt-order-note-text { font-size: 14px; line-height: 1.4; }
+    .stt-order-note-remove {
+        border: none; background: transparent; cursor: pointer;
+        color: var(--omni-fg-soft);
+        padding: 2px; border-radius: 4px;
+        display: grid; place-items: center;
+    }
+    .stt-order-note-remove:hover { background: var(--omni-bg-sunken); color: var(--omni-danger); }
+
+    /* ─── DEMO 2: busca por voz ─────────────────────────────────────── */
+    .stt-search { max-width: 600px; }
+    .stt-search-bar {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 8px 6px 14px;
+        background: var(--omni-bg-elev);
+        border: 2px solid var(--omni-line);
+        border-radius: 999px;
+        transition: border-color 120ms, box-shadow 120ms;
+    }
+    .stt-search-bar:focus-within {
+        border-color: var(--omni-accent);
+        box-shadow: 0 0 0 4px color-mix(in oklab, var(--omni-accent) 14%, transparent);
+    }
+    .stt-search-input {
+        flex: 1; min-width: 0;
+        border: none; outline: none;
+        background: transparent;
+        font: 14px var(--omni-font-ui);
+        color: var(--omni-fg);
+        padding: 6px 0;
+    }
+    .stt-search-hint {
+        font-size: 12px; color: var(--omni-fg-soft);
+        padding: 10px 14px; margin-top: 8px;
+        background: var(--omni-bg-sunken);
+        border-radius: 6px;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .stt-search-clear { border: none; background: transparent; color: var(--omni-accent); cursor: pointer; font: inherit; }
+    .stt-search-clear:hover { text-decoration: underline; }
+
+    /* ─── DEMO 3: multi-idioma cards ────────────────────────────────── */
+    .stt-lang-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .stt-lang-card {
+        display: flex; flex-direction: column; align-items: center;
+        gap: 6px; padding: 14px 8px;
+        border: 1px solid var(--omni-line);
+        background: var(--omni-bg-elev);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 120ms;
+        font: inherit;
+        color: inherit;
+    }
+    .stt-lang-card:hover {
+        background: var(--omni-bg-sunken);
+        transform: translateY(-2px);
+        border-color: var(--omni-fg-soft);
+    }
+    .stt-lang-card.is-active {
+        background: color-mix(in oklab, var(--omni-accent) 10%, var(--omni-bg-elev));
+        border-color: var(--omni-accent);
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--omni-accent) 18%, transparent);
+    }
+    .stt-lang-flag { font-size: 28px; line-height: 1; }
+    .stt-lang-name { font: 600 12px var(--omni-font-ui); }
+    .stt-lang-code { font: 10px/1 var(--omni-font-mono); color: var(--omni-fg-soft); letter-spacing: 0.05em; }
+    .stt-lang-test {
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        padding: 16px;
+        background: var(--omni-bg-sunken);
+        border-radius: 10px;
+    }
+    .stt-lang-result {
+        flex: 1; min-width: 240px;
+        padding: 12px 16px;
+        background: var(--omni-bg-elev);
+        border: 1px solid var(--omni-line);
+        border-radius: 8px;
+        min-height: 50px;
+        font: 14px/1.5 var(--omni-font-mono);
+    }
+</style>
+
+@code {
+    // ── HERO ───────────────────────────────────────────────────────────
+    private string _heroFinal = string.Empty;
+    private string _heroInterim = string.Empty;
+    private double _heroLastConfidence;
+    private bool _heroUnsupported;
+    private string? _heroLastError;
+    private string _heroEngine = string.Empty;
+    private Omni.Blazor.Components.OmniSpeechToText? _heroStt;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _heroStt is null) return;
+        try
+        {
+            _heroEngine = await _heroStt.EngineAsync();
+            if (_heroEngine == "edge") StateHasChanged();
+        }
+        catch { /* SSR / JS gone */ }
+    }
+
+    private void OnHero(SpeechRecognitionResult r)
+    {
+        if (r.Confidence > 0) _heroLastConfidence = r.Confidence;
+        if (r.IsFinal)
+        {
+            _heroFinal += r.Transcript + " ";
+            _heroInterim = string.Empty;
+        }
+        else
+        {
+            _heroInterim = r.Transcript;
+        }
+    }
+
+    private void OnHeroUnsupported()
+    {
+        _heroUnsupported = true;
+    }
+
+    private void OnHeroError(string code) => _heroLastError = code;
+
+    // Helpers de renderização do mic central — concentram a lógica de
+    // ícone/tooltip/aria pra manter o markup limpo.
+    private string HeroMicIcon(Omni.Blazor.Components.OmniSpeechToText.SpeechContext sp) =>
+        _heroUnsupported ? "mic-off" :
+        sp.State switch
+        {
+            SpeechRecognitionState.Recording  => "stop-circle",
+            SpeechRecognitionState.Connecting => "loader",
+            SpeechRecognitionState.Stopping   => "loader",
+            SpeechRecognitionState.Error      => "alert-circle",
+            _                                 => "mic",
+        };
+
+    private string HeroMicTitle(Omni.Blazor.Components.OmniSpeechToText.SpeechContext sp) =>
+        _heroUnsupported ? "Browser não suporta Web Speech API" :
+        sp.State switch
+        {
+            SpeechRecognitionState.Recording  => "Parar (Esc)",
+            SpeechRecognitionState.Connecting => "Conectando ao mic…",
+            SpeechRecognitionState.Stopping   => "Parando…",
+            SpeechRecognitionState.Error      => $"Erro: {FormatErrorPtBr(_heroLastError)}",
+            _                                 => "Falar",
+        };
+
+    private string HeroMicAriaLabel(Omni.Blazor.Components.OmniSpeechToText.SpeechContext sp) =>
+        sp.State switch
+        {
+            SpeechRecognitionState.Recording  => "Parar gravação",
+            SpeechRecognitionState.Connecting => "Conectando ao microfone",
+            SpeechRecognitionState.Stopping   => "Parando gravação",
+            _                                 => "Iniciar gravação",
+        };
+
+    private static string FormatErrorPtBr(string? code) => code switch
+    {
+        null or "" => "Falha no reconhecimento.",
+        "not-allowed" => "Permissão de microfone negada. Verifique nas configurações.",
+        "no-speech" => "Nenhuma fala detectada — tente falar mais alto.",
+        "audio-capture" => "Microfone indisponível ou sem permissão.",
+        "network" => "Erro de rede no motor de reconhecimento.",
+        "aborted" => "Sessão interrompida.",
+        "language-not-supported" => "Idioma não suportado neste browser.",
+        "service-not-allowed" => "Serviço de reconhecimento bloqueado.",
+        "start-timeout" => "Browser não respondeu — tente novamente.",
+        "connect-timeout" => "Não conectou ao serviço de fala. Verifique sua rede.",
+        "invalid-state" => "Sessão anterior travada — clique novamente.",
+        "superseded" => "Substituído por outro botão de mic.",
+        "ctor-failed" => "Falha ao criar reconhecedor.",
+        _ => $"Erro: {code}",
+    };
+
+    // ── DEMO 1: anotações de pedido ────────────────────────────────────
+    private List<OrderNote> _orderNotes = new();
+
+    private void AddOrderNote(SpeechRecognitionResult r)
+    {
+        if (r.IsFinal && !string.IsNullOrWhiteSpace(r.Transcript))
+        {
+            _orderNotes.Insert(0, new OrderNote(r.Transcript.Trim(), DateTime.Now));
+        }
+    }
+
+    private record OrderNote(string Text, DateTime Time);
+
+    // ── DEMO 2: busca por voz ──────────────────────────────────────────
+    private string _searchText = string.Empty;
+
+    // ── DEMO 3: multi-idioma ───────────────────────────────────────────
+    private string _lang = "pt-BR";
+    private string _multiLangText = string.Empty;
+
+    private readonly LangOption[] _languages =
+    {
+        new("pt-BR", "Português", "🇧🇷"),
+        new("en-US", "English",   "🇺🇸"),
+        new("es-ES", "Español",   "🇪🇸"),
+        new("fr-FR", "Français",  "🇫🇷"),
+        new("de-DE", "Deutsch",   "🇩🇪"),
+        new("it-IT", "Italiano",  "🇮🇹"),
+        new("ja-JP", "日本語",     "🇯🇵"),
+        new("zh-CN", "中文",       "🇨🇳"),
+    };
+
+    private record LangOption(string Code, string Name, string Flag);
+}

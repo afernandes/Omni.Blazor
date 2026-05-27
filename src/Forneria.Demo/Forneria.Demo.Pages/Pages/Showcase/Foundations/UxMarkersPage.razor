@@ -1,0 +1,357 @@
+@page "/showcase/ux-markers"
+@layout ShowcaseLayout
+
+<PageTitle>UX Markers — Showcase</PageTitle>
+
+<ShowcasePage Title="UX Markers (HTML)"
+              Subtitle="5 convenções HTML que controlam autofocus, Enter/Esc, Tab cycling e Enter-as-Tab — sem código C#, só atributos no markup. Funcionam em qualquer overlay ou form inline.">
+
+    <Overview>
+        <p>
+            A biblioteca expõe uma família de <strong>markers HTML</strong> (classes CSS +
+            data-attributes) que controlam o comportamento de teclado e foco em formulários
+            e overlays. Tudo é <strong>declarativo</strong>: você coloca o atributo no markup
+            e um listener JS global cuida do resto — sem precisar escrever C# de handler.
+        </p>
+        <p>
+            Os 5 markers se compõem livremente. Aplique todos no mesmo container para um
+            comportamento de PDV completo: foco inicial em campo específico, Enter avança
+            campos, Tab cycla dentro do form, Enter no último campo submete, Esc cancela.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Dialogs e drawers — todos os markers funcionam automaticamente.</li>
+            <li>Forms inline de PDV/ERP — Enter avança, Tab cycla, Enter submete.</li>
+            <li>Wizards e steppers — cada step trapa Tab dentro dele.</li>
+            <li>Search/filter panels — foco inicial no input, Esc fecha.</li>
+            <li>Cadastros em lote — fluxo 100% teclado, mãos longe do mouse.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Forms longos onde o usuário PRECISA poder pular campos via mouse — focus-trap atrapalha.</li>
+            <li>Páginas de conteúdo (não formulário) — Tab natural já funciona.</li>
+            <li>Quando o Enter precisa ter comportamento específico (ex: shortcut customizado) — não combine com Enter-as-Tab.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="VISÃO GERAL — 5 markers" Padded="false">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <th style="text-align:left;padding:10px 12px;font-family:var(--omni-font-mono);font-size:11px;color:var(--omni-fg-muted);text-transform:uppercase;">Marker</th>
+                        <th style="text-align:left;padding:10px 12px;font-family:var(--omni-font-mono);font-size:11px;color:var(--omni-fg-muted);text-transform:uppercase;">Onde aplicar</th>
+                        <th style="text-align:left;padding:10px 12px;font-family:var(--omni-font-mono);font-size:11px;color:var(--omni-fg-muted);text-transform:uppercase;">Efeito</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:12px;"><code>class="omni-autofocus"</code></td>
+                        <td style="padding:12px;">input/textarea/select dentro de overlay</td>
+                        <td style="padding:12px;">Recebe foco ao abrir o overlay (override do autofocus padrão).</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:12px;"><code>data-omni-default="true"</code></td>
+                        <td style="padding:12px;">botão de ação positiva (OK/Salvar)</td>
+                        <td style="padding:12px;"><kbd>Enter</kbd> (fora de textarea/select) dispara o click. Também funciona como fallback de foco inicial.</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:12px;"><code>data-omni-cancel="true"</code></td>
+                        <td style="padding:12px;">botão de ação negativa (Cancelar)</td>
+                        <td style="padding:12px;"><kbd>Esc</kbd> dispara o click (preserva semântica de cancelar; só funciona dentro de overlay).</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:12px;"><code>data-omni-enter-as-tab="true"</code></td>
+                        <td style="padding:12px;">container (form, div) com inputs</td>
+                        <td style="padding:12px;"><kbd>Enter</kbd> avança foco como Tab; último campo dispara <code>[data-omni-default]</code>. Funciona DENTRO e FORA de overlays.</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px;"><code>data-omni-focus-trap="true"</code></td>
+                        <td style="padding:12px;">container onde Tab deve cyclar</td>
+                        <td style="padding:12px;"><kbd>Tab</kbd>/<kbd>Shift+Tab</kbd> cycla entre primeiro/último focável. Funciona FORA de overlays (overlays já trapam por padrão).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="1 · omni-autofocus + data-omni-default + data-omni-cancel (overlay UX)"
+                         Description="Os 3 markers clássicos de dialog: autofocus dirige o foco inicial, Enter dispara o default, Esc dispara o cancel."
+                         Code="@(@"<OmniFormField Label=""Mensagem"">
+    @* foco inicial aqui em vez do primeiro input *@
+    <OmniTextArea @bind-Value=""msg"" Class=""omni-autofocus"" />
+</OmniFormField>
+
+<div class=""omni-row omni-row-end omni-row-gap-8"">
+    <OmniButton Text=""Cancelar"" OnClick=""OnCancel"" data-omni-cancel=""true"" />
+    <OmniButton Text=""Enviar"" Variant=""ButtonVariant.Primary""
+                 OnClick=""OnSubmit"" data-omni-default=""true"" />
+</div>")">
+            <OmniStack Gap="12">
+                <p style="margin:0;">
+                    Abra o dialog e teste: foco já em <strong>Mensagem</strong>,
+                    <kbd>Enter</kbd> dispara <strong>Enviar</strong>, <kbd>Esc</kbd> dispara
+                    <strong>Cancelar</strong>.
+                </p>
+                <div class="omni-row omni-row-gap-8 omni-row-wrap" style="align-items:center;">
+                    <OmniButton Text="Abrir dialog acessível"
+                                 Variant="ButtonVariant.Primary"
+                                 OnClick="OnOpenAccessibleAsync" />
+                    @if (!string.IsNullOrEmpty(_accessibleResult))
+                    {
+                        <span class="omni-muted omni-mono" style="font-size:11px;">Resultado: @_accessibleResult</span>
+                    }
+                </div>
+
+                <div style="background:var(--omni-bg-sunken);border:1px solid var(--omni-line);border-radius:8px;padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 8px;">PRIORIDADE DO FOCO INICIAL</p>
+                    <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.7;">
+                        <li><code>.omni-autofocus</code> — escolha explícita do consumidor (vence tudo)</li>
+                        <li>Primeiro <code>&lt;input&gt;</code>, <code>&lt;textarea&gt;</code> ou <code>&lt;select&gt;</code> visível</li>
+                        <li>Elemento com <code>[data-omni-default]</code> — tipicamente o botão Confirm</li>
+                        <li>Primeiro elemento focável qualquer (último recurso)</li>
+                        <li>O próprio overlay (sem nada focável)</li>
+                    </ol>
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="2 · data-omni-enter-as-tab — padrão PDV/ERP"
+                         Description="Enter avança foco para o próximo campo (em vez de submeter). No último campo, dispara [data-omni-default]. Funciona em forms inline e dentro de overlays."
+                         Code="@(@"<div data-omni-enter-as-tab=""true"">
+    <OmniFormField Label=""Código""><OmniTextBox @bind-Value=""cod"" Class=""omni-autofocus"" /></OmniFormField>
+    <OmniFormField Label=""Descrição""><OmniTextBox @bind-Value=""desc"" /></OmniFormField>
+    <OmniFormField Label=""Preço""><OmniTextBox @bind-Value=""preco"" /></OmniFormField>
+
+    <OmniButton Text=""Salvar"" data-omni-default=""true""
+                 Variant=""ButtonVariant.Primary"" OnClick=""OnSave"" />
+</div>
+
+@* Convenção:
+   • Enter em INPUT/SELECT  → próximo focusable (como Tab)
+   • Enter em TEXTAREA      → ignorado (newline normal)
+   • Enter no último campo  → dispara [data-omni-default] se houver
+   • Shift+Enter            → ignorado *@")">
+            <OmniStack Gap="12">
+                <div class="omni-row omni-row-gap-8 omni-row-wrap" style="align-items:center;">
+                    <OmniButton Text="Abrir dialog (Enter = próximo campo)"
+                                 Variant="ButtonVariant.Primary"
+                                 OnClick="OnOpenEnterAsTabAsync" />
+                    @if (!string.IsNullOrEmpty(_enterAsTabResult))
+                    {
+                        <span class="omni-muted omni-mono" style="font-size:11px;">Resultado: @_enterAsTabResult</span>
+                    }
+                </div>
+
+                <div style="border:1px solid var(--omni-line);border-radius:8px;padding:14px;background:var(--omni-bg-sunken);">
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 10px;">DEMO INLINE — TENTE AGORA (não precisa abrir dialog)</p>
+                    <div data-omni-enter-as-tab="true">
+                        <OmniStack Gap="10">
+                            <div class="omni-grid-3" style="gap:10px;">
+                                <OmniFormField Label="Código">
+                                    <OmniTextBox @bind-Value="_inlineCodigo" Placeholder="001" />
+                                </OmniFormField>
+                                <OmniFormField Label="Quantidade">
+                                    <OmniTextBox @bind-Value="_inlineQtd" Placeholder="1" />
+                                </OmniFormField>
+                                <OmniFormField Label="Preço">
+                                    <OmniTextBox @bind-Value="_inlinePreco" Placeholder="0,00" />
+                                </OmniFormField>
+                            </div>
+                            <div class="omni-row omni-row-end">
+                                <OmniButton Text="Adicionar item" Size="ComponentSize.Sm"
+                                             Variant="ButtonVariant.Primary"
+                                             OnClick="OnInlineAdd"
+                                             data-omni-default="true" />
+                            </div>
+                            @if (!string.IsNullOrEmpty(_inlineLog))
+                            {
+                                <pre class="omni-mono" style="font-size:11px;background:var(--omni-bg-elev);padding:8px 10px;border-radius:4px;margin:0;max-height:120px;overflow:auto;">@_inlineLog</pre>
+                            }
+                        </OmniStack>
+                    </div>
+                </div>
+
+                <div style="background:var(--omni-accent-softer);border-left:3px solid var(--omni-accent);padding:10px 14px;border-radius:4px;">
+                    <p style="margin:0;font-size:13px;">
+                        💡 <strong>Quando usar:</strong> caixa de PDV (operador apressado, captura por código),
+                        cadastros em lote, ERPs onde o teclado é mais rápido que mouse. <strong>Quando NÃO usar:</strong>
+                        formulários longos onde o usuário pode querer voltar a um campo.
+                    </p>
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="3 · data-omni-focus-trap — Tab cycla na seção"
+                         Description="Tab/Shift+Tab cyclam dentro do container — sem precisar abrir como dialog. Dentro de overlays, o trap do overlay tem prioridade."
+                         Code="@(@"<div data-omni-focus-trap=""true"">
+    <OmniFormField Label=""Nome""><OmniTextBox @bind-Value=""nome"" /></OmniFormField>
+    <OmniFormField Label=""E-mail""><OmniTextBox Type=""email"" @bind-Value=""email"" /></OmniFormField>
+    <OmniFormField Label=""Mensagem""><OmniTextArea @bind-Value=""msg"" /></OmniFormField>
+
+    <OmniButton Text=""Cancelar"" OnClick=""OnCancel"" />
+    <OmniButton Text=""Enviar"" OnClick=""OnSubmit"" Variant=""ButtonVariant.Primary"" />
+</div>
+
+@* Tab no último → volta pro Nome
+   Shift+Tab no primeiro → vai pro último botão *@")">
+            <OmniStack Gap="10">
+                <p style="margin:0;font-size:13px;">
+                    Foque <strong>Nome</strong>, dê <kbd>Shift+Tab</kbd> — vai para o botão
+                    <strong>Enviar</strong> (último), não escapa para o chrome da página. Idem
+                    <kbd>Tab</kbd> em Enviar → volta para Nome.
+                </p>
+
+                <div data-omni-focus-trap="true"
+                     style="border:1px dashed var(--omni-accent);border-radius:8px;padding:18px;background:var(--omni-bg-sunken);">
+                    <OmniStack Gap="10">
+                        <OmniFormField Label="Nome">
+                            <OmniTextBox @bind-Value="_trapNome" Placeholder="Maria Silva" />
+                        </OmniFormField>
+                        <OmniFormField Label="E-mail">
+                            <OmniTextBox @bind-Value="_trapEmail" Type="email" Placeholder="maria@email.com" />
+                        </OmniFormField>
+                        <OmniFormField Label="Mensagem">
+                            <OmniTextArea @bind-Value="_trapMsg" Placeholder="Conta seu caso..." Rows="2" />
+                        </OmniFormField>
+                        <div class="omni-row omni-row-end omni-row-gap-8">
+                            <OmniButton Text="Cancelar" Size="ComponentSize.Sm"
+                                         OnClick="OnTrapCancel" />
+                            <OmniButton Text="Enviar" Size="ComponentSize.Sm" Variant="ButtonVariant.Primary"
+                                         OnClick="OnTrapSubmit" />
+                        </div>
+                    </OmniStack>
+                </div>
+                @if (!string.IsNullOrEmpty(_trapLog))
+                {
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0;">Submit: @_trapLog</p>
+                }
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="4 · COMPOSIÇÃO — todos os markers juntos (form PDV completo)"
+                         Description="Tudo no mesmo container. Foco inicial em Código, Tab cycla, Enter avança campo, Enter no último submete, Esc cancela. Comportamento ótimo para captura por teclado."
+                         Code="@(@"<div data-omni-focus-trap=""true""        @* Tab cycla *@
+     data-omni-enter-as-tab=""true"">      @* Enter avança *@
+
+    <OmniTextBox @bind-Value=""cod""   Class=""omni-autofocus"" />  @* foco inicial *@
+    <OmniTextBox @bind-Value=""desc"" />
+    <OmniTextBox @bind-Value=""preco"" />
+
+    <OmniButton data-omni-cancel=""true""  OnClick=""OnCancel"" Text=""Cancelar"" />
+    <OmniButton data-omni-default=""true"" OnClick=""OnSave""   Text=""Salvar"" />
+</div>")">
+            <OmniStack Gap="10">
+                <p style="margin:0;font-size:13px;">
+                    Form de PDV completo. <strong>Carrega → cursor em Código</strong>.
+                    Digite + <kbd>Enter</kbd> → próximo campo. No último, <kbd>Enter</kbd> →
+                    <strong>clica Salvar</strong>. <kbd>Tab</kbd> cycla. <kbd>Esc</kbd>
+                    fecharia o Cancelar (mas só funciona dentro de overlay; aqui inline, ignorado).
+                </p>
+                <p class="omni-muted" style="margin:0;font-size:12px;">
+                    Para ver o Esc em ação, use o "Abrir dialog" da seção 1 ou 2.
+                </p>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ONDE FUNCIONA — matriz de suporte" Padded="false">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <th style="text-align:left;padding:10px 12px;font-family:var(--omni-font-mono);font-size:11px;color:var(--omni-fg-muted);text-transform:uppercase;">Marker</th>
+                        <th style="text-align:left;padding:10px 12px;font-family:var(--omni-font-mono);font-size:11px;color:var(--omni-fg-muted);text-transform:uppercase;">Em overlay</th>
+                        <th style="text-align:left;padding:10px 12px;font-family:var(--omni-font-mono);font-size:11px;color:var(--omni-fg-muted);text-transform:uppercase;">Form inline</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:10px 12px;"><code>omni-autofocus</code></td>
+                        <td style="padding:10px 12px;color:var(--omni-good);">✅ via setupOverlay</td>
+                        <td style="padding:10px 12px;color:var(--omni-fg-muted);">⚠️ só dentro de overlay</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:10px 12px;"><code>data-omni-default</code></td>
+                        <td style="padding:10px 12px;color:var(--omni-good);">✅ Enter via setupOverlay</td>
+                        <td style="padding:10px 12px;color:var(--omni-good);">✅ Enter via Enter-as-Tab handler</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:10px 12px;"><code>data-omni-cancel</code></td>
+                        <td style="padding:10px 12px;color:var(--omni-good);">✅ Esc via setupOverlay</td>
+                        <td style="padding:10px 12px;color:var(--omni-fg-muted);">⚠️ Esc não tem handler global ainda</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid var(--omni-line);">
+                        <td style="padding:10px 12px;"><code>data-omni-enter-as-tab</code></td>
+                        <td style="padding:10px 12px;color:var(--omni-good);">✅ overlay coopera</td>
+                        <td style="padding:10px 12px;color:var(--omni-good);">✅ handler global</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px 12px;"><code>data-omni-focus-trap</code></td>
+                        <td style="padding:10px 12px;color:var(--omni-fg-muted);">⚠️ overlay trap tem prioridade</td>
+                        <td style="padding:10px 12px;color:var(--omni-good);">✅ handler global</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="omni-muted" style="margin:14px 12px 0;font-size:12px;">
+                "Em overlay" = dentro de <code>OmniDialog</code> ou <code>OmniDrawer</code> em modo overlay.
+                Os markers que dizem "⚠️" funcionam no contexto mais comum (overlay), mas se você precisar de
+                Esc em forms inline, use um <code>@@onkeydown</code> próprio no container.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+</ShowcasePage>
+
+@code {
+    [Inject] DialogService Dialog { get; set; } = default!;
+
+    // ─── Marker 1: autofocus + default + cancel (overlay) ──────────────────
+    private string? _accessibleResult;
+    private async Task OnOpenAccessibleAsync(MouseEventArgs _)
+    {
+        var result = await Dialog.OpenAsync<Pages.Showcase.Feedback.AccessibleDialogDemo>(
+            "Nova mensagem de suporte", null,
+            new DialogOptions { Width = "520px" });
+        _accessibleResult = result?.ToString();
+        StateHasChanged();
+    }
+
+    // ─── Marker 2: Enter-as-Tab ────────────────────────────────────────────
+    private string? _enterAsTabResult;
+    private string? _inlineCodigo, _inlineQtd, _inlinePreco;
+    private string _inlineLog = "";
+
+    private async Task OnOpenEnterAsTabAsync(MouseEventArgs _)
+    {
+        var result = await Dialog.OpenAsync<Pages.Showcase.Feedback.EnterAsTabDialogDemo>(
+            "Cadastro rápido — Enter avança", null,
+            new DialogOptions { Width = "520px" });
+        _enterAsTabResult = result?.ToString();
+        StateHasChanged();
+    }
+
+    private void OnInlineAdd(MouseEventArgs _)
+    {
+        if (string.IsNullOrWhiteSpace(_inlineCodigo)) return;
+        var line = $"[{DateTime.Now:HH:mm:ss}] {_inlineCodigo} × {_inlineQtd ?? "1"} @ R$ {_inlinePreco ?? "0"}";
+        _inlineLog = string.IsNullOrEmpty(_inlineLog) ? line : line + "\n" + _inlineLog;
+        _inlineCodigo = _inlineQtd = _inlinePreco = "";
+    }
+
+    // ─── Marker 3: Focus trap ──────────────────────────────────────────────
+    private string? _trapNome, _trapEmail, _trapMsg;
+    private string _trapLog = "";
+
+    private void OnTrapCancel(MouseEventArgs _)
+    {
+        _trapNome = _trapEmail = _trapMsg = "";
+        _trapLog = "Cancelado";
+    }
+
+    private void OnTrapSubmit(MouseEventArgs _)
+    {
+        _trapLog = $"{_trapNome} | {_trapEmail} | {_trapMsg}";
+    }
+}

@@ -1,0 +1,87 @@
+@page "/cadastros/zonas"
+@layout CadastrosLayout
+
+<PageTitle>Zonas de entrega — Forneria</PageTitle>
+
+<OmniPaneHeader Title="Zonas de entrega" Subtitle="@($"{zonas.Count} zonas configuradas · raio total {TotalKm} km")" />
+
+<OmniPaneToolbar>
+    <OmniTextBox @bind-Value="search" Placeholder="Buscar zona..." LeadingIcon="search" Class="omni-pane-toolbar-search" />
+    <div class="omni-pane-toolbar-spacer"></div>
+    <OmniButton Text="Importar mapa" Icon="upload" />
+    <OmniButton Text="Nova zona" Icon="plus" Variant="ButtonVariant.Primary" />
+</OmniPaneToolbar>
+
+<OmniDataGrid TItem="Zona" Data="@Filtered" AllowPaging PageSize="14" Embed>
+    <Columns>
+        <OmniDataGridColumn TItem="Zona" Title="Zona" Property="@(z => z.Nome)">
+            <Template>
+                <div class="omni-row omni-row-gap-10">
+                    <span class="omni-chip-dot" style="background: @context.Cor; width: 10px; height: 10px;"></span>
+                    <div>
+                        <div style="font-weight:600;">@context.Nome</div>
+                        <div class="omni-muted" style="font-size:11px;">@context.Bairros</div>
+                    </div>
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Zona" Title="Raio" Property="@(z => (object)z.Km)">
+            <Template>
+                <span class="omni-mono">@context.Km km</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Zona" Title="Taxa" Property="@(z => (object)z.Taxa)">
+            <Template>
+                <span class="omni-mono">@context.Taxa.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Zona" Title="Tempo médio" Property="@(z => (object)z.MinMedio)">
+            <Template>
+                <span class="omni-mono omni-muted">~@context.MinMedio min</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Zona" Title="Pedidos (mês)" Property="@(z => (object)z.Pedidos)" Width="140px">
+            <Template>
+                <span class="omni-mono">@context.Pedidos</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Zona" Title="Status" Property="@(z => (object)z.Ativa)">
+            <Template>
+                <OmniBadge Text="@(context.Ativa ? "Ativa" : "Pausada")"
+                            Variant="@(context.Ativa ? BadgeVariant.Good : BadgeVariant.Warn)" />
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Zona" Title="" Sortable="false" Width="140px">
+            <Template>
+                <div class="omni-row omni-row-gap-4 omni-row-end">
+                    <OmniButton IconOnly Icon="map-pin" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    <OmniButton IconOnly Icon="edit"    Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    <OmniButton IconOnly Icon="trash"   Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>
+
+@code {
+    private record Zona(string Nome, string Bairros, double Km, decimal Taxa, int MinMedio, int Pedidos, bool Ativa, string Cor);
+
+    private string? search;
+
+    private readonly List<Zona> zonas = new()
+    {
+        new("Zona 1 · Centro",     "Vila Madalena, Pinheiros",  2.5, 4.90m, 18, 1284, true, "#d97706"),
+        new("Zona 2 · Imediata",   "Sumaré, Perdizes",          4.0, 6.90m, 24,  892, true, "#059669"),
+        new("Zona 3 · Estendida",  "Pompeia, Lapa, Vila Romana",6.5, 9.90m, 32,  541, true, "#2563eb"),
+        new("Zona 4 · Externa",    "Butantã, Alto da Lapa",     9.0, 12.90m, 42,  214, true, "#7c3aed"),
+        new("Madrugada · 22h–02h", "Cobertura noturna reduzida",2.5, 7.90m, 28,   62, true, "#dc2626"),
+        new("Zona 5 · Beta",       "Vila Olímpia (em teste)",   8.0, 11.90m, 38,    0, false, "#94a3b8"),
+    };
+
+    private IEnumerable<Zona> Filtered => zonas.Where(z =>
+        string.IsNullOrWhiteSpace(search)
+            || z.Nome.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || z.Bairros.Contains(search, StringComparison.OrdinalIgnoreCase));
+
+    private double TotalKm => zonas.Where(z => z.Ativa).Sum(z => z.Km);
+}

@@ -1,0 +1,96 @@
+@inject CardapioDigitalState State
+@implements IDisposable
+
+@*  Cart screen — lista de items + cupom + delivery mode segmented + totals
+    + botão Finalizar pedido. *@
+<div class="fs-cd-screen">
+    <CardapioAppBar Title="Seu pedido"
+                    Subtitle="@($"{State.Cart.Count} {(State.Cart.Count == 1 ? "item" : "itens")}")"
+                    OnBack="@(() => State.GoHome())" />
+
+    <div class="fs-cd-scroll" style="padding-bottom: 100px;">
+        <div class="fs-cd-cart-list">
+            @if (State.Cart.Count == 0)
+            {
+                <div style="padding: 40px; text-align: center; color: var(--omni-fg-muted);">
+                    Seu carrinho está vazio.
+                    <button @onclick="@(() => State.GoHome())" style="color: var(--omni-accent); font-weight: 600; background: none; border: 0; cursor: pointer;">Voltar ao cardápio</button>
+                </div>
+            }
+            else
+            {
+                @foreach (var item in State.Cart)
+                {
+                    <CardapioCartItem Item="item" />
+                }
+            }
+        </div>
+
+        @if (State.Cart.Count > 0)
+        {
+            <div class="fs-cd-coupon">
+                <div class="fs-cd-coupon-ic">🎟️</div>
+                <div class="fs-cd-coupon-body">
+                    <div class="fs-cd-coupon-t">@(State.Coupon == "PIZZA10" ? "10% OFF aplicado" : "Adicionar cupom")</div>
+                    <OmniTextBox Value="@State.Coupon"
+                                 ValueChanged="State.SetCoupon"
+                                 Placeholder="Tente PIZZA10" />
+                </div>
+            </div>
+
+            <div class="fs-cd-req-row" style="padding-bottom: 0;">
+                <span class="fs-cd-req-label">Tipo de pedido</span>
+            </div>
+            <OmniSegmentedControl Class="fs-cd-delivery-modes"
+                                  TValue="CdDeliveryMode"
+                                  Value="@State.Mode"
+                                  ValueChanged="State.SetMode"
+                                  Items="_modeItems" />
+
+            <div class="fs-cd-totals">
+                <div class="fs-cd-totals-row">
+                    <span>Subtotal</span>
+                    <span class="fs-cd-totals-v omni-mono">@CardapioDigitalState.Brl(State.CartSubtotal)</span>
+                </div>
+                @if (State.Mode == CdDeliveryMode.Delivery)
+                {
+                    <div class="fs-cd-totals-row">
+                        <span>Entrega</span>
+                        <span class="fs-cd-totals-v omni-mono">@CardapioDigitalState.Brl(State.CartDelivery)</span>
+                    </div>
+                }
+                @if (State.CartDiscount > 0)
+                {
+                    <div class="fs-cd-totals-row">
+                        <span>Desconto PIZZA10</span>
+                        <span class="fs-cd-totals-v omni-mono fs-cd-totals-v-discount">− @CardapioDigitalState.Brl(State.CartDiscount)</span>
+                    </div>
+                }
+                <div class="fs-cd-totals-total">
+                    <span>Total</span>
+                    <span class="fs-cd-totals-v omni-mono">@CardapioDigitalState.Brl(State.CartTotal)</span>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (State.Cart.Count > 0)
+    {
+        <CardapioBottomBar Label="Ir para pagamento"
+                           TrailingText="@CardapioDigitalState.Brl(State.CartTotal)"
+                           OnClick="State.GoCheckout" />
+    }
+</div>
+
+@code {
+    private static readonly IReadOnlyList<OmniSegmentedControl<CdDeliveryMode>.Item> _modeItems = new[]
+    {
+        new OmniSegmentedControl<CdDeliveryMode>.Item(CdDeliveryMode.Delivery, "🛵 Delivery"),
+        new OmniSegmentedControl<CdDeliveryMode>.Item(CdDeliveryMode.Retirada, "🏃 Retirada"),
+        new OmniSegmentedControl<CdDeliveryMode>.Item(CdDeliveryMode.Mesa,     "🍽️ Mesa"),
+    };
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}
+

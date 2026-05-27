@@ -1,0 +1,49 @@
+@page "/showcase/wireframes/appbar-toolbar"
+@layout WireframeLayout
+
+<PageTitle>WF-4 · AppBar + ToolBar (horizontal menu)</PageTitle>
+
+@*  WIREFRAME 4 — AppBar + ToolBar (OmniMenuBar horizontal) + Main.
+    Sem drawer; navegação primária vive horizontal na ToolBar. Útil
+    quando o menu cabe em ~6-8 itens. *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniBrand Name="Forneria" />
+        <div class="omni-header-spacer"></div>
+        <OmniKbd Text="WF-4" />
+        <OmniAvatar Initials="AF" />
+    </OmniAppBar>
+
+    <OmniToolBar>
+        <OmniMenuBar AriaLabel="Navegação principal">
+            <ChildContent>
+                <OmniMenuBarItem Text="Início"        Icon="home" />
+                <OmniMenuBarItem Text="Pedidos"       Icon="package"      Count="12" />
+                <OmniMenuBarItem Text="Clientes"      Icon="users" />
+                <OmniMenuBarItem Text="Análise"       Icon="bar-chart" />
+                <OmniMenuBarItem Text="Configurações" Icon="lock" />
+            </ChildContent>
+            <Aux>
+                <OmniStatusBadge Label="Online" Kind="StatusBadgeKind.Good" Pulse="true" />
+            </Aux>
+        </OmniMenuBar>
+    </OmniToolBar>
+
+    <OmniMain>
+        <div class="wf-demo-content">
+            <h1>AppBar + ToolBar — menu horizontal</h1>
+            <p class="omni-muted">
+                Sem drawer. A navegação primária fica horizontal na <code>OmniToolBar</code>
+                (logo abaixo do AppBar). Padrão clássico de portais e dashboards públicos
+                onde o menu cabe em ~6-8 itens.
+            </p>
+            <OmniCard Title="Vantagens">
+                <ul>
+                    <li><strong>Mais espaço horizontal</strong> para o conteúdo (sem coluna de drawer).</li>
+                    <li>Discovery rápido — menu visível e atalho-friendly.</li>
+                    <li>Funciona bem em desktops largos; em mobile, vira scroll horizontal ou hamburger separado.</li>
+                </ul>
+            </OmniCard>
+        </div>
+    </OmniMain>
+</OmniLayout>

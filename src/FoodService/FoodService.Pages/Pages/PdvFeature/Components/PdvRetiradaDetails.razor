@@ -1,0 +1,38 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Retirada — nome + ETA buttons. *@
+<div class="fs-pdv-mode-label">Nome para retirada</div>
+<OmniTextBox Class="fs-pdv-mode-input"
+             Value="@Order.ModeDetails.PickupName"
+             ValueChanged="OnNameChanged"
+             Placeholder="Ex.: João Silva" />
+
+<div class="fs-pdv-mode-label">Pronto em</div>
+<OmniSegmentedControl Class="fs-pdv-eta-btns"
+                      TValue="int"
+                      Value="@(Order.ModeDetails.PickupEtaMin ?? 0)"
+                      ValueChanged="Set"
+                      Items="_etaItems" />
+
+@code {
+    private static readonly IReadOnlyList<OmniSegmentedControl<int>.Item> _etaItems =
+        PdvMockData.PickupEtas
+            .Select(e => new OmniSegmentedControl<int>.Item(e, $"{e} min"))
+            .ToList();
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private void OnNameChanged(string? value)
+    {
+        Order.ModeDetails.PickupName = value;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void Set(int eta)
+    {
+        Order.ModeDetails.PickupEtaMin = eta;
+        Order.NotifyModeDetailsChanged();
+    }
+}

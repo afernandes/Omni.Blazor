@@ -1,0 +1,27 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Lista de items do carrinho. Scrollable internamente (flex:1).
+    Estado vazio mostra mensagem amigável. *@
+<div class="omni-pdv-cart-list">
+    @if (Order.Cart.Count == 0)
+    {
+        <div class="omni-pdv-cart-empty">
+            <OmniIcon Name="shopping-cart" Size="ComponentSize.Lg" />
+            <h3>Carrinho vazio</h3>
+            <p>Selecione produtos no catálogo à esquerda.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var item in Order.Cart)
+        {
+            <PdvCartItem Item="@item" @key="item.Id" />
+        }
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+}

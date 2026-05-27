@@ -1,0 +1,151 @@
+@page "/showcase/theme"
+@layout ShowcaseLayout
+@inject ThemeService Theme
+
+<PageTitle>Theme & tokens — Showcase</PageTitle>
+
+<ShowcasePage Title="Theme & tokens"
+              Subtitle="O ThemeService controla acento e dark mode em runtime, persistindo a preferência do usuário.">
+
+    <Overview>
+        <p>
+            O <code>ThemeService</code> é o serviço de tema da biblioteca. Ele controla duas
+            dimensões em runtime: o <strong>acento</strong> (cor de destaque) e o
+            <strong>dark mode</strong>. Ambos são aplicados via os atributos
+            <code>data-accent</code> e <code>data-theme</code> no elemento <code>&lt;html&gt;</code>,
+            de modo que qualquer override de CSS variable sob esses seletores entra em efeito
+            imediatamente.
+        </p>
+        <p>
+            A escolha do usuário é <strong>persistida em localStorage</strong> e restaurada na
+            próxima visita. Basta registrar o serviço no DI e chamar <code>InitializeAsync</code>
+            uma vez no primeiro render do layout — ele recupera a preferência salva e a reaplica.
+            Os métodos <code>SetAccentAsync</code>, <code>SetDarkAsync</code> e
+            <code>ToggleDarkAsync</code> alteram o tema e gravam automaticamente. O evento
+            <code>OnChange</code> notifica componentes interessados em re-renderizar.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Oferecer ao usuário a troca de cor de acento da aplicação.</li>
+            <li>Implementar um toggle de dark mode que persiste entre sessões.</li>
+            <li>Restaurar a preferência de tema salva ao carregar o app.</li>
+            <li>Reagir a mudanças de tema via o evento <code>OnChange</code>.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Customizar tokens individuais (cores, espaçamentos) → sobrescreva as CSS variables em <code>_tokens.scss</code>.</li>
+            <li>Aplicar um tema fixo sem opção de troca → defina <code>data-accent</code> direto no HTML.</li>
+            <li>Estado de UI que não é preferência do usuário → use um serviço de estado próprio.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="ACENTO"
+                         Description="5 acentos pré-configurados. A escolha persiste no localStorage automaticamente."
+                         Code="@(@"@inject ThemeService Theme
+
+<button @onclick=""@(_ => Theme.SetAccentAsync(""emerald""))"">Emerald</button>
+<p>Acento atual: @Theme.Accent</p>")">
+            <div class="omni-row omni-row-wrap omni-row-gap-12">
+                @foreach (var (name, color) in accents)
+                {
+                    <button class="omni-card omni-card-clickable" style="padding: 12px 16px; min-width: 130px;"
+                            @onclick="@(_ => Theme.SetAccentAsync(name))">
+                        <div class="omni-row omni-row-gap-10">
+                            <span style="display:inline-block;width:18px;height:18px;border-radius:6px;background:@color;"></span>
+                            <span style="font-weight:600; text-transform: capitalize;">@name</span>
+                            @if (Theme.Accent == name)
+                            {
+                                <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                            }
+                        </div>
+                    </button>
+                }
+            </div>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">ACENTO ATUAL → @Theme.Accent</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DARK MODE"
+                         Description="SetDarkAsync alterna data-theme=dark no &lt;html&gt;. Persiste como o acento."
+                         Code="@(@"<OmniSwitch Value=""Theme.Dark""
+             ValueChanged=""@((bool v) => Theme.SetDarkAsync(v))""
+             Label=""Dark mode"" />")">
+            <div class="omni-row omni-row-gap-12">
+                <OmniSwitch Value="Theme.Dark"
+                              ValueChanged="@((bool v) => Theme.SetDarkAsync(v))"
+                              Label="@(Theme.Dark ? "Dark mode ligado" : "Dark mode desligado")" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TOKENS OKLCH"
+                         Description="Valores reais usados pela biblioteca. Definidos em _tokens.scss, podem ser sobrescritos.">
+            <div class="omni-grid-2">
+                <div class="omni-stack omni-stack-8">
+                    <TokenRow Name="--omni-bg" Color="var(--omni-bg)" />
+                    <TokenRow Name="--omni-bg-elev" Color="var(--omni-bg-elev)" />
+                    <TokenRow Name="--omni-bg-sunken" Color="var(--omni-bg-sunken)" />
+                    <TokenRow Name="--omni-line" Color="var(--omni-line)" />
+                    <TokenRow Name="--omni-line-strong" Color="var(--omni-line-strong)" />
+                </div>
+                <div class="omni-stack omni-stack-8">
+                    <TokenRow Name="--omni-fg" Color="var(--omni-fg)" />
+                    <TokenRow Name="--omni-fg-muted" Color="var(--omni-fg-muted)" />
+                    <TokenRow Name="--omni-fg-soft" Color="var(--omni-fg-soft)" />
+                    <TokenRow Name="--omni-accent" Color="var(--omni-accent)" />
+                    <TokenRow Name="--omni-accent-soft" Color="var(--omni-accent-soft)" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="STATUS COLORS"
+                         Description="Tokens semânticos de estado — sucesso, atenção, erro e informação.">
+            <div class="omni-grid-4">
+                <TokenRow Name="--omni-good" Color="var(--omni-good)" />
+                <TokenRow Name="--omni-warn" Color="var(--omni-warn)" />
+                <TokenRow Name="--omni-danger" Color="var(--omni-danger)" />
+                <TokenRow Name="--omni-info" Color="var(--omni-info)" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Propriedades">
+            <ShowcaseApiRow Name="Accent" Type="string" Default="amber"
+                            Description="Acento atual aplicado. Somente leitura — altere via SetAccentAsync." />
+            <ShowcaseApiRow Name="Dark" Type="bool" Default="false"
+                            Description="Indica se o dark mode está ativo. Somente leitura." />
+            <ShowcaseApiRow Name="IsInitialized" Type="bool" Default="false"
+                            Description="True após InitializeAsync ter restaurado a preferência salva." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Métodos" NameHeader="Método" ShowDefault="false">
+            <ShowcaseApiRow Name="InitializeAsync()" Type="Task" ShowDefault="false"
+                            Description="Restaura o tema salvo no localStorage e o aplica. Idempotente — chame uma vez no primeiro render." />
+            <ShowcaseApiRow Name="SetAccentAsync(string)" Type="Task" ShowDefault="false"
+                            Description="Define o acento, aplica no &lt;html&gt; e persiste a preferência." />
+            <ShowcaseApiRow Name="SetDarkAsync(bool)" Type="Task" ShowDefault="false"
+                            Description="Liga ou desliga o dark mode, aplica e persiste." />
+            <ShowcaseApiRow Name="ToggleDarkAsync()" Type="Task" ShowDefault="false"
+                            Description="Inverte o estado atual do dark mode." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnChange" Type="Action?" ShowDefault="false"
+                            Description="Disparado sempre que o acento ou o dark mode muda. Use para re-renderizar componentes." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private readonly (string name, string color)[] accents = new[]
+    {
+        ("amber",   "#d97706"),
+        ("emerald", "#059669"),
+        ("blue",    "#2563eb"),
+        ("violet",  "#7c3aed"),
+        ("crimson", "#dc2626"),
+    };
+}

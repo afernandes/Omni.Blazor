@@ -1,0 +1,374 @@
+@page "/pdv"
+@layout AppShellPdv
+@using Forneria.Demo.Pages.Pages.PdvFeature
+@using Forneria.Demo.Pages.Pages.PdvFeature.Components
+@inject PdvOrderService Order
+@inject DialogService Dialog
+@inject NotificationService Toast
+@implements IDisposable
+
+<PageTitle>Forneria — PDV</PageTitle>
+
+@*  PDV (Frente de Caixa) — layout fiel ao mock Anthropic Design.
+    Layout 2-colunas dentro do AppShellPdv (que já provê top bar + sidebar):
+      • Main (esquerda): action bar superior + tabs + omnibox + itens
+      • Aside (direita ~320px): customer + modo (5 ícones) + identificação +
+        fidelidade
+    Footer fixo na base com Itens · Subtotal · Ajustar · Total · Finalizar F5. *@
+
+<div class="omni-pdv-page">
+
+    @* ─── Action bar (topo direito) ─────────────────────────── *@
+    <div class="omni-pdv-actions-bar">
+        <button class="omni-pdv-action-btn">
+            <OmniIcon Name="printer" Size="ComponentSize.Sm" /> Comanda
+        </button>
+        <button class="omni-pdv-action-btn">
+            <OmniIcon Name="dollar-sign" Size="ComponentSize.Sm" /> Caixa
+        </button>
+        <button class="omni-pdv-action-btn">
+            <OmniIcon Name="zap" Size="ComponentSize.Sm" /> Cozinha
+        </button>
+        <button class="omni-pdv-action-btn">
+            <OmniIcon Name="clock" Size="ComponentSize.Sm" /> Histórico
+        </button>
+        <button class="omni-pdv-action-btn omni-pdv-action-btn-icon"
+                aria-label="Mais ações">
+            <OmniIcon Name="more-horizontal" Size="ComponentSize.Sm" />
+        </button>
+        <button class="omni-pdv-action-primary">
+            <OmniIcon Name="plus" Size="ComponentSize.Sm" /> Novo pedido
+        </button>
+    </div>
+
+    @* ─── Layout 2-colunas (main + aside) ───────────────────── *@
+    <div class="omni-pdv-grid">
+
+        @* ===== MAIN ===== *@
+        <section class="omni-pdv-main">
+
+            @* Tabs (pedidos em atendimento) *@
+            <div class="omni-pdv-tabs">
+                <span class="omni-pdv-tabs-label omni-mono">
+                    <OmniIcon Name="shopping-cart" Size="ComponentSize.Sm" />
+                    Pedidos em atendimento
+                </span>
+                <button class="omni-pdv-tab omni-pdv-tab-active">
+                    <span class="omni-pdv-tab-dot"></span>
+                    @(Order.Customer?.Name ?? "Pedido atual")
+                    <span class="omni-pdv-tab-count omni-mono">@Order.ItemCount</span>
+                </button>
+                <button class="omni-pdv-tab omni-pdv-tab-ghost">
+                    <OmniIcon Name="clock" Size="ComponentSize.Sm" />
+                    Pausar e iniciar novo
+                    <OmniKbd Text="Ctrl+N" />
+                </button>
+            </div>
+
+            @* Omnibox principal *@
+            <div class="omni-pdv-omnibox">
+                <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                <input @bind="_query" @bind:event="oninput"
+                       placeholder="Digite código, nome ou use 101/102 para meio a meio…" />
+                <button class="omni-pdv-omnibox-help" aria-label="Ajuda da busca">?</button>
+            </div>
+
+            @* Items header *@
+            <div class="omni-pdv-items-head">
+                <div>
+                    <div class="omni-pdv-items-title">Itens do pedido</div>
+                    <div class="omni-pdv-items-sub">
+                        @Order.ItemCount item(s) · @Order.Cart.Count linha(s)
+                    </div>
+                </div>
+                <div class="omni-pdv-items-actions">
+                    <button class="omni-pdv-items-action">
+                        <OmniIcon Name="file-text" Size="ComponentSize.Sm" />
+                        Cardápio <OmniKbd Text="F2" />
+                    </button>
+                    <button class="omni-pdv-items-action" @onclick="() => Order.Clear()">
+                        <OmniIcon Name="trash" Size="ComponentSize.Sm" />
+                        Limpar <OmniKbd Text="F9" />
+                    </button>
+                </div>
+            </div>
+
+            @* Cart items (lista) *@
+            <div class="omni-pdv-cart-detail">
+                @if (Order.Cart.Count == 0)
+                {
+                    <div class="omni-pdv-cart-empty-state">
+                        <OmniIcon Name="shopping-cart" Size="ComponentSize.Lg" />
+                        <p>Nenhum item adicionado.</p>
+                        <span class="omni-muted">Use a busca acima, escolha do cardápio (F2) ou pesquise produtos para começar.</span>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var item in Order.Cart)
+                    {
+                        <div class="omni-pdv-cart-row" @key="item.Id">
+                            <div class="omni-pdv-cart-row-head">
+                                <div class="omni-pdv-cart-row-name-block">
+                                    <span class="omni-pdv-cart-row-name">@item.Name</span>
+                                    @{ var tag = ProductTag(item.ProductId); }
+                                    @if (!string.IsNullOrEmpty(tag))
+                                    {
+                                        <span class="omni-pdv-cart-row-tag omni-mono">@tag</span>
+                                    }
+                                </div>
+                                <span class="omni-pdv-cart-row-total omni-mono">
+                                    @((item.UnitPrice * item.Qty).ToString("C", _ptBr))
+                                </span>
+                            </div>
+
+                            @if (item.Halves is { Count: > 0 })
+                            {
+                                @* Pizza meio-a-meio (ou inteira de 1 sabor): cada metade
+                                   tem nome, ingredientes e link "Personalizar". *@
+                                <div class="omni-pdv-cart-halves">
+                                    @foreach (var half in item.Halves)
+                                    {
+                                        <div class="omni-pdv-cart-half">
+                                            <div class="omni-pdv-cart-half-row">
+                                                <span class="omni-pdv-cart-half-ico omni-mono">½</span>
+                                                <span class="omni-pdv-cart-half-name">@half.Name</span>
+                                                <button class="omni-pdv-cart-half-edit">
+                                                    Personalizar
+                                                    <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+                                                </button>
+                                            </div>
+                                            <div class="omni-pdv-cart-half-ing">@half.Ingredients</div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="omni-pdv-cart-row-sub omni-mono">
+                                    @item.Qty × @item.UnitPrice.ToString("C", _ptBr)
+                                </div>
+                            }
+
+                            <div class="omni-pdv-cart-row-controls">
+                                <OmniQtyStepper Size="ComponentSize.Sm"
+                                                 Value="@item.Qty"
+                                                 ValueChanged="@(q => Order.UpdateQty(item.Id, q))" />
+                                @if (item.Halves is { Count: > 0 })
+                                {
+                                    <button class="omni-pdv-cart-row-chip">
+                                        <OmniIcon Name="circle-dot" Size="ComponentSize.Sm" /> Borda
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="omni-pdv-cart-row-chip">
+                                        <OmniIcon Name="file-text" Size="ComponentSize.Sm" />
+                                        Observação
+                                    </button>
+                                }
+                                <button class="omni-pdv-cart-row-chip omni-pdv-cart-row-chip-pct"
+                                        aria-label="Ajustar item">
+                                    %
+                                </button>
+                                <div style="flex: 1;"></div>
+                                <button class="omni-pdv-cart-row-x" aria-label="Remover"
+                                        @onclick="@(() => Order.Remove(item.Id))">
+                                    <OmniIcon Name="trash" Size="ComponentSize.Sm" />
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </section>
+
+        @* ===== ASIDE ===== *@
+        <aside class="omni-pdv-aside-v2">
+            <PdvCustomerHead />
+
+            <div class="omni-pdv-mode-icons">
+                @foreach (var m in _modeIcons)
+                {
+                    <button class="@($"omni-pdv-mode-icon {(Order.Mode == m.Mode ? "omni-pdv-mode-icon-active" : "")}")"
+                            @onclick="@(() => Order.SetMode(m.Mode))">
+                        <OmniIcon Name="@m.Icon" Size="ComponentSize.Sm" />
+                        <span>@m.Label</span>
+                    </button>
+                }
+            </div>
+
+            <PdvModeDetails />
+
+            <div class="omni-pdv-ident">
+                <input @bind="Order.Identification" @bind:event="oninput"
+                       @bind:after="Order.NotifyModeDetailsChanged"
+                       placeholder="Identificação opcional (ex: João, senha 42…)" />
+            </div>
+
+            <div class="omni-pdv-loyalty">
+                <div class="omni-pdv-loyalty-ico">
+                    <OmniIcon Name="star" Size="ComponentSize.Sm" />
+                </div>
+                <div class="omni-pdv-loyalty-body">
+                    <div class="omni-pdv-loyalty-label omni-mono">FIDELIDADE</div>
+                    <div class="omni-pdv-loyalty-meta">
+                        <b class="omni-mono">@(Order.Customer?.Points ?? 0) pts</b>
+                        @if (!string.IsNullOrWhiteSpace(Order.LoyaltyCode))
+                        {
+                            <span class="omni-pdv-loyalty-sep">·</span>
+                            <span class="omni-mono">@Order.LoyaltyCode</span>
+                        }
+                    </div>
+                </div>
+                @if (Order.LoyaltyDiscountAmount > 0)
+                {
+                    <span class="omni-pdv-loyalty-pill omni-mono">
+                        até − @Order.LoyaltyDiscountAmount.ToString("C", _ptBr)
+                    </span>
+                }
+                else if (Order.Customer is not null && Order.Customer.Points > 0)
+                {
+                    <span class="omni-pdv-loyalty-pill omni-pdv-loyalty-pill-soft omni-mono">
+                        até − @Order.LoyaltyMaxFromPoints.ToString("C", _ptBr)
+                    </span>
+                }
+                <button class="omni-pdv-loyalty-toggle" aria-label="Abrir fidelidade">
+                    <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" />
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    @* ─── Footer total (sticky bottom) ──────────────────────── *@
+    <footer class="omni-pdv-footer-total">
+        <div class="omni-pdv-footer-left">
+            <span class="omni-pdv-footer-mini omni-mono">ITENS @Order.ItemCount</span>
+            <span class="omni-pdv-footer-mini">
+                <span class="omni-muted omni-mono">SUBTOTAL</span>
+                <b class="omni-mono">@Order.Subtotal.ToString("C", _ptBr)</b>
+            </span>
+            @if (Order.Mode == OrderMode.Delivery && Order.DeliveryFee > 0)
+            {
+                <span class="omni-pdv-footer-mini">
+                    <span class="omni-muted omni-mono">ENTREGA</span>
+                    <b class="omni-mono">@Order.DeliveryFee.ToString("C", _ptBr)</b>
+                </span>
+            }
+            @if (Order.Mode == OrderMode.Mesa && Order.ServiceFee > 0)
+            {
+                <span class="omni-pdv-footer-mini">
+                    <span class="omni-muted omni-mono">SERVIÇO 10%</span>
+                    <b class="omni-mono">@Order.ServiceFee.ToString("C", _ptBr)</b>
+                </span>
+            }
+            @if (Order.Discount > 0)
+            {
+                <span class="omni-pdv-footer-mini">
+                    <span class="omni-muted omni-mono">DESCONTO</span>
+                    <b class="omni-mono omni-pdv-footer-disc">− @Order.Discount.ToString("C", _ptBr)</b>
+                </span>
+            }
+        </div>
+        <button class="omni-pdv-footer-adjust">
+            <span>%</span> Ajustar
+        </button>
+        <div class="omni-pdv-footer-total-box">
+            <div class="omni-pdv-footer-total-label omni-mono">TOTAL A PAGAR</div>
+            <div class="omni-pdv-footer-total-value omni-mono">
+                @Order.Total.ToString("C", _ptBr)
+                <OmniIcon Name="check" Size="ComponentSize.Sm" />
+            </div>
+        </div>
+        <button class="omni-pdv-footer-finish" @onclick="HandleCheckout"
+                disabled="@(Order.Cart.Count == 0)">
+            <OmniIcon Name="credit-card" Size="ComponentSize.Sm" />
+            Finalizar
+            <OmniKbd Text="F5" />
+        </button>
+    </footer>
+
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+
+    private string _query = "";
+
+    // Mode icons — 5 modos exibidos como icon buttons compactos
+    private record ModeIcon(OrderMode Mode, string Label, string Icon);
+    private static readonly ModeIcon[] _modeIcons =
+    {
+        new(OrderMode.Balcao,   "Balcão",   "package"),
+        new(OrderMode.Delivery, "Delivery", "truck"),
+        new(OrderMode.Retirada, "Retirada", "shopping-cart"),
+        new(OrderMode.Mesa,     "Mesa",     "grid"),
+        new(OrderMode.Comanda,  "Comanda",  "file-text"),
+    };
+
+    protected override void OnInitialized()
+    {
+        Order.OnChange += StateHasChanged;
+        // Pré-popular com cenário Anthropic mock: pizza G meio-a-meio
+        // (Calabresa / Quatro Queijos) em modo Delivery — para a tela demo
+        // abrir já fiel ao screenshot.
+        if (Order.Cart.Count == 0)
+        {
+            var halves = new[]
+            {
+                new PizzaHalf("Calabresa",      "Calabresa fatiada, muçarela, cebola, orégano"),
+                new PizzaHalf("Quatro Queijos", "Muçarela, provolone, gorgonzola, parmesão"),
+            };
+            Order.AddComposite(
+                productId: "pg-meio",
+                name: "Grande",
+                unitPrice: 68.00m,
+                halves: halves,
+                qty: 1);
+
+            Order.SetCustomer(PdvMockData.Customers.First(c => c.Id == "c1"));
+            Order.LoyaltyCode = "BEM-VINDO15";
+
+            Order.SetMode(OrderMode.Delivery);
+            Order.ModeDetails.Hood = PdvMockData.Hoods.First(h => h.Name == "Vila Madalena");
+            Order.ModeDetails.ZipCode = "";
+            Order.ModeDetails.Address = "R. das Laranjeiras, 412 — Centro";
+            Order.NotifyModeDetailsChanged();
+        }
+    }
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private static string ProductTag(string productId)
+    {
+        // IDs sintéticos para itens compostos do PDV (pizza meio-a-meio etc.)
+        if (productId.StartsWith("pg-meio") || productId == "pg-meio") return "PIZZA";
+
+        var p = PdvMockData.Products.FirstOrDefault(x => x.Id == productId);
+        if (p is null) return "";
+        return p.Category switch
+        {
+            "burgers"    => "BURGER",
+            "pizza-g"    => "G",
+            "pizza-m"    => "M",
+            "pizza-doce" => "DOCE",
+            "bebidas"    => p.Name.Contains("Lata") || p.Name.Contains("350") ? "LATA" : "",
+            "sobremesa"  => "DOCE",
+            _            => "",
+        };
+    }
+
+    private async Task HandleCheckout()
+    {
+        var lines = new List<string> { $"Itens: {Order.ItemCount}" };
+        if (Order.Customer is { } c) lines.Add($"Cliente: {c.Name}");
+        if (Order.Discount > 0)      lines.Add($"Desconto {Order.LoyaltyCode}: − {Order.Discount.ToString("C", _ptBr)}");
+        lines.Add($"TOTAL: {Order.Total.ToString("C", _ptBr)}");
+
+        var ok = await Dialog.Confirm(string.Join("\n", lines), "Finalizar pedido");
+        if (ok == true)
+        {
+            Toast.Success($"Pedido finalizado — {Order.Total.ToString("C", _ptBr)}");
+            Order.Clear();
+        }
+    }
+}

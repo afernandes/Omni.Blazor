@@ -1,0 +1,64 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Fixed (non-scrolling) header band at the top of a pane — typically a
+    <OmniSplitView> main column or a <OmniMain>. Renders title + optional
+    subtitle + optional right-aligned actions slot. Pair with <OmniPaneToolbar>
+    below for search/filters, and a flex:1 scrollable body below that.
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (Breadcrumb is not null)
+    {
+        <div class="omni-pane-head-crumb">@Breadcrumb</div>
+    }
+    @if (Actions is not null)
+    {
+        <div class="omni-pane-head-row">
+            <div>
+                @if (!string.IsNullOrEmpty(Title))    { <h1 class="omni-view-title">@Title</h1> }
+                @if (TitleContent is not null)        { @TitleContent }
+                @if (!string.IsNullOrEmpty(Subtitle)) { <p class="omni-view-sub">@Subtitle</p> }
+            </div>
+            <div class="omni-row omni-row-gap-8">@Actions</div>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Title))    { <h1 class="omni-view-title">@Title</h1> }
+        @if (TitleContent is not null)        { @TitleContent }
+        @if (!string.IsNullOrEmpty(Subtitle)) { <p class="omni-view-sub">@Subtitle</p> }
+    }
+    @if (Subtabs is not null)
+    {
+        <div class="omni-pane-head-subtabs">@Subtabs</div>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Título principal — renderizado como h1 com classe <c>.omni-view-title</c>.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Subtítulo — renderizado como p com classe <c>.omni-view-sub</c>.</summary>
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>Alternativa ao Title quando precisa de markup customizado no lugar do h1.</summary>
+    [Parameter] public RenderFragment? TitleContent { get; set; }
+
+    /// <summary>Ações à direita (ex.: OmniButton). Quando presente, ativa layout em 2 colunas.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Trilha de navegação contextual (ex.: OmniBreadcrumb) — renderizada acima do título.</summary>
+    [Parameter] public RenderFragment? Breadcrumb { get; set; }
+
+    /// <summary>Sub-tabs / período / segmento contextual (ex.: OmniSegmentedControl, OmniTabs)
+    /// — renderizado abaixo do par título/ações, com margem dedicada.</summary>
+    [Parameter] public RenderFragment? Subtabs { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-pane-head")
+        .AddClass(Class)
+        .Build();
+}

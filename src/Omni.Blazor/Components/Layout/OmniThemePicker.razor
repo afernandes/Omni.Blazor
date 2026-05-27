@@ -1,0 +1,177 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@inject Omni.Blazor.Services.ThemeService Theme
+@using Omni.Blazor.Utilities
+
+@*  Dropdown pronto para trocar accent + dark/light/system. Liga
+    automaticamente em <c>ThemeService</c> — sem necessidade de handlers
+    no consumidor. Pluga em qualquer AppBar:
+
+      <OmniAppBar>
+          ...
+          <OmniThemePicker />
+      </OmniAppBar>
+
+    Mostra:
+      • Grid de swatches de accent (5 cores default — amber, emerald, blue, violet, crimson)
+      • Toggle Dark/Light/Sistema
+      • Link "Usar tema do sistema" quando o user pickou manualmente
+*@
+<OmniPopover @bind-Open="_open">
+    <Trigger>
+        <button type="button" class="@RootCss" aria-label="@Title" title="@Title">
+            <OmniIcon Name="@(Theme.Dark ? "moon" : "sun")" Size="ComponentSize.Sm" />
+            <span class="omni-theme-picker-swatch" style="background: var(--omni-accent);"></span>
+        </button>
+    </Trigger>
+    <ChildContent>
+        <div class="omni-theme-picker-panel">
+            <div class="omni-theme-picker-section">
+                <div class="omni-theme-picker-label">Cor accent</div>
+                <div class="omni-theme-picker-swatches">
+                    @foreach (var color in Accents)
+                    {
+                        <button type="button"
+                                class="@(Theme.Accent == color ? "omni-theme-picker-swatch-btn is-active" : "omni-theme-picker-swatch-btn")"
+                                title="@color"
+                                aria-label="Accent @color"
+                                @onclick="@(() => SetAccent(color))">
+                            <span class="omni-theme-picker-swatch-dot" style="@SwatchStyle(color)"></span>
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="omni-theme-picker-section">
+                <div class="omni-theme-picker-label">Modo</div>
+                <div class="omni-theme-picker-mode">
+                    <button type="button"
+                            class="@(Theme.IsUserPicked && !Theme.Dark ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
+                            @onclick="@(() => SetDark(false))">
+                        <OmniIcon Name="sun" Size="ComponentSize.Sm" />
+                        <span>Claro</span>
+                    </button>
+                    <button type="button"
+                            class="@(Theme.IsUserPicked && Theme.Dark ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
+                            @onclick="@(() => SetDark(true))">
+                        <OmniIcon Name="moon" Size="ComponentSize.Sm" />
+                        <span>Escuro</span>
+                    </button>
+                    <button type="button"
+                            class="@(Theme.IsUserPicked ? "omni-theme-picker-mode-btn" : "omni-theme-picker-mode-btn is-active")"
+                            @onclick="UseSystem"
+                            title="Segue a preferência do sistema operacional">
+                        <OmniIcon Name="settings" Size="ComponentSize.Sm" />
+                        <span>Sistema</span>
+                    </button>
+                </div>
+            </div>
+            @if (ShowDensity)
+            {
+                <div class="omni-theme-picker-section">
+                    <div class="omni-theme-picker-label">Densidade</div>
+                    <div class="omni-theme-picker-mode">
+                        <button type="button"
+                                class="@(Theme.Density == LayoutDensity.Compact ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
+                                @onclick="@(() => SetDensity(LayoutDensity.Compact))"
+                                title="Tudo mais compacto — mais informação na tela">
+                            <span style="font-size:14px;">≡</span>
+                            <span>Compacto</span>
+                        </button>
+                        <button type="button"
+                                class="@(Theme.Density == LayoutDensity.Comfortable ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
+                                @onclick="@(() => SetDensity(LayoutDensity.Comfortable))"
+                                title="Densidade padrão">
+                            <span style="font-size:14px;">☰</span>
+                            <span>Padrão</span>
+                        </button>
+                        <button type="button"
+                                class="@(Theme.Density == LayoutDensity.Spacious ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
+                                @onclick="@(() => SetDensity(LayoutDensity.Spacious))"
+                                title="Mais espaçamento — mais respiro">
+                            <span style="font-size:14px;">⫶</span>
+                            <span>Espaçoso</span>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </ChildContent>
+</OmniPopover>
+
+@code {
+    /// <summary>Cores de accent oferecidas. Default: as 5 já suportadas (amber/emerald/blue/violet/crimson).</summary>
+    [Parameter] public IReadOnlyList<string> Accents { get; set; } = DefaultAccents;
+
+    /// <summary>Texto acessível do botão (aria-label / tooltip). Default "Tema".</summary>
+    [Parameter] public string Title { get; set; } = "Tema";
+
+    /// <summary>Mostra a seção de densidade (Compacto/Padrão/Espaçoso) no
+    /// dropdown. Default true. P3.3 — Layout density toggle.</summary>
+    [Parameter] public bool ShowDensity { get; set; } = true;
+
+    private static readonly IReadOnlyList<string> DefaultAccents = new[]
+    {
+        "amber", "emerald", "blue", "violet", "crimson",
+        "rose", "orange", "teal", "cyan", "indigo", "fuchsia", "lime",
+    };
+
+    // Mapa de cores hex de cada accent — usado para pintar o swatch
+    // independente do tema atual (o swatch sempre mostra a cor base).
+    private static readonly IReadOnlyDictionary<string, string> SwatchColors = new Dictionary<string, string>
+    {
+        ["amber"]    = "#f59e0b",
+        ["emerald"]  = "#10b981",
+        ["blue"]     = "#3b82f6",
+        ["violet"]   = "#8b5cf6",
+        ["crimson"]  = "#dc2626",
+        // P2.8 — multi-accent extension (se o user passar Accents com mais cores)
+        ["rose"]     = "#f43f5e",
+        ["orange"]   = "#f97316",
+        ["teal"]     = "#14b8a6",
+        ["cyan"]     = "#06b6d4",
+        ["indigo"]   = "#6366f1",
+        ["fuchsia"]  = "#d946ef",
+        ["lime"]     = "#84cc16",
+    };
+
+    private bool _open;
+
+    private string RootCss => CssBuilder.Default("omni-theme-picker-btn")
+        .AddClass(Class)
+        .Build();
+
+    private static string SwatchStyle(string color)
+        => SwatchColors.TryGetValue(color, out var hex)
+            ? $"background: {hex};"
+            : $"background: var(--omni-accent);";
+
+    protected override void OnInitialized()
+    {
+        Theme.OnChange += OnThemeChange;
+    }
+
+    private void OnThemeChange() => InvokeAsync(StateHasChanged);
+
+    private async Task SetAccent(string accent)
+    {
+        await Theme.SetAccentAsync(accent);
+    }
+
+    private async Task SetDark(bool dark)
+    {
+        await Theme.SetDarkAsync(dark);
+    }
+
+    private async Task UseSystem()
+    {
+        await Theme.UseSystemColorSchemeAsync();
+    }
+
+    private async Task SetDensity(LayoutDensity density)
+    {
+        await Theme.SetDensityAsync(density);
+    }
+
+    public void Dispose() => Theme.OnChange -= OnThemeChange;
+}

@@ -1,0 +1,20 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Fixed (non-scrolling) toolbar band — typically below <OmniPaneHeader>.
+    Free-form: drop in any combination of search box, chips, buttons.
+    Use the .omni-pane-toolbar-spacer helper to push trailing actions to
+    the right. The container handles wrapping on narrow viewports.
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    private string RootCss => CssBuilder.Default("omni-pane-toolbar")
+        .AddClass(Class)
+        .Build();
+}

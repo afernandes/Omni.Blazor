@@ -1,0 +1,121 @@
+@page "/showcase/segmented"
+@layout ShowcaseLayout
+
+<PageTitle>Segmented control — Showcase</PageTitle>
+
+<ShowcasePage Title="Segmented control"
+              Subtitle="Toggle compacto entre poucas opções mutuamente exclusivas.">
+
+    <Overview>
+        <p>
+            O <code>OmniSegmentedControl</code> é um seletor de <strong>opção única</strong>
+            inspirado em iOS/macOS — todas as alternativas ficam visíveis simultaneamente e o
+            usuário alterna com um clique. Excelente para trocar de view (lista/grid), período
+            (hoje/semana/mês) ou densidade.
+        </p>
+        <p>
+            É <strong>genérico em <code>TValue</code></strong>: funciona com <code>string</code>,
+            <code>int</code> ou <code>enum</code>. Cada opção é um <code>Item</code> que combina o
+            valor e o rótulo. Suporta binding bidirecional via <code>Value</code> /
+            <code>ValueChanged</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Alternar entre 2-4 views ou modos de exibição de um mesmo conteúdo.</li>
+            <li>Filtros de período rápidos em dashboards (hoje, semana, mês, ano).</li>
+            <li>Configurações binárias ou ternárias onde todas as opções cabem na tela.</li>
+            <li>Substituir um dropdown quando o número de opções é pequeno e fixo.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Mais de ~5 opções, ou opções longas → use <code>OmniSelect</code>.</li>
+            <li>Cada opção revela um painel de conteúdo distinto → use <code>OmniTabs</code>.</li>
+            <li>Seleção múltipla (não exclusiva) → use <code>OmniCheckBox</code> ou chips.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="2 OPÇÕES"
+                         Description="Caso mais simples — alternar entre duas views."
+                         Code="@(@"<OmniSegmentedControl TValue=""string""
+                       Value=""@viewMode"" ValueChanged=""@(v => viewMode = v)""
+                       Items=""@(new[] {
+                           new OmniSegmentedControl<string>.Item(""list"", ""Lista""),
+                           new OmniSegmentedControl<string>.Item(""grid"", ""Grid"")
+                       })"" />")">
+            <OmniSegmentedControl TValue="string" Value="@viewMode" ValueChanged="@(v => viewMode = v)"
+                                    Items="@(new[] {
+                                        new OmniSegmentedControl<string>.Item("list",  "Lista"),
+                                        new OmniSegmentedControl<string>.Item("grid",  "Grid")
+                                    })" />
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">VALOR → @viewMode</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="3-4 OPÇÕES"
+                         Description="Filtro de período típico de dashboard."
+                         Code="@(@"<OmniSegmentedControl TValue=""string""
+                       Value=""@period"" ValueChanged=""@(v => period = v)""
+                       Items=""@periodItems"" />")">
+            <OmniSegmentedControl TValue="string" Value="@period" ValueChanged="@(v => period = v)"
+                                    Items="@periodItems" />
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">VALOR → @period</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="GENERIC OVER ENUM"
+                         Description="Funciona com qualquer TValue — string, int, enum."
+                         Code="@(@"<OmniSegmentedControl TValue=""Density""
+                       Value=""@density"" ValueChanged=""@(v => density = v)""
+                       Items=""@(new[] {
+                           new OmniSegmentedControl<Density>.Item(Density.Compact, ""Compact""),
+                           new OmniSegmentedControl<Density>.Item(Density.Spacious, ""Spacious"")
+                       })"" />")">
+            <OmniSegmentedControl TValue="Density" Value="@density" ValueChanged="@(v => density = v)"
+                                    Items="@(new[] {
+                                        new OmniSegmentedControl<Density>.Item(Density.Compact,     "Compact"),
+                                        new OmniSegmentedControl<Density>.Item(Density.Comfortable, "Comfortable"),
+                                        new OmniSegmentedControl<Density>.Item(Density.Spacious,    "Spacious"),
+                                    })" />
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">VALOR → @density</p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="TValue?" Default="null"
+                            Description="Valor atualmente selecionado. Suporta bind." />
+            <ShowcaseApiRow Name="Items" Type="IEnumerable<Item>?" Default="null"
+                            Description="Opções disponíveis — cada uma combina valor e rótulo." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<TValue>" ShowDefault="false"
+                            Description="Disparado quando o usuário seleciona uma opção diferente." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Record Item">
+            <ShowcaseApiRow Name="Value" Type="TValue" Default="—"
+                            Description="Valor representado pela opção." />
+            <ShowcaseApiRow Name="Label" Type="string" Default="—"
+                            Description="Rótulo exibido no botão." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private enum Density { Compact, Comfortable, Spacious }
+
+    private string viewMode = "list";
+    private string period = "semana";
+    private Density density = Density.Comfortable;
+
+    private readonly IEnumerable<OmniSegmentedControl<string>.Item> periodItems = new[]
+    {
+        new OmniSegmentedControl<string>.Item("hoje",   "Hoje"),
+        new OmniSegmentedControl<string>.Item("semana", "Semana"),
+        new OmniSegmentedControl<string>.Item("mes",    "Mês"),
+        new OmniSegmentedControl<string>.Item("ano",    "Ano"),
+    };
+}

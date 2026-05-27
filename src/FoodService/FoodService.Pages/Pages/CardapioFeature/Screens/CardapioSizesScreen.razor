@@ -1,0 +1,40 @@
+@inject CardapioDigitalState State
+@implements IDisposable
+
+@*  Sizes screen — escolha do tamanho (Grande/Broto) com radio cards grandes. *@
+<div class="fs-cd-screen">
+    <CardapioAppBar Title="Pizzas Salgadas"
+                    Subtitle="Passo 1 de 3 · escolha o tamanho"
+                    OnBack="State.Back" />
+
+    <div class="fs-cd-scroll" style="padding-bottom: 100px;">
+        <div class="fs-cd-section-pad">
+            <h2>Pizzas Salgadas</h2>
+            <div class="fs-cd-section-pad-sub">
+                Monte sua pizza escolhendo o tamanho e até 2 sabores salgados.
+            </div>
+        </div>
+
+        <div class="fs-cd-req-row">
+            <span class="fs-cd-req-label">Escolha o tamanho</span>
+            <span class="fs-cd-req-tag omni-mono">Obrigatório · 1</span>
+        </div>
+
+        <div class="fs-cd-size-list">
+            @foreach (var s in CardapioMockData.Sizes)
+            {
+                <CardapioSizeCard Size="s" />
+            }
+        </div>
+    </div>
+
+    <CardapioBottomBar Label="Escolher Sabores"
+                       TrailingIcon="chevron-right"
+                       Disabled="@(State.SelectedSize is null)"
+                       OnClick="@(() => { if (State.SelectedSize is not null) State.GoFlavors(State.SelectedSize); })" />
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

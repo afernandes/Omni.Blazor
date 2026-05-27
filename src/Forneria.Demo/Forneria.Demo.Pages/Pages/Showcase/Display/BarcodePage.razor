@@ -1,0 +1,147 @@
+@page "/showcase/barcode"
+@layout ShowcaseLayout
+
+<PageTitle>Barcode — Showcase</PageTitle>
+
+<ShowcasePage Title="Barcode"
+              Subtitle="Códigos de barras 1D em SVG puro: Code128, Code39, EAN-13, EAN-8 e UPC-A.">
+
+    <Overview>
+        <p>
+            O <code>OmniBarcode</code> renderiza códigos de barras 1D como SVG inline,
+            <strong>sem dependências externas</strong>. O encoder está implementado em C# puro
+            (<code>BarcodeEncoder.cs</code>) e suporta cinco símbologias amplamente usadas em
+            varejo, etiquetagem e rastreamento interno.
+        </p>
+        <p>
+            Use <code>Code128</code> para conteúdo alfanumérico genérico (notas fiscais, IDs de
+            ordem). Use <code>EAN-13</code> ou <code>UPC-A</code> para produtos de varejo. Use
+            <code>Code39</code> quando precisar de compatibilidade com leitores antigos ou
+            sistemas industriais legados. O <strong>dígito verificador</strong> de EAN/UPC é
+            calculado automaticamente — passe 12 dígitos para EAN-13, ou 13 já validados.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Etiquetas de pedido, nota fiscal, ordem de serviço.</li>
+            <li>Identificação de produto (use EAN-13 ou UPC-A).</li>
+            <li>Códigos internos de rastreamento (Code128 ou Code39).</li>
+            <li>Comprovantes/recibos imprimíveis com identificador escaneável.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>URLs ou conteúdo longo → use <code>OmniQRCode</code>.</li>
+            <li>Conteúdo binário/Unicode → use <code>OmniQRCode</code>.</li>
+            <li>Dados sensíveis sem visualização legível → barras humanos podem ler ainda.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="CODE 128"
+                         Description="Padrão para conteúdo alfanumérico — alta densidade, ASCII printable."
+                         Code="@(@"<OmniBarcode Value=""PED-2024-001823"" Type=""BarcodeType.Code128"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">PEDIDO</p>
+                    <OmniBarcode Value="PED-2024-001823" Type="BarcodeType.Code128" Width="280px" Height="100px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">NOTA FISCAL</p>
+                    <OmniBarcode Value="NF-29.487.521" Type="BarcodeType.Code128" Width="280px" Height="100px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EAN-13 (VAREJO)"
+                         Description="13 dígitos numéricos. Passe 12 — o checksum é calculado automaticamente."
+                         Code="@(@"<OmniBarcode Value=""789471234567"" Type=""BarcodeType.Ean13"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">PIZZA MARGHERITA</p>
+                    <OmniBarcode Value="789471234567" Type="BarcodeType.Ean13" Width="240px" Height="120px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">REFRIGERANTE 2L</p>
+                    <OmniBarcode Value="789876543210" Type="BarcodeType.Ean13" Width="240px" Height="120px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="UPC-A (VAREJO AMERICANO)"
+                         Description="12 dígitos numéricos. Passe 11 — checksum auto."
+                         Code="@(@"<OmniBarcode Value=""03600029145"" Type=""BarcodeType.UpcA"" />")">
+            <OmniBarcode Value="03600029145" Type="BarcodeType.UpcA" Width="260px" Height="120px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EAN-8 (COMPACTO)"
+                         Description="7 dígitos + 1 checksum — para embalagens pequenas."
+                         Code="@(@"<OmniBarcode Value=""4006381"" Type=""BarcodeType.Ean8"" />")">
+            <OmniBarcode Value="4006381" Type="BarcodeType.Ean8" Width="180px" Height="120px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CODE 39 (LEGACY/INDUSTRIAL)"
+                         Description="Letras maiúsculas, dígitos, espaço, alguns símbolos. Auto-wrapped com *."
+                         Code="@(@"<OmniBarcode Value=""ORDEM 001823"" Type=""BarcodeType.Code39"" />")">
+            <OmniBarcode Value="ORDEM 001823" Type="BarcodeType.Code39" Width="320px" Height="100px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CORES CUSTOMIZADAS"
+                         Description="Foreground/Background aceitam qualquer CSS color."
+                         Code="@(@"<OmniBarcode Value=""TVS-2024"" Foreground=""var(--omni-accent)""
+              Background=""color-mix(in oklab, var(--omni-accent) 5%, transparent)"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16">
+                <OmniBarcode Value="TVS-2024" Width="240px" Height="100px"
+                              Foreground="var(--omni-accent)"
+                              Background="color-mix(in oklab, var(--omni-accent) 5%, transparent)" />
+                <OmniBarcode Value="TVS-2024" Width="240px" Height="100px"
+                              Foreground="#fff" Background="var(--omni-fg)" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEM TEXTO INFERIOR"
+                         Description="ShowValue=false esconde o número embaixo das barras."
+                         Code="@(@"<OmniBarcode Value=""HIDDEN-TEXT"" ShowValue=""false"" />")">
+            <OmniBarcode Value="HIDDEN-TEXT" ShowValue="false" Width="240px" Height="80px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VALIDAÇÃO DE ENTRADA"
+                         Description="Inputs inválidos exibem mensagem de erro inline (não quebra a renderização)."
+                         Code="@(@"<OmniBarcode Value=""abc-only-digits"" Type=""BarcodeType.Ean13"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16">
+                <OmniBarcode Value="abc-only-digits" Type="BarcodeType.Ean13" Width="240px" Height="80px" />
+                <OmniBarcode Value="123" Type="BarcodeType.UpcA" Width="240px" Height="80px" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="string" Default="&quot;&quot;"
+                            Description="Conteúdo a codificar (obrigatório)." />
+            <ShowcaseApiRow Name="Type" Type="BarcodeType" Default="Code128"
+                            Description="Code128 | Code39 | Ean13 | Ean8 | UpcA." />
+            <ShowcaseApiRow Name="Foreground" Type="string" Default="&quot;var(--omni-fg)&quot;"
+                            Description="Cor das barras (qualquer CSS color)." />
+            <ShowcaseApiRow Name="Background" Type="string" Default="&quot;&quot;"
+                            Description="Cor de fundo. Vazio = transparente." />
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura CSS inline (atalho para style)." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="null"
+                            Description="Altura CSS inline." />
+            <ShowcaseApiRow Name="BarHeight" Type="double" Default="60"
+                            Description="Altura das barras em unidades de viewBox." />
+            <ShowcaseApiRow Name="QuietZoneModules" Type="int" Default="10"
+                            Description="Margem ISO de módulos em branco ao redor." />
+            <ShowcaseApiRow Name="ShowValue" Type="bool" Default="true"
+                            Description="Exibe o valor decifrado abaixo do código." />
+            <ShowcaseApiRow Name="FontSize" Type="double" Default="10"
+                            Description="Tamanho da fonte do texto inferior." />
+            <ShowcaseApiRow Name="Stretch" Type="bool" Default="true"
+                            Description="preserveAspectRatio=none: o SVG estica para o container." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

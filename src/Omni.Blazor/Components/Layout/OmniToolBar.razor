@@ -1,0 +1,39 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Faixa horizontal abaixo do <c>OmniAppBar</c>. Equivalente a
+    <c>MudToolBar</c> (MudBlazor) ou ao padrão "sub-bar" comum em Material
+    Design. Útil para:
+      • Tabs/segmented control que ficam visíveis durante o scroll do main
+      • Faixa de filtros / busca contextual
+      • Menu horizontal secundário (módulos, breadcrumb expandido)
+
+    O <c>OmniLayout</c> detecta a presença deste slot via <c>:has()</c> e
+    cria uma linha extra na grid automaticamente — sem parâmetro nenhum no
+    layout.
+
+    Props:
+      • Bordered (bool, default true) — borda inferior fina (divisor do main)
+
+    Uso:
+      <OmniAppBar>...</OmniAppBar>
+      <OmniToolBar>
+        <OmniMenuBar>...</OmniMenuBar>
+      </OmniToolBar>
+      <OmniMain>@Body</OmniMain>
+*@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Borda inferior. Default true.</summary>
+    [Parameter] public bool Bordered { get; set; } = true;
+
+    private string RootCss => CssBuilder.Default("omni-subheader")  // CSS class kept for backward compat
+        .AddClass("omni-toolbar")
+        .AddClass("omni-toolbar-bordered", Bordered)
+        .AddClass(Class)
+        .Build();
+}

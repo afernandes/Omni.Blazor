@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Forneria · KDS Histórico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kds.css" />
+<style>
+  .hist-wrap { overflow-y: auto; padding: 24px 22px 60px; }
+  .hist-shell { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .hist-title { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+  .hist-title h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  .hist-title p { margin: 4px 0 0; color: var(--fg-muted); font-size: 14px; }
+  .hist-rangepicker {
+    display: flex; gap: 4px; padding: 4px; background: var(--bg-card);
+    border: 1px solid var(--line); border-radius: 10px;
+  }
+  .hist-rangepicker button {
+    padding: 8px 14px; border-radius: 7px;
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--fg-muted); font-weight: 600;
+  }
+  .hist-rangepicker button.on { background: var(--fg); color: var(--bg); }
+
+  /* Metric cards */
+  .hist-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .metric {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative; overflow: hidden;
+  }
+  .metric .head { display: flex; justify-content: space-between; align-items: center; }
+  .metric .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-soft); }
+  .metric .ic {
+    width: 32px; height: 32px; border-radius: 7px;
+    background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center;
+    font-size: 15px;
+  }
+  .metric .v {
+    font-family: var(--font-mono); font-weight: 700; font-size: 36px;
+    color: var(--fg); line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .metric .v small { font-size: 16px; color: var(--fg-muted); font-weight: 500; margin-left: 3px; }
+  .metric .delta {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono); font-size: 11.5px; font-weight: 600;
+  }
+  .metric .delta.up   { color: var(--st-ready); }
+  .metric .delta.down { color: var(--st-urgent); }
+  .metric .delta.flat { color: var(--fg-muted); }
+  .metric .sub { font-size: 12px; color: var(--fg-muted); }
+
+  /* Hourly chart */
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .panel-head {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-head h2 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: -0.005em; }
+  .panel-head .meta { font-size: 12px; color: var(--fg-muted); font-family: var(--font-mono); letter-spacing: 0.04em; }
+
+  .chart {
+    padding: 22px 22px 14px;
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 8px;
+    align-items: end;
+    height: 220px;
+  }
+  .chart-bar {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .chart-bar .bar {
+    width: 100%; max-width: 28px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 6px 6px 4px 4px;
+    transition: all 200ms;
+    position: relative;
+  }
+  .chart-bar .bar::after {
+    content: attr(data-v);
+    position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    color: var(--fg-soft);
+  }
+  .chart-bar.peak .bar { background: var(--accent); border-color: var(--accent); }
+  .chart-bar.peak .bar::after { color: var(--accent); }
+  .chart-bar .h {
+    font-family: var(--font-mono); font-size: 10.5px;
+    color: var(--fg-soft);
+  }
+
+  /* Latest orders table */
+  .tbl {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 13.5px;
+  }
+  .tbl th {
+    text-align: left;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--fg-soft);
+    padding: 12px 22px;
+    background: var(--bg-sunken);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .tbl td {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl tr:hover td { background: color-mix(in oklab, var(--accent) 4%, transparent); }
+  .tbl .num { font-family: var(--font-mono); font-weight: 700; color: var(--fg); }
+  .tbl .time { font-family: var(--font-mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+  .tbl .time.warn { color: var(--st-prep); }
+  .tbl .time.delay { color: var(--st-delay); }
+  .tbl .time.urgent { color: var(--st-urgent); }
+  .tbl .items { color: var(--fg-muted); }
+  .tbl .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    font-family: var(--font-mono); font-weight: 700;
+    font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .tbl .pill[data-type="delivery"] { background: color-mix(in oklab, var(--tp-delivery) 18%, transparent); color: var(--tp-delivery); }
+  .tbl .pill[data-type="table"]    { background: color-mix(in oklab, var(--tp-table) 18%, transparent); color: var(--tp-table); }
+  .tbl .pill[data-type="counter"]  { background: color-mix(in oklab, var(--tp-counter) 18%, transparent); color: var(--tp-counter); }
+  .tbl .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .tbl .status .d { width: 7px; height: 7px; border-radius: 50%; }
+  .tbl .status.ready { color: var(--st-ready); } .tbl .status.ready .d { background: var(--st-ready); }
+  .tbl .status.delivered { color: var(--fg-muted); } .tbl .status.delivered .d { background: var(--fg-soft); }
+  .tbl .status.cancelled { color: var(--st-urgent); } .tbl .status.cancelled .d { background: var(--st-urgent); }
+
+  .panel-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12.5px; color: var(--fg-muted);
+  }
+  .panel-foot button {
+    font-family: var(--font-mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--fg-muted); padding: 6px 10px;
+    border-radius: 6px;
+  }
+  .panel-foot button:hover { color: var(--fg); background: var(--bg-soft); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .breakdown {
+    padding: 18px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .br-row { display: flex; flex-direction: column; gap: 6px; }
+  .br-row .top { display: flex; justify-content: space-between; align-items: center; }
+  .br-row .top b { font-size: 14px; font-weight: 600; }
+  .br-row .top span { font-family: var(--font-mono); font-weight: 700; color: var(--fg); font-size: 14px; }
+  .br-row .top span small { color: var(--fg-muted); font-weight: 500; margin-left: 4px; font-size: 11.5px; }
+  .br-bar { height: 8px; background: var(--bg-soft); border-radius: 999px; overflow: hidden; }
+  .br-bar .fill { height: 100%; border-radius: 999px; transition: width 400ms; }
+</style>
+</head>
+<body>
+
+<div class="k">
+
+  <!-- ——— TOP BAR ——— -->
+  <header class="k-top">
+    <div style="display:flex; align-items:center;">
+      <div class="k-brand">
+        <div class="k-brand-mark">F</div>
+        <div>
+          <div class="k-brand-name">Forneria</div>
+          <div class="k-brand-meta">KDS · v2.4</div>
+        </div>
+      </div>
+      <button class="k-sector">
+        <span class="ic">🍕</span>
+        <span>Setor Pizza</span>
+        <span class="ch">▾</span>
+      </button>
+    </div>
+
+    <div class="k-clock-block">
+      <div class="k-clock" id="clock">14:32:05</div>
+      <div class="k-counter">histórico operacional</div>
+    </div>
+
+    <div class="k-actions">
+      <a class="k-navlink" href="01-kds-principal.html">Principal</a>
+      <a class="k-navlink" href="02-kds-expedicao.html">Expedição</a>
+      <a class="k-navlink on" href="04-kds-historico.html">Histórico</a>
+      <span class="k-online"><span class="dot"></span>Online</span>
+      <a class="k-iconbtn" href="03-kds-configuracoes.html" aria-label="Configurações">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- breadcrumb / range -->
+  <div style="background:var(--bg-elev);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;padding:10px 22px">
+    <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-soft)">
+      <span>Histórico</span>
+      <span style="color:var(--line-strong);margin:0 8px">/</span>
+      <span style="color:var(--fg-muted)">Quarta-feira · 8 mai 2026</span>
+    </div>
+    <div class="hist-rangepicker">
+      <button>Hoje</button>
+      <button class="on">Turno atual</button>
+      <button>7 dias</button>
+      <button>30 dias</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="hist-wrap">
+    <div class="hist-shell">
+
+      <!-- Metric cards -->
+      <div class="hist-metrics">
+        <div class="metric">
+          <div class="head"><span class="lbl">Pedidos concluídos</span><div class="ic">✓</div></div>
+          <div class="v">47</div>
+          <div><span class="delta up">▲ +12%</span> <span class="sub">vs ontem turno</span></div>
+        </div>
+        <div class="metric">
+          <div class="head"><span class="lbl">Tempo médio preparo</span><div class="ic" style="background:color-mix(in oklab, var(--st-prep) 18%, transparent);color:var(--st-prep)">⏱</div></div>
+          <div class="v">18<small>min</small></div>
+          <div><span class="delta down">▼ +2min</span> <span class="sub">meta: 15min</span></div>
+        </div>
+        <div class="metric">
+          <div class="head"><span class="lbl">Pedidos urgentes (+30min)</span><div class="ic" style="background:color-mix(in oklab, var(--st-urgent) 18%, transparent);color:var(--st-urgent)">🔴</div></div>
+          <div class="v">3</div>
+          <div><span class="delta down">▲ +1</span> <span class="sub">6,3% do total</span></div>
+        </div>
+        <div class="metric">
+          <div class="head"><span class="lbl">Pico de movimento</span><div class="ic" style="background:color-mix(in oklab, var(--st-new) 18%, transparent);color:var(--st-new)">📈</div></div>
+          <div class="v" style="font-size:28px">12<small>h</small>–13<small>h</small></div>
+          <div><span class="delta flat">14 pedidos</span> <span class="sub">3,5× a média</span></div>
+        </div>
+      </div>
+
+      <!-- Hourly chart -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Pedidos por hora</h2>
+          <div class="meta">11h00 → atual · turno almoço</div>
+        </div>
+        <div class="chart" id="chart"></div>
+      </section>
+
+      <div class="two-col">
+
+        <!-- Breakdown by type -->
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Distribuição por tipo</h2>
+            <div class="meta">47 pedidos</div>
+          </div>
+          <div class="breakdown">
+            <div class="br-row">
+              <div class="top">
+                <b style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:color-mix(in oklab, var(--tp-delivery) 18%, transparent);color:var(--tp-delivery);font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase">🛵 DELIVERY</span></b>
+                <span>22<small>· 47%</small></span>
+              </div>
+              <div class="br-bar"><div class="fill" style="width:47%;background:var(--tp-delivery)"></div></div>
+            </div>
+            <div class="br-row">
+              <div class="top">
+                <b style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:color-mix(in oklab, var(--tp-table) 18%, transparent);color:var(--tp-table);font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase">🍽️ MESAS</span></b>
+                <span>18<small>· 38%</small></span>
+              </div>
+              <div class="br-bar"><div class="fill" style="width:38%;background:var(--tp-table)"></div></div>
+            </div>
+            <div class="br-row">
+              <div class="top">
+                <b style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:color-mix(in oklab, var(--tp-counter) 18%, transparent);color:var(--tp-counter);font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase">🏃 BALCÃO</span></b>
+                <span>7<small>· 15%</small></span>
+              </div>
+              <div class="br-bar"><div class="fill" style="width:15%;background:var(--tp-counter)"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Top items -->
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Itens mais saídos</h2>
+            <div class="meta">turno atual</div>
+          </div>
+          <div class="breakdown">
+            <div class="br-row">
+              <div class="top"><b>Pizza G · Calabresa</b><span>14<small>un</small></span></div>
+              <div class="br-bar"><div class="fill" style="width:88%;background:var(--accent)"></div></div>
+            </div>
+            <div class="br-row">
+              <div class="top"><b>Pizza G · Margherita</b><span>11<small>un</small></span></div>
+              <div class="br-bar"><div class="fill" style="width:69%;background:var(--accent)"></div></div>
+            </div>
+            <div class="br-row">
+              <div class="top"><b>Pizza G · 4 Queijos</b><span>9<small>un</small></span></div>
+              <div class="br-bar"><div class="fill" style="width:56%;background:var(--accent)"></div></div>
+            </div>
+            <div class="br-row">
+              <div class="top"><b>Pizza G · Portuguesa</b><span>7<small>un</small></span></div>
+              <div class="br-bar"><div class="fill" style="width:44%;background:var(--accent)"></div></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Latest orders table -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Últimos pedidos</h2>
+          <div class="meta">12 mais recentes</div>
+        </div>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Tipo</th>
+              <th>Cliente / Mesa</th>
+              <th>Itens</th>
+              <th>Saiu</th>
+              <th>Preparo</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="panel-foot">
+          <span>Mostrando 12 de 47 pedidos · Turno 11h00 → 14h32</span>
+          <button>Ver todos →</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* clock */
+function tickClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+}
+tickClock(); setInterval(tickClock, 1000);
+
+/* hourly chart */
+const HOURS = [
+  ['11h', 4],  ['11:30', 5], ['12h', 9],  ['12:30', 14], ['13h', 11],
+  ['13:30', 6], ['14h', 5],  ['14:30', 3], ['15h', 0],  ['15:30', 0],
+  ['16h', 0],  ['16:30', 0], ['17h', 0]
+];
+const max = Math.max(...HOURS.map(h => h[1])) || 1;
+document.getElementById('chart').innerHTML = HOURS.map(([h, v]) => {
+  const pct = v === 0 ? 4 : (v / max) * 100;
+  const peak = v === max;
+  return `
+    <div class="chart-bar ${peak ? 'peak' : ''}">
+      <div class="bar" style="height:${pct}%" data-v="${v || ''}"></div>
+      <div class="h">${h}</div>
+    </div>
+  `;
+}).join('');
+
+/* recent orders */
+const ROWS = [
+  { id: 4724, type: 'table', name: 'Mesa 12', items: '2× Margherita M, 1× Heineken, Bruschetta', prep: '02:48', prepCls: '', status: 'ready', sl: 'PRONTO' },
+  { id: 4723, type: 'counter', name: 'João Silva', items: 'Pepperoni Picante G, Suco Laranja', prep: '11:32', prepCls: 'warn', status: 'ready', sl: 'PRONTO' },
+  { id: 4722, type: 'delivery', name: 'Maria Fernandes', items: '4 Queijos G, Meio a meio M, Coca lata ×2', prep: '14:08', prepCls: 'warn', status: 'ready', sl: 'PRONTO' },
+  { id: 4721, type: 'counter', name: 'João S.', items: 'Pepperoni G, Suco', prep: '16:08', prepCls: 'warn', status: 'delivered', sl: 'ENTREGUE' },
+  { id: 4720, type: 'delivery', name: 'Carlos Mendes', items: 'Calabresa G, Portuguesa G, Coca 2L', prep: '17:24', prepCls: 'warn', status: 'delivered', sl: 'ENTREGUE' },
+  { id: 4719, type: 'delivery', name: 'Pedro Lopes', items: 'Vegetariana G, Búfala G', prep: '23:15', prepCls: 'delay', status: 'ready', sl: 'PRONTO' },
+  { id: 4718, type: 'table', name: 'Mesa 03', items: 'Margherita G ×2', prep: '21:08', prepCls: 'delay', status: 'delivered', sl: 'ENTREGUE' },
+  { id: 4717, type: 'delivery', name: 'Ana Paula', items: 'Calabresa G, Coca 1L', prep: '14:42', prepCls: 'warn', status: 'delivered', sl: 'ENTREGUE' },
+  { id: 4716, type: 'table', name: 'Mesa 05', items: 'Carbonara G, Portuguesa G, Stella ×2', prep: '34:52', prepCls: 'urgent', status: 'ready', sl: 'PRONTO' },
+  { id: 4715, type: 'table', name: 'Mesa 08', items: '4 Queijos M, Bruschetta', prep: '18:22', prepCls: 'warn', status: 'delivered', sl: 'ENTREGUE' },
+  { id: 4714, type: 'delivery', name: 'Roberto K.', items: 'Margherita G ×2', prep: '13:48', prepCls: '', status: 'delivered', sl: 'ENTREGUE' },
+  { id: 4712, type: 'counter', name: 'Lucas N.', items: 'Pepperoni M, Suco', prep: '00:00', prepCls: '', status: 'cancelled', sl: 'CANCELADO' },
+];
+document.getElementById('tbody').innerHTML = ROWS.map(r => {
+  const tlabel = r.type === 'table' ? '🍽️ MESA' : (r.type === 'delivery' ? '🛵 DELIVERY' : '🏃 BALCÃO');
+  return `
+    <tr>
+      <td class="num">#${r.id}</td>
+      <td><span class="pill" data-type="${r.type}">${tlabel}</span></td>
+      <td><b style="font-weight:600">${r.name}</b></td>
+      <td class="items">${r.items}</td>
+      <td><span class="time ${r.prepCls}">${r.prep}</span></td>
+      <td><span class="time">${r.prep}</span></td>
+      <td><span class="status ${r.status}"><span class="d"></span>${r.sl}</span></td>
+    </tr>
+  `;
+}).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@if (!string.IsNullOrEmpty(Href))
+{
+    <a class="@RootCss" style="@Style" href="@Href" @attributes="Attributes">
+        <div class="@MarkCss">@Initial</div>
+        <span class="omni-brand-name">@Name</span>
+        @if (!string.IsNullOrEmpty(Tenant))
+        {
+            <span class="omni-brand-slash">/</span>
+            <span class="omni-brand-tenant">@Tenant</span>
+        }
+    </a>
+}
+else
+{
+    <div class="@RootCss" style="@Style" @attributes="Attributes">
+        <div class="@MarkCss">@Initial</div>
+        <span class="omni-brand-name">@Name</span>
+        @if (!string.IsNullOrEmpty(Tenant))
+        {
+            <span class="omni-brand-slash">/</span>
+            <span class="omni-brand-tenant">@Tenant</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Initial { get; set; } = "F";
+    [Parameter] public string Name { get; set; } = "Forneria";
+    [Parameter] public string? Tenant { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public bool Large { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-brand")
+        .AddClass(Class)
+        .Build();
+
+    private string MarkCss => CssBuilder.Default("omni-brand-mark")
+        .AddClass("omni-brand-mark-lg", Large)
+        .Build();
+}

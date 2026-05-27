@@ -1,0 +1,73 @@
+@inject ThemeService Theme
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Top bar do PDV — children do OmniAppBar do AppShellPdv. O hamburger
+    é o OmniDrawerToggle (auto-resolve via OmniLayout registry). *@
+<OmniDrawerToggle Class="fs-pdv-hamburger" Title="Menu" />
+
+<div class="fs-pdv-brand">
+    <div class="fs-pdv-brand-mark">F</div>
+    <span class="fs-pdv-brand-name">FoodService</span>
+</div>
+<span class="fs-pdv-brand-sep">/</span>
+<span class="fs-pdv-tenant">Restaurante Central — Loja 01</span>
+
+<div class="fs-pdv-topbar-spacer"></div>
+
+@* Omnibox inline (não é botão pill) — só hint visual *@
+<div class="fs-pdv-topbar-kbd" @onclick="FocusOmni" role="button" tabindex="0">
+    <kbd>⌘K</kbd>
+    <span>Buscar pedido, cliente ou produto</span>
+</div>
+
+<div class="fs-pdv-topbar-spacer"></div>
+
+<OmniBadge Content="_notifCount"
+           Variant="BadgeVariant.Danger"
+           Overlap
+           Visible="@(_notifCount > 0)"
+           Class="fs-pdv-topbar-badge-wrap">
+    <OmniButton Class="fs-pdv-topbar-iconbtn"
+                Icon="bell"
+                IconOnly
+                Variant="ButtonVariant.Ghost"
+                Size="ComponentSize.Sm"
+                aria-label="Notificações" />
+</OmniBadge>
+<OmniButton Class="fs-pdv-topbar-iconbtn"
+            Icon="help-circle"
+            IconOnly
+            Variant="ButtonVariant.Ghost"
+            Size="ComponentSize.Sm"
+            aria-label="Ajuda" />
+
+<div class="fs-pdv-topbar-user">
+    <OmniAvatar Class="fs-pdv-topbar-user-av" Initials="AF" Size="AvatarSize.Sm" />
+    <div class="fs-pdv-topbar-user-meta">
+        <b>Anderson F.</b>
+        <span>Caixa · POS-01</span>
+    </div>
+</div>
+
+@code {
+    private int _notifCount = 3;
+
+    protected override void OnInitialized()
+    {
+        Order.OnChange += StateHasChanged;
+        Theme.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Order.OnChange -= StateHasChanged;
+        Theme.OnChange -= StateHasChanged;
+    }
+
+    private async Task FocusOmni()
+    {
+        if (Order.OmniFocus is not null)
+            await Order.OmniFocus();
+    }
+}

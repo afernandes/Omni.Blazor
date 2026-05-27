@@ -1,0 +1,177 @@
+@page "/showcase/breakpoints"
+@layout ShowcaseLayout
+@inject BreakpointService Breakpoints
+@implements IAsyncDisposable
+
+<PageTitle>Breakpoints — Showcase</PageTitle>
+
+<ShowcasePage Title="Breakpoints"
+              Subtitle="Lógica responsiva em C# — um único window.resize listener compartilhado entre todos os assinantes.">
+
+    <Overview>
+        <p>
+            O <code>BreakpointService</code> rastreia o <strong>breakpoint atual</strong> da viewport
+            assinando um listener de <code>window.resize</code> em JS (debounced 100ms). É um serviço
+            <strong>scoped</strong> — uma instância por circuito / por app WASM — e todos os
+            consumidores compartilham o <strong>mesmo</strong> listener JS, então você não paga um
+            callback por consumidor.
+        </p>
+        <p>
+            Há duas formas de consumir: imperativamente com <code>SubscribeAsync</code> no
+            code-behind (o handler dispara uma vez de imediato com o valor atual), ou
+            declarativamente envolvendo a árvore com <code>OmniBreakpointProvider</code>, que
+            cascateia o <code>Breakpoint</code> para os descendentes. Os thresholds são
+            xs &lt;576 · sm &lt;768 · md &lt;992 · lg &lt;1200 · xl &lt;1400 · xxl ≥1400.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Ramificar a marcação em C# conforme o tamanho da viewport (sem condicionais CSS-only).</li>
+            <li>Reagir fora de render — ex: chamar uma API só quando o usuário vira mobile.</li>
+            <li>Decidir quantas colunas / quais painéis renderizar com base em <code>IsMobile()</code> / <code>IsTablet()</code>.</li>
+            <li>Colapsar uma sidebar ou trocar um layout inteiro a partir do code-behind.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Esconder/mostrar elementos sem lógica → use media queries CSS diretamente.</li>
+            <li>Interceptar teclas dentro de uma região → use <code>KeyInterceptorService</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="VIEWPORT ATUAL"
+                         Description="Redimensione a janela e veja o breakpoint mudar. Thresholds: xs <576 · sm <768 · md <992 · lg <1200 · xl <1400 · xxl ≥1400."
+                         Code="@(@"@inject BreakpointService Breakpoints
+
+protected override async Task OnInitializedAsync()
+{
+    _sub = await Breakpoints.SubscribeAsync(async bp =>
+    {
+        current = bp;
+        await InvokeAsync(StateHasChanged);
+    });
+}")">
+            <div class="omni-row omni-row-gap-12" style="align-items:center;">
+                <span class="omni-meta">Breakpoint atual:</span>
+                <OmniChip Variant="@ChipVariantFor(current)">@current.ToString().ToUpperInvariant()</OmniChip>
+                <span class="omni-meta">·</span>
+                <OmniChip Variant="BadgeVariant.Plain">@(current.IsMobile() ? "Mobile" : current.IsTablet() ? "Tablet" : "Desktop")</OmniChip>
+                <span class="omni-meta">·</span>
+                <OmniChip Variant="BadgeVariant.Plain">Assinantes ativos: @Breakpoints.SubscriberCount</OmniChip>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CONTEÚDO ADAPTATIVO"
+                         Description="Cascading parameter via OmniBreakpointProvider — child branches em C#."
+                         Code="@(@"<OmniBreakpointProvider @bind-Breakpoint=""bound"">
+    @if (bound.IsMobile())
+    {
+        <Mobile />
+    }
+    else if (bound.IsTablet())
+    {
+        <Tablet />
+    }
+    else
+    {
+        <Desktop />
+    }
+</OmniBreakpointProvider>")">
+            <OmniBreakpointProvider @bind-Breakpoint="bound">
+                <OmniCard Style="max-width:640px;">
+                    <div class="omni-stack omni-stack-8">
+                        <div style="font-size:13px; font-weight:600;">Layout @bound</div>
+                        @if (bound.IsMobile())
+                        {
+                            <div class="omni-meta">📱 Mobile — sidebar colapsa, cards 1 coluna, toolbar shrinka.</div>
+                        }
+                        else if (bound.IsTablet())
+                        {
+                            <div class="omni-meta">💻 Tablet — sidebar visível, cards 2 colunas.</div>
+                        }
+                        else
+                        {
+                            <div class="omni-meta">🖥️ Desktop — full layout, cards 3+ colunas, panel direito habilitado.</div>
+                        }
+                    </div>
+                </OmniCard>
+            </OmniBreakpointProvider>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DESCARTE DA ASSINATURA"
+                         Description="Cada SubscribeAsync devolve um IAsyncDisposable — descarte-o no DisposeAsync do componente."
+                         Code="@(@"@implements IAsyncDisposable
+
+public async ValueTask DisposeAsync()
+{
+    if (_sub is not null) await _sub.DisposeAsync();
+}")">
+            <p class="omni-muted">
+                Quando o último assinante é descartado, o serviço remove automaticamente o listener
+                JS — sem leaks. Use <code>SubscriberCount</code> para inspecionar isso em testes.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="BreakpointService — métodos e propriedades" ShowDefault="false">
+            <ShowcaseApiRow Name="SubscribeAsync(Func<Breakpoint,Task>)" Type="Task&lt;IAsyncDisposable&gt;" ShowDefault="false"
+                            Description="Assina mudanças de breakpoint. Dispara o valor atual de imediato. Retorna o handle de descarte." />
+            <ShowcaseApiRow Name="SubscribeAsync(Action<Breakpoint>)" Type="Task&lt;IAsyncDisposable&gt;" ShowDefault="false"
+                            Description="Conveniência: aceita um handler síncrono." />
+            <ShowcaseApiRow Name="Current" Type="Breakpoint" ShowDefault="false"
+                            Description="Último breakpoint conhecido. Md até o primeiro evento de resize." />
+            <ShowcaseApiRow Name="SubscriberCount" Type="int" ShowDefault="false"
+                            Description="Número de assinantes ativos (útil para testes de leak)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="BreakpointExtensions — métodos" ShowDefault="false">
+            <ShowcaseApiRow Name="IsMobile()" Type="bool" ShowDefault="false"
+                            Description="Verdadeiro para Xs e Sm." />
+            <ShowcaseApiRow Name="IsTablet()" Type="bool" ShowDefault="false"
+                            Description="Verdadeiro para Md." />
+            <ShowcaseApiRow Name="IsDesktop()" Type="bool" ShowDefault="false"
+                            Description="Verdadeiro para Lg, Xl e Xxl." />
+            <ShowcaseApiRow Name="AtLeast(min) / AtMost(max)" Type="bool" ShowDefault="false"
+                            Description="Comparações de limite inferior / superior contra outro breakpoint." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniBreakpointProvider — parâmetros">
+            <ShowcaseApiRow Name="Breakpoint" Type="Breakpoint" Default="Md"
+                            Description="Breakpoint atual — suporta bind-Breakpoint." />
+            <ShowcaseApiRow Name="BreakpointChanged" Type="EventCallback&lt;Breakpoint&gt;" Default="—"
+                            Description="Disparado quando o breakpoint muda (par do bind)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo que recebe o CascadingValue Breakpoint." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private Breakpoint current = Breakpoint.Md;
+    private Breakpoint bound = Breakpoint.Md;
+    private IAsyncDisposable? _sub;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _sub = await Breakpoints.SubscribeAsync(async bp =>
+        {
+            current = bp;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private static BadgeVariant ChipVariantFor(Breakpoint bp) => bp switch
+    {
+        Breakpoint.Xs or Breakpoint.Sm => BadgeVariant.Warn,
+        Breakpoint.Md                   => BadgeVariant.Info,
+        _                                => BadgeVariant.Good
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_sub is not null) { try { await _sub.DisposeAsync(); } catch { } _sub = null; }
+    }
+}

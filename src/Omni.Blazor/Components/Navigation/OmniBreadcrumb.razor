@@ -1,0 +1,28 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+<nav class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (Items is not null)
+    {
+        var i = 0;
+        foreach (var it in Items)
+        {
+            var last = i == Items.Count() - 1;
+            if (i > 0) { <span class="omni-breadcrumb-sep">/</span> }
+            if (last || string.IsNullOrEmpty(it.Path)) { <span class="omni-breadcrumb-current">@it.Text</span> }
+            else { <a href="@it.Path">@it.Text</a> }
+            i++;
+        }
+    }
+</nav>
+
+@code {
+    public record Item(string Text, string? Path = null);
+
+    [Parameter] public IEnumerable<Item>? Items { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-breadcrumb")
+        .AddClass(Class)
+        .Build();
+}

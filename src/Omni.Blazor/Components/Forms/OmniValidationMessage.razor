@@ -1,0 +1,124 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits OmniComponent
+@implements IDisposable
+@using System.Linq.Expressions
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Per-field error display. Equivalent to Blazor's built-in
+    <ValidationMessage For="..." /> but styled like the rest of the lib
+    (.omni-field-error) and re-renders on EditContext.OnValidationStateChanged.
+
+    Useful when you can't (or don't want to) wrap a field with
+    <OmniFormField ValidationFor="..."> — e.g. inline next to a custom input.
+
+    <OmniValidationMessage For="@(() => model.Email)" />
+*@
+
+@if (_messages.Length > 0)
+{
+    <div class="@RootCss" style="@Style" role="alert" @attributes="Attributes">
+        @foreach (var msg in _messages)
+        {
+            <div class="omni-validation-message-item">@msg</div>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    /// <summary>Lambda pointing at the field, e.g. <c>() => model.Email</c>.</summary>
+    [Parameter, EditorRequired] public Expression<Func<TValue?>>? For { get; set; }
+
+    /// <summary>Render all messages (default) or just the first.</summary>
+    [Parameter] public bool ShowAll { get; set; } = true;
+
+    private EditContext? _subscribed;
+    private FieldIdentifier _fieldId;
+    private bool _hasFieldId;
+    private string[] _messages = Array.Empty<string>();
+
+    private string RootCss => CssBuilder.Default("omni-validation-message")
+        .AddClass(Class)
+        .Build();
+
+    // ParameterStates: rebuild the FieldIdentifier only when For (lambda) is
+    // rebound, rebind the EditContext subscription only when the cascading
+    // context changes, and refresh the message list when ShowAll flips. Each
+    // tracked-parameter handler ends with a Refresh() so the rendered list
+    // reflects the latest source of truth.
+    private readonly ParameterState<Expression<Func<TValue?>>?> _forState;
+    private readonly ParameterState<EditContext?> _editContextState;
+    private readonly ParameterState<bool> _showAllState;
+
+    // Test-only counter: increments every time any tracked-param recompute fires.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniValidationMessage()
+    {
+        _forState = RegisterParameter<Expression<Func<TValue?>>?>(nameof(For))
+            .WithParameter(() => For)
+            .WithChangeHandler(RecomputeFieldIdAndRefresh)
+            .Attach();
+        _editContextState = RegisterParameter<EditContext?>(nameof(EditContext))
+            .WithParameter(() => EditContext)
+            .WithChangeHandler(RebindContextSubscription)
+            .Attach();
+        _showAllState = RegisterParameter<bool>(nameof(ShowAll))
+            .WithParameter(() => ShowAll)
+            .WithChangeHandler(RefreshAndCount)
+            .Attach();
+    }
+
+    private void RefreshAndCount()
+    {
+        Refresh();
+        RecomputeCount++;
+    }
+
+    private void RecomputeFieldIdAndRefresh()
+    {
+        if (For is not null)
+        {
+            _fieldId = FieldIdentifier.Create(For);
+            _hasFieldId = true;
+        }
+        else
+        {
+            _hasFieldId = false;
+        }
+        Refresh();
+        RecomputeCount++;
+    }
+
+    private void RebindContextSubscription()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnChanged;
+        _subscribed = EditContext;
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged += OnChanged;
+        Refresh();
+        RecomputeCount++;
+    }
+
+    private void OnChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        Refresh();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Refresh()
+    {
+        if (!_hasFieldId || EditContext is null) { _messages = Array.Empty<string>(); return; }
+        var all = EditContext.GetValidationMessages(_fieldId);
+        _messages = ShowAll ? all.ToArray() : all.Take(1).ToArray();
+    }
+
+    public void Dispose()
+    {
+        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnChanged;
+    }
+}

@@ -1,0 +1,157 @@
+@page "/showcase/checkbox-switch-radio"
+@layout ShowcaseLayout
+
+<PageTitle>CheckBox / Switch / Radio — Showcase</PageTitle>
+
+<ShowcasePage Title="CheckBox / Switch / Radio"
+              Subtitle="Controles boolean e de escolha mutuamente exclusiva.">
+
+    <Overview>
+        <p>
+            Esta família cobre as escolhas discretas de formulário. <code>OmniCheckBox</code> e
+            <code>OmniSwitch</code> são <strong>boolean</strong> (herdam de
+            <code>FormComponent&lt;bool&gt;</code>): o checkbox para confirmações e seleção
+            múltipla, o switch para preferências e configurações que ligam/desligam.
+        </p>
+        <p>
+            <code>OmniRadioGroup&lt;T&gt;</code> com filhos <code>OmniRadio&lt;T&gt;</code>
+            representa uma <strong>escolha única</strong> entre opções sempre visíveis. O grupo
+            mantém o <code>Value</code> bound e renderiza horizontal ou vertical via
+            <code>Orientation</code>. Todos compartilham o mesmo acento visual quando ativos.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><code>CheckBox</code> para aceite de termos e seleção de vários itens.</li>
+            <li><code>Switch</code> para preferências que aplicam efeito imediato.</li>
+            <li><code>RadioGroup</code> para 2–6 opções exclusivas todas visíveis.</li>
+            <li><code>Orientation.Horizontal</code> para opções compactas em uma linha.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Muitas opções exclusivas (acima de ~6) → use <code>OmniSelect</code>.</li>
+            <li>Lista longa pesquisável → use <code>OmniAutoComplete</code>.</li>
+            <li>Entrada de texto ou número → use <code>OmniTextBox</code> / <code>OmniNumeric</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="CHECKBOX"
+                         Description="Boolean simples. Suporta ChildContent ou Label."
+                         Code="@(@"<OmniCheckBox @bind-Value=""c1"" Label=""Aceito os Termos e Privacidade"" />
+<OmniCheckBox @bind-Value=""c2"" Label=""Receber novidades por e-mail"" />
+<OmniCheckBox Value=""true"" Disabled Label=""Disabled (sempre true)"" />")">
+            <div class="omni-stack omni-stack-8">
+                <OmniCheckBox @bind-Value="c1" Label="Aceito os Termos e Privacidade" />
+                <OmniCheckBox @bind-Value="c2" Label="Receber novidades por e-mail" />
+                <OmniCheckBox Value="true" Disabled Label="Disabled (sempre true)" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SWITCH"
+                         Description="Toggle on/off — útil para preferências e configurações."
+                         Code="@(@"<OmniSwitch @bind-Value=""s1"" Label=""Notificações push"" />
+<OmniSwitch @bind-Value=""s2"" Label=""Modo escuro"" />
+<OmniSwitch @bind-Value=""s3"" Label=""Salvar automaticamente"" />")">
+            <div class="omni-stack omni-stack-8">
+                <OmniSwitch @bind-Value="s1" Label="Notificações push" />
+                <OmniSwitch @bind-Value="s2" Label="Modo escuro" />
+                <OmniSwitch @bind-Value="s3" Label="Salvar automaticamente" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RADIO GROUP (vertical)"
+                         Description="Container OmniRadioGroup<T> + filhos OmniRadio<T>."
+                         Code="@(@"<OmniRadioGroup TValue=""string"" @bind-Value=""pgto"">
+    <OmniRadio TValue=""string"" Value=""@(""pix"")""     Label=""PIX (sem taxa)"" />
+    <OmniRadio TValue=""string"" Value=""@(""cartao"")""  Label=""Cartão de crédito"" />
+    <OmniRadio TValue=""string"" Value=""@(""dinheiro"")"" Label=""Dinheiro"" />
+</OmniRadioGroup>")">
+            <OmniRadioGroup TValue="string" @bind-Value="pgto">
+                <OmniRadio TValue="string" Value="@("pix")"     Label="PIX (sem taxa)" />
+                <OmniRadio TValue="string" Value="@("cartao")"  Label="Cartão de crédito" />
+                <OmniRadio TValue="string" Value="@("dinheiro")" Label="Dinheiro" />
+                <OmniRadio TValue="string" Value="@("voucher")" Label="Voucher refeição" />
+            </OmniRadioGroup>
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">SELECIONADO → @pgto</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RADIO GROUP (horizontal)"
+                         Description="Orientation horizontal para opções compactas."
+                         Code="@(@"<OmniRadioGroup TValue=""string"" @bind-Value=""prio""
+                 Orientation=""Orientation.Horizontal"">
+    <OmniRadio TValue=""string"" Value=""@(""baixa"")"" Label=""Baixa"" />
+    <OmniRadio TValue=""string"" Value=""@(""alta"")""  Label=""Alta"" />
+</OmniRadioGroup>")">
+            <OmniRadioGroup TValue="string" @bind-Value="prio" Orientation="Orientation.Horizontal">
+                <OmniRadio TValue="string" Value="@("baixa")"  Label="Baixa" />
+                <OmniRadio TValue="string" Value="@("media")"  Label="Média" />
+                <OmniRadio TValue="string" Value="@("alta")"   Label="Alta" />
+                <OmniRadio TValue="string" Value="@("urgente")" Label="Urgente" />
+            </OmniRadioGroup>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniCheckBox — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="bool" Default="false"
+                            Description="Estado marcado/desmarcado. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Label" Type="string?" Default="null"
+                            Description="Texto exibido ao lado do checkbox." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo livre — vence sobre Label." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita a interação." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniCheckBox — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<bool>" ShowDefault="false"
+                            Description="Disparado quando o estado muda." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniSwitch — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="bool" Default="false"
+                            Description="Estado ligado/desligado. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Label" Type="string?" Default="null"
+                            Description="Texto exibido ao lado do switch." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo livre — vence sobre Label." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita a interação." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniSwitch — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<bool>" ShowDefault="false"
+                            Description="Disparado quando o estado muda." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniRadioGroup — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="TValue?" Default="default"
+                            Description="Valor da opção selecionada. Suporta bind-Value." />
+            <ShowcaseApiRow Name="Orientation" Type="Orientation" Default="Vertical"
+                            Description="Disposição dos radios — Vertical ou Horizontal." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os componentes OmniRadio do grupo." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniRadioGroup — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ValueChanged" Type="EventCallback<TValue?>" ShowDefault="false"
+                            Description="Disparado quando a opção selecionada muda." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniRadio — Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="TValue" Default="(obrigatório)"
+                            Description="Valor representado por este radio dentro do grupo." />
+            <ShowcaseApiRow Name="Label" Type="string?" Default="null"
+                            Description="Texto exibido ao lado do radio." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo livre — vence sobre Label." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita apenas este radio." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool c1 = true, c2, s1 = true, s2, s3 = true;
+    private string pgto = "pix";
+    private string prio = "media";
+}

@@ -1,0 +1,35 @@
+@* A single row in a ShowcaseApiTable. Use Description for plain text or
+   ChildContent for rich markup (badges, code, links). *@
+
+<tr>
+    <td class="omni-api-name"><code>@Name</code></td>
+    <td class="omni-api-type"><code>@Type</code></td>
+    @if (ShowDefault)
+    {
+        <td class="omni-api-default">@(string.IsNullOrEmpty(Default) ? "—" : Default)</td>
+    }
+    <td class="omni-api-desc">
+        @if (!string.IsNullOrEmpty(Description)) { @Description }
+        @ChildContent
+    </td>
+</tr>
+
+@code {
+    /// <summary>Parameter / event / slot name.</summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    /// <summary>C# type — e.g. "bool", "string?", "EventCallback&lt;T&gt;".</summary>
+    [Parameter] public string? Type { get; set; }
+
+    /// <summary>Default value. Shows "—" when empty.</summary>
+    [Parameter] public string? Default { get; set; }
+
+    /// <summary>Plain-text description.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Whether the Default cell is rendered (must match the parent table's ShowDefault).</summary>
+    [Parameter] public bool ShowDefault { get; set; } = true;
+
+    /// <summary>Rich description markup (rendered after Description text).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

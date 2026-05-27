@@ -1,0 +1,17 @@
+@*  Routes do FoodService — host PDV standalone. Default lança direto em /pdv.
+    Marcado InteractiveServer no App.razor do host. *@
+<Router AppAssembly="typeof(FoodService.Pages._Imports).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(FoodService.Pages.Layout.AppShellPdv)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <div style="display: grid; place-items: center; min-height: 60vh; text-align: center; padding: 24px;">
+            <div>
+                <h1 style="font-size: 32px; margin: 0 0 12px;">Rota não encontrada</h1>
+                <p style="color: var(--omni-fg-muted); margin: 0 0 20px;">A página solicitada não existe.</p>
+                <a href="/" class="omni-btn omni-btn-primary">Ir para o PDV</a>
+            </div>
+        </div>
+    </NotFound>
+</Router>

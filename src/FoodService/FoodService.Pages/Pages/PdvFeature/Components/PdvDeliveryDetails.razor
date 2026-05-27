@@ -1,0 +1,119 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Delivery — CEP + Buscar | Rua + Nº | Bairro (combo) + info | Complemento. *@
+<div class="fs-pdv-mode-label">CEP</div>
+<div class="fs-pdv-mode-row">
+    <OmniTextBox Class="fs-pdv-mode-input"
+                 Value="@Order.ModeDetails.ZipCode"
+                 ValueChanged="OnZipChanged"
+                 Placeholder="00000-000"
+                 style="font-family: var(--omni-font-mono);" />
+    <OmniButton Class="fs-pdv-deliv-cep-btn" Icon="search" Size="ComponentSize.Sm"
+                OnClick="LookupCep">
+        Buscar
+    </OmniButton>
+</div>
+
+<div class="fs-pdv-mode-label">Endereço</div>
+<div class="fs-pdv-mode-row">
+    <OmniTextBox Class="fs-pdv-mode-input"
+                 Value="@Order.ModeDetails.Address"
+                 ValueChanged="OnAddressChanged"
+                 Placeholder="Rua, avenida…" />
+    <OmniTextBox Class="fs-pdv-mode-input fs-pdv-deliv-num"
+                 Value="@Order.ModeDetails.AddressNumber"
+                 ValueChanged="OnNumberChanged"
+                 Placeholder="Nº" />
+</div>
+
+<div class="fs-pdv-mode-label">Bairro</div>
+<div class="fs-pdv-hood-combo">
+    <OmniSelect Class="fs-pdv-mode-select"
+                TValue="string"
+                Value="@HoodName"
+                ValueChanged="OnHoodChanged"
+                Placeholder="Digite ou selecione o bairro…"
+                Items="@_hoodNames"
+                TextSelector="@(h => h ?? "")"
+                ValueSelector="@(h => h)" />
+    @if (Order.ModeDetails.Hood is { } hood)
+    {
+        var cls = hood.Blocked ? "is-block" : "is-match";
+        <div class="fs-pdv-hood-info @cls">
+            <OmniIcon Name="@(hood.Blocked ? "alert-circle" : "check-circle")" Size="ComponentSize.Sm" />
+            @if (hood.Blocked)
+            {
+                <span>Bairro fora da área de entrega.</span>
+            }
+            else
+            {
+                <span>Entrega em <b>@hood.EtaMin min</b></span>
+                <span class="fs-pdv-hood-info-fee">@hood.Fee.ToString("C", _ptBr)</span>
+            }
+        </div>
+    }
+</div>
+
+<OmniButton Class="fs-pdv-deliv-comp-btn" Icon="plus" Size="ComponentSize.Sm"
+            OnClick="@(() => _showComp = !_showComp)">
+    Complemento ou referência
+</OmniButton>
+@if (_showComp || !string.IsNullOrWhiteSpace(Order.ModeDetails.Complement))
+{
+    <OmniTextBox Class="fs-pdv-mode-input"
+                 Value="@Order.ModeDetails.Complement"
+                 ValueChanged="OnCompChanged"
+                 Placeholder="Apto, bloco, ponto de referência…" />
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+    private bool _showComp;
+
+    // Para o OmniSelect: precisamos de uma coleção de string (nome do bairro).
+    // O label inclui "(bloqueado)" mas o value/key é só o nome.
+    private static readonly IReadOnlyList<string> _hoodNames =
+        PdvMockData.Hoods.Select(h => h.Name).ToList();
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private string HoodName => Order.ModeDetails.Hood?.Name ?? "";
+
+    private void OnHoodChanged(string? value)
+    {
+        Order.ModeDetails.Hood = PdvMockData.Hoods.FirstOrDefault(h => h.Name == value);
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnZipChanged(string? value)
+    {
+        Order.ModeDetails.ZipCode = value;
+        Order.NotifyModeDetailsChanged();
+    }
+    private void OnAddressChanged(string? value)
+    {
+        Order.ModeDetails.Address = value;
+        Order.NotifyModeDetailsChanged();
+    }
+    private void OnNumberChanged(string? value)
+    {
+        Order.ModeDetails.AddressNumber = value;
+        Order.NotifyModeDetailsChanged();
+    }
+    private void OnCompChanged(string? value)
+    {
+        Order.ModeDetails.Complement = value;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void LookupCep()
+    {
+        // Mock: CEP "01000-000" → Centro
+        Order.ModeDetails.Hood = PdvMockData.Hoods.FirstOrDefault(h => h.Name == "Centro");
+        if (string.IsNullOrEmpty(Order.ModeDetails.Address))
+            Order.ModeDetails.Address = "Rua da Consolação";
+        Order.NotifyModeDetailsChanged();
+    }
+}

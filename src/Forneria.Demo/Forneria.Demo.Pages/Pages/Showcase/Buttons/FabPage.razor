@@ -1,0 +1,461 @@
+@page "/showcase/fab"
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+
+<PageTitle>FAB & FabMenu — Showcase</PageTitle>
+
+<ShowcasePage Title="FAB & Floating Action Menu"
+              Subtitle="Floating Action Button — ação primária ancorada num canto. FabMenu = speed dial Material com items que expandem em stagger.">
+
+    <Overview>
+        <p>
+            <code>OmniFab</code> é o FAB clássico — botão circular ancorado num canto da
+            viewport (<code>position: fixed</code>) que destaca a ação primária da tela
+            atual. Padrão Material Design, presente em apps como Gmail (compor), Maps
+            (minha localização), Inbox (novo).
+        </p>
+        <p>
+            <code>OmniFabMenu</code> + <code>OmniFabMenuItem</code> formam o "Speed Dial":
+            FAB que expande em vários items relacionados. 4 direções, label flutuante
+            opcional, fecha em Esc / clique-fora / clique-em-item.
+            Equivalente ao <code>RadzenFab</code>/<code>RadzenFabMenu</code> mas com Esc,
+            backdrop opcional, label flutuante (Material chip-style) e presets de posição
+            (BottomRight/BottomLeft/etc) em vez de inset-* manual.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Ação primária inegável</strong>: "Novo pedido", "Compor", "Adicionar item".</li>
+            <li><strong>Tela de listagem</strong>: o que o user MAIS faz nessa tela.</li>
+            <li><strong>Acesso rápido em mobile</strong>: polegar alcança canto inferior facilmente.</li>
+            <li><strong>Speed Dial (FabMenu)</strong>: quando há 3-6 ações primárias relacionadas.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Telas com várias ações de igual peso — vai roubar atenção da hierarquia real.</li>
+            <li>Formulários longos — FAB cobre conteúdo no scroll.</li>
+            <li>Apps desktop densos (ERP típico) — usuário não espera FAB; use toolbar.</li>
+            <li>Mais de 6 items no FabMenu — vira menu disfarçado; use Drawer ou Popover.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+
+        @* ─── FAB simples — Static (inline) ─── *@
+        <ShowcaseSection Title="FAB — variants e tamanhos"
+                         Description='Para demonstrar inline (sem ocupar a viewport real) usamos Position="FabPosition.Static". Em produção, deixa o default BottomRight.'
+                         Code='@("<OmniFab Icon=\"plus\" Title=\"Novo\" Position=\"FabPosition.Static\" />\n<OmniFab Icon=\"message-square\" Text=\"Compor\" Position=\"FabPosition.Static\" />\n<OmniFab Icon=\"settings\" Variant=\"ButtonVariant.Default\" Position=\"FabPosition.Static\" />")'>
+            <div class="fab-row">
+                <OmniFab Icon="plus" Title="Novo" Position="FabPosition.Static"
+                          OnClick="@(_ => Log("FAB plus clicado"))" />
+                <OmniFab Icon="edit" Title="Editar" Position="FabPosition.Static"
+                          Size="ComponentSize.Md"
+                          OnClick="@(_ => Log("FAB editar clicado"))" />
+                <OmniFab Icon="message-square" Text="Compor" Position="FabPosition.Static"
+                          OnClick="@(_ => Log("FAB compor clicado"))" />
+                <OmniFab Icon="settings" Title="Configurar" Position="FabPosition.Static"
+                          Variant="ButtonVariant.Default"
+                          OnClick="@(_ => Log("FAB config clicado"))" />
+                <OmniFab Icon="trash" Title="Excluir" Position="FabPosition.Static"
+                          Variant="ButtonVariant.Danger"
+                          OnClick="@(_ => Log("FAB excluir clicado"))" />
+                <OmniFab Icon="check" Position="FabPosition.Static" Disabled />
+            </div>
+            <div class="fab-log">
+                <strong>Última ação:</strong> <code>@_log</code>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── FAB Menu — Speed Dial 4 direções ─── *@
+        <ShowcaseSection Title="FAB MENU — Speed Dial Material"
+                         Description="Speed Dial: FAB que expande em items. Cada Direction pareia com um lado natural — Up/Bottom*, Down/Top*, Left/*Right, Right/*Left (FAB sempre ancorado à borda, items expandem PRA DENTRO da tela). Clique fora ou Esc fecha."
+                         Code='@("<OmniFabMenu Icon=\"plus\" Direction=\"FabMenuDirection.Up\" Position=\"FabPosition.BottomRight\">\n    <OmniFabMenuItem Icon=\"folder\" Label=\"Pasta\" OnClick=\"@OnFolder\" />\n    <OmniFabMenuItem Icon=\"image\" Label=\"Imagem\" OnClick=\"@OnImage\" />\n</OmniFabMenu>")'>
+            <div class="fab-grid">
+                <div class="fab-grid-cell">
+                    <span class="fab-grid-label">UP · pareia com Bottom*</span>
+                    <div class="fab-stage">
+                        <OmniFabMenu Icon="plus" OpenIcon="x"
+                                      Position="FabPosition.Static"
+                                      Direction="FabMenuDirection.Up"
+                                      AriaLabel="Criar (vertical)">
+                            <OmniFabMenuItem Icon="folder"        Label="Pasta"     OnClick="@(_ => Log("Pasta"))" />
+                            <OmniFabMenuItem Icon="image"         Label="Imagem"    OnClick="@(_ => Log("Imagem"))" />
+                            <OmniFabMenuItem Icon="file"          Label="Documento" OnClick="@(_ => Log("Documento"))" />
+                            <OmniFabMenuItem Icon="message-square" Label="Conversa" OnClick="@(_ => Log("Conversa"))" />
+                        </OmniFabMenu>
+                    </div>
+                </div>
+                <div class="fab-grid-cell">
+                    <span class="fab-grid-label">DOWN · pareia com Top*</span>
+                    <div class="fab-stage fab-stage-top">
+                        <OmniFabMenu Icon="plus" OpenIcon="x"
+                                      Position="FabPosition.Static"
+                                      Direction="FabMenuDirection.Down"
+                                      AriaLabel="Criar (descendo)">
+                            <OmniFabMenuItem Icon="folder" Label="Pasta"  OnClick="@(_ => Log("Pasta ↓"))" />
+                            <OmniFabMenuItem Icon="image"  Label="Imagem" OnClick="@(_ => Log("Imagem ↓"))" />
+                            <OmniFabMenuItem Icon="file"   Label="Doc"    OnClick="@(_ => Log("Doc ↓"))" />
+                        </OmniFabMenu>
+                    </div>
+                </div>
+                <div class="fab-grid-cell">
+                    <span class="fab-grid-label">LEFT · pareia com *Right</span>
+                    <div class="fab-stage fab-stage-right">
+                        <OmniFabMenu Icon="plus" OpenIcon="x"
+                                      Position="FabPosition.Static"
+                                      Direction="FabMenuDirection.Left"
+                                      AriaLabel="Criar (esquerda)">
+                            <OmniFabMenuItem Icon="folder" OnClick="@(_ => Log("Pasta ←"))" Title="Pasta" />
+                            <OmniFabMenuItem Icon="image"  OnClick="@(_ => Log("Imagem ←"))" Title="Imagem" />
+                            <OmniFabMenuItem Icon="file"   OnClick="@(_ => Log("Doc ←"))" Title="Documento" />
+                        </OmniFabMenu>
+                    </div>
+                </div>
+                <div class="fab-grid-cell">
+                    <span class="fab-grid-label">RIGHT · pareia com *Left</span>
+                    @* Stage left-aligned: FAB fica ancorado à borda ESQUERDA e items
+                       expandem pra direita (uso real seria Position=BottomLeft em produção). *@
+                    <div class="fab-stage fab-stage-left">
+                        <OmniFabMenu Icon="plus" OpenIcon="x"
+                                      Position="FabPosition.Static"
+                                      Direction="FabMenuDirection.Right"
+                                      AriaLabel="Criar (direita)">
+                            <OmniFabMenuItem Icon="folder" OnClick="@(_ => Log("Pasta →"))" Title="Pasta" />
+                            <OmniFabMenuItem Icon="image"  OnClick="@(_ => Log("Imagem →"))" Title="Imagem" />
+                            <OmniFabMenuItem Icon="file"   OnClick="@(_ => Log("Doc →"))" Title="Documento" />
+                        </OmniFabMenu>
+                    </div>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── ANIMATION MODES ─── *@
+        <ShowcaseSection Title="ANIMATION — Stagger / Linear / None"
+                         Description="3 modos de animação. Stagger (default) = pop-in cascade Material. Linear = fade simples, mais sutil (estilo Radzen). None = sem animação. A ordem do stagger sempre vai do FAB pra fora — item mais próximo aparece primeiro."
+                         Code='@("<OmniFabMenu Animation=\"FabMenuAnimation.Linear\" Icon=\"plus\">\n    ...items...\n</OmniFabMenu>")'>
+            <div class="fab-grid">
+                <div class="fab-grid-cell">
+                    <span class="fab-grid-label">STAGGER (default)</span>
+                    <div class="fab-stage">
+                        <OmniFabMenu Icon="plus" OpenIcon="x"
+                                      Position="FabPosition.Static"
+                                      Animation="FabMenuAnimation.Stagger"
+                                      AriaLabel="Stagger">
+                            <OmniFabMenuItem Icon="folder"        Label="Pasta"  OnClick="@(_ => Log("Stagger: Pasta"))" />
+                            <OmniFabMenuItem Icon="image"         Label="Imagem" OnClick="@(_ => Log("Stagger: Imagem"))" />
+                            <OmniFabMenuItem Icon="message-square" Label="Chat"  OnClick="@(_ => Log("Stagger: Chat"))" />
+                        </OmniFabMenu>
+                    </div>
+                </div>
+                <div class="fab-grid-cell">
+                    <span class="fab-grid-label">LINEAR (fade)</span>
+                    <div class="fab-stage">
+                        <OmniFabMenu Icon="plus" OpenIcon="x"
+                                      Position="FabPosition.Static"
+                                      Animation="FabMenuAnimation.Linear"
+                                      AriaLabel="Linear">
+                            <OmniFabMenuItem Icon="folder"        Label="Pasta"  OnClick="@(_ => Log("Linear: Pasta"))" />
+                            <OmniFabMenuItem Icon="image"         Label="Imagem" OnClick="@(_ => Log("Linear: Imagem"))" />
+                            <OmniFabMenuItem Icon="message-square" Label="Chat"  OnClick="@(_ => Log("Linear: Chat"))" />
+                        </OmniFabMenu>
+                    </div>
+                </div>
+                <div class="fab-grid-cell">
+                    <span class="fab-grid-label">NONE (instant)</span>
+                    <div class="fab-stage">
+                        <OmniFabMenu Icon="plus" OpenIcon="x"
+                                      Position="FabPosition.Static"
+                                      Animation="FabMenuAnimation.None"
+                                      AriaLabel="None">
+                            <OmniFabMenuItem Icon="folder"        Label="Pasta"  OnClick="@(_ => Log("None: Pasta"))" />
+                            <OmniFabMenuItem Icon="image"         Label="Imagem" OnClick="@(_ => Log("None: Imagem"))" />
+                            <OmniFabMenuItem Icon="message-square" Label="Chat"  OnClick="@(_ => Log("None: Chat"))" />
+                        </OmniFabMenu>
+                    </div>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── FAB Menu COM Backdrop ─── *@
+        <ShowcaseSection Title="FAB MENU + BACKDROP — modal-like"
+                         Description='ShowBackdrop="true" escurece o fundo pra focar atenção. Padrão em apps mobile onde o speed dial é a ação principal (Gmail/Inbox). Clique no backdrop fecha.'
+                         Code='@("<OmniFabMenu Icon=\"plus\" ShowBackdrop=\"true\" Position=\"FabPosition.Static\">\n    <OmniFabMenuItem Icon=\"camera\" Label=\"Foto\" OnClick=\"@OnPhoto\" />\n    <OmniFabMenuItem Icon=\"mic\" Label=\"Áudio\" OnClick=\"@OnAudio\" />\n    <OmniFabMenuItem Icon=\"video\" Label=\"Vídeo\" OnClick=\"@OnVideo\" />\n</OmniFabMenu>")'>
+            <div class="fab-stage fab-stage-large">
+                <OmniFabMenu Icon="plus" OpenIcon="x"
+                              Position="FabPosition.Static"
+                              ShowBackdrop="true"
+                              AriaLabel="Mídia">
+                    <OmniFabMenuItem Icon="camera"  Label="Foto"  OnClick="@(_ => Log("Foto"))" />
+                    <OmniFabMenuItem Icon="mic"     Label="Áudio" OnClick="@(_ => Log("Áudio"))" />
+                    <OmniFabMenuItem Icon="video"   Label="Vídeo" OnClick="@(_ => Log("Vídeo"))" />
+                    <OmniFabMenuItem Icon="upload"  Label="Upload" OnClick="@(_ => Log("Upload"))" />
+                </OmniFabMenu>
+            </div>
+        </ShowcaseSection>
+
+        @* ─── ScrollToTop pronto pra usar ─── *@
+        <ShowcaseSection Title="SCROLL TO TOP — componente pronto com auto-show"
+                         Description="OmniScrollToTopButton: aparece quando você scrolla além do threshold, some quando volta ao topo. Auto-detecta container scrollable. Opção de anel de progresso. Scroll dele aparece no canto inferior direito DA SUA TELA enquanto você rola essa página."
+                         Code='@("<!-- Drop-in: zero config, auto-show após 200px scrollados -->\n<OmniScrollToTopButton />\n\n<!-- Com anel de progresso + threshold em % -->\n<OmniScrollToTopButton ShowProgress=\"true\"\n                        ShowAfterPercent=\"0.1\"\n                        ScrollBehavior=\"ScrollBehavior.Smooth\" />\n\n<!-- Custom: ghost variant, canto inferior esquerdo -->\n<OmniScrollToTopButton Variant=\"ButtonVariant.Ghost\"\n                        Position=\"FabPosition.BottomLeft\"\n                        Icon=\"chevron-up\" />")'>
+            <div class="fab-callout">
+                <OmniIcon Name="arrow-up-right" Size="ComponentSize.Lg" />
+                <div>
+                    <strong>Veja no canto inferior direito da sua tela quando scrollar pra baixo.</strong>
+                    <p>Threshold: <code>ShowAfterPx="300"</code> com anel de progresso ligado. Some sozinho ao voltar pro topo. Smooth scroll on click.</p>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        @* Pra observação programática de scroll position (UI customizada,
+           barras de progresso, indicadores, etc.), veja a página
+           /showcase/scroll do ScrollManager. *@
+
+        @* ─── Programmatic control ─── *@
+        <ShowcaseSection Title="CONTROLE PROGRAMÁTICO — two-way binding"
+                         Description="@DescBind"
+                         Code='@("<OmniFabMenu @bind-IsOpen=\"_menuOpen\" Icon=\"plus\" Position=\"FabPosition.Static\">\n    ...items...\n</OmniFabMenu>\n<OmniButton OnClick=\"@(() => _menuOpen = !_menuOpen)\">Toggle externo</OmniButton>")'>
+            <div class="fab-controlled">
+                <div class="fab-stage">
+                    <OmniFabMenu @bind-IsOpen="_menuOpen" Icon="plus" OpenIcon="x"
+                                  Position="FabPosition.Static"
+                                  AriaLabel="Controlado externamente">
+                        <OmniFabMenuItem Icon="check" Label="OK"     OnClick="@(_ => Log("OK"))" />
+                        <OmniFabMenuItem Icon="x"     Label="Cancel" OnClick="@(_ => Log("Cancel"))" />
+                    </OmniFabMenu>
+                </div>
+                <div class="fab-controlled-actions">
+                    <OmniButton Text="Abrir" OnClick="@(_ => { _menuOpen = true; return Task.CompletedTask; })" />
+                    <OmniButton Text="Fechar" OnClick="@(_ => { _menuOpen = false; return Task.CompletedTask; })" />
+                    <OmniButton Text="Toggle" OnClick="@(_ => { _menuOpen = !_menuOpen; return Task.CompletedTask; })" />
+                    <span class="fab-controlled-state">
+                        Estado: <strong>@(_menuOpen ? "ABERTO" : "FECHADO")</strong>
+                    </span>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniFab — parâmetros">
+            <ShowcaseApiRow Name="Icon" Type="string" Default='"plus"'
+                            Description="Ícone do FAB. Default é '+' (ação típica 'criar novo')." />
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Texto opcional. Vazio = FAB circular. Setado = Extended FAB (pill alongado com ícone + texto)." />
+            <ShowcaseApiRow Name="Position" Type="FabPosition" Default="BottomRight"
+                            Description="BottomRight (default Material) / BottomLeft / TopRight / TopLeft / BottomCenter / Static (inline no documento)." />
+            <ShowcaseApiRow Name="Variant" Type="ButtonVariant" Default="Primary"
+                            Description="Variant do botão. Primary = accent color (padrão). Mude pra Danger pra ação destrutiva, etc." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Lg"
+                            Description="Tamanho. FAB padrão é grande pra ser proeminente (Material spec = 56dp = Lg)." />
+            <ShowcaseApiRow Name="Title / AriaLabel" Type="string?" Default="null"
+                            Description="Tooltip nativo + label de acessibilidade. SEMPRE use — FAB icon-only sem label é a11y ruim." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita o FAB. Ainda renderiza na posição correta." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback<MouseEventArgs>" ShowDefault="false"
+                            Description="Handler de clique." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniFabMenu — parâmetros">
+            <ShowcaseApiRow Name="Icon / OpenIcon" Type="string" Default='"plus" / "x"'
+                            Description="Ícone do FAB quando fechado / aberto. Default é '+' → 'x' (Material spec)." />
+            <ShowcaseApiRow Name="IsOpen" Type="bool" Default="false"
+                            Description="@DescIsOpen" />
+            <ShowcaseApiRow Name="Position" Type="FabPosition" Default="BottomRight"
+                            Description="Mesma do OmniFab." />
+            <ShowcaseApiRow Name="Direction" Type="FabMenuDirection" Default="Up"
+                            Description="Up (default, combina com Bottom*) / Down (combina com Top*) / Left / Right." />
+            <ShowcaseApiRow Name="Animation" Type="FabMenuAnimation" Default="Stagger"
+                            Description="Stagger (pop-in cascade Material) / Linear (fade simples estilo Radzen) / None (instant)." />
+            <ShowcaseApiRow Name="CloseOnOutsideClick" Type="bool" Default="true"
+                            Description="Fecha ao clicar fora do menu." />
+            <ShowcaseApiRow Name="CloseOnEsc" Type="bool" Default="true"
+                            Description="Fecha ao pressionar Esc." />
+            <ShowcaseApiRow Name="CloseOnItemClick" Type="bool" Default="true"
+                            Description="Fecha quando um OmniFabMenuItem filho é clicado." />
+            <ShowcaseApiRow Name="ShowBackdrop" Type="bool" Default="false"
+                            Description="Escurece o fundo quando aberto. Padrão mobile/foco." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" ShowDefault="false"
+                            Description="Conteúdo do menu — coloque OmniFabMenuItem aqui." />
+            <ShowcaseApiRow Name="ToggleAsync() / OpenAsync() / CloseAsync()" Type="Task" ShowDefault="false"
+                            Description="@DescMethods" />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniFabMenuItem — parâmetros">
+            <ShowcaseApiRow Name="Icon" Type="string" ShowDefault="false"
+                            Description="Ícone do item. OBRIGATÓRIO (FAB items são icon-first)." />
+            <ShowcaseApiRow Name="Label" Type="string?" Default="null"
+                            Description="Texto flutuante ao lado do botão (chip Material). Visível só com menu aberto." />
+            <ShowcaseApiRow Name="LabelPosition" Type="FabMenuItemLabelPosition" Default="Auto"
+                            Description="Auto (segue posição/direção do menu pai) / Left / Right / None." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback<MouseEventArgs>" ShowDefault="false"
+                            Description="Handler de clique. Fecha o menu automaticamente (se CloseOnItemClick=true)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="FabPosition enum">
+            <ShowcaseApiRow Name="BottomRight" Type="0" ShowDefault="false" Description="Canto inferior direito (default Material)." />
+            <ShowcaseApiRow Name="BottomLeft"  Type="1" ShowDefault="false" Description="Canto inferior esquerdo." />
+            <ShowcaseApiRow Name="TopRight"    Type="2" ShowDefault="false" Description="Canto superior direito." />
+            <ShowcaseApiRow Name="TopLeft"     Type="3" ShowDefault="false" Description="Canto superior esquerdo." />
+            <ShowcaseApiRow Name="BottomCenter" Type="4" ShowDefault="false" Description="Centro inferior (apps mobile com bottom-nav)." />
+            <ShowcaseApiRow Name="Static"      Type="5" ShowDefault="false" Description="Sem posicionamento — flui no documento." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="FabMenuDirection enum">
+            <ShowcaseApiRow Name="Up"    Type="0" ShowDefault="false" Description="Items expandem para cima. Combina com Bottom*." />
+            <ShowcaseApiRow Name="Down"  Type="1" ShowDefault="false" Description="Items expandem para baixo. Combina com Top*." />
+            <ShowcaseApiRow Name="Left"  Type="2" ShowDefault="false" Description="Items expandem para esquerda. Combina com Right*." />
+            <ShowcaseApiRow Name="Right" Type="3" ShowDefault="false" Description="Items expandem para direita. Combina com Left*." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="FabMenuAnimation enum">
+            <ShowcaseApiRow Name="Stagger" Type="0" ShowDefault="false" Description="Pop-in cascading (scale + slight slide) + delay sequencial. Padrão Material Design. Item mais próximo do FAB aparece primeiro." />
+            <ShowcaseApiRow Name="Linear"  Type="1" ShowDefault="false" Description="Fade simples (só opacity) sem scale/slide. Mais sutil — estilo Radzen." />
+            <ShowcaseApiRow Name="None"    Type="2" ShowDefault="false" Description="Sem animação. Items aparecem instantaneamente." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniScrollToTopButton — parâmetros">
+            <ShowcaseApiRow Name="Icon" Type="string" Default='"arrow-up"' Description="Ícone do botão." />
+            <ShowcaseApiRow Name="Title" Type="string" Default='"Voltar ao topo"' Description="Tooltip + aria-label." />
+            <ShowcaseApiRow Name="Position" Type="FabPosition" Default="BottomRight" Description="Canto da viewport. Mesmo enum do OmniFab." />
+            <ShowcaseApiRow Name="Variant" Type="ButtonVariant" Default="Primary" Description="Visual: Primary (accent), Default (neutral), Ghost (transparente com blur), Danger." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Lg" Description="Sm (40px) / Md (48px) / Lg (56px) / Xl (64px)." />
+            <ShowcaseApiRow Name="ScrollBehavior" Type="ScrollBehavior" Default="Smooth" Description="Comportamento ao clicar: Smooth (anima, default) / Auto / Instant." />
+            <ShowcaseApiRow Name="ScrollContainerSelector" Type="string?" Default="null" Description="Container observado. null = auto-detect (mesma lógica do ScrollToTopAsync)." />
+            <ShowcaseApiRow Name="ShowAfterPx" Type="double" Default="200" Description="Pixels scrollados pra começar a mostrar." />
+            <ShowcaseApiRow Name="ShowAfterPercent" Type="double?" Default="null" Description="Fração (0.0–1.0). Quando setado, sobrescreve ShowAfterPx. Ex: 0.15 = mostra após 15% scrollado." />
+            <ShowcaseApiRow Name="ShowProgress" Type="bool" Default="false" Description="Anel SVG ao redor do ícone mostrando % scrollado." />
+            <ShowcaseApiRow Name="Hidden" Type="bool" Default="false" Description="Force-hide externo (override do auto)." />
+        </ShowcaseApiTable>
+
+    </Api>
+
+</ShowcasePage>
+
+@* Componente real (fixed) — aparece quando user scrolla, com anel de progresso. *@
+<OmniScrollToTopButton ShowAfterPx="300"
+                        ShowProgress="true"
+                        Title="Voltar ao topo" />
+
+<style>
+    .fab-row {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 24px;
+        background: var(--omni-bg-sunken);
+        border-radius: 12px;
+        min-height: 100px;
+    }
+    .fab-log {
+        margin-top: 12px;
+        padding: 10px 14px;
+        font: 12px/1.5 var(--omni-font-mono);
+        color: var(--omni-fg-soft);
+        background: var(--omni-bg-elev);
+        border: 1px solid var(--omni-line);
+        border-left: 3px solid var(--omni-accent);
+        border-radius: 6px;
+    }
+    .fab-log code { color: var(--omni-accent); font-weight: 600; }
+
+    .fab-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+    .fab-grid-cell {
+        position: relative;
+        padding: 20px;
+        background: var(--omni-bg-sunken);
+        border: 1px solid var(--omni-line);
+        border-radius: 12px;
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+    }
+    .fab-grid-label {
+        font: 700 10px/1 var(--omni-font-mono);
+        color: var(--omni-fg-soft);
+        letter-spacing: 0.1em;
+        margin-bottom: 8px;
+        padding: 4px 8px;
+        background: var(--omni-bg);
+        border-radius: 4px;
+        align-self: flex-start;
+    }
+    .fab-stage {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        padding: 16px;
+        background: var(--omni-bg);
+        border-radius: 8px;
+        border: 1px dashed var(--omni-line);
+        /* Min-height generoso pra items absolutos caberem sem overflow visual.
+           Como items são position:absolute, não expandem o stage. */
+        min-height: 260px;
+        position: relative; /* containing block pra backdrop scoped */
+    }
+    .fab-stage-top { align-items: flex-start; }
+    .fab-stage-right { justify-content: flex-end; }
+    .fab-stage-left { justify-content: flex-start; }
+    .fab-stage-large { min-height: 320px; position: relative; overflow: hidden; }
+
+    .fab-callout {
+        display: flex;
+        gap: 16px;
+        padding: 18px 20px;
+        background: color-mix(in oklab, var(--omni-accent) 8%, var(--omni-bg-elev));
+        border: 1px solid color-mix(in oklab, var(--omni-accent) 30%, transparent);
+        border-radius: 12px;
+        align-items: flex-start;
+    }
+    .fab-callout > .omni-icon { color: var(--omni-accent); flex-shrink: 0; margin-top: 2px; }
+    .fab-callout strong { display: block; font-size: 14px; margin-bottom: 4px; }
+    .fab-callout p { margin: 0; font-size: 13px; color: var(--omni-fg-soft); line-height: 1.5; }
+
+    .fab-controlled {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 20px;
+        align-items: stretch;
+    }
+    @@media (max-width: 700px) { .fab-controlled { grid-template-columns: 1fr; } }
+    .fab-controlled-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 16px;
+        background: var(--omni-bg-elev);
+        border-radius: 8px;
+    }
+    .fab-controlled-state {
+        margin-left: auto;
+        font: 12px var(--omni-font-mono);
+        color: var(--omni-fg-soft);
+    }
+    .fab-controlled-state strong { color: var(--omni-accent); }
+</style>
+
+@code {
+    private string _log = "(nenhuma ação ainda)";
+    private bool _menuOpen;
+
+    // Strings com @ literal — evita Razor parser de attribute interpretar como diretiva.
+    private const string DescBind = "@bind-IsOpen permite abrir/fechar de fora. Use OpenAsync() / CloseAsync() / ToggleAsync() via @ref.";
+    private const string DescIsOpen = "Estado aberto. Use @bind-IsOpen pra two-way binding.";
+    private const string DescMethods = "Métodos públicos pra controle programático via @ref.";
+
+    private void Log(string action)
+    {
+        _log = $"{DateTime.Now:HH:mm:ss} — {action}";
+        StateHasChanged();
+    }
+}

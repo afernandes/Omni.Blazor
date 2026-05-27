@@ -1,0 +1,258 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@inject Omni.Blazor.Services.ThemeService Theme
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  Theme mode switcher — Light / Dark / System.
+    Equivalente ao RadzenAppearanceToggle, mas com 3 estados (Radzen só
+    tem 2: light/dark). System segue o prefers-color-scheme do SO.
+
+    3 visuais (Variant):
+      • Dropdown (default) — icon button + popover com 3 opções
+      • Segmented — 3 botões inline lado a lado (estilo GitHub)
+      • Cycle — icon button que cicla Light→Dark→System a cada clique
+
+    Usage:
+        <OmniAppearanceToggle />
+        <OmniAppearanceToggle Variant="AppearanceToggleVariant.Segmented" />
+        <OmniAppearanceToggle Variant="AppearanceToggleVariant.Cycle"
+                               Size="ComponentSize.Sm" /> *@
+
+@if (Variant == AppearanceToggleVariant.Segmented)
+{
+    <div class="@RootCss" role="group" aria-label="@AriaLabel">
+        <button type="button"
+                class="@SegBtnCss(ThemeMode.Light)"
+                title="@LightLabel"
+                aria-label="@LightLabel"
+                aria-pressed="@AriaPressed(ThemeMode.Light)"
+                @onclick="@(_ => SetModeAsync(ThemeMode.Light))">
+            <OmniIcon Name="@LightIcon" Size="@IconSize" />
+            @if (ShowLabels) { <span class="omni-app-tog-lbl">@LightLabel</span> }
+        </button>
+        <button type="button"
+                class="@SegBtnCss(ThemeMode.System)"
+                title="@SystemLabel"
+                aria-label="@SystemLabel"
+                aria-pressed="@AriaPressed(ThemeMode.System)"
+                @onclick="@(_ => SetModeAsync(ThemeMode.System))">
+            <OmniIcon Name="@SystemIcon" Size="@IconSize" />
+            @if (ShowLabels) { <span class="omni-app-tog-lbl">@SystemLabel</span> }
+        </button>
+        <button type="button"
+                class="@SegBtnCss(ThemeMode.Dark)"
+                title="@DarkLabel"
+                aria-label="@DarkLabel"
+                aria-pressed="@AriaPressed(ThemeMode.Dark)"
+                @onclick="@(_ => SetModeAsync(ThemeMode.Dark))">
+            <OmniIcon Name="@DarkIcon" Size="@IconSize" />
+            @if (ShowLabels) { <span class="omni-app-tog-lbl">@DarkLabel</span> }
+        </button>
+    </div>
+}
+else if (Variant == AppearanceToggleVariant.Cycle)
+{
+    @* Botão único que cicla Light → Dark → System → Light. Tooltip mostra
+       qual é o próximo modo, label mostra o atual. Útil quando espaço é crítico. *@
+    <OmniButton Icon="@CurrentIcon"
+                 IconOnly="@(!ShowLabels)"
+                 Text="@(ShowLabels ? CurrentLabel : null)"
+                 Variant="ButtonVariant"
+                 Size="@Size"
+                 OnClick="@(_ => CycleAsync())"
+                 title="@($"{CurrentLabel} · clique para alternar")"
+                 aria-label="@($"{AriaLabel ?? "Modo de aparência"}: {CurrentLabel}")"
+                 Class="@CycleBtnClass" />
+}
+else // Dropdown (default)
+{
+    <OmniPopover Position="PopoverPosition.Bottom" ShowArrow="false" Width="180px">
+        <Trigger>
+            <OmniButton Icon="@CurrentIcon"
+                         IconOnly="@(!ShowLabels)"
+                         Text="@(ShowLabels ? CurrentLabel : null)"
+                         Variant="ButtonVariant"
+                         Size="@Size"
+                         title="@($"Modo: {CurrentLabel}")"
+                         aria-label="@(AriaLabel ?? $"Modo de aparência: {CurrentLabel}")"
+                         Class="@TriggerBtnClass" />
+        </Trigger>
+        <ChildContent>
+            <div class="omni-app-tog-menu" role="menu">
+                @foreach (var (mode, icon, label) in _allModes)
+                {
+                    <button type="button"
+                            class="@MenuItemCss(mode)"
+                            role="menuitemradio"
+                            aria-checked="@(CurrentMode == mode ? "true" : "false")"
+                            @onclick="@(_ => SetModeAsync(mode))">
+                        <OmniIcon Name="@icon" Size="ComponentSize.Sm" />
+                        <span>@label</span>
+                        @if (CurrentMode == mode)
+                        {
+                            <OmniIcon Name="check" Size="ComponentSize.Sm" Class="omni-app-tog-check" />
+                        }
+                    </button>
+                }
+            </div>
+        </ChildContent>
+    </OmniPopover>
+}
+
+@code {
+    /// <summary>Visual do toggle. Default <c>Dropdown</c>.</summary>
+    [Parameter] public AppearanceToggleVariant Variant { get; set; } = AppearanceToggleVariant.Dropdown;
+
+    /// <summary>Tamanho do botão. Default <c>Md</c>.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Variant do OmniButton interno (Dropdown/Cycle). Default <c>Default</c>.</summary>
+    [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Mostra label de texto junto do ícone. Default <c>false</c> (icon-only).</summary>
+    [Parameter] public bool ShowLabels { get; set; }
+
+    /// <summary>aria-label do grupo. Default <c>"Modo de aparência"</c>.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Texto/label do modo Light. Default <c>"Claro"</c>.</summary>
+    [Parameter] public string LightLabel { get; set; } = "Claro";
+
+    /// <summary>Texto/label do modo Dark. Default <c>"Escuro"</c>.</summary>
+    [Parameter] public string DarkLabel { get; set; } = "Escuro";
+
+    /// <summary>Texto/label do modo System. Default <c>"Sistema"</c>.</summary>
+    [Parameter] public string SystemLabel { get; set; } = "Sistema";
+
+    /// <summary>Ícone do modo Light. Default <c>"sun"</c>.</summary>
+    [Parameter] public string LightIcon { get; set; } = "sun";
+
+    /// <summary>Ícone do modo Dark. Default <c>"moon"</c>.</summary>
+    [Parameter] public string DarkIcon { get; set; } = "moon";
+
+    /// <summary>Ícone do modo System. Default <c>"monitor"</c>.</summary>
+    [Parameter] public string SystemIcon { get; set; } = "monitor";
+
+    /// <summary>Disparado quando o modo muda.</summary>
+    [Parameter] public EventCallback<ThemeMode> OnModeChanged { get; set; }
+
+    private (ThemeMode Mode, string Icon, string Label)[] _allModes = Array.Empty<(ThemeMode, string, string)>();
+
+    /// <summary>Modo atual derivado do ThemeService. Se user não escolheu manualmente,
+    /// é <c>System</c>; senão é <c>Dark</c> ou <c>Light</c> conforme o estado.</summary>
+    public ThemeMode CurrentMode =>
+        !Theme.IsUserPicked ? ThemeMode.System :
+        Theme.Dark           ? ThemeMode.Dark  : ThemeMode.Light;
+
+    private string CurrentIcon => CurrentMode switch
+    {
+        ThemeMode.Dark   => DarkIcon,
+        ThemeMode.System => SystemIcon,
+        _                => LightIcon,
+    };
+
+    private string CurrentLabel => CurrentMode switch
+    {
+        ThemeMode.Dark   => DarkLabel,
+        ThemeMode.System => SystemLabel,
+        _                => LightLabel,
+    };
+
+    private ComponentSize IconSize => Size switch
+    {
+        ComponentSize.Sm => ComponentSize.Sm,
+        ComponentSize.Lg => ComponentSize.Md,
+        ComponentSize.Xl => ComponentSize.Lg,
+        _                => ComponentSize.Sm,
+    };
+
+    private string RootCss => CssBuilder.Default("omni-app-tog")
+        .AddClass(Variant switch
+        {
+            AppearanceToggleVariant.Segmented => "omni-app-tog-seg",
+            AppearanceToggleVariant.Cycle     => "omni-app-tog-cycle",
+            _                                 => "omni-app-tog-dd",
+        })
+        .AddClass(Size switch
+        {
+            ComponentSize.Sm => "omni-app-tog-sm",
+            ComponentSize.Lg => "omni-app-tog-lg",
+            ComponentSize.Xl => "omni-app-tog-xl",
+            _                => "omni-app-tog-md",
+        })
+        .AddClass(Class)
+        .Build();
+
+    private string CycleBtnClass => CssBuilder.Default("omni-app-tog")
+        .AddClass("omni-app-tog-cycle")
+        .AddClass(Class)
+        .Build();
+
+    private string TriggerBtnClass => CssBuilder.Default("omni-app-tog")
+        .AddClass("omni-app-tog-trigger")
+        .AddClass(Class)
+        .Build();
+
+    private string SegBtnCss(ThemeMode mode) => CssBuilder.Default("omni-app-tog-seg-btn")
+        .AddClass("omni-app-tog-seg-active", CurrentMode == mode)
+        .Build();
+
+    private string MenuItemCss(ThemeMode mode) => CssBuilder.Default("omni-app-tog-menu-item")
+        .AddClass("omni-app-tog-menu-item-active", CurrentMode == mode)
+        .Build();
+
+    private string AriaPressed(ThemeMode mode) => CurrentMode == mode ? "true" : "false";
+
+    protected override void OnInitialized()
+    {
+        _allModes = new[]
+        {
+            (ThemeMode.Light,  LightIcon,  LightLabel),
+            (ThemeMode.System, SystemIcon, SystemLabel),
+            (ThemeMode.Dark,   DarkIcon,   DarkLabel),
+        };
+        Theme.OnChange += HandleThemeChange;
+    }
+
+    /// <summary>Re-render quando outro componente muda o tema (ex: outro toggle,
+    /// SO trocou via subscribeColorScheme com user em System mode).</summary>
+    private void HandleThemeChange() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Define um modo específico. System chama
+    /// <c>UseSystemColorSchemeAsync</c> (que desinscreve user-picked).
+    /// Light/Dark usa <c>SetDarkAsync</c>.</summary>
+    public async Task SetModeAsync(ThemeMode mode)
+    {
+        if (mode == CurrentMode) return;
+        if (mode == ThemeMode.System)
+        {
+            await Theme.UseSystemColorSchemeAsync();
+        }
+        else
+        {
+            await Theme.SetDarkAsync(mode == ThemeMode.Dark);
+        }
+        if (OnModeChanged.HasDelegate) await OnModeChanged.InvokeAsync(mode);
+    }
+
+    /// <summary>Cicla Light → Dark → System → Light. Usado pelo variant Cycle
+    /// e disponível pra @ref externo.</summary>
+    public Task CycleAsync()
+    {
+        var next = CurrentMode switch
+        {
+            ThemeMode.Light  => ThemeMode.Dark,
+            ThemeMode.Dark   => ThemeMode.System,
+            _                => ThemeMode.Light,
+        };
+        return SetModeAsync(next);
+    }
+
+    public void Dispose()
+    {
+        Theme.OnChange -= HandleThemeChange;
+        GC.SuppressFinalize(this);
+    }
+}

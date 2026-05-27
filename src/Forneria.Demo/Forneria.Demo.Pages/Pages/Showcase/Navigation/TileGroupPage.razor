@@ -1,0 +1,184 @@
+@page "/showcase/tile-group"
+@layout ShowcaseLayout
+
+<PageTitle>TileGroup — Showcase</PageTitle>
+
+<ShowcasePage Title="TileGroup"
+              Subtitle="Container “lego” — blocos grudados sem gap, separados por linhas de 1 px. Para telas operacionais e Bento densos.">
+
+    <Overview>
+        <p>
+            O <code>OmniTileGroup</code> é o irmão operacional do <code>OmniRow</code>/<code>OmniCol</code>:
+            onde aquele cria layouts <em>arejados</em> (dashboards, relatórios), este cria layouts
+            <em>grudados</em> — blocos retangulares separados apenas por linhas de 1 px,
+            sem <code>border-radius</code> nem <code>box-shadow</code>. Inspirado no
+            <code>.list-group</code> do Bootstrap (1D) e no padrão Bento (2D).
+        </p>
+        <p>
+            O componente expõe <strong>três direções</strong> via <code>Direction</code>:
+            <code>Column</code> (default, stack vertical estilo list-group),
+            <code>Row</code> (stack horizontal, abas sem gap), e
+            <code>Grid</code> (grade 2D N colunas com suporte a span — Bento dashboard).
+            A propriedade <code>Columns</code> só é usada no modo Grid.
+        </p>
+        <p>
+            <strong>Sem mudança no OmniCard.</strong> Os filhos diretos do TileGroup recebem
+            automaticamente: <code>background</code> opaco, <code>border-radius: 0</code>,
+            <code>box-shadow: none</code> e <code>border: 0</code>. Fora do TileGroup, o Card
+            continua arredondado e com sombra — zero acoplamento.
+        </p>
+        <p>
+            Para tiles assimétricos no modo Grid, aplique as classes utilitárias
+            <code>omni-tile-span-{2..12}</code> e <code>omni-tile-row-span-{2..6}</code>
+            no próprio Card filho.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Telas operacionais densas — PDV, KDS, frente de caixa, garçom — onde toda pixel-precision conta.</li>
+            <li>Stack de seções relacionadas onde a continuidade visual importa mais que a separação (carrinho de compras, configurações em série, FAQ).</li>
+            <li>Abas/tabs em barra horizontal sem espaçamento (Balcão · Delivery · Retirada · Mesa).</li>
+            <li>Dashboards Bento densos com tiles de tamanhos variados — KPI principal expandido, métricas secundárias menores.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Dashboards arejados com cards "flutuantes" → use <code>OmniRow</code> + <code>OmniCol</code> + <code>OmniCard Elevated</code>.</li>
+            <li>Seções colapsáveis → use <code>OmniAccordion</code>.</li>
+            <li>Apenas botões agrupados → use o padrão de <code>OmniButton</code> em barra.</li>
+            <li>Lista vertical de itens curtos (texto + ícone, sem header próprio) → considere uma estrutura semântica de lista (<code>ul/li</code>) em vez de Cards.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DIRECTION = COLUMN (default)"
+                         Description="Stack vertical — equivalente ao .list-group do Bootstrap. Bordas horizontais de 1 px entre filhos, exterior arredondado."
+                         Code="@(@"<OmniTileGroup>
+    <OmniCard Title=""Itens do pedido"" Subtitle=""3 itens · R$ 89,50"">…</OmniCard>
+    <OmniCard Title=""Cliente""        Subtitle=""Marina Toledo · 842 pts"">…</OmniCard>
+    <OmniCard Title=""Pagamento""      Subtitle=""Selecione a forma"">…</OmniCard>
+</OmniTileGroup>")">
+            <OmniTileGroup>
+                <OmniCard Title="Itens do pedido" Subtitle="3 itens · R$ 89,50">
+                    <p class="omni-muted" style="margin:0;">2× Coca-Cola + 1 Pizza Grande + Borda Catupiry</p>
+                </OmniCard>
+                <OmniCard Title="Cliente" Subtitle="Marina Toledo · 842 pts">
+                    <p class="omni-muted" style="margin:0;">(11) 98823-1204 — primeira visita há 14 meses</p>
+                </OmniCard>
+                <OmniCard Title="Pagamento" Subtitle="Selecione a forma">
+                    <div class="omni-row omni-row-wrap omni-row-gap-8">
+                        <OmniChip Text="Pix" Accent />
+                        <OmniChip Text="Crédito" />
+                        <OmniChip Text="Débito" />
+                        <OmniChip Text="Dinheiro" />
+                    </div>
+                </OmniCard>
+            </OmniTileGroup>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DIRECTION = ROW"
+                         Description="Stack horizontal — bordas verticais de 1 px entre filhos. Útil para abas de modo (Balcão · Delivery · Retirada · Mesa)."
+                         Code="@(@"<OmniTileGroup Direction=""TileDirection.Row"">
+    <OmniCard>Balcão</OmniCard>
+    <OmniCard>Delivery</OmniCard>
+    <OmniCard>Retirada</OmniCard>
+    <OmniCard>Mesa</OmniCard>
+</OmniTileGroup>")">
+            <OmniTileGroup Direction="TileDirection.Row">
+                <OmniCard><div style="text-align:center;font-weight:500;">Balcão</div></OmniCard>
+                <OmniCard><div style="text-align:center;font-weight:500;">Delivery</div></OmniCard>
+                <OmniCard><div style="text-align:center;font-weight:500;">Retirada</div></OmniCard>
+                <OmniCard><div style="text-align:center;font-weight:500;">Mesa</div></OmniCard>
+            </OmniTileGroup>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DIRECTION = GRID (Bento)"
+                         Description="Grade 2D N colunas com suporte a span. Bordas internas perfeitas em ambos eixos — sem ajuste manual. Use Class no filho para spans assimétricos."
+                         Code="@(@"<OmniTileGroup Direction=""TileDirection.Grid"" Columns=""4"">
+    <OmniCard Class=""omni-tile-span-2"">  <!-- ocupa 2 colunas -->
+        <OmniStat Label=""Receita"" Value=""R$ 11.266,65"" Delta=""▲ +18,4%"" />
+    </OmniCard>
+    <OmniCard><OmniStat Label=""Pedidos"" Value=""142"" Delta=""▲ +9,2%"" /></OmniCard>
+    <OmniCard><OmniStat Label=""Ticket""  Value=""R$ 79,34"" /></OmniCard>
+    <OmniCard Class=""omni-tile-row-span-2"">Mapa da frota</OmniCard>
+    <OmniCard>Canais</OmniCard>
+    <OmniCard>Tempo médio</OmniCard>
+    <OmniCard>Cozinha</OmniCard>
+</OmniTileGroup>")">
+            <OmniTileGroup Direction="TileDirection.Grid" Columns="4">
+                <OmniCard Class="omni-tile-span-2">
+                    <OmniStat Label="Receita" Value="R$ 11.266,65"
+                               Delta="▲ +18,4%" DeltaCaption="vs ontem" />
+                </OmniCard>
+                <OmniCard>
+                    <OmniStat Label="Pedidos" Value="142" Delta="▲ +9,2%" DeltaCaption="vs ontem" />
+                </OmniCard>
+                <OmniCard>
+                    <OmniStat Label="Ticket médio" Value="R$ 79,34" Delta="▲ +8,4%" DeltaCaption="vs ontem" />
+                </OmniCard>
+                <OmniCard Class="omni-tile-row-span-2">
+                    <div class="omni-stack omni-stack-8">
+                        <span style="font-weight:600;">Mapa da frota</span>
+                        <p class="omni-muted" style="font-size:12px;margin:0;">3 entregadores · 5 em rota</p>
+                    </div>
+                </OmniCard>
+                <OmniCard>
+                    <OmniStat Label="Canais ativos" Value="4" DeltaCaption="iFood · Uber · WhatsApp · Balcão" />
+                </OmniCard>
+                <OmniCard>
+                    <OmniStat Label="Tempo médio" Value="24'18" Delta="▼ −2'04" DeltaDown DeltaCaption="meta 25'00" />
+                </OmniCard>
+                <OmniCard>
+                    <OmniStat Label="Cozinha" Value="12" DeltaCaption="pedidos em preparo" />
+                </OmniCard>
+            </OmniTileGroup>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ANINHAMENTO"
+                         Description="TileGroups podem ser aninhados livremente. Aqui um TileGroup vertical contém um Card que abriga outro TileGroup horizontal — bordas perfeitas em qualquer profundidade."
+                         Code="@(@"<OmniTileGroup>
+    <OmniCard Title=""Modo de venda"" NoPadding>
+        <OmniTileGroup Direction=""TileDirection.Row"">
+            <OmniCard>Balcão</OmniCard>
+            <OmniCard>Delivery</OmniCard>
+            <OmniCard>Retirada</OmniCard>
+        </OmniTileGroup>
+    </OmniCard>
+    <OmniCard Title=""Detalhes do pedido"">…</OmniCard>
+</OmniTileGroup>")">
+            <OmniTileGroup>
+                <OmniCard Title="Modo de venda" NoPadding>
+                    <OmniTileGroup Direction="TileDirection.Row">
+                        <OmniCard><div style="text-align:center;font-weight:500;">Balcão</div></OmniCard>
+                        <OmniCard><div style="text-align:center;font-weight:500;">Delivery</div></OmniCard>
+                        <OmniCard><div style="text-align:center;font-weight:500;">Retirada</div></OmniCard>
+                    </OmniTileGroup>
+                </OmniCard>
+                <OmniCard Title="Detalhes do pedido">
+                    <p class="omni-muted" style="margin:0;">Resumo agregado — itens, cliente e pagamento abaixo.</p>
+                </OmniCard>
+            </OmniTileGroup>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniTileGroup — parâmetros">
+            <ShowcaseApiRow Name="Direction" Type="TileDirection" Default="Column"
+                            Description="Column (vertical, estilo list-group), Row (horizontal) ou Grid (2D Bento com Columns)." />
+            <ShowcaseApiRow Name="Columns" Type="int" Default="12"
+                            Description="Quantidade de colunas. Só usado quando Direction=Grid. Renderizado via custom property --omni-tile-cols." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Filhos do grupo — tipicamente OmniCards, mas funciona com qualquer elemento com background opaco." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Classes utilitárias para spans (modo Grid)">
+            <ShowcaseApiRow Name="omni-tile-span-{N}" Type="CSS class" Default="—"
+                            Description="Filho ocupa N colunas (2..12). Aplicar via Class no OmniCard. Ex.: Class=&quot;omni-tile-span-2&quot;." />
+            <ShowcaseApiRow Name="omni-tile-row-span-{N}" Type="CSS class" Default="—"
+                            Description="Filho ocupa N linhas (2..6). Aplicar via Class no OmniCard. Ex.: Class=&quot;omni-tile-row-span-2&quot;." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

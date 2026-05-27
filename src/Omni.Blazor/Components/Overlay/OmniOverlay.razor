@@ -1,0 +1,188 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject Omni.Blazor.Services.ScrollManager Scroll
+@using Omni.Blazor.Utilities
+
+@*  Componente standalone de overlay/backdrop reutilizável. Equivalente ao
+    <c>MudOverlay</c> do MudBlazor.
+
+    Combina (numa única abstração) os pedaços que <c>OmniDrawer</c>,
+    <c>OmniDialog</c> e <c>OmniSplitView</c> hoje implementam separadamente:
+      • backdrop (scrim) com blur + saturate, herda tokens --omni-backdrop-*
+      • body scroll lock (com refcount via ScrollManager)
+      • Esc handler (fecha)
+      • AutoClose (click no backdrop fecha)
+      • Modal / não-modal (pointer-events: none deixa interagir por trás)
+      • Absolute (fill parent) vs Fixed (default, fill viewport)
+      • ZIndex configurável
+      • ChildContent opcional (overlay vazio = só scrim; overlay com conteúdo
+        = você fornece o card/modal/spinner/lightbox)
+
+    Usage — scrim simples controlado por flag:
+        <OmniOverlay @bind-Visible="_loading" />
+
+    Usage — confirmação inline com conteúdo:
+        <OmniOverlay @bind-Visible="_confirmShow" AutoClose>
+            <OmniCard Title="Tem certeza?">...</OmniCard>
+        </OmniOverlay>
+
+    Usage — loading absoluto dentro de um painel (não da viewport):
+        <div style="position: relative">
+            <OmniOverlay @bind-Visible="_pageBusy" Absolute Modal="false">
+                <OmniSpinner Size="ComponentSize.Lg" />
+            </OmniOverlay>
+            ...
+        </div>
+*@
+
+@if (Visible)
+{
+    <div id="@Id"
+         class="@RootCss"
+         style="@RootStyle"
+         @onclick="OnClickAsync"
+         @attributes="Attributes">
+        @if (ChildContent is not null)
+        {
+            <div class="omni-overlay-content" @onclick:stopPropagation>
+                @ChildContent
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Controla a visibilidade. Two-way via <c>@@bind-Visible</c>.</summary>
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+
+    /// <summary>Quando <c>true</c>, clicar no backdrop fecha (seta Visible=false).
+    /// Default <c>false</c>. Conteúdo (<see cref="ChildContent"/>) não dispara — o overlay
+    /// usa <c>@@onclick:stopPropagation</c> no wrapper interno.</summary>
+    [Parameter] public bool AutoClose { get; set; }
+
+    /// <summary>Bloqueia scroll do <c>&lt;body&gt;</c> enquanto visível. Default <c>true</c>.
+    /// Refcount-safe — múltiplos overlays não desbloqueiam até todos fecharem.</summary>
+    [Parameter] public bool LockScroll { get; set; } = true;
+
+    /// <summary>Quando <c>true</c> (default), o overlay BLOQUEIA cliques no que está atrás.
+    /// Quando <c>false</c>, <c>pointer-events: none</c> deixa o user clicar através
+    /// (modo "decoração" — overlay decorativo sem capturar input).</summary>
+    [Parameter] public bool Modal { get; set; } = true;
+
+    /// <summary>Position <c>absolute</c> em vez de <c>fixed</c>. Use quando o overlay
+    /// deve preencher um container específico (não a viewport). O container precisa
+    /// ter <c>position: relative</c>. Quando <c>true</c>, <see cref="LockScroll"/>
+    /// é ignorado (não faz sentido bloquear scroll do body num overlay local).</summary>
+    [Parameter] public bool Absolute { get; set; }
+
+    /// <summary>Z-index inline. Quando null (default), herda o stack natural (500).</summary>
+    [Parameter] public int? ZIndex { get; set; }
+
+    /// <summary>Quando <c>true</c> (default), Esc fecha o overlay. <c>false</c> ignora Esc.</summary>
+    [Parameter] public bool CloseOnEsc { get; set; } = true;
+
+    /// <summary>Conteúdo opcional renderizado centrado dentro do overlay.
+    /// Quando null, o overlay é puro scrim (sem nada visível além do backdrop).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Callback adicional quando o user clica no backdrop. Recebe o MouseEventArgs.
+    /// Dispara independente de <see cref="AutoClose"/> (AutoClose só decide se fecha).</summary>
+    [Parameter] public EventCallback<Microsoft.AspNetCore.Components.Web.MouseEventArgs> OnClick { get; set; }
+
+    /// <summary>Disparado quando o overlay fecha (via AutoClose, Esc ou bind setando false).</summary>
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    private bool _wasVisible;
+    private DotNetObjectReference<OmniOverlay>? _selfRef;
+    private Services.OverlayLifecycle? _overlay;
+
+    protected override void OnInitialized()
+    {
+        _overlay = new Services.OverlayLifecycle(JS, Scroll, Id);
+    }
+
+    // Reusa o bloco compartilhado .omni-backdrop... wait — esse bloco é
+    // específico do triplet (drawer/dialog/split). Usamos a mesma classe
+    // .omni-overlay-backdrop pra herdar o visual (definido no SCSS abaixo).
+    private string RootCss => CssBuilder.Default("omni-overlay")
+        .AddClass("omni-overlay-backdrop")
+        .AddClass(Absolute ? "omni-overlay-absolute" : "omni-overlay-fixed")
+        .AddClass("omni-overlay-modeless", !Modal)
+        .AddClass(Class)
+        .Build();
+
+    private string? RootStyle
+    {
+        get
+        {
+            var parts = new List<string>(2);
+            if (ZIndex is int z) parts.Add($"z-index:{z}");
+            if (!string.IsNullOrEmpty(Style)) parts.Add(Style!);
+            return parts.Count == 0 ? null : string.Join(';', parts);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Detecta transição Visible flipou. Engaja/libera scroll lock + Esc handler.
+        if (Visible == _wasVisible) return;
+        _wasVisible = Visible;
+
+        if (Visible)
+        {
+            await ActivateAsync();
+        }
+        else
+        {
+            await DeactivateAsync();
+            if (OnClosed.HasDelegate) await OnClosed.InvokeAsync();
+        }
+    }
+
+    private async Task ActivateAsync()
+    {
+        if (_overlay is null) return;
+        // Scroll lock só faz sentido em modo fixed. Absolute = lock local não é
+        // responsabilidade nossa, deixa pro container pai gerenciar.
+        var lockScroll = LockScroll && !Absolute;
+        // CloseOnEsc=false: ainda chamamos ActivateAsync mas só pelo scroll lock —
+        // setupOverlay traz Esc + focus trap juntos. Pra desabilitar Esc seletivamente,
+        // o OnEscape vira no-op (verificação no método).
+        _selfRef ??= DotNetObjectReference.Create(this);
+        await _overlay.ActivateAsync(_selfRef, nameof(OnEscape), lockScroll);
+    }
+
+    private Task DeactivateAsync() =>
+        _overlay?.DeactivateAsync(unlockScroll: LockScroll && !Absolute) ?? Task.CompletedTask;
+
+    /// <summary>Chamado pelo JS quando Esc é pressionado com este overlay no topo do stack.</summary>
+    [JSInvokable]
+    public Task OnEscape() => CloseOnEsc ? CloseAsync() : Task.CompletedTask;
+
+    private async Task OnClickAsync(Microsoft.AspNetCore.Components.Web.MouseEventArgs e)
+    {
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(e);
+        if (AutoClose) await CloseAsync();
+    }
+
+    /// <summary>Fecha programaticamente.</summary>
+    public async Task CloseAsync()
+    {
+        if (!Visible) return;
+        Visible = false;
+        if (VisibleChanged.HasDelegate) await VisibleChanged.InvokeAsync(false);
+        // OnClosed será disparado no próximo OnAfterRenderAsync (transição detectada lá).
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_overlay is not null) await _overlay.DisposeAsync();
+        _selfRef?.Dispose();
+        _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+}

@@ -1,0 +1,31 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <div class="omni-mosaic-ic"><OmniIcon Name="@Icon" /></div>
+    }
+    <div>
+        <div class="omni-mosaic-nm">@Name</div>
+        @if (!string.IsNullOrEmpty(Meta))
+        {
+            <div class="omni-mosaic-mt">@Meta</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+    [Parameter] public string? Meta { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public bool Wide { get; set; }
+    [Parameter] public bool Featured { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-mosaic-card")
+        .AddClass("omni-mosaic-card-wide", Wide)
+        .AddClass("omni-mosaic-card-featured", Featured)
+        .AddClass(Class)
+        .Build();
+}

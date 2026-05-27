@@ -1,0 +1,134 @@
+@page "/showcase/alert"
+@layout ShowcaseLayout
+
+<PageTitle>Alert — Showcase</PageTitle>
+
+<ShowcasePage Title="Alert"
+              Subtitle="Banner inline persistente para mensagens contextuais na página.">
+
+    <Overview>
+        <p>
+            O <code>OmniAlert</code> é um banner que <strong>permanece na página</strong> até
+            ser dispensado — diferente do <code>Toast</code>, que desaparece sozinho. Use-o para
+            comunicar estado que o usuário precisa ver enquanto trabalha: erros de formulário,
+            confirmações de sucesso, avisos de quota, informações de contexto.
+        </p>
+        <p>
+            Tem quatro severidades (<code>Info</code>, <code>Success</code>, <code>Warning</code>,
+            <code>Error</code>), cada uma com cor e ícone próprios. Pode ser <code>Dismissible</code>
+            (botão de fechar) e aceita um slot <code>Actions</code> para CTAs contextuais.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Erro de validação que precisa ficar visível enquanto o usuário corrige o form.</li>
+            <li>Confirmação de sucesso de uma ação importante (cadastro criado, importação concluída).</li>
+            <li>Aviso de quota / plano / estado do sistema que persiste entre interações.</li>
+            <li>Mensagem informativa fixa no topo de uma página ou seção.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Feedback transitório de uma ação rápida → use <code>NotificationService</code> (Toast).</li>
+            <li>Confirmação que exige decisão (Sim/Não) → use <code>DialogService.Confirm</code>.</li>
+            <li>Validação inline de um campo específico → use <code>OmniFormField</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SEVERIDADES"
+                         Description="Quatro níveis — cada um com cor e ícone automáticos."
+                         Code="@(@"<OmniAlert Severity=""NotificationSeverity.Info"" Title=""Informação"">
+    Mensagem informativa que permanece visível.
+</OmniAlert>
+<OmniAlert Severity=""NotificationSeverity.Success"" Title=""Sucesso"">…</OmniAlert>
+<OmniAlert Severity=""NotificationSeverity.Warning"" Title=""Atenção"">…</OmniAlert>
+<OmniAlert Severity=""NotificationSeverity.Error"" Title=""Erro"">…</OmniAlert>")">
+            <div class="omni-stack omni-stack-12">
+                <OmniAlert Severity="NotificationSeverity.Info" Title="Informação">
+                    Essa é uma mensagem informativa que precisa permanecer visível na página.
+                </OmniAlert>
+                <OmniAlert Severity="NotificationSeverity.Success" Title="Sucesso">
+                    Suas alterações foram salvas com sucesso.
+                </OmniAlert>
+                <OmniAlert Severity="NotificationSeverity.Warning" Title="Atenção">
+                    Faltam 5 itens em estoque crítico — reponha em breve para evitar ruptura.
+                </OmniAlert>
+                <OmniAlert Severity="NotificationSeverity.Error" Title="Erro">
+                    Não foi possível conectar com a impressora fiscal. Verifique o cabo USB.
+                </OmniAlert>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DISMISSIBLE"
+                         Description="Botão X aparece quando Dismissible=true; emite o evento OnClosed."
+                         Code="@(@"<OmniAlert Severity=""NotificationSeverity.Warning"" Title=""Plano Pro: 87% usado""
+            Dismissible OnClosed=""OnDismiss"">
+    Você atingiu 4.350 de 5.000 pedidos do plano.
+</OmniAlert>")">
+            @if (!hidden)
+            {
+                <OmniAlert Severity="NotificationSeverity.Warning" Title="Plano Pro: 87% usado"
+                            Dismissible OnClosed="@(() => { hidden = true; return Task.CompletedTask; })">
+                    Você atingiu 4.350 de 5.000 pedidos disponíveis no plano. Considere fazer upgrade.
+                </OmniAlert>
+            }
+            else
+            {
+                <p class="omni-muted">Alerta dispensado.
+                    <a href="#" @onclick="@(_ => { hidden = false; return Task.CompletedTask; })" @onclick:preventDefault>
+                        Mostrar novamente
+                    </a>
+                </p>
+            }
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM AÇÕES"
+                         Description="Slot Actions para CTAs contextuais."
+                         Code="@(@"<OmniAlert Severity=""NotificationSeverity.Info"" Title=""Atualização disponível"">
+    <ChildContent>Uma nova versão está disponível.</ChildContent>
+    <Actions>
+        <OmniButton Text=""Atualizar agora"" Variant=""ButtonVariant.Primary"" Size=""ComponentSize.Sm"" />
+        <OmniButton Text=""Lembrar depois"" Variant=""ButtonVariant.Ghost"" Size=""ComponentSize.Sm"" />
+    </Actions>
+</OmniAlert>")">
+            <OmniAlert Severity="NotificationSeverity.Info" Title="Atualização disponível">
+                <ChildContent>
+                    Uma nova versão do Forneria está disponível com melhorias de performance no PDV.
+                </ChildContent>
+                <Actions>
+                    <OmniButton Text="Atualizar agora" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm" />
+                    <OmniButton Text="Lembrar depois" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                </Actions>
+            </OmniAlert>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Severity" Type="NotificationSeverity" Default="Info"
+                            Description="Cor e ícone do alerta — Info, Success, Warning, Error." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Título em negrito acima da mensagem." />
+            <ShowcaseApiRow Name="Dismissible" Type="bool" Default="false"
+                            Description="Exibe o botão X de fechar." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Sobrescreve o ícone automático da severidade." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Corpo da mensagem (texto ou markup)." />
+            <ShowcaseApiRow Name="Actions" Type="RenderFragment?" Default="null"
+                            Description="Slot para botões/CTAs no rodapé do alerta." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnClosed" Type="EventCallback" ShowDefault="false"
+                            Description="Disparado quando o usuário dispensa o alerta (requer Dismissible)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool hidden;
+}

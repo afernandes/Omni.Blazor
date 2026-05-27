@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Forneria — Live Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+
+<style>
+  body { background: var(--bg-sunken); }
+
+  .lo-app {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* Top bar reuses the topbar primitives */
+  .lo-bar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 20px;
+    height: 52px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .lo-title {
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.04em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .lo-title .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger);
+    animation: lo-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes lo-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--danger) 40%, transparent); }
+    50% { box-shadow: 0 0 0 8px transparent; }
+  }
+  .lo-clock {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg-muted);
+    margin-left: auto;
+  }
+  .lo-segments {
+    display: flex; gap: 4px;
+    padding: 3px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .lo-segment {
+    padding: 4px 10px;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--fg-muted);
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .lo-segment.active {
+    background: var(--fg); color: var(--bg);
+  }
+
+  /* The bento grid uses the shared .page-bento + .surface-tile primitives. */
+  .lo-stage {
+    flex: 1;
+    padding: 12px;
+    overflow: auto;
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Hero metric tile */
+  .kpi-tile {
+    padding: 14px 16px;
+    display: flex; flex-direction: column;
+    gap: 4px;
+    min-height: 110px;
+  }
+  .kpi-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--fg-soft);
+    font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .kpi-label .ico {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    display: grid; place-items: center;
+  }
+  .kpi-value {
+    font-family: var(--font-mono);
+    font-size: 32px; font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-top: 4px;
+    color: var(--fg);
+  }
+  .kpi-value .unit { font-size: 16px; color: var(--fg-muted); margin-right: 6px; }
+  .kpi-delta {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-top: auto;
+  }
+  .kpi-delta.up { color: var(--good); }
+  .kpi-delta.down { color: var(--danger); }
+  .kpi-delta .vs { color: var(--fg-soft); margin-left: 6px; font-family: var(--font-ui); }
+
+  /* Tile that needs accent — wraps content */
+  .kpi-tile.is-accent { background: var(--accent); color: var(--accent-fg); }
+  .kpi-tile.is-accent .kpi-label,
+  .kpi-tile.is-accent .kpi-label .ico { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.12); }
+  .kpi-tile.is-accent .kpi-value { color: var(--accent-fg); }
+  .kpi-tile.is-accent .kpi-delta { color: rgba(255,255,255,0.9); }
+  .kpi-tile.is-accent .kpi-delta .vs { color: rgba(255,255,255,0.55); }
+
+  /* Kitchen queue tile (live list) */
+  .queue {
+    display: flex; flex-direction: column;
+  }
+  .queue-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+  }
+  .queue-row:first-child { border-top: 0; }
+  .queue-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-soft);
+    font-weight: 700;
+  }
+  .queue-info { min-width: 0; }
+  .queue-name { font-weight: 600; }
+  .queue-meta { font-size: 11px; color: var(--fg-muted); margin-top: 1px; }
+  .queue-time {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .queue-time.late { color: var(--danger); }
+  .queue-status {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--good);
+  }
+  .queue-status.late { background: var(--danger); animation: lo-pulse 1.4s ease-in-out infinite; }
+  .queue-status.warn { background: var(--warn); }
+
+  /* Channel breakdown tile */
+  .channels {
+    padding: 12px 14px 14px;
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .channel-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 56px;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .channel-name {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .channel-dot {
+    width: 7px; height: 7px; border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .channel-bar {
+    height: 6px; background: var(--bg-sunken); border-radius: 3px; overflow: hidden;
+  }
+  .channel-bar > div {
+    height: 100%; border-radius: 3px;
+    transition: width 500ms cubic-bezier(.2,.7,.3,1);
+  }
+  .channel-val {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  /* Hourly chart tile (sparkbars) */
+  .sparkbars {
+    height: 70px;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    align-items: flex-end;
+    gap: 2px;
+    padding: 0 14px 12px;
+  }
+  .sparkbars > div {
+    background: var(--accent);
+    border-radius: 1px;
+    opacity: 0.45;
+    transition: opacity 120ms, background 120ms;
+  }
+  .sparkbars > div:hover { opacity: 1; }
+  .sparkbars > div.now {
+    background: var(--accent);
+    opacity: 1;
+    box-shadow: 0 0 0 1px var(--bg-elev), 0 0 0 2px var(--accent);
+  }
+
+  /* Stations grid */
+  .stations {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    margin: 0 -1px -1px -1px;
+  }
+  .station {
+    background: var(--bg-elev);
+    padding: 12px 14px;
+    display: flex; flex-direction: column;
+    gap: 4px;
+  }
+  .station-name {
+    font-size: 11px; font-weight: 600;
+    color: var(--fg-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .station-val {
+    font-family: var(--font-mono);
+    font-size: 22px; font-weight: 700;
+    color: var(--fg);
+    letter-spacing: -0.02em;
+  }
+  .station-sub {
+    font-size: 10.5px;
+    color: var(--fg-soft);
+    font-family: var(--font-mono);
+  }
+  .station.alert .station-val { color: var(--danger); }
+
+  /* Map-ish — fleet tracker */
+  .fleet {
+    padding: 0;
+    display: flex; flex-direction: column;
+    flex: 1;
+  }
+  .fleet-map {
+    flex: 1;
+    min-height: 220px;
+    background:
+      /* roads */
+      linear-gradient(90deg, transparent 28%, var(--line) 28%, var(--line) 28.4%, transparent 28.4%, transparent 64%, var(--line) 64%, var(--line) 64.4%, transparent 64.4%),
+      linear-gradient(0deg, transparent 32%, var(--line) 32%, var(--line) 32.4%, transparent 32.4%, transparent 72%, var(--line) 72%, var(--line) 72.4%, transparent 72.4%),
+      var(--bg-sunken);
+    position: relative;
+    border-top: 1px solid var(--line);
+  }
+  .fleet-pin {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-elev);
+    box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(0,0,0,0.15);
+    transform: translate(-50%, -50%);
+  }
+  .fleet-pin.moto { background: var(--accent); }
+  .fleet-pin.idle { background: var(--good); }
+  .fleet-pin.late { background: var(--danger); animation: lo-pulse 1.4s ease-in-out infinite; }
+  .fleet-pin.store {
+    width: 12px; height: 12px;
+    background: var(--fg);
+    border-radius: 3px;
+  }
+
+  /* Order ticker (vertical scroll) */
+  .ticker {
+    padding: 0;
+    display: flex; flex-direction: column;
+  }
+  .ticker-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 12px;
+    padding: 9px 14px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+  }
+  .ticker-row:first-child { border-top: 0; }
+  .ticker-top { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .ticker-id { font-family: var(--font-mono); color: var(--fg-soft); font-weight: 600; font-size: 11px; }
+  .ticker-cust { font-weight: 600; }
+  .ticker-items { font-size: 11px; color: var(--fg-muted); margin-top: 2px; line-height: 1.3; }
+  .ticker-total { font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
+  .ticker-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-soft); margin-top: 1px; text-align: right; }
+  .ticker-channel {
+    display: inline-block;
+    width: 4px; height: 12px;
+    border-radius: 1px;
+    margin-right: 6px;
+    vertical-align: -2px;
+  }
+
+  /* Big station card */
+  .pizza-station {
+    padding: 0;
+    display: flex; flex-direction: column;
+  }
+  .ps-head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .ps-head .title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .ps-head .meta { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); }
+  .ps-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+  }
+  .ps-pizza {
+    background: var(--bg-elev);
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 11.5px;
+  }
+  .ps-pizza-id { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; color: var(--fg-soft); }
+  .ps-pizza-name { font-weight: 600; line-height: 1.25; }
+  .ps-pizza-mods { color: var(--fg-muted); font-size: 10.5px; line-height: 1.3; }
+  .ps-pizza-time {
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700;
+    margin-top: auto;
+    color: var(--fg);
+  }
+  .ps-pizza-time.late { color: var(--danger); }
+  .ps-pizza-time.warn { color: var(--warn); }
+  .ps-pizza.is-late { background: color-mix(in oklab, var(--danger) 6%, var(--bg-elev)); }
+  .ps-pizza.is-warn { background: color-mix(in oklab, var(--warn) 6%, var(--bg-elev)); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .lo-bar { padding: 0 12px; gap: 10px; flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 8px; }
+    .lo-clock { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="src/ui.jsx"></script>
+<script type="text/babel" src="liveops-bento.jsx"></script>
+</body>
+</html>

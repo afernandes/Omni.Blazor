@@ -1,0 +1,116 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Utilities
+
+@*  Barra superior/inferior do <c>OmniLayout</c>. Equivalente a
+    <c>MudAppBar</c> (MudBlazor) / <c>RadzenHeader</c> (Radzen) / Bootstrap
+    <c>&lt;header class="navbar"&gt;</c>.
+
+    Props:
+      • Position (BarPosition) — Top (default) ou Bottom.
+      • Fixed (bool, default true) — fixa na linha do grid.
+      • Elevated (bool, default true) — sombra fina abaixo.
+      • Bordered (bool, default true) — borda abaixo.
+      • HideOnScroll (bool, default false) — esconde quando user rola down,
+        reaparece quando rola up. Padrão Material Design / mobile apps.
+      • ElevateOnScroll (bool, default false) — sem sombra no topo, ganha
+        sombra quando o conteúdo rola além do AppBar. Padrão MUI useScrollTrigger.
+
+    Uso:
+      <OmniAppBar HideOnScroll ElevateOnScroll>
+        <OmniBrand />
+      </OmniAppBar>
+*@
+<header @ref="_elementRef"
+        class="@RootCss"
+        data-pos="@PosAttr"
+        data-scrolled="@(_scrolled ? "1" : null)"
+        data-hidden="@(_hidden ? "1" : null)"
+        style="@Style"
+        @attributes="Attributes">
+    @ChildContent
+</header>
+
+@code {
+    /// <summary>Posição no layout. Default Top.</summary>
+    [Parameter] public BarPosition Position { get; set; } = BarPosition.Top;
+
+    /// <summary>Não rola junto com o main. Default true.</summary>
+    [Parameter] public bool Fixed { get; set; } = true;
+
+    /// <summary>Sombra fina abaixo. Default true. Quando <see cref="ElevateOnScroll"/>
+    /// é true, a sombra só aparece após scroll.</summary>
+    [Parameter] public bool Elevated { get; set; } = true;
+
+    /// <summary>Borda inferior. Default true.</summary>
+    [Parameter] public bool Bordered { get; set; } = true;
+
+    /// <summary>Esconde a AppBar quando o user rola down no main; reaparece ao
+    /// rolar up. UX padrão mobile (Twitter, Instagram). Default false.</summary>
+    [Parameter] public bool HideOnScroll { get; set; }
+
+    /// <summary>Quando true, a sombra só aparece após o user rolar além do AppBar.
+    /// Útil para AppBars transparentes em landing pages. Default false.</summary>
+    [Parameter] public bool ElevateOnScroll { get; set; }
+
+    private ElementReference _elementRef;
+    private DotNetObjectReference<OmniAppBar>? _selfRef;
+    private bool _scrolled;
+    private bool _hidden;
+    private bool _jsSubscribed;
+
+    private string PosAttr => Position == BarPosition.Bottom ? "bottom" : "top";
+
+    private string RootCss => CssBuilder.Default("omni-header")
+        .AddClass("omni-appbar")
+        .AddClass($"omni-appbar-{PosAttr}")
+        // Elevation: full when Elevated && !ElevateOnScroll || (ElevateOnScroll && _scrolled).
+        // When ElevateOnScroll is on, default state is flat — let CSS data-scrolled handle.
+        .AddClass("omni-appbar-elevated", Elevated && !ElevateOnScroll)
+        .AddClass("omni-appbar-bordered", Bordered)
+        .AddClass("omni-appbar-hide-on-scroll", HideOnScroll)
+        .AddClass("omni-appbar-elevate-on-scroll", ElevateOnScroll)
+        .AddClass(Class)
+        .Build();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && (HideOnScroll || ElevateOnScroll) && !_jsSubscribed)
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeAsync<bool>("omniBlazor.observeAppBarScroll",
+                    _elementRef, _selfRef, nameof(OnScrollChanged),
+                    HideOnScroll, ElevateOnScroll);
+                _jsSubscribed = true;
+            }
+            catch { /* SSR */ }
+        }
+    }
+
+    /// <summary>Invoked by JS as the user scrolls past/back over the AppBar threshold.</summary>
+    [JSInvokable]
+    public Task OnScrollChanged(bool scrolled, bool hidden)
+    {
+        var changed = _scrolled != scrolled || _hidden != hidden;
+        _scrolled = scrolled;
+        _hidden = hidden;
+        if (changed) InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsSubscribed)
+        {
+            try { await JS.InvokeVoidAsync("omniBlazor.unobserveAppBarScroll", _elementRef); }
+            catch { }
+            _jsSubscribed = false;
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+}

@@ -1,0 +1,598 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+@using Omni.Blazor.Utilities
+
+@*  N-pane resizable splitter. Each child <OmniSplitterPane> declares its
+    initial Size, optional Min/Max constraints, and Resizable/Collapsible flags.
+    Between adjacent panes the splitter renders a draggable bar that lets the
+    user resize the surrounding panes.
+
+    Layout uses flexbox with each pane sized via flex-basis. Drag uses pointer
+    events with pointer capture (tiny JS helper) to keep tracking smooth even
+    when the cursor leaves the bar element. Sizes are kept internally as
+    percentages of the container; px values supplied in Size/Min/Max are
+    converted to % on first layout. *@
+
+<CascadingValue Value="this" IsFixed="true">
+    <div @ref="_rootEl"
+         class="@RootCss"
+         style="@RootStyle"
+         @attributes="Attributes"
+         role="@(Orientation == Orientation.Horizontal ? "group" : "group")">
+        @* Render hidden ChildContent so panes register themselves into _panes *@
+        <div style="display:none">@ChildContent</div>
+
+        @for (int i = 0; i < _panes.Count; i++)
+        {
+            var idx = i;
+            var pane = _panes[idx];
+            var pct = _percents.Count > idx ? _percents[idx] : 0;
+            var isCollapsed = pane.IsCollapsed;
+            // Use flex-grow weights (basis 0) instead of flex-basis %. This makes
+            // panes share (container − fixed bar widths) PROPORTIONALLY, so the
+            // bars never overflow the splitter. The pct value is interpreted as
+            // a relative weight, not an absolute %; with all panes summing to 100
+            // the proportions still work like %.
+            // Collapsed panes get a small 16px peek strip so the expand chevron
+            // sits visually close to the splitter edge (instead of floating in
+            // the middle of a wide empty strip).
+            var flex = isCollapsed
+                ? "0 0 16px"
+                : $"{pct.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)} 0 0";
+
+            <div class="@PaneCss(pane, idx)" style="@($"flex: {flex};")">
+                @* Hide content when collapsed so the 28px peek strip stays
+                   visually clean (no leaking text fragments). *@
+                @if (!isCollapsed) { @pane.ChildContent }
+            </div>
+
+            @if (idx < _panes.Count - 1)
+            {
+                <div id="@BarId(idx)"
+                     class="@BarCss(idx)"
+                     role="separator"
+                     aria-orientation="@(Orientation == Orientation.Horizontal ? "vertical" : "horizontal")"
+                     tabindex="0"
+                     @onpointerdown="@(e => OnBarDown(e, idx))"
+                     @onpointermove="@(e => OnBarMove(e, idx))"
+                     @onpointerup="@(e => OnBarUp(e, idx))"
+                     @onpointercancel="@(e => OnBarUp(e, idx))"
+                     @ondblclick="@(() => OnBarDoubleClick(idx))"
+                     @onkeydown="@(e => OnBarKey(e, idx))">
+                    @if (pane.Collapsible && !pane.IsCollapsed)
+                    {
+                        <button type="button" class="omni-splitter-collapse-prev"
+                                @onclick="@(() => CollapsePane(idx))"
+                                @onclick:stopPropagation="true"
+                                @onpointerdown:stopPropagation="true"
+                                aria-label="Colapsar painel anterior">
+                            <OmniIcon Name="@(Orientation == Orientation.Horizontal ? "chevron-left" : "chevron-up")" Size="ComponentSize.Sm" />
+                        </button>
+                    }
+                    else if (pane.IsCollapsed)
+                    {
+                        <button type="button" class="omni-splitter-expand-prev"
+                                @onclick="@(() => ExpandPane(idx))"
+                                @onclick:stopPropagation="true"
+                                @onpointerdown:stopPropagation="true"
+                                aria-label="Expandir painel anterior">
+                            <OmniIcon Name="@(Orientation == Orientation.Horizontal ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                        </button>
+                    }
+
+                    <span class="omni-splitter-handle" aria-hidden="true"></span>
+
+                    @{
+                        var nextPane = _panes[idx + 1];
+                    }
+                    @if (nextPane.Collapsible && !nextPane.IsCollapsed)
+                    {
+                        <button type="button" class="omni-splitter-collapse-next"
+                                @onclick="@(() => CollapseNextPane(idx))"
+                                @onclick:stopPropagation="true"
+                                @onpointerdown:stopPropagation="true"
+                                aria-label="Colapsar próximo painel">
+                            <OmniIcon Name="@(Orientation == Orientation.Horizontal ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                        </button>
+                    }
+                    else if (nextPane.IsCollapsed)
+                    {
+                        <button type="button" class="omni-splitter-expand-next"
+                                @onclick="@(() => ExpandNextPane(idx))"
+                                @onclick:stopPropagation="true"
+                                @onpointerdown:stopPropagation="true"
+                                aria-label="Expandir próximo painel">
+                            <OmniIcon Name="@(Orientation == Orientation.Horizontal ? "chevron-left" : "chevron-up")" Size="ComponentSize.Sm" />
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>Direção do split. Horizontal = panes lado-a-lado (drag horizontal). Vertical = empilhados (drag vertical).</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>
+    /// Estilo visual da barra. <c>Solid</c> (default) = barra visível com grip dots —
+    /// ideal para PDV, dashboards e telas de gestão. <c>Line</c> = hairline minimalista
+    /// que vira accent no hover — ideal para IDE, editor de relatórios. <c>Gap</c> =
+    /// espaçamento invisível — ideal para landing pages.
+    /// </summary>
+    [Parameter] public SplitterVariant Variant { get; set; } = SplitterVariant.Solid;
+
+    /// <summary>Altura CSS do container. Default <c>"100%"</c>.</summary>
+    [Parameter] public string Height { get; set; } = "100%";
+
+    /// <summary>Largura CSS do container. Default <c>"100%"</c>.</summary>
+    [Parameter] public string Width { get; set; } = "100%";
+
+    /// <summary>Disparado a cada tick do drag (use com moderação — pode disparar muito).</summary>
+    [Parameter] public EventCallback<SplitterResizeEventArgs> OnResize { get; set; }
+
+    /// <summary>Disparado UMA vez ao soltar a barra. Use isso para persistir layout.</summary>
+    [Parameter] public EventCallback<SplitterResizeEventArgs> OnResizeEnd { get; set; }
+
+    /// <summary>Quando true, double-click na barra reseta os tamanhos dos panes
+    /// para os valores iniciais (de <c>Size</c>). Quando o pane adjacente é
+    /// <c>Collapsible</c>, double-click colapsa/expande (prioridade maior).
+    /// Default <c>true</c> — espelha o comportamento do <c>MudSplitPanel</c>.</summary>
+    [Parameter] public bool ResetOnDoubleClick { get; set; } = true;
+
+    /// <summary>Posiciona o splitter como overlay <c>position: absolute</c> preenchendo o pai.
+    /// O elemento pai precisa ter <c>position: relative</c>. Equivalente ao <c>UseAsOverlay</c>
+    /// do MudSplitPanel. Default false.</summary>
+    [Parameter] public bool UseAsOverlay { get; set; }
+
+    // ─── Internal state ──────────────────────────────────────────────────
+
+    internal readonly List<OmniSplitterPane> _panes = new();
+    private readonly List<double> _percents = new();   // current pane sizes (% of container)
+    private readonly List<double> _initialPercents = new();  // captured by resolver; used by ResetPaneSizesAsync
+    private ElementReference _rootEl;
+    private double _containerSize;                     // px (width or height depending on orientation)
+    private double _startPointerPos;
+    private double _startPercentA, _startPercentB;
+    private int _activeBarIndex = -1;
+    private bool _isResizing;
+    /// <summary>True once initial sizes have been resolved. Reset to false
+    /// when panes are added/removed so we re-distribute. CRITICAL — without
+    /// this, OnAfterRenderAsync would re-run the resolver every render and
+    /// "undo" collapsed panes (which have percent=0, mistaken for "auto").</summary>
+    private bool _sizesResolved;
+
+    internal void Register(OmniSplitterPane pane)
+    {
+        if (!_panes.Contains(pane))
+        {
+            _panes.Add(pane);
+            _percents.Add(0);
+            _sizesResolved = false;   // recompute sizes to include the new pane
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    internal void Unregister(OmniSplitterPane pane)
+    {
+        var idx = _panes.IndexOf(pane);
+        if (idx >= 0)
+        {
+            _panes.RemoveAt(idx);
+            if (idx < _percents.Count) _percents.RemoveAt(idx);
+            _sizesResolved = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string RootCss => CssBuilder.Default("omni-splitter")
+        .AddClass(Orientation == Orientation.Vertical ? "omni-splitter-vertical" : "omni-splitter-horizontal")
+        .AddClass(Variant switch
+        {
+            SplitterVariant.Line => "omni-splitter-variant-line",
+            SplitterVariant.Gap  => "omni-splitter-variant-gap",
+            _                     => "omni-splitter-variant-solid",
+        })
+        .AddClass("omni-splitter-overlay", UseAsOverlay)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle =>
+        UseAsOverlay
+            ? (Style ?? "")
+            : $"width:{Width};height:{Height};" + (Style ?? "");
+
+    /// <summary>Stable DOM id for the bar at <paramref name="idx"/> so JS can target it for pointer capture.</summary>
+    private string BarId(int idx) => $"{Id}-bar-{idx}";
+
+    private string PaneCss(OmniSplitterPane p, int idx) => string.Join(' ', new[] {
+        "omni-splitter-pane",
+        p.IsCollapsed ? "omni-splitter-pane-collapsed" : null,
+        p.Class
+    }.Where(s => !string.IsNullOrEmpty(s))!);
+
+    private string BarCss(int idx)
+    {
+        var nextResizable = idx + 1 < _panes.Count && _panes[idx].Resizable && _panes[idx + 1].Resizable
+                            && !_panes[idx].IsCollapsed && !_panes[idx + 1].IsCollapsed;
+        // When an adjacent pane is collapsed, the bar sits at the splitter edge
+        // and the centered expand chevron would extend beyond `overflow: hidden`.
+        // We track WHICH side is collapsed so SCSS can anchor the chevron flush
+        // with that edge (instead of widening the bar, which would cause flex
+        // overflow because pane percentages already sum to 100%).
+        var prevCollapsed = idx >= 0 && idx < _panes.Count && _panes[idx].IsCollapsed;
+        var nextCollapsed = idx + 1 < _panes.Count && _panes[idx + 1].IsCollapsed;
+        return string.Join(' ', new[] {
+            "omni-splitter-bar",
+            nextResizable ? "omni-splitter-bar-active" : "omni-splitter-bar-inactive",
+            prevCollapsed ? "omni-splitter-bar-prev-collapsed" : null,
+            nextCollapsed ? "omni-splitter-bar-next-collapsed" : null,
+            _isResizing && _activeBarIndex == idx ? "omni-splitter-bar-dragging" : null,
+        }.Where(s => !string.IsNullOrEmpty(s))!);
+    }
+
+    // ─── Lifecycle ───────────────────────────────────────────────────────
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Only resolve sizes when explicitly needed (first render, or after
+        // pane add/remove). Re-running on every render would treat collapsed
+        // panes (percent=0) as "auto" and undo the collapse.
+        if (!_sizesResolved && _panes.Count > 0)
+        {
+            await ResolveInitialSizesAsync();
+            _sizesResolved = true;
+        }
+    }
+
+    /// <summary>Convert each pane's Size string into a percent of the container.
+    /// Panes with no Size get evenly distributed across the remaining space.</summary>
+    private async Task ResolveInitialSizesAsync()
+    {
+        if (_panes.Count == 0) return;
+        try
+        {
+            _containerSize = await JS.InvokeAsync<double>("omniBlazor.splitterMeasure", _rootEl, Orientation == Orientation.Horizontal);
+        }
+        catch { _containerSize = 0; }
+        if (_containerSize <= 0) return;
+
+        var resolved = new double[_panes.Count];
+        var autoIndexes = new List<int>();
+        var fixedTotal = 0d;
+
+        for (int i = 0; i < _panes.Count; i++)
+        {
+            var size = _panes[i].Size;
+            var pct = ParseToPercent(size, _containerSize);
+            if (pct is null) autoIndexes.Add(i);
+            else { resolved[i] = pct.Value; fixedTotal += pct.Value; }
+        }
+
+        if (autoIndexes.Count > 0)
+        {
+            var remaining = Math.Max(0, 100 - fixedTotal);
+            var per = remaining / autoIndexes.Count;
+            foreach (var i in autoIndexes) resolved[i] = per;
+        }
+        else if (fixedTotal > 0 && Math.Abs(fixedTotal - 100) > 0.001)
+        {
+            // Normalize so they sum to 100
+            for (int i = 0; i < resolved.Length; i++) resolved[i] = resolved[i] / fixedTotal * 100;
+        }
+
+        // Snapshot the resolved sizes — ResetPaneSizesAsync() restores these
+        _initialPercents.Clear();
+        for (int i = 0; i < resolved.Length; i++)
+        {
+            _percents[i] = resolved[i];
+            _initialPercents.Add(resolved[i]);
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>Parse "30%" or "200px" to a percent of containerPx. Returns null for null/empty.</summary>
+    internal static double? ParseToPercent(string? size, double containerPx)
+    {
+        if (string.IsNullOrWhiteSpace(size)) return null;
+        size = size.Trim();
+        if (size.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(size[..^1], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var pct))
+        {
+            return Math.Clamp(pct, 0, 100);
+        }
+        if (size.EndsWith("px", StringComparison.Ordinal)
+            && double.TryParse(size[..^2], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var px)
+            && containerPx > 0)
+        {
+            return Math.Clamp(px / containerPx * 100, 0, 100);
+        }
+        return null;
+    }
+
+    // ─── Drag handlers ────────────────────────────────────────────────────
+
+    private async Task OnBarDown(PointerEventArgs e, int barIdx)
+    {
+        // Need two adjacent resizable, non-collapsed panes
+        if (barIdx < 0 || barIdx >= _panes.Count - 1) return;
+        var a = _panes[barIdx]; var b = _panes[barIdx + 1];
+        if (!a.Resizable || !b.Resizable || a.IsCollapsed || b.IsCollapsed) return;
+
+        try
+        {
+            _containerSize = await JS.InvokeAsync<double>("omniBlazor.splitterMeasure", _rootEl, Orientation == Orientation.Horizontal);
+            await JS.InvokeVoidAsync("omniBlazor.splitterCapture", BarId(barIdx), e.PointerId);
+        }
+        catch { return; }
+
+        _isResizing = true;
+        _activeBarIndex = barIdx;
+        _startPointerPos = Orientation == Orientation.Horizontal ? e.ClientX : e.ClientY;
+        _startPercentA = _percents[barIdx];
+        _startPercentB = _percents[barIdx + 1];
+        StateHasChanged();
+    }
+
+    private void OnBarMove(PointerEventArgs e, int barIdx)
+    {
+        if (!_isResizing || _activeBarIndex != barIdx || _containerSize <= 0) return;
+        var current = Orientation == Orientation.Horizontal ? e.ClientX : e.ClientY;
+        var deltaPx = current - _startPointerPos;
+        var deltaPct = deltaPx / _containerSize * 100;
+
+        var newA = _startPercentA + deltaPct;
+        var newB = _startPercentB - deltaPct;
+
+        // Clamp against Min/Max of both panes
+        var a = _panes[barIdx]; var b = _panes[barIdx + 1];
+        var minA = ParseToPercent(a.Min, _containerSize) ?? 0;
+        var maxA = ParseToPercent(a.Max, _containerSize) ?? 100;
+        var minB = ParseToPercent(b.Min, _containerSize) ?? 0;
+        var maxB = ParseToPercent(b.Max, _containerSize) ?? 100;
+
+        if (newA < minA) { newB -= minA - newA; newA = minA; }
+        if (newB < minB) { newA -= minB - newB; newB = minB; }
+        if (newA > maxA) { newB += newA - maxA; newA = maxA; }
+        if (newB > maxB) { newA += newB - maxB; newB = maxB; }
+        if (newA < 0 || newB < 0) return;
+
+        _percents[barIdx] = newA;
+        _percents[barIdx + 1] = newB;
+        StateHasChanged();
+
+        if (OnResize.HasDelegate)
+        {
+            _ = OnResize.InvokeAsync(new SplitterResizeEventArgs(barIdx, newA, newB));
+        }
+    }
+
+    private async Task OnBarUp(PointerEventArgs e, int barIdx)
+    {
+        if (!_isResizing || _activeBarIndex != barIdx) return;
+        try { await JS.InvokeVoidAsync("omniBlazor.splitterRelease", BarId(barIdx), e.PointerId); } catch { }
+        _isResizing = false;
+        _activeBarIndex = -1;
+        StateHasChanged();
+        if (OnResizeEnd.HasDelegate)
+        {
+            await OnResizeEnd.InvokeAsync(new SplitterResizeEventArgs(barIdx, _percents[barIdx], _percents[barIdx + 1]));
+        }
+    }
+
+    private async Task OnBarKey(KeyboardEventArgs e, int barIdx)
+    {
+        // ←/→ for horizontal, ↑/↓ for vertical — nudge 2% per press, 10% with Shift
+        if (barIdx < 0 || barIdx >= _panes.Count - 1) return;
+        var a = _panes[barIdx]; var b = _panes[barIdx + 1];
+        if (!a.Resizable || !b.Resizable || a.IsCollapsed || b.IsCollapsed) return;
+
+        var step = e.ShiftKey ? 10.0 : 2.0;
+        double delta = 0;
+
+        if (Orientation == Orientation.Horizontal)
+        {
+            if (e.Key == "ArrowLeft") delta = -step;
+            else if (e.Key == "ArrowRight") delta = step;
+        }
+        else
+        {
+            if (e.Key == "ArrowUp") delta = -step;
+            else if (e.Key == "ArrowDown") delta = step;
+        }
+        if (delta == 0) return;
+
+        if (_containerSize <= 0)
+        {
+            try { _containerSize = await JS.InvokeAsync<double>("omniBlazor.splitterMeasure", _rootEl, Orientation == Orientation.Horizontal); }
+            catch { return; }
+        }
+
+        var newA = _percents[barIdx] + delta;
+        var newB = _percents[barIdx + 1] - delta;
+        var minA = ParseToPercent(a.Min, _containerSize) ?? 0;
+        var minB = ParseToPercent(b.Min, _containerSize) ?? 0;
+        var maxA = ParseToPercent(a.Max, _containerSize) ?? 100;
+        var maxB = ParseToPercent(b.Max, _containerSize) ?? 100;
+        if (newA < minA || newB < minB || newA > maxA || newB > maxB) return;
+
+        _percents[barIdx] = newA;
+        _percents[barIdx + 1] = newB;
+        StateHasChanged();
+
+        if (OnResizeEnd.HasDelegate)
+        {
+            await OnResizeEnd.InvokeAsync(new SplitterResizeEventArgs(barIdx, newA, newB));
+        }
+    }
+
+    // ─── Collapse / expand / reset ───────────────────────────────────────
+
+    private void OnBarDoubleClick(int barIdx)
+    {
+        // Priority 1: if pane before bar is Collapsible → toggle collapse
+        // Priority 2: if ResetOnDoubleClick → reset all sizes to initial
+        // Otherwise: no-op
+        var a = _panes[barIdx];
+        if (a.Collapsible)
+        {
+            if (a.IsCollapsed) ExpandPane(barIdx);
+            else CollapsePane(barIdx);
+            return;
+        }
+        if (ResetOnDoubleClick)
+        {
+            ResetPaneSizes();
+        }
+    }
+
+    /// <summary>Synchronous core of <see cref="ResetPaneSizesAsync"/>. Returns
+    /// to the percentages captured at first layout (the values derived from
+    /// each pane's <c>Size</c> parameter).</summary>
+    private void ResetPaneSizes()
+    {
+        if (_initialPercents.Count != _panes.Count) return;
+        for (int i = 0; i < _panes.Count; i++)
+        {
+            _percents[i] = _initialPercents[i];
+            // Also un-collapse any collapsed panes — reset is total
+            if (_panes[i].IsCollapsed) _panes[i].SetCollapsed(false);
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>Collapse pane[idx] (the pane on the START side of the bar).</summary>
+    private void CollapsePane(int idx)
+    {
+        if (idx < 0 || idx >= _panes.Count) return;
+        var pane = _panes[idx];
+        if (!pane.Collapsible || pane.IsCollapsed) return;
+        // Restore target = current size; distribute current size to the next adjacent open pane.
+        pane.PercentBeforeCollapse = _percents[idx];
+        var spill = _percents[idx];
+        _percents[idx] = 0;
+
+        // Find next open pane to receive the space
+        var receiver = idx + 1 < _panes.Count ? idx + 1 : idx - 1;
+        if (receiver >= 0 && receiver < _panes.Count) _percents[receiver] += spill;
+
+        pane.SetCollapsed(true);
+        StateHasChanged();
+    }
+
+    private void ExpandPane(int idx)
+    {
+        if (idx < 0 || idx >= _panes.Count) return;
+        var pane = _panes[idx];
+        if (!pane.IsCollapsed) return;
+        var restore = pane.PercentBeforeCollapse > 0 ? pane.PercentBeforeCollapse : 100.0 / _panes.Count;
+        // Take from next open pane
+        var donor = idx + 1 < _panes.Count && _percents[idx + 1] > restore ? idx + 1
+                  : idx - 1 >= 0 && _percents[idx - 1] > restore ? idx - 1
+                  : -1;
+        if (donor < 0)
+        {
+            // No single donor has enough — proportionally shrink everyone else
+            var others = Enumerable.Range(0, _panes.Count).Where(i => i != idx && !_panes[i].IsCollapsed).ToList();
+            var totalOthers = others.Sum(i => _percents[i]);
+            if (totalOthers > 0)
+            {
+                foreach (var o in others) _percents[o] -= _percents[o] / totalOthers * restore;
+            }
+        }
+        else
+        {
+            _percents[donor] -= restore;
+        }
+        _percents[idx] = restore;
+        pane.SetCollapsed(false);
+        StateHasChanged();
+    }
+
+    private void CollapseNextPane(int barIdx) => CollapsePane(barIdx + 1);
+    private void ExpandNextPane(int barIdx) => ExpandPane(barIdx + 1);
+
+    // ─── Public API (MudBlazor-equivalent programmatic control) ───────────
+
+    /// <summary>
+    /// Reseta os tamanhos dos panes para os valores iniciais (derivados de
+    /// <c>Size</c>). Também expande qualquer pane colapsado. Equivalente a
+    /// <c>MudSplitPanel.ResetDividerPositionAsync()</c>.
+    /// </summary>
+    public Task ResetPaneSizesAsync()
+    {
+        ResetPaneSizes();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Define o tamanho de um pane específico em porcentagem. O delta é
+    /// absorvido pelo próximo pane aberto (ou pelo anterior se não houver
+    /// próximo). Respeita <c>Min</c>/<c>Max</c>.
+    /// </summary>
+    /// <param name="paneIndex">Índice do pane (0-based).</param>
+    /// <param name="percent">Novo tamanho como % do container (0..100).</param>
+    public Task SetPaneSizeAsync(int paneIndex, double percent)
+    {
+        if (paneIndex < 0 || paneIndex >= _panes.Count) return Task.CompletedTask;
+        var target = Math.Clamp(percent, 0, 100);
+
+        // Clamp against Min/Max of THIS pane
+        var minSelf = ParseToPercent(_panes[paneIndex].Min, _containerSize) ?? 0;
+        var maxSelf = ParseToPercent(_panes[paneIndex].Max, _containerSize) ?? 100;
+        target = Math.Clamp(target, minSelf, maxSelf);
+
+        var delta = target - _percents[paneIndex];
+        if (Math.Abs(delta) < 1e-9) return Task.CompletedTask;
+
+        // Find the donor / absorber pane (prefer the next adjacent open pane)
+        var donor = paneIndex + 1 < _panes.Count && !_panes[paneIndex + 1].IsCollapsed
+            ? paneIndex + 1
+            : (paneIndex - 1 >= 0 && !_panes[paneIndex - 1].IsCollapsed ? paneIndex - 1 : -1);
+        if (donor < 0) return Task.CompletedTask;
+
+        // Clamp against the donor's Min/Max too
+        var newDonor = _percents[donor] - delta;
+        var minDonor = ParseToPercent(_panes[donor].Min, _containerSize) ?? 0;
+        var maxDonor = ParseToPercent(_panes[donor].Max, _containerSize) ?? 100;
+        if (newDonor < minDonor)
+        {
+            delta -= minDonor - newDonor;
+            newDonor = minDonor;
+            target = _percents[paneIndex] + delta;
+        }
+        if (newDonor > maxDonor)
+        {
+            delta += newDonor - maxDonor;
+            newDonor = maxDonor;
+            target = _percents[paneIndex] + delta;
+        }
+
+        _percents[paneIndex] = target;
+        _percents[donor] = newDonor;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Retorna o tamanho atual de um pane específico em porcentagem do container.
+    /// Retorna 0 se o índice for inválido ou se o pane estiver colapsado.
+    /// </summary>
+    public Task<double> GetPaneSizeAsync(int paneIndex)
+    {
+        if (paneIndex < 0 || paneIndex >= _percents.Count) return Task.FromResult(0d);
+        if (_panes[paneIndex].IsCollapsed) return Task.FromResult(0d);
+        return Task.FromResult(_percents[paneIndex]);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Nothing to dispose right now, but kept for future JS subscription cleanup
+        await Task.CompletedTask;
+    }
+}

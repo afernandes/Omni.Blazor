@@ -1,0 +1,93 @@
+@page "/showcase/breadcrumb"
+@layout ShowcaseLayout
+
+<PageTitle>Breadcrumb — Showcase</PageTitle>
+
+<ShowcasePage Title="Breadcrumb"
+              Subtitle="Caminho de navegação que mostra onde a página atual está na hierarquia.">
+
+    <Overview>
+        <p>
+            O <code>OmniBreadcrumb</code> exibe a <strong>trilha hierárquica</strong> da página
+            atual em monospace caixa alta. Recebe uma coleção de <code>Item</code> — cada um com
+            <code>Text</code> e um <code>Path</code> opcional. Os separadores entre níveis são
+            inseridos automaticamente.
+        </p>
+        <p>
+            O <strong>último item é sempre o atual</strong>: aparece em destaque e nunca vira link,
+            mesmo que tenha <code>Path</code>. Itens intermediários com <code>Path</code> são
+            navegáveis; sem <code>Path</code>, viram apenas texto.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Telas profundas onde o usuário precisa saber em que nível está.</li>
+            <li>Permitir voltar rapidamente a um ancestral da hierarquia.</li>
+            <li>Páginas de edição de registro acessadas a partir de uma lista.</li>
+            <li>Estruturas de configuração com múltiplos níveis aninhados.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Navegação primária da aplicação → use <code>OmniPanelMenu</code>.</li>
+            <li>Avançar passo a passo num fluxo linear → use <code>OmniStepper</code>.</li>
+            <li>Telas rasas (1-2 níveis) onde a hierarquia é óbvia pelo título.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Apenas itens texto + links."
+                         Code="@(@"<OmniBreadcrumb Items=""@(new[] {
+    new OmniBreadcrumb.Item(""Cadastros"", ""/cadastros/clientes""),
+    new OmniBreadcrumb.Item(""Clientes"",  ""/cadastros/clientes""),
+    new OmniBreadcrumb.Item(""Editar — Marina Costa"")
+})"" />")">
+            <OmniBreadcrumb Items="@(new[] {
+                new OmniBreadcrumb.Item("Cadastros", "/cadastros/clientes"),
+                new OmniBreadcrumb.Item("Clientes",  "/cadastros/clientes"),
+                new OmniBreadcrumb.Item("Editar — Marina Costa")
+            })" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HIERARQUIA PROFUNDA"
+                         Description="Quantos níveis quiser — separadores são automáticos."
+                         Code="@(@"<OmniBreadcrumb Items=""@(new[] {
+    new OmniBreadcrumb.Item(""Configurações"", ""/settings""),
+    new OmniBreadcrumb.Item(""Equipe"",        ""/settings/team""),
+    new OmniBreadcrumb.Item(""Permissões"",    ""/settings/team/roles""),
+    new OmniBreadcrumb.Item(""Gerente"")
+})"" />")">
+            <OmniBreadcrumb Items="@(new[] {
+                new OmniBreadcrumb.Item("Configurações", "/settings"),
+                new OmniBreadcrumb.Item("Equipe",        "/settings/team"),
+                new OmniBreadcrumb.Item("Permissões",    "/settings/team/roles"),
+                new OmniBreadcrumb.Item("Gerente"),
+            })" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ITEM ÚNICO"
+                         Description="Quando há só um item, ele aparece como texto atual."
+                         Code="@(@"<OmniBreadcrumb Items=""@(new[] {
+    new OmniBreadcrumb.Item(""Início"")
+})"" />")">
+            <OmniBreadcrumb Items="@(new[] { new OmniBreadcrumb.Item("Início") })" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Items" Type="IEnumerable<Item>?" Default="null"
+                            Description="Coleção de níveis do caminho. O último é tratado como item atual." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Record Item">
+            <ShowcaseApiRow Name="Text" Type="string" Default="—"
+                            Description="Rótulo exibido para o nível." />
+            <ShowcaseApiRow Name="Path" Type="string?" Default="null"
+                            Description="URL de navegação — sem ela, ou no último item, vira apenas texto." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

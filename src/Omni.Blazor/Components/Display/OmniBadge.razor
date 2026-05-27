@@ -1,0 +1,160 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Dual-mode badge:
+
+    Standalone pill (default — no ChildContent):
+        <OmniBadge Text="VIP" Variant="BadgeVariant.Accent" />
+
+    Overlay over a wrapped target (ChildContent set):
+        <OmniBadge Content="12" Variant="BadgeVariant.Danger" Overlap>
+            <OmniButton Icon="bell" Variant="ButtonVariant.Ghost" />
+        </OmniBadge>
+
+    API mirrors MudBadge: Content (object?, supports int with Max → "99+"),
+    Dot (no content, just a dot), Overlap (inset over child), Bordered (ring),
+    Visible (hide/show), Origin (TopEnd/TopStart/BottomEnd/BottomStart — Start/End
+    naming for RTL), OnClick (fires on the badge bubble, not the child). *@
+
+@if (ChildContent is not null)
+{
+    <span class="@WrapCss" style="@Style" @attributes="Attributes">
+        @ChildContent
+        @if (Visible)
+        {
+            <span class="@OverlayBadgeCss"
+                  role="status" aria-live="polite"
+                  aria-label="@AriaLabel"
+                  @onclick="HandleClick"
+                  @onclick:stopPropagation="OnClick.HasDelegate">
+                @if (!Dot)
+                {
+                    @if (!string.IsNullOrEmpty(Icon))
+                    {
+                        <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
+                    }
+                    else
+                    {
+                        @DisplayContent
+                    }
+                }
+            </span>
+        }
+    </span>
+}
+else
+{
+    <span class="@RootCss" style="@Style" @attributes="Attributes">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
+        }
+        @if (!string.IsNullOrEmpty(Text))
+        {
+            @Text
+        }
+        else if (Content is not null)
+        {
+            @DisplayContent
+        }
+    </span>
+}
+
+@code {
+    /// <summary>Badge label (standalone mode). Ignored in overlay mode if <see cref="Content"/> is set.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Badge content — supports <c>string</c> or <c>int</c>. When <c>int</c>
+    /// and value &gt; <see cref="Max"/>, renders as <c>"Max+"</c> (e.g. <c>"99+"</c>).</summary>
+    [Parameter] public object? Content { get; set; }
+
+    /// <summary>Optional icon at the start of the badge (or inside the overlay bubble).</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Visual color variant.</summary>
+    [Parameter] public BadgeVariant Variant { get; set; } = BadgeVariant.Default;
+
+    /// <summary>Render as a small dot (no text/icon). Use for "new notification" indicators.</summary>
+    [Parameter] public bool Dot { get; set; }
+
+    /// <summary>Inset the badge over the wrapped child (recommended for round targets — avatars, icon buttons).</summary>
+    [Parameter] public bool Overlap { get; set; }
+
+    /// <summary>Adds a contrast ring around the badge so it visually separates from the child.</summary>
+    [Parameter] public bool Bordered { get; set; }
+
+    /// <summary>Toggle badge visibility (the wrapped child still renders). Default true.</summary>
+    [Parameter] public bool Visible { get; set; } = true;
+
+    /// <summary>Numeric cap. When <see cref="Content"/> is an <c>int</c> &gt; <c>Max</c>, renders <c>"Max+"</c>. Default 99.</summary>
+    [Parameter] public int Max { get; set; } = 99;
+
+    /// <summary>Anchor corner. <c>TopEnd</c> (default) puts the badge in the top-right corner.</summary>
+    [Parameter] public BadgeOrigin Origin { get; set; } = BadgeOrigin.TopEnd;
+
+    /// <summary>Fires on click of the badge bubble (NOT the wrapped child).</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    /// <summary>Override aria-label of the badge bubble.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    // ─── Computed ────────────────────────────────────────────────────────
+
+    /// <summary>How the badge text gets stringified, with numeric Max cap.</summary>
+    private string? DisplayContent => Content switch
+    {
+        int i when i > Max     => $"{Max}+",
+        int i                  => i.ToString(),
+        long l when l > Max    => $"{Max}+",
+        long l                 => l.ToString(),
+        string s               => s,
+        null                   => Text,
+        _                      => Content.ToString(),
+    };
+
+    private async Task HandleClick(MouseEventArgs e)
+    {
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(e);
+    }
+
+    private string? VariantClass => Variant switch
+    {
+        BadgeVariant.Good   => "omni-badge-good",
+        BadgeVariant.Warn   => "omni-badge-warn",
+        BadgeVariant.Danger => "omni-badge-danger",
+        BadgeVariant.Info   => "omni-badge-info",
+        BadgeVariant.Accent => "omni-badge-accent",
+        BadgeVariant.Plain  => "omni-badge-plain",
+        BadgeVariant.Solid  => "omni-badge-solid",
+        _ => null,
+    };
+
+    private string RootCss => CssBuilder.Default("omni-badge")
+        .AddClass(VariantClass)
+        .AddClass(Class)
+        .Build();
+
+    /// <summary>Outer wrapper class (overlay mode). User's <c>Class</c> goes on this element.</summary>
+    private string WrapCss => CssBuilder.Default("omni-badge-wrap")
+        .AddClass(Class)
+        .Build();
+
+    /// <summary>Inner overlay bubble class — DO NOT include user's <c>Class</c> (it's on the wrapper).</summary>
+    private string OverlayBadgeCss => CssBuilder.Default("omni-badge")
+        .AddClass("omni-badge-overlay")
+        .AddClass(VariantClass)
+        .AddClass("omni-badge-dot", Dot)
+        .AddClass("omni-badge-overlap", Overlap)
+        .AddClass("omni-badge-bordered", Bordered)
+        .AddClass("omni-badge-clickable", OnClick.HasDelegate)
+        .AddClass(Origin switch
+        {
+            BadgeOrigin.TopEnd      => "omni-badge-origin-top-end",
+            BadgeOrigin.TopStart    => "omni-badge-origin-top-start",
+            BadgeOrigin.BottomEnd   => "omni-badge-origin-bottom-end",
+            BadgeOrigin.BottomStart => "omni-badge-origin-bottom-start",
+            _                        => "omni-badge-origin-top-end",
+        })
+        .Build();
+}

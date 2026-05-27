@@ -1,0 +1,43 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Coluna do grid 12-colunas. Filho direto de <OmniRow>. Cada parâmetro
+    Size* declara quantas das 12 colunas a célula ocupa em cada breakpoint:
+
+      • Size    — sempre aplicado (default 12, ou seja, full-width mobile)
+      • SizeSm  — override em ≥640 px
+      • SizeMd  — override em ≥1024 px
+      • SizeLg  — override em ≥1440 px
+
+    Padrão "KPI row" (4 cards · 2 · 1):
+        <OmniCol Size="12" SizeMd="6" SizeLg="3"> ... </OmniCol>
+
+    Padrão "main + aside":
+        <OmniCol Size="12" SizeMd="8"> ... </OmniCol>
+        <OmniCol Size="12" SizeMd="4"> ... </OmniCol> *@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Span padrão (mobile-first, sempre aplicado). 1–12. Default 12.</summary>
+    [Parameter] public int Size { get; set; } = 12;
+
+    /// <summary>Override em ≥640 px.</summary>
+    [Parameter] public int? SizeSm { get; set; }
+
+    /// <summary>Override em ≥1024 px.</summary>
+    [Parameter] public int? SizeMd { get; set; }
+
+    /// <summary>Override em ≥1440 px.</summary>
+    [Parameter] public int? SizeLg { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-col")
+        .AddClass($"omni-col-{Size}")
+        .AddClass(SizeSm is int s ? $"omni-col-sm-{s}" : null)
+        .AddClass(SizeMd is int m ? $"omni-col-md-{m}" : null)
+        .AddClass(SizeLg is int l ? $"omni-col-lg-{l}" : null)
+        .AddClass(Class)
+        .Build();
+}

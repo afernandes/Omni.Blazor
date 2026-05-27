@@ -1,0 +1,773 @@
+@page "/showcase/datagrid"
+@layout ShowcaseLayout
+@using Forneria.Demo.Pages.Services
+@inject FakeOrderService Orders
+@inject NotificationService Toast
+
+<PageTitle>DataGrid — Showcase</PageTitle>
+
+<ShowcasePage Title="OmniDataGrid"
+              Subtitle="Tabela de dados completa — server-side, multi-sort, agregações, filtros por coluna, seleção, master-detail, hierarquia e virtualização.">
+
+    <Overview>
+        <p>
+            O <code>OmniDataGrid&lt;TItem&gt;</code> é o componente de tabela da biblioteca,
+            desenhado para telas de listagem de qualquer escala. Trabalha em <strong>dois
+            modos de dados</strong>: in-memory via <code>Data</code> (filtro, ordenação e
+            paginação calculados no cliente) ou server-side via <code>LoadData</code>, onde
+            o grid delega tudo ao consumidor e renderiza apenas a janela retornada.
+        </p>
+        <p>
+            As colunas são declaradas com <code>OmniDataGridColumn&lt;TItem&gt;</code> dentro
+            do slot <code>Columns</code>. O grid suporta ordenação multi-coluna (Shift+clique),
+            linha de agregações no rodapé, filtros por coluna, seleção múltipla com checkbox,
+            expansão master-detail, modo árvore (tree-grid) via <code>ChildrenSelector</code> e
+            virtualização do <code>&lt;tbody&gt;</code> para milhares de registros. Colunas
+            podem ser congeladas (<code>Frozen</code>), ocultadas e exportadas para CSV.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Listar registros tabulares — pedidos, clientes, produtos, transações.</li>
+            <li>Datasets grandes que precisam de paginação ou virtualização server-side.</li>
+            <li>Telas que exigem ordenação, filtros, seleção em massa ou exportação.</li>
+            <li>Estruturas hierárquicas (árvores) com expansão por nível.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Listas simples sem colunas nem ordenação → use uma lista ou cards.</li>
+            <li>Exibir um único registro em detalhe → use um layout de formulário.</li>
+            <li>Coleções pequenas e visuais (galeria) → use <code>OmniMosaic</code> ou grid de cards.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="Básico (in-memory)"
+                         Description="Pipeline client-side: sort em uma coluna, busca global, paginação de 6 em 6."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory"" AllowSearch AllowPaging PageSize=""6"">
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Cliente"" Property=""@(o => o.Cliente)"" />
+        <OmniDataGridColumn TItem=""Order"" Title=""Status"" Property=""@(o => o.Status)"" />
+    </Columns>
+</OmniDataGrid>")">
+            <OmniDataGrid TItem="Order" Data="@_inMemory" AllowSearch AllowPaging PageSize="6">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)" Width="120px">
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)">
+                        <Template><OmniBadge Text="@context.Canal" Variant="BadgeVariant.Plain" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)">
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Server-side simulado (10.000 pedidos)"
+                         Description="LoadData callback. Latência de 220ms exibe o loading overlay. Search com debounce de 300ms. Paginação chama o servidor."
+                         Code="@(@"<OmniDataGrid TItem=""Order""
+               LoadData=""@(state => Orders.SearchAsync(state))""
+               AllowSearch AllowPaging PageSize=""20"">
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+            <OmniDataGrid TItem="Order" LoadData="@(state => Orders.SearchAsync(state))" AllowSearch AllowPaging PageSize="20">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)" Width="120px">
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)" />
+                    <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)">
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Itens" PropertyName="Itens" Property="@(o => (object)o.Itens)" Width="80px">
+                        <Template><span class="omni-mono">@context.Itens</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Multi-column sort + Aggregations"
+                         Description="Shift+clique no header adiciona o critério ao sort. Footer (tfoot) mostra Σ Total, Σ Itens e contagem."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" LoadData=""@Load"" ShowAggregateRow>
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Total"" Property=""@(o => (object)o.Total)""
+                             Aggregate=""AggregateFunction.Sum"" />
+    </Columns>
+</OmniDataGrid>")">
+            <OmniDataGrid TItem="Order" LoadData="@(state => Orders.SearchAsync(state))" AllowSearch AllowPaging PageSize="15" ShowAggregateRow>
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
+                                         Aggregate="AggregateFunction.Count" Width="120px">
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)">
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Itens" PropertyName="Itens" Property="@(o => (object)o.Itens)"
+                                         Aggregate="AggregateFunction.Sum" AggregateProperty="@(o => (decimal)o.Itens)" Width="100px">
+                        <Template><span class="omni-mono">@context.Itens</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)"
+                                         Aggregate="AggregateFunction.Sum"
+                                         AggregateFormat="@(v => ((decimal)v!).ToString("C", _ptBr))">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Filter per-column"
+                         Description="Linha de filtros abaixo do header. Cada coluna decide se é filtrável (operador Contains client-side e server-side)."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" LoadData=""@Load"" AllowColumnFilter>
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Cliente"" Property=""@(o => o.Cliente)"" Filterable />
+    </Columns>
+</OmniDataGrid>")">
+            <OmniDataGrid TItem="Order" LoadData="@(state => Orders.SearchAsync(state))" AllowColumnFilter AllowPaging PageSize="12">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
+                                         Filterable Width="120px">
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" Filterable />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)" Filterable />
+                    <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)" Filterable>
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Multi-selection + bulk actions"
+                         Description="Checkbox no header seleciona a página inteira. Barra de bulk-actions reflete o total."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory""
+               AllowMultiSelection @bind-SelectedItems=""_selected"">
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+            @if (_selected.Count > 0)
+            {
+                <OmniAlert Severity="NotificationSeverity.Info" Title="@($"{_selected.Count} pedidos selecionados")"
+                            Dismissible Closed="@(() => _selected.Clear())">
+                    <OmniButton Text="Cancelar selecionados" Icon="x-circle" Variant="ButtonVariant.Danger" Size="ComponentSize.Sm"
+                                 OnClick="OnBulkCancel" />
+                </OmniAlert>
+            }
+            <OmniDataGrid TItem="Order" Data="@_inMemory" AllowMultiSelection
+                           @bind-SelectedItems="_selected" AllowPaging PageSize="8">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(o => (object)o.Numero)" Width="120px">
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" Property="@(o => o.Canal)" />
+                    <OmniDataGridColumn TItem="Order" Title="Status" Property="@(o => o.Status)">
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => (object)o.Total)">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Master-detail (Row expand)"
+                         Description="Cada linha expande mostrando os itens do pedido. ExpandMode=Single fecha o anterior."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory""
+               ExpandMode=""ExpandMode.Single""
+               DetailTemplate=""@RenderOrderDetail"">
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+            <OmniDataGrid TItem="Order" Data="@_inMemory" AllowPaging PageSize="6"
+                           ExpandMode="ExpandMode.Single"
+                           DetailTemplate="@RenderOrderDetail">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(o => (object)o.Numero)" Width="120px">
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Itens" Property="@(o => (object)o.Itens)" Width="80px">
+                        <Template><span class="omni-mono">@context.Itens</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => (object)o.Total)">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Hierarquia (tree-grid auto-aninhado)"
+                         Description="ChildrenSelector síncrono + InitiallyExpanded. Chevron + indentação na coluna âncora. Multi-nível recursivo. Linha destacada via RowClass."
+                         Code="@(@"<OmniDataGrid TItem=""SharingNode"" Data=""@_sharingRoots""
+               ChildrenSelector=""@(n => n.Children)""
+               InitiallyExpanded IndentSize=""22"">
+    <Columns>
+        <OmniDataGridColumn TItem=""SharingNode"" Title=""Nome""
+                             IsHierarchyAnchor Property=""@(n => n.Nome)"" />
+    </Columns>
+</OmniDataGrid>")">
+            <div class="omni-stack omni-stack-12">
+                <div class="omni-stack" style="flex-direction: row; gap: 8px; align-items: center;">
+                    <OmniTextBox Placeholder="Buscar por nome, ID retaguarda ou proprietário..."
+                                  LeadingIcon="search" Clearable="true"
+                                  Value="@_treeSearch"
+                                  ValueChanged="OnTreeSearchChangedAsync"
+                                  Style="flex: 1; max-width: 380px;" />
+                    <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm"
+                                 Icon="chevron-down" Text="Expandir tudo"
+                                 OnClick="@(_ => _treeGridRef?.ExpandAllAsync() ?? Task.CompletedTask)" />
+                    <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm"
+                                 Icon="chevron-right" Text="Recolher tudo"
+                                 OnClick="@(_ => _treeGridRef?.CollapseAllAsync() ?? Task.CompletedTask)" />
+                    <div style="flex: 1"></div>
+                    <span class="omni-mono omni-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;">
+                        @CountAll(_sharingRoots) registros
+                    </span>
+                </div>
+
+                <OmniAlert Severity="NotificationSeverity.Warning"
+                            Title="Existem registros com referência de pai não encontrada. Verifique a integridade da estrutura." />
+
+                <OmniDataGrid TItem="SharingNode" Data="@FilteredSharing"
+                               @ref="_treeGridRef"
+                               ChildrenSelector="@(n => n.Children)"
+                               InitiallyExpanded
+                               IndentSize="22"
+                               AllowPaging="false"
+                               RowClass="@(n => n.IsCurrent ? "omni-grid-row-highlight"
+                                              : n.IsInconsistent ? "omni-grid-row-warning" : null)">
+                    <Columns>
+                        <OmniDataGridColumn TItem="SharingNode" Title="Nome / hierarquia" IsHierarchyAnchor
+                                             Property="@(n => n.Nome)">
+                            <Template>
+                                <div class="omni-stack" style="flex-direction: row; align-items: center; gap: 8px; min-width: 0;">
+                                    @if (context.IsInconsistent)
+                                    {
+                                        <OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" />
+                                    }
+                                    else if (context.Children is { Count: > 0 })
+                                    {
+                                        <OmniIcon Name="folder" Size="ComponentSize.Sm" />
+                                    }
+                                    else
+                                    {
+                                        <OmniIcon Name="file" Size="ComponentSize.Sm" />
+                                    }
+                                    <span style="font-weight: @(context.IsCurrent ? "600" : "400");">@context.Nome</span>
+                                    @if (context.IsCurrent)
+                                    {
+                                        <OmniBadge Text="Loja atual" Variant="BadgeVariant.Accent" />
+                                    }
+                                    @if (context.IsInconsistent)
+                                    {
+                                        <OmniBadge Text="Inconsistente" Variant="BadgeVariant.Warn" />
+                                    }
+                                </div>
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="SharingNode" Title="ID proprietário" Property="@(n => n.IdProprietario)" Width="180px">
+                            <Template><span class="omni-mono">@context.IdProprietario</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="SharingNode" Title="ID retaguarda loja" Property="@(n => n.IdLoja)" Width="180px">
+                            <Template><span class="omni-mono">@context.IdLoja</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="SharingNode" Title="ID retaguarda pai" Property="@(n => n.IdPai ?? "")" Width="180px">
+                            <Template><span class="omni-mono">@(string.IsNullOrEmpty(context.IdPai) ? "—" : context.IdPai)</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="SharingNode" Title="Nível" Width="80px" Sortable="false">
+                            <Template>
+                                <OmniBadge Text="@(context.Nivel?.ToString() ?? "?")"
+                                            Variant="@LevelBadgeVariant(context.Nivel)" />
+                            </Template>
+                        </OmniDataGridColumn>
+                    </Columns>
+                </OmniDataGrid>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Virtualize 10.000 pedidos in-memory"
+                         Description="Virtualize=true + SpacerElement='tr' → apenas ~20 &lt;tr&gt; reais no DOM. Scroll 60fps. Combina com sort, filter per-column, frozen, multi-select."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@Orders.AllOrders""
+               Virtualize RowHeight=""44"" Height=""520px""
+               AllowSearch AllowColumnFilter>
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+            <OmniDataGrid TItem="Order" Data="@Orders.AllOrders"
+                           Virtualize RowHeight="44" Height="520px"
+                           AllowSearch AllowColumnFilter>
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
+                                         Width="120px" Frozen="FrozenPosition.Left" Filterable>
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)"
+                                         Width="220px" Filterable />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)"
+                                         Width="160px" Filterable />
+                    <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)"
+                                         Width="160px" Filterable>
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Itens" PropertyName="Itens" Property="@(o => (object)o.Itens)" Width="100px">
+                        <Template><span class="omni-mono">@context.Itens</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Quando" PropertyName="QuandoUtc" Property="@(o => (object)o.QuandoUtc)" Width="180px">
+                        <Template><span class="omni-mono">@context.QuandoUtc.ToString("dd/MM HH:mm")</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)"
+                                         Width="160px" Frozen="FrozenPosition.Right">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Virtualize + Hierarquia (tree-grid)"
+                         Description="Tree-grid com Virtualize ativo: _flatView virtualizado, chevron + indent funcionam idênticos. Ideal pra árvores grandes.">
+            <OmniDataGrid TItem="SharingNode" Data="@_sharingRoots"
+                           ChildrenSelector="@(n => n.Children)"
+                           InitiallyExpanded
+                           Virtualize RowHeight="44" Height="360px"
+                           IndentSize="22"
+                           RowClass="@(n => n.IsCurrent ? "omni-grid-row-highlight"
+                                           : n.IsInconsistent ? "omni-grid-row-warning" : null)">
+                <Columns>
+                    <OmniDataGridColumn TItem="SharingNode" Title="Nome / hierarquia" IsHierarchyAnchor
+                                         Property="@(n => n.Nome)">
+                        <Template>
+                            <div class="omni-stack" style="flex-direction: row; align-items: center; gap: 8px; min-width: 0;">
+                                <OmniIcon Name="@(context.IsInconsistent ? "alert-triangle"
+                                                  : context.Children is { Count: > 0 } ? "folder" : "file")"
+                                           Size="ComponentSize.Sm" />
+                                <span style="font-weight: @(context.IsCurrent ? "600" : "400");">@context.Nome</span>
+                                @if (context.IsCurrent) { <OmniBadge Text="Loja atual" Variant="BadgeVariant.Accent" /> }
+                                @if (context.IsInconsistent) { <OmniBadge Text="Inconsistente" Variant="BadgeVariant.Warn" /> }
+                            </div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="SharingNode" Title="ID proprietário" Property="@(n => n.IdProprietario)" Width="160px">
+                        <Template><span class="omni-mono">@context.IdProprietario</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="SharingNode" Title="ID retaguarda loja" Property="@(n => n.IdLoja)" Width="160px">
+                        <Template><span class="omni-mono">@context.IdLoja</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="SharingNode" Title="Nível" Width="80px" Sortable="false">
+                        <Template>
+                            <OmniBadge Text="@(context.Nivel?.ToString() ?? "?")"
+                                        Variant="@LevelBadgeVariant(context.Nivel)" />
+                        </Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EmptyTemplate + LoadingTemplate"
+                         Description="Slots customizáveis pro empty state (ícone + texto + CTA) e pro loading (skeleton rows em vez do spinner). Toggle pra ver cada estado."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" LoadData=""@Load"" LoadingSkeleton>
+    <Columns>...</Columns>
+    <EmptyTemplate>
+        <p>Nenhum pedido por aqui</p>
+    </EmptyTemplate>
+</OmniDataGrid>")">
+            <div class="omni-stack omni-stack-12">
+                <div class="omni-stack" style="flex-direction: row; gap: 8px;">
+                    <OmniButton Variant="@(_emptyDemoState == 0 ? ButtonVariant.Primary : ButtonVariant.Default)"
+                                 Size="ComponentSize.Sm" Text="Com dados"
+                                 OnClick="@(_ => { _emptyDemoState = 0; return Task.CompletedTask; })" />
+                    <OmniButton Variant="@(_emptyDemoState == 1 ? ButtonVariant.Primary : ButtonVariant.Default)"
+                                 Size="ComponentSize.Sm" Text="Vazio (EmptyTemplate)"
+                                 OnClick="@(_ => { _emptyDemoState = 1; return Task.CompletedTask; })" />
+                    <OmniButton Variant="@(_emptyDemoState == 2 ? ButtonVariant.Primary : ButtonVariant.Default)"
+                                 Size="ComponentSize.Sm" Text="Carregando (Skeleton)"
+                                 OnClick="OnDemoLoadAsync" />
+                </div>
+                <OmniDataGrid TItem="Order"
+                               LoadData="@DemoLoadAsync"
+                               AllowPaging PageSize="6"
+                               LoadingSkeleton>
+                    <Columns>
+                        <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(o => (object)o.Numero)" Width="120px">
+                            <Template><span class="omni-mono">#@context.Numero</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+                        <OmniDataGridColumn TItem="Order" Title="Status" Property="@(o => o.Status)">
+                            <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => (object)o.Total)">
+                            <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                        </OmniDataGridColumn>
+                    </Columns>
+                    <EmptyTemplate>
+                        <div class="omni-stack omni-stack-8" style="padding: 48px 24px; text-align: center; align-items: center;">
+                            <OmniIcon Name="inbox" />
+                            <h3 style="margin: 0;">Nenhum pedido por aqui</h3>
+                            <p class="omni-muted" style="margin: 0;">Crie seu primeiro pedido pra começar.</p>
+                            <OmniButton Text="Criar pedido" Icon="plus" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                         OnClick="OnEmptyCtaClickAsync" />
+                        </div>
+                    </EmptyTemplate>
+                </OmniDataGrid>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Frozen columns (sticky horizontal)"
+                         Description="Primeira coluna fixa à esquerda, última à direita. Scroll horizontal mantém ambas no lugar. Sombra no divisor marca o limite de cada lado."
+                         Code="@(@"<OmniDataGridColumn TItem=""Order"" Title=""Pedido #""
+                     Width=""120px"" Frozen=""FrozenPosition.Left"" />
+<OmniDataGridColumn TItem=""Order"" Title=""Total""
+                     Width=""160px"" Frozen=""FrozenPosition.Right"" />")">
+            <OmniDataGrid TItem="Order" Data="@_inMemory" AllowPaging PageSize="8">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(o => (object)o.Numero)"
+                                         Width="120px" Frozen="FrozenPosition.Left">
+                        <Template><span class="omni-mono">#@context.Numero</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" Width="200px" />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" Property="@(o => o.Canal)" Width="160px" />
+                    <OmniDataGridColumn TItem="Order" Title="Status" Property="@(o => o.Status)" Width="180px">
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Itens" Property="@(o => (object)o.Itens)" Width="120px">
+                        <Template><span class="omni-mono">@context.Itens</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Quando" Property="@(o => (object)o.QuandoUtc)" Width="200px">
+                        <Template><span class="omni-mono">@context.QuandoUtc.ToString("dd/MM HH:mm")</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => (object)o.Total)"
+                                         Width="160px" Frozen="FrozenPosition.Right">
+                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniDataGrid — Dados">
+            <ShowcaseApiRow Name="Data" Type="IEnumerable&lt;TItem&gt;?" Default="null"
+                            Description="Fonte de dados in-memory. Ignorado quando LoadData é setado." />
+            <ShowcaseApiRow Name="LoadData" Type="Func&lt;GridState, Task&lt;GridLoadResult&gt;&gt;?" Default="null"
+                            Description="Callback server-side. Recebe o estado (skip/top/sort/filtros) e retorna a janela de itens + total." />
+            <ShowcaseApiRow Name="Count" Type="int?" Default="null"
+                            Description="Override do total quando server-side e o resultado não preenche TotalCount." />
+            <ShowcaseApiRow Name="DebounceMs" Type="int" Default="300"
+                            Description="Debounce entre keystrokes na busca antes de chamar LoadData." />
+            <ShowcaseApiRow Name="Columns" Type="RenderFragment?" Default="null"
+                            Description="Slot onde as OmniDataGridColumn são declaradas." />
+            <ShowcaseApiRow Name="EmptyText" Type="string" Default="Nenhum registro..."
+                            Description="Texto exibido quando não há registros (sem EmptyTemplate)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Paginação & Ordenação">
+            <ShowcaseApiRow Name="AllowPaging" Type="bool" Default="true"
+                            Description="Liga a paginação. Ignorado quando Virtualize está ativo." />
+            <ShowcaseApiRow Name="PageSize" Type="int" Default="10"
+                            Description="Quantidade de registros por página." />
+            <ShowcaseApiRow Name="AllowSorting" Type="bool" Default="true"
+                            Description="Liga a ordenação por clique no header (Shift+clique adiciona critério)." />
+            <ShowcaseApiRow Name="AllowSearch" Type="bool" Default="false"
+                            Description="Exibe o campo de busca global na toolbar." />
+            <ShowcaseApiRow Name="SearchPlaceholder" Type="string" Default="Buscar..."
+                            Description="Placeholder do campo de busca global." />
+            <ShowcaseApiRow Name="ShowAggregateRow" Type="bool" Default="false"
+                            Description="Renderiza a linha de agregações no rodapé (tfoot)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Filtros">
+            <ShowcaseApiRow Name="AllowColumnFilter" Type="bool" Default="false"
+                            Description="Exibe a linha de filtros abaixo do header. Só colunas Filterable mostram o input." />
+            <ShowcaseApiRow Name="AllowColumnVisibility" Type="bool" Default="false"
+                            Description="Exibe o menu de colunas visíveis na toolbar." />
+            <ShowcaseApiRow Name="AllowExport" Type="bool" Default="false"
+                            Description="Exibe o botão de exportação CSV na toolbar." />
+            <ShowcaseApiRow Name="ExportFilename" Type="string" Default="export.csv"
+                            Description="Nome do arquivo gerado na exportação." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Seleção & Expansão">
+            <ShowcaseApiRow Name="AllowMultiSelection" Type="bool" Default="false"
+                            Description="Adiciona uma coluna de checkbox para seleção múltipla." />
+            <ShowcaseApiRow Name="SelectedItems" Type="HashSet&lt;TItem&gt;?" Default="null"
+                            Description="Conjunto de itens selecionados. Suporta bind-SelectedItems." />
+            <ShowcaseApiRow Name="DetailTemplate" Type="RenderFragment&lt;TItem&gt;?" Default="null"
+                            Description="Template renderizado abaixo da linha quando ela é expandida (master-detail)." />
+            <ShowcaseApiRow Name="ExpandMode" Type="ExpandMode" Default="Single"
+                            Description="Single = uma linha expandida por vez; Multi = várias simultâneas." />
+            <ShowcaseApiRow Name="EmptyTemplate" Type="RenderFragment?" Default="null"
+                            Description="Slot custom para o estado vazio — ícone, título e CTA ricos." />
+            <ShowcaseApiRow Name="LoadingTemplate" Type="RenderFragment?" Default="null"
+                            Description="Slot custom para o overlay de loading." />
+            <ShowcaseApiRow Name="LoadingSkeleton" Type="bool" Default="false"
+                            Description="Renderiza linhas de skeleton em vez do spinner durante a carga." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Virtualização">
+            <ShowcaseApiRow Name="Virtualize" Type="bool" Default="false"
+                            Description="Liga a virtualização do tbody — só linhas visíveis no DOM. Desliga a paginação." />
+            <ShowcaseApiRow Name="RowHeight" Type="float" Default="44"
+                            Description="Altura fixa (px) por linha quando virtualize está ativo." />
+            <ShowcaseApiRow Name="OverscanCount" Type="int" Default="4"
+                            Description="Linhas extras renderizadas fora do viewport." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="520px"
+                            Description="Altura do scroller. Obrigatória quando virtualize está ativo." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Edição">
+            <ShowcaseApiRow Name="EditMode" Type="DataGridEditMode" Default="None"
+                            Description="Liga a edição inline. Cada coluna precisa de um EditTemplate para ser editável." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Hierarquia">
+            <ShowcaseApiRow Name="ChildrenSelector" Type="Func&lt;TItem, IEnumerable&lt;TItem&gt;?&gt;?" Default="null"
+                            Description="Função síncrona que retorna os filhos de um item — ativa o modo tree-grid." />
+            <ShowcaseApiRow Name="LoadChildren" Type="Func&lt;TItem, Task&lt;...&gt;&gt;?" Default="null"
+                            Description="Callback assíncrono que carrega filhos sob demanda na primeira expansão. Resultado cacheado." />
+            <ShowcaseApiRow Name="HasChildren" Type="Func&lt;TItem, bool&gt;?" Default="null"
+                            Description="Predicado que decide se uma linha tem filhos (mostra o chevron)." />
+            <ShowcaseApiRow Name="IndentSize" Type="int" Default="20"
+                            Description="Pixels de indentação por nível na coluna âncora." />
+            <ShowcaseApiRow Name="InitiallyExpanded" Type="bool" Default="false"
+                            Description="Expande todos os nós no primeiro render." />
+            <ShowcaseApiRow Name="RowClass" Type="Func&lt;TItem, string?&gt;?" Default="null"
+                            Description="Função que retorna classes CSS extras por linha — útil para destacar linhas." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Eventos & Métodos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnRowClick" Type="EventCallback&lt;TItem&gt;" ShowDefault="false"
+                            Description="Disparado ao clicar em uma linha." />
+            <ShowcaseApiRow Name="RowUpdated" Type="EventCallback&lt;TItem&gt;" ShowDefault="false"
+                            Description="Disparado ao confirmar uma edição inline. Use para persistir." />
+            <ShowcaseApiRow Name="SelectedItemsChanged" Type="EventCallback&lt;HashSet&lt;TItem&gt;&gt;" ShowDefault="false"
+                            Description="Disparado quando a seleção muda." />
+            <ShowcaseApiRow Name="OnRowExpand / OnRowCollapse" Type="EventCallback&lt;TItem&gt;" ShowDefault="false"
+                            Description="Disparados ao expandir / colapsar uma linha." />
+            <ShowcaseApiRow Name="ExpandAllAsync() / CollapseAllAsync()" Type="Task" ShowDefault="false"
+                            Description="Métodos públicos para expandir / recolher toda a árvore (tree-grid)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGridColumn — Parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Cabeçalho da coluna." />
+            <ShowcaseApiRow Name="Property" Type="Func&lt;TItem, object?&gt;?" Default="null"
+                            Description="Selector do valor da célula — usado para sort, filtro e agregação." />
+            <ShowcaseApiRow Name="PropertyName" Type="string?" Default="null"
+                            Description="Nome canônico da propriedade — recomendado em modo server-side." />
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura CSS da coluna (ex: 120px)." />
+            <ShowcaseApiRow Name="Sortable" Type="bool" Default="true"
+                            Description="Permite ordenar por esta coluna." />
+            <ShowcaseApiRow Name="Filterable" Type="bool" Default="false"
+                            Description="Exibe o input de filtro nesta coluna (requer AllowColumnFilter)." />
+            <ShowcaseApiRow Name="Frozen" Type="FrozenPosition?" Default="null"
+                            Description="Congela a coluna no scroll horizontal — Left ou Right." />
+            <ShowcaseApiRow Name="Aggregate" Type="AggregateFunction?" Default="null"
+                            Description="Função agregadora no rodapé — Sum, Count, Average, Min, Max." />
+            <ShowcaseApiRow Name="IsHierarchyAnchor" Type="bool" Default="false"
+                            Description="Marca esta coluna como âncora da árvore — recebe chevron + indentação." />
+            <ShowcaseApiRow Name="Template" Type="RenderFragment&lt;TItem&gt;?" Default="null"
+                            Description="Template custom da célula (context = o item da linha)." />
+            <ShowcaseApiRow Name="EditTemplate" Type="RenderFragment&lt;TItem&gt;?" Default="null"
+                            Description="Editor renderizado quando a linha está em modo de edição." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr =
+        System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
+
+    private List<Order> _inMemory = new();
+    private HashSet<Order> _selected = new();
+
+    // —— Hierarquia (tree-grid) ——
+    private OmniDataGrid<SharingNode>? _treeGridRef;
+    private string? _treeSearch;
+    private bool _pendingTreeAutoExpand;
+
+    private void OnTreeSearchChangedAsync(string? value)
+    {
+        _treeSearch = value;
+        // Após o grid receber a nova lista filtrada (que só preserva matches +
+        // ancestrais), forçamos expand-all para que o caminho até o item ache
+        // localizado fique visível. Limpa o termo → não força collapse: respeita
+        // o que o usuário expandiu manualmente.
+        if (!string.IsNullOrWhiteSpace(value))
+            _pendingTreeAutoExpand = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingTreeAutoExpand && _treeGridRef is not null)
+        {
+            _pendingTreeAutoExpand = false;
+            await _treeGridRef.ExpandAllAsync();
+        }
+    }
+
+    private sealed record SharingNode(
+        string Nome,
+        string IdProprietario,
+        string IdLoja,
+        string? IdPai,
+        int? Nivel,
+        bool IsCurrent,
+        bool IsInconsistent,
+        List<SharingNode>? Children);
+
+    private List<SharingNode> _sharingRoots = new()
+    {
+        new SharingNode("OMNI Holding Brasil", "PROP-001", "0001", null, 1, false, false, new()
+        {
+            new SharingNode("Regional Sul", "PROP-001", "0010", "0001", 2, false, false, new()
+            {
+                new SharingNode("OMNI Large Enterprise Tecnologia", "PROP-001", "0100", "0010", 3, true, false, null),
+                new SharingNode("OMNI Porto Alegre Centro",         "PROP-001", "0101", "0010", 3, false, false, null),
+                new SharingNode("OMNI Canoas",                      "PROP-001", "0102", "0010", 3, false, false, null),
+            }),
+            new SharingNode("Regional Centro-Oeste", "PROP-001", "0020", "0001", 2, false, false, new()
+            {
+                new SharingNode("OMNI Curitiba",      "PROP-001", "0200", "0020", 3, false, false, null),
+                new SharingNode("OMNI Florianópolis", "PROP-001", "0201", "0020", 3, false, false, null),
+            }),
+            new SharingNode("Regional Sudeste", "PROP-002", "0030", "0001", 2, false, false, null),
+        }),
+        new SharingNode("Filial Órfã (pai não encontrado)", "PROP-003", "0999", "0099", null, false, true, null),
+    };
+
+    private IEnumerable<SharingNode> FilteredSharing
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_treeSearch)) return _sharingRoots;
+            var q = _treeSearch.Trim();
+            // Filtro mantém a árvore (parents que tenham descendentes matching)
+            return _sharingRoots
+                .Select(r => MatchTree(r, q))
+                .Where(r => r is not null)!
+                .Cast<SharingNode>()
+                .ToList();
+        }
+    }
+
+    private static SharingNode? MatchTree(SharingNode n, string q)
+    {
+        bool selfMatches =
+            n.Nome.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+            n.IdProprietario.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+            n.IdLoja.Contains(q, StringComparison.OrdinalIgnoreCase);
+        var keptChildren = n.Children?
+            .Select(c => MatchTree(c, q))
+            .Where(c => c is not null)!
+            .Cast<SharingNode>()
+            .ToList();
+        if (selfMatches || (keptChildren is { Count: > 0 }))
+            return n with { Children = keptChildren };
+        return null;
+    }
+
+    private static int CountAll(IEnumerable<SharingNode> nodes) =>
+        nodes.Sum(n => 1 + (n.Children is null ? 0 : CountAll(n.Children)));
+
+    // —— Empty/Loading template demo ——
+    private int _emptyDemoState; // 0=dados, 1=vazio, 2=loading
+
+    private async Task<GridLoadResult<Order>> DemoLoadAsync(GridState<Order> state)
+    {
+        if (_emptyDemoState == 2)
+        {
+            // Simula loading longo: fica ~1s antes de retornar
+            await Task.Delay(1200);
+            _emptyDemoState = 0; // volta pra "dados" após o load
+            StateHasChanged();
+        }
+        if (_emptyDemoState == 1)
+        {
+            // Vazio: retorna zero items
+            return new GridLoadResult<Order>(Array.Empty<Order>(), 0);
+        }
+        // Estado normal: retorna uma página
+        var page = Orders.AllOrders.Skip(state.Skip).Take(Math.Min(state.Top, 12)).ToList();
+        return new GridLoadResult<Order>(page, 12);
+    }
+
+    private async Task OnDemoLoadAsync()
+    {
+        _emptyDemoState = 2;
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private Task OnEmptyCtaClickAsync()
+    {
+        Toast.Success("Demo", "Botão CTA do EmptyTemplate funciona!");
+        return Task.CompletedTask;
+    }
+
+    private static BadgeVariant LevelBadgeVariant(int? n) => n switch
+    {
+        1 => BadgeVariant.Info,
+        2 => BadgeVariant.Plain,
+        3 => BadgeVariant.Good,
+        null => BadgeVariant.Danger,
+        _ => BadgeVariant.Default
+    };
+
+    protected override void OnInitialized()
+    {
+        // Pega só 24 do total pra demos client-side
+        var rng = new Random(7);
+        _inMemory = Enumerable.Range(1, 24)
+            .Select(_ => Orders.ItemAtRandom(rng))
+            .ToList();
+    }
+
+    private static BadgeVariant StatusVariant(string s) => s switch
+    {
+        "Pronto" => BadgeVariant.Good,
+        "Em preparo" => BadgeVariant.Warn,
+        "Pendente" => BadgeVariant.Info,
+        "Entregue" => BadgeVariant.Plain,
+        "Cancelado" => BadgeVariant.Danger,
+        _ => BadgeVariant.Default,
+    };
+
+    private void OnBulkCancel()
+    {
+        Toast.Notify(NotificationSeverity.Success, "Bulk action",
+            $"{_selected.Count} pedidos marcados como cancelados.");
+        _selected.Clear();
+    }
+
+    private RenderFragment<Order> RenderOrderDetail => order => __builder =>
+    {
+        var items = Orders.ItemsOf(order);
+        <div class="omni-stack omni-stack-8">
+            <div class="omni-mono omni-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
+                Pedido #@order.Numero · @order.Cliente · @order.Canal
+            </div>
+            <ul class="omni-stack omni-stack-4" style="padding-left: 1.25rem; margin: 0;">
+                @foreach (var it in items)
+                {
+                    <li class="omni-mono" style="font-size: 13px;">@it</li>
+                }
+            </ul>
+        </div>
+    };
+}

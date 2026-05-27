@@ -1,0 +1,153 @@
+@page "/showcase/loading"
+@layout ShowcaseLayout
+
+<PageTitle>Loading — Showcase</PageTitle>
+
+<ShowcasePage Title="Spinner"
+              Subtitle="Indicador circular de carregamento — herda a cor do texto pai (currentColor).">
+
+    <Overview>
+        <p>
+            O <code>OmniSpinner</code> é um indicador circular animado, feito só com CSS.
+            Como herda <code>currentColor</code>, ele se adapta automaticamente à cor do
+            elemento pai — um botão, um badge, um link ou um overlay.
+        </p>
+        <p>
+            Use-o para sinalizar que <strong>uma operação está em andamento</strong> e o
+            usuário deve esperar. Tem quatro tamanhos (<code>Sm</code>, <code>Md</code>,
+            <code>Lg</code>, <code>Xl</code>). Para placeholders estruturais que imitam o
+            layout final enquanto os dados chegam, prefira o <code>OmniSkeleton</code> —
+            mostrado abaixo para contraste.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Operação curta e indeterminada — um clique que dispara uma chamada rápida.</li>
+            <li>Dentro de um botão (<code>OmniButton</code> já usa o spinner no <code>Loading</code>).</li>
+            <li>Overlay de carregamento sobre uma área pequena de conteúdo.</li>
+            <li>Quando não há layout previsível para representar com skeleton.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Carregamento de listas, cards ou tabelas com layout conhecido → use <code>OmniSkeleton</code>.</li>
+            <li>Progresso determinado (com percentual) → use <code>OmniProgress</code>.</li>
+            <li>Carga inicial de um DataGrid → use a opção <code>LoadingSkeleton</code> do grid.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Sm, Md, Lg, Xl. O último exemplo herda currentColor de um span colorido."
+                         Code="@(@"<OmniSpinner Size=""ComponentSize.Sm"" />
+<OmniSpinner Size=""ComponentSize.Md"" />
+<OmniSpinner Size=""ComponentSize.Lg"" />
+<OmniSpinner Size=""ComponentSize.Xl"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-24" style="align-items:center;">
+                <OmniSpinner Size="ComponentSize.Sm" />
+                <OmniSpinner Size="ComponentSize.Md" />
+                <OmniSpinner Size="ComponentSize.Lg" />
+                <OmniSpinner Size="ComponentSize.Xl" />
+                <span class="omni-accent-fg" style="font-size: 28px;"><OmniSpinner Size="ComponentSize.Lg" /></span>
+                <span class="omni-mono omni-soft" style="font-size: 12px;">herda currentColor</span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DENTRO DO BUTTON"
+                         Description="O OmniButton já embute o spinner — basta ligar o Loading."
+                         Code="@(@"<OmniButton Text=""Clique para carregar"" Variant=""ButtonVariant.Primary""
+             Icon=""save"" Loading=""@b1Loading"" LoadingText=""Processando...""
+             OnClick=""@(_ => SimulateAsync(b => b1Loading = b))"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Clique para carregar"
+                             Variant="ButtonVariant.Primary"
+                             Icon="save"
+                             Loading="@b1Loading"
+                             LoadingText="Processando..."
+                             OnClick="@(_ => SimulateAsync(b => b1Loading = b))" />
+                <OmniButton Text="Sem texto alterado"
+                             Loading="@b2Loading"
+                             OnClick="@(_ => SimulateAsync(b => b2Loading = b))" />
+                <OmniButton IconOnly Icon="refresh"
+                             Variant="ButtonVariant.Ghost"
+                             Loading="@b3Loading"
+                             OnClick="@(_ => SimulateAsync(b => b3Loading = b))" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SKELETON — PLACEHOLDER ESTRUTURAL"
+                         Description="Para layouts conhecidos, o OmniSkeleton imita a estrutura final enquanto carrega."
+                         Code="@(@"<OmniSkeleton Variant=""SkeletonVariant.Circle"" Width=""40px"" Height=""40px"" />
+<OmniSkeleton Variant=""SkeletonVariant.Text"" Width=""60%"" />
+<OmniSkeleton Variant=""SkeletonVariant.Text"" Lines=""3"" />
+<OmniSkeleton Variant=""SkeletonVariant.Rect"" Height=""120px"" />")">
+            <div class="omni-grid-3">
+                <OmniCard>
+                    <ChildContent>
+                        <div class="omni-row omni-row-gap-12" style="margin-bottom: 14px;">
+                            <OmniSkeleton Variant="SkeletonVariant.Circle" Width="40px" Height="40px" />
+                            <div class="omni-stack omni-stack-8 omni-flex-1">
+                                <OmniSkeleton Variant="SkeletonVariant.Text" Width="60%" />
+                                <OmniSkeleton Variant="SkeletonVariant.Text" Width="40%" />
+                            </div>
+                        </div>
+                        <OmniSkeleton Variant="SkeletonVariant.Text" Lines="3" />
+                    </ChildContent>
+                </OmniCard>
+                <OmniCard>
+                    <ChildContent>
+                        <OmniSkeleton Variant="SkeletonVariant.Rect" Height="120px" />
+                        <div style="margin-top: 12px;">
+                            <OmniSkeleton Variant="SkeletonVariant.Text" Lines="2" />
+                        </div>
+                    </ChildContent>
+                </OmniCard>
+                <OmniCard>
+                    <ChildContent>
+                        <div class="omni-stack omni-stack-12">
+                            <OmniSkeleton Variant="SkeletonVariant.Text" Width="80%" />
+                            <OmniSkeleton Variant="SkeletonVariant.Rect" Height="60px" />
+                            <div class="omni-row omni-row-gap-8">
+                                <OmniSkeleton Variant="SkeletonVariant.Rect" Width="80px" Height="32px" />
+                                <OmniSkeleton Variant="SkeletonVariant.Rect" Width="110px" Height="32px" />
+                            </div>
+                        </div>
+                    </ChildContent>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniSpinner">
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Tamanho do spinner — Sm, Md, Lg, Xl." />
+            <ShowcaseApiRow Name="Label" Type="string?" Default="Carregando"
+                            Description="Texto de acessibilidade (aria-label) do indicador." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Parâmetros — OmniSkeleton">
+            <ShowcaseApiRow Name="Variant" Type="SkeletonVariant" Default="Text"
+                            Description="Forma do placeholder — Text, Rect ou Circle." />
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura CSS do placeholder (ex: 60%, 120px)." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="null"
+                            Description="Altura CSS do placeholder." />
+            <ShowcaseApiRow Name="Lines" Type="int" Default="1"
+                            Description="Quantidade de linhas para o variant Text." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool b1Loading, b2Loading, b3Loading;
+
+    private async Task SimulateAsync(Action<bool> setter)
+    {
+        setter(true);
+        await Task.Delay(2000);
+        setter(false);
+    }
+}

@@ -1,0 +1,176 @@
+@inject PdvOrderService Order
+@inject DialogService Dialog
+@implements IDisposable
+
+@*  Linha de carrinho para itens regulares (não-pizza): bebida, burger, sobremesa.
+    Estados: normal, com Observação (notes block amarelo), editor de observação aberto. *@
+<div class="fs-pdv-ci">
+    <div class="fs-pdv-ci-head">
+        <div class="fs-pdv-ci-head-block">
+            <span class="fs-pdv-ci-regular-name">@Item.Name</span>
+            @if (FindTag() is { } tag)
+            {
+                <span class="fs-pdv-ci-regular-tag">@tag</span>
+            }
+        </div>
+        <span class="fs-pdv-ci-total">@LineTotal.ToString("C", _ptBr)</span>
+    </div>
+
+    <div class="fs-pdv-ci-regular-meta">
+        @if (Item.Qty > 1)
+        {
+            <span class="mono">@Item.Qty × @Item.UnitPrice.ToString("C", _ptBr)</span>
+        }
+        else
+        {
+            <span class="mono">@Item.UnitPrice.ToString("C", _ptBr)</span>
+        }
+        @if (FindCategory() is { } cat)
+        {
+            <span class="dot">·</span>
+            <span>@cat</span>
+        }
+        @if (Item.Adjustment is { } adj)
+        {
+            <span class="dot">·</span>
+            <span style="color: var(--omni-good); font-weight: 600;">
+                @AdjustmentDisplay(adj, Item.UnitPrice * Item.Qty)
+            </span>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Item.Notes) && !_editingObs)
+    {
+        <div class="fs-pdv-ci-notes">@Item.Notes</div>
+    }
+
+    @if (_editingObs)
+    {
+        <div class="fs-pdv-ci-obs-editor">
+            <textarea @bind="_obsDraft" placeholder="Ex.: sem cebola, mal passado…"></textarea>
+            <div class="fs-pdv-ci-obs-editor-actions">
+                <button class="fs-pdv-btn fs-pdv-btn-ghost" @onclick="CancelObs">Cancelar</button>
+                <button class="fs-pdv-btn fs-pdv-btn-primary" @onclick="SaveObs">Salvar</button>
+            </div>
+        </div>
+    }
+
+    <div class="fs-pdv-ci-controls">
+        <OmniQtyStepper Size="ComponentSize.Sm"
+                         Value="@Item.Qty"
+                         ValueChanged="@(q => Order.UpdateQty(Item.Id, q))" />
+
+        <button class="fs-pdv-ci-chip @(string.IsNullOrEmpty(Item.Notes) ? "" : "is-active")"
+                @onclick="ToggleObsEditor">
+            <OmniIcon Name="file-text" Size="ComponentSize.Sm" />
+            Observação
+        </button>
+
+        <button class="fs-pdv-ci-chip fs-pdv-ci-chip-pct @(Item.Adjustment is null ? "" : "is-active")"
+                @onclick="OpenAdjustment" aria-label="Ajustar item">
+            %
+        </button>
+
+        <div class="fs-pdv-ci-spacer"></div>
+
+        <button class="fs-pdv-ci-trash" @onclick="OpenRemove" aria-label="Remover">
+            <OmniIcon Name="trash" Size="ComponentSize.Sm" />
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CartItem Item { get; set; } = default!;
+
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+
+    private bool _editingObs;
+    private string _obsDraft = "";
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private decimal LineTotal
+    {
+        get
+        {
+            var line = Item.UnitPrice * Item.Qty;
+            if (Item.Adjustment is not null)
+                line -= Math.Abs(Item.Adjustment.AppliedTo(line));
+            return Math.Max(0, line);
+        }
+    }
+
+    private string? FindTag()
+    {
+        var p = PdvMockData.Products.FirstOrDefault(x => x.Id == Item.ProductId);
+        return p?.Tag;
+    }
+
+    private string? FindCategory()
+    {
+        var p = PdvMockData.Products.FirstOrDefault(x => x.Id == Item.ProductId);
+        if (p is null) return null;
+        return p.Category switch
+        {
+            "bebidas"   => "Bebida",
+            "burgers"   => "Lanche",
+            "sobremesa" => "Sobremesa",
+            _           => null,
+        };
+    }
+
+    private void ToggleObsEditor()
+    {
+        if (_editingObs)
+        {
+            CancelObs();
+        }
+        else
+        {
+            _obsDraft = Item.Notes ?? "";
+            _editingObs = true;
+        }
+    }
+
+    private void CancelObs() { _editingObs = false; _obsDraft = ""; }
+
+    private void SaveObs()
+    {
+        Order.SetItemNotes(Item.Id, _obsDraft);
+        _editingObs = false;
+    }
+
+    private async Task OpenAdjustment()
+    {
+        var result = await Dialog.OpenAsync<PdvAdjustmentDialog>(
+            title: $"Ajustar {Item.Name}",
+            parameters: new Dictionary<string, object?>
+            {
+                ["BaseAmount"] = Item.UnitPrice * Item.Qty,
+                ["Initial"]    = Item.Adjustment,
+            });
+        if (result is Adjustment adj)
+            Order.ApplyItemAdjustment(Item.Id, adj);
+        else if (result is string s && s == "clear")
+            Order.ApplyItemAdjustment(Item.Id, null);
+    }
+
+    private async Task OpenRemove()
+    {
+        var result = await Dialog.OpenAsync<PdvRemoveReasonDialog>(
+            title: $"Remover {Item.Name}?",
+            parameters: null);
+        if (result is RemoveResult r)
+            Order.RemoveWithReason(Item.Id, r.Reason, r.Note);
+    }
+
+    private static string AdjustmentDisplay(Adjustment a, decimal baseAmt)
+    {
+        var impact = Math.Abs(a.AppliedTo(baseAmt));
+        var sign = a.Value < 0 ? "−" : (a.IsPercent ? "−" : "−");
+        return a.IsPercent
+            ? $"{sign} {Math.Abs(a.Value):0.##}% (−{impact:C2})"
+            : $"− {impact.ToString("C", _ptBr)}";
+    }
+}

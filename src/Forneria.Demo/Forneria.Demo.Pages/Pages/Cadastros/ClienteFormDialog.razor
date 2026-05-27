@@ -1,0 +1,54 @@
+@inject DialogService Dialog
+@inject NotificationService Toast
+
+<div class="omni-stack omni-stack-16">
+    <div class="omni-grid-2">
+        <OmniFormField Label="Nome" Required>
+            <OmniTextBox @bind-Value="cliente.Nome" Placeholder="Maria Silva" />
+        </OmniFormField>
+        <OmniFormField Label="Telefone">
+            <OmniTextBox @bind-Value="cliente.Telefone" Placeholder="(11) 98888-7777" LeadingIcon="phone" />
+        </OmniFormField>
+    </div>
+    <OmniFormField Label="E-mail">
+        <OmniTextBox @bind-Value="cliente.Email" Type="email" Placeholder="maria@email.com" LeadingIcon="mail" />
+    </OmniFormField>
+    <div class="omni-grid-2">
+        <OmniFormField Label="Cidade">
+            <OmniTextBox @bind-Value="cliente.Cidade" Placeholder="São Paulo" />
+        </OmniFormField>
+        <OmniFormField Label="Tipo">
+            <OmniSelect TValue="string" @bind-Value="cliente.Tipo" Items="@(new[] {"Físico","Jurídico","VIP"})" Placeholder="Selecione..." />
+        </OmniFormField>
+    </div>
+    <OmniFormField Label="Observações">
+        <OmniTextArea @bind-Value="cliente.Observacoes" Placeholder="Restrições, preferências..." Rows="3" />
+    </OmniFormField>
+
+    <div class="omni-row omni-row-end omni-row-gap-8">
+        <OmniButton Text="Cancelar" OnClick="OnCancel" />
+        <OmniButton Text="Salvar cliente" Icon="save" Variant="ButtonVariant.Primary" OnClick="OnSave" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public Cliente? Initial { get; set; }
+
+    private Cliente cliente = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Initial is not null) cliente = Initial with { };
+    }
+
+    private void OnCancel(MouseEventArgs _) => Dialog.Close((object?)null);
+    private void OnSave(MouseEventArgs _)
+    {
+        if (string.IsNullOrWhiteSpace(cliente.Nome))
+        {
+            Toast.Error("Nome é obrigatório");
+            return;
+        }
+        Dialog.Close((object)cliente);
+    }
+}

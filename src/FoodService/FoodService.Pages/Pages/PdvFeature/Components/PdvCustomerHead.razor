@@ -1,0 +1,74 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Customer head fiel ao mock Forneria — card compacto horizontal:
+    ícone user genérico + nome + meta + X. SEM avatar com iniciais.
+    No delivery, endereço sub-line abaixo (separador dashed). *@
+<div class="fs-pdv-cust">
+    @if (Order.Customer is { } c)
+    {
+        <div class="fs-pdv-cust-card">
+            <div class="fs-pdv-cust-card-row">
+                <div class="fs-pdv-cust-ico">
+                    <OmniIcon Name="user" Size="ComponentSize.Sm" />
+                </div>
+                <div class="fs-pdv-cust-info">
+                    <div class="fs-pdv-cust-name">@c.Name</div>
+                    <div class="fs-pdv-cust-meta">
+                        <span>@c.Phone</span>
+                        @if (c.Points > 0)
+                        {
+                            <span class="dot-sep">·</span>
+                            <span>@c.Points pts</span>
+                        }
+                    </div>
+                </div>
+                <button class="fs-pdv-cust-x" @onclick="Clear" aria-label="Remover cliente">
+                    <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                </button>
+            </div>
+
+            @if (Order.Mode == OrderMode.Delivery && !string.IsNullOrEmpty(Order.ModeDetails.Address))
+            {
+                <div class="fs-pdv-cust-delivery">
+                    <div class="fs-pdv-cust-delivery-head">
+                        <OmniIcon Name="truck" Size="ComponentSize.Sm" />
+                        <span>Endereço de entrega</span>
+                    </div>
+                    <button class="fs-pdv-cust-address" type="button">
+                        <span class="fs-pdv-cust-address-text">@Order.ModeDetails.Address</span>
+                        <span class="fs-pdv-cust-address-edit">trocar →</span>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <button class="fs-pdv-cust-empty" @onclick="@(() => _searchOpen = !_searchOpen)">
+            <OmniIcon Name="user" Size="ComponentSize.Sm" />
+            <span>Adicionar cliente</span>
+            <kbd>F4</kbd>
+        </button>
+    }
+
+    @if (_searchOpen && Order.Customer is null)
+    {
+        <PdvCustomerSearchPopover OnSelect="OnPick" OnClose="@(() => _searchOpen = false)" />
+    }
+</div>
+
+@code {
+    private bool _searchOpen;
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private void OnPick(Customer c)
+    {
+        Order.SetCustomer(c);
+        _searchOpen = false;
+    }
+
+    private void Clear() => Order.SetCustomer(null);
+}

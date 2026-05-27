@@ -1,0 +1,36 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*  Feature card grande (destaques do home) — thumbnail à esquerda, nome +
+    descrição + preço à direita. Badge opcional ("Mais pedida", "Novidade")
+    sobre o thumb. *@
+<button type="button"
+        class="@RootCss"
+        style="@Style"
+        @onclick="OnClick"
+        @attributes="Attributes">
+    <div class="fs-cd-feat-th">
+        @if (!string.IsNullOrEmpty(Badge))
+        {
+            <span class="fs-cd-feat-badge omni-mono">@Badge</span>
+        }
+    </div>
+    <div class="fs-cd-feat-bd">
+        <div class="fs-cd-feat-nm">@Name</div>
+        <div class="fs-cd-feat-ds">@Description</div>
+        <div class="fs-cd-feat-pr omni-mono">a partir de @Price</div>
+    </div>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+    [Parameter, EditorRequired] public string Description { get; set; } = "";
+    [Parameter, EditorRequired] public string Price { get; set; } = "";
+    [Parameter] public string? Badge { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string RootCss => CssBuilder.Default("fs-cd-feat")
+        .AddClass(Class)
+        .Build();
+}

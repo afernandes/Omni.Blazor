@@ -1,0 +1,135 @@
+@page "/cadastros/clientes"
+@layout CadastrosLayout
+
+<PageTitle>Clientes — Forneria</PageTitle>
+
+<OmniPaneHeader Title="Clientes" Subtitle="@($"{clientes.Count} cadastros · {clientes.Count(c => c.Tipo == "VIP")} VIPs")" />
+
+<OmniPaneToolbar>
+    <OmniTextBox @bind-Value="search" Placeholder="Buscar cliente..." LeadingIcon="search" Class="omni-pane-toolbar-search" />
+    <div class="omni-pane-toolbar-chips">
+        <OmniChip Text="Todos"    Active="@(filter is null)"        Accent OnClick="@(_ => SetFilter(null))" />
+        <OmniChip Text="VIP"      Active="@(filter == "VIP")"       OnClick="@(_ => SetFilter("VIP"))" />
+        <OmniChip Text="Jurídico" Active="@(filter == "Jurídico")"  OnClick="@(_ => SetFilter("Jurídico"))" />
+        <OmniChip Text="Físico"   Active="@(filter == "Físico")"    OnClick="@(_ => SetFilter("Físico"))" />
+    </div>
+    <div class="omni-pane-toolbar-spacer"></div>
+    <OmniButton Text="Exportar" Icon="download" />
+    <OmniButton Text="Novo cliente" Icon="plus" Variant="ButtonVariant.Primary" OnClick="OnNewClient" />
+</OmniPaneToolbar>
+
+<OmniDataGrid TItem="Cliente" Data="@Filtered" AllowPaging PageSize="14" Embed>
+    <Columns>
+        <OmniDataGridColumn TItem="Cliente" Title="Cliente" Property="@(c => c.Nome)">
+            <Template>
+                <div class="omni-row omni-row-gap-10">
+                    <OmniAvatar Initials="@Initials(context.Nome)" />
+                    <div>
+                        <div style="font-weight:600;">@context.Nome</div>
+                        <div class="omni-muted" style="font-size:11px;">@context.Email</div>
+                    </div>
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Cliente" Title="Telefone" Property="@(c => c.Telefone)" />
+        <OmniDataGridColumn TItem="Cliente" Title="Cidade"   Property="@(c => c.Cidade)" />
+        <OmniDataGridColumn TItem="Cliente" Title="Tipo"     Property="@(c => c.Tipo)">
+            <Template>
+                <OmniBadge Text="@(context.Tipo ?? "Físico")"
+                            Variant="@(context.Tipo == "VIP" ? BadgeVariant.Accent : BadgeVariant.Plain)" />
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Cliente" Title="Pedidos" Property="@(c => (object)c.Pedidos)" Width="100px">
+            <Template>
+                <span class="omni-mono">@context.Pedidos</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Cliente" Title="" Sortable="false" Width="140px">
+            <Template>
+                <div class="omni-row omni-row-gap-4 omni-row-end">
+                    <OmniButton IconOnly Icon="edit"  Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                 OnClick="@(_ => OnEdit(context))" />
+                    <OmniButton IconOnly Icon="trash" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                 OnClick="@(_ => OnDelete(context))" />
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>
+
+@code {
+    [Inject] DialogService Dialog { get; set; } = default!;
+    [Inject] NotificationService Toast { get; set; } = default!;
+
+    private string? search;
+    private string? filter;
+
+    private Task SetFilter(string? value) { filter = value; return Task.CompletedTask; }
+
+    private List<Cliente> clientes = new()
+    {
+        new() { Nome = "Marina Costa",    Email = "marina@fornoalto.com.br",  Telefone = "(11) 98765-4321", Cidade = "São Paulo",    Tipo = "VIP",      Pedidos = 142 },
+        new() { Nome = "Rafael Souza",    Email = "rafa@burger-soc.com",      Telefone = "(11) 98112-3344", Cidade = "São Paulo",    Tipo = "VIP",      Pedidos = 96 },
+        new() { Nome = "Beatriz Mendes",  Email = "bia@gmail.com",            Telefone = "(11) 97654-1122", Cidade = "Campinas",     Tipo = "Físico",   Pedidos = 38 },
+        new() { Nome = "Lucas P.",        Email = "lucas.p@outlook.com",      Telefone = "(11) 99887-3322", Cidade = "São Paulo",    Tipo = "Físico",   Pedidos = 24 },
+        new() { Nome = "Forno Alto LTDA", Email = "compras@fornoalto.com.br", Telefone = "(11) 4002-8922",  Cidade = "São Paulo",    Tipo = "Jurídico", Pedidos = 412 },
+        new() { Nome = "Fernanda S.",     Email = "fer@gmail.com",            Telefone = "(11) 98123-5566", Cidade = "Guarulhos",    Tipo = "Físico",   Pedidos = 15 },
+        new() { Nome = "Bruno L.",        Email = "bruno.l@yahoo.com",        Telefone = "(11) 97788-1010", Cidade = "Osasco",       Tipo = "Físico",   Pedidos = 9 },
+        new() { Nome = "Joana M.",        Email = "joana.m@email.com",        Telefone = "(11) 98008-7766", Cidade = "São Paulo",    Tipo = "Físico",   Pedidos = 31 },
+        new() { Nome = "Restaurante Sol", Email = "sol@email.com",            Telefone = "(11) 4123-5544",  Cidade = "Santo André",  Tipo = "Jurídico", Pedidos = 198 },
+        new() { Nome = "Anônimo · QR",    Email = "—",                        Telefone = "—",               Cidade = "—",            Tipo = "Físico",   Pedidos = 1 },
+        new() { Nome = "Pedro G.",        Email = "pedro.g@email.com",        Telefone = "(11) 98765-9999", Cidade = "São Bernardo", Tipo = "Físico",   Pedidos = 4 },
+        new() { Nome = "Café Lua Cheia",  Email = "lua@cafe.com.br",          Telefone = "(11) 4500-1234",  Cidade = "São Paulo",    Tipo = "VIP",      Pedidos = 67 },
+    };
+
+    private IEnumerable<Cliente> Filtered => clientes.Where(c =>
+        (filter is null || c.Tipo == filter) &&
+        (string.IsNullOrWhiteSpace(search)
+            || c.Nome.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || (c.Email?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)));
+
+    private async Task OnNewClient(MouseEventArgs _)
+    {
+        var result = await Dialog.OpenAsync<ClienteFormDialog>("Novo cliente", null,
+            new DialogOptions { Width = "640px" });
+        if (result is Cliente c)
+        {
+            clientes.Insert(0, c);
+            Toast.Success("Cliente cadastrado", c.Nome, 3000);
+        }
+    }
+
+    private async Task OnEdit(Cliente c)
+    {
+        var pars = new Dictionary<string, object?> { ["Initial"] = c };
+        var result = await Dialog.OpenAsync<ClienteFormDialog>($"Editar — {c.Nome}", pars,
+            new DialogOptions { Width = "640px" });
+        if (result is Cliente updated)
+        {
+            var idx = clientes.IndexOf(c);
+            if (idx >= 0) clientes[idx] = updated;
+            Toast.Success("Atualizado", updated.Nome, 2500);
+        }
+    }
+
+    private async Task OnDelete(Cliente c)
+    {
+        var ok = await Dialog.Confirm(
+            $"Excluir cliente {c.Nome}? Esta ação não pode ser desfeita.",
+            "Excluir cliente",
+            new ConfirmOptions { OkButtonText = "Excluir", CancelButtonText = "Cancelar", Icon = "alert-triangle" });
+        if (ok == true)
+        {
+            clientes.Remove(c);
+            Toast.Info("Cliente removido", c.Nome, 2500);
+        }
+    }
+
+    private static string Initials(string? n)
+    {
+        if (string.IsNullOrWhiteSpace(n)) return "?";
+        var parts = n.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
+        return ("" + parts[0][0] + parts[^1][0]).ToUpper();
+    }
+}

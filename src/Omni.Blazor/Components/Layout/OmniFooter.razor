@@ -1,0 +1,33 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Footer slot do <c>OmniLayout</c>. Equivalente semântico do
+    <c>RadzenFooter</c> ou de um <c>&lt;footer&gt;</c> tradicional do
+    Bootstrap. Quando presente, o layout cria a linha de baixo da grid
+    automaticamente via <c>:has(.omni-footer)</c>; quando ausente, a linha
+    colapsa para 0px.
+
+    Props:
+      • Bordered (bool, default true) — borda superior fina
+      • Fixed    (bool, default false) — fixa visualmente no rodapé da
+        viewport mesmo após scroll do main (`position: sticky` + offset
+        gerenciado pelo grid). Quando false (default), o footer rola junto.
+*@
+<footer class="@RootCss" data-omni-fixed="@(Fixed ? "1" : null)" style="@Style" @attributes="Attributes">
+    @ChildContent
+</footer>
+
+@code {
+    /// <summary>Borda superior fina. Default true.</summary>
+    [Parameter] public bool Bordered { get; set; } = true;
+
+    /// <summary>Fixa o footer ao rodapé da viewport (sticky). Default false (rola junto).</summary>
+    [Parameter] public bool Fixed { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-footer")
+        .AddClass("omni-footer-bordered", Bordered)
+        .AddClass("omni-footer-fixed", Fixed)
+        .AddClass(Class)
+        .Build();
+}

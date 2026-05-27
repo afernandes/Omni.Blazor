@@ -1,0 +1,86 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*  Botão hamburger que alterna o estado de um <c>OmniDrawer</c>. Encontra
+    o drawer alvo seguindo esta ordem:
+
+      1. <c>Target</c> explícito (parâmetro)
+      2. <c>[CascadingParameter] OmniDrawer</c> — quando o toggle está
+         RENDERIZADO DENTRO do drawer (descendente)
+      3. <c>[CascadingParameter] OmniLayout</c> — quando o toggle está
+         em outro slot (AppBar, ToolBar) e busca via registry do layout.
+         Se houver mais de um drawer, pega o primeiro de mesmo
+         <c>Anchor</c> ou o primeiro disponível.
+
+    Análogo a <c>[data-bs-toggle="offcanvas"]</c> do Bootstrap, mas sem
+    precisar de JS — o estado é gerenciado pelo drawer via parâmetro
+    <c>Open</c>.
+
+    Props:
+      • Target   (OmniDrawer?) — referência manual. Default usa cascade.
+      • Anchor   (DrawerAnchor?) — quando há múltiplos drawers no layout,
+        filtra por âncora. Default null (primeiro disponível).
+      • Icon     (string, default "menu") — ícone Lucide.
+      • Title    (string, default "Abrir menu") — aria-label / tooltip.
+*@
+<button type="button"
+        class="@RootCss"
+        aria-label="@Title"
+        title="@Title"
+        @onclick="OnClick"
+        style="@Style"
+        @attributes="Attributes">
+    <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
+</button>
+
+@code {
+    /// <summary>Drawer cascateado quando o toggle está dentro do próprio drawer.</summary>
+    [CascadingParameter] public OmniDrawer? CascadedDrawer { get; set; }
+
+    /// <summary>Layout cascateado (registry de drawers) — usado quando o toggle
+    /// está em outro slot (AppBar/ToolBar) e precisa achar drawer sibling.</summary>
+    [CascadingParameter] public OmniLayout? Layout { get; set; }
+
+    /// <summary>Referência manual ao drawer alvo. Default: usa resolução automática.</summary>
+    [Parameter] public OmniDrawer? Target { get; set; }
+
+    /// <summary>Filtra drawers por âncora quando há mais de um no layout. Default null.</summary>
+    [Parameter] public DrawerAnchor? Anchor { get; set; }
+
+    /// <summary>Ícone Lucide do botão. Default <c>menu</c>.</summary>
+    [Parameter] public string Icon { get; set; } = "menu";
+
+    /// <summary>Texto acessível (aria-label + title). Default "Abrir menu".</summary>
+    [Parameter] public string Title { get; set; } = "Abrir menu";
+
+    private OmniDrawer? Resolved
+    {
+        get
+        {
+            if (Target is not null) return Target;
+            if (CascadedDrawer is not null) return CascadedDrawer;
+            if (Layout is null) return null;
+            // Layout: filtra por anchor se setado, senão pega o primeiro
+            if (Anchor is DrawerAnchor a)
+            {
+                foreach (var d in Layout.Drawers)
+                    if (d.Anchor == a) return d;
+            }
+            return Layout.Drawers.Count > 0 ? Layout.Drawers[0] : null;
+        }
+    }
+
+    private string RootCss => CssBuilder.Default("omni-drawer-toggle")
+        .AddClass("omni-drawer-toggle-orphan", Resolved is null)
+        .AddClass(Class)
+        .Build();
+
+    private async Task OnClick()
+    {
+        if (Resolved is not null)
+        {
+            await Resolved.ToggleAsync();
+        }
+    }
+}

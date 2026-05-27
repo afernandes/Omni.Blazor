@@ -1,0 +1,60 @@
+@namespace Omni.Blazor.Components
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+@inherits OmniComponent
+
+@*  Pílula compacta de status — primitivo do design system para indicar estado
+    operacional (caixa aberto, API online, sincronizando, fila vazia, etc.).
+    Cinco variantes semânticas (Neutral/Accent/Good/Warn/Danger) escolhem a cor
+    do dot, do texto e do fundo translúcido. Quando <c>Pulse</c> é true, o dot
+    ganha um anel pulsante que comunica "ao vivo / agora".
+
+    A diferença em relação ao <c>OmniChip</c>: este é estático, não-interativo,
+    foca em *sinalização* (não em filtro/seleção), e separa visualmente um
+    rótulo principal de uma meta-info opcional (monoespaçada). Use isso na
+    barra de status, header de páginas operacionais e badges de saúde. *@
+<span id="@Id" class="@RootCss" style="@Style" @attributes="Attributes">
+    <span class="@DotCss" aria-hidden="true"></span>
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <span class="omni-status-label">@Label</span>
+    }
+    @if (ChildContent is not null)
+    {
+        <span class="omni-status-label">@ChildContent</span>
+    }
+    @if (!string.IsNullOrEmpty(Meta))
+    {
+        <span class="omni-status-meta">@Meta</span>
+    }
+</span>
+
+@code {
+    /// <summary>Rótulo principal — destacado na cor do <see cref="Kind"/>.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Texto secundário (relógio, contador, percentual) — renderizado
+    /// em monoespaçada apagada, separado do label por "·".</summary>
+    [Parameter] public string? Meta { get; set; }
+
+    /// <summary>Intent semântico do estado.</summary>
+    [Parameter] public StatusBadgeKind Kind { get; set; } = StatusBadgeKind.Neutral;
+
+    /// <summary>Anel pulsante no dot — use para indicar "ao vivo".</summary>
+    [Parameter] public bool Pulse { get; set; }
+
+    /// <summary>Sinaliza ao screen-reader o significado do estado.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Conteúdo livre — alternativa ao parâmetro <see cref="Label"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-status")
+        .AddClass($"omni-status-{Kind.ToString().ToLowerInvariant()}")
+        .AddClass(Class)
+        .Build();
+
+    private string DotCss => CssBuilder.Default("omni-status-dot")
+        .AddClass("omni-pulse", Pulse)
+        .Build();
+}

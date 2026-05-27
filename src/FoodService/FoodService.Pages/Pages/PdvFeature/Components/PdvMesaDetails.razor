@@ -1,0 +1,70 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Mesa — picker grid 8 colunas × 5 linhas (40 mesas) + covers + waiter + 10% serviço badge. *@
+<div class="fs-pdv-mode-label">Selecione a mesa</div>
+<div class="fs-pdv-mesa-grid" style="grid-template-columns: repeat(8, 1fr);">
+    @foreach (var m in PdvMockData.Mesas)
+    {
+        var mesa = m;
+        var isSel = Order.ModeDetails.TableNumber == mesa.Number;
+        var cls = mesa.Busy ? "is-busy" : (isSel ? "is-selected" : "");
+        <button class="fs-pdv-mesa-cell @cls"
+                @onclick="@(() => Pick(mesa))"
+                disabled="@mesa.Busy"
+                title="@(mesa.Busy ? $"Mesa {mesa.Number} ocupada" : $"Mesa {mesa.Number}")">
+            @mesa.Number
+        </button>
+    }
+</div>
+
+<div class="fs-pdv-mode-row" style="gap: 8px;">
+    <div style="flex:1;">
+        <div class="fs-pdv-mode-label">Pessoas</div>
+        <OmniTextBox Class="fs-pdv-mode-input"
+                     Type="number"
+                     Value="@(Order.ModeDetails.Covers?.ToString() ?? "")"
+                     ValueChanged="OnCoversChanged"
+                     Placeholder="2" />
+    </div>
+    <div style="flex:2;">
+        <div class="fs-pdv-mode-label">Garçom</div>
+        <OmniSelect Class="fs-pdv-mode-select"
+                    TValue="string"
+                    Value="@WaiterName"
+                    ValueChanged="OnWaiterChanged"
+                    Placeholder="— escolher —"
+                    Items="PdvMockData.Waiters"
+                    TextSelector="@(w => w ?? "")"
+                    ValueSelector="@(w => w)" />
+    </div>
+</div>
+
+<div class="fs-pdv-mode-fee">
+    <OmniIcon Name="info" Size="ComponentSize.Sm" /> Taxa de serviço 10% sobre o subtotal
+</div>
+
+@code {
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private string WaiterName => Order.ModeDetails.Waiter ?? "";
+
+    private void OnWaiterChanged(string? value)
+    {
+        Order.ModeDetails.Waiter = string.IsNullOrEmpty(value) ? null : value;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void Pick(MesaInfo m)
+    {
+        Order.ModeDetails.TableNumber = m.Number;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnCoversChanged(string? value)
+    {
+        Order.ModeDetails.Covers = int.TryParse(value, out var n) ? n : null;
+        Order.NotifyModeDetailsChanged();
+    }
+}

@@ -1,0 +1,154 @@
+@page "/showcase/stepper"
+@layout ShowcaseLayout
+@inject NotificationService Toast
+
+<PageTitle>Stepper — Showcase</PageTitle>
+
+<ShowcasePage Title="Stepper"
+              Subtitle="Wizard multi-step para guiar o usuário por um fluxo sequencial.">
+
+    <Overview>
+        <p>
+            O <code>OmniStepper</code> organiza um processo longo em <strong>etapas
+            numeradas</strong>. Cada <code>OmniStep</code> tem título, descrição e ícone; só o
+            corpo da etapa ativa é renderizado, mas todas aparecem no cabeçalho com seu status
+            (concluída ✓, ativa ou pendente).
+        </p>
+        <p>
+            No modo <code>Linear</code> (padrão) o usuário avança um passo por vez e não pode pular;
+            com <code>Linear=false</code> qualquer etapa é clicável. Os botões de navegação são
+            gerados automaticamente e o evento <code>OnComplete</code> dispara na última etapa. O
+            layout é responsivo — vira timeline vertical e depois modo compacto em telas menores.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Cadastros longos quebrados em etapas (conta, dados, plano, confirmação).</li>
+            <li>Onboarding e setup wizards onde a ordem das etapas importa.</li>
+            <li>Checkouts e fluxos de aprovação com passos sequenciais bem definidos.</li>
+            <li>Edição de configuração extensa onde o usuário pode pular entre seções (modo Free).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Seções independentes sem ordem obrigatória → use <code>OmniTabs</code>.</li>
+            <li>Apenas mostrar onde a página está na hierarquia → use <code>OmniBreadcrumb</code>.</li>
+            <li>Formulário curto que cabe numa única tela sem fragmentar.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="LINEAR"
+                         Description="Não permite pular steps. Bolha do step seguinte é apenas o próximo permitido."
+                         Code="@(@"<OmniStepper @bind-ActiveStep=""step"" OnComplete=""OnFinish"">
+    <OmniStep Title=""Conta"" Icon=""user"" Description=""Email e senha"">
+        ... formulário etapa 1 ...
+    </OmniStep>
+    <OmniStep Title=""Confirmação"" Icon=""check-circle"">
+        ... revisão final ...
+    </OmniStep>
+</OmniStepper>")">
+            <OmniStepper @bind-ActiveStep="step1" OnComplete="@(() => Toast.Success("Concluído", "Cadastro finalizado!"))">
+                <OmniStep Title="Conta" Icon="user" Description="Email e senha">
+                    <div class="omni-stack omni-stack-12">
+                        <p class="omni-muted">Etapa 1 — dados básicos.</p>
+                        <OmniFormField Label="E-mail" Required>
+                            <OmniTextBox @bind-Value="email" Placeholder="voce@email.com" />
+                        </OmniFormField>
+                        <OmniFormField Label="Senha" Required>
+                            <OmniPassword @bind-Value="senha" />
+                        </OmniFormField>
+                    </div>
+                </OmniStep>
+                <OmniStep Title="Estabelecimento" Icon="package" Description="Nome e segmento">
+                    <div class="omni-stack omni-stack-12">
+                        <p class="omni-muted">Etapa 2 — sobre o negócio.</p>
+                        <OmniFormField Label="Nome fantasia">
+                            <OmniTextBox @bind-Value="estab" Placeholder="Forno do Bairro" />
+                        </OmniFormField>
+                    </div>
+                </OmniStep>
+                <OmniStep Title="Plano" Icon="star" Description="Trial 14 dias">
+                    <div class="omni-stack omni-stack-12">
+                        <p class="omni-muted">Etapa 3 — escolha o plano. Pode mudar depois.</p>
+                        <OmniRadioGroup TValue="string" @bind-Value="plano">
+                            <OmniRadio TValue="string" Value="@("starter")" Label="Starter (grátis até 100 pedidos/mês)" />
+                            <OmniRadio TValue="string" Value="@("pro")"     Label="Pro (R$ 89/mês, ilimitado)" />
+                        </OmniRadioGroup>
+                    </div>
+                </OmniStep>
+                <OmniStep Title="Confirmação" Icon="check-circle" Description="Revisar e criar">
+                    <div class="omni-stack omni-stack-8">
+                        <p>Pronto! Vamos criar sua conta com os dados:</p>
+                        <ul class="omni-stack omni-stack-4 omni-muted" style="padding-left: 1.25rem;">
+                            <li>E-mail: <strong>@(string.IsNullOrEmpty(email) ? "—" : email)</strong></li>
+                            <li>Estabelecimento: <strong>@(string.IsNullOrEmpty(estab) ? "—" : estab)</strong></li>
+                            <li>Plano: <strong>@plano</strong></li>
+                        </ul>
+                    </div>
+                </OmniStep>
+            </OmniStepper>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="FREE"
+                         Description="Permite clicar em qualquer step. Útil para edição de configuração já preenchida."
+                         Code="@(@"<OmniStepper @bind-ActiveStep=""step"" Linear=""false"">
+    <OmniStep Title=""Geral"" Icon=""settings"">...</OmniStep>
+    <OmniStep Title=""Pagamentos"" Icon=""credit-card"">...</OmniStep>
+    <OmniStep Title=""Avançado"" Icon=""zap"" Optional>...</OmniStep>
+</OmniStepper>")">
+            <OmniStepper @bind-ActiveStep="step2" Linear="false">
+                <OmniStep Title="Geral" Icon="settings"><p>Configurações gerais.</p></OmniStep>
+                <OmniStep Title="Pagamentos" Icon="credit-card"><p>Configurações de pagamento.</p></OmniStep>
+                <OmniStep Title="Notificações" Icon="bell"><p>Configurações de notificação.</p></OmniStep>
+                <OmniStep Title="Avançado" Icon="zap" Optional><p>Configurações avançadas (opcional).</p></OmniStep>
+            </OmniStepper>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniStepper — Parâmetros">
+            <ShowcaseApiRow Name="ActiveStep" Type="int" Default="0"
+                            Description="Índice (base 0) da etapa ativa. Suporta bind." />
+            <ShowcaseApiRow Name="Linear" Type="bool" Default="true"
+                            Description="Quando true, impede pular etapas — só avança em sequência." />
+            <ShowcaseApiRow Name="NextText" Type="string" Default="Próximo"
+                            Description="Rótulo do botão de avançar." />
+            <ShowcaseApiRow Name="PrevText" Type="string" Default="Voltar"
+                            Description="Rótulo do botão de retroceder." />
+            <ShowcaseApiRow Name="CompleteText" Type="string" Default="Concluir"
+                            Description="Rótulo do botão exibido na última etapa." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os componentes OmniStep do wizard." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniStepper — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="ActiveStepChanged" Type="EventCallback<int>" ShowDefault="false"
+                            Description="Disparado quando a etapa ativa muda." />
+            <ShowcaseApiRow Name="OnComplete" Type="EventCallback" ShowDefault="false"
+                            Description="Disparado ao clicar no botão de concluir da última etapa." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniStep — Parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string" Default="&quot;&quot;"
+                            Description="Título da etapa exibido no cabeçalho. Obrigatório." />
+            <ShowcaseApiRow Name="Description" Type="string?" Default="null"
+                            Description="Texto secundário abaixo do título da etapa." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Ícone exibido na bolha — substituído por ✓ quando concluída." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita o clique na etapa." />
+            <ShowcaseApiRow Name="Optional" Type="bool" Default="false"
+                            Description="Marca a etapa como opcional (rótulo '(opcional)')." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo da etapa — renderizado apenas quando ativa." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int step1, step2;
+    private string? email, senha, estab;
+    private string plano = "pro";
+}

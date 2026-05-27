@@ -1,0 +1,93 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@inject ContextMenuService Menu
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (Menu.IsOpen)
+{
+    <div @ref="_root" id="@_id" class="omni-context-menu" style="visibility:hidden; left:0; top:0;" @oncontextmenu:preventDefault>
+        <OmniMenu>
+            @foreach (var item in Menu.Items)
+            {
+                if (item.IsSeparator)
+                {
+                    <OmniMenuSeparator />
+                }
+                else
+                {
+                    var captured = item;
+                    <OmniMenuItem Text="@captured.Text"
+                                   Icon="@captured.Icon"
+                                   Shortcut="@captured.Shortcut"
+                                   IsDanger="captured.IsDanger"
+                                   OnClick="@(async _ => await Activate(captured))" />
+                }
+            }
+        </OmniMenu>
+    </div>
+}
+
+@code {
+    private readonly string _id = $"omni-ctx-{Guid.NewGuid():N}";
+    private ElementReference _root;
+    private DotNetObjectReference<OmniContextMenuHost>? _self;
+    private bool _wasOpen;
+    private bool _listenersBound;
+
+    protected override void OnInitialized()
+    {
+        Menu.OnChange += Refresh;
+        _self = DotNetObjectReference.Create(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Menu.IsOpen && !_wasOpen)
+        {
+            _wasOpen = true;
+            // Position first, then attach close-listeners (so the opening click
+            // doesn't immediately count as "click outside").
+            await JS.InvokeVoidAsync("omniBlazor.positionContextMenu", $"#{_id}", Menu.X, Menu.Y);
+            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside", _id, $"#{_id}", _self, nameof(OnClickOutside));
+            await JS.InvokeVoidAsync("omniBlazor.registerEsc", _id, _self, nameof(OnEsc));
+            _listenersBound = true;
+        }
+        else if (!Menu.IsOpen && _wasOpen)
+        {
+            _wasOpen = false;
+            if (_listenersBound)
+            {
+                await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
+                await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
+                _listenersBound = false;
+            }
+        }
+    }
+
+    [JSInvokable] public void OnClickOutside() => Menu.Close();
+    [JSInvokable] public void OnEsc() => Menu.Close();
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private async Task Activate(ContextMenuItem it)
+    {
+        Menu.Close();
+        if (it.OnClick is not null) await it.OnClick();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Menu.OnChange -= Refresh;
+        if (_listenersBound)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
+                await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
+            }
+            catch { }
+        }
+        _self?.Dispose();
+    }
+}

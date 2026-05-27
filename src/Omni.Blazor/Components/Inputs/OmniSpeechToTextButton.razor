@@ -1,0 +1,244 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  Botão pronto pra falar — wrapper visual de conveniência por cima do
+    headless OmniSpeechToText. Renderiza um OmniButton que reflete a state
+    machine completa: mic (idle), spinner (starting/stopping), stop pulsante
+    (recording), alert (error).
+
+    Equivalente ao RadzenSpeechToTextButton, mas com features adicionais:
+      • Feature detect: se o browser não suporta, botão fica desabilitado
+        com tooltip explicativo (vs Radzen que trava em estado preso).
+      • Spinner em transição — feedback visível enquanto browser pega
+        permissão de mic / encerra sessão (sem spinner, usuário clica de
+        novo achando que travou).
+      • Tooltip de erro — último código de erro fica visível por hover.
+      • OnError event (Radzen ignora).
+      • InterimResults + isFinal no payload do OnResult (Radzen só dá final).
+      • Confidence no payload.
+
+    Usage:
+        <OmniSpeechToTextButton Language="pt-BR"
+                                 Variant="ButtonVariant.Primary"
+                                 OnResult="@(r => texto += r.Transcript)" /> *@
+
+<OmniSpeechToText @ref="_stt"
+                   Language="@Language"
+                   Continuous="@Continuous"
+                   InterimResults="@InterimResults"
+                   MaxAlternatives="@MaxAlternatives"
+                   OnResult="OnResult"
+                   OnStart="OnStart"
+                   OnEnd="OnEnd"
+                   OnError="HandleError"
+                   OnStateChange="HandleStateChange"
+                   OnUnsupported="HandleUnsupported" />
+
+<OmniButton Icon="@CurrentIcon"
+             Text="@CurrentText"
+             IconOnly="@(string.IsNullOrEmpty(Text) && string.IsNullOrEmpty(RecordingText))"
+             Variant="@Variant"
+             Size="@Size"
+             Disabled="@(Disabled || _knownUnsupported || (IsBusy && !AllowInterrupt))"
+             OnClick="@(_ => HandleClickAsync())"
+             Class="@ButtonCssClass"
+             title="@CurrentTitle"
+             aria-label="@CurrentTitle"
+             aria-pressed="@(IsRecording ? "true" : "false")"
+             aria-busy="@(IsBusy ? "true" : "false")" />
+
+@code {
+    // ─── Pass-through para o OmniSpeechToText interno ───────────────────
+    [Parameter] public string? Language { get; set; }
+    [Parameter] public bool Continuous { get; set; } = true;
+    [Parameter] public bool InterimResults { get; set; }
+    [Parameter] public int MaxAlternatives { get; set; } = 1;
+    [Parameter] public EventCallback<SpeechRecognitionResult> OnResult { get; set; }
+    [Parameter] public EventCallback OnStart { get; set; }
+    [Parameter] public EventCallback OnEnd { get; set; }
+    [Parameter] public EventCallback<string> OnError { get; set; }
+    [Parameter] public EventCallback<SpeechRecognitionState> OnStateChange { get; set; }
+
+    // ─── Visuais ─────────────────────────────────────────────────────────
+    /// <summary>Ícone idle (não gravando). Default <c>"mic"</c>.</summary>
+    [Parameter] public string Icon { get; set; } = "mic";
+
+    /// <summary>Ícone gravando. Default <c>"stop-circle"</c>.</summary>
+    [Parameter] public string StopIcon { get; set; } = "stop-circle";
+
+    /// <summary>Ícone em transição (Connecting/Stopping). Default <c>"loader"</c>.</summary>
+    [Parameter] public string BusyIcon { get; set; } = "loader";
+
+    /// <summary>Ícone em erro. Default <c>"alert-circle"</c>.</summary>
+    [Parameter] public string ErrorIcon { get; set; } = "alert-circle";
+
+    /// <summary>Texto idle. Vazio + <see cref="RecordingText"/> vazio = botão icon-only.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Texto durante gravação (mic capturando). Default = <see cref="Text"/>.</summary>
+    [Parameter] public string? RecordingText { get; set; }
+
+    /// <summary>Texto durante <c>Connecting</c> (aguardando mic ficar pronto).
+    /// Default <c>"Conectando…"</c>. Crítico no Edge — mostra que ainda NÃO
+    /// está ouvindo enquanto Microsoft Speech estabelece conexão.</summary>
+    [Parameter] public string? ConnectingText { get; set; } = "Conectando…";
+
+    /// <summary>Texto durante <c>Stopping</c>. Default <c>"Parando…"</c>.</summary>
+    [Parameter] public string? StoppingText { get; set; } = "Parando…";
+
+    /// <summary>(Obsoleto — use <see cref="ConnectingText"/>.) Texto genérico de
+    /// transição, mantido por compatibilidade. Se setado, sobrescreve
+    /// <see cref="ConnectingText"/> e <see cref="StoppingText"/>.</summary>
+    [Parameter] public string? BusyText { get; set; }
+
+    /// <summary>Tooltip + aria-label idle.</summary>
+    [Parameter] public string Title { get; set; } = "Pressione para falar";
+
+    /// <summary>Tooltip + aria-label gravando.</summary>
+    [Parameter] public string StopTitle { get; set; } = "Pressione para parar";
+
+    /// <summary>Tooltip durante transição (Connecting/Stopping).</summary>
+    [Parameter] public string BusyTitle { get; set; } = "Aguarde…";
+
+    /// <summary>Tooltip quando browser não suporta Web Speech API.</summary>
+    [Parameter] public string UnsupportedTitle { get; set; } = "Reconhecimento de voz não disponível neste navegador";
+
+    /// <summary>Permite clicar o botão mesmo em estado Busy (Starting/Stopping).
+    /// Default false — espera transição completar. true = cliques rápidos
+    /// passam pro JS (que já tem debounce de 250ms).</summary>
+    [Parameter] public bool AllowInterrupt { get; set; }
+
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public bool Disabled { get; set; }
+
+    private OmniSpeechToText? _stt;
+    private bool _knownUnsupported;
+    private string? _lastError;
+
+    /// <summary>True enquanto este botão está com o mic ativo.</summary>
+    public bool IsRecording => _stt?.IsRecording ?? false;
+
+    /// <summary>True durante Starting/Stopping (browser respondendo).</summary>
+    public bool IsBusy => _stt?.IsBusy ?? false;
+
+    /// <summary>Estado atual da state machine.</summary>
+    public SpeechRecognitionState State => _stt?.State ?? SpeechRecognitionState.Idle;
+
+    /// <summary>Último erro recebido (limpa em nova sessão).</summary>
+    public string? LastError => _lastError;
+
+    private string CurrentIcon => State switch
+    {
+        SpeechRecognitionState.Connecting or SpeechRecognitionState.Stopping => BusyIcon,
+        SpeechRecognitionState.Recording => StopIcon,
+        SpeechRecognitionState.Error => ErrorIcon,
+        _ => Icon,
+    };
+
+    private string CurrentText => State switch
+    {
+        SpeechRecognitionState.Recording => RecordingText ?? Text ?? string.Empty,
+        SpeechRecognitionState.Connecting => BusyText ?? ConnectingText ?? Text ?? string.Empty,
+        SpeechRecognitionState.Stopping   => BusyText ?? StoppingText  ?? Text ?? string.Empty,
+        _ => Text ?? string.Empty,
+    };
+
+    private string CurrentTitle => _knownUnsupported
+        ? UnsupportedTitle
+        : State switch
+        {
+            SpeechRecognitionState.Recording => StopTitle,
+            SpeechRecognitionState.Connecting or SpeechRecognitionState.Stopping => BusyTitle,
+            SpeechRecognitionState.Error => string.IsNullOrEmpty(_lastError)
+                ? Title
+                : $"Erro: {FormatError(_lastError)}",
+            _ => Title,
+        };
+
+    // OmniButton applies Style/Attributes on the underlying root, so all this
+    // builder does is compose the CSS class chain plus the consumer Class splat.
+    private string ButtonCssClass => CssBuilder.Default("omni-speech-btn")
+        .AddClass(State switch
+        {
+            SpeechRecognitionState.Recording  => "omni-speech-btn-recording",
+            SpeechRecognitionState.Connecting => "omni-speech-btn-connecting",
+            SpeechRecognitionState.Stopping   => "omni-speech-btn-stopping",
+            SpeechRecognitionState.Error      => "omni-speech-btn-error",
+            _ => null,
+        })
+        .AddClass("omni-speech-btn-unsupported", _knownUnsupported)
+        .AddClass(Class)
+        .Build();
+
+    private Task HandleClickAsync() => _stt?.ToggleAsync() ?? Task.CompletedTask;
+
+    private async Task HandleUnsupported()
+    {
+        _knownUnsupported = true;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleError(string error)
+    {
+        _lastError = error;
+        StateHasChanged();
+        if (OnError.HasDelegate) await OnError.InvokeAsync(error);
+    }
+
+    private async Task HandleStateChange(SpeechRecognitionState state)
+    {
+        // State já está no _stt, mas precisamos forçar re-render do botão
+        // (ele lê de _stt.State em vários computed strings).
+        StateHasChanged();
+        if (OnStateChange.HasDelegate) await OnStateChange.InvokeAsync(state);
+    }
+
+    /// <summary>Traduz códigos crus do browser pra mensagens humanas (PT-BR).</summary>
+    private static string FormatError(string code) => code switch
+    {
+        "not-allowed" => "permissão de microfone negada",
+        "no-speech" => "nenhuma fala detectada",
+        "audio-capture" => "microfone indisponível",
+        "network" => "erro de rede",
+        "aborted" => "interrompido",
+        "language-not-supported" => "idioma não suportado",
+        "service-not-allowed" => "serviço bloqueado",
+        "start-timeout" => "browser não respondeu",
+        "connect-timeout" => "não conectou ao serviço de fala — verifique sua rede",
+        "invalid-state" => "estado inválido — tente novamente",
+        "ctor-failed" => "falha ao criar reconhecedor",
+        "superseded" => "substituído por outro botão",
+        _ => code,
+    };
+
+    /// <summary>
+    /// Detecção PROATIVA de suporte. Sem isso, Firefox users veem o botão "vivo",
+    /// clicam expecting it to work, e só ENTÃO recebem feedback de unsupported.
+    /// Com isso, o botão já renderiza disabled+tooltip na primeira render.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _stt is null || _knownUnsupported) return;
+        try
+        {
+            var supported = await _stt.IsSupportedAsync();
+            if (!supported)
+            {
+                _knownUnsupported = true;
+                StateHasChanged();
+            }
+        }
+        catch { /* SSR / JS gone */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_stt is not null) await _stt.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
+}

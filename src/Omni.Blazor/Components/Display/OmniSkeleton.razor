@@ -1,0 +1,76 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*
+    Animated placeholder for loading content. Use to reserve layout space while
+    data loads — improves perceived performance.
+
+    Variants:
+      - Text: a row of text (use Lines>1 for paragraphs)
+      - Rect: a rectangular block (cards, images)
+      - Circle: a circular placeholder (avatars, icons)
+
+    Usage:
+        <OmniSkeleton Variant="SkeletonVariant.Text" Lines="3" />
+        <OmniSkeleton Variant="SkeletonVariant.Rect" Width="100%" Height="120px" />
+        <OmniSkeleton Variant="SkeletonVariant.Circle" Width="48px" Height="48px" />
+*@
+
+@if (Variant == SkeletonVariant.Text && Lines > 1)
+{
+    <div class="@StackCss" style="@Style" aria-busy="true" @attributes="Attributes">
+        @for (int i = 0; i < Lines; i++)
+        {
+            <span class="omni-skeleton omni-skeleton-text" style="@LineStyle(i)"></span>
+        }
+    </div>
+}
+else
+{
+    <span class="@RootCss" style="@SingleStyle" aria-busy="true" @attributes="Attributes"></span>
+}
+
+@code {
+    [Parameter] public SkeletonVariant Variant { get; set; } = SkeletonVariant.Text;
+
+    /// <summary>Inline CSS width — e.g. "100%", "240px", "12rem". Optional.</summary>
+    [Parameter] public string? Width { get; set; }
+
+    /// <summary>Inline CSS height — only used by Rect/Circle variants. Optional.</summary>
+    [Parameter] public string? Height { get; set; }
+
+    /// <summary>Number of text lines (Text variant only). Default 1.</summary>
+    [Parameter] public int Lines { get; set; } = 1;
+
+    private string RootCss => CssBuilder.Default("omni-skeleton")
+        .AddClass(Variant switch
+        {
+            SkeletonVariant.Text   => "omni-skeleton-text",
+            SkeletonVariant.Rect   => "omni-skeleton-rect",
+            SkeletonVariant.Circle => "omni-skeleton-circle",
+            _ => "omni-skeleton-text"
+        })
+        .AddClass(Class)
+        .Build();
+
+    private string StackCss => CssBuilder.Default("omni-skeleton-stack")
+        .AddClass(Class)
+        .Build();
+
+    private string SingleStyle
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(Width))  parts.Add($"width:{Width}");
+            if (!string.IsNullOrEmpty(Height)) parts.Add($"height:{Height}");
+            if (!string.IsNullOrEmpty(Style))  parts.Add(Style!);
+            return string.Join(';', parts);
+        }
+    }
+
+    // For multi-line text: make the last line shorter (60%) for a natural feel
+    private string LineStyle(int index)
+        => (index == Lines - 1) ? "width: 60%;" : "";
+}

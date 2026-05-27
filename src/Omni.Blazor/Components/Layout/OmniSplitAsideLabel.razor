@@ -1,0 +1,17 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@* Small uppercase label used to group sections inside a <OmniSplitView> aside. *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (ChildContent is not null) { @ChildContent } else { @Text }
+</div>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-split-aside-label")
+        .AddClass(Class)
+        .Build();
+}

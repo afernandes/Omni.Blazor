@@ -1,0 +1,171 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@inject CardapioDigitalState State
+@using Omni.Blazor.Utilities
+@using Omni.Blazor.State
+
+@*  Bottom sheet (Material 3) para personalizar um sabor: remover ingredientes
+    + adicionar extras + observação por sabor. Adapta pra desktop como dialog
+    automaticamente. Aberto via @bind-Open do PreviewScreen.
+
+    Hidratação do estado (ingredientes/extras/note) é rastreada via
+    ParameterState do CdFlavor — toda vez que muda o sabor selecionado, o
+    handler re-hidrata o snapshot. *@
+<OmniBottomSheet @bind-Open="Open"
+                 Title="@($"Personalizando {(_fracLabel)} {(CdFlavor?.Name ?? "")}")"
+                 SnapPoints="@(new[] { 0.5, 0.9 })"
+                 InitialSnapIndex="1"
+                 Adaptive="BottomSheetAdaptive.Always"
+                 ShowDragHandle="true">
+    <ChildContent>
+        @if (CdFlavor is not null)
+        {
+            <div class="fs-cd-sheet-section">
+                <h3 class="fs-cd-sheet-section-h">
+                    Remover ingredientes <small>sem custo</small>
+                </h3>
+                <div class="fs-cd-sheet-toggles">
+                    @foreach (var ing in _initialIngs)
+                    {
+                        var ingredient = ing;
+                        var off = _removed.Contains(ingredient);
+                        <button @key="ingredient"
+                                type="button"
+                                class="@IngCss(off)"
+                                @onclick="@(() => ToggleIng(ingredient))">
+                            <span class="fs-cd-sheet-ing-mark">
+                                @if (!off)
+                                {
+                                    <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                                }
+                            </span>
+                            @ingredient
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="fs-cd-sheet-section">
+                <h3 class="fs-cd-sheet-section-h">
+                    Adicionar extras <small>turbine seu sabor</small>
+                </h3>
+                <div class="fs-cd-sheet-extras">
+                    @foreach (var extra in CardapioMockData.Extras)
+                    {
+                        var current = extra;
+                        var on = _extras.Contains(current.Id);
+                        <button @key="current.Id"
+                                type="button"
+                                class="@ExtraCss(on)"
+                                @onclick="@(() => ToggleExtra(current.Id))">
+                            <div class="fs-cd-sheet-extra-thumb"></div>
+                            <div class="fs-cd-sheet-extra-body">
+                                <div class="fs-cd-sheet-extra-name">@current.Name</div>
+                                <div class="@ExtraPriceCss(current)">
+                                    @(current.Cents == 0 ? "Grátis" : "+ " + CardapioDigitalState.Brl(current.Cents))
+                                </div>
+                            </div>
+                            <span class="fs-cd-sheet-extra-btn">@(on ? "✓" : "+")</span>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="fs-cd-sheet-section">
+                <h3 class="fs-cd-sheet-section-h">
+                    Observação <small>para este sabor</small>
+                </h3>
+                <OmniTextBox Value="@_note"
+                             ValueChanged="(string v) => _note = v"
+                             Placeholder="Ex.: bem temperado, capricha no recheio…" />
+            </div>
+        }
+    </ChildContent>
+    <Footer>
+        <OmniButton Class="fs-cd-btn fs-cd-btn-accent"
+                    Variant="ButtonVariant.Primary"
+                    Size="ComponentSize.Lg"
+                    OnClick="Save">
+            <span>Salvar personalização</span>
+        </OmniButton>
+    </Footer>
+</OmniBottomSheet>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+    [Parameter] public CdFlavor? CdFlavor { get; set; }
+
+    private ParameterState<CdFlavor?> _flavorState = null!;
+
+    private List<string> _initialIngs = new();
+    private HashSet<string> _removed = new();
+    private HashSet<string> _extras = new();
+    private string _note = "";
+    private string _fracLabel = "";
+
+    protected override void OnInitialized()
+    {
+        // Re-hidrata snapshot quando muda o sabor (ex.: abre sheet em outro sabor).
+        // Substitui o velho padrão "_lastFlavorId" manual com ParameterState idiomático.
+        _flavorState = RegisterParameter<CdFlavor?>(nameof(CdFlavor))
+            .WithParameter(() => CdFlavor)
+            .WithChangeHandler(Hydrate)
+            .Attach();
+    }
+
+    private void Hydrate()
+    {
+        if (CdFlavor is null)
+        {
+            _initialIngs.Clear();
+            _removed.Clear();
+            _extras.Clear();
+            _note = "";
+            _fracLabel = "";
+            return;
+        }
+
+        _initialIngs = CdFlavor.Ingredients
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+        var existing = State.GetCustom(CdFlavor.Id);
+        _removed = new HashSet<string>(existing.RemovedIngredients);
+        _extras = new HashSet<string>(existing.ExtraIds);
+        _note = existing.Note;
+        _fracLabel = State.SelectedFlavorIds.Count == 2 ? "½" : "";
+    }
+
+    private void ToggleIng(string ing)
+    {
+        if (!_removed.Add(ing)) _removed.Remove(ing);
+    }
+
+    private void ToggleExtra(string exId)
+    {
+        if (!_extras.Add(exId)) _extras.Remove(exId);
+    }
+
+    private async Task Save()
+    {
+        if (CdFlavor is null) return;
+        State.SetCustom(CdFlavor.Id, new CdFlavorCustom(
+            new HashSet<string>(_removed),
+            new HashSet<string>(_extras),
+            _note));
+        Open = false;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(false);
+    }
+
+    private static string IngCss(bool off) => CssBuilder.Default("fs-cd-sheet-ing")
+        .AddClass("fs-cd-sheet-ing-off", off)
+        .Build();
+
+    private static string ExtraCss(bool on) => CssBuilder.Default("fs-cd-sheet-extra")
+        .AddClass("fs-cd-sheet-extra-on", on)
+        .Build();
+
+    private static string ExtraPriceCss(CdExtra ex) => CssBuilder.Default("fs-cd-sheet-extra-pr omni-mono")
+        .AddClass("fs-cd-sheet-extra-pr-free", ex.Cents == 0)
+        .Build();
+}

@@ -1,0 +1,46 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*  Cover/hero do home screen — gradient escuro com logo flutuante + nome +
+    meta-pills (aberto, ETA, rating). Top buttons (back + share) opcionais.
+    Visual fiel ao mock cardapio.html — branding do estabelecimento. *@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="fs-cd-cover-top">
+        <OmniButton Icon="arrow-left" IconOnly Variant="ButtonVariant.Ghost"
+                    Size="ComponentSize.Sm" Class="fs-cd-cover-btn"
+                    aria-label="Voltar" />
+        <OmniButton Icon="share" IconOnly Variant="ButtonVariant.Ghost"
+                    Size="ComponentSize.Sm" Class="fs-cd-cover-btn"
+                    aria-label="Compartilhar" />
+    </div>
+    <div class="fs-cd-cover-bottom">
+        <div class="fs-cd-logo">@LogoInitial</div>
+        <div class="fs-cd-cover-info">
+            <div class="fs-cd-name">@((MarkupString)NameHtml)</div>
+            <div class="fs-cd-cover-meta">
+                @if (IsOpen)
+                {
+                    <span class="fs-cd-meta-open">Aberto agora</span>
+                    <span class="fs-cd-meta-sep">·</span>
+                }
+                <span>Entrega @DeliveryEta</span>
+                <span class="fs-cd-meta-sep">·</span>
+                <span>★ @Rating (@RatingCount)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string LogoInitial { get; set; } = "F";
+    [Parameter, EditorRequired] public string NameHtml { get; set; } = "Restaurante";
+    [Parameter] public bool IsOpen { get; set; } = true;
+    [Parameter] public string DeliveryEta { get; set; } = "30–45min";
+    [Parameter] public string Rating { get; set; } = "4,8";
+    [Parameter] public string RatingCount { get; set; } = "1.247";
+
+    private string RootCss => CssBuilder.Default("fs-cd-cover")
+        .AddClass(Class)
+        .Build();
+}

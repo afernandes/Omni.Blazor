@@ -1,0 +1,43 @@
+@page "/showcase/wireframes/appbar-left-drawer-persistent"
+@layout WireframeLayout
+
+<PageTitle>WF-2 · AppBar + Left Drawer (Persistent)</PageTitle>
+
+@*  WIREFRAME 2 — AppBar + Left Drawer Persistent.
+    Padrão clássico de admin: drawer SEMPRE visível em desktop, ocupando
+    coluna fixa do grid. Sem hamburger porque não tem o que esconder. *@
+<OmniLayout>
+    <OmniAppBar>
+        <OmniBrand Name="Admin" Tenant="Persistent drawer" />
+        <div class="omni-header-spacer"></div>
+        <OmniKbd Text="WF-2" />
+        <OmniAvatar Initials="AF" />
+    </OmniAppBar>
+
+    <OmniDrawer Variant="DrawerVariant.Persistent">
+        <OmniPanelMenuSection Label="Menu">
+            <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" />
+            <OmniPanelMenuItem Text="Pedidos"   Icon="package"          Count="12" />
+            <OmniPanelMenuItem Text="Clientes"  Icon="users"            Count="847" />
+            <OmniPanelMenuItem Text="Produtos"  Icon="store" />
+            <OmniPanelMenuItem Text="Análise"   Icon="bar-chart" />
+            <OmniPanelMenuItem Text="Configurações" Icon="lock" />
+        </OmniPanelMenuSection>
+    </OmniDrawer>
+
+    <OmniMain>
+        <div class="wf-demo-content">
+            <h1>AppBar + Left Drawer (Persistent)</h1>
+            <p class="omni-muted">
+                Drawer sempre visível em desktop. Sem hamburger porque o estado é estático —
+                a sidebar é parte fixa do shell e o conteúdo do Main rola por dentro do seu
+                próprio scroller.
+            </p>
+            <OmniCard Title="Quando usar">
+                Padrão de admin/back-office em desktops. Inadequado para mobile
+                (cobre demais do conteúdo). Para mobile-friendly, use o variante <em>Responsive</em>
+                (WF-3) — o drawer vira overlay automaticamente abaixo do breakpoint.
+            </OmniCard>
+        </div>
+    </OmniMain>
+</OmniLayout>

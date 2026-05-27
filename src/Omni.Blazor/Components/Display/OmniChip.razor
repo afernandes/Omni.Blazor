@@ -1,0 +1,38 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+<button type="button" class="@RootCss" style="@Style" @onclick="HandleClickAsync" @attributes="Attributes">
+    @if (ShowDot)
+    {
+        <span class="omni-chip-dot"></span>
+    }
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
+    }
+    @if (ChildContent is not null) { @ChildContent }
+    else if (!string.IsNullOrEmpty(Text)) { @Text }
+</button>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public bool ShowDot { get; set; }
+    [Parameter] public bool Accent { get; set; }
+    [Parameter] public bool Static { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-chip")
+        .AddClass("omni-chip-active", Active)
+        .AddClass("omni-chip-accent", Accent)
+        .AddClass("omni-chip-static", Static)
+        .AddClass(Class)
+        .Build();
+
+    private async Task HandleClickAsync(MouseEventArgs e)
+    {
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(e);
+    }
+}

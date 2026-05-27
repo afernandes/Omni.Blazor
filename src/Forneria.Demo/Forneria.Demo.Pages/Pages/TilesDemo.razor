@@ -1,0 +1,171 @@
+@page "/tiles"
+@layout AppShell
+
+<PageTitle>Forneria — TileGroup demo</PageTitle>
+
+@*  /tiles — demo do OmniTileGroup nas 3 direções (Column, Row, Grid/Bento).
+    Cada seção é uma mini-demo independente, com cabeçalho explicativo.
+    Reusa os primitivos consolidados (PaneHeader, Card, Stat) — sem service,
+    sem layout custom. *@
+
+<OmniPaneHeader Title="TileGroup"
+                 Subtitle="Padrão tile-style — blocos grudados sem gap, separados por linhas de 1 px (Column · Row · Grid 2D)">
+    <Actions>
+        <OmniButton Text="Documentação" Icon="file-text" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+    </Actions>
+</OmniPaneHeader>
+
+<div class="omni-view-body omni-stack omni-stack-32">
+
+    @* ─── 1. Row — abas horizontais grudadas (PDV-like) ─── *@
+    <section class="omni-stack omni-stack-8">
+        <div>
+            <h3 class="omni-tiles-section-title">Direction = Row</h3>
+            <p class="omni-tiles-section-sub">Stack horizontal — bordas verticais de 1 px entre tiles. Útil para abas de modo (Balcão · Delivery · Retirada · Mesa) ou seletores compactos.</p>
+        </div>
+        <OmniTileGroup Direction="TileDirection.Row">
+            <OmniCard NoPadding>
+                <ChildContent>
+                    <div class="omni-tile-cell omni-tile-cell-active">
+                        <OmniIcon Name="package" Size="ComponentSize.Sm" />
+                        <span>Balcão</span>
+                    </div>
+                </ChildContent>
+            </OmniCard>
+            <OmniCard NoPadding>
+                <ChildContent>
+                    <div class="omni-tile-cell">
+                        <OmniIcon Name="truck" Size="ComponentSize.Sm" />
+                        <span>Delivery</span>
+                    </div>
+                </ChildContent>
+            </OmniCard>
+            <OmniCard NoPadding>
+                <ChildContent>
+                    <div class="omni-tile-cell">
+                        <OmniIcon Name="shopping-cart" Size="ComponentSize.Sm" />
+                        <span>Retirada</span>
+                    </div>
+                </ChildContent>
+            </OmniCard>
+            <OmniCard NoPadding>
+                <ChildContent>
+                    <div class="omni-tile-cell">
+                        <OmniIcon Name="grid" Size="ComponentSize.Sm" />
+                        <span>Mesa</span>
+                    </div>
+                </ChildContent>
+            </OmniCard>
+        </OmniTileGroup>
+    </section>
+
+    @* ─── 2. Column — stack vertical (carrinho PDV-like) ─── *@
+    <section class="omni-stack omni-stack-8">
+        <div>
+            <h3 class="omni-tiles-section-title">Direction = Column (default)</h3>
+            <p class="omni-tiles-section-sub">Stack vertical — equivalente ao <code>.list-group</code> do Bootstrap. Cards empilhados, bordas horizontais de 1 px, exterior arredondado.</p>
+        </div>
+        <OmniTileGroup>
+            <OmniCard Title="Itens do pedido" Subtitle="3 itens · R$ 89,50">
+                <ChildContent>
+                    <div class="omni-tile-list">
+                        <div class="omni-tile-list-row">
+                            <span>2× Coca-Cola 350 ml</span>
+                            <span class="omni-mono">R$ 15,00</span>
+                        </div>
+                        <div class="omni-tile-list-row">
+                            <span>Pizza Grande — meia Calabresa, meia Quatro Queijos</span>
+                            <span class="omni-mono">R$ 64,50</span>
+                        </div>
+                        <div class="omni-tile-list-row">
+                            <span>Borda Recheada com Catupiry</span>
+                            <span class="omni-mono">R$ 10,00</span>
+                        </div>
+                    </div>
+                </ChildContent>
+            </OmniCard>
+            <OmniCard Title="Cliente" Subtitle="Marina Toledo · 842 pts">
+                <ChildContent>
+                    <div class="omni-row omni-row-gap-12">
+                        <OmniAvatar Initials="MT" />
+                        <div class="omni-stack omni-stack-2">
+                            <span style="font-weight:600;">Marina Toledo</span>
+                            <span class="omni-muted omni-mono" style="font-size:12px;">(11) 98823-1204 · 842 pts</span>
+                        </div>
+                    </div>
+                </ChildContent>
+            </OmniCard>
+            <OmniCard Title="Pagamento" Subtitle="Selecione a forma">
+                <ChildContent>
+                    <div class="omni-row omni-row-wrap omni-row-gap-8">
+                        <OmniChip Text="Dinheiro" />
+                        <OmniChip Text="Pix" Accent />
+                        <OmniChip Text="Crédito" />
+                        <OmniChip Text="Débito" />
+                        <OmniChip Text="Vale-refeição" />
+                    </div>
+                </ChildContent>
+            </OmniCard>
+        </OmniTileGroup>
+    </section>
+
+    @* ─── 3. Grid — Bento 2D com spans (BI dashboard denso) ─── *@
+    <section class="omni-stack omni-stack-8">
+        <div>
+            <h3 class="omni-tiles-section-title">Direction = Grid (Bento) com spans</h3>
+            <p class="omni-tiles-section-sub">Grade 2D de N colunas. Tiles podem ocupar múltiplas colunas (<code>omni-tile-span-2</code>) ou linhas (<code>omni-tile-row-span-2</code>) — bordas internas perfeitas em ambos eixos, sem ajuste manual.</p>
+        </div>
+        <OmniTileGroup Direction="TileDirection.Grid" Columns="4">
+            <OmniCard Class="omni-tile-span-2">
+                <ChildContent>
+                    <OmniStat Label="Receita" Value="R$ 11.266,65"
+                               Delta="▲ +18,4%" DeltaCaption="vs ontem" />
+                </ChildContent>
+            </OmniCard>
+            <OmniCard>
+                <ChildContent>
+                    <OmniStat Label="Pedidos" Value="142"
+                               Delta="▲ +9,2%" DeltaCaption="vs ontem" />
+                </ChildContent>
+            </OmniCard>
+            <OmniCard>
+                <ChildContent>
+                    <OmniStat Label="Ticket médio" Value="R$ 79,34"
+                               Delta="▲ +8,4%" DeltaCaption="vs ontem" />
+                </ChildContent>
+            </OmniCard>
+            <OmniCard Class="omni-tile-row-span-2">
+                <ChildContent>
+                    <div class="omni-stack omni-stack-8">
+                        <span style="font-weight:600;">Mapa da frota</span>
+                        <p class="omni-muted" style="font-size:12px;margin:0;">
+                            3 entregadores ativos · 5 pedidos em rota
+                        </p>
+                        <div class="omni-tiles-map-placeholder">
+                            <OmniIcon Name="truck" Size="ComponentSize.Lg" />
+                        </div>
+                    </div>
+                </ChildContent>
+            </OmniCard>
+            <OmniCard>
+                <ChildContent>
+                    <OmniStat Label="Canais ativos" Value="4"
+                               DeltaCaption="iFood · Uber · WhatsApp · Balcão" />
+                </ChildContent>
+            </OmniCard>
+            <OmniCard>
+                <ChildContent>
+                    <OmniStat Label="Tempo médio" Value="24'18"
+                               Delta="▼ −2'04" DeltaDown DeltaCaption="meta 25'00" />
+                </ChildContent>
+            </OmniCard>
+            <OmniCard>
+                <ChildContent>
+                    <OmniStat Label="Cozinha" Value="12"
+                               DeltaCaption="pedidos em preparo" />
+                </ChildContent>
+            </OmniCard>
+        </OmniTileGroup>
+    </section>
+
+</div>

@@ -1,0 +1,246 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+@inject Omni.Blazor.Services.BreakpointService Breakpoints
+@inject Omni.Blazor.Services.ScrollManager Scroll
+@using Omni.Blazor.Utilities
+
+@*
+    Generic master/detail layout primitive: an aside (sub-navigation) + main content
+    column inside a positioned parent (usually a <OmniMain>). Fills its ancestor
+    via absolute positioning and prevents page scroll — both columns own their
+    scrollers, so headers/toolbars/footers inside the main pane can stay fixed.
+
+    Mobile (<MobileBreakpoint, default Lg ~992px) → o aside vira overlay:
+    hamburger button no canto top-left abre, backdrop click / Esc / navegação
+    fecha. Substitui o display:none brusco do design anterior — usuário em
+    mobile não perde a navegação.
+
+    Não tem Mini/collapsed mode próprio — pra "icon-only collapsible sidebar"
+    use OmniDrawer (Variant=Mini com ExpandOnHover). SplitView é o primitive
+    enxuto pra "sub-nav fixo + main scrollable".
+
+    Usage:
+        <OmniSplitView>
+            <AsideContent>
+                <OmniSplitAsideLabel>Cadastros</OmniSplitAsideLabel>
+                <OmniPanelMenu>...</OmniPanelMenu>
+            </AsideContent>
+            <ChildContent>
+                <OmniPaneHeader Title="Produtos" Subtitle="..." />
+                <OmniPaneToolbar>...</OmniPaneToolbar>
+                <OmniDataGrid Embed ... />
+            </ChildContent>
+        </OmniSplitView>
+*@
+
+<div class="@RootCss"
+     style="@RootStyle"
+     data-mobile="@(IsMobile ? "1" : null)"
+     data-mobile-open="@(IsMobile && _mobileOpen ? "1" : null)"
+     @attributes="Attributes">
+
+    @* Hamburger MENU — fora do aside, só em mobile + aside FECHADO.
+       (Quando aberto, o X de fechar fica DENTRO do aside, embaixo.) *@
+    @if (IsMobile && ShowMobileToggle && !_mobileOpen)
+    {
+        <button type="button"
+                class="omni-split-mobile-toggle"
+                aria-label="Abrir navegação"
+                aria-expanded="false"
+                @onclick="ToggleMobileAsync">
+            <OmniIcon Name="menu" Size="ComponentSize.Sm" />
+        </button>
+    }
+
+    <aside class="omni-split-aside" id="@($"{Id}-aside")">
+        @* X CLOSE — fica dentro do aside (top-right), só em mobile + aberto. *@
+        @if (IsMobile && ShowMobileToggle && _mobileOpen)
+        {
+            <button type="button"
+                    class="omni-split-mobile-close"
+                    aria-label="Fechar navegação"
+                    @onclick="ToggleMobileAsync">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        }
+
+        @AsideContent
+    </aside>
+
+    @* Backdrop só em mobile-overlay aberto. Click fecha. *@
+    @if (IsMobile && _mobileOpen)
+    {
+        <div class="omni-split-backdrop" @onclick="CloseMobileAsync"></div>
+    }
+
+    <section class="omni-split-main">
+        @ChildContent
+    </section>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? AsideContent { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Place the aside on the right instead of the default left.</summary>
+    [Parameter] public bool AsideRight { get; set; }
+
+    /// <summary>Aside width preset (Sm=200px, Md=228px, Lg=280px). Default = Md. Ignorado quando <see cref="AsideWidth"/> está setado.</summary>
+    [Parameter] public ComponentSize AsideSize { get; set; } = ComponentSize.Md;
+
+    /// <summary>
+    /// Largura arbitrária do aside (ex: <c>"380px"</c>, <c>"25%"</c>, <c>"20rem"</c>).
+    /// Quando setado, sobrescreve <see cref="AsideSize"/>. Útil para layouts POS,
+    /// master/detail com proporções específicas, ou aside dimensionado por conteúdo.
+    /// Pode ser sobrescrito via CSS pelo consumidor manipulando a custom property
+    /// <c>--omni-aside-w</c> em media queries.
+    /// </summary>
+    [Parameter] public string? AsideWidth { get; set; }
+
+    /// <summary>Breakpoint a partir do qual o aside vira overlay (drawer mobile).
+    /// Default <c>Lg</c> (~992px) — em telas menores que isso, mostra hamburger.</summary>
+    [Parameter] public Breakpoint MobileBreakpoint { get; set; } = Breakpoint.Lg;
+
+    /// <summary>Quando <c>true</c> (default), renderiza o hamburger no canto top-left
+    /// em mobile. Defina <c>false</c> se você tem AppBar com DrawerToggle próprio.</summary>
+    [Parameter] public bool ShowMobileToggle { get; set; } = true;
+
+    /// <summary>Se <c>true</c> (default), fecha o overlay automaticamente em mobile
+    /// quando o usuário navega — elimina overlay travado sobre a nova rota.</summary>
+    [Parameter] public bool AutoCloseOnNavigate { get; set; } = true;
+
+    // ─── Internal state ───────────────────────────────────────────────────
+    private bool _isMobile;
+    private bool _mobileOpen;
+    private bool _navHooked;
+    private IAsyncDisposable? _bpSub;
+    private DotNetObjectReference<OmniSplitView>? _selfRef;
+    // Body lock + focus trap + Esc handler centralizados em OverlayLifecycle —
+    // mesmo helper que OmniOverlay/Drawer/Dialog usam.
+    private Omni.Blazor.Services.OverlayLifecycle? _overlay;
+
+    /// <summary>True quando a viewport está abaixo de <see cref="MobileBreakpoint"/>.</summary>
+    public bool IsMobile => _isMobile;
+
+    /// <summary>True quando o aside está aberto como overlay em mobile.</summary>
+    public bool MobileOpen => _mobileOpen;
+
+    private string RootCss => CssBuilder.Default("omni-split")
+        .AddClass("omni-split-aside-right", AsideRight)
+        .AddClass(string.IsNullOrEmpty(AsideWidth)
+            ? AsideSize switch
+              {
+                  ComponentSize.Sm => "omni-split-aside-narrow",
+                  ComponentSize.Lg => "omni-split-aside-wide",
+                  _ => null
+              }
+            : "omni-split-aside-custom")
+        .AddClass(Class)
+        .Build();
+
+    private string? RootStyle
+    {
+        get
+        {
+            var widthPart = string.IsNullOrEmpty(AsideWidth) ? null : $"--omni-aside-w: {AsideWidth};";
+            if (string.IsNullOrEmpty(widthPart)) return Style;
+            return string.IsNullOrEmpty(Style) ? widthPart : $"{Style?.TrimEnd(';')}; {widthPart}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AutoCloseOnNavigate)
+        {
+            Nav.LocationChanged += OnLocationChanged;
+            _navHooked = true;
+        }
+
+        // Assina mudanças de viewport — quando flipa entre mobile↔desktop,
+        // re-renderiza pra mostrar/esconder hamburger e mudar de grid pra
+        // overlay-fixed (CSS reage via data-mobile attr).
+        _bpSub = await Breakpoints.SubscribeAsync(bp =>
+        {
+            var wasMobile = _isMobile;
+            _isMobile = bp < MobileBreakpoint;
+            if (wasMobile != _isMobile)
+            {
+                // Desktop → mobile: fecha overlay (estado default em mobile = fechado).
+                // Mobile → desktop: limpa flag de overlay aberto.
+                _mobileOpen = false;
+                StateHasChanged();
+            }
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Sync overlay-active: quando aside vira overlay aberto, engaja
+        // body-lock + Esc handler. Quando fecha (ou volta a desktop), libera.
+        // OverlayLifecycle helper centraliza a lógica (compartilhada com
+        // OmniOverlay/Drawer/Dialog) — selector aponta pro aside específico.
+        _overlay ??= new Omni.Blazor.Services.OverlayLifecycle(JS, Scroll, Id, $"#{Id}-aside");
+        var shouldBeActive = IsMobile && _mobileOpen;
+        if (shouldBeActive && !_overlay.IsActive)
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            await _overlay.ActivateAsync(_selfRef);
+        }
+        else if (!shouldBeActive && _overlay.IsActive)
+        {
+            await _overlay.DeactivateAsync();
+        }
+    }
+
+    /// <summary>Chamado por JS quando Esc é pressionado com overlay ativo.</summary>
+    [JSInvokable]
+    public Task OnEscape() => CloseMobileAsync();
+
+    /// <summary>Toggle do overlay em mobile (chamado pelo hamburger).</summary>
+    public Task ToggleMobileAsync() => _mobileOpen ? CloseMobileAsync() : OpenMobileAsync();
+
+    public Task OpenMobileAsync()
+    {
+        if (_mobileOpen) return Task.CompletedTask;
+        _mobileOpen = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public Task CloseMobileAsync()
+    {
+        if (!_mobileOpen) return Task.CompletedTask;
+        _mobileOpen = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Em mobile, fechar o overlay quando o user clica num PanelMenuItem
+        // que navega — senão fica overlay travado em cima da nova rota.
+        if (_isMobile && _mobileOpen)
+        {
+            _ = InvokeAsync(CloseMobileAsync);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_navHooked)
+        {
+            Nav.LocationChanged -= OnLocationChanged;
+            _navHooked = false;
+        }
+        if (_overlay is not null) await _overlay.DisposeAsync();
+        if (_bpSub is not null)
+        {
+            try { await _bpSub.DisposeAsync(); } catch { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+}

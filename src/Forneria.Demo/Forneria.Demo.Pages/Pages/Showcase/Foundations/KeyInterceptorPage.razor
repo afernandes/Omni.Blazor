@@ -1,0 +1,156 @@
+@page "/showcase/key-interceptor"
+@layout ShowcaseLayout
+@implements IAsyncDisposable
+@inject KeyInterceptorService KeyInterceptor
+
+<PageTitle>Key Interceptor — Showcase</PageTitle>
+
+<ShowcasePage Title="Key Interceptor"
+              Subtitle="Listener de teclado com escopo de elemento — complemento ao HotkeyService global.">
+
+    <Overview>
+        <p>
+            O <code>KeyInterceptorService</code> registra um listener de <code>keydown</code>
+            num <strong>elemento específico</strong> (e seus descendentes), não no documento
+            inteiro. É o complemento do <code>HotkeyService</code>: enquanto o Hotkey serve
+            atalhos globais da aplicação (Ctrl+S, Ctrl+K), o KeyInterceptor serve interações
+            <strong>locais</strong> — setas pra navegar uma lista, ESC pra fechar um painel,
+            Enter pra confirmar uma edição inline.
+        </p>
+        <p>
+            Cada <code>AttachAsync</code> devolve um <code>IAsyncDisposable</code> — descarte-o
+            no <code>DisposeAsync</code> do componente. O serviço usa um único
+            <code>DotNetObjectReference</code> e remove o listener do DOM quando o handle é
+            descartado, com defesas de memory-leak espelhadas do <code>HotkeyService</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Navegação por setas dentro de uma lista, grid ou menu.</li>
+            <li>ESC para fechar um painel/popover sem afetar o resto da página.</li>
+            <li>Enter para confirmar uma edição inline numa linha.</li>
+            <li>Atalho que só deve disparar quando o foco está dentro de uma região.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Atalho global da aplicação (Ctrl+S, Ctrl+K) → use <code>HotkeyService</code> / <code>OmniHotkey</code>.</li>
+            <li>Bloquear navegação com mudanças não salvas → use <code>OmniExitPrompt</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="NAVEGAÇÃO POR SETAS (ELEMENT-SCOPED)"
+                         Description="Clique na lista para focá-la, então use ↑ ↓ para mover e ESC para limpar. As setas só respondem dentro deste elemento."
+                         Code="@(@"@inject KeyInterceptorService KeyInterceptor
+@implements IAsyncDisposable
+
+<div @ref=""_listEl"" tabindex=""0"">…itens…</div>
+
+@code {
+    private ElementReference _listEl;
+    private IAsyncDisposable? _handle;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        _handle = await KeyInterceptor.AttachAsync(_listEl, new[]
+        {
+            new KeyInterceptorOption(""ArrowDown"", PreventDefault: true),
+            new KeyInterceptorOption(""ArrowUp"",   PreventDefault: true),
+            new KeyInterceptorOption(""Escape"")
+        }, OnKey);
+    }
+
+    private Task OnKey(string key, KeyboardEventArgs e) { … }
+
+    public async ValueTask DisposeAsync()
+        => await (_handle?.DisposeAsync() ?? ValueTask.CompletedTask);
+}")">
+            <div class="omni-stack omni-stack-12">
+                <div @ref="_listEl" tabindex="0" class="omni-ki-list">
+                    @for (int i = 0; i < _items.Length; i++)
+                    {
+                        var idx = i;
+                        <div class="@($"omni-ki-item {(idx == _selected ? "omni-ki-item-active" : "")}")"
+                             @onclick="@(() => _selected = idx)">
+                            @_items[idx]
+                        </div>
+                    }
+                </div>
+                <p class="omni-muted" style="font-size: 12px;">
+                    Foco na lista: <strong>@(_focused ? "sim" : "clique nela primeiro")</strong> ·
+                    Selecionado: <strong>@(_selected >= 0 ? _items[_selected] : "—")</strong> ·
+                    Última tecla: <code>@(_lastKey ?? "—")</code>
+                </p>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="KeyInterceptorService — métodos" ShowDefault="false">
+            <ShowcaseApiRow Name="AttachAsync(element, keys, handler)" Type="Task&lt;IAsyncDisposable&gt;" ShowDefault="false"
+                            Description="Anexa um interceptor com várias KeyInterceptorOption. Retorna o handle de descarte." />
+            <ShowcaseApiRow Name="AttachAsync(element, key, handler)" Type="Task&lt;IAsyncDisposable&gt;" ShowDefault="false"
+                            Description="Conveniência: uma tecla única sem modificadores." />
+            <ShowcaseApiRow Name="AttachAsync(element, combo, handler)" Type="Task&lt;IAsyncDisposable&gt;" ShowDefault="false"
+                            Description="Conveniência: aceita um HotkeyCombo (ex: parse de 'Ctrl+S')." />
+            <ShowcaseApiRow Name="AttachmentCount" Type="int" ShowDefault="false"
+                            Description="Número de interceptors ativos (útil para testes de leak)." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="KeyInterceptorOption (record)">
+            <ShowcaseApiRow Name="Key" Type="string" Default="—"
+                            Description="Tecla a interceptar (e.key ou e.code, ex: 'ArrowDown', 'Escape')." />
+            <ShowcaseApiRow Name="Ctrl / Alt / Shift / Meta" Type="bool?" Default="null"
+                            Description="Estado exigido do modificador. null = não importa." />
+            <ShowcaseApiRow Name="PreventDefault" Type="bool" Default="false"
+                            Description="Chama e.preventDefault() antes de disparar o handler." />
+            <ShowcaseApiRow Name="StopPropagation" Type="bool" Default="false"
+                            Description="Chama e.stopPropagation()." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private readonly string[] _items =
+        { "Pizza Margherita", "Pizza Calabresa", "Refrigerante 2L", "Brownie", "Combo Família" };
+
+    private ElementReference _listEl;
+    private IAsyncDisposable? _handle;
+    private int _selected = -1;
+    private bool _focused;
+    private string? _lastKey;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _handle = await KeyInterceptor.AttachAsync(_listEl, new[]
+        {
+            new KeyInterceptorOption("ArrowDown", PreventDefault: true),
+            new KeyInterceptorOption("ArrowUp",   PreventDefault: true),
+            new KeyInterceptorOption("Escape")
+        }, OnKeyAsync);
+    }
+
+    private Task OnKeyAsync(string key, KeyboardEventArgs e)
+    {
+        _focused = true;
+        _lastKey = key;
+        switch (key)
+        {
+            case "ArrowDown": _selected = Math.Min(_items.Length - 1, _selected + 1); break;
+            case "ArrowUp":   _selected = Math.Max(0, _selected - 1); break;
+            case "Escape":    _selected = -1; break;
+        }
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_handle is not null) await _handle.DisposeAsync();
+    }
+}

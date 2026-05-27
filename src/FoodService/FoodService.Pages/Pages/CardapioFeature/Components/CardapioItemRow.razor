@@ -1,0 +1,44 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@*  Item row — thumb pequeno + nome + descrição + preço. Usado para pizzas
+    salgadas/doces (com PriceFrom="a partir de") e bebidas (preço direto).
+    ThumbVariant: "" (default), "sweet", "veg", "drink". *@
+<button type="button"
+        class="@RootCss"
+        style="@Style"
+        @onclick="OnClick"
+        @attributes="Attributes">
+    <div class="@ThumbCss"></div>
+    <div class="fs-cd-itemrow-body">
+        <div class="fs-cd-itemrow-name">@Name</div>
+        <div class="fs-cd-itemrow-desc">@Description</div>
+        <div class="fs-cd-itemrow-price omni-mono">
+            @if (PriceFrom)
+            {
+                <span class="fs-cd-itemrow-from">a partir de</span>
+            }
+            @Price
+        </div>
+    </div>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+    [Parameter, EditorRequired] public string Description { get; set; } = "";
+    [Parameter, EditorRequired] public string Price { get; set; } = "";
+    [Parameter] public bool PriceFrom { get; set; }
+    [Parameter] public string ThumbVariant { get; set; } = "";
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string RootCss => CssBuilder.Default("fs-cd-itemrow")
+        .AddClass(Class)
+        .Build();
+
+    private string ThumbCss => CssBuilder.Default("fs-cd-itemrow-thumb")
+        .AddClass("fs-cd-thumb-sweet", ThumbVariant == "sweet")
+        .AddClass("fs-cd-thumb-veg",   ThumbVariant == "veg")
+        .AddClass("fs-cd-thumb-drink", ThumbVariant == "drink")
+        .Build();
+}

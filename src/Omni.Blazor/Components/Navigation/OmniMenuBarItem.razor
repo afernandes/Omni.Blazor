@@ -1,0 +1,293 @@
+@namespace Omni.Blazor.Components
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+@inherits OmniComponentWithChildren
+@implements IDisposable
+@inject NavigationManager Nav
+
+@*  One node of a OmniMenuBar. At the root it renders a tab; nested inside a
+    dropdown it renders a rich row (icon · name · description · meta). Pass a
+    DropdownContent fragment for a custom mega-menu panel.  *@
+@if (IsRoot)
+{
+    <li class="@WrapCss" role="none" @onmouseenter="OnRootHover">
+        @if (HasDropdown)
+        {
+            <button type="button" class="@LinkCss" role="menuitem"
+                    aria-haspopup="true" aria-expanded="@(IsOpenState ? "true" : "false")"
+                    disabled="@Disabled" @onclick="OnTriggerClick">
+                @if (!string.IsNullOrEmpty(Icon)) { <OmniIcon Name="@Icon" Size="ComponentSize.Sm" /> }
+                <span>@Text</span>
+                @if (Count.HasValue) { <span class="omni-menubar-count">@Count.Value</span> }
+                <span class="omni-menubar-caret"><OmniIcon Name="chevron-down" Size="ComponentSize.Sm" /></span>
+            </button>
+            @if (DropdownContent is not null)
+            {
+                <div class="omni-menubar-dropdown omni-menubar-mega">@DropdownContent</div>
+            }
+            else
+            {
+                <ul class="omni-menubar-dropdown" role="menu">
+                    <CascadingValue Value="this" IsFixed="true">
+                        <CascadingValue Name="MenuBarDepth" Value="1" IsFixed="true">
+                            @ChildContent
+                        </CascadingValue>
+                    </CascadingValue>
+                    @if (!string.IsNullOrEmpty(FooterText))
+                    {
+                        <li class="omni-menubar-dd-foot" role="presentation">
+                            @if (!string.IsNullOrEmpty(FooterPath))
+                            {
+                                <a class="omni-menubar-dd-foot-link" href="@FooterPath">@FooterText →</a>
+                            }
+                            else
+                            {
+                                <button type="button" class="omni-menubar-dd-foot-link" @onclick="OnFooterClick">@FooterText →</button>
+                            }
+                            @if (!string.IsNullOrEmpty(FooterKbd)) { <span class="omni-menubar-dd-kbd">@FooterKbd</span> }
+                        </li>
+                    }
+                </ul>
+            }
+        }
+        else if (!string.IsNullOrEmpty(Path) && !Disabled)
+        {
+            <a class="@LinkCss" role="menuitem" href="@Path">
+                @if (!string.IsNullOrEmpty(Icon)) { <OmniIcon Name="@Icon" Size="ComponentSize.Sm" /> }
+                <span>@Text</span>
+                @if (Count.HasValue) { <span class="omni-menubar-count">@Count.Value</span> }
+            </a>
+        }
+        else
+        {
+            <button type="button" class="@LinkCss" role="menuitem" disabled="@Disabled" @onclick="HandleClickAsync">
+                @if (!string.IsNullOrEmpty(Icon)) { <OmniIcon Name="@Icon" Size="ComponentSize.Sm" /> }
+                <span>@Text</span>
+                @if (Count.HasValue) { <span class="omni-menubar-count">@Count.Value</span> }
+            </button>
+        }
+    </li>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(GroupLabel))
+    {
+        <li class="omni-menubar-dd-group" role="presentation">@GroupLabel</li>
+    }
+    <li class="omni-menubar-sub" role="none">
+        @if (HasDropdown)
+        {
+            @* Linha com filhos — vira gatilho do flyout lateral (revelado por CSS :hover/:focus-within). *@
+            <button type="button" class="@RowCss has-children" role="menuitem"
+                    aria-haspopup="menu" disabled="@Disabled">
+                <span class="omni-menubar-dd-ico">
+                    @if (!string.IsNullOrEmpty(Icon)) { <OmniIcon Name="@Icon" Size="ComponentSize.Sm" /> }
+                </span>
+                <span class="omni-menubar-dd-body">
+                    <span class="omni-menubar-dd-name">@Text</span>
+                    @if (!string.IsNullOrEmpty(Description)) { <span class="omni-menubar-dd-desc">@Description</span> }
+                </span>
+                @if (!string.IsNullOrEmpty(Meta)) { <span class="@MetaCss">@Meta</span> }
+                <span class="omni-menubar-dd-caret" aria-hidden="true"><OmniIcon Name="chevron-right" Size="ComponentSize.Sm" /></span>
+            </button>
+            <ul class="omni-menubar-dropdown omni-menubar-flyout" role="menu"
+                style="z-index:@(60 + Depth)">
+                @if (!string.IsNullOrEmpty(ChildrenLabel))
+                {
+                    <li class="omni-menubar-dd-group" role="presentation">@ChildrenLabel</li>
+                }
+                <CascadingValue Value="this" IsFixed="true">
+                    <CascadingValue Name="MenuBarDepth" Value="@(Depth + 1)" IsFixed="true">
+                        @ChildContent
+                    </CascadingValue>
+                </CascadingValue>
+            </ul>
+        }
+        else if (!string.IsNullOrEmpty(Path) && !Disabled)
+        {
+            <a class="@RowCss" role="menuitem" href="@Path">
+                <span class="omni-menubar-dd-ico">
+                    @if (!string.IsNullOrEmpty(Icon)) { <OmniIcon Name="@Icon" Size="ComponentSize.Sm" /> }
+                </span>
+                <span class="omni-menubar-dd-body">
+                    <span class="omni-menubar-dd-name">@Text</span>
+                    @if (!string.IsNullOrEmpty(Description)) { <span class="omni-menubar-dd-desc">@Description</span> }
+                </span>
+                @if (!string.IsNullOrEmpty(Meta)) { <span class="@MetaCss">@Meta</span> }
+            </a>
+        }
+        else
+        {
+            <button type="button" class="@RowCss" role="menuitem" disabled="@Disabled" @onclick="HandleClickAsync">
+                <span class="omni-menubar-dd-ico">
+                    @if (!string.IsNullOrEmpty(Icon)) { <OmniIcon Name="@Icon" Size="ComponentSize.Sm" /> }
+                </span>
+                <span class="omni-menubar-dd-body">
+                    <span class="omni-menubar-dd-name">@Text</span>
+                    @if (!string.IsNullOrEmpty(Description)) { <span class="omni-menubar-dd-desc">@Description</span> }
+                </span>
+                @if (!string.IsNullOrEmpty(Meta)) { <span class="@MetaCss">@Meta</span> }
+            </button>
+        }
+    </li>
+}
+
+@code {
+    [CascadingParameter] public OmniMenuBar? MenuBar { get; set; }
+    [CascadingParameter(Name = "MenuBarDepth")] public int Depth { get; set; }
+    [CascadingParameter] public OmniMenuBarItem? ParentItem { get; set; }
+
+    /// <summary>Label text.</summary>
+    [Parameter] public string Text { get; set; } = "";
+
+    /// <summary>Optional icon name.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Navigation URL. Ignored when the item has a dropdown.</summary>
+    [Parameter] public string? Path { get; set; }
+
+    /// <summary>Active-route match mode for <see cref="Path"/>.</summary>
+    [Parameter] public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+
+    /// <summary>Disables the item.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Click handler for items without a <see cref="Path"/> or dropdown.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Numeric badge shown on a root tab.</summary>
+    [Parameter] public int? Count { get; set; }
+
+    /// <summary>Secondary description line (dropdown row).</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Metadata pill text (dropdown row).</summary>
+    [Parameter] public string? Meta { get; set; }
+
+    /// <summary>Colour of the metadata pill.</summary>
+    [Parameter] public MenuMetaKind MetaKind { get; set; } = MenuMetaKind.Neutral;
+
+    /// <summary>Uppercase section label rendered above this dropdown row.</summary>
+    [Parameter] public string? GroupLabel { get; set; }
+
+    /// <summary>Optional section label rendered at the top of this item's flyout (when it has children).</summary>
+    [Parameter] public string? ChildrenLabel { get; set; }
+
+    /// <summary>Custom dropdown panel (mega-menu) — replaces nested items.</summary>
+    [Parameter] public RenderFragment? DropdownContent { get; set; }
+
+    /// <summary>Footer link text for a list dropdown.</summary>
+    [Parameter] public string? FooterText { get; set; }
+
+    /// <summary>Footer keyboard hint.</summary>
+    [Parameter] public string? FooterKbd { get; set; }
+
+    /// <summary>Footer link URL. If unset, the footer raises <see cref="OnFooter"/>.</summary>
+    [Parameter] public string? FooterPath { get; set; }
+
+    /// <summary>Footer click handler when <see cref="FooterPath"/> is unset.</summary>
+    [Parameter] public EventCallback OnFooter { get; set; }
+
+    private readonly List<OmniMenuBarItem> _children = new();
+    private bool _subscribed;
+
+    private bool IsRoot => Depth == 0;
+    private bool HasDropdown => ChildContent is not null || DropdownContent is not null;
+    private bool IsOpenState => MenuBar?.IsOpen(this) ?? false;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        _subscribed = true;
+        ParentItem?.RegisterChild(this);
+    }
+
+    private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+        => InvokeAsync(StateHasChanged);
+
+    internal void RegisterChild(OmniMenuBarItem child)
+    {
+        if (_children.Contains(child)) return;
+        _children.Add(child);
+        InvokeAsync(StateHasChanged);
+    }
+
+    internal void UnregisterChild(OmniMenuBarItem child) => _children.Remove(child);
+
+    /// <summary>True when this item's own <see cref="Path"/> matches the current route.</summary>
+    public bool IsActiveSelf()
+    {
+        if (string.IsNullOrEmpty(Path)) return false;
+        try
+        {
+            var current = new Uri(Nav.Uri).LocalPath.TrimEnd('/');
+            var target = new Uri(Nav.ToAbsoluteUri(Path).AbsoluteUri).LocalPath.TrimEnd('/');
+            if (string.IsNullOrEmpty(target)) return false;
+            return Match == NavLinkMatch.All
+                ? current.Equals(target, StringComparison.OrdinalIgnoreCase)
+                : current.Equals(target, StringComparison.OrdinalIgnoreCase)
+                  || current.StartsWith(target + "/", StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>True when any descendant item is the current route.</summary>
+    public bool ContainsActiveDescendant()
+        => _children.Any(c => c.IsActiveSelf() || c.ContainsActiveDescendant());
+
+    private void OnRootHover()
+    {
+        if (!IsRoot || !HasDropdown || Disabled || MenuBar is null) return;
+        if (MenuBar.HasOpen && !MenuBar.IsOpen(this)) MenuBar.SwitchTo(this);
+        else if (MenuBar.Trigger == MenuTrigger.Hover && !MenuBar.HasOpen) MenuBar.SwitchTo(this);
+    }
+
+    private void OnTriggerClick()
+    {
+        if (!Disabled) MenuBar?.Toggle(this);
+    }
+
+    private async Task HandleClickAsync()
+    {
+        if (Disabled) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync();
+        MenuBar?.CloseAll();
+    }
+
+    private async Task OnFooterClick()
+    {
+        if (OnFooter.HasDelegate) await OnFooter.InvokeAsync();
+        MenuBar?.CloseAll();
+    }
+
+    private string WrapCss => CssBuilder.Default("omni-menubar-item")
+        .AddClass("omni-open", IsOpenState)
+        .AddClass(Class)
+        .Build();
+
+    private string LinkCss => CssBuilder.Default("omni-menubar-link")
+        .AddClass("omni-active", IsActiveSelf())
+        .AddClass("omni-here", !IsActiveSelf() && ContainsActiveDescendant())
+        .AddClass("omni-disabled", Disabled)
+        .Build();
+
+    private string RowCss => CssBuilder.Default("omni-menubar-dd-item")
+        .AddClass("omni-active", IsActiveSelf())
+        .AddClass("omni-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private string MetaCss => CssBuilder.Default("omni-menubar-dd-meta")
+        .AddClass($"omni-meta-{MetaKind.ToString().ToLowerInvariant()}", MetaKind != MenuMetaKind.Neutral)
+        .Build();
+
+    public void Dispose()
+    {
+        if (_subscribed)
+        {
+            Nav.LocationChanged -= OnLocationChanged;
+            _subscribed = false;
+        }
+        ParentItem?.UnregisterChild(this);
+    }
+}

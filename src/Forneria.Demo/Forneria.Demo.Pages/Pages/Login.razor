@@ -1,0 +1,109 @@
+@page "/login"
+@layout AuthLayout
+
+<PageTitle>Entrar — Forneria</PageTitle>
+
+<div class="omni-auth">
+    <section class="omni-auth-form-side">
+        <div class="omni-auth-topbar">
+            <OmniBrand Initial="F" Name="Forneria" Href="/" />
+            <div class="omni-muted" style="font-size: 13px;">
+                Novo aqui? <a class="omni-auth-link" href="/signup">Criar conta</a>
+            </div>
+        </div>
+
+        <div class="omni-auth-form-wrap">
+            <OmniEyebrow Text="Bem-vindo de volta" />
+            <h1 class="omni-auth-h1" style="margin-top: 16px;">Entrar no Forneria.</h1>
+            <p class="omni-auth-sub">Acesse o PDV, o cardápio digital e o HUB do seu estabelecimento.</p>
+
+            <div class="omni-auth-form">
+                <OmniButton Text="Continuar com Google" Block Icon="mail" OnClick="@OnLoginAsync" />
+
+                <div class="omni-auth-divider">ou com e-mail</div>
+
+                <OmniFormField Label="E-mail" For="email">
+                    <OmniTextBox @bind-Value="email" Type="email" Placeholder="voce@restaurante.com.br" LeadingIcon="mail" Autocomplete="email" />
+                </OmniFormField>
+
+                <OmniFormField For="senha">
+                    <LabelContent>
+                        <span style="flex:1;">Senha</span>
+                        <a href="#" class="omni-auth-link" style="font-weight:500; font-size: 12px;">Esqueci minha senha</a>
+                    </LabelContent>
+                    <ChildContent>
+                        <OmniPassword @bind-Value="senha" Placeholder="••••••••" />
+                    </ChildContent>
+                </OmniFormField>
+
+                <OmniCheckBox @bind-Value="lembrar" Label="Lembrar de mim neste dispositivo" />
+
+                <OmniButton Text="Entrar" Variant="ButtonVariant.Primary" Block TrailingIcon="arrow-right" OnClick="@OnLoginAsync" />
+
+                <p class="omni-auth-fineprint omni-text-center">
+                    Ao entrar você concorda com os
+                    <a class="omni-auth-link" href="#">Termos</a> e a
+                    <a class="omni-auth-link" href="#">Privacidade</a>.
+                </p>
+            </div>
+
+            <div class="omni-auth-foot">
+                Ainda não tem conta?
+                <a class="omni-auth-link" href="/signup">Comece grátis por 14 dias →</a>
+            </div>
+        </div>
+
+        <div class="omni-row omni-row-spread omni-mt-auto" style="padding-top: 24px;">
+            <span class="omni-mono omni-soft" style="font-size: 11px; letter-spacing: 0.04em;">© 2026 FORNERIA</span>
+            <a href="#" class="omni-mono omni-soft" style="font-size: 11px; letter-spacing: 0.04em;">SUPORTE</a>
+        </div>
+    </section>
+
+    <aside class="omni-auth-vis">
+        <div class="omni-auth-vis-inner">
+            <div>
+                <div class="omni-mono omni-accent-fg" style="font-size: 10.5px; letter-spacing: 0.08em; font-weight: 600;">★★★★★ · CASE</div>
+                <div class="omni-auth-vis-quote">
+                    <p>O HUB unificou iFood, balcão e cardápio digital em uma fila só. Não perdemos pedido em sábado de pico — pela primeira vez.</p>
+                </div>
+                <div class="omni-auth-vis-who">
+                    <OmniAvatar Initials="RS" />
+                    <div>
+                        <div class="name">Rafa Souza</div>
+                        <div class="role">Dono · Burger Society</div>
+                    </div>
+                </div>
+            </div>
+
+            <OmniMosaic>
+                <OmniMosaicCard Name="Burgers" Meta="PONTO · COMBO" Icon="package" />
+                <OmniMosaicCard Name="HUB" Meta="4 CANAIS · TEMPO REAL" Icon="bar-chart" Featured />
+                <OmniMosaicCard Name="Pizzas" Meta="SABORES · 1/2+1/2" Icon="pizza" />
+                <OmniMosaicCard Name="Cardápio digital · QR" Meta="SEM APP · SEM COMISSÃO" Icon="grid" Wide />
+                <OmniMosaicCard Name="Bares" Meta="COMANDA · 24H" Icon="coffee" />
+            </OmniMosaic>
+
+            <div class="omni-auth-vis-metrics">
+                <OmniStat Label="Uptime · 90 dias" Value="99,98%" />
+                <OmniStat Label="Pedidos · hoje" Value="2.341" />
+                <OmniStat Label="A partir de" Value="R$ 89/mo" />
+            </div>
+        </div>
+    </aside>
+</div>
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+    [Inject] NotificationService Toast { get; set; } = default!;
+
+    private string? email;
+    private string? senha;
+    private bool lembrar = true;
+
+    private Task OnLoginAsync(MouseEventArgs _)
+    {
+        Toast.Success("Bem-vindo!", "Login simulado — redirecionando ao dashboard.", 2500);
+        Nav.NavigateTo("/dashboard");
+        return Task.CompletedTask;
+    }
+}

@@ -1,0 +1,79 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Inline banner — persists on the page (unlike Toast which auto-dismisses).
+    Use for form errors, success confirmation, page-level info, danger warnings.
+
+    Usage:
+        <OmniAlert Severity="NotificationSeverity.Warning" Title="Atenção"
+                    Dismissible OnClosed="OnDismiss">
+            Faltam 5 itens em estoque crítico.
+        </OmniAlert>
+*@
+
+@if (!_closed)
+{
+    <div class="@RootCss" style="@Style" role="alert" @attributes="Attributes">
+        <div class="omni-alert-ico">
+            <OmniIcon Name="@EffectiveIcon" Size="ComponentSize.Sm" />
+        </div>
+        <div class="omni-alert-body">
+            @if (!string.IsNullOrEmpty(Title))
+            {
+                <div class="omni-alert-title">@Title</div>
+            }
+            @if (ChildContent is not null)
+            {
+                <div class="omni-alert-message">@ChildContent</div>
+            }
+            @if (Actions is not null)
+            {
+                <div class="omni-alert-actions">@Actions</div>
+            }
+        </div>
+        @if (Dismissible)
+        {
+            <button type="button" class="omni-alert-close" aria-label="Fechar" @onclick="OnCloseAsync">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public NotificationSeverity Severity { get; set; } = NotificationSeverity.Info;
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Dismissible { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    private bool _closed;
+
+    private string EffectiveIcon => Icon ?? Severity switch
+    {
+        NotificationSeverity.Success => "check-circle",
+        NotificationSeverity.Warning => "alert-triangle",
+        NotificationSeverity.Error   => "alert-circle",
+        _ => "info"
+    };
+
+    private string RootCss => CssBuilder.Default("omni-alert")
+        .AddClass(Severity switch
+        {
+            NotificationSeverity.Success => "omni-alert-success",
+            NotificationSeverity.Warning => "omni-alert-warn",
+            NotificationSeverity.Error   => "omni-alert-danger",
+            _ => "omni-alert-info"
+        })
+        .AddClass(Class)
+        .Build();
+
+    private async Task OnCloseAsync()
+    {
+        _closed = true;
+        if (OnClosed.HasDelegate) await OnClosed.InvokeAsync();
+    }
+}

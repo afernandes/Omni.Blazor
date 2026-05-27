@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Forneria · KDS Configurações</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kds.css" />
+<style>
+  .cfg-wrap {
+    overflow-y: auto;
+    padding: 28px 22px 60px;
+  }
+  .cfg-shell {
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .cfg-title h1 {
+    margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .cfg-title p {
+    margin: 4px 0 0; color: var(--fg-muted); font-size: 14px;
+  }
+  .cfg-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .cfg-card-head {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .cfg-card-head .icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center;
+    font-size: 18px;
+  }
+  .cfg-card-head h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.005em; }
+  .cfg-card-head p { margin: 1px 0 0; font-size: 12.5px; color: var(--fg-muted); }
+  .cfg-body { padding: 8px 0; }
+  .cfg-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 22px;
+    align-items: center;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+  }
+  .cfg-row:last-child { border-bottom: 0; }
+  .cfg-label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .cfg-label b { font-size: 14px; font-weight: 600; color: var(--fg); }
+  .cfg-label span { font-size: 12.5px; color: var(--fg-muted); }
+
+  /* Select */
+  .cfg-select {
+    appearance: none;
+    background: var(--bg-soft);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 36px 10px 14px;
+    font: inherit; font-size: 14px;
+    min-width: 240px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a8a29e' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    cursor: pointer;
+  }
+
+  /* Radio chips */
+  .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .cfg-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 13px; color: var(--fg-muted);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 100ms;
+  }
+  .cfg-chip:hover { border-color: var(--line-strong); color: var(--fg); }
+  .cfg-chip.on {
+    background: var(--fg); color: var(--bg); border-color: var(--fg);
+  }
+  .cfg-chip .ic { font-size: 14px; }
+
+  /* Toggle */
+  .cfg-toggle {
+    width: 52px; height: 30px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: all 160ms;
+    flex-shrink: 0;
+  }
+  .cfg-toggle::after {
+    content: ''; position: absolute;
+    top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: var(--fg-muted);
+    border-radius: 50%;
+    transition: all 160ms cubic-bezier(.2,.8,.2,1);
+  }
+  .cfg-toggle.on { background: color-mix(in oklab, var(--st-ready) 35%, var(--bg-soft)); border-color: color-mix(in oklab, var(--st-ready) 45%, var(--line)); }
+  .cfg-toggle.on::after { left: 25px; background: var(--st-ready); }
+
+  /* Slider */
+  .cfg-slider-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    gap: 12px;
+  }
+  .cfg-slider-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .cfg-slider-head b { font-size: 14px; font-weight: 600; }
+  .cfg-slider-head .v {
+    font-family: var(--font-mono); font-weight: 700; font-size: 18px;
+    color: var(--fg);
+  }
+  .cfg-slider-head .v small { color: var(--fg-soft); font-size: 12px; font-weight: 500; margin-left: 2px; }
+  .cfg-slider-sub { font-size: 12.5px; color: var(--fg-muted); }
+  .cfg-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px;
+    background: var(--bg-soft);
+    border-radius: 999px;
+    outline: none;
+  }
+  .cfg-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border: 3px solid var(--bg-card);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .cfg-slider::-moz-range-thumb {
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border: 3px solid var(--bg-card);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .cfg-slider-track {
+    position: relative; height: 24px;
+    display: flex; align-items: center;
+  }
+  .cfg-slider-marks {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-soft);
+    margin-top: 2px;
+  }
+
+  /* Status preview row */
+  .cfg-preview {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    padding: 0 22px 16px;
+  }
+  .cfg-prev-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 8px;
+    font-family: var(--font-mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+  .cfg-prev-pill .d { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Footer save bar */
+  .cfg-foot {
+    position: sticky; bottom: 0;
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+    padding: 18px 0 4px;
+    display: flex; gap: 10px; justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .cfg-btn {
+    height: 56px;
+    padding: 0 26px;
+    border-radius: 12px;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    color: var(--fg);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .cfg-btn:hover { border-color: var(--line-strong); }
+  .cfg-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .cfg-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+  .cfg-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--st-ready); color: oklch(0.16 0.04 150);
+    padding: 12px 22px; border-radius: 10px;
+    font-weight: 700; font-size: 14px;
+    letter-spacing: 0.04em;
+    opacity: 0; transition: all 220ms;
+    z-index: 100;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+  .cfg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="k">
+
+  <!-- ——— TOP BAR ——— -->
+  <header class="k-top">
+    <div style="display:flex; align-items:center;">
+      <div class="k-brand">
+        <div class="k-brand-mark">F</div>
+        <div>
+          <div class="k-brand-name">Forneria</div>
+          <div class="k-brand-meta">KDS · v2.4</div>
+        </div>
+      </div>
+      <button class="k-sector">
+        <span class="ic">🍕</span>
+        <span>Setor Pizza</span>
+        <span class="ch">▾</span>
+      </button>
+    </div>
+
+    <div class="k-clock-block">
+      <div class="k-clock" id="clock">14:32:05</div>
+      <div class="k-counter">configurações do KDS</div>
+    </div>
+
+    <div class="k-actions">
+      <a class="k-navlink" href="01-kds-principal.html">Principal</a>
+      <a class="k-navlink" href="02-kds-expedicao.html">Expedição</a>
+      <a class="k-navlink" href="04-kds-historico.html">Histórico</a>
+      <span class="k-online"><span class="dot"></span>Online</span>
+      <a class="k-iconbtn" href="03-kds-configuracoes.html" aria-label="Configurações" style="background:var(--bg-card);border-color:var(--line);color:var(--fg)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- ——— FILLER row to keep grid (1fr last) ——— -->
+  <div style="background:var(--bg-elev);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 22px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-soft);gap:10px">
+    <span>Configurações</span>
+    <span style="color:var(--line-strong)">/</span>
+    <span style="color:var(--fg-muted)">Setor Pizza · Tablet cozinha</span>
+  </div>
+
+  <!-- ——— BODY ——— -->
+  <div class="cfg-wrap">
+    <div class="cfg-shell">
+
+      <div class="cfg-title">
+        <h1>Configurações do KDS</h1>
+        <p>Ajustes que afetam apenas este display de cozinha. Todas as alterações são salvas localmente e sincronizadas com o servidor.</p>
+      </div>
+
+      <!-- Ponto de Produção -->
+      <section class="cfg-card">
+        <div class="cfg-card-head">
+          <div class="icon">🏭</div>
+          <div>
+            <h2>Ponto de produção</h2>
+            <p>Define quais pedidos este KDS exibe.</p>
+          </div>
+        </div>
+        <div class="cfg-body">
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>Setor representado</b>
+              <span>Apenas itens deste setor entram na fila desta tela.</span>
+            </div>
+            <select class="cfg-select" id="sectorSel">
+              <option>🌐 Todos os setores</option>
+              <option selected>🍕 Pizza</option>
+              <option>🍔 Lanches</option>
+              <option>🥤 Bebidas</option>
+              <option>🍟 Frituras</option>
+              <option>➕ Adicionar setor…</option>
+            </select>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>Identificação do tablet</b>
+              <span>Aparece no histórico e no monitoramento remoto.</span>
+            </div>
+            <input class="cfg-select" value="Cozinha · Tablet 01" style="min-width:240px;background-image:none;padding-right:14px" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Organização -->
+      <section class="cfg-card">
+        <div class="cfg-card-head">
+          <div class="icon">⊞</div>
+          <div>
+            <h2>Organização dos pedidos</h2>
+            <p>Como os cards são ordenados na tela principal.</p>
+          </div>
+        </div>
+        <div class="cfg-body">
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>Ordenação padrão</b>
+              <span>Pode ser sobrescrita pelo botão "Ordenar por" no header.</span>
+            </div>
+            <div class="cfg-chips" data-group="order">
+              <button class="cfg-chip on"><span class="ic">⏱</span>Hora de chegada</button>
+              <button class="cfg-chip"><span class="ic">🔴</span>Urgência</button>
+              <button class="cfg-chip"><span class="ic">🍽️</span>Mesa</button>
+              <button class="cfg-chip"><span class="ic">🛵</span>Tipo</button>
+            </div>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>Colunas na grade</b>
+              <span>Quantidade de cards lado a lado. Auto se adapta ao tamanho da tela.</span>
+            </div>
+            <div class="cfg-chips" data-group="cols">
+              <button class="cfg-chip on">Auto</button>
+              <button class="cfg-chip">2</button>
+              <button class="cfg-chip">3</button>
+              <button class="cfg-chip">4</button>
+              <button class="cfg-chip">5</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Controle de Itens -->
+      <section class="cfg-card">
+        <div class="cfg-card-head">
+          <div class="icon">✓</div>
+          <div>
+            <h2>Controle de itens</h2>
+            <p>Como o cozinheiro confirma o que já saiu.</p>
+          </div>
+        </div>
+        <div class="cfg-body">
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>Marcar itens individualmente</b>
+              <span>Quando ativo, cada item tem sua checkbox e o botão "Pedido pronto" só habilita quando todos estiverem marcados.</span>
+            </div>
+            <div class="cfg-toggle on" data-toggle="itemCheck"></div>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>Confirmação dupla ao finalizar</b>
+              <span>Pedir confirmação extra antes de mover o pedido para Expedição.</span>
+            </div>
+            <div class="cfg-toggle" data-toggle="dblConfirm"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Alertas -->
+      <section class="cfg-card">
+        <div class="cfg-card-head">
+          <div class="icon">🔔</div>
+          <div>
+            <h2>Alertas e tempos</h2>
+            <p>Sons, vibração e os limites para mudança de cor por urgência.</p>
+          </div>
+        </div>
+        <div class="cfg-body">
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>🔊 Som ao chegar pedido novo</b>
+              <span>Toca um sino curto. Recomendado em ambientes barulhentos.</span>
+            </div>
+            <div class="cfg-toggle on" data-toggle="sound"></div>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>📳 Vibração (tablet)</b>
+              <span>Vibra ao chegar pedido novo. Apenas em dispositivos compatíveis.</span>
+            </div>
+            <div class="cfg-toggle on" data-toggle="vibrate"></div>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>🔴 Alerta visual pulsante para urgentes</b>
+              <span>Cards vermelhos piscam para chamar atenção da cozinha.</span>
+            </div>
+            <div class="cfg-toggle on" data-toggle="urgentPulse"></div>
+          </div>
+
+          <div class="cfg-slider-row">
+            <div class="cfg-slider-head">
+              <b>Tempo para alerta amarelo</b>
+              <span class="v" id="vAmarelo">10<small>min</small></span>
+            </div>
+            <div class="cfg-slider-sub">Após este tempo, o card fica amarelo (Em preparo).</div>
+            <input type="range" class="cfg-slider" min="5" max="20" value="10" id="sAmarelo">
+            <div class="cfg-slider-marks"><span>5min</span><span>10min</span><span>15min</span><span>20min</span></div>
+          </div>
+
+          <div class="cfg-slider-row" style="border-bottom:0">
+            <div class="cfg-slider-head">
+              <b>Tempo para alerta vermelho</b>
+              <span class="v" id="vVermelho">20<small>min</small></span>
+            </div>
+            <div class="cfg-slider-sub">Após este tempo, o card fica laranja (Atrasado). +10min após este vira urgente.</div>
+            <input type="range" class="cfg-slider" min="15" max="40" value="20" id="sVermelho">
+            <div class="cfg-slider-marks"><span>15min</span><span>20min</span><span>30min</span><span>40min</span></div>
+          </div>
+
+          <!-- Live preview of thresholds -->
+          <div class="cfg-preview" id="preview">
+            <span class="cfg-prev-pill" style="background:color-mix(in oklab, var(--st-new) 18%, transparent);color:var(--st-new)"><span class="d" style="background:var(--st-new)"></span>Novo · 0–<span data-mark="amarelo">10</span>min</span>
+            <span class="cfg-prev-pill" style="background:color-mix(in oklab, var(--st-prep) 18%, transparent);color:var(--st-prep)"><span class="d" style="background:var(--st-prep)"></span>Em preparo · <span data-mark="amarelo2">10</span>–<span data-mark="vermelho">20</span>min</span>
+            <span class="cfg-prev-pill" style="background:color-mix(in oklab, var(--st-delay) 18%, transparent);color:var(--st-delay)"><span class="d" style="background:var(--st-delay)"></span>Atrasado · <span data-mark="vermelho2">20</span>–<span data-mark="urgente">30</span>min</span>
+            <span class="cfg-prev-pill" style="background:color-mix(in oklab, var(--st-urgent) 22%, transparent);color:var(--st-urgent)"><span class="d" style="background:var(--st-urgent)"></span>Urgente · +<span data-mark="urgente2">30</span>min</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tipos de pedido -->
+      <section class="cfg-card">
+        <div class="cfg-card-head">
+          <div class="icon">📥</div>
+          <div>
+            <h2>Tipos de pedido visíveis</h2>
+            <p>Filtra a origem dos pedidos exibidos neste display.</p>
+          </div>
+        </div>
+        <div class="cfg-body">
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>🛵 Delivery</b>
+              <span>Pedidos com endereço de entrega (cardápio digital, iFood, Rappi).</span>
+            </div>
+            <div class="cfg-toggle on" data-toggle="tDelivery"></div>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>🍽️ Mesas</b>
+              <span>Pedidos lançados pelo garçom no salão.</span>
+            </div>
+            <div class="cfg-toggle on" data-toggle="tTable"></div>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-label">
+              <b>🏃 Balcão / Retirada</b>
+              <span>Pedidos para consumo no balcão ou retirada.</span>
+            </div>
+            <div class="cfg-toggle on" data-toggle="tCounter"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="cfg-foot">
+        <button class="cfg-btn">Cancelar</button>
+        <button class="cfg-btn cfg-btn-primary" id="saveBtn">✓ Salvar configurações</button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="cfg-toast" id="toast">✓ Configurações salvas</div>
+
+<script>
+/* clock */
+function tickClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+}
+tickClock(); setInterval(tickClock, 1000);
+
+/* Load persisted config */
+const STORAGE_KEY = 'kds-config-v1';
+const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+/* Chip groups (radio behavior) */
+document.querySelectorAll('.cfg-chips').forEach(group => {
+  const groupKey = group.dataset.group;
+  if (persisted[groupKey]) {
+    group.querySelectorAll('.cfg-chip').forEach(c => {
+      c.classList.toggle('on', c.textContent.trim() === persisted[groupKey]);
+    });
+  }
+  group.querySelectorAll('.cfg-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      group.querySelectorAll('.cfg-chip').forEach(c => c.classList.remove('on'));
+      chip.classList.add('on');
+    });
+  });
+});
+
+/* Toggles */
+document.querySelectorAll('[data-toggle]').forEach(t => {
+  const key = t.dataset.toggle;
+  if (persisted[key] === true) t.classList.add('on');
+  if (persisted[key] === false) t.classList.remove('on');
+  t.addEventListener('click', () => t.classList.toggle('on'));
+});
+
+/* Sliders with live preview */
+const sA = document.getElementById('sAmarelo');
+const sV = document.getElementById('sVermelho');
+const vA = document.getElementById('vAmarelo');
+const vV = document.getElementById('vVermelho');
+
+if (persisted.amarelo) sA.value = persisted.amarelo;
+if (persisted.vermelho) sV.value = persisted.vermelho;
+
+function syncPreview() {
+  const a = +sA.value;
+  let v = +sV.value;
+  if (v <= a) { v = a + 5; sV.value = v; }
+  vA.innerHTML = `${a}<small>min</small>`;
+  vV.innerHTML = `${v}<small>min</small>`;
+  document.querySelectorAll('[data-mark="amarelo"], [data-mark="amarelo2"]').forEach(el => el.textContent = a);
+  document.querySelectorAll('[data-mark="vermelho"], [data-mark="vermelho2"]').forEach(el => el.textContent = v);
+  const u = v + 10;
+  document.querySelectorAll('[data-mark="urgente"], [data-mark="urgente2"]').forEach(el => el.textContent = u);
+}
+sA.addEventListener('input', syncPreview);
+sV.addEventListener('input', syncPreview);
+syncPreview();
+
+/* Save */
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const data = { amarelo: +sA.value, vermelho: +sV.value };
+  document.querySelectorAll('[data-toggle]').forEach(t => data[t.dataset.toggle] = t.classList.contains('on'));
+  document.querySelectorAll('.cfg-chips').forEach(g => {
+    const on = g.querySelector('.cfg-chip.on');
+    if (on) data[g.dataset.group] = on.textContent.trim();
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+});
+</script>
+</body>
+</html>

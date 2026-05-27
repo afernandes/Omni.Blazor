@@ -1,0 +1,297 @@
+@page "/liveops"
+@layout AppShellLive
+@using System.Globalization
+
+<PageTitle>Forneria — Live Operations</PageTitle>
+
+@*  /liveops — dashboard denso (Bento grid). Demonstra o OmniTileGroup
+    no modo Grid 2D com spans + widgets específicos de tempo-real:
+      Row 1: 4 KPIs (1º accent — receita)
+      Row 2: Fila cozinha (span-2) + Canais
+      Row 3: Sparkbars das 24 horas (full width)
+      Row 4: 4 estações da cozinha (mini-bento horizontal)
+      Row 5: Estação Pizza (span-2) + Mapa frota
+      Row 6: Ticker de pedidos em tempo real
+    Adaptado do mock liveops-bento.html (sistema-pizzaria / Anthropic Design). *@
+
+<div class="omni-lo-stage">
+
+    @* ─── Row 1: KPIs (4 cards) ─── *@
+    <OmniTileGroup Direction="TileDirection.Grid" Columns="4">
+        <div class="omni-lo-kpi omni-lo-kpi-accent">
+            <div class="omni-lo-kpi-label">
+                <span class="omni-lo-kpi-ico"><OmniIcon Name="dollar-sign" Size="ComponentSize.Sm" /></span>
+                Receita do turno
+            </div>
+            <div class="omni-lo-kpi-value omni-mono">
+                <span class="omni-lo-kpi-unit">R$</span>11.266
+            </div>
+            <div class="omni-lo-kpi-delta">▲ +18,4% <span class="omni-lo-kpi-vs">vs ontem</span></div>
+        </div>
+
+        <div class="omni-lo-kpi">
+            <div class="omni-lo-kpi-label">
+                <span class="omni-lo-kpi-ico"><OmniIcon Name="shopping-cart" Size="ComponentSize.Sm" /></span>
+                Pedidos
+            </div>
+            <div class="omni-lo-kpi-value omni-mono">142</div>
+            <div class="omni-lo-kpi-delta omni-lo-kpi-up">▲ +9,2% <span class="omni-lo-kpi-vs">vs ontem</span></div>
+        </div>
+
+        <div class="omni-lo-kpi">
+            <div class="omni-lo-kpi-label">
+                <span class="omni-lo-kpi-ico"><OmniIcon Name="clock" Size="ComponentSize.Sm" /></span>
+                Tempo médio
+            </div>
+            <div class="omni-lo-kpi-value omni-mono">24'18</div>
+            <div class="omni-lo-kpi-delta omni-lo-kpi-down">▼ −2'04 <span class="omni-lo-kpi-vs">meta 25'00</span></div>
+        </div>
+
+        <div class="omni-lo-kpi">
+            <div class="omni-lo-kpi-label">
+                <span class="omni-lo-kpi-ico"><OmniIcon Name="credit-card" Size="ComponentSize.Sm" /></span>
+                Ticket médio
+            </div>
+            <div class="omni-lo-kpi-value omni-mono">
+                <span class="omni-lo-kpi-unit">R$</span>79,34
+            </div>
+            <div class="omni-lo-kpi-delta omni-lo-kpi-up">▲ +8,4% <span class="omni-lo-kpi-vs">vs ontem</span></div>
+        </div>
+    </OmniTileGroup>
+
+    @* ─── Row 2: Fila cozinha (span-2) + Canais ─── *@
+    <OmniTileGroup Direction="TileDirection.Grid" Columns="3">
+        <div class="omni-tile-span-2 omni-lo-tile">
+            <div class="omni-lo-tile-head">
+                <span class="omni-lo-tile-label">Fila da cozinha · @_queue.Length ativos</span>
+                <span class="omni-lo-tile-meta omni-mono">ordem por tempo de prep.</span>
+            </div>
+            <div class="omni-lo-queue">
+                @foreach (var q in _queue)
+                {
+                    <div class="omni-lo-queue-row">
+                        <span class="omni-lo-queue-num omni-mono">#@q.Id</span>
+                        <div class="omni-lo-queue-info">
+                            <div class="omni-lo-queue-name">@q.Name</div>
+                            <div class="omni-lo-queue-meta">@q.Meta</div>
+                        </div>
+                        <span class="@($"omni-lo-queue-time omni-mono {(q.Status == "late" ? "omni-lo-queue-time-late" : "")}")">@q.Time</span>
+                        <span class="@($"omni-lo-queue-status {(string.IsNullOrEmpty(q.Status) ? "" : $"omni-lo-queue-status-{q.Status}")}")"></span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="omni-lo-tile">
+            <div class="omni-lo-tile-head">
+                <span class="omni-lo-tile-label">Canais</span>
+                <span class="omni-lo-tile-meta omni-mono">% receita</span>
+            </div>
+            <div class="omni-lo-channels">
+                @foreach (var c in _channels)
+                {
+                    <div class="omni-lo-channel-row">
+                        <div class="omni-lo-channel-name">
+                            <span class="omni-lo-channel-dot" style="background:@c.Color;"></span>
+                            @c.Name
+                        </div>
+                        <div class="omni-lo-channel-bar">
+                            <div style="width:@(c.Pct)%; background:@c.Color;"></div>
+                        </div>
+                        <div class="omni-lo-channel-val omni-mono">@c.Pct%</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </OmniTileGroup>
+
+    @* ─── Row 3: Sparkbars receita por hora (24 barras) ─── *@
+    <OmniTileGroup Direction="TileDirection.Grid" Columns="1">
+        <div class="omni-lo-tile">
+            <div class="omni-lo-tile-head">
+                <span class="omni-lo-tile-label">Receita por hora · pico previsto 20:00</span>
+                <span class="omni-lo-tile-meta omni-mono">R$ @_hoursTotal.ToString("N0", _ptBr) acumulado</span>
+            </div>
+            <div class="omni-lo-sparkbars">
+                @for (var h = 0; h < _hours.Length; h++)
+                {
+                    var v = _hours[h];
+                    var pct = Math.Max(4, (double)v / _hoursMax * 100);
+                    <div class="@(h == _nowHour ? "omni-lo-sparkbar-now" : "")"
+                         style="height:@(pct.ToString("F1", _en))%;"
+                         title="@($"{h:00}h — R$ {v * 100}")"></div>
+                }
+            </div>
+        </div>
+    </OmniTileGroup>
+
+    @* ─── Row 4: Estações (4 mini-tiles horizontal) ─── *@
+    <OmniTileGroup Direction="TileDirection.Grid" Columns="1">
+        <div class="omni-lo-tile">
+            <div class="omni-lo-tile-head">
+                <span class="omni-lo-tile-label">Estações</span>
+                <span class="omni-lo-tile-meta omni-mono">tempo médio por estação</span>
+            </div>
+            <div class="omni-lo-stations">
+                @foreach (var s in _stations)
+                {
+                    <div class="@($"omni-lo-station {(s.Alert ? "omni-lo-station-alert" : "")}")">
+                        <div class="omni-lo-station-name">
+                            <OmniIcon Name="@s.Icon" Size="ComponentSize.Sm" />
+                            @s.Name
+                        </div>
+                        <div class="omni-lo-station-val omni-mono">@s.Val</div>
+                        <div class="omni-lo-station-sub omni-mono">@s.Sub</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </OmniTileGroup>
+
+    @* ─── Row 5: Estação Pizza (span-2) + Frota ─── *@
+    <OmniTileGroup Direction="TileDirection.Grid" Columns="3">
+        <div class="omni-tile-span-2 omni-lo-tile omni-lo-pizza">
+            <div class="omni-lo-pizza-head">
+                <div class="omni-lo-pizza-title">
+                    <OmniIcon Name="zap" Size="ComponentSize.Sm" />
+                    Estação Pizza
+                </div>
+                <div class="omni-lo-pizza-meta omni-mono">@_pizzas.Length em forno · forno 280°C</div>
+            </div>
+            <div class="omni-lo-pizza-grid">
+                @foreach (var p in _pizzas)
+                {
+                    <div class="@($"omni-lo-pizza-cell {p.StatusBgCls}")">
+                        <div class="omni-lo-pizza-id omni-mono">@p.Id</div>
+                        <div class="omni-lo-pizza-name">@p.Name</div>
+                        @if (!string.IsNullOrEmpty(p.Mods))
+                        {
+                            <div class="omni-lo-pizza-mods">@p.Mods</div>
+                        }
+                        <div class="@($"omni-lo-pizza-time omni-mono {p.StatusCls}")">@p.Time</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="omni-lo-tile omni-lo-fleet">
+            <div class="omni-lo-tile-head">
+                <span class="omni-lo-tile-label">Frota · 3 em rota</span>
+                <span class="omni-lo-tile-meta omni-mono">ao vivo</span>
+            </div>
+            <div class="omni-lo-fleet-map">
+                <div class="omni-lo-fleet-pin omni-lo-fleet-pin-store" style="left:50%; top:52%;"></div>
+                <div class="omni-lo-fleet-pin omni-lo-fleet-pin-moto"  style="left:32%; top:38%;"></div>
+                <div class="omni-lo-fleet-pin omni-lo-fleet-pin-moto"  style="left:68%; top:70%;"></div>
+                <div class="omni-lo-fleet-pin omni-lo-fleet-pin-late"  style="left:20%; top:74%;"></div>
+                <div class="omni-lo-fleet-pin omni-lo-fleet-pin-idle"  style="left:78%; top:28%;"></div>
+            </div>
+        </div>
+    </OmniTileGroup>
+
+    @* ─── Row 6: Stream de pedidos ─── *@
+    <OmniTileGroup Direction="TileDirection.Grid" Columns="1">
+        <div class="omni-lo-tile">
+            <div class="omni-lo-tile-head">
+                <span class="omni-lo-tile-label">Stream de pedidos · últimos 10 minutos</span>
+                <span class="omni-lo-tile-meta omni-mono">tempo real</span>
+            </div>
+            <div class="omni-lo-ticker">
+                @foreach (var t in _ticker)
+                {
+                    <div class="omni-lo-ticker-row">
+                        <div>
+                            <div class="omni-lo-ticker-top">
+                                <span class="omni-lo-ticker-channel" style="background:@t.Channel;"></span>
+                                <span class="omni-lo-ticker-id omni-mono">#@t.Id</span>
+                                <span class="omni-lo-ticker-cust">@t.Cust</span>
+                            </div>
+                            <div class="omni-lo-ticker-items">@t.Items</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div class="omni-lo-ticker-total omni-mono">@t.Total.ToString("C", _ptBr)</div>
+                            <div class="omni-lo-ticker-time omni-mono">@t.Time</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </OmniTileGroup>
+
+</div>
+
+@code {
+    private static readonly CultureInfo _ptBr = new("pt-BR");
+    private static readonly CultureInfo _en   = CultureInfo.InvariantCulture;
+
+    // ─── Sparkbars ────────────────────────────────────
+    private static readonly int[] _hours =
+    {
+        3, 2, 1, 1, 1, 2, 4, 8, 14, 18, 22, 28,
+        42, 48, 38, 26, 22, 32, 56, 78, 92, 64, 38, 14,
+    };
+    private static readonly int _hoursMax   = _hours.Max();
+    private static readonly int _hoursTotal = _hours.Sum() * 100;
+    private readonly int _nowHour = DateTime.Now.Hour;
+
+    // ─── Estações ─────────────────────────────────────
+    private record Station(string Name, string Val, string Sub, string Icon, bool Alert);
+    private static readonly Station[] _stations =
+    {
+        new("Pizza",   "6", "na fila",   "zap",           false),
+        new("Burger",  "4", "na fila",   "grid",          false),
+        new("Fritura", "2", "na fila",   "package",       false),
+        new("Bebidas", "8", "expedição", "shopping-cart", false),
+    };
+
+    // ─── Canais ───────────────────────────────────────
+    private record Channel(string Name, int Pct, string Color);
+    private static readonly Channel[] _channels =
+    {
+        new("PDV",     38, "#1a1612"),
+        new("Digital", 27, "#dc2626"),
+        new("iFood",   18, "#ea1d2c"),
+        new("Mesa",    12, "#16a34a"),
+        new("Garçom",   5, "#7c3aed"),
+    };
+
+    // ─── Fila cozinha ─────────────────────────────────
+    private record QueueItem(string Id, string Name, string Meta, string Time, string Status);
+    private static readonly QueueItem[] _queue =
+    {
+        new("4287", "Pizza Calabresa G",         "Mesa 12 · 2 itens",     "12:34", "late"),
+        new("4286", "Combo Smash + Fritas",      "João Pereira · PDV",    "08:12", "warn"),
+        new("4285", "Família 4Q ½ Margherita",   "Mesa 03 · 4 itens",     "05:48", ""),
+        new("4284", "Pizza Pepperoni G",         "iFood · Pedro Lima",    "03:21", ""),
+        new("4283", "Cheeseburger Duplo",        "Digital · Carla Mendes","02:14", ""),
+        new("4282", "Veggie Burger",             "Digital · Lucas Andrade","01:08", ""),
+    };
+
+    // ─── Pizza station ────────────────────────────────
+    private record Pizza(string Id, string Name, string Mods, string Time, string Status)
+    {
+        public string StatusCls   => Status switch { "late" => "omni-lo-pizza-time-late", "warn" => "omni-lo-pizza-time-warn", _ => "" };
+        public string StatusBgCls => Status switch { "late" => "omni-lo-pizza-cell-late", "warn" => "omni-lo-pizza-cell-warn", _ => "" };
+    }
+    private static readonly Pizza[] _pizzas =
+    {
+        new("#4287/A", "Calabresa G",             "sem cebola",      "04:12", "late"),
+        new("#4285/B", "½ Quatro Q. / ½ Marg.",   "borda catupiry",  "02:48", "warn"),
+        new("#4282/A", "Pepperoni G",             "+catupiry",       "01:30", ""),
+        new("#4290/A", "Frango c/ Catupiry G",    "",                "00:54", ""),
+        new("#4291/A", "Margherita M",            "massa fina",      "00:22", ""),
+        new("#4292/A", "Família 4 sabores",       "borda cheddar",   "00:08", ""),
+    };
+
+    // ─── Stream de pedidos ────────────────────────────
+    private record Ticker(string Id, string Cust, string Items, decimal Total, string Channel, string Time);
+    private static readonly Ticker[] _ticker =
+    {
+        new("4290", "Marina Costa", "1× Pizza Calabresa G, 1× Coca 2L",         87.80m, "#dc2626", "há 12s"),
+        new("4289", "Mesa 08",      "1× Pizza Margherita G, 1× Suco",           67.00m, "#16a34a", "há 1min"),
+        new("4288", "João Pereira", "2× Cheeseburger Duplo, 1× Cerveja",        78.00m, "#1a1612", "há 2min"),
+        new("4287", "Família L.",   "1× Família 4 sabores, 2× Cerveja LN",      96.00m, "#16a34a", "há 4min"),
+        new("4286", "Pedro Lima",   "1× Combo Smash + Fritas",                  52.00m, "#ea1d2c", "há 6min"),
+        new("4285", "Carla Mendes", "1× Veggie Burger, 1× Suco Laranja",        35.00m, "#dc2626", "há 9min"),
+    };
+}

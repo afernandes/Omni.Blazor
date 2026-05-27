@@ -1,0 +1,33 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Reusable menu list — a panel of <OmniMenuItem>s (and optional separators).
+    Used internally by <OmniContextMenuHost> for the right-click/programmatic
+    context menu, and exposed for use as <OmniPopover> content so menus look
+    identical regardless of how they're triggered.
+
+    Usage inside a Popover:
+        <OmniPopover>
+            <Trigger><OmniButton Icon="more-horizontal" IconOnly /></Trigger>
+            <ChildContent>
+                <OmniMenu>
+                    <OmniMenuItem Text="Renomear" Icon="edit"  OnClick="OnRename"  />
+                    <OmniMenuItem Text="Duplicar" Icon="copy"  Shortcut="⌘D" OnClick="OnDuplicate" />
+                    <OmniMenuSeparator />
+                    <OmniMenuItem Text="Excluir"  Icon="trash" IsDanger OnClick="OnDelete" />
+                </OmniMenu>
+            </ChildContent>
+        </OmniPopover>
+*@
+
+<div class="@RootCss" style="@Style" role="menu" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    private string RootCss => CssBuilder.Default("omni-menu")
+        .AddClass(Class)
+        .Build();
+}

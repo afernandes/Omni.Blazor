@@ -1,0 +1,27 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Container grid 12-colunas responsivo. Combina com <OmniCol Size=..> filhos
+    para construir qualquer layout em linha — KPIs, cards lado-a-lado, forms
+    multi-coluna, dashboards assimétricos. Inspirado em RadzenRow / MudGrid.
+
+    Mobile-first: por padrão a página inteira é 12 colunas; cada <OmniCol>
+    decide quanto ocupa em cada breakpoint via Size / SizeSm / SizeMd / SizeLg.
+
+    O <c>Gap</c> controla o espaçamento (default 16 px). Para KPI rows, 14 px
+    casa melhor com a densidade visual de OmniStat com sparkline. *@
+<div class="@RootCss"
+     style="@($"--omni-row-gap: {Gap}px;{Style}")"
+     @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Espaçamento entre colunas e linhas (px). Default 16.</summary>
+    [Parameter] public int Gap { get; set; } = 16;
+
+    private string RootCss => CssBuilder.Default("omni-row-grid")
+        .AddClass(Class)
+        .Build();
+}

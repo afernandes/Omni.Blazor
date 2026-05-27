@@ -1,0 +1,125 @@
+root = true
+
+# =============================================================================
+# All files
+# =============================================================================
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = off
+
+# =============================================================================
+# Markdown — keep trailing whitespace (line break)
+# =============================================================================
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+# =============================================================================
+# Web & config — 2-space indent
+# =============================================================================
+[*.{json,yml,yaml,xml,html,scss,css,js,ts}]
+indent_size = 2
+
+[*.{csproj,vbproj,fsproj,props,targets,nuspec,config,ruleset}]
+indent_size = 2
+
+# =============================================================================
+# Solution files — Visual Studio expects CRLF + tabs
+# =============================================================================
+[*.{sln,slnx}]
+end_of_line = crlf
+indent_style = tab
+
+# =============================================================================
+# Razor / cshtml
+# =============================================================================
+[*.{razor,cshtml}]
+indent_size = 4
+
+# =============================================================================
+# C# code style (matches Roslynator + Microsoft defaults)
+# =============================================================================
+[*.cs]
+
+# this. and Me. qualifiers
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# Language keywords vs BCL types
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+# Modifier preferences
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:warning
+
+# var preferences
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# Expression-bodied members
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_expression_bodied_lambdas = true:suggestion
+
+# Null-checking preferences
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+
+# 'using' directives
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+
+# Namespace declarations
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+
+# Expression-level preferences
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+csharp_style_inlined_variable_declaration = true:suggestion
+dotnet_style_prefer_auto_properties = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:suggestion
+dotnet_style_prefer_conditional_expression_over_return = true:suggestion
+
+# Naming conventions — Pascal/camel/_camel for private fields
+dotnet_naming_rule.interfaces_should_be_prefixed_with_i.severity = warning
+dotnet_naming_rule.interfaces_should_be_prefixed_with_i.symbols = interface_symbol
+dotnet_naming_rule.interfaces_should_be_prefixed_with_i.style = prefixed_with_i_style
+dotnet_naming_symbols.interface_symbol.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbol.applicable_accessibilities = *
+dotnet_naming_style.prefixed_with_i_style.required_prefix = I
+dotnet_naming_style.prefixed_with_i_style.capitalization = pascal_case
+
+dotnet_naming_rule.private_fields_with_underscore.severity = suggestion
+dotnet_naming_rule.private_fields_with_underscore.symbols = private_fields_symbol
+dotnet_naming_rule.private_fields_with_underscore.style = underscore_prefix_style
+dotnet_naming_symbols.private_fields_symbol.applicable_kinds = field
+dotnet_naming_symbols.private_fields_symbol.applicable_accessibilities = private
+dotnet_naming_style.underscore_prefix_style.required_prefix = _
+dotnet_naming_style.underscore_prefix_style.capitalization = camel_case
+
+# Diagnostics — turn down noise that doesn't fit a UI lib
+dotnet_diagnostic.CA1014.severity = none   # CLSCompliant attribute (Blazor doesn't need)
+dotnet_diagnostic.CA1707.severity = none   # underscores in test names
+dotnet_diagnostic.CA2007.severity = none   # ConfigureAwait(false) (not for UI)
+dotnet_diagnostic.CA1812.severity = none   # internal class never instantiated (DI containers)
+dotnet_diagnostic.CA1848.severity = none   # LoggerMessage delegates (over-eager)
+dotnet_diagnostic.CA5394.severity = none   # Random insecure (fine for UI demos)
+
+# Blazor-specific warnings to silence
+dotnet_diagnostic.BL0007.severity = none   # Component parameters should be auto-properties
+dotnet_diagnostic.BL9991.severity = none   # Internal API used (Blazor preview APIs)

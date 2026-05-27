@@ -1,0 +1,224 @@
+@page "/showcase/panel-menu"
+@layout ShowcaseLayout
+
+<PageTitle>Panel menu — Showcase</PageTitle>
+
+<ShowcasePage Title="Panel menu"
+              Subtitle="Navegação lateral hierárquica com itens de link, contadores e grupos expansíveis.">
+
+    <Overview>
+        <p>
+            O <code>OmniPanelMenu</code> é a navegação lateral da aplicação. Cada
+            <code>OmniPanelMenuItem</code> pode ser um <strong>link</strong> (quando tem
+            <code>Path</code>, navega via âncora), um <strong>grupo expansível</strong> (quando
+            tem itens filhos) ou um <strong>botão de ação</strong> (quando só tem
+            <code>OnClick</code>).
+        </p>
+        <p>
+            Itens com <code>Path</code> são <strong>location-aware</strong>: destacam-se
+            automaticamente quando a URL atual casa com o caminho (<code>NavLinkMatch.Prefix</code>
+            por padrão) e re-renderizam a cada mudança de rota. O slot <code>Count</code> exibe um
+            badge numérico à direita.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Navegação principal de uma aplicação dentro de uma <code>OmniSidebar</code>.</li>
+            <li>Sub-navegação no aside de um <code>OmniSplitView</code> (ex: cadastros).</li>
+            <li>Agrupar destinos relacionados sob um item pai expansível.</li>
+            <li>Sinalizar pendências por seção com o badge <code>Count</code>.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Navegação horizontal entre painéis de uma mesma tela → use <code>OmniTabs</code>.</li>
+            <li>Caminho hierárquico da página atual → use <code>OmniBreadcrumb</code>.</li>
+            <li>Menu de ações contextuais sobre um elemento → use <code>OmniMenu</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="ESTRUTURA BÁSICA"
+                         Description="PanelMenu envolve N PanelMenuItems. Itens podem ter Icon, Count (badge), Path ou children."
+                         Code="@(@"<OmniPanelMenuSection Label=""Operação"">
+    <OmniPanelMenu>
+        <OmniPanelMenuItem Text=""Dashboard"" Icon=""layout-dashboard"" Path=""/dashboard"" />
+        <OmniPanelMenuItem Text=""PDV"" Icon=""shopping-cart"" Path=""/pdv"" Count=""3"" />
+    </OmniPanelMenu>
+</OmniPanelMenuSection>
+<OmniPanelMenuItem Text=""Cadastros"" Icon=""database"">
+    <OmniPanelMenuItem Text=""Clientes"" Path=""/cadastros/clientes"" />
+    <OmniPanelMenuItem Text=""Produtos"" Path=""/cadastros/produtos"" />
+</OmniPanelMenuItem>")">
+            <div style="max-width: 260px;">
+                <OmniPanelMenuSection Label="Operação">
+                    <OmniPanelMenu>
+                        <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" Path="/dashboard" />
+                        <OmniPanelMenuItem Text="PDV" Icon="shopping-cart" Path="/pdv" Count="3" />
+                    </OmniPanelMenu>
+                </OmniPanelMenuSection>
+                <OmniPanelMenuSection Label="Cadastros">
+                    <OmniPanelMenu>
+                        <OmniPanelMenuItem Text="Cadastros" Icon="database">
+                            <OmniPanelMenuItem Text="Clientes" Path="/cadastros/clientes" />
+                            <OmniPanelMenuItem Text="Produtos" Path="/cadastros/produtos" />
+                            <OmniPanelMenuItem Text="Categorias" Path="/cadastros/categorias" />
+                        </OmniPanelMenuItem>
+                    </OmniPanelMenu>
+                </OmniPanelMenuSection>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM COUNT (BADGE)"
+                         Description="Count exibe número à direita; muda de cor quando o item está ativo."
+                         Code="@(@"<OmniPanelMenu>
+    <OmniPanelMenuItem Text=""Inbox"" Icon=""mail"" Count=""12"" Path=""/inbox"" />
+    <OmniPanelMenuItem Text=""Drafts"" Icon=""file-text"" Count=""3"" Path=""/drafts"" />
+    <OmniPanelMenuItem Text=""Spam"" Icon=""alert-circle"" Count=""42"" Path=""/spam"" />
+</OmniPanelMenu>")">
+            <div style="max-width: 260px;">
+                <OmniPanelMenu>
+                    <OmniPanelMenuItem Text="Inbox" Icon="mail" Count="12" Path="/inbox" />
+                    <OmniPanelMenuItem Text="Drafts" Icon="file-text" Count="3" Path="/drafts" />
+                    <OmniPanelMenuItem Text="Spam" Icon="alert-circle" Count="42" Path="/spam" />
+                </OmniPanelMenu>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ATIVO + LOCATION-AWARE"
+                         Description="Item ativo é o que casa com a URL atual (NavLinkMatch=Prefix por padrão). Re-renderiza no LocationChanged."
+                         Code="@(@"<OmniPanelMenuItem Text=""Produtos""
+                    Path=""/cadastros/produtos""
+                    Match=""NavLinkMatch.All"" />")">
+            <p class="omni-muted" style="font-size: 13px;">
+                Veja o item ativo na sub-sidebar à esquerda enquanto navega entre as páginas do showcase.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MULTINÍVEL RECURSIVO"
+                         Description="OmniPanelMenuItem aceita OmniPanelMenuItem filhos em qualquer profundidade — vira um acordeão indentado com guia tracejada à esquerda. O trecho ativo é destacado e o caminho até ele expande automaticamente."
+                         Code="@(@"<OmniPanelMenuItem Text=""Pedidos"" Icon=""package"" Count=""28"" CountKind=""MenuMetaKind.Warn"">
+    <OmniPanelMenuItem Text=""Na cozinha"" Icon=""zap"" Count=""12"" CountKind=""MenuMetaKind.Warn"">
+        <OmniPanelMenuItem Text=""Pizza""           Count=""6"" CountKind=""MenuMetaKind.Warn"" />
+        <OmniPanelMenuItem Text=""Burger / grelha"" Count=""4"" />
+        <OmniPanelMenuItem Text=""Fritura""         Count=""2"" />
+    </OmniPanelMenuItem>
+    <OmniPanelMenuItem Text=""Em entrega"" Icon=""truck"" Count=""5"" CountKind=""MenuMetaKind.Accent"">
+        <OmniPanelMenuItem Text=""Frota própria"" Count=""2"" CountKind=""MenuMetaKind.Accent"" />
+        <OmniPanelMenuItem Text=""iFood""          Count=""3"" />
+    </OmniPanelMenuItem>
+</OmniPanelMenuItem>")">
+            <div style="max-width: 280px;">
+                <OmniPanelMenu>
+                    <OmniPanelMenuItem Text="Pedidos" Icon="package" Count="28" CountKind="MenuMetaKind.Warn" Expanded="true">
+                        <OmniPanelMenuItem Text="Em aberto" Count="4" />
+                        <OmniPanelMenuItem Text="Na cozinha" Icon="zap" Count="12" CountKind="MenuMetaKind.Warn" Expanded="true">
+                            <OmniPanelMenuItem Text="Pizza" Count="6" CountKind="MenuMetaKind.Warn" />
+                            <OmniPanelMenuItem Text="Burger / grelha" Count="4" />
+                            <OmniPanelMenuItem Text="Fritura" Count="2" />
+                        </OmniPanelMenuItem>
+                        <OmniPanelMenuItem Text="Prontos" Count="6" CountKind="MenuMetaKind.Good" />
+                        <OmniPanelMenuItem Text="Em entrega" Icon="truck" Count="5" CountKind="MenuMetaKind.Accent">
+                            <OmniPanelMenuItem Text="Frota própria" Count="2" CountKind="MenuMetaKind.Accent" />
+                            <OmniPanelMenuItem Text="iFood" Count="3" />
+                        </OmniPanelMenuItem>
+                    </OmniPanelMenuItem>
+                </OmniPanelMenu>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MODO COLAPSADO + FLYOUT LATERAL"
+                         Description="Quando a OmniSidebar está colapsada (icon-only), itens com filhos ganham um flyout lateral em hover/foco. Posicionado via JS (position:fixed escapa do overflow do sidebar), com período de graça de ~220 ms ao sair — o mesmo padrão dos timers de fechamento das libs maduras, mas sem precisar de timer em C#. Os filhos dentro do flyout renderizam em modo expandido normal e podem inclusive aninhar mais níveis."
+                         Code="@(@"<OmniSidebar Collapsed=""true"">
+    <OmniPanelMenu>
+        <OmniPanelMenuItem Text=""PDV"" Icon=""shopping-cart"" Path=""/pdv"" Count=""3"" CountKind=""MenuMetaKind.Accent"" />
+        <OmniPanelMenuItem Text=""Pedidos"" Icon=""package"" Count=""28"" CountKind=""MenuMetaKind.Warn"">
+            <OmniPanelMenuItem Text=""Na cozinha"" Icon=""zap"" Count=""12"">
+                <OmniPanelMenuItem Text=""Pizza"" Count=""6"" />
+                <OmniPanelMenuItem Text=""Burger"" Count=""4"" />
+            </OmniPanelMenuItem>
+        </OmniPanelMenuItem>
+    </OmniPanelMenu>
+</OmniSidebar>")">
+            <div style="display:flex; gap:24px; align-items:flex-start;">
+                <OmniDrawer Collapsed="true" Style="position:relative; min-height:340px; padding:14px 6px; border-radius:12px;">
+                    <OmniPanelMenu>
+                        <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" Path="/dashboard" />
+                        <OmniPanelMenuItem Text="PDV" Icon="shopping-cart" Path="/pdv" Count="3" CountKind="MenuMetaKind.Accent" />
+                        <OmniPanelMenuItem Text="Pedidos" Icon="package" Count="28" CountKind="MenuMetaKind.Warn">
+                            <OmniPanelMenuItem Text="Em aberto" Count="4" />
+                            <OmniPanelMenuItem Text="Na cozinha" Icon="zap" Count="12" CountKind="MenuMetaKind.Warn">
+                                <OmniPanelMenuItem Text="Pizza" Count="6" CountKind="MenuMetaKind.Warn" />
+                                <OmniPanelMenuItem Text="Burger" Count="4" />
+                                <OmniPanelMenuItem Text="Fritura" Count="2" />
+                            </OmniPanelMenuItem>
+                            <OmniPanelMenuItem Text="Prontos" Count="6" CountKind="MenuMetaKind.Good" />
+                        </OmniPanelMenuItem>
+                        <OmniPanelMenuItem Text="Cadastros" Icon="database">
+                            <OmniPanelMenuItem Text="Clientes" Icon="users" Count="2341" />
+                            <OmniPanelMenuItem Text="Produtos" Icon="package" Count="47" />
+                            <OmniPanelMenuItem Text="Categorias" Icon="grid" />
+                        </OmniPanelMenuItem>
+                        <OmniPanelMenuItem Text="Estoque" Icon="store" CountText="!" CountKind="MenuMetaKind.Danger">
+                            <OmniPanelMenuItem Text="Insumos críticos" Count="4" CountKind="MenuMetaKind.Danger" />
+                            <OmniPanelMenuItem Text="Todos os insumos" Count="184" />
+                            <OmniPanelMenuItem Text="Perdas e quebras" />
+                        </OmniPanelMenuItem>
+                    </OmniPanelMenu>
+                </OmniDrawer>
+                <div style="flex:1; font-size:13px; color:var(--omni-fg-muted); padding-top:8px;">
+                    <p>
+                        <strong>O que testar:</strong>
+                    </p>
+                    <ul style="margin:8px 0 0 18px; padding:0;">
+                        <li>Passar o mouse sobre <strong>Pedidos</strong> abre o flyout à direita; <em>Na cozinha</em> tem filhos próprios (acordeão dentro do flyout).</li>
+                        <li>Sair do ícone e cruzar o gap até o flyout <strong>não fecha</strong> — a graça de 220&nbsp;ms cobre o trajeto.</li>
+                        <li>Itens-folha (PDV, Dashboard) mostram uma tooltip simples com o nome ao passar o mouse.</li>
+                        <li>O contador vira um <strong>badge no canto</strong> do ícone (data-badge ::before).</li>
+                        <li><kbd>Esc</kbd> ou clicar fora fecha o flyout.</li>
+                    </ul>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniPanelMenu — Parâmetros">
+            <ShowcaseApiRow Name="SectionLabel" Type="string?" Default="null"
+                            Description="Rótulo de seção opcional renderizado acima do menu." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os itens OmniPanelMenuItem do menu." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniPanelMenuItem — Parâmetros">
+            <ShowcaseApiRow Name="Text" Type="string" Default="&quot;&quot;"
+                            Description="Rótulo exibido no item." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Nome do ícone à esquerda do rótulo." />
+            <ShowcaseApiRow Name="Path" Type="string?" Default="null"
+                            Description="URL de navegação — quando setado, o item vira link location-aware." />
+            <ShowcaseApiRow Name="Match" Type="NavLinkMatch" Default="Prefix"
+                            Description="Critério de match da URL para o estado ativo — Prefix ou All." />
+            <ShowcaseApiRow Name="Count" Type="int?" Default="null"
+                            Description="Número exibido como badge à direita do item." />
+            <ShowcaseApiRow Name="CountText" Type="string?" Default="null"
+                            Description="Texto alternativo de badge (ex.: '!', '74%', 'NEW') quando o valor não é numérico." />
+            <ShowcaseApiRow Name="CountKind" Type="MenuMetaKind" Default="Neutral"
+                            Description="Cor do badge: Neutral, Accent, Good, Warn, Danger." />
+            <ShowcaseApiRow Name="Expanded" Type="bool" Default="false"
+                            Description="Estado inicial expandido de um item com filhos. Suporta bind." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita o item para clique e navegação." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Itens filhos — quando presente, o item vira grupo expansível (acordeão) ou abre flyout lateral em sidebar colapsado." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniPanelMenuItem — Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback" ShowDefault="false"
+                            Description="Disparado ao clicar (apenas em itens sem Path e sem filhos)." />
+            <ShowcaseApiRow Name="ExpandedChanged" Type="EventCallback<bool>" ShowDefault="false"
+                            Description="Disparado quando um grupo expande ou recolhe." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

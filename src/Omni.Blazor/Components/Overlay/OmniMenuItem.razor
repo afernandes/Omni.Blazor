@@ -1,0 +1,43 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+<button type="button"
+        class="@RootCss"
+        style="@Style"
+        disabled="@Disabled"
+        role="menuitem"
+        @onclick="HandleClickAsync"
+        @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
+    }
+    <span class="omni-menu-item-label">
+        @if (ChildContent is not null) { @ChildContent } else { @Text }
+    </span>
+    @if (!string.IsNullOrEmpty(Shortcut))
+    {
+        <span class="omni-menu-item-kbd"><OmniKbd Text="@Shortcut" /></span>
+    }
+</button>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Shortcut { get; set; }
+    [Parameter] public bool IsDanger { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-menu-item")
+        .AddClass("omni-menu-item-danger", IsDanger)
+        .AddClass(Class)
+        .Build();
+
+    private async Task HandleClickAsync(MouseEventArgs args)
+    {
+        if (Disabled) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(args);
+    }
+}

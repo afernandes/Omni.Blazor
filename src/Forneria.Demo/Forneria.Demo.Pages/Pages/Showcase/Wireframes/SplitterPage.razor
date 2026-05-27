@@ -1,0 +1,487 @@
+@page "/showcase/splitter"
+@layout ShowcaseLayout
+
+<PageTitle>Splitter — Showcase</PageTitle>
+
+<ShowcasePage Title="Splitter"
+              Subtitle="Container N-panes redimensionável por drag. Horizontal ou vertical, com painéis colapsáveis e constraints Min/Max.">
+
+    <Overview>
+        <p>
+            O <code>OmniSplitter</code> permite ao usuário <strong>redimensionar painéis ao
+            vivo</strong> arrastando as barras entre eles. Cada <code>OmniSplitterPane</code>
+            declara seu <code>Size</code> inicial (<code>%</code> ou <code>px</code>) e opcionalmente
+            <code>Min</code>/<code>Max</code>, <code>Resizable</code> e <code>Collapsible</code>.
+            Suporta N painéis (não só 2) e duas orientações.
+        </p>
+        <p>
+            Inspirado em <code>RadzenSplitter</code>, mas com melhorias: <strong>two-way
+            binding</strong> para <code>Collapsed</code>, captura de pointer via JS mínimo
+            (sem chattiness durante o drag), e a11y completa (<code>role="separator"</code>,
+            <code>aria-orientation</code>, navegação por <kbd>←</kbd>/<kbd>→</kbd> e
+            <kbd>↑</kbd>/<kbd>↓</kbd>). <code>MudBlazor</code> não tem componente equivalente.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>IDEs ou app shells com sidebar + main + inspector redimensionáveis.</li>
+            <li>Dashboards onde o usuário quer dar mais espaço para uma área específica.</li>
+            <li>Editores tipo "preview ao lado do código" com proporção customizável.</li>
+            <li>Painéis colapsáveis (fechar/abrir conforme necessidade).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Aside de largura fixa (não-redimensionável) → use <code>OmniSplitView</code>.</li>
+            <li>Layout estático multi-coluna → use <code>OmniRow</code>+<code>OmniCol</code>.</li>
+            <li>Drawer overlay/modal → use <code>OmniDrawer</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="VARIANTES — Solid · Line · Gap"
+                         Description="3 estilos visuais para a barra. Mesma API; só muda a estética. Escolha conforme o contexto (ver guia abaixo)."
+                         Code="@(@"<OmniSplitter Variant=""SplitterVariant.Solid"" Height=""180px"">...</OmniSplitter>
+<OmniSplitter Variant=""SplitterVariant.Line""  Height=""180px"">...</OmniSplitter>
+<OmniSplitter Variant=""SplitterVariant.Gap""   Height=""180px"">...</OmniSplitter>")">
+            <div class="omni-grid-3">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px;">SOLID — DEFAULT</p>
+                    <OmniSplitter Variant="SplitterVariant.Solid" Height="180px">
+                        <OmniSplitterPane Size="40%">
+                            <div class="omni-split-demo-pane">A</div>
+                        </OmniSplitterPane>
+                        <OmniSplitterPane>
+                            <div class="omni-split-demo-pane omni-split-demo-aside">B</div>
+                        </OmniSplitterPane>
+                    </OmniSplitter>
+                    <p class="omni-muted" style="font-size:11px; margin:8px 0 0;">Affordance máxima. PDV, dashboards, telas de gestão.</p>
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px;">LINE</p>
+                    <OmniSplitter Variant="SplitterVariant.Line" Height="180px">
+                        <OmniSplitterPane Size="40%">
+                            <div class="omni-split-demo-pane">A</div>
+                        </OmniSplitterPane>
+                        <OmniSplitterPane>
+                            <div class="omni-split-demo-pane omni-split-demo-aside">B</div>
+                        </OmniSplitterPane>
+                    </OmniSplitter>
+                    <p class="omni-muted" style="font-size:11px; margin:8px 0 0;">Hairline. IDE, editor de relatórios, design tools.</p>
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px;">GAP — cards lado a lado</p>
+                    <OmniSplitter Variant="SplitterVariant.Gap" Height="180px">
+                        <OmniSplitterPane Size="40%">
+                            <div class="omni-split-demo-pane-clean">A</div>
+                        </OmniSplitterPane>
+                        <OmniSplitterPane>
+                            <div class="omni-split-demo-pane-clean">B</div>
+                        </OmniSplitterPane>
+                    </OmniSplitter>
+                    <p class="omni-muted" style="font-size:11px; margin:8px 0 0;">Inspirado no MudSplitPanel. Cada pane vira card.</p>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="QUAL VARIANTE USAR?"
+                         Description="Recomendações por contexto. O default Solid é seguro para 95% dos casos.">
+            <div class="omni-grid-2" style="gap:14px;">
+                <div style="border:1px solid var(--omni-line); border-radius:8px; padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px;">FOODSERVICE — PDV</p>
+                    <h4 style="margin:0 0 8px; font-size:14px;">Use <strong>Solid</strong></h4>
+                    <p style="margin:0; font-size:13px;">Operador apressado precisa enxergar a barra sem hover. A barra de 8px com grip dots é grande o suficiente para o toque (touch screens de caixa) e clara visualmente.</p>
+                </div>
+                <div style="border:1px solid var(--omni-line); border-radius:8px; padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px;">FOODSERVICE — TELAS DE GESTÃO</p>
+                    <h4 style="margin:0 0 8px; font-size:14px;">Use <strong>Solid</strong> ou <strong>Line</strong></h4>
+                    <p style="margin:0; font-size:13px;">Master/detail (DataGrid + detalhe lateral): Solid se o gestor redimensiona frequentemente; Line para um visual mais limpo se a proporção raramente muda.</p>
+                </div>
+                <div style="border:1px solid var(--omni-line); border-radius:8px; padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px;">REPORT DESIGNER</p>
+                    <h4 style="margin:0 0 8px; font-size:14px;">Use <strong>Line</strong></h4>
+                    <p style="margin:0; font-size:13px;">Toolbox + canvas + properties — o canvas é o protagonista; a barra precisa "sumir" para não competir visualmente. Line vira accent no hover, dando feedback claro.</p>
+                </div>
+                <div style="border:1px solid var(--omni-line); border-radius:8px; padding:14px;">
+                    <p class="omni-muted omni-mono" style="font-size:10px; margin:0 0 6px;">MARKETING / EDITORIAL</p>
+                    <h4 style="margin:0 0 8px; font-size:14px;">Use <strong>Gap</strong></h4>
+                    <p style="margin:0; font-size:13px;">Quando o splitter é técnico (configurável por dev) mas o usuário final raramente usa. Mantém o visual zero-noise.</p>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HORIZONTAL — 2 painéis"
+                         Description="O caso clássico: aside + main. Arraste a barra para redimensionar."
+                         Code="@(@"<OmniSplitter Height=""260px"">
+    <OmniSplitterPane Size=""30%"" Min=""15%"" Max=""60%"">
+        <div>aside (30%, min 15%, max 60%)</div>
+    </OmniSplitterPane>
+    <OmniSplitterPane>
+        <div>main (auto)</div>
+    </OmniSplitterPane>
+</OmniSplitter>")">
+            <OmniSplitter Height="260px">
+                <OmniSplitterPane Size="30%" Min="15%" Max="60%">
+                    <div class="omni-split-demo-pane omni-split-demo-aside">
+                        <h4>Aside</h4>
+                        <p class="omni-muted">30%, min 15%, max 60%</p>
+                        <ul>
+                            <li>Item 1</li>
+                            <li>Item 2</li>
+                            <li>Item 3</li>
+                        </ul>
+                    </div>
+                </OmniSplitterPane>
+                <OmniSplitterPane>
+                    <div class="omni-split-demo-pane">
+                        <h4>Main</h4>
+                        <p class="omni-muted">auto — ocupa o resto</p>
+                        <p>Arraste a barra entre os painéis para redimensionar. Tente passar dos limites — o aside não vai além de 60% nem abaixo de 15%.</p>
+                    </div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HORIZONTAL — 3 painéis (IDE-style)"
+                         Description="Sidebar + main + inspector. Cada barra controla a fronteira entre dois painéis adjacentes."
+                         Code="@(@"<OmniSplitter Height=""300px"">
+    <OmniSplitterPane Size=""200px"" Min=""120px"" Collapsible>...</OmniSplitterPane>
+    <OmniSplitterPane>...</OmniSplitterPane>
+    <OmniSplitterPane Size=""25%"" Min=""180px"" Collapsible>...</OmniSplitterPane>
+</OmniSplitter>")">
+            <OmniSplitter Height="300px">
+                <OmniSplitterPane Size="200px" Min="120px" Collapsible>
+                    <div class="omni-split-demo-pane omni-split-demo-aside">
+                        <h4>Files</h4>
+                        <ul class="omni-mono" style="font-size:12px; line-height:1.6;">
+                            <li>📁 src/</li>
+                            <li>&nbsp;&nbsp;📁 Components/</li>
+                            <li>&nbsp;&nbsp;📄 Program.cs</li>
+                            <li>📁 wwwroot/</li>
+                            <li>📄 README.md</li>
+                        </ul>
+                    </div>
+                </OmniSplitterPane>
+                <OmniSplitterPane>
+                    <div class="omni-split-demo-pane">
+                        <h4>Editor</h4>
+                        <pre class="omni-mono" style="font-size:11px; background:var(--omni-bg-sunken); padding:10px; border-radius:6px;">public class Pedido
+{
+    public int Id { get; set; }
+    public decimal Total { get; set; }
+}</pre>
+                    </div>
+                </OmniSplitterPane>
+                <OmniSplitterPane Size="25%" Min="180px" Collapsible>
+                    <div class="omni-split-demo-pane omni-split-demo-aside">
+                        <h4>Inspector</h4>
+                        <p class="omni-muted">Propriedades</p>
+                        <p>className: PedidoController</p>
+                        <p>methods: 4</p>
+                    </div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VERTICAL — 2 painéis"
+                         Description="Orientation=Vertical empilha painéis. Útil para editor + console."
+                         Code="@(@"<OmniSplitter Orientation=""Orientation.Vertical"" Height=""320px"">
+    <OmniSplitterPane Size=""70%"" Min=""40%"">editor</OmniSplitterPane>
+    <OmniSplitterPane Min=""15%"" Collapsible>console</OmniSplitterPane>
+</OmniSplitter>")">
+            <OmniSplitter Orientation="Orientation.Vertical" Height="320px">
+                <OmniSplitterPane Size="70%" Min="40%">
+                    <div class="omni-split-demo-pane">
+                        <h4>Editor</h4>
+                        <pre class="omni-mono" style="font-size:11px; background:var(--omni-bg-sunken); padding:10px; border-radius:6px;">git status
+git add .
+git commit -m "feat: splitter"</pre>
+                    </div>
+                </OmniSplitterPane>
+                <OmniSplitterPane Min="15%" Collapsible>
+                    <div class="omni-split-demo-pane omni-split-demo-aside">
+                        <h4>Terminal</h4>
+                        <p class="omni-mono" style="font-size:11px; margin:0;">
+                            $ git status<br/>
+                            On branch main<br/>
+                            nothing to commit, working tree clean
+                        </p>
+                    </div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ANINHADO — Splitter dentro de Splitter"
+                         Description="Combine vertical e horizontal para layouts complexos. Cada Splitter é independente."
+                         Code="@(@"<OmniSplitter Height=""360px"">
+    <OmniSplitterPane Size=""180px"" Min=""120px"" Collapsible>aside</OmniSplitterPane>
+    <OmniSplitterPane>
+        <OmniSplitter Orientation=""Orientation.Vertical"" Height=""100%"">
+            <OmniSplitterPane Size=""65%"">editor</OmniSplitterPane>
+            <OmniSplitterPane Collapsible>console</OmniSplitterPane>
+        </OmniSplitter>
+    </OmniSplitterPane>
+</OmniSplitter>")">
+            <OmniSplitter Height="360px">
+                <OmniSplitterPane Size="180px" Min="120px" Collapsible>
+                    <div class="omni-split-demo-pane omni-split-demo-aside">
+                        <h4>Sidebar</h4>
+                        <ul class="omni-mono" style="font-size:12px; line-height:1.6;">
+                            <li>📁 Pages</li>
+                            <li>📁 Models</li>
+                            <li>📁 Services</li>
+                        </ul>
+                    </div>
+                </OmniSplitterPane>
+                <OmniSplitterPane>
+                    <OmniSplitter Orientation="Orientation.Vertical" Height="100%">
+                        <OmniSplitterPane Size="65%">
+                            <div class="omni-split-demo-pane">
+                                <h4>Editor</h4>
+                                <p class="omni-muted">Conteúdo principal — pode ter qualquer altura</p>
+                                <p>O Splitter externo é horizontal, o interno é vertical. Cada um responde ao seu próprio drag.</p>
+                            </div>
+                        </OmniSplitterPane>
+                        <OmniSplitterPane Collapsible>
+                            <div class="omni-split-demo-pane omni-split-demo-aside">
+                                <h4>Terminal</h4>
+                                <p class="omni-mono" style="font-size:11px;">$ npm run build<br/>✔ Compiled successfully</p>
+                            </div>
+                        </OmniSplitterPane>
+                    </OmniSplitter>
+                </OmniSplitterPane>
+            </OmniSplitter>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EVENTS — OnResize / OnResizeEnd"
+                         Description="OnResize dispara a cada tick do drag (use para preview ao vivo). OnResizeEnd dispara UMA vez ao soltar — bom para persistir."
+                         Code="@(@"<OmniSplitter Height=""200px"" OnResize=""OnResize"" OnResizeEnd=""OnResizeEnd"">
+    <OmniSplitterPane Size=""40%"">A</OmniSplitterPane>
+    <OmniSplitterPane>B</OmniSplitterPane>
+</OmniSplitter>
+
+@code {
+    private string _live = ""—"";
+    private string _final = ""—"";
+    void OnResize(SplitterResizeEventArgs e)    => _live  = $""bar {e.BarIndex}: {e.StartPanePercent:F1}% / {e.EndPanePercent:F1}%"";
+    void OnResizeEnd(SplitterResizeEventArgs e) => _final = $""bar {e.BarIndex}: {e.StartPanePercent:F1}% / {e.EndPanePercent:F1}%"";
+}")">
+            <OmniSplitter Height="200px" OnResize="OnResize" OnResizeEnd="OnResizeEnd">
+                <OmniSplitterPane Size="40%">
+                    <div class="omni-split-demo-pane">A</div>
+                </OmniSplitterPane>
+                <OmniSplitterPane>
+                    <div class="omni-split-demo-pane">B</div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+            <div class="omni-mono" style="margin-top:12px; font-size:11px;">
+                <p style="margin:4px 0;"><strong>OnResize  (ao vivo)</strong> &nbsp; @_liveResize</p>
+                <p style="margin:4px 0;"><strong>OnResizeEnd (soltar)</strong> &nbsp; @_finalResize</p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="API PROGRAMÁTICA — Reset / Set / Get"
+                         Description="Capture o componente via ref e chame métodos públicos: ResetPaneSizesAsync, SetPaneSizeAsync(idx, percent), GetPaneSizeAsync(idx). Equivalente ao MudSplitPanel."
+                         Code="@(@"<OmniSplitter @ref=""_progSplitter"" Height=""180px"">
+    <OmniSplitterPane Size=""30%"">A</OmniSplitterPane>
+    <OmniSplitterPane Size=""40%"">B</OmniSplitterPane>
+    <OmniSplitterPane>C</OmniSplitterPane>
+</OmniSplitter>
+
+<OmniButton Text=""Reset"" OnClick=""@(_ => _progSplitter.ResetPaneSizesAsync())"" />
+<OmniButton Text=""B = 60%"" OnClick=""@(_ => _progSplitter.SetPaneSizeAsync(1, 60))"" />
+<OmniButton Text=""Ler tamanho A"" OnClick=""ReadSize"" />
+
+@code {
+    OmniSplitter _progSplitter;
+    string _label = """";
+    async Task ReadSize(MouseEventArgs _) {
+        var pct = await _progSplitter.GetPaneSizeAsync(0);
+        _label = $""A = {pct:F1}%"";
+    }
+}")">
+            <OmniSplitter @ref="_progSplitter" Height="180px">
+                <OmniSplitterPane Size="30%">
+                    <div class="omni-split-demo-pane">A</div>
+                </OmniSplitterPane>
+                <OmniSplitterPane Size="40%">
+                    <div class="omni-split-demo-pane omni-split-demo-aside">B</div>
+                </OmniSplitterPane>
+                <OmniSplitterPane>
+                    <div class="omni-split-demo-pane">C</div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+            <OmniStack Direction="StackDirection.Row" Gap="8" AlignItems="StackAlign.Center" Style="margin-top:12px;flex-wrap:wrap;">
+                <OmniButton Text="Reset (Size iniciais)" Size="ComponentSize.Sm" Variant="ButtonVariant.Primary"
+                             OnClick="@(_ => _progSplitter.ResetPaneSizesAsync())" />
+                <OmniButton Text="A = 20%" Size="ComponentSize.Sm"
+                             OnClick="@(_ => _progSplitter.SetPaneSizeAsync(0, 20))" />
+                <OmniButton Text="B = 60%" Size="ComponentSize.Sm"
+                             OnClick="@(_ => _progSplitter.SetPaneSizeAsync(1, 60))" />
+                <OmniButton Text="C = 50%" Size="ComponentSize.Sm"
+                             OnClick="@(_ => _progSplitter.SetPaneSizeAsync(2, 50))" />
+                <OmniButton Text="Ler tamanhos atuais" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
+                             OnClick="ReadCurrentSizes" />
+                <span class="omni-muted omni-mono" style="font-size:11px;">@_progLabel</span>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RESET ON DOUBLE-CLICK"
+                         Description="Double-click na barra reseta os tamanhos para os Size iniciais (default true). Se o pane for Collapsible, double-click colapsa/expande (tem prioridade)."
+                         Code="@(@"<OmniSplitter Height=""180px"" ResetOnDoubleClick=""true"">
+    <OmniSplitterPane Size=""25%"">A</OmniSplitterPane>
+    <OmniSplitterPane>B</OmniSplitterPane>
+</OmniSplitter>")">
+            <OmniSplitter Height="180px">
+                <OmniSplitterPane Size="25%">
+                    <div class="omni-split-demo-pane">A · 25%</div>
+                </OmniSplitterPane>
+                <OmniSplitterPane>
+                    <div class="omni-split-demo-pane omni-split-demo-aside">B · auto</div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+            <p class="omni-muted omni-mono" style="font-size:11px; margin-top:8px;">
+                Arraste a barra para qualquer posição, depois dê DOUBLE-CLICK — volta para 25%/75%.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COLLAPSED — two-way binding"
+                         Description="Binde Collapsed para controlar via código. CollapsedChanged habilita bind two-way."
+                         Code="@(@"<OmniSplitter Height=""200px"">
+    <OmniSplitterPane Size=""30%"" Collapsible @bind-Collapsed=""_collapsed"">aside</OmniSplitterPane>
+    <OmniSplitterPane>main</OmniSplitterPane>
+</OmniSplitter>
+
+<OmniButton Text=""@(_collapsed ? ""Mostrar aside"" : ""Esconder aside"")""
+            OnClick=""@(_ => { _collapsed = !_collapsed; return Task.CompletedTask; })"" />")">
+            <OmniSplitter Height="200px">
+                <OmniSplitterPane Size="30%" Collapsible @bind-Collapsed="_collapsed">
+                    <div class="omni-split-demo-pane omni-split-demo-aside">
+                        <h4>Aside</h4>
+                        <p class="omni-muted">collapsed = @_collapsed</p>
+                    </div>
+                </OmniSplitterPane>
+                <OmniSplitterPane>
+                    <div class="omni-split-demo-pane">
+                        <h4>Main</h4>
+                        <p class="omni-muted">conteúdo principal</p>
+                    </div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+            <OmniStack Direction="StackDirection.Row" Gap="8" AlignItems="StackAlign.Center" Style="margin-top:12px;">
+                <OmniButton Text="@(_collapsed ? "Mostrar aside" : "Esconder aside")"
+                             Variant="ButtonVariant.Primary"
+                             OnClick="@(_ => { _collapsed = !_collapsed; return Task.CompletedTask; })" />
+                <span class="omni-muted omni-mono" style="font-size:11px;">_collapsed = @_collapsed</span>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="KEYBOARD"
+                         Description="Foque uma barra (Tab) e use ←/→ (ou ↑/↓ no vertical) para nudge fino. Shift+seta = passo maior. Double-click colapsa/expande."
+                         Code="@(@"@* Sem código adicional — a a11y vem de série *@
+<OmniSplitter Height=""200px"">
+    <OmniSplitterPane Size=""40%"">A</OmniSplitterPane>
+    <OmniSplitterPane Collapsible>B</OmniSplitterPane>
+</OmniSplitter>")">
+            <OmniSplitter Height="200px">
+                <OmniSplitterPane Size="40%">
+                    <div class="omni-split-demo-pane">A</div>
+                </OmniSplitterPane>
+                <OmniSplitterPane Collapsible>
+                    <div class="omni-split-demo-pane omni-split-demo-aside">B</div>
+                </OmniSplitterPane>
+            </OmniSplitter>
+            <p class="omni-muted omni-mono" style="font-size:11px; margin-top:8px;">
+                Tab para focar a barra (anel accent). Seta = ±2%. Shift+seta = ±10%. Double-click na barra colapsa/expande o painel B.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSplitter — parâmetros">
+            <ShowcaseApiRow Name="Variant" Type="SplitterVariant" Default="Solid"
+                            Description="Solid (default — barra visível, ideal PDV/gestão) · Line (hairline, ideal IDE/Report Designer) · Gap (invisível, ideal marketing)." />
+            <ShowcaseApiRow Name="Orientation" Type="Orientation" Default="Horizontal"
+                            Description="Horizontal (painéis lado-a-lado) ou Vertical (empilhados)." />
+            <ShowcaseApiRow Name="Width" Type="string" Default="&quot;100%&quot;"
+                            Description="Largura CSS do container." />
+            <ShowcaseApiRow Name="Height" Type="string" Default="&quot;100%&quot;"
+                            Description="Altura CSS do container." />
+            <ShowcaseApiRow Name="OnResize" Type="EventCallback&lt;SplitterResizeEventArgs&gt;" Default="empty"
+                            Description="Dispara a cada tick do drag. Use com cuidado (pode disparar muito)." />
+            <ShowcaseApiRow Name="OnResizeEnd" Type="EventCallback&lt;SplitterResizeEventArgs&gt;" Default="empty"
+                            Description="Dispara UMA vez ao soltar a barra. Ideal para persistir layout." />
+            <ShowcaseApiRow Name="ResetOnDoubleClick" Type="bool" Default="true"
+                            Description="Double-click na barra reseta tamanhos aos valores iniciais (Size). Se o pane for Collapsible, double-click colapsa (prioridade). Espelha MudSplitPanel." />
+            <ShowcaseApiRow Name="UseAsOverlay" Type="bool" Default="false"
+                            Description="Posiciona o splitter como overlay (position:absolute) preenchendo o pai. Pai precisa ser position:relative." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Deve conter apenas OmniSplitterPane como filhos diretos." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniSplitter — métodos públicos">
+            <ShowcaseApiRow Name="ResetPaneSizesAsync()" Type="Task" Default="—"
+                            Description="Reseta todos os panes para Size inicial e expande qualquer colapsado. Equivalente a MudSplitPanel.ResetDividerPositionAsync()." />
+            <ShowcaseApiRow Name="SetPaneSizeAsync(idx, %)" Type="Task" Default="—"
+                            Description="Define o tamanho de um pane. Delta é absorvido pelo próximo pane aberto. Respeita Min/Max." />
+            <ShowcaseApiRow Name="GetPaneSizeAsync(idx)" Type="Task&lt;double&gt;" Default="—"
+                            Description="Retorna o tamanho atual (%). Retorna 0 se o pane está colapsado." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniSplitterPane — parâmetros">
+            <ShowcaseApiRow Name="Size" Type="string?" Default="null"
+                            Description="Tamanho inicial — &quot;30%&quot; ou &quot;200px&quot;. Null = auto (divide o restante igualmente entre panes auto)." />
+            <ShowcaseApiRow Name="Min" Type="string?" Default="null"
+                            Description="Tamanho mínimo — &quot;%&quot; ou &quot;px&quot;. A barra não passa desse limite." />
+            <ShowcaseApiRow Name="Max" Type="string?" Default="null"
+                            Description="Tamanho máximo — mesma sintaxe de Min." />
+            <ShowcaseApiRow Name="Resizable" Type="bool" Default="true"
+                            Description="false → a barra adjacente não responde ao drag (mas ainda existe visualmente)." />
+            <ShowcaseApiRow Name="Collapsible" Type="bool" Default="false"
+                            Description="Adiciona botões de chevron na barra para colapsar/expandir este painel." />
+            <ShowcaseApiRow Name="Collapsed" Type="bool" Default="false"
+                            Description="Estado atual de colapso. Suporta bind two-way." />
+            <ShowcaseApiRow Name="CollapsedChanged" Type="EventCallback&lt;bool&gt;" Default="empty"
+                            Description="Dispara quando Collapsed muda (por drag, clique no chevron, ou double-click)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo do painel." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="SplitterResizeEventArgs">
+            <ShowcaseApiRow Name="BarIndex" Type="int" Default="—"
+                            Description="Índice (0-based) da barra que foi movida — fica entre pane[i] e pane[i+1]." />
+            <ShowcaseApiRow Name="StartPanePercent" Type="double" Default="—"
+                            Description="Novo tamanho (em %) do painel do lado start da barra." />
+            <ShowcaseApiRow Name="EndPanePercent" Type="double" Default="—"
+                            Description="Novo tamanho (em %) do painel do lado end da barra." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string _liveResize = "—";
+    private string _finalResize = "—";
+    private bool _collapsed;
+
+    // Programmatic API demo
+    private OmniSplitter? _progSplitter;
+    private string _progLabel = "Clique para ler tamanhos";
+
+    private void OnResize(SplitterResizeEventArgs e)
+        => _liveResize = $"bar {e.BarIndex}: {e.StartPanePercent:F1}% / {e.EndPanePercent:F1}%";
+
+    private void OnResizeEnd(SplitterResizeEventArgs e)
+        => _finalResize = $"bar {e.BarIndex}: {e.StartPanePercent:F1}% / {e.EndPanePercent:F1}%";
+
+    private async Task ReadCurrentSizes(MouseEventArgs _)
+    {
+        if (_progSplitter is null) return;
+        var a = await _progSplitter.GetPaneSizeAsync(0);
+        var b = await _progSplitter.GetPaneSizeAsync(1);
+        var c = await _progSplitter.GetPaneSizeAsync(2);
+        _progLabel = $"A={a:F1}%  ·  B={b:F1}%  ·  C={c:F1}%";
+    }
+}

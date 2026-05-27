@@ -1,0 +1,122 @@
+@page "/showcase/accordion"
+@layout ShowcaseLayout
+
+<PageTitle>Accordion — Showcase</PageTitle>
+
+<ShowcasePage Title="Accordion"
+              Subtitle="Painéis colapsáveis para organizar conteúdo extenso em seções recolhíveis.">
+
+    <Overview>
+        <p>
+            O <code>OmniAccordion</code> agrupa um conjunto de <code>OmniAccordionItem</code>,
+            cada um com um cabeçalho clicável que expande ou recolhe seu conteúdo. Use-o para
+            <strong>quebrar conteúdo longo</strong> em blocos digeríveis — forms extensos, páginas
+            de configurações, FAQs — reduzindo a carga visual da página.
+        </p>
+        <p>
+            O modo <code>Single</code> mantém apenas um painel aberto por vez (abrir um fecha o
+            anterior); o modo <code>Multi</code> permite vários abertos simultaneamente. Cada item
+            aceita <code>Icon</code>, pode ser <code>Disabled</code> e expõe <code>ExpandedChanged</code>
+            para binding bidirecional.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>FAQs e centrais de ajuda onde o usuário consulta perguntas pontuais.</li>
+            <li>Forms longos divididos em seções (Conta, Segurança, Notificações).</li>
+            <li>Páginas de configurações com grupos de opções recolhíveis.</li>
+            <li>Detalhes secundários que não precisam estar visíveis por padrão.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Conteúdo paralelo entre o qual o usuário alterna → use <code>OmniTabs</code>.</li>
+            <li>Fluxo sequencial com etapas ordenadas → use <code>OmniStepper</code>.</li>
+            <li>Conteúdo curto que cabe inteiro na tela → exiba tudo sem recolher.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="MODO SINGLE"
+                         Description="Só um aberto por vez. Abrir um fecha o anterior. Útil para Settings."
+                         Code="@(@"<OmniAccordion Mode=""AccordionMode.Single"">
+    <OmniAccordionItem Title=""Conta"" Icon=""user"">…</OmniAccordionItem>
+    <OmniAccordionItem Title=""Segurança"" Icon=""lock"">…</OmniAccordionItem>
+    <OmniAccordionItem Title=""Notificações"" Icon=""bell"">…</OmniAccordionItem>
+</OmniAccordion>")">
+            <OmniAccordion Mode="AccordionMode.Single">
+                <OmniAccordionItem Title="Conta" Icon="user">
+                    <p class="omni-muted">Informações pessoais, foto, contato.</p>
+                    <div class="omni-grid-2" style="margin-top: 12px;">
+                        <OmniFormField Label="Nome"><OmniTextBox Value="Anderson F." /></OmniFormField>
+                        <OmniFormField Label="E-mail"><OmniTextBox Value="anderson@forno.com.br" /></OmniFormField>
+                    </div>
+                </OmniAccordionItem>
+                <OmniAccordionItem Title="Segurança" Icon="lock">
+                    <p class="omni-muted">Senha, 2FA, sessões ativas.</p>
+                </OmniAccordionItem>
+                <OmniAccordionItem Title="Notificações" Icon="bell">
+                    <p class="omni-muted">Por canal: email, push, SMS.</p>
+                </OmniAccordionItem>
+                <OmniAccordionItem Title="Privacidade" Icon="eye">
+                    <p class="omni-muted">Exportar dados, excluir conta.</p>
+                </OmniAccordionItem>
+            </OmniAccordion>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MODO MULTI (FAQ)"
+                         Description="Vários abertos. Padrão de FAQ."
+                         Code="@(@"<OmniAccordion Mode=""AccordionMode.Multi"">
+    <OmniAccordionItem Title=""Como faço o setup inicial?"">…</OmniAccordionItem>
+    <OmniAccordionItem Title=""Item desabilitado"" Disabled>…</OmniAccordionItem>
+</OmniAccordion>")">
+            <OmniAccordion Mode="AccordionMode.Multi">
+                <OmniAccordionItem Title="Como faço o setup inicial?">
+                    <p>Acesse <strong>Configurações → Estabelecimento</strong> e preencha os dados básicos. O cardápio pode ser importado por CSV.</p>
+                </OmniAccordionItem>
+                <OmniAccordionItem Title="Quantos pontos de venda meu plano suporta?">
+                    <p>O <strong>Plano Pro</strong> suporta até 3 PDVs simultâneos. Para mais, é necessário upgrade ao plano <strong>Scale</strong>.</p>
+                </OmniAccordionItem>
+                <OmniAccordionItem Title="Posso integrar com iFood e Rappi?">
+                    <p>Sim. Vá em <strong>Integrações</strong> e ative os conectores. A configuração leva ~10 minutos por canal.</p>
+                </OmniAccordionItem>
+                <OmniAccordionItem Title="Como funcionam as comandas em mesa?">
+                    <p>Cada mesa tem comanda aberta no app do Garçom. O fechamento gera um QR para split de pagamento.</p>
+                </OmniAccordionItem>
+                <OmniAccordionItem Title="Item desabilitado (exemplo)" Disabled>
+                    <p>Este item não pode ser expandido.</p>
+                </OmniAccordionItem>
+            </OmniAccordion>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniAccordion">
+            <ShowcaseApiRow Name="Mode" Type="AccordionMode" Default="Single"
+                            Description="Single (um painel aberto por vez) ou Multi (vários simultâneos)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os itens OmniAccordionItem do grupo." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Parâmetros — OmniAccordionItem">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Texto do cabeçalho do painel." />
+            <ShowcaseApiRow Name="TitleContent" Type="RenderFragment?" Default="null"
+                            Description="Cabeçalho customizado em markup (sobrescreve Title)." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Ícone exibido antes do título." />
+            <ShowcaseApiRow Name="Expanded" Type="bool" Default="false"
+                            Description="Estado inicial expandido do painel." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Impede que o painel seja expandido." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo exibido quando o painel está aberto." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos — OmniAccordionItem" ShowDefault="false">
+            <ShowcaseApiRow Name="ExpandedChanged" Type="EventCallback&lt;bool&gt;" ShowDefault="false"
+                            Description="Disparado quando o painel é expandido ou recolhido." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

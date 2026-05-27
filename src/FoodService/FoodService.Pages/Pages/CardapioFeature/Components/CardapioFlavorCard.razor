@@ -1,0 +1,45 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@inject CardapioDigitalState State
+@using Omni.Blazor.Utilities
+
+@*  Flavor selectable card (screen Flavors) — thumb + nome + ingredientes +
+    preço + checkbox. Quando slots cheios e não-selecionado, ficam disabled. *@
+<button type="button"
+        class="@RootCss"
+        style="@Style"
+        disabled="@IsDisabled"
+        @onclick="HandleToggle"
+        @attributes="Attributes">
+    <div class="@ThumbCss"></div>
+    <div class="fs-cd-flavor-body">
+        <div class="fs-cd-flavor-name">@CdFlavor.Name</div>
+        <div class="fs-cd-flavor-ing">@CdFlavor.Ingredients</div>
+        <div class="fs-cd-flavor-price omni-mono">@CardapioDigitalState.Brl(State.FlavorPrice(CdFlavor))</div>
+    </div>
+    <div class="fs-cd-checkbox">
+        @if (IsOn)
+        {
+            <OmniIcon Name="check" Size="ComponentSize.Sm" />
+        }
+    </div>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public CdFlavor CdFlavor { get; set; } = null!;
+
+    private bool IsOn => State.IsFlavorSelected(CdFlavor);
+    private bool IsDisabled => !IsOn && State.IsFlavorSlotsFull;
+
+    private string RootCss => CssBuilder.Default("fs-cd-flavor")
+        .AddClass("fs-cd-flavor-on", IsOn)
+        .AddClass("fs-cd-flavor-disabled", IsDisabled)
+        .AddClass(Class)
+        .Build();
+
+    private string ThumbCss => CssBuilder.Default("fs-cd-flavor-thumb")
+        .AddClass("fs-cd-thumb-veg", CdFlavor.Tag == "veg")
+        .Build();
+
+    private void HandleToggle() => State.ToggleFlavor(CdFlavor);
+}

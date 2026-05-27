@@ -1,0 +1,42 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Wrapper centralizado com largura máxima responsiva. Equivalente a
+    <c>MudContainer</c> (MudBlazor) e <c>.container</c> / <c>.container-{bp}</c>
+    do Bootstrap. Útil para páginas marketing/landing, conteúdos editoriais
+    e qualquer área que precisa ficar contida em uma largura legível
+    independente da viewport.
+
+    Props:
+      • MaxWidth (ContainerMaxWidth) — Sm=640, Md=1024, Lg=1280, Xl=1440,
+        Xxl=1920, Full=sem limite. Default Lg.
+      • Fluid    (bool) — atalho para MaxWidth=Full quando true.
+      • Gutters  (bool, default true) — padding lateral nas bordas.
+
+    Uso:
+      <OmniContainer MaxWidth="ContainerMaxWidth.Xl">
+        <h1>Hero</h1>
+        ...
+      </OmniContainer>
+*@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Largura máxima do container. Default Lg (1280px).</summary>
+    [Parameter] public ContainerMaxWidth MaxWidth { get; set; } = ContainerMaxWidth.Lg;
+
+    /// <summary>Atalho para <see cref="ContainerMaxWidth.Full"/> (sem limite). Default false.</summary>
+    [Parameter] public bool Fluid { get; set; }
+
+    /// <summary>Padding lateral nas bordas. Default true.</summary>
+    [Parameter] public bool Gutters { get; set; } = true;
+
+    private string RootCss => CssBuilder.Default("omni-container")
+        .AddClass($"omni-container-{(Fluid ? "full" : MaxWidth.ToString().ToLowerInvariant())}")
+        .AddClass("omni-container-no-gutters", !Gutters)
+        .AddClass(Class)
+        .Build();
+}

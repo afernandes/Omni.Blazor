@@ -1,0 +1,34 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+<span class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(ImageUrl))
+    {
+        <img src="@ImageUrl" alt="@(Initials ?? "")" />
+    }
+    else
+    {
+        @Initials
+    }
+</span>
+
+@code {
+    [Parameter] public string? Initials { get; set; }
+    [Parameter] public string? ImageUrl { get; set; }
+    [Parameter] public AvatarSize Size { get; set; } = AvatarSize.Md;
+    [Parameter] public bool Square { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-avatar")
+        .AddClass(Size switch
+        {
+            AvatarSize.Sm  => "omni-avatar-sm",
+            AvatarSize.Lg  => "omni-avatar-lg",
+            AvatarSize.Xl  => "omni-avatar-xl",
+            AvatarSize.XXl => "omni-avatar-2xl",
+            _ => "omni-avatar-md"
+        })
+        .AddClass("omni-avatar-square", Square)
+        .AddClass(Class)
+        .Build();
+}

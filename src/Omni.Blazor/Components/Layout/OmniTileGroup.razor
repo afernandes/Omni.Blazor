@@ -1,0 +1,79 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Container "lego" — agrupa blocos (cards, painéis, listas) **grudados**,
+    separados apenas por linhas internas de 1 px. Inspirado em três padrões
+    consagrados: a <c>.list-group</c> do Bootstrap (stack vertical com bordas
+    compartilhadas), o agrupamento <c>RadzenCardGroup</c> (horizontal sem
+    gap) e o Bento grid (2D denso com tiles de tamanhos variados).
+
+    Três direções (parâmetro <see cref="Direction"/>):
+      • <c>Column</c> (default) — stack vertical, equivalente a .list-group
+      • <c>Row</c>              — stack horizontal (abas/tabs sem gap)
+      • <c>Grid</c>             — grade 2D N colunas (Bento) com suporte a span
+
+    Truque CSS: o container usa <c>gap: 1px; background: var(--omni-line)</c>.
+    O gap "vaza" o background do container, virando linha divisória de 1 px.
+    Funciona em 1D (linha/coluna) e em 2D (grid com spans) sem precisar de
+    seletores especiais (<c>:first-child</c>, <c>:nth-child</c>) nem eliminação
+    manual de bordas duplas — zero edge cases.
+
+    Os filhos não precisam saber que estão num TileGroup: o seletor
+    <c>.omni-tile-group > *</c> aplica <c>background: var(--omni-bg-elev)</c> +
+    <c>border-radius: 0</c> + <c>box-shadow: none</c> automaticamente, vencendo
+    por specificity o default do <c>OmniCard</c>. Fora do TileGroup, o Card
+    continua arredondado e com sombra.
+
+    Para tiles assimétricos em modo Grid, aplicar nos filhos as utilidades:
+      • <c>omni-tile-span-{2..12}</c>    — ocupa N colunas
+      • <c>omni-tile-row-span-{2..6}</c> — ocupa N linhas
+*@
+<div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Direção do empilhamento. Column = vertical (default, estilo list-group);
+    /// Row = horizontal (tabs sem gap); Grid = grade 2D N colunas (Bento).</summary>
+    [Parameter] public TileDirection Direction { get; set; } = TileDirection.Column;
+
+    /// <summary>Quantidade de colunas. Só usado quando <see cref="Direction"/> = Grid. Default 12.</summary>
+    [Parameter] public int Columns { get; set; } = 12;
+
+    /// <summary>Override de <see cref="Columns"/> em ≥640px (Grid). Default null.</summary>
+    [Parameter] public int? ColumnsSm { get; set; }
+
+    /// <summary>Override de <see cref="Columns"/> em ≥1024px (Grid). Default null.</summary>
+    [Parameter] public int? ColumnsMd { get; set; }
+
+    /// <summary>Override de <see cref="Columns"/> em ≥1440px (Grid). Default null.</summary>
+    [Parameter] public int? ColumnsLg { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-tile-group")
+        .AddClass(Direction switch
+        {
+            TileDirection.Row  => "omni-tile-group-row",
+            TileDirection.Grid => "omni-tile-group-grid",
+            _                  => "omni-tile-group-col",
+        })
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle
+    {
+        get
+        {
+            if (Direction != TileDirection.Grid) return Style ?? "";
+            var parts = new List<string>(5)
+            {
+                $"--omni-tile-cols: {Columns}"
+            };
+            if (ColumnsSm is int s) parts.Add($"--omni-tile-cols-sm: {s}");
+            if (ColumnsMd is int m) parts.Add($"--omni-tile-cols-md: {m}");
+            if (ColumnsLg is int l) parts.Add($"--omni-tile-cols-lg: {l}");
+            if (!string.IsNullOrWhiteSpace(Style)) parts.Add(Style!);
+            return string.Join("; ", parts);
+        }
+    }
+}

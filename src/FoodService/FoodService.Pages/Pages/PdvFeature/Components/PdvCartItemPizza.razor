@@ -1,0 +1,177 @@
+@inject PdvOrderService Order
+@inject DialogService Dialog
+@implements IDisposable
+
+@*  Linha de carrinho para pizza (1-2 metades). Mostra tamanho como badge,
+    cada metade com ingredientes + modifiers + link "Personalizar" que expande
+    o PdvFlavorEditor inline. Borda em row própria. Chip "Borda" expande
+    o PdvBordaPicker. *@
+<div class="fs-pdv-ci">
+    <div class="fs-pdv-ci-head">
+        <div class="fs-pdv-ci-pizza-title">
+            <span class="fs-pdv-ci-pizza-size">@Item.Name</span>
+            <span class="fs-pdv-ci-pizza-label">Pizza</span>
+        </div>
+        <span class="fs-pdv-ci-total">@LineTotal.ToString("C", _ptBr)</span>
+    </div>
+
+    <div class="fs-pdv-ci-flavors">
+        @for (var i = 0; i < Item.Halves!.Count; i++)
+        {
+            var half = Item.Halves[i];
+            var halfIndex = i;
+            <div class="fs-pdv-ci-flavor">
+                <div class="fs-pdv-ci-flavor-row">
+                    <span class="fs-pdv-ci-flavor-half">@(Item.Halves.Count == 1 ? "●" : "½")</span>
+                    <span class="fs-pdv-ci-flavor-name">@half.Name</span>
+                    <button class="fs-pdv-ci-flavor-edit" @onclick="() => ToggleEditor(halfIndex)">
+                        @(_editingHalf == halfIndex ? "Fechar" : "Personalizar")
+                        <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+                    </button>
+                </div>
+                <div class="fs-pdv-ci-flavor-ing">@half.Ingredients</div>
+                @if (half.Mods is { Count: > 0 })
+                {
+                    <div class="fs-pdv-ci-mods">
+                        @foreach (var mod in half.Mods)
+                        {
+                            <span class="fs-pdv-ci-mod @ModClass(mod.Kind)">
+                                <span class="fs-pdv-ci-mod-sign">@ModSign(mod.Kind)</span>
+                                @mod.Value
+                                @if (mod.PriceDelta != 0)
+                                {
+                                    <span style="opacity:0.7">(@mod.PriceDelta.ToString("C", _ptBr))</span>
+                                }
+                            </span>
+                        }
+                    </div>
+                }
+                @if (_editingHalf == halfIndex)
+                {
+                    <PdvFlavorEditor Half="half"
+                                     OnSave="@(mods => SaveHalfMods(halfIndex, mods))"
+                                     OnCancel="@(() => _editingHalf = -1)" />
+                }
+            </div>
+        }
+    </div>
+
+    @if (Item.Borda is { } b && b.Id != "none")
+    {
+        <div class="fs-pdv-ci-borda">
+            <div class="fs-pdv-ci-borda-name">
+                <OmniIcon Name="circle-dot" Size="ComponentSize.Sm" />
+                Borda @b.Name
+            </div>
+            <span class="fs-pdv-ci-borda-price">+ @b.PriceDelta.ToString("C", _ptBr)</span>
+            <button class="fs-pdv-ci-borda-edit" @onclick="ToggleBordaPicker">trocar</button>
+        </div>
+    }
+
+    @if (_bordaPickerOpen)
+    {
+        <PdvBordaPicker Current="@Item.Borda"
+                        OnSelect="OnBordaSelected"
+                        OnCancel="@(() => _bordaPickerOpen = false)" />
+    }
+
+    <div class="fs-pdv-ci-controls">
+        <OmniQtyStepper Size="ComponentSize.Sm"
+                         Value="@Item.Qty"
+                         ValueChanged="@(q => Order.UpdateQty(Item.Id, q))" />
+
+        <button class="fs-pdv-ci-chip @(Item.Borda?.Id is null or "none" ? "" : "is-active")"
+                @onclick="ToggleBordaPicker">
+            <OmniIcon Name="circle-dot" Size="ComponentSize.Sm" />
+            @(Item.Borda?.Id is null or "none" ? "Borda" : Item.Borda.Name)
+        </button>
+
+        <button class="fs-pdv-ci-chip fs-pdv-ci-chip-pct @(Item.Adjustment is null ? "" : "is-active")"
+                @onclick="OpenAdjustment" aria-label="Ajustar item">
+            %
+        </button>
+
+        <div class="fs-pdv-ci-spacer"></div>
+
+        <button class="fs-pdv-ci-trash" @onclick="OpenRemove" aria-label="Remover">
+            <OmniIcon Name="trash" Size="ComponentSize.Sm" />
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CartItem Item { get; set; } = default!;
+
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+    private int _editingHalf = -1;
+    private bool _bordaPickerOpen;
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private decimal LineTotal
+    {
+        get
+        {
+            var line = Item.UnitPrice * Item.Qty;
+            if (Item.Adjustment is not null)
+                line -= Math.Abs(Item.Adjustment.AppliedTo(line));
+            return Math.Max(0, line);
+        }
+    }
+
+    private void ToggleEditor(int half) => _editingHalf = _editingHalf == half ? -1 : half;
+
+    private void SaveHalfMods(int halfIndex, IReadOnlyList<FlavorMod> mods)
+    {
+        Order.SetHalfMods(Item.Id, halfIndex, mods);
+        _editingHalf = -1;
+    }
+
+    private void ToggleBordaPicker() => _bordaPickerOpen = !_bordaPickerOpen;
+
+    private void OnBordaSelected(BordaOption b)
+    {
+        Order.SetItemBorda(Item.Id, b);
+        _bordaPickerOpen = false;
+    }
+
+    private static string ModClass(FlavorModKind k) => k switch
+    {
+        FlavorModKind.Removed => "fs-pdv-ci-mod-removed",
+        FlavorModKind.Extra   => "fs-pdv-ci-mod-extra",
+        FlavorModKind.Note    => "fs-pdv-ci-mod-note",
+        _                     => "",
+    };
+    private static string ModSign(FlavorModKind k) => k switch
+    {
+        FlavorModKind.Removed => "−",
+        FlavorModKind.Extra   => "+",
+        FlavorModKind.Note    => "✎",
+        _                     => "•",
+    };
+
+    private async Task OpenAdjustment()
+    {
+        var result = await Dialog.OpenAsync<PdvAdjustmentDialog>(
+            title: $"Ajustar {Item.Name}",
+            parameters: new Dictionary<string, object?>
+            {
+                ["BaseAmount"] = Item.UnitPrice * Item.Qty,
+                ["Initial"]    = Item.Adjustment,
+            });
+        if (result is Adjustment adj)
+            Order.ApplyItemAdjustment(Item.Id, adj);
+        else if (result is string s && s == "clear")
+            Order.ApplyItemAdjustment(Item.Id, null);
+    }
+
+    private async Task OpenRemove()
+    {
+        var result = await Dialog.OpenAsync<PdvRemoveReasonDialog>(
+            title: $"Remover {Item.Name}?",
+            parameters: null);
+        if (result is RemoveResult r)
+            Order.RemoveWithReason(Item.Id, r.Reason, r.Note);
+    }
+}

@@ -1,0 +1,122 @@
+@inject DialogService Dialog
+
+@*  Dialog de ajuste (desconto/acréscimo). Tabs: Percent | Fixed.
+    Presets clicáveis + input livre + reason. Retorna Adjustment via Dialog.Close. *@
+<div class="fs-pdv-modal-body">
+    <OmniSegmentedControl Class="fs-pdv-adj-tabs"
+                          TValue="bool"
+                          Value="@IsPercent"
+                          ValueChanged="SetMode"
+                          Items="_modeItems" />
+
+    <div>
+        <div class="fs-pdv-modal-section-label">Atalhos</div>
+        <div class="fs-pdv-adj-presets">
+            @foreach (var p in CurrentPresets())
+            {
+                var preset = p;
+                <OmniChip Class="fs-pdv-adj-preset"
+                          Active="@(Value == preset)"
+                          OnClick="@(() => SetValue(preset))">
+                    @PresetDisplay(preset)
+                </OmniChip>
+            }
+        </div>
+    </div>
+
+    <div>
+        <div class="fs-pdv-modal-section-label">Valor manual</div>
+        <OmniTextBox Class="fs-pdv-mode-input"
+                     Type="number"
+                     Value="@(Value == 0 ? "" : Value.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                     ValueChanged="OnValueChanged" />
+    </div>
+
+    <div>
+        <div class="fs-pdv-modal-section-label">Razão (opcional)</div>
+        <OmniTextBox Class="fs-pdv-mode-input"
+                     Value="@Reason"
+                     ValueChanged="@(v => Reason = v ?? "")"
+                     Placeholder="Ex.: desconto fidelidade, cliente regular…" />
+    </div>
+
+    @if (BaseAmount > 0 && Value != 0)
+    {
+        var preview = new Adjustment(Value, IsPercent, Reason).AppliedTo(BaseAmount);
+        <div style="padding: 10px 12px; background: var(--omni-accent-soft); border-radius: 8px; font-size: 13px;">
+            Sobre <b>@BaseAmount.ToString("C", _ptBr)</b> →
+            <b style="font-family: var(--omni-font-mono); color: var(--omni-accent);">
+                − @Math.Abs(preview).ToString("C", _ptBr)
+            </b>
+        </div>
+    }
+
+    <div class="fs-pdv-adj-actions">
+        @if (Initial is not null)
+        {
+            <OmniButton Class="fs-pdv-btn" OnClick="ClearAdj">Limpar ajuste</OmniButton>
+        }
+        <OmniButton Class="fs-pdv-btn fs-pdv-btn-ghost" Variant="ButtonVariant.Ghost" OnClick="Cancel">Cancelar</OmniButton>
+        <OmniButton Class="fs-pdv-btn fs-pdv-btn-primary"
+                    Variant="ButtonVariant.Primary"
+                    Disabled="@(Value == 0)"
+                    OnClick="Apply">
+            Aplicar
+        </OmniButton>
+    </div>
+</div>
+
+@code {
+    [Parameter] public decimal BaseAmount { get; set; }
+    [Parameter] public Adjustment? Initial { get; set; }
+
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+    private bool IsPercent { get; set; } = true;
+    private decimal Value { get; set; }
+    private string Reason { get; set; } = "";
+
+    private static readonly decimal[] PercentPresets = { 5, 10, 15, 20, 25, 30 };
+    private static readonly decimal[] FixedPresets   = { 5, 10, 20, 50, 100, 200 };
+
+    private static readonly IReadOnlyList<OmniSegmentedControl<bool>.Item> _modeItems = new[]
+    {
+        new OmniSegmentedControl<bool>.Item(true,  "Percentual"),
+        new OmniSegmentedControl<bool>.Item(false, "Valor R$"),
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (Initial is not null)
+        {
+            IsPercent = Initial.IsPercent;
+            Value     = Initial.Value;
+            Reason    = Initial.Reason ?? "";
+        }
+    }
+
+    private IEnumerable<decimal> CurrentPresets() => IsPercent ? PercentPresets : FixedPresets;
+
+    private string PresetDisplay(decimal p) => IsPercent
+        ? $"{p:0.##}%"
+        : p.ToString("C", _ptBr);
+
+    private void SetMode(bool percent)
+    {
+        IsPercent = percent;
+        Value = 0;
+    }
+
+    private void SetValue(decimal v) => Value = v;
+
+    private void OnValueChanged(string? value)
+    {
+        if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v))
+            Value = v;
+        else
+            Value = 0;
+    }
+
+    private void Apply() => Dialog.Close(new Adjustment(Value, IsPercent, string.IsNullOrWhiteSpace(Reason) ? null : Reason));
+    private void Cancel() => Dialog.Close(null);
+    private void ClearAdj() => Dialog.Close("clear");
+}

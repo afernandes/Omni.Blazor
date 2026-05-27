@@ -1,0 +1,344 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel
+@implements IAsyncDisposable
+@implements IOmniFormRegistry
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Forms
+
+@*
+    Form wrapper over <EditForm>. Mirrors the standard EditForm API, plus:
+
+      - Auto-attaches <DataAnnotationsValidator />.
+      - `IsValid` / `Errors` / `IsTouched` properties for ref-based access.
+      - `Validate()`, `ValidateAsync()`, `SubmitAsync()`, `ResetAsync()`,
+        `ResetValidationAsync()`, `ResetTouchedAsync()` methods.
+      - `Validation` callback (sync) for cross-field rules.
+      - `ValidationAsync` callback for server-side / async rules
+        (e.g. "username available?" checks).
+      - `ValidationDelay` to debounce custom validation per keystroke; submit
+        always validates immediately, bypassing the debounce.
+      - `IsTouched` flips to true on the first field change and stays true
+        until `ResetTouchedAsync()` is called. Useful to gate "save" buttons
+        ("don't enable until the user actually edited something").
+
+    Inspired by MudForm's IsTouched + ValidationDelay + async validator design.
+
+    Usage:
+        <OmniForm Model="model" OnValidSubmit="OnSubmit" @ref="form"
+                    ValidationDelay="300"
+                    ValidationAsync="CheckUsernameAsync">
+            ...
+        </OmniForm>
+*@
+
+<EditForm Model="@Model" OnValidSubmit="OnValidSubmitHandler" OnInvalidSubmit="OnInvalidSubmitHandler" @ref="_editForm">
+    @if (AddDataAnnotationsValidator) { <DataAnnotationsValidator /> }
+    @* 2 cascades: este OmniForm (acesso a APIs típed) + a interface
+       IOmniFormRegistry (que inputs/validators usam pra se descobrir). *@
+    <CascadingValue Value="this" IsFixed="true">
+        <CascadingValue Value="(IOmniFormRegistry)this" IsFixed="true">
+            @ChildContent
+        </CascadingValue>
+    </CascadingValue>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public TModel Model { get; set; } = default!;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback<EditContext> OnValidSubmit { get; set; }
+    [Parameter] public EventCallback<EditContext> OnInvalidSubmit { get; set; }
+
+    /// <summary>Auto-attach a DataAnnotationsValidator inside the form. Default true.</summary>
+    [Parameter] public bool AddDataAnnotationsValidator { get; set; } = true;
+
+    /// <summary>
+    /// Synchronous custom validation. Invoked on submit and on every field
+    /// change (subject to <see cref="ValidationDelay"/>). Add messages to
+    /// <c>ValidationMessageStore</c> directly, keyed by <see cref="FieldIdentifier"/>.
+    /// </summary>
+    [Parameter] public Action<EditContext, ValidationMessageStore>? Validation { get; set; }
+
+    /// <summary>
+    /// Async custom validation — typically a server round-trip. Runs in the
+    /// same lifecycle as <see cref="Validation"/> but awaited. On submit it
+    /// is awaited fully before deciding valid/invalid; during field-change
+    /// debounce, it runs on the trailing edge.
+    /// </summary>
+    [Parameter] public Func<EditContext, ValidationMessageStore, Task>? ValidationAsync { get; set; }
+
+    /// <summary>
+    /// Debounce (ms) applied to custom-validation firings caused by
+    /// <c>OnFieldChanged</c>. Default 0 = no debounce (current behavior).
+    /// Submits and explicit <see cref="ValidateAsync"/> calls bypass the delay.
+    /// </summary>
+    [Parameter] public int ValidationDelay { get; set; }
+
+    /// <summary>
+    /// Fired the first time a field changes; stays true until reset.
+    /// Bound parameter — write a backing field with <c>@bind-IsTouched</c>.
+    /// </summary>
+    [Parameter] public bool IsTouched { get; set; }
+    [Parameter] public EventCallback<bool> IsTouchedChanged { get; set; }
+
+    private EditForm? _editForm;
+    private EditContext? _ctx;
+    private ValidationMessageStore? _store;
+    private CancellationTokenSource? _debounceCts;
+
+    /// <summary>True when the EditContext has no validation messages.</summary>
+    public bool IsValid => _ctx is not null && !_ctx.GetValidationMessages().Any();
+
+    /// <summary>Flat list of all error messages in the form.</summary>
+    public IEnumerable<string> Errors =>
+        _ctx?.GetValidationMessages() ?? Enumerable.Empty<string>();
+
+    /// <summary>Synchronous validation pass — returns IsValid result.</summary>
+    public bool Validate() => _ctx?.Validate() ?? true;
+
+    /// <summary>
+    /// Async validation: runs <see cref="ValidationAsync"/> (if any), then the
+    /// standard EditContext.Validate(). Bypasses ValidationDelay.
+    /// </summary>
+    public async Task<bool> ValidateAsync()
+    {
+        if (_ctx is null) return true;
+        await RunCustomAsync(immediate: true);
+        return _ctx.Validate();
+    }
+
+    /// <summary>Programmatically submit (validates async + fires OnValidSubmit if valid).</summary>
+    public async Task SubmitAsync()
+    {
+        if (_ctx is null) return;
+        var ok = await ValidateAsync();
+        if (ok) await OnValidSubmit.InvokeAsync(_ctx);
+        else    await OnInvalidSubmit.InvokeAsync(_ctx);
+    }
+
+    /// <summary>
+    /// Reset completo: restaura valores do snapshot (se houve <see cref="Snapshot"/>),
+    /// limpa IsTouched e o store de mensagens de validação. Use depois de cancelar
+    /// edição ou após save bem-sucedido.
+    ///
+    /// <para>Se <see cref="Snapshot"/> nunca foi chamado, esta função só limpa
+    /// erros/touched — os valores ficam como estão. Para garantir restore total,
+    /// chame Snapshot() no OnInitialized do componente pai.</para>
+    /// </summary>
+    public async Task ResetAsync()
+    {
+        // 1. Restaura valores do snapshot (se existir)
+        Restore();
+        // 2. Limpa erros de validação
+        ResetValidation();
+        // 3. Reseta IsTouched
+        await ResetTouchedAsync();
+    }
+
+    /// <summary>Clear validation messages without touching IsTouched.</summary>
+    public void ResetValidation()
+    {
+        _store?.Clear();
+        _ctx?.NotifyValidationStateChanged();
+    }
+
+    /// <summary>Reset IsTouched to false. Use after a successful save.</summary>
+    public async Task ResetTouchedAsync()
+    {
+        if (!IsTouched) return;
+        IsTouched = false;
+        if (IsTouchedChanged.HasDelegate) await IsTouchedChanged.InvokeAsync(false);
+    }
+
+    // ─── Snapshot / Restore — clone via JSON round-trip ────────────────────
+    // Salva o estado do Model num momento conhecido (tipicamente no
+    // OnInitialized do componente pai) para depois poder restaurar via
+    // ResetAsync(). Clone é via JsonSerializer (deep copy automático,
+    // funciona pra POCO + records + nested classes sem cyclic refs).
+    //
+    // Requisito do TModel: ser JSON-serializable. POCOs com props públicas
+    // funcionam out-of-the-box. Records também. Se houver caminho
+    // necessitar Converter custom, passe via JsonSerializerOptions.
+
+    private string? _snapshotJson;
+
+    /// <summary>
+    /// Opções JSON usadas pelo Snapshot/Restore. Default cobre POCOs comuns.
+    /// Override quando o model precisar de converters custom (ex: DateOnly em .NET 6).
+    /// </summary>
+    [Parameter] public JsonSerializerOptions? SnapshotOptions { get; set; }
+
+    /// <summary>
+    /// Captura o estado atual do <see cref="Model"/> via JSON serialize.
+    /// Use no <c>OnInitialized</c> do componente pai pra garantir que ResetAsync()
+    /// volte aos valores originais.
+    ///
+    /// <code>protected override void OnInitialized() { form?.Snapshot(); }</code>
+    /// </summary>
+    public void Snapshot()
+    {
+        try { _snapshotJson = JsonSerializer.Serialize(Model, SnapshotOptions); }
+        catch { _snapshotJson = null; }
+    }
+
+    /// <summary>
+    /// Restaura o Model pro último snapshot. Faz copia das propriedades via JSON
+    /// roundtrip (não substitui a instância de Model — preserva referência pra
+    /// não quebrar bindings). No-op se <see cref="Snapshot"/> nunca foi chamado.
+    /// </summary>
+    public void Restore()
+    {
+        if (_snapshotJson is null) return;
+        try
+        {
+            var restored = JsonSerializer.Deserialize<TModel>(_snapshotJson, SnapshotOptions);
+            if (restored is null) return;
+            // Copia property-by-property pra manter a MESMA referência de Model
+            // (importante: bindings @bind-Value="model.X" usam ref equality).
+            CopyProperties(restored, Model);
+            _ctx?.NotifyValidationStateChanged();
+        }
+        catch { /* shape changed since snapshot — keep current state */ }
+    }
+
+    private static void CopyProperties(TModel src, TModel dst)
+    {
+        var props = typeof(TModel).GetProperties(
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.Instance);
+        foreach (var p in props)
+        {
+            if (!p.CanRead || !p.CanWrite) continue;
+            try { p.SetValue(dst, p.GetValue(src)); } catch { }
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // The internal <EditForm> creates a *new* EditContext whenever the
+        // Model reference changes (Reset/Limpar buttons typically do
+        // `model = new()`). Detect that here and rebind: unsubscribe handlers
+        // from the dead context, point _ctx at the new one, rebuild the
+        // ValidationMessageStore, and re-wire handlers. Without this the form
+        // looks alive but silently stops validating after a reset.
+        var current = _editForm?.EditContext;
+        if (!ReferenceEquals(current, _ctx))
+        {
+            UnwireFrom(_ctx);
+            _ctx = current;
+            _store = _ctx is null ? null : new ValidationMessageStore(_ctx);
+            WireTo(_ctx);
+        }
+    }
+
+    private void WireTo(EditContext? ctx)
+    {
+        if (ctx is null) return;
+        ctx.OnFieldChanged += OnFieldChangedTouched;
+        // The custom-validation handlers are cheap to attach even when the
+        // delegates are null — they early-return — so we always wire them and
+        // avoid re-checking Validation/ValidationAsync nullability later.
+        ctx.OnFieldChanged        += OnFieldChangedCustom;
+        ctx.OnValidationRequested += OnValidationRequested;
+    }
+
+    private void UnwireFrom(EditContext? ctx)
+    {
+        if (ctx is null) return;
+        ctx.OnFieldChanged        -= OnFieldChangedTouched;
+        ctx.OnFieldChanged        -= OnFieldChangedCustom;
+        ctx.OnValidationRequested -= OnValidationRequested;
+    }
+
+    private async void OnFieldChangedTouched(object? sender, FieldChangedEventArgs e)
+    {
+        if (IsTouched) return;
+        IsTouched = true;
+        if (IsTouchedChanged.HasDelegate) await IsTouchedChanged.InvokeAsync(true);
+    }
+
+    private void OnFieldChangedCustom(object? sender, FieldChangedEventArgs e)
+    {
+        if (Validation is null && ValidationAsync is null) return; // no custom rules — skip
+        if (ValidationDelay <= 0)
+        {
+            _ = RunCustomAsync(immediate: true);
+            return;
+        }
+        // Debounced: restart the timer; only the trailing call fires.
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        _ = DelayThenRunAsync(ValidationDelay, token);
+    }
+
+    private void OnValidationRequested(object? sender, ValidationRequestedEventArgs e)
+    {
+        // EditContext.Validate() is synchronous, so we can only call the sync
+        // handler from here. The async one runs separately via ValidateAsync().
+        if (Validation is null || _ctx is null || _store is null) return;
+        _store.Clear();
+        Validation(_ctx, _store);
+    }
+
+    private async Task DelayThenRunAsync(int ms, CancellationToken token)
+    {
+        try { await Task.Delay(ms, token); }
+        catch (TaskCanceledException) { return; }
+        if (token.IsCancellationRequested) return;
+        await RunCustomAsync(immediate: false);
+    }
+
+    private async Task RunCustomAsync(bool immediate)
+    {
+        if (_ctx is null || _store is null) return;
+        if (Validation is null && ValidationAsync is null) return;
+
+        _store.Clear();
+        try { Validation?.Invoke(_ctx, _store); } catch { }
+        if (ValidationAsync is not null)
+        {
+            try { await ValidationAsync(_ctx, _store); } catch { }
+        }
+        _ctx.NotifyValidationStateChanged();
+        if (!immediate) await InvokeAsync(StateHasChanged);
+    }
+
+    private Task OnValidSubmitHandler(EditContext c)   => OnValidSubmit.InvokeAsync(c);
+    private Task OnInvalidSubmitHandler(EditContext c) => OnInvalidSubmit.InvokeAsync(c);
+
+    // ─── IOmniFormRegistry — descoberta de inputs por nome ────────────────
+    // Inputs auto-registram via FormComponent.OnAfterRender. Validators irmãos
+    // chamam FindComponent(Component) pra localizar o input alvo. Dicionário
+    // (O(1) lookup) ao invés da List linear que o RadzenTemplateForm usa.
+
+    private readonly Dictionary<string, IOmniFormComponent> _components = new(StringComparer.OrdinalIgnoreCase);
+
+    void IOmniFormRegistry.RegisterComponent(IOmniFormComponent component)
+    {
+        var name = component.ResolvedName;
+        if (string.IsNullOrEmpty(name)) return;
+        _components[name] = component;
+    }
+
+    void IOmniFormRegistry.UnregisterComponent(IOmniFormComponent component)
+    {
+        var name = component.ResolvedName;
+        if (string.IsNullOrEmpty(name)) return;
+        if (_components.TryGetValue(name, out var existing) && ReferenceEquals(existing, component))
+            _components.Remove(name);
+    }
+
+    IOmniFormComponent? IOmniFormRegistry.FindComponent(string name)
+        => _components.TryGetValue(name, out var c) ? c : null;
+
+    public async ValueTask DisposeAsync()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = null;
+        UnwireFrom(_ctx);
+        _ctx = null;
+        _store = null;
+        await Task.CompletedTask;
+    }
+}

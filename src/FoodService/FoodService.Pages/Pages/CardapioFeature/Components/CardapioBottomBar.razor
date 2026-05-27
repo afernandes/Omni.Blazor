@@ -1,0 +1,47 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Sticky bottom CTA das screens Sizes/Flavors/Preview/Cart. Default um
+    único botão accent largura full. ChildContent permite hint adicional
+    acima do botão (ex: "cobramos o sabor mais caro"). LeadingContent
+    permite slot inline à esquerda do botão (ex: qty stepper no Preview). *@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+    <div class="fs-cd-bottombar-row">
+        @if (LeadingContent is not null)
+        {
+            <div class="fs-cd-bottombar-leading">@LeadingContent</div>
+        }
+        <OmniButton Class="fs-cd-btn fs-cd-btn-accent"
+                    Variant="ButtonVariant.Primary"
+                    Size="ComponentSize.Lg"
+                    Disabled="@Disabled"
+                    OnClick="OnClick">
+            <span>@Label</span>
+            @if (!string.IsNullOrEmpty(TrailingText))
+            {
+                <span class="fs-cd-btn-total omni-mono">@TrailingText</span>
+            }
+            else if (TrailingIcon is not null)
+            {
+                <OmniIcon Name="@TrailingIcon" Size="ComponentSize.Sm" />
+            }
+        </OmniButton>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string? TrailingText { get; set; }
+    [Parameter] public string? TrailingIcon { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Column { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? LeadingContent { get; set; }
+
+    private string RootCss => CssBuilder.Default("fs-cd-bottombar")
+        .AddClass("fs-cd-bottombar-col", Column)
+        .AddClass(Class)
+        .Build();
+}

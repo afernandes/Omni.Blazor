@@ -1,0 +1,63 @@
+@inherits LayoutComponentBase
+@inject ThemeService Theme
+
+@*  Tablet-style shell para a tela do Garçom — migrado para OmniLayout.
+    OmniAppBar com brand + contexto operacional (salão/turno/hora) + actions
+    (chamadas com badge, cozinha, busca, user). OmniMain NoPadding recebe a
+    página inteira em grid próprio (3 colunas: mesas · cardápio · comanda). *@
+<OmniLayout>
+    <OmniAppBar Class="omni-gx-top">
+        <div class="omni-gx-brand">
+            <div class="omni-gx-brand-mark">F</div>
+            <div>
+                <div>Forneria</div>
+                <div class="omni-gx-brand-meta">GARÇOM · v2.4</div>
+            </div>
+        </div>
+
+        <div class="omni-gx-context">
+            <span class="omni-gx-ctx-pill"><span class="omni-gx-ctx-dot"></span>Salão Principal</span>
+            <span class="omni-mono omni-gx-ctx-meta">TURNO 19:00 → 00:00</span>
+            <span class="omni-mono omni-gx-ctx-meta">21:42</span>
+        </div>
+
+        <div class="omni-gx-actions">
+            <OmniBadge Content="2" Variant="BadgeVariant.Danger" Overlap>
+                <OmniButton Icon="bell" IconOnly Variant="ButtonVariant.Ghost"
+                            Size="ComponentSize.Sm" aria-label="Chamadas" />
+            </OmniBadge>
+            <OmniButton Icon="zap" IconOnly Variant="ButtonVariant.Ghost"
+                        Size="ComponentSize.Sm" aria-label="Cozinha" />
+            <OmniButton Icon="search" IconOnly Variant="ButtonVariant.Ghost"
+                        Size="ComponentSize.Sm" aria-label="Buscar" />
+            <div class="omni-gx-user">
+                <OmniAvatar Initials="RM" Size="AvatarSize.Sm" />
+                <div class="omni-gx-user-meta">
+                    <b>Ricardo M.</b>
+                    <span class="omni-mono">GARÇOM 04</span>
+                </div>
+            </div>
+        </div>
+    </OmniAppBar>
+
+    <OmniMain NoPadding>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    /// <summary>
+    /// Restaura accent + dark persistidos do localStorage no primeiro render
+    /// — paridade com AppShell. Sem isso, o shell ignora preferências salvas.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* nunca bloqueia o shell por falha de tema */ }
+        }
+    }
+}

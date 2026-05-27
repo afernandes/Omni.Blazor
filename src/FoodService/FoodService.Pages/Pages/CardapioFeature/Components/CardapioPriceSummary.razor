@@ -1,0 +1,54 @@
+@namespace FoodService.Pages.Pages.CardapioFeature.Components
+@inherits OmniComponent
+@inject CardapioDigitalState State
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*  Price breakdown da pizza em montagem (screen Preview) — sabor + borda
+    + extras (per-flavor via bottom sheet) + total. *@
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="fs-cd-price-row">
+        <span>
+            @State.SelectedSize?.Name (@State.SelectedFlavorIds.Count @(State.SelectedFlavorIds.Count == 1 ? "sabor" : "sabores"))
+            @if (State.SelectedFlavorIds.Count == 2 && State.PriorityFlavor is not null)
+            {
+                <div class="fs-cd-price-note">sabor mais caro: @State.PriorityFlavor.Name</div>
+            }
+        </span>
+        <span class="fs-cd-price-v omni-mono">@CardapioDigitalState.Brl(State.CombinedFlavorsPrice)</span>
+    </div>
+    @if (State.SelectedBorda is not null && State.SelectedBorda.Cents > 0)
+    {
+        <div class="fs-cd-price-row">
+            <span>Borda @State.SelectedBorda.Name</span>
+            <span class="fs-cd-price-v omni-mono fs-cd-price-v-add">+ @CardapioDigitalState.Brl(State.SelectedBorda.Cents)</span>
+        </div>
+    }
+    @foreach (var (flavorId, custom) in State.FlavorCustom)
+    {
+        var flavor = CardapioMockData.Flavors.FirstOrDefault(f => f.Id == flavorId);
+        if (flavor is null) continue;
+        foreach (var exId in custom.ExtraIds)
+        {
+            var ex = CardapioMockData.Extras.FirstOrDefault(e => e.Id == exId);
+            if (ex is null || ex.Cents == 0) continue;
+            <div @key="(flavorId, exId)" class="fs-cd-price-row">
+                <span>Extra @ex.Name (½ @flavor.Name)</span>
+                <span class="fs-cd-price-v omni-mono fs-cd-price-v-add">+ @CardapioDigitalState.Brl(ex.Cents)</span>
+            </div>
+        }
+    }
+    <div class="fs-cd-price-total">
+        <span>Total desta pizza</span>
+        <span class="fs-cd-price-v omni-mono">@CardapioDigitalState.Brl(State.PizzaTotalCents)</span>
+    </div>
+</div>
+
+@code {
+    private string RootCss => CssBuilder.Default("fs-cd-price-summary")
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

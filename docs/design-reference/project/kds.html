@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Forneria · KDS Cozinha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+
+<style>
+  /* ─────────────────────────────────────────────────
+     KDS — shares tokens with PDV/Garçom. Dark theme so
+     kitchen screens are readable at distance + the
+     warm accent pops on the dark surface.
+     Density is high (16px base in PDV → 15px here for
+     denser ticket grid), edge-to-edge using .page-tool.
+     ───────────────────────────────────────────────── */
+  :root[data-theme="dark"] {
+    --accent: #d97706;
+    --accent-hover: #b45309;
+    --accent-soft: color-mix(in oklab, var(--accent) 22%, transparent);
+    --accent-softer: color-mix(in oklab, var(--accent) 10%, transparent);
+  }
+  body {
+    background: var(--bg);
+    font-size: 15px;
+    overflow: hidden;
+  }
+
+  .k {
+    display: grid;
+    grid-template-rows: 60px 52px 1fr;
+    height: 100vh;
+  }
+
+  /* ── Top bar (same DNA as garcom .gx-top) ── */
+  .k-top {
+    display: grid;
+    grid-template-columns: 280px 1fr auto;
+    align-items: center;
+    padding: 0 20px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--line);
+    gap: 18px;
+  }
+  .k-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  .k-brand-mark {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--fg); color: var(--bg);
+    display: grid; place-items: center;
+    font-family: var(--font-mono); font-weight: 800; font-size: 15px;
+    position: relative;
+  }
+  .k-brand-mark::after {
+    content: '';
+    position: absolute; right: 4px; top: 4px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .k-brand-name { font-size: 15px; letter-spacing: -0.01em; }
+  .k-brand-meta {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .k-sector {
+    margin-left: 12px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    font-size: 13px; font-weight: 600;
+  }
+  .k-sector .sec-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .k-context {
+    justify-self: center;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .k-clock {
+    font-family: var(--font-mono);
+    font-size: 28px; font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+  .k-counter {
+    display: flex; flex-direction: column;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .k-counter b {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    color: var(--fg);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .k-actions { display: flex; align-items: center; gap: 8px; }
+  .k-navlink {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    color: var(--fg-muted);
+    border: 1px solid transparent;
+    text-decoration: none;
+  }
+  .k-navlink:hover { color: var(--fg); background: var(--bg-sunken); }
+  .k-navlink.on {
+    color: var(--fg);
+    background: var(--bg-sunken);
+    border-color: var(--line);
+  }
+  .k-navlink .ct {
+    margin-left: 6px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--good);
+  }
+  .k-online {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    background: color-mix(in oklab, var(--good) 12%, transparent);
+    border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+    color: var(--good);
+  }
+  .k-online .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--good) 20%, transparent);
+  }
+
+  /* ── Filter bar ── */
+  .k-filters {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--line);
+  }
+  .k-pills {
+    display: flex; gap: 6px;
+    height: 100%;
+    align-items: center;
+  }
+  .k-pill {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    font-size: 13px; font-weight: 600;
+    color: var(--fg-muted);
+    display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer;
+    transition: border-color 100ms, color 100ms;
+  }
+  .k-pill:hover { color: var(--fg); }
+  .k-pill .ct {
+    font-family: var(--font-mono);
+    font-size: 10.5px; font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--bg-elev);
+    color: var(--fg-muted);
+  }
+  .k-pill.on {
+    background: var(--fg); color: var(--bg);
+    border-color: var(--fg);
+  }
+  .k-pill.on .ct {
+    background: rgba(255,255,255,0.15); color: var(--bg);
+  }
+  /* Severity-themed pills */
+  .k-pill.info    { border-color: color-mix(in oklab, #3B82F6 50%, var(--line)); color: #60a5fa; }
+  .k-pill.info .ct{ background: color-mix(in oklab, #3B82F6 22%, transparent); color: #93c5fd; }
+  .k-pill.warn    { border-color: color-mix(in oklab, var(--warn) 55%, var(--line)); color: var(--warn); }
+  .k-pill.warn .ct{ background: color-mix(in oklab, var(--warn) 22%, transparent); color: var(--warn); }
+  .k-pill.danger  { border-color: color-mix(in oklab, var(--danger) 55%, var(--line)); color: #f87171; }
+  .k-pill.danger .ct { background: color-mix(in oklab, var(--danger) 22%, transparent); color: #fca5a5; }
+
+  .k-sort {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    font-size: 12.5px; color: var(--fg);
+    font-weight: 500;
+  }
+  .k-sort .lbl { color: var(--fg-muted); font-size: 11.5px; }
+
+  /* ── Tickets grid (Bento — sem gap, cards grudados) ── */
+  .k-stage {
+    overflow-y: auto;
+    padding: 14px;
+    background: var(--bg);
+  }
+  .k-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 12px;
+    align-content: start;
+  }
+
+  /* ── Ticket card — uses .surface-card primitive style ── */
+  .ticket {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: var(--shadow-sm);
+    transition: transform 100ms, border-color 100ms;
+  }
+  .ticket:hover { border-color: var(--line-strong); }
+  /* Status-driven left rail */
+  .ticket {
+    position: relative;
+  }
+  .ticket::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
+  }
+  .ticket.is-new::before     { background: #3B82F6; }
+  .ticket.is-prep::before    { background: var(--warn); }
+  .ticket.is-delay::before   { background: #F97316; }
+  .ticket.is-urgent::before  { background: var(--danger); }
+  .ticket.is-ready::before   { background: var(--good); }
+  .ticket.is-urgent {
+    border-color: color-mix(in oklab, var(--danger) 30%, var(--line));
+    box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in oklab, var(--danger) 18%, transparent);
+    animation: t-urgent 1.8s ease-in-out infinite;
+  }
+  @keyframes t-urgent {
+    0%, 100% { box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in oklab, var(--danger) 18%, transparent); }
+    50%      { box-shadow: var(--shadow-sm), 0 0 0 4px color-mix(in oklab, var(--danger) 14%, transparent); }
+  }
+
+  /* Ticket header */
+  .t-head {
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--bg-sunken), var(--bg-elev));
+  }
+  .t-id {
+    font-family: var(--font-mono);
+    font-size: 18px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .t-type {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .t-type.table    { background: color-mix(in oklab, #A855F7 16%, transparent); color: #c084fc; }
+  .t-type.delivery { background: color-mix(in oklab, #3B82F6 16%, transparent); color: #60a5fa; }
+  .t-type.counter  { background: color-mix(in oklab, #94A3B8 18%, transparent); color: #cbd5e1; }
+  .t-type.ifood    { background: color-mix(in oklab, #ea1d2c 18%, transparent); color: #f87171; }
+
+  .t-timer {
+    display: flex; flex-direction: column;
+    align-items: flex-end;
+    font-family: var(--font-mono);
+    font-weight: 700;
+  }
+  .t-timer .v {
+    font-size: 20px;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    color: var(--fg);
+  }
+  .t-timer .l {
+    font-size: 9.5px;
+    color: var(--fg-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+  .ticket.is-delay .t-timer .v  { color: var(--warn); }
+  .ticket.is-urgent .t-timer .v { color: var(--danger); }
+  .ticket.is-ready  .t-timer .v { color: var(--good); }
+
+  .t-meta {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .t-meta .who { font-weight: 600; color: var(--fg); }
+  .t-meta .sep { color: var(--fg-soft); }
+
+  /* Ticket items */
+  .t-items {
+    flex: 1;
+    padding: 4px 0;
+  }
+  .t-item {
+    display: grid;
+    grid-template-columns: 30px 1fr auto;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .t-item:last-child { border-bottom: 0; }
+  .t-qty {
+    font-family: var(--font-mono);
+    font-size: 18px; font-weight: 800;
+    color: var(--fg);
+    line-height: 1.1;
+  }
+  .t-item-body { min-width: 0; }
+  .t-name {
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .t-mods {
+    display: flex; flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 5px;
+  }
+  .t-mod {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    line-height: 1.4;
+  }
+  .t-mod.add { background: color-mix(in oklab, var(--good) 14%, transparent); color: var(--good); }
+  .t-mod.rm  { background: color-mix(in oklab, var(--danger) 14%, transparent); color: #fca5a5; text-decoration: line-through; }
+  .t-mod.note{ background: var(--bg-sunken); color: var(--fg-muted); }
+  .t-mod.ico { padding-left: 4px; }
+
+  .t-item-check {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    border: 1.5px solid var(--line-strong);
+    background: transparent;
+    cursor: pointer;
+    display: grid; place-items: center;
+    color: transparent;
+    transition: all 100ms;
+    flex-shrink: 0;
+  }
+  .t-item-check:hover { border-color: var(--good); }
+  .t-item.done .t-item-check {
+    background: var(--good);
+    border-color: var(--good);
+    color: white;
+  }
+  .t-item.done .t-name {
+    color: var(--fg-soft);
+    text-decoration: line-through;
+  }
+
+  /* Ticket footer */
+  .t-foot {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-sunken);
+    border-top: 1px solid var(--line);
+  }
+  .t-bump {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer;
+    border: 0;
+  }
+  .t-bump:hover { background: var(--accent-hover); }
+  .t-bump.ready { background: var(--good); }
+  .t-bump.ready:hover { background: oklch(0.55 0.14 150); }
+  .t-bump kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.18);
+  }
+  .t-mini {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    color: var(--fg-muted);
+    cursor: pointer;
+  }
+  .t-mini:hover { color: var(--fg); border-color: var(--line-strong); }
+
+  /* Special — total course progress within the order */
+  .t-progress {
+    grid-column: 1 / -1;
+    height: 3px;
+    background: var(--bg-sunken);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .t-progress > div {
+    height: 100%;
+    background: var(--good);
+    border-radius: 2px;
+    transition: width 280ms cubic-bezier(.2,.7,.3,1);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .k { grid-template-rows: 56px 48px 1fr; }
+    .k-top { grid-template-columns: 1fr auto; padding: 0 14px; }
+    .k-context { display: none; }
+    .k-clock { font-size: 22px; }
+    .k-actions { gap: 4px; }
+    .k-navlink { padding: 6px 10px; font-size: 12px; }
+    .k-filters { padding: 0 14px; flex-wrap: wrap; gap: 8px; }
+    .k-pills { overflow-x: auto; padding-bottom: 4px; }
+    .k-stage { padding: 10px; }
+    .k-grid { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="src/ui.jsx"></script>
+<script type="text/babel" src="kds-app.jsx"></script>
+</body>
+</html>

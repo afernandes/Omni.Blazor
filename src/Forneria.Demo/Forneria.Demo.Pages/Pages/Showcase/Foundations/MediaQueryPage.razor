@@ -1,0 +1,191 @@
+@page "/showcase/media-query"
+@layout ShowcaseLayout
+
+<PageTitle>OmniMediaQuery — Showcase</PageTitle>
+
+<ShowcasePage Title="OmniMediaQuery"
+              Subtitle="Componente headless que escuta uma CSS media query e dispara callback / two-way bind quando o estado muda.">
+
+    <Overview>
+        <p>
+            <code>OmniMediaQuery</code> é um componente <strong>sem render visual</strong>
+            (zero footprint no DOM por default) — sua função é traduzir uma media query
+            CSS em estado C# observável. Quando o resultado da query muda
+            (resize de janela, troca de tema do SO, rotação do dispositivo), o
+            componente notifica via <code>Change</code> callback e/ou via two-way bind.
+        </p>
+        <p>
+            Equivalente ao <code>RadzenMediaQuery</code>, mas com 3 APIs ao invés de 1:
+            <strong>callback</strong> (Radzen-compatible), <strong>two-way bind</strong> e
+            <strong>render-prop</strong> via <code>ChildContent</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li><strong>Decisões em C#</strong> que dependem do tamanho da tela — ex: usar <code>SideDialog</code> em desktop, <code>FullDialog</code> em mobile.</li>
+            <li><strong>Detectar preferências do SO</strong>: <code>(prefers-color-scheme: dark)</code>, <code>(prefers-reduced-motion: reduce)</code>.</li>
+            <li><strong>Orientação</strong>: layout diferente entre <code>portrait</code> e <code>landscape</code>.</li>
+            <li><strong>Side effects</strong>: rodar lógica imperativa (cancelar fetch, fechar drawer) ao cruzar um breakpoint.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Quando uma regra <code>@@media</code> em CSS resolve sem precisar de C# — use CSS.</li>
+            <li>Para esconder/mostrar elementos por breakpoint sem instanciar o conteúdo — use <code>OmniHidden</code> (mais semântico, sem hook React-style).</li>
+            <li>Quando você quer reagir ao breakpoint global da aplicação — use <code>OmniBreakpointProvider</code> + <code>BreakpointService</code> (cacheado, 1 listener pra toda a app).</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="API 1 — Callback (igual Radzen)"
+                         Description="O callback Change recebe o bool quando o estado muda. Útil pra side effects (logging, fetch cancel, scroll lock)."
+                         Code="@(@"<OmniMediaQuery Query=""(max-width: 768px)"" Change=""@OnMobileChanged"" />
+
+@code {
+    private string _log = """";
+    void OnMobileChanged(bool isMobile) =>
+        _log += $""mobile={isMobile}\n"";
+}")">
+
+            <OmniMediaQuery Query="(max-width: 768px)" Change="@OnMobileChanged" />
+
+            <div style="font-family: var(--omni-font-mono); font-size: 12px;">
+                <p>Estado atual: <strong>@(_log.Contains("mobile=True") ? "📱 mobile" : "💻 desktop")</strong></p>
+                <pre style="background: var(--omni-bg-sunken); padding: 10px; border-radius: 6px; max-height: 120px; overflow: auto; margin: 0;">@_log</pre>
+                <p class="omni-muted" style="font-size: 11px; margin-top: 6px;">Redimensione a janela cruzando 768px pra ver eventos.</p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title='@("API 2 — Two-way @bind-Matches")'
+                         Description="Pra leitura declarativa do estado, use bind direto a um campo bool. Sem callback boilerplate."
+                         Code="@(@"<OmniMediaQuery Query=""(min-width: 992px)"" @bind-Matches=""_isWide"" />
+
+@if (_isWide) {
+    <DesktopLayout />
+} else {
+    <MobileLayout />
+}")">
+
+            <OmniMediaQuery Query="(min-width: 992px)" @bind-Matches="_isWide" />
+
+            <OmniStack Direction="StackDirection.Row" Gap="14" AlignItems="StackAlign.Center">
+                <OmniBadge Variant="@(_isWide ? BadgeVariant.Good : BadgeVariant.Warn)"
+                            Text="@(_isWide ? "Wide (≥992px)" : "Narrow (<992px)")" />
+                <span class="omni-mono" style="font-size: 12px;">_isWide = <strong>@_isWide</strong></span>
+            </OmniStack>
+            <p class="omni-muted" style="font-size: 11px; margin-top: 8px;">Mesmo padrão funciona em qualquer componente — o campo reage sozinho.</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="API 3 — Render-prop via ChildContent"
+                         Description='@("ChildContent recebe um Context com o bool atual — útil pra trocar pedaços de UI sem campo no @code.")'
+                         Code="@(@"<OmniMediaQuery Breakpoint=""Breakpoint.Md"" Context=""atMd"">
+    @if (atMd) {
+        <OmniButton Text=""Toolbar inteiro"" Icon=""plus"" />
+    } else {
+        <OmniButton IconOnly Icon=""plus"" />
+    }
+</OmniMediaQuery>")">
+
+            <OmniMediaQuery Breakpoint="Breakpoint.Md" Context="atMd">
+                @if (atMd)
+                {
+                    <div style="border: 1px dashed var(--omni-line); padding: 14px; border-radius: 8px;">
+                        <OmniStack Direction="StackDirection.Row" Gap="8">
+                            <OmniButton Text="Salvar" Icon="save" Variant="ButtonVariant.Primary" />
+                            <OmniButton Text="Cancelar" Icon="x" />
+                            <OmniButton Text="Imprimir" Icon="printer" Variant="ButtonVariant.Ghost" />
+                        </OmniStack>
+                        <p class="omni-muted" style="font-size: 11px; margin-top: 8px;">≥ 768px: toolbar completa.</p>
+                    </div>
+                }
+                else
+                {
+                    <div style="border: 1px dashed var(--omni-line); padding: 14px; border-radius: 8px;">
+                        <OmniStack Direction="StackDirection.Row" Gap="6">
+                            <OmniButton IconOnly Icon="save" Variant="ButtonVariant.Primary" />
+                            <OmniButton IconOnly Icon="x" />
+                            <OmniButton IconOnly Icon="printer" Variant="ButtonVariant.Ghost" />
+                        </OmniStack>
+                        <p class="omni-muted" style="font-size: 11px; margin-top: 8px;">&lt; 768px: ícones só.</p>
+                    </div>
+                }
+            </OmniMediaQuery>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ATALHO Breakpoint — em vez de literal CSS"
+                         Description="Passar Breakpoint=Md traduz para (min-width: 768px) usando os mesmos thresholds do OmniHidden, TileGroup, etc."
+                         Code="@(@"<!-- Equivalente a Query=""(min-width: 992px)"" -->
+<OmniMediaQuery Breakpoint=""Breakpoint.Lg"" @bind-Matches=""_atLg"" />")">
+
+            <OmniMediaQuery Breakpoint="Breakpoint.Sm"  @bind-Matches="_atSm" />
+            <OmniMediaQuery Breakpoint="Breakpoint.Md"  @bind-Matches="_atMd" />
+            <OmniMediaQuery Breakpoint="Breakpoint.Lg"  @bind-Matches="_atLg" />
+            <OmniMediaQuery Breakpoint="Breakpoint.Xl"  @bind-Matches="_atXl" />
+            <OmniMediaQuery Breakpoint="Breakpoint.Xxl" @bind-Matches="_atXxl" />
+
+            <OmniStack Direction="StackDirection.Row" Gap="8" Wrap="true">
+                <OmniBadge Variant="@(_atSm  ? BadgeVariant.Good : BadgeVariant.Plain)" Text="@($"≥ sm (576): {_atSm}")" />
+                <OmniBadge Variant="@(_atMd  ? BadgeVariant.Good : BadgeVariant.Plain)" Text="@($"≥ md (768): {_atMd}")" />
+                <OmniBadge Variant="@(_atLg  ? BadgeVariant.Good : BadgeVariant.Plain)" Text="@($"≥ lg (992): {_atLg}")" />
+                <OmniBadge Variant="@(_atXl  ? BadgeVariant.Good : BadgeVariant.Plain)" Text="@($"≥ xl (1200): {_atXl}")" />
+                <OmniBadge Variant="@(_atXxl ? BadgeVariant.Good : BadgeVariant.Plain)" Text="@($"≥ xxl (1400): {_atXxl}")" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="QUERIES NÃO-DIMENSIONAIS"
+                         Description="matchMedia aceita mais que largura — preferências do SO, orientação, ponteiros."
+                         Code="@(@"<OmniMediaQuery Query=""(prefers-color-scheme: dark)"" @bind-Matches=""_prefersDark"" />
+<OmniMediaQuery Query=""(prefers-reduced-motion: reduce)"" @bind-Matches=""_reducedMotion"" />
+<OmniMediaQuery Query=""(orientation: portrait)"" @bind-Matches=""_portrait"" />
+<OmniMediaQuery Query=""(pointer: coarse)"" @bind-Matches=""_touch"" />")">
+
+            <OmniMediaQuery Query="(prefers-color-scheme: dark)" @bind-Matches="_prefersDark" />
+            <OmniMediaQuery Query="(prefers-reduced-motion: reduce)" @bind-Matches="_reducedMotion" />
+            <OmniMediaQuery Query="(orientation: portrait)" @bind-Matches="_portrait" />
+            <OmniMediaQuery Query="(pointer: coarse)" @bind-Matches="_touch" />
+
+            <OmniStack Gap="6">
+                <span class="omni-mono" style="font-size: 12px;">prefers-color-scheme: dark → <strong>@_prefersDark</strong></span>
+                <span class="omni-mono" style="font-size: 12px;">prefers-reduced-motion → <strong>@_reducedMotion</strong></span>
+                <span class="omni-mono" style="font-size: 12px;">orientation: portrait → <strong>@_portrait</strong></span>
+                <span class="omni-mono" style="font-size: 12px;">pointer: coarse (touch) → <strong>@_touch</strong></span>
+            </OmniStack>
+            <p class="omni-muted" style="font-size: 11px; margin-top: 8px;">
+                Esses valores reagem instantaneamente — troca o tema do SO ou gira o tablet pra ver.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniMediaQuery — parâmetros">
+            <ShowcaseApiRow Name="Query" Type="string?" Default="null"
+                            Description="Media query CSS literal. Ex: (max-width: 768px), (prefers-color-scheme: dark)." />
+            <ShowcaseApiRow Name="Breakpoint" Type="Breakpoint?" Default="null"
+                            Description="Atalho: traduz pra (min-width: Npx). Ignorado quando Query está definido." />
+            <ShowcaseApiRow Name="Matches / MatchesChanged" Type="bool" Default="false"
+                            Description='@("Two-way bind via @bind-Matches.")' />
+            <ShowcaseApiRow Name="Change" Type="EventCallback&lt;bool&gt;" Default="empty"
+                            Description="Callback alternativo (Radzen-compatible). Recebe o novo bool quando o estado muda." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment&lt;bool&gt;?" Default="null"
+                            Description="Render-prop opcional. Sem ele, o componente é 100% headless (zero DOM)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string _log = "";
+    private bool _isWide;
+    private bool _atSm, _atMd, _atLg, _atXl, _atXxl;
+    private bool _prefersDark, _reducedMotion, _portrait, _touch;
+
+    private void OnMobileChanged(bool isMobile)
+    {
+        _log = $"[{DateTime.Now:HH:mm:ss}] mobile={isMobile}\n" + _log;
+        // cap log size pra não crescer infinito
+        if (_log.Length > 600) _log = _log.Substring(0, 600);
+        InvokeAsync(StateHasChanged);
+    }
+}

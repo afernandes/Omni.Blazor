@@ -1,0 +1,25 @@
+@inject NavigationManager Nav
+
+@* Small clickable card used on the /showcase index. *@
+
+<OmniCard Clickable OnClick="@(_ => Go())">
+    <ChildContent>
+        <div class="omni-row omni-row-gap-12" style="margin-bottom: 8px;">
+            <div class="omni-mosaic-ic"><OmniIcon Name="@Icon" /></div>
+            <div class="omni-flex-1">
+                <div style="font-weight:600;font-size:14px;">@Title</div>
+            </div>
+            <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+        </div>
+        <div class="omni-muted" style="font-size:12px;line-height:1.5;">@Description</div>
+    </ChildContent>
+</OmniCard>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string Description { get; set; } = "";
+    [Parameter, EditorRequired] public string Path { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "package";
+
+    private Task Go() { Nav.NavigateTo(Path); return Task.CompletedTask; }
+}

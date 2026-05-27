@@ -1,0 +1,518 @@
+@page "/showcase/card"
+@layout ShowcaseLayout
+
+<PageTitle>Card — Showcase</PageTitle>
+
+<ShowcasePage Title="Card"
+              Subtitle="Container estrutural que reproduz qualquer card do Bootstrap e do Metronic.">
+
+    <Overview>
+        <p>
+            O <code>OmniCard</code> é um <strong>container estrutural composável</strong>: uma
+            coluna flex cujos filhos diretos carregam papéis (header · corpo · mídia · footer),
+            espelhando o modelo do Bootstrap. Aceita <code>Title</code>/<code>Subtitle</code>
+            diretos e os slots <code>HeaderContent</code>, <code>HeaderActions</code> e
+            <code>FooterContent</code>.
+        </p>
+        <p>
+            Para cards ricos, componha os sub-componentes <code>OmniCardMedia</code> (imagem de
+            capa, overlay, lateral) e <code>OmniCardBody</code> (seções múltiplas). Quando há
+            partes compostas, o corpo embrulhado se dissolve sozinho — e um corpo cujo único
+            conteúdo é um <code>OmniDataGrid</code>, tabela, lista ou imagem fica
+            <strong>edge-to-edge automaticamente</strong>, sem nenhuma flag.
+        </p>
+        <p>
+            <code>Variant</code> (Accent · Outline), <code>Tone</code> (cores), <code>Horizontal</code>,
+            <code>MaxBodyHeight</code> (scrollable) e o token <code>--omni-card-padding</code> cobrem
+            o restante do catálogo Bootstrap/Metronic.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Agrupar campos, métricas ou listas que pertencem ao mesmo contexto.</li>
+            <li>Cards de KPI em dashboards com cabeçalho e ações.</li>
+            <li>Tabela/DataGrid embutido — fica flush automaticamente.</li>
+            <li>Itens de catálogo navegáveis com a variante <code>Clickable</code>.</li>
+            <li>Blocos de conteúdo com mídia, CTA no rodapé ou múltiplas seções.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Mensagem de estado temporária ou contextual → use <code>OmniAlert</code>.</li>
+            <li>Conteúdo em camada flutuante sobre a página → use <code>OmniDialog</code> ou <code>OmniPopover</code>.</li>
+            <li>Seções recolhíveis de uma página longa → use <code>OmniAccordion</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Title + Subtitle + corpo. Variantes Elevated e Flat."
+                         Code="@(@"<OmniCard Title=""Simples"" Subtitle=""Header + corpo"">
+    <p>Conteúdo principal do card.</p>
+</OmniCard>
+<OmniCard Title=""Elevated"" Subtitle=""Com sombra"" Elevated>…</OmniCard>
+<OmniCard Title=""Flat"" Subtitle=""Sem borda"" Flat>…</OmniCard>")">
+            <div class="omni-grid-3">
+                <OmniCard Title="Simples" Subtitle="Header + corpo">
+                    <p class="omni-muted">Conteúdo principal do card.</p>
+                </OmniCard>
+                <OmniCard Title="Elevated" Subtitle="Com sombra" Elevated>
+                    <p class="omni-muted">Sombra sutil para hierarquia.</p>
+                </OmniCard>
+                <OmniCard Title="Flat" Subtitle="Sem borda" Flat>
+                    <p class="omni-muted">Variante para regiões secundárias.</p>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HEADER ACTIONS"
+                         Description="Slot HeaderActions à direita do título — a toolbar do Metronic."
+                         Code="@(@"<OmniCard Title=""Relatório de vendas"" Subtitle=""últimas 24h"">
+    <HeaderActions>
+        <OmniButton Icon=""download"" Variant=""ButtonVariant.Ghost"" Size=""ComponentSize.Sm"" />
+    </HeaderActions>
+    <ChildContent>…</ChildContent>
+</OmniCard>")">
+            <OmniCard Title="Relatório de vendas" Subtitle="últimas 24h">
+                <HeaderActions>
+                    <OmniButton Icon="download" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                    <OmniButton Icon="more-vertical" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" />
+                </HeaderActions>
+                <ChildContent>
+                    <div class="omni-row omni-row-gap-24">
+                        <OmniStat Label="RECEITA" Value="R$ 12.480" />
+                        <OmniStat Label="PEDIDOS" Value="142" />
+                        <OmniStat Label="TICKET" Value="R$ 87,89" />
+                    </div>
+                </ChildContent>
+            </OmniCard>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM RODAPÉ"
+                         Description="Slot FooterContent para CTAs e metadados."
+                         Code="@(@"<OmniCard Title=""Plano Pro"" Subtitle=""R$ 89/mês"">
+    <ChildContent>…</ChildContent>
+    <FooterContent>
+        <OmniButton Text=""Começar"" Variant=""ButtonVariant.Primary"" Block />
+    </FooterContent>
+</OmniCard>")">
+            <div class="omni-grid-2">
+                <OmniCard Title="Pizza terça" Subtitle="10% OFF em pizzas grandes">
+                    <ChildContent>
+                        <p class="omni-muted">Use o cupom <OmniKbd Text="TERCA10" /> no checkout.</p>
+                    </ChildContent>
+                    <FooterContent>
+                        <OmniButton Text="Aplicar" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm" />
+                    </FooterContent>
+                </OmniCard>
+                <OmniCard Title="Plano Pro" Subtitle="R$ 89/mês">
+                    <HeaderActions>
+                        <OmniBadge Text="POPULAR" Variant="BadgeVariant.Accent" />
+                    </HeaderActions>
+                    <ChildContent>
+                        <ul class="omni-stack omni-stack-4 omni-muted" style="padding-left: 1.25rem; margin:0;">
+                            <li>Pedidos ilimitados</li>
+                            <li>Até 3 pontos de venda</li>
+                            <li>Integração iFood</li>
+                        </ul>
+                    </ChildContent>
+                    <FooterContent>
+                        <OmniButton Text="Começar" Variant="ButtonVariant.Primary" Block />
+                    </FooterContent>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CLICÁVEL"
+                         Description="Cursor pointer + hover lift para card-as-link."
+                         Code="@(@"<OmniCard Title=""Pizzas"" Subtitle=""18 itens"" Clickable>
+    <div class=""omni-row omni-row-gap-8""><OmniIcon Name=""pizza"" /><span>Ver categoria</span></div>
+</OmniCard>")">
+            <div class="omni-grid-3">
+                <OmniCard Title="Pizzas" Subtitle="18 itens" Clickable>
+                    <div class="omni-row omni-row-gap-8"><OmniIcon Name="pizza" /><span class="omni-muted">Ver categoria</span></div>
+                </OmniCard>
+                <OmniCard Title="Bebidas" Subtitle="12 itens" Clickable>
+                    <div class="omni-row omni-row-gap-8"><OmniIcon Name="coffee" /><span class="omni-muted">Ver categoria</span></div>
+                </OmniCard>
+                <OmniCard Title="Sobremesas" Subtitle="8 itens" Clickable>
+                    <div class="omni-row omni-row-gap-8"><OmniIcon Name="heart" /><span class="omni-muted">Ver categoria</span></div>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VARIANTES"
+                         Description="Variant=Accent (moldura muted estilo Metronic) e Variant=Outline (só contorno)."
+                         Code="@(@"<OmniCard Title=""Accent"" Variant=""CardVariant.Accent"">…</OmniCard>
+<OmniCard Title=""Outline"" Variant=""CardVariant.Outline"">…</OmniCard>")">
+            <div class="omni-grid-2">
+                <OmniCard Title="Accent" Subtitle="Moldura muted, painel interno branco" Variant="CardVariant.Accent">
+                    <ChildContent>
+                        <p class="omni-muted">O conteúdo flutua dentro de uma moldura recuada.</p>
+                    </ChildContent>
+                    <FooterContent>
+                        <OmniButton Text="Ação" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm" />
+                    </FooterContent>
+                </OmniCard>
+                <OmniCard Title="Outline" Subtitle="Fundo transparente" Variant="CardVariant.Outline">
+                    <p class="omni-muted">Apenas o contorno — sem preenchimento de superfície.</p>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TONS"
+                         Description="Tone pinta o card (Default) ou apenas a borda (Outline) — equivale a text-bg-* / border-* do Bootstrap."
+                         Code="@(@"<OmniCard Title=""Sucesso"" Tone=""CardTone.Success"">…</OmniCard>
+<OmniCard Title=""Perigo"" Variant=""CardVariant.Outline"" Tone=""CardTone.Danger"">…</OmniCard>")">
+            <div class="omni-stack omni-stack-12">
+                <div class="omni-grid-3">
+                    <OmniCard Title="Accent" Tone="CardTone.Accent"><span>Superfície preenchida.</span></OmniCard>
+                    <OmniCard Title="Info" Tone="CardTone.Info"><span>Superfície preenchida.</span></OmniCard>
+                    <OmniCard Title="Sucesso" Tone="CardTone.Success"><span>Superfície preenchida.</span></OmniCard>
+                    <OmniCard Title="Atenção" Tone="CardTone.Warning"><span>Superfície preenchida.</span></OmniCard>
+                    <OmniCard Title="Perigo" Tone="CardTone.Danger"><span>Superfície preenchida.</span></OmniCard>
+                    <OmniCard Title="Neutro" Tone="CardTone.Neutral"><span>Superfície preenchida.</span></OmniCard>
+                </div>
+                <div class="omni-grid-3">
+                    <OmniCard Title="Info" Variant="CardVariant.Outline" Tone="CardTone.Info">
+                        <span class="omni-muted">Borda colorida.</span>
+                    </OmniCard>
+                    <OmniCard Title="Sucesso" Variant="CardVariant.Outline" Tone="CardTone.Success">
+                        <span class="omni-muted">Borda colorida.</span>
+                    </OmniCard>
+                    <OmniCard Title="Perigo" Variant="CardVariant.Outline" Tone="CardTone.Danger">
+                        <span class="omni-muted">Borda colorida.</span>
+                    </OmniCard>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MÍDIA — IMAGEM DE CAPA"
+                         Description="OmniCardMedia compõe imagem no topo, na base ou em overlay. Fica flush sozinho."
+                         Code="@(@"<OmniCard>
+    <OmniCardMedia Position=""CardMediaPosition.Top"" Src=""/img/pizza.jpg"" Height=""150px"" />
+    <OmniCardBody>
+        <h3 class=""omni-card-title"">Pizza Margherita</h3>
+        <p>Molho de tomate, mussarela e manjericão.</p>
+    </OmniCardBody>
+</OmniCard>")">
+            <div class="omni-grid-3">
+                <OmniCard>
+                    <OmniCardMedia Position="CardMediaPosition.Top" Height="150px"
+                                    Style="background: linear-gradient(135deg, #fcd34d, #d97706);" />
+                    <OmniCardBody>
+                        <h3 class="omni-card-title">Capa no topo</h3>
+                        <p class="omni-muted">Imagem flush acima do corpo.</p>
+                    </OmniCardBody>
+                </OmniCard>
+                <OmniCard>
+                    <OmniCardBody>
+                        <h3 class="omni-card-title">Capa na base</h3>
+                        <p class="omni-muted">Imagem flush abaixo do corpo.</p>
+                    </OmniCardBody>
+                    <OmniCardMedia Position="CardMediaPosition.Bottom" Height="150px"
+                                    Style="background: linear-gradient(135deg, #34d399, #059669);" />
+                </OmniCard>
+                <OmniCard>
+                    <OmniCardMedia Position="CardMediaPosition.Overlay"
+                                    Style="background: linear-gradient(135deg, #b45309, #7c2d12); min-height: 190px;">
+                        <h3 class="omni-card-title">Overlay</h3>
+                        <p style="margin:0;">Conteúdo sobreposto à imagem.</p>
+                    </OmniCardMedia>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CARD HORIZONTAL"
+                         Description="Horizontal coloca a mídia ao lado do corpo."
+                         Code="@(@"<OmniCard Horizontal>
+    <OmniCardMedia Position=""CardMediaPosition.Start"" Src=""/img/pizza.jpg""
+                    Style=""width: 160px;"" />
+    <OmniCardBody>
+        <h3 class=""omni-card-title"">Pizza Pepperoni</h3>
+        <p>Atualizado há 3 min.</p>
+    </OmniCardBody>
+</OmniCard>")">
+            <OmniCard Horizontal Style="max-width: 540px;">
+                <OmniCardMedia Position="CardMediaPosition.Start"
+                                Style="width: 160px; background: linear-gradient(135deg, #f59e0b, #b45309);" />
+                <OmniCardBody>
+                    <h3 class="omni-card-title">Pizza Pepperoni</h3>
+                    <p class="omni-muted" style="margin:6px 0 0;">
+                        Card horizontal — mídia à esquerda, corpo ocupando o restante.
+                    </p>
+                </OmniCardBody>
+            </OmniCard>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CONTEÚDO FLUSH"
+                         Description="Um corpo cujo único filho é um DataGrid ou lista fica edge-to-edge sozinho — zero flags."
+                         Code="@(@"@* DataGrid: vira flush automaticamente *@
+<OmniCard Title=""Pedidos recentes"">
+    <OmniDataGrid TItem=""Linha"" Data=""@linhas"" AllowPaging=""false"" />
+</OmniCard>
+
+@* Lista: <ul class=""omni-list""> também fica flush *@
+<OmniCard Title=""Featured"">
+    <ul class=""omni-list""><li>Um item</li><li>Outro item</li></ul>
+</OmniCard>")">
+            <div class="omni-grid-2">
+                <OmniCard Title="Pedidos recentes" Subtitle="auto-flush — sem flags">
+                    <OmniDataGrid TItem="Linha" Data="@linhas" AllowPaging="false" AllowSorting="false">
+                        <Columns>
+                            <OmniDataGridColumn TItem="Linha" Title="#" Property="@(l => l.Pedido)" Width="80px" />
+                            <OmniDataGridColumn TItem="Linha" Title="Cliente" Property="@(l => l.Cliente)" />
+                            <OmniDataGridColumn TItem="Linha" Title="Total" Property="@(l => l.Total)" />
+                        </Columns>
+                    </OmniDataGrid>
+                </OmniCard>
+                <OmniCard Title="Featured">
+                    <ul class="omni-list">
+                        <li>Pedidos ilimitados</li>
+                        <li>Até 3 pontos de venda</li>
+                        <li>Integração iFood</li>
+                        <li>Relatórios avançados</li>
+                    </ul>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="KITCHEN SINK"
+                         Description="Mídia + corpo + lista flush + corpo — o auto-wrapper se dissolve e cada parte vira filha do card."
+                         Code="@(@"<OmniCard>
+    <OmniCardMedia Height=""140px"" Src=""…"" />
+    <OmniCardBody>
+        <h3 class=""omni-card-title"">Card title</h3>
+        <p>Texto de apoio do card.</p>
+    </OmniCardBody>
+    <ul class=""omni-list""><li>Um item</li><li>Outro item</li></ul>
+    <OmniCardBody>
+        <a href=""#"">Card link</a>
+    </OmniCardBody>
+</OmniCard>")">
+            <div style="max-width: 340px;">
+                <OmniCard>
+                    <OmniCardMedia Height="140px"
+                                    Style="background: linear-gradient(135deg, #fbbf24, #d97706);" />
+                    <OmniCardBody>
+                        <h3 class="omni-card-title">Combo do dia</h3>
+                        <p class="omni-muted" style="margin:6px 0 0;">
+                            Pizza grande + bebida com preço especial de terça.
+                        </p>
+                    </OmniCardBody>
+                    <ul class="omni-list">
+                        <li>Massa artesanal</li>
+                        <li>Borda recheada grátis</li>
+                        <li>Entrega em 40 min</li>
+                    </ul>
+                    <OmniCardBody>
+                        <div class="omni-row omni-row-gap-8">
+                            <OmniButton Text="Pedir agora" Variant="ButtonVariant.Link" Size="ComponentSize.Sm" />
+                            <OmniButton Text="Ver cardápio" Variant="ButtonVariant.Link" Size="ComponentSize.Sm" />
+                        </div>
+                    </OmniCardBody>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEÇÕES (CARD AGRUPADO)"
+                         Description="OmniCardBody Divided empilha seções divididas — o card de configurações do Metronic."
+                         Code="@(@"<OmniCard Title=""Configurações"">
+    <OmniCardBody>Notificações por e-mail</OmniCardBody>
+    <OmniCardBody Divided>Autenticação em dois fatores</OmniCardBody>
+    <OmniCardBody Divided>Sessões ativas</OmniCardBody>
+</OmniCard>")">
+            <div style="max-width: 420px;">
+                <OmniCard Title="Configurações da conta">
+                    <OmniCardBody>
+                        <div class="omni-row" style="justify-content: space-between;">
+                            <span>Notificações por e-mail</span>
+                            <OmniBadge Text="ON" Variant="BadgeVariant.Good" />
+                        </div>
+                    </OmniCardBody>
+                    <OmniCardBody Divided>
+                        <div class="omni-row" style="justify-content: space-between;">
+                            <span>Autenticação em dois fatores</span>
+                            <OmniBadge Text="OFF" Variant="BadgeVariant.Plain" />
+                        </div>
+                    </OmniCardBody>
+                    <OmniCardBody Divided>
+                        <div class="omni-row" style="justify-content: space-between;">
+                            <span>Sessões ativas</span>
+                            <span class="omni-muted">3 dispositivos</span>
+                        </div>
+                    </OmniCardBody>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SCROLLABLE"
+                         Description="MaxBodyHeight faz o corpo rolar internamente — header e footer ficam fixos."
+                         Code="@(@"<OmniCard Title=""Atividades"" MaxBodyHeight=""200px"">
+    @* lista longa rola dentro do card *@
+</OmniCard>")">
+            <div style="max-width: 420px;">
+                <OmniCard Title="Atividades recentes" Subtitle="corpo rola — header/footer fixos" MaxBodyHeight="200px">
+                    <ChildContent>
+                        <div class="omni-stack omni-stack-12">
+                            @for (var i = 1; i <= 12; i++)
+                            {
+                                <div class="omni-row omni-row-gap-8">
+                                    <OmniIcon Name="check-circle" />
+                                    <span>Pedido #@(1050 - i) processado</span>
+                                </div>
+                            }
+                        </div>
+                    </ChildContent>
+                    <FooterContent>
+                        <OmniButton Text="Ver tudo" Variant="ButtonVariant.Link" Size="ComponentSize.Sm" />
+                    </FooterContent>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CARD GROUP"
+                         Description="Vários cards encostados, bordas compartilhadas e altura igual — o .card-group do Bootstrap."
+                         Code="@(@"<div class=""omni-card-group"">
+    <OmniCard Title=""Hoje"">…</OmniCard>
+    <OmniCard Title=""Semana"">…</OmniCard>
+    <OmniCard Title=""Mês"">…</OmniCard>
+</div>")">
+            <div class="omni-card-group">
+                <OmniCard Title="Hoje">
+                    <OmniStat Label="FATURAMENTO" Value="R$ 12.480" />
+                </OmniCard>
+                <OmniCard Title="Semana">
+                    <OmniStat Label="FATURAMENTO" Value="R$ 78.920" />
+                </OmniCard>
+                <OmniCard Title="Mês">
+                    <OmniStat Label="FATURAMENTO" Value="R$ 312.400" />
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="NAVEGAÇÃO NO HEADER"
+                         Description="HeaderContent aceita qualquer markup — abas/segmented no cabeçalho."
+                         Code="@(@"<OmniCard>
+    <HeaderContent>
+        <OmniSegmentedControl TValue=""string"" @bind-Value=""navTab"" Items=""@navItems"" />
+    </HeaderContent>
+    <ChildContent>…</ChildContent>
+</OmniCard>")">
+            <OmniCard>
+                <HeaderContent>
+                    <OmniSegmentedControl TValue="string" Value="@navTab"
+                                           ValueChanged="@(v => navTab = v)" Items="@navItems" />
+                </HeaderContent>
+                <ChildContent>
+                    <p class="omni-muted">Aba ativa: <strong>@navTab</strong>.</p>
+                </ChildContent>
+            </OmniCard>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PADDING CUSTOM"
+                         Description="O token --omni-card-padding ajusta o respiro do corpo por instância ou por tema."
+                         Code="@(@"<OmniCard Title=""Compacto"" Style=""--omni-card-padding: 8px;"">…</OmniCard>
+<OmniCard Title=""Espaçoso"" Style=""--omni-card-padding: 28px;"">…</OmniCard>")">
+            <div class="omni-grid-3">
+                <OmniCard Title="Compacto" Style="--omni-card-padding: 8px;">
+                    <span class="omni-muted">padding 8px</span>
+                </OmniCard>
+                <OmniCard Title="Padrão">
+                    <span class="omni-muted">padding 16px</span>
+                </OmniCard>
+                <OmniCard Title="Espaçoso" Style="--omni-card-padding: 28px;">
+                    <span class="omni-muted">padding 28px</span>
+                </OmniCard>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniCard — parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Título exibido no cabeçalho do card." />
+            <ShowcaseApiRow Name="Subtitle" Type="string?" Default="null"
+                            Description="Subtítulo exibido abaixo do título." />
+            <ShowcaseApiRow Name="HeaderContent" Type="RenderFragment?" Default="null"
+                            Description="Cabeçalho customizado (sobrescreve Title/Subtitle)." />
+            <ShowcaseApiRow Name="HeaderActions" Type="RenderFragment?" Default="null"
+                            Description="Slot para botões/ações à direita do cabeçalho." />
+            <ShowcaseApiRow Name="FooterContent" Type="RenderFragment?" Default="null"
+                            Description="Slot de rodapé para CTAs e metadados." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Corpo do card. Texto vira corpo com padding; partes estruturais (OmniCardMedia/OmniCardBody) são compostas; um DataGrid/tabela/lista único fica flush." />
+            <ShowcaseApiRow Name="Variant" Type="CardVariant" Default="Default"
+                            Description="Default, Accent (moldura muted) ou Outline (só contorno)." />
+            <ShowcaseApiRow Name="Tone" Type="CardTone" Default="None"
+                            Description="Cor do card: None, Accent, Neutral, Info, Success, Warning, Danger." />
+            <ShowcaseApiRow Name="Horizontal" Type="bool" Default="false"
+                            Description="Layout horizontal — mídia ao lado do corpo." />
+            <ShowcaseApiRow Name="MaxBodyHeight" Type="string?" Default="null"
+                            Description="Altura máxima do corpo; acima disso o corpo rola internamente." />
+            <ShowcaseApiRow Name="Elevated" Type="bool" Default="false"
+                            Description="Adiciona sombra para destacar hierarquia." />
+            <ShowcaseApiRow Name="Flat" Type="bool" Default="false"
+                            Description="Remove a borda — variante para regiões secundárias." />
+            <ShowcaseApiRow Name="Clickable" Type="bool" Default="false"
+                            Description="Aplica cursor pointer e hover lift (card-as-link)." />
+            <ShowcaseApiRow Name="NoPadding" Type="bool" Default="false"
+                            Description="Escape-hatch: força o corpo flush mesmo em conteúdo misto." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniCardMedia — parâmetros">
+            <ShowcaseApiRow Name="Src" Type="string?" Default="null"
+                            Description="URL da imagem. Quando setada, renderiza um <img>." />
+            <ShowcaseApiRow Name="Alt" Type="string?" Default="null"
+                            Description="Texto alternativo da imagem." />
+            <ShowcaseApiRow Name="Position" Type="CardMediaPosition" Default="Top"
+                            Description="Top, Bottom, Overlay, Start ou End (lateral em card Horizontal)." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="null"
+                            Description="Altura fixa da mídia (ex.: 160px)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Mídia não-imagem; em Overlay, é o conteúdo sobreposto." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniCardBody — parâmetros">
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo da seção." />
+            <ShowcaseApiRow Name="NoPadding" Type="bool" Default="false"
+                            Description="Remove o padding da seção (conteúdo flush)." />
+            <ShowcaseApiRow Name="Divided" Type="bool" Default="false"
+                            Description="Desenha uma linha divisória acima da seção (card agrupado)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback&lt;MouseEventArgs&gt;" ShowDefault="false"
+                            Description="Disparado ao clicar no card (ativa o estilo clickable)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Tokens CSS" ShowDefault="false">
+            <ShowcaseApiRow Name="--omni-card-padding" Type="length" ShowDefault="false"
+                            Description="Respiro do corpo (padrão 16px). Sobrescreva por instância via Style ou globalmente no tema." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string navTab = "geral";
+    private readonly IEnumerable<OmniSegmentedControl<string>.Item> navItems = new[]
+    {
+        new OmniSegmentedControl<string>.Item("geral",  "Geral"),
+        new OmniSegmentedControl<string>.Item("vendas", "Vendas"),
+        new OmniSegmentedControl<string>.Item("equipe", "Equipe"),
+    };
+
+    private record Linha(string Pedido, string Cliente, decimal Total);
+
+    private readonly List<Linha> linhas = new()
+    {
+        new("#1042", "Marina C.",   58.90m),
+        new("#1041", "Lucas P.",   124.50m),
+        new("#1040", "Fernanda S.", 32.00m),
+        new("#1039", "Rafael S.",   76.80m),
+    };
+}

@@ -1,0 +1,164 @@
+@page "/showcase/buttons"
+@layout ShowcaseLayout
+
+<PageTitle>Button — Showcase</PageTitle>
+
+<ShowcasePage Title="Button"
+              Subtitle="Ação primária da interface — 5 variantes × 4 tamanhos, com loading state e modo icon-only.">
+
+    <Overview>
+        <p>
+            O <code>OmniButton</code> é o gatilho de ação da biblioteca. Cobre desde o
+            CTA principal de uma tela até botões discretos de toolbar, controlando
+            <strong>hierarquia visual</strong> por meio da propriedade <code>Variant</code>.
+        </p>
+        <p>
+            São cinco variantes — <code>Default</code> (neutro), <code>Primary</code> (CTA),
+            <code>Ghost</code> (sem borda), <code>Danger</code> (destrutivo) e <code>Link</code>
+            (texto puro) — e quatro tamanhos (<code>Sm</code>, <code>Md</code>, <code>Lg</code>,
+            <code>Xl</code>). Aceita <code>Icon</code> à esquerda, <code>TrailingIcon</code> à
+            direita ou modo <code>IconOnly</code>. O estado <code>Loading</code> troca o ícone
+            por um spinner inline, desabilita o clique e preserva a largura para não deslocar
+            o layout.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Disparar uma ação imediata — salvar, enviar, confirmar, abrir um diálogo.</li>
+            <li>Destacar a ação principal de uma tela ou seção com <code>Primary</code>.</li>
+            <li>Ações destrutivas que pedem atenção visual com <code>Danger</code>.</li>
+            <li>Operações assíncronas que precisam de feedback imediato via <code>Loading</code>.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Navegar entre páginas ou rotas → use um link de navegação (<code>&lt;a&gt;</code>).</li>
+            <li>Alternar um estado booleano on/off → use <code>OmniSwitch</code>.</li>
+            <li>Escolher entre opções mutuamente exclusivas → use <code>OmniSegmentedControl</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="VARIANTES"
+                         Description="Default (neutro), Primary (CTA), Ghost (sem borda), Danger (destrutivo), Link (texto)."
+                         Code="@(@"<OmniButton Text=""Default"" />
+<OmniButton Text=""Primary"" Variant=""ButtonVariant.Primary"" />
+<OmniButton Text=""Ghost"" Variant=""ButtonVariant.Ghost"" />
+<OmniButton Text=""Danger"" Variant=""ButtonVariant.Danger"" Icon=""trash"" />
+<OmniButton Text=""Link"" Variant=""ButtonVariant.Link"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Default" />
+                <OmniButton Text="Primary" Variant="ButtonVariant.Primary" />
+                <OmniButton Text="Ghost" Variant="ButtonVariant.Ghost" />
+                <OmniButton Text="Danger" Variant="ButtonVariant.Danger" Icon="trash" />
+                <OmniButton Text="Link" Variant="ButtonVariant.Link" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Quatro tamanhos — Sm, Md (padrão), Lg e Xl."
+                         Code="@(@"<OmniButton Text=""Small"" Size=""ComponentSize.Sm"" Variant=""ButtonVariant.Primary"" />
+<OmniButton Text=""Medium"" Size=""ComponentSize.Md"" Variant=""ButtonVariant.Primary"" />
+<OmniButton Text=""Large"" Size=""ComponentSize.Lg"" Variant=""ButtonVariant.Primary"" />
+<OmniButton Text=""Extra large"" Size=""ComponentSize.Xl"" Variant=""ButtonVariant.Primary"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8" style="align-items: center;">
+                <OmniButton Text="Small" Size="ComponentSize.Sm" Variant="ButtonVariant.Primary" />
+                <OmniButton Text="Medium" Size="ComponentSize.Md" Variant="ButtonVariant.Primary" />
+                <OmniButton Text="Large" Size="ComponentSize.Lg" Variant="ButtonVariant.Primary" />
+                <OmniButton Text="Extra large" Size="ComponentSize.Xl" Variant="ButtonVariant.Primary" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM ÍCONES"
+                         Description="Leading Icon, TrailingIcon e IconOnly."
+                         Code="@(@"<OmniButton Text=""Salvar"" Icon=""save"" Variant=""ButtonVariant.Primary"" />
+<OmniButton Text=""Próximo"" TrailingIcon=""arrow-right"" Variant=""ButtonVariant.Primary"" />
+<OmniButton Text=""Baixar relatório"" Icon=""download"" />
+<OmniButton Icon=""settings"" IconOnly />
+<OmniButton Icon=""more-vertical"" IconOnly Variant=""ButtonVariant.Ghost"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Salvar" Icon="save" Variant="ButtonVariant.Primary" />
+                <OmniButton Text="Próximo" TrailingIcon="arrow-right" Variant="ButtonVariant.Primary" />
+                <OmniButton Text="Baixar relatório" Icon="download" />
+                <OmniButton Icon="settings" IconOnly />
+                <OmniButton Icon="more-vertical" IconOnly Variant="ButtonVariant.Ghost" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LOADING STATE"
+                         Description="Loading=true mostra Spinner inline, desabilita click, mantém largura."
+                         Code="@(@"<OmniButton Text=""Salvar"" Variant=""ButtonVariant.Primary"" Icon=""save""
+             Loading=""@loading"" LoadingText=""Salvando...""
+             OnClick=""OnLoadingDemo"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Salvar"
+                             Variant="ButtonVariant.Primary"
+                             Icon="save"
+                             Loading="@loading"
+                             LoadingText="Salvando..."
+                             OnClick="OnLoadingDemo" />
+                <OmniButton Text="Recarregar" Icon="refresh" Loading="@loading" OnClick="OnLoadingDemo" />
+                <OmniButton IconOnly Icon="refresh" Variant="ButtonVariant.Ghost" Loading="@loading" OnClick="OnLoadingDemo" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESTADOS"
+                         Description="Disabled bloqueia interação; Block ocupa 100% da largura disponível."
+                         Code="@(@"<OmniButton Text=""Disabled"" Disabled />
+<OmniButton Text=""Disabled primary"" Variant=""ButtonVariant.Primary"" Disabled />
+<OmniButton Text=""Block (100%)"" Variant=""ButtonVariant.Primary"" Block />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-8">
+                <OmniButton Text="Disabled" Disabled />
+                <OmniButton Text="Disabled primary" Variant="ButtonVariant.Primary" Disabled />
+                <OmniButton Text="Block (100%)" Variant="ButtonVariant.Primary" Block />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null"
+                            Description="Rótulo textual do botão. Ignorado se ChildContent for usado." />
+            <ShowcaseApiRow Name="Variant" Type="ButtonVariant" Default="Default"
+                            Description="Hierarquia visual — Default, Primary, Ghost, Danger, Link." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Tamanho do botão — Sm, Md, Lg, Xl." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null"
+                            Description="Ícone exibido antes do texto." />
+            <ShowcaseApiRow Name="TrailingIcon" Type="string?" Default="null"
+                            Description="Ícone exibido depois do texto." />
+            <ShowcaseApiRow Name="IconOnly" Type="bool" Default="false"
+                            Description="Renderiza o botão quadrado, só com o ícone." />
+            <ShowcaseApiRow Name="Block" Type="bool" Default="false"
+                            Description="Ocupa 100% da largura do container." />
+            <ShowcaseApiRow Name="Loading" Type="bool" Default="false"
+                            Description="Mostra spinner inline, desabilita o clique e preserva a largura." />
+            <ShowcaseApiRow Name="LoadingText" Type="string?" Default="null"
+                            Description="Rótulo alternativo exibido enquanto Loading é true." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
+                            Description="Desabilita a interação e aplica o estilo inativo." />
+            <ShowcaseApiRow Name="Type" Type="string" Default="button"
+                            Description="Atributo type do &lt;button&gt; — button, submit ou reset." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo customizado em vez de Text." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Eventos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback&lt;MouseEventArgs&gt;" ShowDefault="false"
+                            Description="Disparado no clique. Ignorado quando Disabled ou Loading." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool loading;
+
+    private async Task OnLoadingDemo(MouseEventArgs _)
+    {
+        loading = true;
+        await Task.Delay(1800);
+        loading = false;
+    }
+}

@@ -1,0 +1,29 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<bool>
+@using Omni.Blazor.Utilities
+
+<label class="@RootCss" style="@Style" @attributes="Attributes">
+    <input type="checkbox"
+           class="omni-switch-input"
+           checked="@Value"
+           disabled="@Disabled"
+           name="@Name"
+           @onchange="OnChange" />
+    @if (ChildContent is not null) { @ChildContent }
+    else if (!string.IsNullOrEmpty(Label)) { <span>@Label</span> }
+</label>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-switch")
+        .AddClass(Class)
+        .Build();
+
+    private Task OnChange(ChangeEventArgs e)
+    {
+        var v = e.Value is bool b && b;
+        return SetValueAsync(v);
+    }
+}

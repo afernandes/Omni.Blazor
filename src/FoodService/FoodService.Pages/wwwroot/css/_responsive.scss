@@ -1,0 +1,239 @@
+// ============================================================================
+// RESPONSIVE — todas as media queries vão AQUI (último import).
+// Garante que as regras override TODAS as regras base de outros parciais.
+// ============================================================================
+
+// ─── Tablet (901-1100px) — aside narrower ─────────────────────────────
+@media (min-width: 901px) and (max-width: 1100px) {
+  .fs-pdv-page {
+    grid-template-columns: 1fr 320px;
+  }
+  .fs-pdv-aside { font-size: 13px; }
+}
+
+// ─── Narrow (<= 900px) — aside collapses, top bar simplifies ─────────
+@media (max-width: 900px) {
+  // Topbar: hide tenant + omnibox-kbd + user-meta (keep brand + avatar)
+  .fs-pdv-tenant,
+  .fs-pdv-brand-sep,
+  .fs-pdv-topbar-kbd,
+  .fs-pdv-topbar-user-meta {
+    display: none;
+  }
+  .fs-pdv-topbar-user { padding-left: 8px; border-left: 0; }
+
+  // Action bar: esconde labels, mantém só ícones (mock behavior em narrow)
+  // Mantém "+ Novo pedido" com texto pois é a ação primária
+  .fs-pdv-actbar { padding: 8px 12px; gap: 4px; }
+  .fs-pdv-actbar-btn {
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+  }
+  .fs-pdv-actbar-btn-lbl { display: none; }
+  .fs-pdv-actbar-btn-icon { width: 32px; padding: 0; justify-content: center; }
+
+  // PDV page grid: single column (no aside)
+  .fs-pdv-page {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "main"
+      "footer";
+  }
+  .fs-pdv-aside { display: none; }
+
+  // Narrow-strip dentro do main: customer + modes + mode details
+  .fs-pdv-narrow-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    margin: -12px -12px 8px;
+    background: var(--omni-bg-elev);
+    border-bottom: 1px solid var(--omni-line);
+  }
+
+  // Paused bar: esconde label "PEDIDOS EM ATENDIMENTO" — só tabs ficam
+  // Scroll horizontal (offcanvas style) — tabs nowrap deslizando
+  .fs-pdv-paused-label { display: none; }
+  .fs-pdv-paused-bar {
+    padding: 6px 0;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .fs-pdv-paused-bar::-webkit-scrollbar { display: none; }
+  .fs-pdv-paused-tab,
+  .fs-pdv-paused-pause-btn { flex-shrink: 0; white-space: nowrap; }
+
+  // Mode accordion: header VISÍVEL em narrow, body colapsa
+  .fs-pdv-mode-acc-head { display: flex !important; }
+  .fs-pdv-mode-acc:not(.is-open) .fs-pdv-mode-acc-body { display: none; }
+  .fs-pdv-mode-acc.is-open .fs-pdv-mode-acc-body {
+    padding: 12px 0 0;
+    border-top: 1px solid var(--omni-line);
+  }
+  // Mode acc em narrow: remover bordas externas (já tem bg-elev no narrow-strip)
+  .fs-pdv-narrow-strip .fs-pdv-mode-acc {
+    margin: 0 -12px;
+    border-radius: 0;
+  }
+  .fs-pdv-narrow-strip .fs-pdv-mode-acc-head {
+    border-top: 1px solid var(--omni-line);
+    border-bottom: 0;
+  }
+  .fs-pdv-narrow-strip .fs-pdv-mode-acc.is-open .fs-pdv-mode-acc-body {
+    padding: 12px;
+  }
+
+  .fs-pdv-main { padding: 12px 12px 0; gap: 10px; }
+}
+
+// ─── Mobile (<= 760px) — sidebar collapses + footer single row ───────
+// Touch targets: alvos mínimos 44×44px (Apple HIG / ~48dp Material) — em wide,
+// `Size=Sm` é compacto para densidade de teclado; em mobile o dedo precisa
+// de mais área. Overrides abaixo elevam botões da topbar e actbar.
+@media (max-width: 760px) {
+  // Sidebar hide é gerenciado automaticamente pelo OmniDrawer Responsive
+  // (variant Temporary em mobile, com hamburger no AppBar). Sem necessidade
+  // de override de grid aqui — o OmniLayout colapsa a coluna via :has().
+
+  // Topbar: hamburger + icon buttons → 44×44 touch targets.
+  // Seletor com .omni-btn supera a especificidade de .omni-btn-icon-sm do Omni.
+  .omni-btn.fs-pdv-hamburger,
+  .omni-btn.fs-pdv-topbar-iconbtn {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+
+  // Action bar mobile: labels já escondidos desde 900px (32×32 ali),
+  // aqui elevamos para 44×44 (touch). Override do width: 32px do bloco 900px
+  // e do .omni-btn-icon (mesma especificidade — precisa de .omni-btn em conjunto).
+  // flex-shrink: 0 garante que os 44px não encolham quando a actbar não cabe
+  // (a primary tem texto "+ Novo pedido" + spacer ocupando o restante).
+  // overflow-x: auto permite scroll horizontal quando o conjunto extrapola o
+  // viewport — mesmo padrão usado em .fs-pdv-paused-bar.
+  .fs-pdv-actbar {
+    padding: 6px 8px;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .fs-pdv-actbar::-webkit-scrollbar { display: none; }
+  .omni-btn.fs-pdv-actbar-btn {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .omni-btn.fs-pdv-actbar-btn-icon {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+  .omni-btn.fs-pdv-actbar-primary {
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  // Topbar tight
+  .fs-pdv-topbar { padding: 0 10px; gap: 8px; }
+
+  // Main tight
+  .fs-pdv-main { padding: 8px 10px 0; }
+  .fs-pdv-narrow-strip {
+    margin: -8px -10px 8px;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  // ── FOOTER mobile — única linha: Ajustar | Total | Finalizar ────
+  // Esconde ITENS/SUBTOTAL/etc (meta) para caber tudo numa linha
+  .fs-pdv-footer {
+    padding: 8px 10px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .fs-pdv-footer-meta { display: none; }
+  .fs-pdv-footer-actions {
+    flex: 1;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .fs-pdv-footer-adjust {
+    min-height: 48px;
+    padding: 0 14px;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+  .fs-pdv-footer-total {
+    min-width: auto;
+    padding: 0 4px;
+    flex: 1;
+    align-items: center;
+  }
+  .fs-pdv-footer-total-label { font-size: 9px; }
+  .fs-pdv-footer-total-val { font-size: 18px; gap: 4px; }
+  .fs-pdv-footer-total-val > .omni-icon { width: 14px; height: 14px; }
+  .fs-pdv-footer-finish {
+    min-height: 48px;
+    padding: 0 18px;
+    font-size: 13px;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+  .fs-pdv-footer-finish > kbd { font-size: 10px; padding: 1px 4px; }
+
+  // Paused-bar: nowrap + scroll horizontal (offcanvas-style)
+  .fs-pdv-paused-bar {
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .fs-pdv-paused-bar::-webkit-scrollbar { display: none; }
+  .fs-pdv-paused-tab { flex-shrink: 0; }
+  .fs-pdv-paused-pause-btn {
+    font-size: 11.5px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .fs-pdv-paused-pause-btn > kbd { display: none; }
+
+  // Omnibox compacta
+  .fs-pdv-omni { height: 44px; padding: 0 12px; gap: 8px; }
+  .fs-pdv-omni input { font-size: 13px; text-overflow: ellipsis; }
+  .fs-pdv-omni-help { width: 22px; height: 22px; font-size: 12px; flex-shrink: 0; }
+
+  // Cart head buttons (Cardápio/Limpar) — sem kbd em mobile
+  .fs-pdv-cart-head-btn > kbd { display: none; }
+  .fs-pdv-cart-head-btn { padding: 0 10px; }
+
+  // Mesa picker grid: cells precisam ser >=44×44 para touch confortável
+  // (aspect-ratio 1:1 mantém quadrado — min-width controla; height segue)
+  .fs-pdv-mesa-cell { min-width: 44px; min-height: 44px; }
+}
+
+// ============================================================================
+// HAMBURGER toggle do sidebar — agora é o OmniDrawerToggle nativo da biblioteca.
+//
+// Em desktop: drawer Persistent (collapsa coluna via :has() no OmniLayout)
+// Em mobile (≤Md): drawer Temporary com overlay + backdrop + focus trap +
+//                  Esc handler + body scroll lock (tudo via OverlayLifecycle)
+//
+// REMOVIDO POIS ERA SUBSTITUÍDO POR OmniDrawer:
+//   .fs-pdv-shell[data-side-open=...] / .fs-pdv-shell-backdrop / etc.
+// ============================================================================

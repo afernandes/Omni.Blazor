@@ -1,0 +1,1367 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@implements IDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Utilities
+
+<CascadingValue Value="this" IsFixed="true">
+    <div class="@RootCss" style="@RootInlineStyle" @attributes="Attributes">
+        @if (!Embed && (ToolbarContent is not null || AllowSearch || AllowExport || AllowColumnVisibility))
+        {
+            <div class="omni-grid-toolbar">
+                @if (AllowSearch)
+                {
+                    <OmniTextBox Class="omni-grid-search"
+                                  Placeholder="@SearchPlaceholder"
+                                  LeadingIcon="search"
+                                  Clearable="true"
+                                  Value="@_search"
+                                  ValueChanged="OnSearchChangedAsync" />
+                }
+                @ToolbarContent
+                <div style="flex:1"></div>
+                @if (AllowColumnVisibility)
+                {
+                    <div class="omni-grid-colmenu-wrap">
+                        <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm" Icon="settings"
+                                     OnClick="@(_ => { _colMenuOpen = !_colMenuOpen; return Task.CompletedTask; })" />
+                        @if (_colMenuOpen)
+                        {
+                            <div class="omni-grid-colmenu" @onclick:stopPropagation>
+                                <div class="omni-grid-colmenu-title">Colunas visíveis</div>
+                                @foreach (var col in _columns.Where(c => c.CanHide && !string.IsNullOrEmpty(c.Title)))
+                                {
+                                    <label class="omni-grid-colmenu-item">
+                                        <input type="checkbox"
+                                               checked="@col.VisibleInternal"
+                                               @onchange="@(e => ToggleColumn(col, (bool)e.Value!))" />
+                                        <span>@col.Title</span>
+                                    </label>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                @if (AllowExport)
+                {
+                    <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm" Icon="download"
+                                 Text="Exportar" OnClick="ExportCsvAsync" />
+                }
+            </div>
+        }
+
+        @* Hidden column registration *@
+        <div style="display:none">@Columns</div>
+
+        <div class="omni-grid-scroller">
+            @if (_loading && LoadingTemplate is null && !LoadingSkeleton)
+            {
+                <div class="omni-grid-loading" aria-live="polite" aria-busy="true">
+                    <OmniSpinner Size="ComponentSize.Md" />
+                </div>
+            }
+            else if (_loading && LoadingTemplate is not null)
+            {
+                <div class="omni-grid-loading" aria-live="polite" aria-busy="true">
+                    @LoadingTemplate
+                </div>
+            }
+            <table class="omni-grid-table">
+                <thead>
+                    <tr>
+                        @if (AllowMultiSelection)
+                        {
+                            <th class="omni-grid-th-select" style="width: 36px;" @onclick:stopPropagation>
+                                <OmniCheckBox Value="@AllSelectedOnPage" ValueChanged="OnHeaderSelectChangedAsync" />
+                            </th>
+                        }
+                        @if (DetailTemplate is not null)
+                        {
+                            <th class="omni-grid-th-expand" style="width: 36px;"></th>
+                        }
+                        @foreach (var c in VisibleColumns)
+                        {
+                            <th class="@($"{HeaderCss(c)} {CellCss(c)}")" style="@CellStyle(c)"
+                                @onclick="@(e => OnHeaderClickAsync(c, e))">
+                                @c.Title
+                                @if (c.Sortable && AllowSorting)
+                                {
+                                    <span class="omni-grid-th-sort-ico">
+                                        <OmniIcon Name="@SortIcon(c)" Size="ComponentSize.Sm" />
+                                    </span>
+                                    var sortIdx = GetSortIndex(c);
+                                    if (sortIdx is not null && _sorts.Count > 1)
+                                    {
+                                        <span class="omni-grid-th-sort-idx">@(sortIdx + 1)</span>
+                                    }
+                                }
+                            </th>
+                        }
+                        @if (EditMode != DataGridEditMode.None)
+                        {
+                            <th style="width: 110px;"></th>
+                        }
+                    </tr>
+                    @if (AllowColumnFilter && _columns.Any(c => c.Filterable))
+                    {
+                        <tr class="omni-grid-filter-row">
+                            @if (AllowMultiSelection) { <td></td> }
+                            @if (DetailTemplate is not null) { <td></td> }
+                            @foreach (var c in VisibleColumns)
+                            {
+                                <td class="@($"omni-grid-filter-cell {CellCss(c)}")" style="@CellStyle(c)">
+                                    @if (c.Filterable)
+                                    {
+                                        var filter = _filters.TryGetValue(c, out var f) ? f : null;
+                                        <OmniTextBox Value="@(filter?.Value as string)"
+                                                      ValueChanged="@(v => OnFilterTextChangedAsync(c, v))"
+                                                      Placeholder="Filtrar..."
+                                                      Clearable="true"
+                                                      Class="omni-grid-filter-input" />
+                                    }
+                                </td>
+                            }
+                            @if (EditMode != DataGridEditMode.None)
+                            {
+                                <td></td>
+                            }
+                        </tr>
+                    }
+                </thead>
+                <tbody>
+                    @{
+                        var anchorCol = HierarchyAnchorColumn;
+                        var totalRows = IsHierarchyMode ? _flatView.Count : _view.Count;
+                    }
+                    @if (_loading && LoadingSkeleton && LoadingTemplate is null)
+                    {
+                        @RenderLoadingSkeleton
+                    }
+                    else if (totalRows == 0 && !_loading)
+                    {
+                        <tr><td colspan="@TotalColCount" class="omni-grid-empty">
+                            @if (EmptyTemplate is not null) { @EmptyTemplate }
+                            else { @EmptyText }
+                        </td></tr>
+                    }
+                    else if (IsHierarchyMode)
+                    {
+                        @if (Virtualize)
+                        {
+                            <OmniVirtualize TItem="TreeRow" Items="@_flatView" SpacerElement="tr"
+                                             ItemSize="@RowHeight" OverscanCount="@OverscanCount">
+                                <ItemContent Context="treeRow">
+                                    @RenderTreeRowFragment(treeRow)
+                                </ItemContent>
+                            </OmniVirtualize>
+                        }
+                        else
+                        {
+                            foreach (var treeRow in _flatView)
+                            {
+                                @RenderTreeRowFragment(treeRow)
+                            }
+                        }
+                    }
+                    else
+                    {
+                        @if (Virtualize)
+                        {
+                            <OmniVirtualize TItem="TItem" Items="@_view" SpacerElement="tr"
+                                             ItemSize="@RowHeight" OverscanCount="@OverscanCount">
+                                <ItemContent Context="row">
+                                    @RenderFlatRowFragment(row)
+                                </ItemContent>
+                            </OmniVirtualize>
+                        }
+                        else
+                        {
+                            foreach (var row in _view)
+                            {
+                                @RenderFlatRowFragment(row)
+                            }
+                        }
+                    }
+                </tbody>
+                @if (ShowAggregateRow && _columns.Any(c => c.Aggregate.HasValue))
+                {
+                    <tfoot>
+                        <tr class="omni-grid-aggregate-row">
+                            @if (AllowMultiSelection) { <td></td> }
+                            @if (DetailTemplate is not null) { <td></td> }
+                            @foreach (var c in VisibleColumns)
+                            {
+                                <td class="@CellCss(c)" style="@CellStyle(c)">
+                                    @if (c.Aggregate.HasValue)
+                                    {
+                                        var v = GetAggregateForColumn(c);
+                                        <span class="omni-grid-aggregate-label">@AggregateLabel(c.Aggregate!.Value)</span>
+                                        <span class="omni-grid-aggregate-value">@FormatAggregate(c, v)</span>
+                                    }
+                                </td>
+                            }
+                            @if (EditMode != DataGridEditMode.None)
+                            {
+                                <td></td>
+                            }
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+
+        @if (EffectivePaging && _totalCount > PageSize)
+        {
+            <div class="omni-grid-footer">
+                <span>@_pageStart–@_pageEnd de @_totalCount</span>
+                <div class="omni-grid-pager">
+                    <OmniButton Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" IconOnly Icon="chevron-left"
+                                 Disabled="@(_page == 0)"
+                                 OnClick="OnPrevPageAsync" />
+                    <span style="padding: 0 8px;">@(_page + 1) / @TotalPages</span>
+                    <OmniButton Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" IconOnly Icon="chevron-right"
+                                 Disabled="@(_page >= TotalPages - 1)"
+                                 OnClick="OnNextPageAsync" />
+                </div>
+            </div>
+        }
+    </div>
+</CascadingValue>
+
+@code {
+    // ——— Data source ————————————————————————————————————————————————————
+    /// <summary>Fonte de dados in-memory. Ignorado se <see cref="LoadData"/> for setado.</summary>
+    [Parameter] public IEnumerable<TItem>? Data { get; set; }
+
+    /// <summary>
+    /// Callback server-side. Quando setado, o DataGrid delega filter/sort/page
+    /// ao consumidor. O retorno é a janela de items a renderizar + total count.
+    /// </summary>
+    [Parameter] public Func<GridState<TItem>, Task<GridLoadResult<TItem>>>? LoadData { get; set; }
+
+    /// <summary>Override do total quando server-side (caso o consumidor não preencha <c>TotalCount</c> no resultado).</summary>
+    [Parameter] public int? Count { get; set; }
+
+    /// <summary>Debounce (ms) entre keystrokes na busca antes de chamar <c>LoadData</c>.</summary>
+    [Parameter] public int DebounceMs { get; set; } = 300;
+
+    [Parameter] public RenderFragment? Columns { get; set; }
+    [Parameter] public RenderFragment? ToolbarContent { get; set; }
+    [Parameter] public bool AllowSearch { get; set; }
+    [Parameter] public bool AllowSorting { get; set; } = true;
+    [Parameter] public bool AllowPaging { get; set; } = true;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public string SearchPlaceholder { get; set; } = "Buscar...";
+    [Parameter] public string EmptyText { get; set; } = "Nenhum registro encontrado.";
+    [Parameter] public EventCallback<TItem> OnRowClick { get; set; }
+
+    /// <summary>
+    /// When true, renders without outer border/radius and stretches to fill its
+    /// parent (flex:1 + min-height:0). Internal toolbar is hidden — render your
+    /// own <c>OmniPaneHeader</c>/<c>OmniPaneToolbar</c> above.
+    /// </summary>
+    [Parameter] public bool Embed { get; set; }
+
+    /// <summary>Enables inline editing. Each column needs an EditTemplate to be editable.</summary>
+    [Parameter] public DataGridEditMode EditMode { get; set; } = DataGridEditMode.None;
+
+    /// <summary>Fired when the user confirms an inline edit (clicks check). Use to persist changes.</summary>
+    [Parameter] public EventCallback<TItem> RowUpdated { get; set; }
+
+    /// <summary>Shows a "Exportar" button in the toolbar that downloads visible rows as CSV.</summary>
+    [Parameter] public bool AllowExport { get; set; }
+    [Parameter] public string ExportFilename { get; set; } = "export.csv";
+
+    /// <summary>Shows the column visibility menu in the toolbar.</summary>
+    [Parameter] public bool AllowColumnVisibility { get; set; }
+
+    /// <summary>
+    /// Renderiza uma linha de agregação (<c>&lt;tfoot&gt;</c>) somando/contando/etc.
+    /// colunas que definam <see cref="OmniDataGridColumn{TItem}.Aggregate"/>.
+    /// Em modo server-side, valores vêm de <see cref="GridLoadResult{TItem}.Aggregates"/>;
+    /// client-side, calculados sobre o dataset filtrado completo (não só a página atual).
+    /// </summary>
+    [Parameter] public bool ShowAggregateRow { get; set; }
+
+    /// <summary>
+    /// Habilita uma linha de filtros por coluna abaixo do header. Só colunas com
+    /// <see cref="OmniDataGridColumn{TItem}.Filterable"/> exibem o input.
+    /// </summary>
+    [Parameter] public bool AllowColumnFilter { get; set; }
+
+    // ——— Multi-selection ———————————————————————————————————————————————
+    /// <summary>Habilita uma coluna de checkbox à esquerda para seleção múltipla.</summary>
+    [Parameter] public bool AllowMultiSelection { get; set; }
+
+    /// <summary>Itens selecionados. Quando setado pelo consumidor (via <c>@bind-SelectedItems</c>), o DataGrid usa essa referência diretamente.</summary>
+    [Parameter] public HashSet<TItem>? SelectedItems { get; set; }
+
+    /// <summary>Emitido quando a seleção muda. O argumento é o set atual.</summary>
+    [Parameter] public EventCallback<HashSet<TItem>> SelectedItemsChanged { get; set; }
+
+    // ——— Row expand (master-detail) ————————————————————————————————————
+    /// <summary>Template renderizado abaixo da linha quando ela está expandida.</summary>
+    [Parameter] public RenderFragment<TItem>? DetailTemplate { get; set; }
+
+    /// <summary>Single = apenas uma linha expandida por vez; Multi = quantas o usuário quiser.</summary>
+    [Parameter] public ExpandMode ExpandMode { get; set; } = ExpandMode.Single;
+
+    /// <summary>Emitido quando uma linha é expandida.</summary>
+    [Parameter] public EventCallback<TItem> OnRowExpand { get; set; }
+
+    /// <summary>Emitido quando uma linha é colapsada.</summary>
+    [Parameter] public EventCallback<TItem> OnRowCollapse { get; set; }
+
+    // ——— Hierarquia / Tree-grid ———————————————————————————————————————
+    /// <summary>
+    /// Função síncrona que retorna os filhos de um item. Quando setada, o grid
+    /// vira tree-grid: cada linha pode expandir mostrando filhos com indentação.
+    /// Multi-nível recursivo.
+    /// </summary>
+    [Parameter] public Func<TItem, IEnumerable<TItem>?>? ChildrenSelector { get; set; }
+
+    /// <summary>
+    /// Callback assíncrono que carrega os filhos sob demanda. Disparado na primeira
+    /// expansão de cada nó. Resultado é cacheado. Mutuamente exclusivo com <see cref="ChildrenSelector"/>;
+    /// se ambos estiverem setados, <c>ChildrenSelector</c> tem prioridade.
+    /// </summary>
+    [Parameter] public Func<TItem, Task<IEnumerable<TItem>?>>? LoadChildren { get; set; }
+
+    /// <summary>
+    /// Predicado opcional que decide se uma linha tem filhos (mostra o chevron).
+    /// Útil em modo <see cref="LoadChildren"/> onde a contagem só é conhecida após o load.
+    /// Default: assume <c>true</c> quando <c>LoadChildren</c> está setado.
+    /// </summary>
+    [Parameter] public Func<TItem, bool>? HasChildren { get; set; }
+
+    /// <summary>Pixels de indentação por nível. Default 20.</summary>
+    [Parameter] public int IndentSize { get; set; } = 20;
+
+    /// <summary>Quando true, expande todos os nós no primeiro render. Default false.</summary>
+    [Parameter] public bool InitiallyExpanded { get; set; }
+
+    /// <summary>
+    /// Função opcional que retorna classes CSS extras por linha — útil para destacar
+    /// linhas específicas (ex: "linha atual", "registro com pendência"). Aplicado em
+    /// conjunto com as classes internas (selecionado, edição, etc.).
+    /// </summary>
+    [Parameter] public Func<TItem, string?>? RowClass { get; set; }
+
+    // ——— Empty / Loading templates ————————————————————————————————————
+    /// <summary>
+    /// Slot custom para o estado vazio. Substitui o <see cref="EmptyText"/> quando setado.
+    /// Permite ícone + título + CTA ricos.
+    /// </summary>
+    [Parameter] public RenderFragment? EmptyTemplate { get; set; }
+
+    /// <summary>
+    /// Slot custom para o overlay de loading. Substitui o spinner default quando setado.
+    /// </summary>
+    [Parameter] public RenderFragment? LoadingTemplate { get; set; }
+
+    /// <summary>
+    /// Quando true e <see cref="LoadingTemplate"/> não está setado, renderiza linhas
+    /// de <c>OmniSkeleton</c> em vez do spinner — mais elegante para listas longas.
+    /// </summary>
+    [Parameter] public bool LoadingSkeleton { get; set; }
+
+    // ——— Virtualization ———————————————————————————————————————————————
+    /// <summary>
+    /// Liga a virtualização do <c>&lt;tbody&gt;</c>: somente as linhas visíveis
+    /// (e um overscan pequeno) são montadas no DOM. **Ignora <see cref="AllowPaging"/>**
+    /// — paging e virtualize são mutuamente exclusivos. Requer <see cref="Height"/>
+    /// definido (default <c>520px</c>). Implementação via <c>OmniVirtualize</c>
+    /// com <c>SpacerElement="tr"</c>.
+    /// </summary>
+    [Parameter] public bool Virtualize { get; set; }
+
+    /// <summary>Altura fixa (px) por linha quando virtualize ativo. Default 44.</summary>
+    [Parameter] public float RowHeight { get; set; } = 44;
+
+    /// <summary>Linhas extras renderizadas fora do viewport. Default 4.</summary>
+    [Parameter] public int OverscanCount { get; set; } = 4;
+
+    /// <summary>
+    /// Altura do scroller. Obrigatória quando virtualize ativo (default <c>520px</c>
+    /// é aplicado automaticamente se não setado).
+    /// </summary>
+    [Parameter] public string? Height { get; set; }
+
+    private readonly List<OmniDataGridColumn<TItem>> _columns = new();
+    private List<TItem> _view = new();
+    // Multi-column sort: ordem importa, primeiro = critério primário
+    private readonly List<(OmniDataGridColumn<TItem> Col, SortDirection Dir)> _sorts = new();
+    private string? _search;
+    private int _page;
+    private int _totalCount;
+    private int _pageStart;
+    private int _pageEnd;
+    private TItem? _editingRow;
+    private bool _colMenuOpen;
+    private bool _loading;
+    private System.Threading.Timer? _searchDebounceTimer;
+    private CancellationTokenSource? _loadCts;
+    private int _loadSeq;
+    private IReadOnlyDictionary<string, object?>? _serverAggregates;
+    private readonly Dictionary<OmniDataGridColumn<TItem>, FilterDescriptor> _filters = new();
+    private readonly HashSet<TItem> _selectedInternal = new();
+    private readonly HashSet<TItem> _expanded = new();
+
+    private HashSet<TItem> Selection => SelectedItems ?? _selectedInternal;
+
+    // Tree-grid state
+    private readonly HashSet<TItem> _treeExpanded = new();
+#pragma warning disable CS8714 // TItem may not satisfy 'notnull' — usuário garante chaves não-nulas via ChildrenSelector/LoadChildren
+    private readonly Dictionary<TItem, List<TItem>> _treeChildrenCache = new();
+#pragma warning restore CS8714
+    private readonly HashSet<TItem> _treeLoading = new();
+    private List<TreeRow> _flatView = new();
+    private bool _initiallyExpandedApplied;
+
+    private bool IsHierarchyMode => ChildrenSelector is not null || LoadChildren is not null;
+
+    private sealed record TreeRow(TItem Item, int Level, bool HasChildren);
+
+    // Frozen column inline styles (recomputed when visible columns / widths change)
+    private readonly Dictionary<OmniDataGridColumn<TItem>, (string Css, string Style)> _frozenStyles = new();
+
+    private IEnumerable<OmniDataGridColumn<TItem>> VisibleColumns =>
+        _columns.Where(c => c.VisibleInternal);
+
+    private int TotalColCount =>
+        VisibleColumns.Count()
+        + (AllowMultiSelection ? 1 : 0)
+        + (DetailTemplate is not null ? 1 : 0)
+        + (EditMode != DataGridEditMode.None ? 1 : 0);
+
+    private bool AllSelectedOnPage => _view.Count > 0 && _view.All(it => Selection.Contains(it));
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_totalCount / (double)PageSize));
+
+    /// <summary>Paging efetivo: desligado quando virtualize está ativo (são mutuamente exclusivos).</summary>
+    private bool EffectivePaging => AllowPaging && !Virtualize;
+
+    private string RootCss => CssBuilder.Default("omni-grid")
+        .AddClass("omni-grid-embed", Embed)
+        .AddClass(Class)
+        .Build();
+
+    internal void Register(OmniDataGridColumn<TItem> col)
+    {
+        if (!_columns.Contains(col)) { _columns.Add(col); _ = ApplyAndRenderAsync(); }
+    }
+    internal void Unregister(OmniDataGridColumn<TItem> col) => _columns.Remove(col);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ApplyAndRenderAsync();
+    }
+
+    private async Task OnSearchChangedAsync(string? value)
+    {
+        _search = value;
+        _page = 0;
+        if (LoadData is not null && DebounceMs > 0)
+        {
+            ScheduleDebouncedApply();
+        }
+        else
+        {
+            await ApplyAndRenderAsync();
+        }
+    }
+
+    private void ScheduleDebouncedApply()
+    {
+        _searchDebounceTimer?.Dispose();
+        _searchDebounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(ApplyAndRenderAsync);
+        }, null, DebounceMs, System.Threading.Timeout.Infinite);
+    }
+
+    private async Task OnPrevPageAsync()
+    {
+        if (_page == 0) return;
+        _page--;
+        await ApplyAndRenderAsync();
+    }
+
+    private async Task OnNextPageAsync()
+    {
+        if (_page >= TotalPages - 1) return;
+        _page++;
+        await ApplyAndRenderAsync();
+    }
+
+    private async Task ApplyAndRenderAsync()
+    {
+        if (LoadData is not null)
+        {
+            await ApplyServerSideAsync();
+        }
+        else
+        {
+            ApplyInMemory();
+        }
+
+        if (IsHierarchyMode)
+        {
+            if (InitiallyExpanded && !_initiallyExpandedApplied)
+            {
+                _initiallyExpandedApplied = true;
+                foreach (var root in _view) await WalkExpandAsync(root);
+            }
+            await FlattenTreeAsync();
+        }
+
+        RecomputeFrozenStyles();
+        StateHasChanged();
+    }
+
+    private void ApplyInMemory()
+    {
+        var src = (Data ?? Enumerable.Empty<TItem>()).AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var q = _search.Trim();
+            src = src.Where(it => _columns.Any(c =>
+                c.GetCellText(it)?.Contains(q, StringComparison.OrdinalIgnoreCase) == true));
+        }
+        src = ApplyColumnFilters(src);
+        src = ApplyMultiSort(src);
+        var list = src.ToList();
+        _totalCount = list.Count;
+        if (EffectivePaging)
+        {
+            _page = Math.Min(_page, Math.Max(0, TotalPages - 1));
+            _view = list.Skip(_page * PageSize).Take(PageSize).ToList();
+            _pageStart = _totalCount == 0 ? 0 : _page * PageSize + 1;
+            _pageEnd = Math.Min(_totalCount, (_page + 1) * PageSize);
+        }
+        else
+        {
+            _view = list;
+            _pageStart = list.Count == 0 ? 0 : 1;
+            _pageEnd = list.Count;
+        }
+    }
+
+    private async Task ApplyServerSideAsync()
+    {
+        // Cancel previous in-flight load — só o último request vale.
+        _loadCts?.Cancel();
+        _loadCts = new CancellationTokenSource();
+        var token = _loadCts.Token;
+        var seq = ++_loadSeq;
+
+        var sorts = _sorts
+            .Where(s => s.Dir != SortDirection.None)
+            .Select(s => new SortDescriptor(s.Col.ResolvedPropertyName, s.Dir))
+            .ToList();
+
+        var skip = EffectivePaging ? _page * PageSize : 0;
+        var top  = EffectivePaging ? PageSize        : int.MaxValue;
+
+        var state = new GridState<TItem>(
+            Skip: skip,
+            Top: top,
+            Search: string.IsNullOrWhiteSpace(_search) ? null : _search!.Trim(),
+            Sort: sorts,
+            Filters: _filters.Values.ToList(),
+            GroupBy: Array.Empty<string>());
+
+        _loading = true;
+        StateHasChanged();
+        GridLoadResult<TItem>? result = null;
+        try
+        {
+            result = await LoadData!(state);
+            if (token.IsCancellationRequested || seq != _loadSeq) return;
+        }
+        catch (OperationCanceledException) { return; }
+        finally
+        {
+            if (seq == _loadSeq) _loading = false;
+        }
+
+        if (result is null) { _view = new(); _totalCount = 0; _serverAggregates = null; return; }
+        _view = result.Items.ToList();
+        _totalCount = Count ?? result.TotalCount;
+        _serverAggregates = result.Aggregates;
+        if (EffectivePaging)
+        {
+            // Don't reset _page here — server controls pagination.
+            _page = Math.Min(_page, Math.Max(0, TotalPages - 1));
+            _pageStart = _totalCount == 0 ? 0 : _page * PageSize + 1;
+            _pageEnd = Math.Min(_totalCount, _page * PageSize + _view.Count);
+        }
+        else
+        {
+            _pageStart = _view.Count == 0 ? 0 : 1;
+            _pageEnd = _view.Count;
+        }
+    }
+
+    private async Task OnHeaderClickAsync(OmniDataGridColumn<TItem> c, MouseEventArgs e)
+    {
+        if (!AllowSorting || !c.Sortable) return;
+        var existing = _sorts.FindIndex(s => s.Col == c);
+        var shift = e.ShiftKey;
+
+        if (existing >= 0)
+        {
+            var current = _sorts[existing].Dir;
+            var next = current switch
+            {
+                SortDirection.Ascending => SortDirection.Descending,
+                SortDirection.Descending => SortDirection.None,
+                _ => SortDirection.Ascending
+            };
+            if (next == SortDirection.None)
+            {
+                _sorts.RemoveAt(existing);
+            }
+            else
+            {
+                _sorts[existing] = (c, next);
+            }
+            if (!shift)
+            {
+                // Sem Shift: mantém só esta coluna como critério único (a menos que tenha removido)
+                var keep = _sorts.FirstOrDefault(s => s.Col == c);
+                _sorts.Clear();
+                if (keep.Col is not null) _sorts.Add(keep);
+            }
+        }
+        else
+        {
+            if (!shift) _sorts.Clear();
+            _sorts.Add((c, SortDirection.Ascending));
+        }
+
+        _page = 0;
+        await ApplyAndRenderAsync();
+    }
+
+    private SortDirection? GetSortDir(OmniDataGridColumn<TItem> c)
+    {
+        var idx = _sorts.FindIndex(s => s.Col == c);
+        return idx >= 0 ? _sorts[idx].Dir : null;
+    }
+
+    private int? GetSortIndex(OmniDataGridColumn<TItem> c)
+    {
+        var idx = _sorts.FindIndex(s => s.Col == c);
+        return idx >= 0 ? idx : null;
+    }
+
+    private string HeaderCss(OmniDataGridColumn<TItem> c)
+    {
+        if (!AllowSorting || !c.Sortable) return "";
+        var dir = GetSortDir(c);
+        return dir is null ? "omni-grid-th-sort" : "omni-grid-th-sort omni-active";
+    }
+
+    private string SortIcon(OmniDataGridColumn<TItem> c)
+    {
+        var dir = GetSortDir(c);
+        if (dir is null) return "chevron-down";
+        return dir == SortDirection.Ascending ? "chevron-up" : "chevron-down";
+    }
+
+    private IEnumerable<TItem> ApplyMultiSort(IEnumerable<TItem> src)
+    {
+        if (!AllowSorting || _sorts.Count == 0) return src;
+        IOrderedEnumerable<TItem>? ordered = null;
+        for (int i = 0; i < _sorts.Count; i++)
+        {
+            var (col, dir) = _sorts[i];
+            Func<TItem, object?> key = col.GetSortValue;
+            if (i == 0)
+            {
+                ordered = dir == SortDirection.Ascending
+                    ? src.OrderBy(key)
+                    : src.OrderByDescending(key);
+            }
+            else
+            {
+                ordered = dir == SortDirection.Ascending
+                    ? ordered!.ThenBy(key)
+                    : ordered!.ThenByDescending(key);
+            }
+        }
+        return ordered ?? src;
+    }
+
+    private string RowCss(TItem row, bool isEditing, bool isSelected)
+    {
+        var cls = "";
+        if (OnRowClick.HasDelegate) cls += "omni-grid-row-clickable ";
+        if (isEditing)              cls += "omni-grid-row-editing ";
+        if (isSelected)             cls += "omni-grid-row-selected ";
+        if (RowClass is not null)
+        {
+            var extra = RowClass(row);
+            if (!string.IsNullOrWhiteSpace(extra)) cls += extra + " ";
+        }
+        return cls.Trim();
+    }
+
+    // ——— Selection ————————————————————————————————————————————————————
+    private async Task OnHeaderSelectChangedAsync(bool value)
+    {
+        var sel = Selection;
+        if (value)
+        {
+            foreach (var it in _view) sel.Add(it);
+        }
+        else
+        {
+            foreach (var it in _view) sel.Remove(it);
+        }
+        await NotifySelectionChangedAsync();
+    }
+
+    private async Task OnRowSelectChangedAsync(TItem row, bool value)
+    {
+        var sel = Selection;
+        if (value) sel.Add(row); else sel.Remove(row);
+        await NotifySelectionChangedAsync();
+    }
+
+    private async Task NotifySelectionChangedAsync()
+    {
+        if (SelectedItemsChanged.HasDelegate)
+            await SelectedItemsChanged.InvokeAsync(Selection);
+        StateHasChanged();
+    }
+
+    // ——— Tree-grid (hierarquia) ————————————————————————————————————————
+    private OmniDataGridColumn<TItem>? HierarchyAnchorColumn =>
+        IsHierarchyMode
+            ? (VisibleColumns.FirstOrDefault(c => c.IsHierarchyAnchor) ?? VisibleColumns.FirstOrDefault())
+            : null;
+
+    private async Task FlattenTreeAsync()
+    {
+        _flatView.Clear();
+        foreach (var root in _view)
+        {
+            await AppendTreeNodeAsync(root, level: 0);
+        }
+    }
+
+    private async Task AppendTreeNodeAsync(TItem item, int level)
+    {
+        var children = await ResolveChildrenAsync(item, loadIfNeeded: false);
+        bool hasChildren = ResolveHasChildren(item, children);
+        _flatView.Add(new TreeRow(item, level, hasChildren));
+
+        if (_treeExpanded.Contains(item) && hasChildren)
+        {
+            var loaded = await ResolveChildrenAsync(item, loadIfNeeded: true);
+            if (loaded is not null)
+            {
+                foreach (var c in loaded) await AppendTreeNodeAsync(c, level + 1);
+            }
+        }
+    }
+
+    private async Task<List<TItem>?> ResolveChildrenAsync(TItem item, bool loadIfNeeded)
+    {
+        if (ChildrenSelector is not null)
+        {
+            var children = ChildrenSelector(item);
+            return children?.ToList();
+        }
+        if (LoadChildren is not null)
+        {
+            if (_treeChildrenCache.TryGetValue(item, out var cached)) return cached;
+            if (!loadIfNeeded) return null;
+            _treeLoading.Add(item);
+            try
+            {
+                var loaded = (await LoadChildren(item))?.ToList() ?? new();
+                _treeChildrenCache[item] = loaded;
+                return loaded;
+            }
+            finally
+            {
+                _treeLoading.Remove(item);
+            }
+        }
+        return null;
+    }
+
+    private bool ResolveHasChildren(TItem item, IReadOnlyList<TItem>? children)
+    {
+        if (HasChildren is not null) return HasChildren(item);
+        if (children is not null) return children.Count > 0;
+        // Lazy: assume true antes do primeiro load
+        return LoadChildren is not null;
+    }
+
+    /// <summary>Expande todos os nós cujos filhos sejam conhecidos.</summary>
+    public async Task ExpandAllAsync()
+    {
+        if (!IsHierarchyMode) return;
+        foreach (var root in _view) await WalkExpandAsync(root);
+        await ApplyAndRenderAsync();
+    }
+
+    private async Task WalkExpandAsync(TItem item)
+    {
+        _treeExpanded.Add(item);
+        var children = await ResolveChildrenAsync(item, loadIfNeeded: true);
+        if (children is null) return;
+        foreach (var c in children) await WalkExpandAsync(c);
+    }
+
+    /// <summary>Recolhe todos os nós.</summary>
+    public async Task CollapseAllAsync()
+    {
+        _treeExpanded.Clear();
+        await ApplyAndRenderAsync();
+    }
+
+    private async Task ToggleTreeAsync(TItem row)
+    {
+        if (_treeExpanded.Contains(row))
+        {
+            _treeExpanded.Remove(row);
+        }
+        else
+        {
+            _treeExpanded.Add(row);
+            // Lazy: força carregamento e cacheia
+            if (LoadChildren is not null && !_treeChildrenCache.ContainsKey(row))
+            {
+                StateHasChanged(); // mostra spinner inline
+                await ResolveChildrenAsync(row, loadIfNeeded: true);
+            }
+        }
+        await ApplyAndRenderAsync();
+    }
+
+    // ——— Frozen column offsets ————————————————————————————————————————
+    private void RecomputeFrozenStyles()
+    {
+        _frozenStyles.Clear();
+        var visibleCols = VisibleColumns.ToList();
+        if (!visibleCols.Any(c => c.Frozen.HasValue)) return;
+
+        // Prefix offset: cols especiais antes das colunas declaradas (selection + expand)
+        int prefixOffset = 0;
+        if (AllowMultiSelection) prefixOffset += 36;
+        if (DetailTemplate is not null) prefixOffset += 36;
+
+        // Left frozen — running offset cumulativo
+        int leftOffset = prefixOffset;
+        OmniDataGridColumn<TItem>? lastLeft = null;
+        foreach (var c in visibleCols)
+        {
+            if (c.Frozen != FrozenPosition.Left) continue;
+            var w = ParsePxWidth(c.Width);
+            _frozenStyles[c] = (
+                Css: "omni-grid-frozen omni-grid-frozen-left",
+                Style: $"position: sticky; left: {leftOffset}px;"
+            );
+            leftOffset += w ?? 0;
+            lastLeft = c;
+        }
+        if (lastLeft is not null)
+        {
+            var s = _frozenStyles[lastLeft];
+            _frozenStyles[lastLeft] = (s.Css + " omni-grid-frozen-left-end", s.Style);
+        }
+
+        // Right frozen — running offset cumulativo da direita
+        int rightOffset = 0;
+        OmniDataGridColumn<TItem>? lastRight = null;
+        for (int i = visibleCols.Count - 1; i >= 0; i--)
+        {
+            var c = visibleCols[i];
+            if (c.Frozen != FrozenPosition.Right) continue;
+            var w = ParsePxWidth(c.Width);
+            _frozenStyles[c] = (
+                Css: "omni-grid-frozen omni-grid-frozen-right",
+                Style: $"position: sticky; right: {rightOffset}px;"
+            );
+            rightOffset += w ?? 0;
+            lastRight = c;
+        }
+        if (lastRight is not null)
+        {
+            var s = _frozenStyles[lastRight];
+            _frozenStyles[lastRight] = (s.Css + " omni-grid-frozen-right-end", s.Style);
+        }
+    }
+
+    private static int? ParsePxWidth(string? w)
+    {
+        if (string.IsNullOrEmpty(w)) return null;
+        var trimmed = w.Trim();
+        if (trimmed.EndsWith("px") && int.TryParse(trimmed[..^2], out var px)) return px;
+        return null;
+    }
+
+    private string CellCss(OmniDataGridColumn<TItem> c)
+        => _frozenStyles.TryGetValue(c, out var s) ? s.Css : string.Empty;
+
+    private string? CellStyle(OmniDataGridColumn<TItem> c)
+    {
+        var widthPart = c.Width is null ? "" : $"width:{c.Width};";
+        var frozenPart = _frozenStyles.TryGetValue(c, out var s) ? s.Style : "";
+        return string.IsNullOrEmpty(widthPart) && string.IsNullOrEmpty(frozenPart)
+            ? null
+            : $"{widthPart} {frozenPart}".Trim();
+    }
+
+    // ——— Row expand ————————————————————————————————————————————————————
+    private async Task ToggleExpandAsync(TItem row)
+    {
+        if (_expanded.Contains(row))
+        {
+            _expanded.Remove(row);
+            if (OnRowCollapse.HasDelegate) await OnRowCollapse.InvokeAsync(row);
+        }
+        else
+        {
+            if (ExpandMode == ExpandMode.Single) _expanded.Clear();
+            _expanded.Add(row);
+            if (OnRowExpand.HasDelegate) await OnRowExpand.InvokeAsync(row);
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleRowClick(TItem row)
+    {
+        if (_editingRow is not null) return;        // don't trigger row-click while editing
+        if (OnRowClick.HasDelegate) await OnRowClick.InvokeAsync(row);
+    }
+
+    private void BeginEdit(TItem row) => _editingRow = row;
+    private void CancelEdit() => _editingRow = default;
+
+    private async Task SaveAsync(TItem row)
+    {
+        _editingRow = default;
+        if (RowUpdated.HasDelegate) await RowUpdated.InvokeAsync(row);
+    }
+
+    private void ToggleColumn(OmniDataGridColumn<TItem> col, bool visible)
+    {
+        col.VisibleInternal = visible;
+        StateHasChanged();
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        var cols = VisibleColumns.ToList();
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(string.Join(",", cols.Select(c => CsvEscape(c.Title ?? ""))));
+        // Server-side: pega tudo via LoadData(Top=int.MaxValue) — pode ser caro mas é o que o usuário pediu
+        IReadOnlyList<TItem> rows;
+        if (LoadData is not null)
+        {
+            var sorts = _sorts
+                .Where(s => s.Dir != SortDirection.None)
+                .Select(s => new SortDescriptor(s.Col.ResolvedPropertyName, s.Dir))
+                .ToList();
+            var state = new GridState<TItem>(
+                0, int.MaxValue,
+                string.IsNullOrWhiteSpace(_search) ? null : _search!.Trim(),
+                sorts,
+                _filters.Values.ToList(),
+                Array.Empty<string>());
+            var r = await LoadData(state);
+            rows = r.Items;
+        }
+        else
+        {
+            rows = ApplyFilterAndSort((Data ?? Enumerable.Empty<TItem>()).ToList());
+        }
+        foreach (var item in rows)
+        {
+            sb.AppendLine(string.Join(",", cols.Select(c => CsvEscape(c.GetCellText(item) ?? ""))));
+        }
+        try { await JS.InvokeVoidAsync("omniBlazor.downloadFile", ExportFilename, sb.ToString(), "text/csv;charset=utf-8"); }
+        catch { /* prerender */ }
+    }
+
+    private List<TItem> ApplyFilterAndSort(List<TItem> rows)
+    {
+        IEnumerable<TItem> src = rows;
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var q = _search.Trim();
+            src = src.Where(it => _columns.Any(c =>
+                c.GetCellText(it)?.Contains(q, StringComparison.OrdinalIgnoreCase) == true));
+        }
+        src = ApplyColumnFilters(src);
+        src = ApplyMultiSort(src);
+        return src.ToList();
+    }
+
+    // ——— Column filters ————————————————————————————————————————————————
+    private async Task OnFilterTextChangedAsync(OmniDataGridColumn<TItem> col, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _filters.Remove(col);
+        }
+        else
+        {
+            _filters[col] = new FilterDescriptor(col.ResolvedPropertyName, FilterOperator.Contains, value);
+        }
+        _page = 0;
+        if (LoadData is not null && DebounceMs > 0) ScheduleDebouncedApply();
+        else await ApplyAndRenderAsync();
+    }
+
+    private IEnumerable<TItem> ApplyColumnFilters(IEnumerable<TItem> src)
+    {
+        if (_filters.Count == 0) return src;
+        foreach (var (col, filter) in _filters)
+        {
+            src = src.Where(it => MatchesFilter(it, col, filter));
+        }
+        return src;
+    }
+
+    private static bool MatchesFilter(TItem item, OmniDataGridColumn<TItem> col, FilterDescriptor f)
+    {
+        object? raw = col.Property is not null ? col.Property(item) : col.GetCellText(item);
+        return f.Operator switch
+        {
+            FilterOperator.Contains       => ToText(raw).Contains(ToText(f.Value), StringComparison.OrdinalIgnoreCase),
+            FilterOperator.NotContains    => !ToText(raw).Contains(ToText(f.Value), StringComparison.OrdinalIgnoreCase),
+            FilterOperator.Equals         => CompareValues(raw, f.Value) == 0,
+            FilterOperator.NotEquals      => CompareValues(raw, f.Value) != 0,
+            FilterOperator.StartsWith     => ToText(raw).StartsWith(ToText(f.Value), StringComparison.OrdinalIgnoreCase),
+            FilterOperator.EndsWith       => ToText(raw).EndsWith(ToText(f.Value), StringComparison.OrdinalIgnoreCase),
+            FilterOperator.GreaterThan    => CompareValues(raw, f.Value) > 0,
+            FilterOperator.GreaterOrEqual => CompareValues(raw, f.Value) >= 0,
+            FilterOperator.LessThan       => CompareValues(raw, f.Value) < 0,
+            FilterOperator.LessOrEqual    => CompareValues(raw, f.Value) <= 0,
+            FilterOperator.Between        => CompareValues(raw, f.Value) >= 0 && CompareValues(raw, f.SecondValue) <= 0,
+            FilterOperator.NotBetween     => !(CompareValues(raw, f.Value) >= 0 && CompareValues(raw, f.SecondValue) <= 0),
+            FilterOperator.IsEmpty        => string.IsNullOrEmpty(ToText(raw)),
+            FilterOperator.IsNotEmpty     => !string.IsNullOrEmpty(ToText(raw)),
+            _ => true
+        };
+    }
+
+    private static string ToText(object? v) => v?.ToString() ?? string.Empty;
+
+    private static int CompareValues(object? a, object? b)
+    {
+        if (a is null && b is null) return 0;
+        if (a is null) return -1;
+        if (b is null) return 1;
+        // Comparable same type
+        if (a.GetType() == b.GetType() && a is IComparable ac)
+            return ac.CompareTo(b);
+        // Try numeric
+        try
+        {
+            var da = Convert.ToDecimal(a, System.Globalization.CultureInfo.InvariantCulture);
+            var db = Convert.ToDecimal(b, System.Globalization.CultureInfo.InvariantCulture);
+            return da.CompareTo(db);
+        }
+        catch { /* fall through */ }
+        // Try DateTime
+        if (a is DateTime || b is DateTime)
+        {
+            if (DateTime.TryParse(a.ToString(), out var dta) &&
+                DateTime.TryParse(b.ToString(), out var dtb))
+                return dta.CompareTo(dtb);
+        }
+        // Fallback: string
+        return string.Compare(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ——— Aggregations ————————————————————————————————————————————————————
+    private object? GetAggregateForColumn(OmniDataGridColumn<TItem> col)
+    {
+        if (col.Aggregate is null) return null;
+
+        // Server-side: usar valor pré-calculado pelo consumidor (se houver)
+        if (LoadData is not null)
+        {
+            if (_serverAggregates is not null &&
+                _serverAggregates.TryGetValue(col.ResolvedPropertyName, out var v))
+                return v;
+            return null;
+        }
+
+        // Client-side: calcula sobre o dataset filtrado completo (não só a página atual)
+        var src = ApplyFilterAndSort((Data ?? Enumerable.Empty<TItem>()).ToList());
+        var fn = col.Aggregate.Value;
+        if (fn == AggregateFunction.Count) return src.Count;
+
+        var values = src
+            .Select(col.GetAggregateValue)
+            .Where(v => v.HasValue)
+            .Select(v => v!.Value)
+            .ToList();
+        if (values.Count == 0) return null;
+
+        return fn switch
+        {
+            AggregateFunction.Sum => values.Sum(),
+            AggregateFunction.Average => values.Average(),
+            AggregateFunction.Min => values.Min(),
+            AggregateFunction.Max => values.Max(),
+            _ => null
+        };
+    }
+
+    private static string AggregateLabel(AggregateFunction fn) => fn switch
+    {
+        AggregateFunction.Sum     => "Σ",
+        AggregateFunction.Average => "x̄",
+        AggregateFunction.Count   => "#",
+        AggregateFunction.Min     => "min",
+        AggregateFunction.Max     => "max",
+        _ => "?"
+    };
+
+    private static string FormatAggregate(OmniDataGridColumn<TItem> col, object? value)
+    {
+        if (value is null) return "—";
+        if (col.AggregateFormat is not null) return col.AggregateFormat(value);
+        return value switch
+        {
+            decimal d => d.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")),
+            double dbl => dbl.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")),
+            float f => f.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")),
+            _ => value.ToString() ?? "—"
+        };
+    }
+
+    private static string CsvEscape(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        return value;
+    }
+
+    /// <summary>
+    /// Inline style aplicado no root <c>.omni-grid</c>. Quando <see cref="Virtualize"/>
+    /// está ativo, aplica altura fixa no root (o flex column distribui pra toolbar/scroller
+    /// naturalmente). Combina com <c>Style</c> do consumidor.
+    /// </summary>
+    private string? RootInlineStyle
+    {
+        get
+        {
+            string? heightPart = null;
+            if (Virtualize || !string.IsNullOrEmpty(Height))
+            {
+                var h = string.IsNullOrEmpty(Height) ? "520px" : Height;
+                heightPart = $"height: {h}; max-height: {h};";
+            }
+            if (string.IsNullOrEmpty(heightPart)) return Style;
+            return string.IsNullOrEmpty(Style) ? heightPart : $"{Style?.TrimEnd(';')}; {heightPart}";
+        }
+    }
+
+    private RenderFragment RenderTreeRowFragment(TreeRow tr) => __builder =>
+    {
+        var row = tr.Item;
+        var level = tr.Level;
+        var hasChildren = tr.HasChildren;
+        var isEditing = _editingRow is not null && ReferenceEquals(_editingRow, row);
+        var isSelected = AllowMultiSelection && Selection.Contains(row);
+        var anchorCol = HierarchyAnchorColumn;
+        <tr class="@RowCss(row, isEditing, isSelected)" @onclick="@(() => HandleRowClick(row))">
+            @if (AllowMultiSelection)
+            {
+                <td class="omni-grid-td-select" @onclick:stopPropagation>
+                    <OmniCheckBox Value="isSelected" ValueChanged="@(v => OnRowSelectChangedAsync(row, v))" />
+                </td>
+            }
+            @foreach (var c in VisibleColumns)
+            {
+                var isAnchor = c == anchorCol;
+                <td class="@CellCss(c)" style="@CellStyle(c)">
+                    @if (isAnchor)
+                    {
+                        <div class="omni-grid-tree-anchor">
+                            <span class="omni-grid-tree-indent" style="width: @(level * IndentSize)px;"></span>
+                            @if (hasChildren)
+                            {
+                                <button type="button" class="omni-grid-tree-chevron"
+                                        aria-label="@(_treeExpanded.Contains(row) ? "Colapsar" : "Expandir")"
+                                        aria-expanded="@_treeExpanded.Contains(row)"
+                                        @onclick:stopPropagation
+                                        @onclick="@(_ => ToggleTreeAsync(row))">
+                                    @if (_treeLoading.Contains(row))
+                                    {
+                                        <OmniSpinner Size="ComponentSize.Sm" />
+                                    }
+                                    else
+                                    {
+                                        <OmniIcon Name="@(_treeExpanded.Contains(row) ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
+                                    }
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="omni-grid-tree-chevron-spacer"></span>
+                            }
+                            <span class="omni-grid-tree-content">
+                                @if (isEditing && c.EditTemplate is not null) { @c.EditTemplate(row) }
+                                else if (c.Template is not null) { @c.Template(row) }
+                                else { @c.GetCellText(row) }
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (isEditing && c.EditTemplate is not null) { @c.EditTemplate(row) }
+                        else if (c.Template is not null) { @c.Template(row) }
+                        else { @c.GetCellText(row) }
+                    }
+                </td>
+            }
+            @if (EditMode != DataGridEditMode.None)
+            {
+                <td class="omni-grid-edit-actions" @onclick:stopPropagation>
+                    @if (isEditing)
+                    {
+                        <OmniButton Icon="check" IconOnly Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                     OnClick="@(_ => SaveAsync(row))" />
+                        <OmniButton Icon="x" IconOnly Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                     OnClick="@(_ => CancelEdit())" />
+                    }
+                    else
+                    {
+                        <OmniButton Icon="edit" IconOnly Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                     OnClick="@(_ => BeginEdit(row))" />
+                    }
+                </td>
+            }
+        </tr>
+    };
+
+    private RenderFragment RenderFlatRowFragment(TItem row) => __builder =>
+    {
+        var isEditing = _editingRow is not null && ReferenceEquals(_editingRow, row);
+        var isSelected = AllowMultiSelection && Selection.Contains(row);
+        var isExpanded = DetailTemplate is not null && _expanded.Contains(row);
+        <tr class="@RowCss(row, isEditing, isSelected)" @onclick="@(() => HandleRowClick(row))">
+            @if (AllowMultiSelection)
+            {
+                <td class="omni-grid-td-select" @onclick:stopPropagation>
+                    <OmniCheckBox Value="isSelected" ValueChanged="@(v => OnRowSelectChangedAsync(row, v))" />
+                </td>
+            }
+            @if (DetailTemplate is not null)
+            {
+                <td class="omni-grid-td-expand" @onclick:stopPropagation>
+                    <button type="button"
+                            class="@($"omni-grid-expand-btn {(isExpanded ? "omni-active" : "")}")"
+                            aria-label="@(isExpanded ? "Colapsar" : "Expandir")"
+                            aria-expanded="@isExpanded"
+                            @onclick="@(_ => ToggleExpandAsync(row))">
+                        <OmniIcon Name="@(isExpanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
+                    </button>
+                </td>
+            }
+            @foreach (var c in VisibleColumns)
+            {
+                <td class="@CellCss(c)" style="@CellStyle(c)">
+                    @if (isEditing && c.EditTemplate is not null) { @c.EditTemplate(row) }
+                    else if (c.Template is not null) { @c.Template(row) }
+                    else { @c.GetCellText(row) }
+                </td>
+            }
+            @if (EditMode != DataGridEditMode.None)
+            {
+                <td class="omni-grid-edit-actions" @onclick:stopPropagation>
+                    @if (isEditing)
+                    {
+                        <OmniButton Icon="check" IconOnly Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                     OnClick="@(_ => SaveAsync(row))" />
+                        <OmniButton Icon="x" IconOnly Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                     OnClick="@(_ => CancelEdit())" />
+                    }
+                    else
+                    {
+                        <OmniButton Icon="edit" IconOnly Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm"
+                                     OnClick="@(_ => BeginEdit(row))" />
+                    }
+                </td>
+            }
+        </tr>
+        @if (isExpanded)
+        {
+            <tr class="omni-grid-detail-row">
+                <td colspan="@TotalColCount">
+                    @DetailTemplate!(row)
+                </td>
+            </tr>
+        }
+    };
+
+    private RenderFragment RenderLoadingSkeleton => __builder =>
+    {
+        var rows = Math.Max(4, Math.Min(10, EffectivePaging ? PageSize : 8));
+        var visibleCols = VisibleColumns.ToList();
+        for (int i = 0; i < rows; i++)
+        {
+            var rowIdx = i;
+            <tr class="omni-grid-skeleton-row" style="@($"--row-i: {rowIdx};")">
+                @if (AllowMultiSelection) { <td class="omni-grid-td-select"></td> }
+                @if (DetailTemplate is not null) { <td class="omni-grid-td-expand"></td> }
+                @for (int j = 0; j < visibleCols.Count; j++)
+                {
+                    var c = visibleCols[j];
+                    var w = SkeletonWidth(c, rowIdx, j);
+                    <td class="@CellCss(c)" style="@CellStyle(c)">
+                        <span class="omni-skeleton omni-grid-skeleton-bar" style="@($"width: {w}%;")"></span>
+                    </td>
+                }
+                @if (EditMode != DataGridEditMode.None) { <td class="omni-grid-edit-actions"></td> }
+            </tr>
+        }
+    };
+
+    /// <summary>
+    /// Largura (%) da barra de skeleton para uma célula. Numéricas ficam mais
+    /// estreitas; textuais mais largas. Jitter determinístico por (row, col) cria
+    /// variação entre linhas sem random.
+    /// </summary>
+    private static int SkeletonWidth(OmniDataGridColumn<TItem> col, int rowIdx, int colIdx)
+    {
+        bool isNumeric = col.Aggregate is not null
+            || ContainsAny(col.PropertyName, "id", "numero", "total", "price", "valor", "qtd", "count");
+        var baseMin = isNumeric ? 45 : 65;
+        var baseMax = isNumeric ? 65 : 90;
+        var jitter = ((rowIdx * 7) + colIdx * 3) % (baseMax - baseMin);
+        return baseMin + jitter;
+    }
+
+    private static bool ContainsAny(string? haystack, params string[] needles)
+    {
+        if (string.IsNullOrEmpty(haystack)) return false;
+        foreach (var n in needles)
+        {
+            if (haystack.Contains(n, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    public void Dispose()
+    {
+        _searchDebounceTimer?.Dispose();
+        _searchDebounceTimer = null;
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = null;
+    }
+}

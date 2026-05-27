@@ -1,0 +1,30 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  5 abas de modo: Balcão, Delivery, Retirada, Mesa, Comanda. *@
+<div class="fs-pdv-modes">
+    @foreach (var m in _modes)
+    {
+        var mode = m.Mode;
+        <button class="fs-pdv-mode @(Order.Mode == mode ? "is-active" : "")"
+                @onclick="@(() => Order.SetMode(mode))">
+            <OmniIcon Name="@m.Icon" Size="ComponentSize.Sm" />
+            <span>@m.Label</span>
+        </button>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private record ModeOpt(OrderMode Mode, string Label, string Icon);
+    private static readonly ModeOpt[] _modes =
+    {
+        new(OrderMode.Balcao,   "Balcão",   "store"),
+        new(OrderMode.Delivery, "Delivery", "truck"),
+        new(OrderMode.Retirada, "Retirada", "package"),
+        new(OrderMode.Mesa,     "Mesa",     "grid"),
+        new(OrderMode.Comanda,  "Comanda",  "file-text"),
+    };
+}

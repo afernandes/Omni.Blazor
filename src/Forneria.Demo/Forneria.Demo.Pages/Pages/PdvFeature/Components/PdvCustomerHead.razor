@@ -1,0 +1,96 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Customer head do PDV — card compacto com avatar+nome+phone+pontos
+    quando cliente selecionado, ou OmniAutoComplete para buscar.
+    Busca por nome OU pelos dígitos do telefone (se a query tem 3+ dígitos). *@
+<div class="omni-pdv-cust-head">
+    @if (Order.Customer is { } c)
+    {
+        <div class="omni-pdv-cust-card">
+            <div class="omni-pdv-cust-av">@Initials(c.Name)</div>
+            <div class="omni-pdv-cust-info">
+                <div class="omni-pdv-cust-name">@c.Name</div>
+                <div class="omni-pdv-cust-meta">
+                    <span>@c.Phone</span>
+                    @if (c.Points > 0)
+                    {
+                        <span class="omni-pdv-cust-meta-sep">·</span>
+                        <span class="omni-pdv-cust-pts">@c.Points pts</span>
+                    }
+                </div>
+            </div>
+            <button type="button" class="omni-pdv-cust-x" @onclick="Clear"
+                    aria-label="Remover cliente" title="Remover cliente">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="omni-pdv-cust-search">
+            <OmniAutoComplete TValue="Customer"
+                               Placeholder="Buscar cliente por nome ou telefone…"
+                               LoadData="LoadCustomers"
+                               TextSelector="@(c => c?.Name ?? "")"
+                               @bind-Value="_picked"
+                               @bind-Value:after="OnPicked">
+                <ItemTemplate>
+                    <div class="omni-pdv-cust-suggestion">
+                        <div class="omni-pdv-cust-av omni-pdv-cust-av-sm">@Initials(context.Name)</div>
+                        <div>
+                            <div class="omni-pdv-cust-name">@context.Name</div>
+                            <div class="omni-pdv-cust-meta">
+                                <span>@context.Phone</span>
+                                <span class="omni-pdv-cust-meta-sep">·</span>
+                                <span>@context.Orders pedidos</span>
+                            </div>
+                        </div>
+                    </div>
+                </ItemTemplate>
+            </OmniAutoComplete>
+        </div>
+    }
+</div>
+
+@code {
+    private Customer? _picked;
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private void Clear() => Order.SetCustomer(null);
+
+    private void OnPicked()
+    {
+        if (_picked is not null)
+        {
+            Order.SetCustomer(_picked);
+            _picked = null;
+        }
+    }
+
+    // Signature alinhada com OmniAutoComplete.LoadData (Func<string, Task<IEnumerable<TValue?>>>)
+    private Task<IEnumerable<Customer?>> LoadCustomers(string query)
+    {
+        IEnumerable<Customer?> results;
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            results = PdvMockData.Customers;
+        }
+        else
+        {
+            var digits = new string(query.Where(char.IsDigit).ToArray());
+            results = digits.Length >= 3
+                ? PdvMockData.Customers.Where(c =>
+                    new string(c.Phone.Where(char.IsDigit).ToArray()).Contains(digits))
+                : PdvMockData.Customers.Where(c =>
+                    c.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(results);
+    }
+
+    private static string Initials(string name) =>
+        string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                          .Take(2).Select(w => w[0]));
+}

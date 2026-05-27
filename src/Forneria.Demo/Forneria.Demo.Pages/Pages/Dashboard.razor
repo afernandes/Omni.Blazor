@@ -1,0 +1,135 @@
+@page "/dashboard"
+@layout AppShell
+
+<PageTitle>Dashboard — Forneria</PageTitle>
+
+<OmniPaneHeader Title="Dashboard"
+                 Subtitle="@($"Visão geral da operação · {DateTime.Now.ToString("dddd, dd/MM/yyyy", new System.Globalization.CultureInfo("pt-BR"))}")">
+    <Actions>
+        <OmniSegmentedControl TValue="string" Value="@period" ValueChanged="@(v => period = v)" Items="@periodItems" />
+        <OmniButton Text="Exportar" Icon="download" />
+        <OmniButton Text="Novo pedido" Icon="plus" Variant="ButtonVariant.Primary" />
+    </Actions>
+</OmniPaneHeader>
+
+<div class="omni-view-body">
+    <OmniRow Gap="14">
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Label="FATURAMENTO HOJE" Value="R$ 12.480" Delta="+18% vs ontem" />
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Label="PEDIDOS" Value="2.341" Delta="+12%" />
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Label="TICKET MÉDIO" Value="R$ 53,30" Delta="-2,1%" DeltaDown />
+        </OmniCol>
+        <OmniCol Size="12" SizeMd="6" SizeLg="3">
+            <OmniStat Card Label="TEMPO MÉDIO COZINHA" Value="14 min" Delta="-3 min" />
+        </OmniCol>
+    </OmniRow>
+
+    <OmniRow Style="margin-top: 16px;">
+        <OmniCol Size="12" SizeLg="6">
+        <OmniCard Title="Pedidos recentes" Subtitle="últimas 24h" NoPadding>
+            <HeaderActions>
+                <OmniButton Text="Ver todos" Variant="ButtonVariant.Link" Size="ComponentSize.Sm" />
+            </HeaderActions>
+            <ChildContent>
+                <OmniDataGrid TItem="Pedido" Data="@recentes" AllowPaging="false" AllowSorting="false">
+                    <Columns>
+                        <OmniDataGridColumn TItem="Pedido" Title="#" Property="@(p => p.Numero)" Width="60px" />
+                        <OmniDataGridColumn TItem="Pedido" Title="Cliente" Property="@(p => p.Cliente)" />
+                        <OmniDataGridColumn TItem="Pedido" Title="Status">
+                            <Template>
+                                <OmniBadge Text="@context.Status"
+                                            Variant="@StatusVariant(context.Status)" />
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Pedido" Title="Total" Property="@(p => p.Total)">
+                            <Template>
+                                <span class="omni-mono">@context.Total.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</span>
+                            </Template>
+                        </OmniDataGridColumn>
+                    </Columns>
+                </OmniDataGrid>
+            </ChildContent>
+        </OmniCard>
+        </OmniCol>
+        <OmniCol Size="12" SizeLg="6">
+        <OmniCard Title="Top produtos" Subtitle="por receita · hoje">
+            <ChildContent>
+                <div class="omni-stack omni-stack-12">
+                    @foreach (var (item, idx) in topProdutos.Select((p, i) => (p, i + 1)))
+                    {
+                        <div class="omni-row omni-row-gap-12">
+                            <div class="omni-mono omni-soft" style="width:24px;">#@idx</div>
+                            <div class="omni-flex-1">
+                                <div style="font-weight:600;font-size:13px;">@item.Nome</div>
+                                <div class="omni-muted" style="font-size:11px;">@item.Vendas vendas</div>
+                            </div>
+                            <div class="omni-mono" style="font-weight:600;">@item.Receita.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</div>
+                        </div>
+                    }
+                </div>
+            </ChildContent>
+        </OmniCard>
+        </OmniCol>
+    </OmniRow>
+
+    <div style="margin-top: 16px;">
+        <OmniCard Title="Filtros rápidos">
+            <ChildContent>
+                <div class="omni-row omni-row-wrap omni-row-gap-8">
+                    <OmniChip Text="Tudo" Active Accent />
+                    <OmniChip Text="Pendentes" ShowDot />
+                    <OmniChip Text="Em preparo" ShowDot />
+                    <OmniChip Text="Prontos" ShowDot />
+                    <OmniChip Text="Entregues" ShowDot />
+                    <OmniChip Text="Cancelados" ShowDot />
+                </div>
+            </ChildContent>
+        </OmniCard>
+    </div>
+</div>
+
+@code {
+    private record Pedido(string Numero, string Cliente, string Status, decimal Total);
+    private record Produto(string Nome, int Vendas, decimal Receita);
+
+    private string period = "hoje";
+    private readonly IEnumerable<OmniSegmentedControl<string>.Item> periodItems = new[]
+    {
+        new OmniSegmentedControl<string>.Item("hoje",   "Hoje"),
+        new OmniSegmentedControl<string>.Item("semana", "Semana"),
+        new OmniSegmentedControl<string>.Item("mes",    "Mês"),
+    };
+
+    private readonly List<Pedido> recentes = new()
+    {
+        new("1042", "Marina C.",     "Pronto",     58.90m),
+        new("1041", "Lucas P.",      "Em preparo", 124.50m),
+        new("1040", "Fernanda S.",   "Pendente",   32.00m),
+        new("1039", "Anônimo · QR",  "Entregue",  189.40m),
+        new("1038", "Rafael S.",     "Entregue",   76.80m),
+        new("1037", "Beatriz M.",    "Cancelado",  42.30m),
+    };
+
+    private readonly List<Produto> topProdutos = new()
+    {
+        new("Pizza Margherita G", 142, 3982.00m),
+        new("Pizza Pepperoni G",  118, 3540.00m),
+        new("Cerveja Artesanal", 234, 2106.00m),
+        new("Refrigerante 2L",    97, 776.00m),
+        new("Sobremesa do Dia",   62, 558.00m),
+    };
+
+    private BadgeVariant StatusVariant(string s) => s switch
+    {
+        "Pronto"     => BadgeVariant.Good,
+        "Em preparo" => BadgeVariant.Warn,
+        "Pendente"   => BadgeVariant.Info,
+        "Entregue"   => BadgeVariant.Plain,
+        "Cancelado"  => BadgeVariant.Danger,
+        _ => BadgeVariant.Default,
+    };
+}

@@ -1,0 +1,51 @@
+@*  Demo dialog para o showcase de Dialog — Enter-as-Tab.
+
+    Mostra o marker `data-omni-enter-as-tab="true"` em ação:
+    o container envolve todos os inputs, e Enter avança o foco para o
+    próximo campo (como Tab). No último campo, Enter dispara o botão
+    [data-omni-default] (Salvar). Estilo de fluxo clássico de PDV/ERP. *@
+@inject DialogService Dialog
+
+<div class="omni-stack omni-stack-16">
+    <p class="omni-muted" style="margin:0;font-size:13px;">
+        Digite e aperte <kbd>Enter</kbd>. O foco vai para o próximo campo (sem precisar de Tab).
+        No último, Enter dispara <strong>Salvar</strong>.
+    </p>
+
+    @* O marker está aqui no container — vale para todos os filhos *@
+    <div data-omni-enter-as-tab="true">
+        <OmniStack Gap="12">
+            <OmniFormField Label="Código">
+                <OmniTextBox @bind-Value="_codigo" Placeholder="123" Class="omni-autofocus" />
+            </OmniFormField>
+            <OmniFormField Label="Descrição">
+                <OmniTextBox @bind-Value="_descricao" Placeholder="Pizza Calabresa G" />
+            </OmniFormField>
+            <OmniFormField Label="Preço">
+                <OmniTextBox @bind-Value="_preco" Placeholder="49,90" />
+            </OmniFormField>
+            <OmniFormField Label="Estoque">
+                <OmniTextBox @bind-Value="_estoque" Placeholder="10" />
+            </OmniFormField>
+
+            <div class="omni-row omni-row-end omni-row-gap-8">
+                <OmniButton Text="Cancelar" OnClick="OnCancel" data-omni-cancel="true" />
+                @* Enter no ÚLTIMO campo dispara este botão *@
+                <OmniButton Text="Salvar" Variant="ButtonVariant.Primary"
+                             OnClick="OnSave" data-omni-default="true" />
+            </div>
+        </OmniStack>
+    </div>
+</div>
+
+@code {
+    private string? _codigo;
+    private string? _descricao;
+    private string? _preco;
+    private string? _estoque;
+
+    private void OnCancel(MouseEventArgs _) => Dialog.Close((object?)null);
+
+    private void OnSave(MouseEventArgs _)
+        => Dialog.Close((object)$"{_codigo} | {_descricao} | R$ {_preco} | est: {_estoque}");
+}

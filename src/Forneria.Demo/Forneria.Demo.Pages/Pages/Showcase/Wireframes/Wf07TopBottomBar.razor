@@ -1,0 +1,44 @@
+@page "/showcase/wireframes/top-bottom-bar"
+@layout WireframeLayout
+
+<PageTitle>WF-7 · AppBar Top + AppBar Bottom</PageTitle>
+
+@*  WIREFRAME 7 — Dois AppBars: topo para identidade, rodapé para
+    navegação primária mobile-style. Comum em PWAs e apps mobile-first
+    onde o polegar não alcança bem o topo. *@
+<OmniLayout>
+    <OmniAppBar Position="BarPosition.Top">
+        <OmniBrand Name="Mobile" Tenant="Top + Bottom bars" />
+        <div class="omni-header-spacer"></div>
+        <OmniKbd Text="WF-7" />
+        <OmniButton IconOnly Icon="search" Variant="ButtonVariant.Ghost" />
+        <OmniAvatar Initials="AF" />
+    </OmniAppBar>
+
+    <OmniMain NoPadding>
+        <div class="wf-demo-content" style="padding: 20px;">
+            <h1>AppBar Top + AppBar Bottom</h1>
+            <p class="omni-muted">
+                Dois AppBars no mesmo layout — topo para identidade/contexto, rodapé
+                para navegação primária. Padrão "thumb-zone" usado em apps mobile-first
+                (Instagram, X, Spotify) e PWAs.
+            </p>
+            <OmniCard Title="Como o grid sabe diferenciar">
+                Cada <code>OmniAppBar</code> emite <code>data-pos="top|bottom"</code>. As
+                regras <code>:has(.omni-appbar[data-pos="top"])</code> e
+                <code>:has(.omni-appbar[data-pos="bottom"])</code> ativam as linhas
+                correspondentes do grid 4×3 independentemente.
+            </OmniCard>
+        </div>
+    </OmniMain>
+
+    <OmniAppBar Position="BarPosition.Bottom">
+        <div class="omni-header-spacer"></div>
+        <OmniButton IconOnly Icon="home"    Variant="ButtonVariant.Ghost" />
+        <OmniButton IconOnly Icon="search"  Variant="ButtonVariant.Ghost" />
+        <OmniButton IconOnly Icon="plus"    Variant="ButtonVariant.Primary" />
+        <OmniButton IconOnly Icon="package" Variant="ButtonVariant.Ghost" />
+        <OmniButton IconOnly Icon="user"    Variant="ButtonVariant.Ghost" />
+        <div class="omni-header-spacer"></div>
+    </OmniAppBar>
+</OmniLayout>

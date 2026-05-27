@@ -1,0 +1,135 @@
+@inject PdvOrderService Order
+@implements IDisposable
+
+@*  Loyalty mini: collapsed = summary + savings badge; expanded = checkbox rows
+    para usar pontos e aplicar cupom. *@
+@if (Order.Customer is { } c)
+{
+    var coupon = PdvMockData.FindCoupon(Order.LoyaltyCode);
+    var couponApplied = coupon is not null && Order.CouponDiscount > 0;
+    var totalSavings = Order.Discount;
+
+    <div class="fs-pdv-loyalty @(_open ? "is-open" : "") @(totalSavings > 0 ? "is-applied" : "")">
+        <button class="fs-pdv-loyalty-toggle" @onclick="@(() => _open = !_open)">
+            <div class="fs-pdv-loyalty-ico">
+                <OmniIcon Name="star" Size="ComponentSize.Sm" />
+            </div>
+            <div class="fs-pdv-loyalty-body">
+                <div class="fs-pdv-loyalty-eyebrow">Fidelidade</div>
+                <div class="fs-pdv-loyalty-summary">
+                    <b>@c.Points</b> pts
+                    @if (!string.IsNullOrWhiteSpace(Order.LoyaltyCode))
+                    {
+                        <span style="color: var(--omni-fg-soft);"> · </span>
+                        <b>@Order.LoyaltyCode</b>
+                    }
+                </div>
+            </div>
+            @if (totalSavings > 0)
+            {
+                <span class="fs-pdv-loyalty-savings-pill">
+                    − @totalSavings.ToString("C", _ptBr)
+                </span>
+            }
+            else if (Order.LoyaltyMaxSavings > 0)
+            {
+                <span class="fs-pdv-loyalty-savings-pill fs-pdv-loyalty-savings-potential">
+                    até − @Order.LoyaltyMaxSavings.ToString("C", _ptBr)
+                </span>
+            }
+            <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" Class="fs-pdv-loyalty-caret" />
+        </button>
+
+        @if (_open)
+        {
+            <div class="fs-pdv-loyalty-body-expanded">
+                @* Usar pontos *@
+                <div class="fs-pdv-loyalty-row @(Order.LoyaltyPointsApplied ? "is-applied" : "")"
+                     @onclick="TogglePoints">
+                    <div class="fs-pdv-loyalty-row-checkbox">
+                        @if (Order.LoyaltyPointsApplied)
+                        {
+                            <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                        }
+                    </div>
+                    <div class="fs-pdv-loyalty-row-body">
+                        <div class="fs-pdv-loyalty-row-label">Usar pontos</div>
+                        <div class="fs-pdv-loyalty-row-meta">
+                            @c.Points pts disponíveis · até @Order.LoyaltyMaxFromPoints.ToString("C", _ptBr)
+                        </div>
+                    </div>
+                    @if (Order.LoyaltyPointsApplied && Order.PointsDiscount > 0)
+                    {
+                        <div class="fs-pdv-loyalty-row-value">− @Order.PointsDiscount.ToString("C", _ptBr)</div>
+                    }
+                </div>
+
+                @* Aplicar cupom *@
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div class="fs-pdv-loyalty-row-label" style="padding-left: 4px; font-size: 12.5px;">Cupom</div>
+                    <OmniTextBox Class="fs-pdv-mode-input"
+                                 Value="@Order.LoyaltyCode"
+                                 ValueChanged="OnCouponChanged"
+                                 Placeholder="BEM-VINDO15, PIZZA10, FRETE-FREE…"
+                                 style="text-transform: uppercase; font-family: var(--omni-font-mono);" />
+                    @if (coupon is not null)
+                    {
+                        <div class="fs-pdv-loyalty-row @(Order.LoyaltyCouponApplied ? "is-applied" : "")"
+                             @onclick="ToggleCoupon" style="padding: 6px 10px;">
+                            <div class="fs-pdv-loyalty-row-checkbox">
+                                @if (Order.LoyaltyCouponApplied)
+                                {
+                                    <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                                }
+                            </div>
+                            <div class="fs-pdv-loyalty-row-body">
+                                <div class="fs-pdv-loyalty-row-label" style="font-size: 12px;">
+                                    @coupon.Code @(Order.LoyaltyCouponApplied ? "aplicado" : "disponível")
+                                </div>
+                                <div class="fs-pdv-loyalty-row-meta">
+                                    @(coupon.IsPercent ? $"{coupon.Value:0.##}% off" : $"R$ {coupon.Value:0.00} off") · válido hoje
+                                </div>
+                            </div>
+                            @if (Order.LoyaltyCouponApplied)
+                            {
+                                <div class="fs-pdv-loyalty-row-value">− @Order.CouponDiscount.ToString("C", _ptBr)</div>
+                            }
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(Order.LoyaltyCode))
+                    {
+                        <div style="font-size: 11.5px; color: var(--omni-danger); padding-left: 4px;">
+                            Cupom "@Order.LoyaltyCode" não reconhecido.
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+    private bool _open = false;
+
+    protected override void OnInitialized() => Order.OnChange += StateHasChanged;
+    public void Dispose() => Order.OnChange -= StateHasChanged;
+
+    private void ToggleCoupon()
+    {
+        Order.LoyaltyCouponApplied = !Order.LoyaltyCouponApplied;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void TogglePoints()
+    {
+        Order.LoyaltyPointsApplied = !Order.LoyaltyPointsApplied;
+        Order.NotifyModeDetailsChanged();
+    }
+
+    private void OnCouponChanged(string? value)
+    {
+        Order.LoyaltyCode = (value ?? "").ToUpperInvariant();
+        Order.NotifyModeDetailsChanged();
+    }
+}

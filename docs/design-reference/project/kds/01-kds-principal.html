@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Forneria · KDS Cozinha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kds.css" />
+</head>
+<body>
+
+<div class="k">
+
+  <!-- ——— TOP BAR ——— -->
+  <header class="k-top">
+    <div style="display:flex; align-items:center;">
+      <div class="k-brand">
+        <div class="k-brand-mark">F</div>
+        <div>
+          <div class="k-brand-name">Forneria</div>
+          <div class="k-brand-meta">KDS · v2.4</div>
+        </div>
+      </div>
+      <button class="k-sector" id="sectorBtn">
+        <span class="ic">🍕</span>
+        <span>Setor Pizza</span>
+        <span class="ch">▾</span>
+      </button>
+    </div>
+
+    <div class="k-clock-block">
+      <div class="k-clock" id="clock">14:32:05</div>
+      <div class="k-counter"><b id="openCount">8</b> · pedidos em aberto</div>
+    </div>
+
+    <div class="k-actions">
+      <a class="k-navlink on" href="01-kds-principal.html">Principal</a>
+      <a class="k-navlink" href="02-kds-expedicao.html">Expedição<span style="margin-left:6px;color:var(--st-ready);font-weight:700">·1</span></a>
+      <a class="k-navlink" href="04-kds-historico.html">Histórico</a>
+      <span class="k-online"><span class="dot"></span>Online</span>
+      <a class="k-iconbtn" href="03-kds-configuracoes.html" aria-label="Configurações">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- ——— FILTER BAR ——— -->
+  <div class="k-filters">
+    <div class="k-pills">
+      <button class="k-pill on" data-filter="all">Todos<span class="ct" id="cAll">8</span></button>
+      <button class="k-pill info" data-filter="new">Novos<span class="ct" id="cNew">2</span></button>
+      <button class="k-pill warn" data-filter="prep">Em preparo<span class="ct" id="cPrep">3</span></button>
+      <button class="k-pill danger" data-filter="delay">Atrasados<span class="ct" id="cDelay">1</span></button>
+      <button class="k-pill" data-filter="urgent" style="border-color:color-mix(in oklab, var(--st-urgent) 65%, var(--line));color:var(--st-urgent);">Urgente<span class="ct" id="cUrg" style="background:color-mix(in oklab, var(--st-urgent) 22%, transparent);color:var(--st-urgent)">1</span></button>
+    </div>
+    <button class="k-sort">
+      <span class="lbl">Ordenar por:</span>
+      <span>Hora de chegada</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+
+  <!-- ——— ORDER GRID ——— -->
+  <div class="k-grid" id="grid"></div>
+
+</div>
+
+<!-- Toasts -->
+<div class="k-toast-wrap" id="toasts"></div>
+
+<!-- Audio chime placeholder for new orders (encoded short beep) -->
+<!-- new order chime: window.kdsChime() -->
+
+<script>
+/* ——— Data ————————————————————————————————————— */
+/* Each elapsed seconds = "now - placedAt". For demo realism, we set
+   absolute elapsed seconds and increment via setInterval. */
+const ORDERS = [
+  {
+    id: 4725, type: 'delivery', customer: 'Carlos Mendes',
+    meta: 'R. das Acácias, 142 · 2.4km',
+    obs: 'Campainha não funciona, ligar ao chegar',
+    elapsed: 84, // 1:24
+    items: [
+      { name: 'Pizza G · Calabresa + 4 Queijos', qty: 1, mods: ['Borda Catupiry', 'Meio a meio'], obs: 'sem cebola na calabresa', done: false },
+      { name: 'Pizza G · Portuguesa', qty: 1, mods: ['Borda Cheddar'], done: false },
+      { name: 'Coca-Cola 2L', qty: 1, done: false },
+    ]
+  },
+  {
+    id: 4724, type: 'table', tableNum: 12, customer: 'Mesa 12',
+    meta: 'Garçom Ricardo · 3 pessoas',
+    elapsed: 168, // 2:48
+    items: [
+      { name: 'Pizza M · Margherita', qty: 2, mods: ['Mussarela de búfala'], done: false },
+      { name: 'Heineken Long Neck', qty: 1, done: false },
+      { name: 'Bruschetta da Casa', qty: 1, obs: 'servir antes da pizza', done: false },
+    ]
+  },
+  {
+    id: 4723, type: 'counter', customer: 'João Silva',
+    meta: 'Retirada · senha 23',
+    elapsed: 692, // 11:32
+    items: [
+      { name: 'Pizza G · Pepperoni Picante', qty: 1, mods: ['Borda tradicional'], done: false },
+      { name: 'Suco de Laranja 500ml', qty: 1, done: true },
+    ]
+  },
+  {
+    id: 4722, type: 'delivery', customer: 'Maria Fernandes',
+    meta: 'Av. Brasil, 2210 · ap 84 · 3.1km',
+    elapsed: 848, // 14:08
+    items: [
+      { name: 'Pizza G · Quatro Queijos', qty: 1, done: true },
+      { name: 'Pizza M · Meio a meio', qty: 1, mods: ['½ Frango c/ Catupiry', '½ Margherita', 'Borda Catupiry'], done: false },
+      { name: 'Coca-Cola Lata', qty: 2, done: false },
+    ]
+  },
+  {
+    id: 4720, type: 'table', tableNum: 7, customer: 'Mesa 07',
+    meta: 'Garçom Ricardo M. · 3 pessoas',
+    elapsed: 1002, // 16:42
+    items: [
+      { name: 'Pizza G · Calabresa', qty: 2, mods: ['Borda Catupiry', 'Sem azeitona'], done: false },
+      { name: 'Pizza M · Margherita', qty: 1, done: false },
+      { name: 'Heineken Long Neck', qty: 3, done: true },
+    ]
+  },
+  {
+    id: 4719, type: 'delivery', customer: 'Pedro Lopes',
+    meta: 'R. Cardoso, 45 · 1.8km',
+    elapsed: 1395, // 23:15
+    items: [
+      { name: 'Pizza G · Vegetariana', qty: 1, mods: ['Borda Catupiry'], obs: 'caprichar no manjericão', done: false },
+      { name: 'Pizza G · Búfala', qty: 1, done: false },
+    ]
+  },
+  {
+    id: 4716, type: 'table', tableNum: 5, customer: 'Mesa 05',
+    meta: 'Garçom Felipe · 4 pessoas',
+    elapsed: 2092, // 34:52
+    items: [
+      { name: 'Pizza G · Carbonara', qty: 1, mods: ['Borda tradicional'], done: false },
+      { name: 'Pizza G · Portuguesa', qty: 1, mods: ['Sem ovo'], obs: 'cliente alérgico', done: false },
+      { name: 'Stella Artois 600ml', qty: 2, done: true },
+    ]
+  },
+  {
+    id: 4718, type: 'table', tableNum: 3, customer: 'Mesa 03',
+    meta: 'Garçom Felipe · 2 pessoas',
+    elapsed: 1268, // 21:08 — but all items checked
+    items: [
+      { name: 'Pizza G · Margherita', qty: 2, mods: ['Borda Catupiry'], done: true },
+    ],
+    forceStatus: 'ready'
+  },
+];
+
+/* Thresholds (configurable in screen 3) */
+const T_PREP   = 10 * 60;   // 10 min
+const T_DELAY  = 20 * 60;   // 20 min
+const T_URGENT = 30 * 60;   // 30 min
+
+function statusOf(o) {
+  if (o.forceStatus) return o.forceStatus;
+  if (o.delivered) return 'delivered';
+  if (o.elapsed >= T_URGENT) return 'urgent';
+  if (o.elapsed >= T_DELAY)  return 'delay';
+  if (o.elapsed >= T_PREP)   return 'prep';
+  return 'new';
+}
+const STATUS_LABEL = {
+  new:    '🔔 NOVO',
+  prep:   'EM PREPARO',
+  delay:  'ATRASADO',
+  urgent: '🔴 URGENTE',
+  ready:  '✓ PRONTO'
+};
+const TYPE_LABEL = {
+  delivery: '🛵 DELIVERY',
+  table:    '🍽️ MESA',
+  counter:  '🏃 BALCÃO'
+};
+
+function fmtTime(secs) {
+  const h = Math.floor(secs/3600);
+  const m = Math.floor((secs%3600)/60);
+  const s = secs % 60;
+  if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+/* ——— Render ————————————————————————————————————— */
+const grid = document.getElementById('grid');
+
+function renderCard(o) {
+  const st = statusOf(o);
+  const allDone = o.items.every(i => i.done);
+  const tlabel = o.type === 'table' ? `🍽️ MESA ${o.tableNum}` : TYPE_LABEL[o.type];
+
+  const itemsHTML = o.items.map((it, idx) => `
+    <div class="k-item ${it.done ? 'done' : ''}" data-i="${idx}">
+      <div class="k-item-check">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
+      </div>
+      <div class="k-item-body">
+        <div class="k-item-name"><span class="qty">${it.qty}×</span>${it.name}</div>
+        ${(it.mods || []).map(m => {
+          const isHalf = m.startsWith('½');
+          const isMinus = /^sem |^Sem /.test(m);
+          const cls = isHalf ? 'split' : (isMinus ? 'minus' : '');
+          return `<div class="k-item-mod ${cls}">${isHalf ? m.slice(1).trim() : m}</div>`;
+        }).join('')}
+        ${it.obs ? `<div class="k-item-obs">⚠ ${it.obs}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <article class="k-card" data-status="${st}" data-id="${o.id}">
+      <div class="k-card-head">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="k-type" data-type="${o.type}">${tlabel}</span>
+          <span class="k-no">#${o.id}</span>
+        </div>
+        <div class="k-timer" data-elapsed="${o.elapsed}">
+          <span class="ic">⏱</span><span class="t">${fmtTime(o.elapsed)}</span>
+        </div>
+      </div>
+
+      <div class="k-cust">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div class="k-cust-name">${o.customer}</div>
+          <span class="k-statuspill" data-status="${st}"><span class="d"></span>${STATUS_LABEL[st]}</span>
+        </div>
+        <div class="k-cust-meta">${o.meta || ''}</div>
+        ${o.obs ? `<div class="k-cust-obs">⚠ ${o.obs}</div>` : ''}
+      </div>
+
+      <div class="k-items">
+        <div class="k-items-label">
+          <span>Itens · ${o.items.reduce((a,i)=>a+i.qty,0)}</span>
+          <span>${o.items.filter(i=>i.done).length}/${o.items.length} marcados</span>
+        </div>
+        ${itemsHTML}
+      </div>
+
+      <div class="k-actions-row">
+        ${st === 'ready' ? `
+          <button class="k-btn" data-act="undo">Desfazer</button>
+          <button class="k-btn k-btn-deliver" data-act="deliver">📣 Chamar / Entregar</button>
+        ` : `
+          <button class="k-btn k-btn-prep" data-act="start" ${st !== 'new' ? 'disabled style="opacity:.6;cursor:default"' : ''}>${st === 'new' ? '▶ Em preparo' : '✓ Em preparo'}</button>
+          <button class="k-btn k-btn-ready" data-act="ready" ${allDone ? '' : 'disabled'}>✓ Pedido pronto</button>
+        `}
+      </div>
+    </article>
+  `;
+}
+
+function render() {
+  grid.innerHTML = ORDERS.map(renderCard).join('');
+  updateCounters();
+  bindCardEvents();
+}
+
+function updateCounters() {
+  const counts = { all: 0, new: 0, prep: 0, delay: 0, urgent: 0, ready: 0 };
+  ORDERS.forEach(o => {
+    if (o.delivered) return;
+    const st = statusOf(o);
+    counts.all++;
+    counts[st] = (counts[st]||0) + 1;
+  });
+  document.getElementById('cAll').textContent  = counts.all;
+  document.getElementById('cNew').textContent  = counts.new;
+  document.getElementById('cPrep').textContent = counts.prep;
+  document.getElementById('cDelay').textContent= counts.delay;
+  document.getElementById('cUrg').textContent  = counts.urgent;
+  const open = ORDERS.filter(o => !o.delivered && statusOf(o) !== 'ready').length;
+  document.getElementById('openCount').textContent = open;
+}
+
+/* ——— Events on cards (delegated) ——— */
+function bindCardEvents() {
+  grid.querySelectorAll('.k-card').forEach(card => {
+    const id = +card.dataset.id;
+    const order = ORDERS.find(o => o.id === id);
+
+    // Item check toggles
+    card.querySelectorAll('.k-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const i = +el.dataset.i;
+        order.items[i].done = !order.items[i].done;
+        partialUpdate(card, order);
+      });
+    });
+
+    // Action buttons
+    card.querySelectorAll('[data-act]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const act = btn.dataset.act;
+        if (act === 'start') {
+          // For demo: jump elapsed to be in "prep" range
+          order.elapsed = Math.max(order.elapsed, T_PREP + 5);
+          partialUpdate(card, order);
+        } else if (act === 'ready') {
+          order.forceStatus = 'ready';
+          partialUpdate(card, order);
+        } else if (act === 'undo') {
+          delete order.forceStatus;
+          partialUpdate(card, order);
+        } else if (act === 'deliver') {
+          // Move out of view: fade-collapse
+          card.classList.add('leaving');
+          setTimeout(() => {
+            order.delivered = true;
+            render();
+          }, 320);
+        }
+      });
+    });
+  });
+}
+
+function partialUpdate(card, order) {
+  // Re-render single card in place
+  const html = renderCard(order);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const fresh = tmp.firstElementChild;
+  card.replaceWith(fresh);
+  updateCounters();
+  // Rebind only this card
+  bindOneCard(fresh);
+}
+
+function bindOneCard(card) {
+  const id = +card.dataset.id;
+  const order = ORDERS.find(o => o.id === id);
+  card.querySelectorAll('.k-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const i = +el.dataset.i;
+      order.items[i].done = !order.items[i].done;
+      partialUpdate(card, order);
+    });
+  });
+  card.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const act = btn.dataset.act;
+      if (act === 'start') {
+        order.elapsed = Math.max(order.elapsed, T_PREP + 5);
+        partialUpdate(card, order);
+      } else if (act === 'ready') {
+        order.forceStatus = 'ready';
+        partialUpdate(card, order);
+      } else if (act === 'undo') {
+        delete order.forceStatus;
+        partialUpdate(card, order);
+      } else if (act === 'deliver') {
+        card.classList.add('leaving');
+        setTimeout(() => { order.delivered = true; render(); }, 320);
+      }
+    });
+  });
+}
+
+/* ——— Tick: clock + per-card timers + status changes ——— */
+function tickClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+}
+
+function tickOrders() {
+  ORDERS.forEach(o => {
+    if (o.delivered || o.forceStatus === 'ready') return;
+    const prevStatus = statusOf(o);
+    o.elapsed += 1;
+    const newStatus = statusOf(o);
+    const card = grid.querySelector(`.k-card[data-id="${o.id}"]`);
+    if (!card) return;
+    // Update timer text only — avoid re-rendering whole card every second
+    const t = card.querySelector('.k-timer .t');
+    if (t) t.textContent = fmtTime(o.elapsed);
+    if (prevStatus !== newStatus) {
+      // Status crossed a threshold → re-render card
+      partialUpdate(card, o);
+    }
+  });
+}
+
+/* ——— Toast ——— */
+function showToast({ id, type, customer, items }) {
+  const wrap = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'k-toast';
+  const tlabel = type === 'table' ? `Mesa ${customer.replace(/\D/g,'') || ''}` : (type === 'delivery' ? 'Delivery' : 'Balcão');
+  t.innerHTML = `
+    <div class="ic">🔔</div>
+    <div class="body">
+      <b>Novo pedido chegou!</b>
+      <span>#${id} · ${tlabel} · ${items} ${items === 1 ? 'item' : 'itens'}</span>
+    </div>
+  `;
+  wrap.appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(()=>t.remove(), 240); }, 3000);
+}
+
+/* Demo: simulate a new order arriving at 6s */
+function simulateNewOrder() {
+  const newOrder = {
+    id: 4726, type: 'table', tableNum: 12, customer: 'Mesa 12',
+    meta: 'Garçom Ricardo · 4 pessoas', elapsed: 0,
+    items: [
+      { name: 'Pizza G · Margherita', qty: 1, done: false },
+      { name: 'Coca-Cola 2L', qty: 1, done: false },
+      { name: 'Suco de Maracujá 500ml', qty: 1, done: false },
+    ]
+  };
+  ORDERS.unshift(newOrder);
+  // Beep / chime would play here:
+  // try { new Audio('data:audio/wav;base64,...').play(); } catch(e){}
+  render();
+  // Mark the freshly inserted card with entrance animation
+  const c = grid.querySelector(`.k-card[data-id="4726"]`);
+  if (c) c.classList.add('entering');
+  showToast({ id: 4726, type: 'table', customer: 'Mesa 12', items: 3 });
+}
+
+/* ——— Filter pills ——— */
+document.querySelectorAll('.k-pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.k-pill').forEach(x => x.classList.remove('on'));
+    p.classList.add('on');
+    const f = p.dataset.filter;
+    grid.querySelectorAll('.k-card').forEach(c => {
+      const st = c.dataset.status;
+      const show = (f === 'all') || (st === f);
+      c.style.display = show ? '' : 'none';
+    });
+  });
+});
+
+/* ——— Init ——— */
+render();
+tickClock();
+setInterval(tickClock, 1000);
+setInterval(tickOrders, 1000);
+setTimeout(simulateNewOrder, 7000);
+</script>
+</body>
+</html>

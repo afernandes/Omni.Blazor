@@ -1,0 +1,80 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  Floating Action Button (FAB) — botão circular ancorado num canto da
+    viewport pra ação primária de uma tela. Padrão Material Design.
+
+    Equivalente ao RadzenFab, com 3 diferenças:
+      1. position: fixed (não absolute) — fica ancorado à viewport mesmo
+         com scroll do container. RadzenFab requer o pai ser position:relative.
+      2. FabPosition enum (BottomRight/BottomLeft/TopRight/TopLeft/BottomCenter/
+         Static) substitui inset-* manual.
+      3. Extended FAB: passa Text + Icon = pill alongado, padrão Material
+         pra ações com label (RadzenFab é só icon-only).
+
+    Usage — FAB de "novo item" no canto:
+        <OmniFab Icon="plus" Title="Novo pedido"
+                  OnClick="@(_ => CriarPedido())" />
+
+    Usage — extended FAB com label:
+        <OmniFab Icon="message-square" Text="Compor"
+                  Position="FabPosition.BottomLeft" /> *@
+
+<OmniButton Icon="@Icon"
+             Text="@Text"
+             IconOnly="@(string.IsNullOrEmpty(Text))"
+             Variant="@Variant"
+             Size="@Size"
+             Disabled="@Disabled"
+             OnClick="OnClick"
+             Class="@RootCss"
+             Style="@Style"
+             title="@Title"
+             aria-label="@(AriaLabel ?? Title ?? Text)"
+             @attributes="Attributes" />
+
+@code {
+    /// <summary>Ícone do FAB. Default <c>"plus"</c> (ação "criar novo").</summary>
+    [Parameter] public string Icon { get; set; } = "plus";
+
+    /// <summary>Texto opcional. Se setado, renderiza Extended FAB (pill alongado).
+    /// Vazio = FAB circular icon-only (clássico Material).</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Canto da viewport onde o FAB ancora. Default <c>BottomRight</c>.</summary>
+    [Parameter] public FabPosition Position { get; set; } = FabPosition.BottomRight;
+
+    /// <summary>Variant do botão. Default <c>Primary</c> (cor accent — chama atenção).</summary>
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Primary;
+
+    /// <summary>Tamanho. Default <c>Lg</c> — FAB é proeminente por convenção.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Lg;
+
+    /// <summary>Tooltip. Use sempre — FAB icon-only sem tooltip é a11y ruim.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>aria-label custom. Fallback: Title → Text.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    // Class + Attributes vêm da base OmniComponent.
+
+    private string RootCss => CssBuilder.Default("omni-fab")
+        .AddClass(Position switch
+        {
+            FabPosition.BottomRight  => "omni-fab-bottom-right",
+            FabPosition.BottomLeft   => "omni-fab-bottom-left",
+            FabPosition.TopRight     => "omni-fab-top-right",
+            FabPosition.TopLeft      => "omni-fab-top-left",
+            FabPosition.BottomCenter => "omni-fab-bottom-center",
+            FabPosition.Static       => "omni-fab-static",
+            _                        => "omni-fab-bottom-right",
+        })
+        .AddClass(string.IsNullOrEmpty(Text) ? "omni-fab-icon" : "omni-fab-extended")
+        .AddClass(Class)
+        .Build();
+}

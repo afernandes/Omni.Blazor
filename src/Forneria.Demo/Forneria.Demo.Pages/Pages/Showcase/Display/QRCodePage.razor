@@ -1,0 +1,179 @@
+@page "/showcase/qrcode"
+@layout ShowcaseLayout
+
+<PageTitle>QR Code — Showcase</PageTitle>
+
+<ShowcasePage Title="QR Code"
+              Subtitle="QR Codes em SVG puro com encoder C# nativo. Versões 1–40, 4 níveis de ECC, formas customizáveis.">
+
+    <Overview>
+        <p>
+            O <code>OmniQRCode</code> renderiza QR Codes como SVG inline com encoder C# puro
+            (<code>QRCodeEncoder.cs</code>) — <strong>zero dependências externas</strong>. Suporta
+            todas as versões (1 a 40, escolhidas automaticamente conforme o tamanho do
+            conteúdo), os quatro níveis de correção de erro e qualquer texto UTF-8.
+        </p>
+        <p>
+            Personalize a estética com <code>ModuleShape</code> (Square/Rounded/Circle) e
+            <code>EyeShape</code> (Square/Rounded/Framed). Para QR com logo central, use
+            <code>Image</code> + <code>ImageSizePercent</code>; use ECC <code>High</code> para
+            tolerar o "buraco" causado pelo logo.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>URLs em material impresso, cartazes, embalagens.</li>
+            <li>Conexão Wi-Fi, contato vCard, evento iCal.</li>
+            <li>Cardápio digital (QR no pesqueiro/menu da pizzaria).</li>
+            <li>Comprovantes Pix, ingressos digitais, vouchers.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Identificação de produto numérica → use <code>OmniBarcode</code> EAN-13.</li>
+            <li>Conteúdo > ~2000 bytes → divida ou use outro mecanismo.</li>
+            <li>Quando o leitor é humano → use texto/<code>OmniBadge</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Por padrão: ECC Medium (~15%), módulos quadrados, olhos quadrados."
+                         Code="@(@"<OmniQRCode Value=""https://forneria.com"" />")">
+            <div class="omni-row omni-row-wrap omni-row-gap-16">
+                <OmniQRCode Value="https://forneria.com" />
+                <OmniQRCode Value="Forneria Bella Vista — Pizza tradicional" Size="180px" />
+                <OmniQRCode Value="https://github.com/omni/blazor" Size="160px" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="NÍVEIS DE CORREÇÃO"
+                         Description="L (7%), M (15%, default), Q (25%), H (30%). Maior ECC = QR mais denso."
+                         Code="@(@"<OmniQRCode Value=""Pizza Forneria"" Ecc=""QRCodeEcc.Low"" />
+<OmniQRCode Value=""Pizza Forneria"" Ecc=""QRCodeEcc.Medium"" />
+<OmniQRCode Value=""Pizza Forneria"" Ecc=""QRCodeEcc.Quartile"" />
+<OmniQRCode Value=""Pizza Forneria"" Ecc=""QRCodeEcc.High"" />")">
+            <div class="omni-grid-4">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">L (7%)</p>
+                    <OmniQRCode Value="Pizza Forneria — Tradicional desde 1985" Ecc="QRCodeEcc.Low" Size="160px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">M (15%)</p>
+                    <OmniQRCode Value="Pizza Forneria — Tradicional desde 1985" Ecc="QRCodeEcc.Medium" Size="160px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">Q (25%)</p>
+                    <OmniQRCode Value="Pizza Forneria — Tradicional desde 1985" Ecc="QRCodeEcc.Quartile" Size="160px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">H (30%)</p>
+                    <OmniQRCode Value="Pizza Forneria — Tradicional desde 1985" Ecc="QRCodeEcc.High" Size="160px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="FORMAS DE MÓDULO"
+                         Description="Square (default), Rounded e Circle mudam a estética sem afetar a leitura."
+                         Code="@(@"<OmniQRCode Value=""..."" ModuleShape=""QRCodeModuleShape.Square"" />
+<OmniQRCode Value=""..."" ModuleShape=""QRCodeModuleShape.Rounded"" />
+<OmniQRCode Value=""..."" ModuleShape=""QRCodeModuleShape.Circle"" />")">
+            <div class="omni-grid-3">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">SQUARE</p>
+                    <OmniQRCode Value="https://forneria.com" ModuleShape="QRCodeModuleShape.Square" Size="180px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">ROUNDED</p>
+                    <OmniQRCode Value="https://forneria.com" ModuleShape="QRCodeModuleShape.Rounded" Size="180px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">CIRCLE</p>
+                    <OmniQRCode Value="https://forneria.com" ModuleShape="QRCodeModuleShape.Circle" Size="180px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="FORMAS DE OLHOS (FINDER)"
+                         Description="EyeShape muda os 3 marcadores de canto. Use EyeColor para destacar."
+                         Code="@(@"<OmniQRCode Value=""..."" EyeShape=""QRCodeEyeShape.Square"" />
+<OmniQRCode Value=""..."" EyeShape=""QRCodeEyeShape.Rounded"" EyeColor=""var(--omni-accent)"" />")">
+            <div class="omni-grid-2">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">SQUARE (default)</p>
+                    <OmniQRCode Value="https://forneria.com" EyeShape="QRCodeEyeShape.Square" Size="180px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">ROUNDED + cor accent</p>
+                    <OmniQRCode Value="https://forneria.com" EyeShape="QRCodeEyeShape.Rounded" EyeColor="var(--omni-accent)" Size="180px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CORES"
+                         Description="Foreground/Background aceitam qualquer CSS color. Atenção a contraste!"
+                         Code="@(@"<OmniQRCode Value=""..."" Foreground=""var(--omni-accent)"" />
+<OmniQRCode Value=""..."" Foreground=""#fff"" Background=""var(--omni-fg)"" />")">
+            <div class="omni-grid-4">
+                <OmniQRCode Value="https://forneria.com" Foreground="var(--omni-accent)" Size="150px" />
+                <OmniQRCode Value="https://forneria.com" Foreground="var(--omni-good)" Size="150px" />
+                <OmniQRCode Value="https://forneria.com" Foreground="#fff" Background="var(--omni-fg)" Size="150px" />
+                <OmniQRCode Value="https://forneria.com" Foreground="var(--omni-info)" Background="color-mix(in oklab, var(--omni-info) 5%, transparent)" Size="150px" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CASOS DE USO"
+                         Description="Wi-Fi, vCard, Pix copia-e-cola — qualquer texto cabe."
+                         Code="@(@"@* Wi-Fi: WIFI:T:WPA;S:NomeRede;P:senha;; *@
+<OmniQRCode Value=""WIFI:T:WPA;S:Forneria-Guest;P:pizza2024;;"" Ecc=""QRCodeEcc.Quartile"" />")">
+            <div class="omni-grid-3">
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">CARDÁPIO ONLINE</p>
+                    <OmniQRCode Value="https://forneria.com/cardapio?mesa=12" Size="180px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">WI-FI GUEST</p>
+                    <OmniQRCode Value="WIFI:T:WPA;S:Forneria-Guest;P:pizza2024;;" Ecc="QRCodeEcc.Quartile" Size="180px" />
+                </div>
+                <div>
+                    <p class="omni-muted omni-mono" style="font-size:11px;margin:0 0 6px">PIX COPIA-E-COLA</p>
+                    <OmniQRCode Value="00020126360014BR.GOV.BCB.PIX011417999998888520400005303986540512.005802BR5913FORNERIA LTDA6009SAO PAULO62070503***6304ABCD" Ecc="QRCodeEcc.Medium" Size="180px" />
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros">
+            <ShowcaseApiRow Name="Value" Type="string" Default="&quot;&quot;"
+                            Description="Texto/URL a codificar. UTF-8, qualquer Unicode." />
+            <ShowcaseApiRow Name="Ecc" Type="QRCodeEcc" Default="Medium"
+                            Description="Low (7%) | Medium (15%) | Quartile (25%) | High (30%)." />
+            <ShowcaseApiRow Name="Size" Type="string" Default="&quot;200px&quot;"
+                            Description="CSS size (width=height)." />
+            <ShowcaseApiRow Name="Foreground" Type="string" Default="&quot;var(--omni-fg)&quot;"
+                            Description="Cor dos módulos escuros." />
+            <ShowcaseApiRow Name="Background" Type="string" Default="&quot;&quot;"
+                            Description="Cor de fundo. Vazio = transparente." />
+            <ShowcaseApiRow Name="ModuleShape" Type="QRCodeModuleShape" Default="Square"
+                            Description="Square | Rounded | Circle." />
+            <ShowcaseApiRow Name="EyeShape" Type="QRCodeEyeShape" Default="Square"
+                            Description="Square | Rounded | Framed (forma dos 3 marcadores)." />
+            <ShowcaseApiRow Name="EyeColor" Type="string?" Default="null"
+                            Description="Cor opcional dos olhos (override do Foreground)." />
+            <ShowcaseApiRow Name="QuietZone" Type="int" Default="4"
+                            Description="Margem em módulos (ISO recomenda 4)." />
+            <ShowcaseApiRow Name="Image" Type="string?" Default="null"
+                            Description="URL/data-url de imagem central (logo)." />
+            <ShowcaseApiRow Name="ImageSizePercent" Type="double" Default="20"
+                            Description="% do tamanho total ocupado pela imagem (5..50)." />
+            <ShowcaseApiRow Name="ImagePadding" Type="double" Default="1"
+                            Description="Padding em módulos ao redor da imagem." />
+            <ShowcaseApiRow Name="ImageBackground" Type="string" Default="&quot;var(--omni-bg-elev)&quot;"
+                            Description="Cor de fundo do recorte ao redor da imagem." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

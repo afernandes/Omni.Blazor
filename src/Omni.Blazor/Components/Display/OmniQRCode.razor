@@ -1,0 +1,190 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@* Renders a QR code as inline SVG. Each module is one viewBox unit; quiet
+   zone is added as padding. Optional logo overlay (with a punched-out
+   background) is supported. *@
+
+<div class="@RootCss" style="@StyleAttr" @attributes="Attributes">
+    @if (_error is not null)
+    {
+        <div class="omni-qrcode-error" role="alert">@_error</div>
+    }
+    else if (_matrix is not null)
+    {
+        <svg viewBox="@ViewBox" class="omni-qrcode-svg"
+             role="img" aria-label="@(AriaLabel ?? Value)">
+            @if (!string.IsNullOrEmpty(Background))
+            {
+                <rect x="0" y="0" width="@F(_total)" height="@F(_total)" fill="@Background" />
+            }
+            @foreach (var mod in DarkModules())
+            {
+                @if (ModuleShape == QRCodeModuleShape.Square)
+                {
+                    <rect x="@F(mod.X)" y="@F(mod.Y)" width="1" height="1" fill="@Foreground" />
+                }
+                else if (ModuleShape == QRCodeModuleShape.Rounded)
+                {
+                    <rect x="@F(mod.X)" y="@F(mod.Y)" width="1" height="1" rx="0.25" ry="0.25" fill="@Foreground" />
+                }
+                else
+                {
+                    <circle cx="@F(mod.X + 0.5)" cy="@F(mod.Y + 0.5)" r="0.45" fill="@Foreground" />
+                }
+            }
+            @* Finder patterns (eyes) — drawn over the data for shape override *@
+            @if (EyeShape != QRCodeEyeShape.Square)
+            {
+                @foreach (var eye in EyeCenters())
+                {
+                    @* Outer 7×7 ring *@
+                    <rect x="@F(eye.X - 3)" y="@F(eye.Y - 3)" width="7" height="7"
+                          rx="@EyeRadiusOuter" ry="@EyeRadiusOuter"
+                          fill="none" stroke="@(eye.Color ?? Foreground)" stroke-width="1" />
+                    @* Inner 3×3 dot *@
+                    <rect x="@F(eye.X - 1)" y="@F(eye.Y - 1)" width="3" height="3"
+                          rx="@EyeRadiusInner" ry="@EyeRadiusInner"
+                          fill="@(eye.Color ?? Foreground)" />
+                }
+            }
+            @if (!string.IsNullOrEmpty(Image))
+            {
+                var s = _total * Math.Clamp(ImageSizePercent, 5, 50) / 100.0;
+                var cx = _total / 2.0;
+                <rect x="@F(cx - s / 2 - ImagePadding)" y="@F(cx - s / 2 - ImagePadding)"
+                      width="@F(s + 2 * ImagePadding)" height="@F(s + 2 * ImagePadding)"
+                      rx="0.5" fill="@ImageBackground" />
+                <image href="@Image" x="@F(cx - s / 2)" y="@F(cx - s / 2)"
+                       width="@F(s)" height="@F(s)" />
+            }
+        </svg>
+    }
+</div>
+
+@code {
+    /// <summary>Conteúdo a codificar. UTF-8 / Byte mode (suporta acentos e qualquer Unicode).</summary>
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+
+    /// <summary>Nível de correção de erro. Default <c>Medium</c> (~15% de tolerância).</summary>
+    [Parameter] public QRCodeEcc Ecc { get; set; } = QRCodeEcc.Medium;
+
+    /// <summary>Cor dos módulos. Default <c>--omni-fg</c>.</summary>
+    [Parameter] public string Foreground { get; set; } = "var(--omni-fg)";
+
+    /// <summary>Cor de fundo (vazio = transparente).</summary>
+    [Parameter] public string Background { get; set; } = "";
+
+    /// <summary>Forma dos módulos. Default <c>Square</c>.</summary>
+    [Parameter] public QRCodeModuleShape ModuleShape { get; set; } = QRCodeModuleShape.Square;
+
+    /// <summary>Forma dos três "olhos" (finder patterns). Default <c>Square</c>.</summary>
+    [Parameter] public QRCodeEyeShape EyeShape { get; set; } = QRCodeEyeShape.Square;
+
+    /// <summary>Cor opcional dos olhos (override do <c>Foreground</c>).</summary>
+    [Parameter] public string? EyeColor { get; set; }
+
+    /// <summary>Quiet zone em módulos. ISO recomenda 4. Default 4.</summary>
+    [Parameter] public int QuietZone { get; set; } = 4;
+
+    /// <summary>CSS size — aplicado como width=height. Default <c>"200px"</c>.</summary>
+    [Parameter] public string Size { get; set; } = "200px";
+
+    /// <summary>Imagem central (data URL ou caminho). Opcional.</summary>
+    [Parameter] public string? Image { get; set; }
+
+    /// <summary>% do tamanho total ocupado pela imagem (5..50). Default 20.</summary>
+    [Parameter] public double ImageSizePercent { get; set; } = 20;
+
+    /// <summary>Padding em módulos ao redor da imagem. Default 1.</summary>
+    [Parameter] public double ImagePadding { get; set; } = 1;
+
+    /// <summary>Cor de fundo do recorte ao redor da imagem. Default <c>--omni-bg-elev</c>.</summary>
+    [Parameter] public string ImageBackground { get; set; } = "var(--omni-bg-elev)";
+
+    /// <summary>aria-label customizado (default = Value).</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    internal bool[,]? _matrix;
+    private int _size;            // matrix dimension
+    private int _total => _size + 2 * QuietZone;  // tracks QuietZone changes without re-encoding
+    private string? _error;
+
+    // ParameterState: heavy QR encoding only re-runs when Value/Ecc change.
+    // Size/Foreground/Style/etc. flow through getters with no recompute cost.
+    private ParameterState<string> _valueState = null!;
+    private ParameterState<QRCodeEcc> _eccState = null!;
+
+    protected override void OnInitialized()
+    {
+        _valueState = RegisterParameter<string>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(Recompute)
+            .Attach();
+        _eccState = RegisterParameter<QRCodeEcc>(nameof(Ecc))
+            .WithParameter(() => Ecc)
+            .WithChangeHandler(Recompute)
+            .Attach();
+    }
+
+    private string RootCss => CssBuilder.Default("omni-qrcode")
+        .AddClass(Class)
+        .Build();
+    private string StyleAttr =>
+        $"width:{Size};height:{Size};display:inline-block;" + (Style ?? "");
+    private string ViewBox => $"0 0 {F(_total)} {F(_total)}";
+    private string EyeRadiusOuter => EyeShape == QRCodeEyeShape.Rounded ? "1.5" : "0";
+    private string EyeRadiusInner => EyeShape == QRCodeEyeShape.Rounded ? "0.75" : "0";
+
+    private void Recompute()
+    {
+        _error = null; _matrix = null; _size = 0;
+        if (string.IsNullOrEmpty(Value)) return;
+        try
+        {
+            _matrix = QRCodeEncoder.Encode(Value, Ecc);
+            _size = _matrix.GetLength(0);
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private IEnumerable<(double X, double Y)> DarkModules()
+    {
+        if (_matrix is null) yield break;
+        for (int y = 0; y < _size; y++)
+            for (int x = 0; x < _size; x++)
+                if (_matrix[x, y])
+                {
+                    // Skip eye regions when EyeShape != Square (we draw them separately).
+                    if (EyeShape != QRCodeEyeShape.Square && InEyeRegion(x, y)) continue;
+                    yield return (x + QuietZone, y + QuietZone);
+                }
+    }
+
+    private bool InEyeRegion(int x, int y)
+    {
+        // 7x7 finder regions at (0..6, 0..6), (size-7..size-1, 0..6), (0..6, size-7..size-1)
+        bool inTL = x <= 6 && y <= 6;
+        bool inTR = x >= _size - 7 && y <= 6;
+        bool inBL = x <= 6 && y >= _size - 7;
+        return inTL || inTR || inBL;
+    }
+
+    private IEnumerable<(double X, double Y, string? Color)> EyeCenters()
+    {
+        // Centers offset by 3 from corner (because eye is 7×7 centered on (3,3)).
+        // Coordinates here are absolute (within total grid w/ quiet zone).
+        yield return (QuietZone + 3, QuietZone + 3, EyeColor);
+        yield return (QuietZone + _size - 4, QuietZone + 3, EyeColor);
+        yield return (QuietZone + 3, QuietZone + _size - 4, EyeColor);
+    }
+
+    private static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+}

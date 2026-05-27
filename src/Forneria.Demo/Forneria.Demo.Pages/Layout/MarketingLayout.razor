@@ -1,0 +1,29 @@
+@inherits LayoutComponentBase
+
+<div class="omni-mk-shell">
+    <div class="omni-mk-nav">
+        <OmniBrand Initial="F" Name="Forneria" Href="/" />
+        <div class="omni-mk-nav-links">
+            <a href="/showcase/buttons">Componentes</a>
+            <a href="#features">Recursos</a>
+            <a href="#pricing">Preços</a>
+            <OmniButton Text="Entrar" Variant="ButtonVariant.Ghost"
+                         OnClick="@(_ => { Nav.NavigateTo("/login"); return Task.CompletedTask; })" />
+            <OmniButton Text="Começar grátis" Variant="ButtonVariant.Primary"
+                         OnClick="@(_ => { Nav.NavigateTo("/signup"); return Task.CompletedTask; })" />
+        </div>
+    </div>
+
+    <main>@Body</main>
+
+    <footer class="omni-mk-foot">
+        <span>© 2026 FORNERIA</span>
+        <span>FEITO COM OMNI.BLAZOR</span>
+    </footer>
+</div>
+
+<OmniOverlayHosts />
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+}

@@ -1,0 +1,109 @@
+@*  Editor inline de uma metade de pizza:
+    - Lista de ingredientes (checkbox para remover)
+    - Chips clicáveis com extras (toggle adicionar/remover)
+    - Textarea de nota
+    Devolve a lista completa de FlavorMod via OnSave. *@
+<div class="fs-pdv-flavor-editor" @onclick:stopPropagation="true">
+    @if (_ingredients.Count > 0)
+    {
+        <div>
+            <div class="fs-pdv-flavor-editor-section-label">Remover ingredientes</div>
+            <div class="fs-pdv-flavor-editor-ings">
+                @foreach (var ing in _ingredients)
+                {
+                    var key = ing;
+                    var isRemoved = _removed.Contains(key);
+                    <label class="fs-pdv-flavor-editor-ing @(isRemoved ? "is-removed" : "")">
+                        <input type="checkbox" checked="@isRemoved"
+                               @onchange="@(e => ToggleRemoved(key, (bool)e.Value!))" />
+                        @key
+                    </label>
+                }
+            </div>
+        </div>
+    }
+
+    <div>
+        <div class="fs-pdv-flavor-editor-section-label">Adicionar extras</div>
+        <div class="fs-pdv-flavor-editor-extras">
+            @foreach (var ex in PdvMockData.Extras)
+            {
+                var exo = ex;
+                var added = _extras.Any(e => e.Id == exo.Id);
+                <button type="button"
+                        class="fs-pdv-flavor-editor-extra @(added ? "is-added" : "")"
+                        @onclick="@(() => ToggleExtra(exo))">
+                    @if (added)
+                    {
+                        <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                    }
+                    @exo.Name
+                    @if (exo.Price > 0)
+                    {
+                        <span class="price">+@exo.Price.ToString("C", _ptBr)</span>
+                    }
+                </button>
+            }
+        </div>
+    </div>
+
+    <div>
+        <div class="fs-pdv-flavor-editor-section-label">Observação</div>
+        <textarea @bind="_note" placeholder="Ex: bem assada, sem orégano…"></textarea>
+    </div>
+
+    <div class="fs-pdv-flavor-editor-actions">
+        <button class="fs-pdv-btn fs-pdv-btn-ghost" @onclick="OnCancel">Cancelar</button>
+        <button class="fs-pdv-btn fs-pdv-btn-primary" @onclick="HandleSave">Salvar</button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PizzaHalf Half { get; set; } = default!;
+    [Parameter] public EventCallback<IReadOnlyList<FlavorMod>> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private static readonly System.Globalization.CultureInfo _ptBr = new("pt-BR");
+    private List<string> _ingredients = new();
+    private HashSet<string> _removed = new();
+    private List<ExtraOption> _extras = new();
+    private string _note = "";
+
+    protected override void OnParametersSet()
+    {
+        // Parse "Calabresa fatiada, muçarela, cebola, orégano" → list
+        _ingredients = Half.Ingredients
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
+        var mods = Half.Mods ?? Array.Empty<FlavorMod>();
+        _removed = new(mods.Where(m => m.Kind == FlavorModKind.Removed).Select(m => m.Value));
+        _extras = mods.Where(m => m.Kind == FlavorModKind.Extra)
+                      .Select(m => PdvMockData.Extras.FirstOrDefault(e => e.Name == m.Value))
+                      .Where(e => e is not null).Cast<ExtraOption>()
+                      .ToList();
+        _note = mods.FirstOrDefault(m => m.Kind == FlavorModKind.Note)?.Value ?? "";
+    }
+
+    private void ToggleRemoved(string ing, bool removed)
+    {
+        if (removed) _removed.Add(ing); else _removed.Remove(ing);
+    }
+
+    private void ToggleExtra(ExtraOption ex)
+    {
+        var existing = _extras.FirstOrDefault(e => e.Id == ex.Id);
+        if (existing is not null) _extras.Remove(existing);
+        else _extras.Add(ex);
+    }
+
+    private async Task HandleSave()
+    {
+        var mods = new List<FlavorMod>();
+        foreach (var r in _removed) mods.Add(new(FlavorModKind.Removed, r));
+        foreach (var e in _extras)  mods.Add(new(FlavorModKind.Extra, e.Name, e.Price));
+        if (!string.IsNullOrWhiteSpace(_note))
+            mods.Add(new(FlavorModKind.Note, _note.Trim()));
+        await OnSave.InvokeAsync(mods);
+    }
+}

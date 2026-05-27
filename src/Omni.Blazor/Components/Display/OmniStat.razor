@@ -1,0 +1,70 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Label) || !string.IsNullOrEmpty(Icon))
+    {
+        <div class="omni-stat-label">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <span class="omni-stat-ico"><OmniIcon Name="@Icon" Size="ComponentSize.Sm" /></span>
+            }
+            @if (!string.IsNullOrEmpty(Label))
+            {
+                <span>@Label</span>
+            }
+        </div>
+    }
+    <div class="omni-stat-value">@Value</div>
+    @if (!string.IsNullOrEmpty(Delta) || !string.IsNullOrEmpty(DeltaCaption))
+    {
+        <div class="omni-stat-delta-row">
+            @if (!string.IsNullOrEmpty(Delta))
+            {
+                <span class="@DeltaCss">@Delta</span>
+            }
+            @if (!string.IsNullOrEmpty(DeltaCaption))
+            {
+                <span class="omni-stat-caption">@DeltaCaption</span>
+            }
+        </div>
+    }
+    @if (Visual is not null)
+    {
+        <div class="omni-stat-visual">@Visual</div>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Uppercase label above the value.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>The metric value (large).</summary>
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+
+    /// <summary>Optional icon shown in a chip next to the label.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Trend delta (e.g. "+18,4%"). Colour follows <see cref="DeltaDown"/>.</summary>
+    [Parameter] public string? Delta { get; set; }
+
+    /// <summary>Neutral caption after the delta (e.g. "vs ontem").</summary>
+    [Parameter] public string? DeltaCaption { get; set; }
+
+    /// <summary>Renders the delta in the "down" colour.</summary>
+    [Parameter] public bool DeltaDown { get; set; }
+
+    /// <summary>Wraps the stat in a bordered card surface.</summary>
+    [Parameter] public bool Card { get; set; }
+
+    /// <summary>Decorative visual (e.g. a sparkline) anchored to the bottom-right.</summary>
+    [Parameter] public RenderFragment? Visual { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-stat")
+        .AddClass("omni-stat-card", Card)
+        .AddClass(Class)
+        .Build();
+    private string DeltaCss => "omni-stat-delta" + (DeltaDown ? " omni-stat-delta-down" : "");
+}

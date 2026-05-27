@@ -1,0 +1,95 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  Standalone <label> element for cases where OmniFormField is overkill
+    (custom controls, plain text + value pairs, group of segmented buttons,
+    etc.). Use OmniFormField when wrapping a single input — this is for
+    everything else.
+
+    Renders a semantic <label for=…> when For is set, or a <span> styled as
+    a label when there's no target to associate. Required indicator and
+    disabled state mirror the rest of the form surface. *@
+
+@if (string.IsNullOrEmpty(For))
+{
+    <span class="@RootCss" style="@Style" @attributes="Attributes">
+        @LabelContent
+    </span>
+}
+else
+{
+    <label class="@RootCss" style="@Style" for="@For" @attributes="Attributes">
+        @LabelContent
+    </label>
+}
+
+@code {
+    /// <summary>Texto da label. Ignorado quando ChildContent é definido.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    // ChildContent é herdado de OmniComponentWithChildren; quando definido
+    // sobrescreve o Text na renderização do LabelContent abaixo.
+
+    /// <summary>ID do elemento associado (atributo <c>for</c>). Quando vazio,
+    /// renderiza como <c>&lt;span&gt;</c> sem associação semântica.</summary>
+    [Parameter] public string? For { get; set; }
+
+    /// <summary>Exibe asterisco <c>*</c> em cor de erro depois do texto.</summary>
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>Estado desabilitado — só altera a aparência (label não é interativa).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Tamanho do texto. <c>Sm</c> = 11px caixa alta (compacto, próximo de inputs).
+    /// <c>Md</c> = 14px (default). <c>Lg</c> = 16px (destacado).</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Texto auxiliar exibido em linha separada abaixo (cor muted, fonte menor).</summary>
+    [Parameter] public string? Helper { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-label")
+        .AddClass(Size switch
+        {
+            ComponentSize.Sm => "omni-label-sm",
+            ComponentSize.Lg => "omni-label-lg",
+            _ => "omni-label-md",
+        })
+        .AddClass("omni-label-disabled", Disabled)
+        .AddClass("omni-label-with-helper", !string.IsNullOrEmpty(Helper))
+        .AddClass(Class)
+        .Build();
+
+    private RenderFragment LabelContent => builder =>
+    {
+        // Linha 1: texto principal + opcional asterisco
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "omni-label-text");
+        if (ChildContent is not null)
+        {
+            builder.AddContent(2, ChildContent);
+        }
+        else if (!string.IsNullOrEmpty(Text))
+        {
+            builder.AddContent(3, Text);
+        }
+        if (Required)
+        {
+            builder.OpenElement(4, "span");
+            builder.AddAttribute(5, "class", "omni-label-required");
+            builder.AddAttribute(6, "aria-label", "obrigatório");
+            builder.AddContent(7, "*");
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+
+        // Linha 2 (opcional): helper text
+        if (!string.IsNullOrEmpty(Helper))
+        {
+            builder.OpenElement(8, "span");
+            builder.AddAttribute(9, "class", "omni-label-helper");
+            builder.AddContent(10, Helper);
+            builder.CloseElement();
+        }
+    };
+}

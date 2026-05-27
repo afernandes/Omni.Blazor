@@ -1,0 +1,46 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Group of collapsible panels. Single mode = only one open at a time;
+    Multi mode = each item independent.
+
+    Usage:
+        <OmniAccordion Mode="AccordionMode.Single">
+            <OmniAccordionItem Title="Geral" Icon="settings"> ... </OmniAccordionItem>
+            <OmniAccordionItem Title="Privacidade" Icon="lock"> ... </OmniAccordionItem>
+        </OmniAccordion>
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <div class="@RootCss" style="@Style" @attributes="Attributes">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    [Parameter] public AccordionMode Mode { get; set; } = AccordionMode.Single;
+
+    private string RootCss => CssBuilder.Default("omni-accordion")
+        .AddClass(Class)
+        .Build();
+
+    private readonly List<OmniAccordionItem> _items = new();
+
+    internal void Register(OmniAccordionItem item)
+    {
+        if (!_items.Contains(item)) _items.Add(item);
+    }
+    internal void Unregister(OmniAccordionItem item) => _items.Remove(item);
+
+    /// <summary>Called by an item just before it expands so Single mode can collapse siblings.</summary>
+    internal void NotifyExpanding(OmniAccordionItem source)
+    {
+        if (Mode == AccordionMode.Multi) return;
+        foreach (var item in _items)
+        {
+            if (item != source && item.IsExpanded) item.SetExpanded(false);
+        }
+    }
+}

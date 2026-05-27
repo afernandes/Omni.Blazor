@@ -1,0 +1,104 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits FormComponent<IEnumerable<TValue>>
+@using Omni.Blazor.Utilities
+
+@*  Grupo de checkboxes que faz two-way bind para um <c>IEnumerable&lt;TValue&gt;</c>.
+    Mesmo modelo dos outros componentes de lista — passe <c>Items</c> +
+    <c>TextSelector</c> + <c>ValueSelector</c> e o componente cuida do resto.
+
+    Orientação vertical (default) ou horizontal. Cada item pode opcionalmente
+    ter um <c>Description</c> (texto auxiliar) e ser <c>Disabled</c> individualmente.
+
+    Usage:
+        <OmniCheckBoxList TValue="string"
+                           Items="@(new[] { "Cheddar", "Bacon", "Cebola caramelizada" })"
+                           @bind-Value="adicionais" /> *@
+
+<div class="@RootCss" style="@Style" role="group" aria-label="@AriaLabel" @attributes="Attributes">
+    @if (Items is not null)
+    {
+        @foreach (var item in Items)
+        {
+            // Default ValueSelector = identity: sem selector, o próprio item é o valor.
+            var v = ValueSelector is not null ? ValueSelector(item) : item;
+            var label = TextSelector is not null ? TextSelector(item) : item?.ToString() ?? "";
+            var desc = DescriptionSelector is not null ? DescriptionSelector(item) : null;
+            var itemDisabled = Disabled || (DisabledSelector is not null && DisabledSelector(item));
+            var isChecked = IsChecked(v);
+            <label class="@ItemCss(itemDisabled)">
+                <input type="checkbox"
+                       class="omni-check-input"
+                       checked="@isChecked"
+                       disabled="@itemDisabled"
+                       @onchange="@(e => OnItemChangedAsync(v, e))" />
+                <span class="omni-check-list-content">
+                    <span class="omni-check-list-label">@label</span>
+                    @if (!string.IsNullOrEmpty(desc))
+                    {
+                        <span class="omni-check-list-desc">@desc</span>
+                    }
+                </span>
+            </label>
+        }
+    }
+    @if (ChildContent is not null) { @ChildContent }
+</div>
+
+@code {
+    /// <summary>Conjunto de itens a renderizar.</summary>
+    [Parameter] public IEnumerable<TValue>? Items { get; set; }
+
+    /// <summary>Extrai o valor a usar no bind. Default = o próprio item.</summary>
+    [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
+
+    /// <summary>Texto principal de cada item. Default = <c>item.ToString()</c>.</summary>
+    [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
+
+    /// <summary>Texto auxiliar opcional abaixo do label.</summary>
+    [Parameter] public Func<TValue?, string?>? DescriptionSelector { get; set; }
+
+    /// <summary>Item-by-item: retorne true para desabilitar este item específico.</summary>
+    [Parameter] public Func<TValue?, bool>? DisabledSelector { get; set; }
+
+    /// <summary>Orientação do layout. Default <c>Vertical</c>.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
+
+    /// <summary>Conteúdo customizado adicional (renderizado APÓS os itens).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>aria-label do grupo.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-check-list")
+        .AddClass(Orientation == Orientation.Horizontal
+            ? "omni-check-list-horizontal"
+            : "omni-check-list-vertical")
+        .AddClass("omni-invalid", IsInvalid)
+        .AddClass(Class)
+        .Build();
+
+    private string ItemCss(bool itemDisabled) => CssBuilder.Default("omni-check-list-item")
+        .AddClass("omni-check-list-item-disabled", itemDisabled)
+        .Build();
+
+    private bool IsChecked(TValue? v)
+        => Value is not null && v is not null && Value.Any(x => EqualityComparer<TValue>.Default.Equals(x, v));
+
+    private async Task OnItemChangedAsync(TValue? v, ChangeEventArgs e)
+    {
+        var isChecked = e.Value is bool b && b;
+        var current = Value?.ToList() ?? new List<TValue>();
+        if (v is null) return;
+        if (isChecked)
+        {
+            if (!current.Any(x => EqualityComparer<TValue>.Default.Equals(x, v)))
+                current.Add(v);
+        }
+        else
+        {
+            current.RemoveAll(x => EqualityComparer<TValue>.Default.Equals(x, v));
+        }
+        await SetValueAsync(current);
+    }
+}

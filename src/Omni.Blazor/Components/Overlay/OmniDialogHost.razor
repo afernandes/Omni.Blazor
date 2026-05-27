@@ -1,0 +1,188 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@inject DialogService Dialog
+@inject IJSRuntime JS
+@inject Omni.Blazor.Services.ScrollManager Scroll
+@implements IAsyncDisposable
+
+@if (Dialog.OpenDialogs.Count > 0 || Dialog.OpenSideDialog is not null)
+{
+    <div class="omni-dialog-host">
+        @foreach (var d in Dialog.OpenDialogs)
+        {
+            <div class="omni-dialog-overlay" @onclick="@(() => OverlayClick(d))"></div>
+            <div class="omni-dialog-wrap">
+                <div id="@d.Id" class="@DialogCss(d)" style="@DialogStyle(d)" role="dialog" aria-modal="true">
+                    @if (d.Options.ShowTitle)
+                    {
+                        <div class="omni-dialog-head">
+                            @if (d.Options.TitleContent is not null) { @d.Options.TitleContent }
+                            else { <h3 class="omni-dialog-title">@d.Title</h3> }
+                            @if (d.Options.ShowClose)
+                            {
+                                <button class="omni-dialog-close" type="button" @onclick="@(() => Dialog.Close(null))" aria-label="Fechar">
+                                    <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                                </button>
+                            }
+                        </div>
+                    }
+                    <div class="omni-dialog-body">
+                        <DynamicComponent Type="d.ComponentType" Parameters="d.Parameters" />
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Dialog.OpenSideDialog is { } sd)
+        {
+            <div class="omni-dialog-overlay" @onclick="@(() => SideOverlayClick(sd))"></div>
+            <div class="omni-side-dialog-wrap">
+                <div id="@sd.Id" class="@SideCss(sd)" role="dialog" aria-modal="true">
+                    @if (sd.Options.ShowTitle)
+                    {
+                        <div class="omni-dialog-head">
+                            @if (sd.Options.TitleContent is not null) { @sd.Options.TitleContent }
+                            else { <h3 class="omni-dialog-title">@sd.Title</h3> }
+                            @if (sd.Options.ShowClose)
+                            {
+                                <button class="omni-dialog-close" type="button" @onclick="@(() => Dialog.CloseSide(null))" aria-label="Fechar">
+                                    <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                                </button>
+                            }
+                        </div>
+                    }
+                    <div class="omni-dialog-body">
+                        <DynamicComponent Type="sd.ComponentType" Parameters="sd.Parameters" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    // IDs of dialogs currently with focus trap + Esc + body lock engaged.
+    // Diffed against Dialog.OpenDialogs/OpenSideDialog every render to
+    // set up newly opened dialogs and tear down newly closed ones.
+    private readonly HashSet<string> _activeOverlays = new();
+    private DotNetObjectReference<OmniDialogHost>? _selfRef;
+
+    // Maps an active overlay id back to its DialogReference so OnEscape can
+    // know which dialog to ask to close (top of stack is innermost).
+    private readonly Dictionary<string, DialogReference> _overlayRefs = new();
+
+    protected override void OnInitialized() => Dialog.OnChange += Refresh;
+
+    public async ValueTask DisposeAsync()
+    {
+        Dialog.OnChange -= Refresh;
+        // Tear down any overlays still active when the host is disposed.
+        foreach (var id in _activeOverlays.ToArray())
+        {
+            await TeardownAsync(id);
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Build set of currently-open ids (main + side).
+        var openIds = new HashSet<string>();
+        foreach (var d in Dialog.OpenDialogs) openIds.Add(d.Id);
+        if (Dialog.OpenSideDialog is { } side) openIds.Add(side.Id);
+
+        // Setup newly opened (in openIds but not yet active).
+        foreach (var d in Dialog.OpenDialogs)
+        {
+            if (!_activeOverlays.Contains(d.Id))
+                await SetupAsync(d);
+        }
+        if (Dialog.OpenSideDialog is { } sd2 && !_activeOverlays.Contains(sd2.Id))
+            await SetupAsync(sd2);
+
+        // Teardown newly closed (active but not in openIds).
+        foreach (var id in _activeOverlays.ToArray())
+        {
+            if (!openIds.Contains(id))
+                await TeardownAsync(id);
+        }
+    }
+
+    private async Task SetupAsync(DialogReference d)
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        _activeOverlays.Add(d.Id);
+        _overlayRefs[d.Id] = d;
+        try
+        {
+            // Body scroll lock — each overlay adds one lock; ScrollManager
+            // is counter-based, so nested overlays compose correctly.
+            await Scroll.LockScrollAsync("html");
+            // Focus trap + Esc handler. We only invoke OnEscape from JS if
+            // the dialog opts in (CloseDialogOnEsc=true, default).
+            await JS.InvokeAsync<bool>("omniBlazor.setupOverlay",
+                d.Id, "#" + d.Id,
+                d.Options.CloseDialogOnEsc
+                    ? new { dotnet = _selfRef, method = nameof(OnEscape) }
+                    : null);
+        }
+        catch { /* SSR / JS gone */ }
+    }
+
+    private async Task TeardownAsync(string id)
+    {
+        _activeOverlays.Remove(id);
+        _overlayRefs.Remove(id);
+        try { await JS.InvokeAsync<bool>("omniBlazor.teardownOverlay", id); } catch { }
+        try { await Scroll.UnlockScrollAsync("html"); } catch { }
+    }
+
+    /// <summary>Invoked by JS when Esc is pressed inside an active overlay.
+    /// We close the dialog whose id matches the topmost active overlay
+    /// (innermost in z-order: side dialog wins over main, last opened main wins
+    /// otherwise — matches user expectation that Esc closes "the dialog I see").</summary>
+    [JSInvokable]
+    public Task OnEscape()
+    {
+        // Side dialog has higher z and stacks on top → close it first.
+        if (Dialog.OpenSideDialog is not null)
+        {
+            Dialog.CloseSide(null);
+            return Task.CompletedTask;
+        }
+        // Otherwise, close the last opened main dialog (top of stack).
+        if (Dialog.OpenDialogs.Count > 0)
+        {
+            Dialog.Close(null);
+        }
+        return Task.CompletedTask;
+    }
+
+    private void OverlayClick(DialogReference d)
+    {
+        if (d.Options.CloseDialogOnOverlayClick) Dialog.Close(null);
+    }
+
+    private void SideOverlayClick(DialogReference d)
+    {
+        if (d.Options.CloseDialogOnOverlayClick) Dialog.CloseSide(null);
+    }
+
+    private string DialogCss(DialogReference d) => "omni-dialog " + (d.Options.CssClass ?? "");
+    private string DialogStyle(DialogReference d)
+    {
+        var s = new List<string>();
+        if (!string.IsNullOrEmpty(d.Options.Width))  s.Add($"width:{d.Options.Width}");
+        if (!string.IsNullOrEmpty(d.Options.Height)) s.Add($"height:{d.Options.Height}");
+        if (!string.IsNullOrEmpty(d.Options.Style))  s.Add(d.Options.Style!);
+        return string.Join(';', s);
+    }
+    private string SideCss(DialogReference d)
+    {
+        var side = (d.Options as SideDialogOptions)?.Position == SidePosition.Left ? " omni-side-dialog-left" : "";
+        return "omni-side-dialog" + side + " " + (d.Options.CssClass ?? "");
+    }
+}

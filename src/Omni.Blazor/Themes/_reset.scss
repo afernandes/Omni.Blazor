@@ -1,0 +1,256 @@
+// ============================================================================
+// Omni.Blazor — Reset & baseline typography
+// Forked from Bootstrap reboot 5.x (MIT) + Normalize.css.
+// Mantém apenas o necessário; usa tokens próprios (--omni-*).
+// ============================================================================
+
+// —— Box model ————————————————————————————————————————————————————————————
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+// —— Smooth scroll honoring reduced-motion ————————————————————————————————
+@media (prefers-reduced-motion: no-preference) {
+  :root { scroll-behavior: smooth; }
+}
+
+// —— Document & body ——————————————————————————————————————————————————————
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--omni-bg);
+  color: var(--omni-fg);
+  font-family: var(--omni-font-ui);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+// —— Headings (margin-top: 0 evita collapse, tamanhos próprios) ————————————
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: inherit;
+}
+h1 { font-size: 2rem; }      // 32px
+h2 { font-size: 1.5rem; }    // 24px
+h3 { font-size: 1.25rem; }   // 20px
+h4 { font-size: 1.125rem; }  // 18px
+h5 { font-size: 1rem; }      // 16px
+h6 { font-size: 0.875rem; }  // 14px
+
+// —— Paragraph ————————————————————————————————————————————————————————————
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+// —— Lead paragraph (port mínimo do .lead do Bootstrap) ————————————————————
+.lead {
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+// —— Lists ————————————————————————————————————————————————————————————————
+ol, ul {
+  padding-left: 2rem;
+}
+
+ol, ul, dl {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+ol ol, ul ul, ol ul, ul ol { margin-bottom: 0; }
+
+dt { font-weight: 700; }
+dd { margin-bottom: 0.5rem; margin-left: 0; }
+
+// —— HR ———————————————————————————————————————————————————————————————————
+hr {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid var(--omni-line);
+  opacity: 1;
+}
+
+// —— Blockquote ————————————————————————————————————————————————————————————
+blockquote { margin: 0 0 1rem; }
+
+// —— Emphasis ——————————————————————————————————————————————————————————————
+b, strong { font-weight: 600; }
+small { font-size: 0.875em; }
+
+// —— Sub / Sup ————————————————————————————————————————————————————————————
+sub, sup {
+  position: relative;
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: baseline;
+}
+sub { bottom: -0.25em; }
+sup { top: -0.5em; }
+
+// —— Links (defaults; componentes Omni sobrescrevem onde precisam) —————————
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover { color: var(--omni-accent); }
+a:not([href]):not([class]) {
+  &, &:hover { color: inherit; text-decoration: none; }
+}
+
+// —— Code ————————————————————————————————————————————————————————————————
+pre, code, kbd, samp {
+  font-family: var(--omni-font-mono);
+  font-size: 1em;
+}
+pre {
+  display: block;
+  margin: 0 0 1rem;
+  overflow: auto;
+}
+code { word-wrap: break-word; }
+
+// —— Figures ————————————————————————————————————————————————————————————————
+figure { margin: 0 0 1rem; }
+
+// —— Images / SVG ——————————————————————————————————————————————————————————
+img, svg { vertical-align: middle; }
+
+// —— Tables (defaults seguros — componentes próprios estilizam) ————————————
+table {
+  caption-side: bottom;
+  border-collapse: collapse;
+}
+
+caption {
+  padding: 0.5rem 0;
+  color: var(--omni-fg-muted);
+  text-align: left;
+}
+
+th {
+  font-weight: 600;
+  text-align: inherit;
+  text-align: -webkit-match-parent;
+}
+
+thead, tbody, tfoot, tr, td, th {
+  border-color: inherit;
+  border-style: solid;
+  border-width: 0;
+}
+
+// —— Forms ————————————————————————————————————————————————————————————————
+label { display: inline-block; }
+
+button {
+  border-radius: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:focus:not(:focus-visible) { outline: 0; }
+
+input, button, select, optgroup, textarea {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+button, select { text-transform: none; }
+
+[role="button"] { cursor: pointer; }
+
+select {
+  word-wrap: normal;
+  &:disabled { opacity: 1; }
+}
+
+button,
+[type="button"],
+[type="reset"],
+[type="submit"] {
+  -webkit-appearance: button;
+  &:not(:disabled) { cursor: pointer; }
+}
+
+::-moz-focus-inner {
+  padding: 0;
+  border-style: none;
+}
+
+textarea { resize: vertical; }
+
+fieldset {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  line-height: inherit;
+  + * { clear: left; }
+}
+
+::file-selector-button {
+  font: inherit;
+  -webkit-appearance: button;
+}
+
+[type="search"] {
+  -webkit-appearance: textfield;
+  outline-offset: -2px;
+}
+
+::-webkit-search-decoration { -webkit-appearance: none; }
+
+// —— Misc ————————————————————————————————————————————————————————————————
+output { display: inline-block; }
+iframe { border: 0; }
+summary {
+  display: list-item;
+  cursor: pointer;
+}
+progress { vertical-align: baseline; }
+[hidden] { display: none !important; }
+
+// —— Selection & scrollbar (look & feel Omni) —————————————————————————————
+::selection {
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent-hover);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: var(--omni-line-strong);
+  border-radius: 6px;
+  border: 2px solid var(--omni-bg);
+}
+::-webkit-scrollbar-track { background: transparent; }
+
+// —— Focus ring unificado ——————————————————————————————————————————————————
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--omni-accent-soft);
+}

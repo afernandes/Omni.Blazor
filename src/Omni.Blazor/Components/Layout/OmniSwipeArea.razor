@@ -1,0 +1,257 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*  Detecta gestos de swipe (deslize) e dispara eventos com a direção e a
+    distância. Equivalente ao <c>MudSwipeArea</c>:
+
+      - OnSwipeMove: dispara A CADA pointermove durante o arraste (ignora Sensitivity)
+                    Inclui ambos os eixos (xDiff + yDiff) → MultiDimensionSwipeEventArgs
+      - OnSwipeEnd:  dispara UMA vez no pointerup, se delta > Sensitivity
+                    Indica a direção dominante → SwipeEventArgs
+      - OnSwipeLeave: dispara quando o ponteiro sai da área (não reseta sozinho;
+                    o consumidor pode chamar Cancel() para abortar)
+      - OnSwipeCancel: dispara em pointercancel (multitouch interruption etc.)
+
+    Usar PreventDefault=true ao detectar swipes VERTICAIS — evita que o scroll
+    da página coma o gesto (browser ignora preventDefault em listeners "passive";
+    nós usamos um helper JS para anexar listeners não-passivos).
+
+    Para LIVE DRAG 60fps (translateX/Y acompanhando o dedo sem round-trip Blazor),
+    setar <c>LiveTransform</c> = X/Y/Both. O CSS usa <c>transform: translate(
+    var(--omni-sa-dx,0), var(--omni-sa-dy,0))</c> que JS atualiza diretamente. *@
+
+<div @ref="_rootEl"
+     id="@Id"
+     class="@RootCss"
+     style="@Style"
+     @attributes="Attributes"
+     @onpointerdown="OnPointerDown"
+     @onpointerdown:stopPropagation="true"
+     @onpointerup="OnPointerUpAsync"
+     @onpointerup:stopPropagation="true"
+     @onpointercancel="OnPointerCancelAsync"
+     @onpointercancel:stopPropagation="true"
+     @onpointermove="OnPointerMoveAsync"
+     @onpointermove:stopPropagation="true"
+     @onpointerleave="OnPointerLeaveAsync"
+     @onpointerleave:stopPropagation="true">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Disparado A CADA pointermove durante o arraste.
+    /// Inclui delta + direção em AMBOS os eixos (x e y). Ignora <see cref="Sensitivity"/>.</summary>
+    [Parameter] public EventCallback<MultiDimensionSwipeEventArgs> OnSwipeMove { get; set; }
+
+    /// <summary>Disparado UMA vez no pointerup, se a distância arrastada
+    /// (no eixo dominante) ultrapassou <see cref="Sensitivity"/>.</summary>
+    [Parameter] public EventCallback<SwipeEventArgs> OnSwipeEnd { get; set; }
+
+    /// <summary>Disparado quando o ponteiro SAI da área durante o arraste.
+    /// Não reseta o estado automaticamente — o consumidor pode chamar
+    /// <see cref="Cancel"/> se quiser abortar o gesto em curso.</summary>
+    [Parameter] public EventCallback<PointerEventArgs> OnSwipeLeave { get; set; }
+
+    /// <summary>Disparado quando o pointer é cancelado (multitouch, etc.).</summary>
+    [Parameter] public EventCallback<PointerEventArgs> OnSwipeCancel { get; set; }
+
+    /// <summary>Distância mínima (pixels) para disparar <see cref="OnSwipeEnd"/>.
+    /// Swipes menores que isso são silenciosamente ignorados. Default 100.</summary>
+    [Parameter] public int Sensitivity { get; set; } = 100;
+
+    /// <summary>Quando true, anexa listeners JS não-passivos que chamam
+    /// <c>preventDefault()</c>. Necessário para impedir o scroll da página
+    /// durante swipes verticais em mobile. Default false.</summary>
+    [Parameter] public bool PreventDefault { get; set; }
+
+    /// <summary>Live drag direto pelo JS (60fps, bypassa Blazor SignalR).
+    /// Quando setado (≠ None), o JS atualiza <c>transform: translate(...)</c>
+    /// no elemento via CSS variable a cada pointermove. <c>OnSwipeEnd</c>
+    /// continua disparando normalmente — você decide se faz snap, dismiss
+    /// ou volta pra origem. Em <c>None</c> (default), só os eventos C#
+    /// disparam (que ainda permitem live drag, mas via SignalR roundtrip).</summary>
+    [Parameter] public SwipeAreaLiveTransform LiveTransform { get; set; } = SwipeAreaLiveTransform.None;
+
+    private ElementReference _rootEl;
+    private double? _xDown, _yDown;        // posição inicial (pointerdown)
+    private double? _xCurrent, _yCurrent;  // posição do último pointermove (delta incremental)
+    private double? _swipeDelta;
+    private bool _isSwiping;
+    private bool _preventDefaultAttached;
+    private bool _preventDefaultDesired;
+    private SwipeAreaLiveTransform _liveTransformAttached = SwipeAreaLiveTransform.None;
+
+    private string RootCss => CssBuilder.Default("omni-swipearea")
+        .AddClass("omni-swipearea-live", LiveTransform != SwipeAreaLiveTransform.None)
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnParametersSet()
+    {
+        _preventDefaultDesired = PreventDefault;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Sync PreventDefault → JS listeners. Only re-attach when the desired
+        // state differs from what's currently attached.
+        if (_preventDefaultDesired != _preventDefaultAttached)
+        {
+            try
+            {
+                if (_preventDefaultDesired)
+                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaAttachPreventDefault", Id);
+                else
+                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachPreventDefault", Id);
+                _preventDefaultAttached = _preventDefaultDesired;
+            }
+            catch { /* SSR / JS gone */ }
+        }
+
+        // Sync LiveTransform → JS listeners. Detach se mudou, reattach se ativou.
+        if (LiveTransform != _liveTransformAttached)
+        {
+            try
+            {
+                if (_liveTransformAttached != SwipeAreaLiveTransform.None)
+                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachLiveTransform", Id);
+                if (LiveTransform != SwipeAreaLiveTransform.None)
+                {
+                    var axes = LiveTransform switch
+                    {
+                        SwipeAreaLiveTransform.X    => "x",
+                        SwipeAreaLiveTransform.Y    => "y",
+                        SwipeAreaLiveTransform.Both => "both",
+                        _                           => "none",
+                    };
+                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaAttachLiveTransform", Id, axes);
+                }
+                _liveTransformAttached = LiveTransform;
+            }
+            catch { /* SSR / JS gone */ }
+        }
+    }
+
+    // ─── Pointer event handlers ────────────────────────────────────────────
+
+    private void OnPointerDown(PointerEventArgs e)
+    {
+        _isSwiping = true;
+        _xDown = e.ClientX;
+        _yDown = e.ClientY;
+        _xCurrent = e.ClientX;
+        _yCurrent = e.ClientY;
+    }
+
+    private async Task OnPointerMoveAsync(PointerEventArgs e)
+    {
+        if (!_isSwiping) return;
+
+        // Delta incremental desde o ÚLTIMO move (não desde o início)
+        var xDiff = (_xCurrent - e.ClientX) ?? 0;
+        var yDiff = (_yCurrent - e.ClientY) ?? 0;
+
+        _swipeDelta = Math.Abs(xDiff) > Math.Abs(yDiff) ? xDiff : yDiff;
+
+        if (OnSwipeMove.HasDelegate)
+        {
+            var dirs = ComputeDirections(xDiff, yDiff);
+            var args = new MultiDimensionSwipeEventArgs(e, dirs, new double?[] { xDiff, yDiff }, this);
+            await OnSwipeMove.InvokeAsync(args);
+        }
+
+        _xCurrent = e.ClientX;
+        _yCurrent = e.ClientY;
+    }
+
+    private async Task OnPointerUpAsync(PointerEventArgs e)
+    {
+        if (_xDown is null || _yDown is null)
+        {
+            _isSwiping = false;
+            return;
+        }
+
+        // Delta TOTAL (desde o pointerdown)
+        var xDiff = _xDown.Value - e.ClientX;
+        var yDiff = _yDown.Value - e.ClientY;
+
+        // Se não atingiu Sensitivity E não há handler OnSwipeMove → ignora silenciosamente
+        if (!OnSwipeMove.HasDelegate && Math.Abs(xDiff) < Sensitivity && Math.Abs(yDiff) < Sensitivity)
+        {
+            Cancel();
+            return;
+        }
+
+        // Direção dominante = eixo com maior valor absoluto
+        SwipeDirection direction;
+        if (Math.Abs(xDiff) > Math.Abs(yDiff))
+        {
+            direction = xDiff > 0 ? SwipeDirection.RightToLeft : SwipeDirection.LeftToRight;
+            _swipeDelta = xDiff;
+        }
+        else
+        {
+            direction = yDiff > 0 ? SwipeDirection.BottomToTop : SwipeDirection.TopToBottom;
+            _swipeDelta = yDiff;
+        }
+
+        if (OnSwipeEnd.HasDelegate)
+        {
+            await OnSwipeEnd.InvokeAsync(new SwipeEventArgs(e, direction, _swipeDelta, this));
+        }
+        Cancel();
+    }
+
+    private Task OnPointerCancelAsync(PointerEventArgs e)
+    {
+        Cancel();
+        return OnSwipeCancel.HasDelegate ? OnSwipeCancel.InvokeAsync(e) : Task.CompletedTask;
+    }
+
+    private Task OnPointerLeaveAsync(PointerEventArgs e)
+    {
+        // Não resetamos automaticamente — consumidor decide via Cancel()
+        return OnSwipeLeave.HasDelegate ? OnSwipeLeave.InvokeAsync(e) : Task.CompletedTask;
+    }
+
+    /// <summary>Aborta o gesto em curso. Útil dentro de
+    /// <see cref="OnSwipeLeave"/> para resetar contadores.</summary>
+    public void Cancel()
+    {
+        _xDown = _yDown = _xCurrent = _yCurrent = null;
+        _isSwiping = false;
+    }
+
+    // ─── Direction helper ──────────────────────────────────────────────────
+
+    private static IReadOnlyList<SwipeDirection> ComputeDirections(double xDiff, double yDiff)
+    {
+        const double epsilon = 1e-6;
+        var horizontal = Math.Abs(xDiff) < epsilon
+            ? SwipeDirection.None
+            : xDiff > 0 ? SwipeDirection.RightToLeft : SwipeDirection.LeftToRight;
+        var vertical = Math.Abs(yDiff) < epsilon
+            ? SwipeDirection.None
+            : yDiff > 0 ? SwipeDirection.BottomToTop : SwipeDirection.TopToBottom;
+        return new[] { horizontal, vertical };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_preventDefaultAttached)
+        {
+            try { await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachPreventDefault", Id); }
+            catch { /* JS gone */ }
+        }
+        if (_liveTransformAttached != SwipeAreaLiveTransform.None)
+        {
+            try { await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachLiveTransform", Id); }
+            catch { /* JS gone */ }
+        }
+    }
+}

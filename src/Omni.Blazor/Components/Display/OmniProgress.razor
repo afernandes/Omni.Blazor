@@ -1,0 +1,68 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@if (Segments > 0)
+{
+    <div class="@SegCss" style="@Style" @attributes="Attributes">
+        @for (int i = 0; i < Segments; i++)
+        {
+            <div class="@("omni-progress-seg-cell" + (i < Active ? " omni-on" : ""))"></div>
+        }
+    </div>
+}
+else
+{
+    <div class="@BarCss" style="@Style" @attributes="Attributes">
+        <div class="omni-progress-bar" style="@BarStyle"></div>
+    </div>
+}
+
+@code {
+    [Parameter] public double Value { get; set; }
+    [Parameter] public double Max { get; set; } = 100;
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    [Parameter] public BadgeVariant Variant { get; set; } = BadgeVariant.Accent;
+
+    /// <summary>Optional arbitrary CSS colour for the bar (overrides <see cref="Variant"/>).</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>If > 0, render as segmented progress (used for password strength).</summary>
+    [Parameter] public int Segments { get; set; }
+    [Parameter] public int Active { get; set; }
+
+    private double Clamped => Math.Max(0, Math.Min(100, Max == 0 ? 0 : (Value / Max) * 100.0));
+
+    private string BarStyle
+    {
+        get
+        {
+            var w = "width: " + Clamped.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%;";
+            return string.IsNullOrEmpty(Color) ? w : w + " background: " + Color + ";";
+        }
+    }
+
+    private string BarCss => CssBuilder.Default("omni-progress")
+        .AddClass(Size == ComponentSize.Sm ? "omni-progress-sm" : Size == ComponentSize.Lg ? "omni-progress-lg" : null)
+        .AddClass(Variant switch
+        {
+            BadgeVariant.Good   => "omni-progress-good",
+            BadgeVariant.Warn   => "omni-progress-warn",
+            BadgeVariant.Danger => "omni-progress-danger",
+            _ => null
+        })
+        .AddClass(Class)
+        .Build();
+
+    private string SegCss => CssBuilder.Default("omni-progress-seg")
+        .AddClass(Active switch
+        {
+            1 => "omni-s1",
+            2 => "omni-s2",
+            3 => "omni-s3",
+            4 => "omni-s4",
+            _ => null
+        })
+        .AddClass(Class)
+        .Build();
+}

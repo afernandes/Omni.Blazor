@@ -1,0 +1,284 @@
+@namespace Omni.Blazor.Components
+@typeparam TValue
+@inherits FormComponent<TValue>
+@inject IJSRuntime JS
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    Generic numeric input. Works with int/long/decimal/double/float (and their
+    nullable variants). Culture-aware (uses CurrentCulture.NumberFormat for the
+    decimal separator), supports Min/Max/Step, optional spin buttons, and
+    Prefix/Suffix slots ("R$", "%", "kg", etc.).
+
+    Inspired by RadzenNumeric:
+      - Key filter rejects non-numeric chars on keypress (in JS, no round-trip).
+      - Display stays "uncontrolled" while typing — user sees exactly what they
+        type. We only parse, clamp and re-format on blur / Enter / step.
+      - ArrowUp/ArrowDown step the value.
+
+    Usage:
+        <OmniNumeric TValue="decimal?" @bind-Value="preco" Prefix="R$" Decimals="2" Min="0" />
+        <OmniNumeric TValue="int" @bind-Value="qtd" Min="1" Max="999" Step="1" />
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Prefix))
+    {
+        <span class="omni-numeric-affix omni-numeric-prefix">@Prefix</span>
+    }
+    <input @ref="_input"
+           class="omni-numeric-input"
+           type="text"
+           inputmode="@(IsIntegerType ? "numeric" : "decimal")"
+           value="@_displayValue"
+           placeholder="@Placeholder"
+           disabled="@Disabled"
+           readonly="@ReadOnly"
+           name="@Name"
+           onkeypress="omniBlazor.numericKeyPress(event, @IsIntegerType.ToString().ToLowerInvariant(), '@JsDecimalSeparator')"
+           onpaste="omniBlazor.numericOnPaste(event, @JsMin, @JsMax)"
+           @onchange="OnChangeAsync"
+           @onkeydown="OnKeyDownAsync" />
+    @if (!string.IsNullOrEmpty(Suffix))
+    {
+        <span class="omni-numeric-affix omni-numeric-suffix">@Suffix</span>
+    }
+    @if (ShowSpinButtons && !ReadOnly)
+    {
+        <div class="omni-numeric-spinner">
+            <button type="button" tabindex="-1" disabled="@Disabled" @onclick="@(_ => StepAsync(+1))" aria-label="Aumentar">
+                <OmniIcon Name="chevron-up" Size="ComponentSize.Sm" />
+            </button>
+            <button type="button" tabindex="-1" disabled="@Disabled" @onclick="@(_ => StepAsync(-1))" aria-label="Diminuir">
+                <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" />
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Prefix { get; set; }
+    [Parameter] public string? Suffix { get; set; }
+
+    [Parameter] public decimal? Min { get; set; }
+    [Parameter] public decimal? Max { get; set; }
+    [Parameter] public decimal Step { get; set; } = 1;
+
+    /// <summary>Number of decimal places shown when the input loses focus. Default = inferred from TValue.</summary>
+    [Parameter] public int? Decimals { get; set; }
+
+    /// <summary>
+    /// Custom <c>ToString</c> format for the display value (e.g. <c>"00"</c> for
+    /// 2-digit zero-padded, <c>"0,000"</c> for thousands grouping). When set,
+    /// wins over the default <c>"N{Decimals}"</c>.
+    /// </summary>
+    [Parameter] public string? Format { get; set; }
+
+    /// <summary>
+    /// When true, stepping past <see cref="Max"/> wraps to <see cref="Min"/>
+    /// and vice versa. Useful for cyclical inputs (hours, minutes, day of
+    /// week). Requires both <see cref="Min"/> and <see cref="Max"/> to be set.
+    /// </summary>
+    [Parameter] public bool Wrap { get; set; }
+
+    [Parameter] public bool ShowSpinButtons { get; set; } = true;
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    private ElementReference _input;
+    private string _displayValue = "";
+
+    // ParameterState fires only on consumer-driven changes, so blur reformat /
+    // step / Enter mutations don't trigger an extra reformat that would race
+    // the user's caret.
+    private readonly ParameterState<TValue?> _valueState;
+
+    public OmniNumeric()
+    {
+        _valueState = RegisterParameter<TValue?>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(args => _displayValue = FormatDisplay(args.Value))
+            .Attach();
+    }
+
+    private static readonly System.Globalization.CultureInfo Culture =
+        System.Globalization.CultureInfo.CurrentCulture;
+
+    private string JsDecimalSeparator =>
+        Culture.NumberFormat.NumberDecimalSeparator.Replace("\\", "\\\\").Replace("'", "\\'");
+
+    private string JsMin =>
+        Min.HasValue ? Min.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null";
+
+    private string JsMax =>
+        Max.HasValue ? Max.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null";
+
+    private bool IsIntegerType
+    {
+        get
+        {
+            var t = Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+            return Type.GetTypeCode(t) switch
+            {
+                TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16
+                    or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 => true,
+                _ => false
+            };
+        }
+    }
+
+    private string RootCss => CssBuilder.Default("omni-numeric")
+        .AddClass("omni-numeric-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-numeric-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-invalid",          IsInvalid)
+        .AddClass("omni-numeric-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private int EffectiveDecimals
+    {
+        get
+        {
+            if (Decimals.HasValue) return Decimals.Value;
+            return IsIntegerType ? 0 : 2;
+        }
+    }
+
+    private string FormatDisplay(TValue? value)
+    {
+        if (value is null) return "";
+        try
+        {
+            var dec = Convert.ToDecimal(value, System.Globalization.CultureInfo.InvariantCulture);
+            // Custom Format wins (e.g. "00" for zero-padded clock fields).
+            var fmt = !string.IsNullOrEmpty(Format) ? Format : "N" + EffectiveDecimals;
+            return dec.ToString(fmt, Culture);
+        }
+        catch { return value.ToString() ?? ""; }
+    }
+
+    private async Task OnChangeAsync(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? "";
+        if (TryParse(raw, out var parsed))
+        {
+            parsed = Clamp(parsed);
+            _displayValue = FormatDisplay(parsed);
+            await SetValueAsync(parsed);
+            await ForceInputValueAsync(_displayValue);
+        }
+        else
+        {
+            // Reject — restore previous display
+            _displayValue = FormatDisplay(Value);
+            await ForceInputValueAsync(_displayValue);
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (Disabled || ReadOnly) return;
+        if (e.Key == "ArrowUp")   { await StepAsync(+1); }
+        else if (e.Key == "ArrowDown") { await StepAsync(-1); }
+        else if (e.Key == "Enter")
+        {
+            // Commit the pending edit by re-parsing the current DOM value.
+            try
+            {
+                var raw = await JS.InvokeAsync<string>("omniBlazor.getInputValue", _input);
+                await OnChangeAsync(new ChangeEventArgs { Value = raw });
+            }
+            catch { }
+        }
+    }
+
+    private async Task StepAsync(int sign)
+    {
+        if (Disabled || ReadOnly) return;
+        decimal current = 0;
+        if (Value is not null)
+        {
+            try { current = Convert.ToDecimal(Value, System.Globalization.CultureInfo.InvariantCulture); }
+            catch { current = 0; }
+        }
+        var raw = current + sign * Step;
+        // Wrap mode cycles around Min↔Max instead of clamping — used by
+        // cyclical inputs like hours (23→00) or minutes (59→00).
+        TValue? next;
+        if (Wrap && Min.HasValue && Max.HasValue)
+        {
+            var min = Min.Value;
+            var max = Max.Value;
+            var span = max - min + 1; // inclusive range
+            if (span > 0)
+            {
+                var offset = ((raw - min) % span + span) % span;
+                raw = min + offset;
+            }
+            next = ConvertToT(raw);
+        }
+        else
+        {
+            next = Clamp(ConvertToT(raw));
+        }
+        _displayValue = FormatDisplay(next);
+        await SetValueAsync(next);
+        await ForceInputValueAsync(_displayValue);
+    }
+
+    private async Task ForceInputValueAsync(string value)
+    {
+        // Blazor won't rewrite the value attribute when it matches the previous
+        // render. Push the formatted text into the DOM via JS so blur-time
+        // reformatting (e.g. "12" → "12,00") is visible to the user.
+        try { await JS.InvokeVoidAsync("omniBlazor.setInputValue", _input, value); }
+        catch { }
+    }
+
+    private bool TryParse(string text, out TValue? value)
+    {
+        value = default;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Nullable.GetUnderlyingType(typeof(TValue)) is not null;
+        }
+
+        var normalized = text.Replace(" ", "")
+                             .Replace(Culture.NumberFormat.NumberGroupSeparator, "")
+                             .Replace(Culture.NumberFormat.CurrencyGroupSeparator, "");
+
+        if (decimal.TryParse(normalized, System.Globalization.NumberStyles.Any, Culture, out var dec)
+            || decimal.TryParse(normalized.Replace(',', '.'), System.Globalization.NumberStyles.Any,
+                                System.Globalization.CultureInfo.InvariantCulture, out dec))
+        {
+            value = ConvertToT(dec);
+            return true;
+        }
+        return false;
+    }
+
+    private TValue? ConvertToT(decimal value)
+    {
+        var target = Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+        try
+        {
+            object converted = Convert.ChangeType(value, target, System.Globalization.CultureInfo.InvariantCulture);
+            return (TValue?)converted;
+        }
+        catch { return default; }
+    }
+
+    private TValue? Clamp(TValue? value)
+    {
+        if (value is null) return value;
+        try
+        {
+            var dec = Convert.ToDecimal(value, System.Globalization.CultureInfo.InvariantCulture);
+            if (Min.HasValue && dec < Min.Value) dec = Min.Value;
+            if (Max.HasValue && dec > Max.Value) dec = Max.Value;
+            return ConvertToT(dec);
+        }
+        catch { return value; }
+    }
+}
