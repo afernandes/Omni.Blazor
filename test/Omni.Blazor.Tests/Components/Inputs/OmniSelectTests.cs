@@ -44,6 +44,34 @@ public class OmniSelectTests : TestContextBase
     }
 
     [Fact]
+    public void Renders_options_from_Items_without_ValueSelector_uses_item_as_value()
+    {
+        // Regression: without a ValueSelector each option must carry its own
+        // value (identity), not default(TValue) for all of them.
+        var cut = RenderComponent<OmniSelect<string>>(p => p
+            .Add(c => c.Items, new[] { "a", "b", "c" }));
+
+        var options = cut.FindAll("option");
+        Assert.Equal(3, options.Count);
+        Assert.Equal("a", options[0].GetAttribute("value"));
+        Assert.Equal("b", options[1].GetAttribute("value"));
+        Assert.Equal("c", options[2].GetAttribute("value"));
+    }
+
+    [Fact]
+    public void Change_event_propagates_without_ValueSelector()
+    {
+        string? captured = null;
+        var cut = RenderComponent<OmniSelect<string>>(p => p
+            .Add(c => c.Items, new[] { "x", "y" })
+            .Add(c => c.Value, "x")
+            .Add(c => c.ValueChanged, v => captured = v));
+
+        cut.Find("select").Change("y");
+        Assert.Equal("y", captured);
+    }
+
+    [Fact]
     public void Change_event_propagates_to_ValueChanged()
     {
         string? captured = null;
@@ -56,6 +84,26 @@ public class OmniSelectTests : TestContextBase
 
         cut.Find("select").Change("y");
         Assert.Equal("y", captured);
+    }
+
+    private enum Fruit { Apple, Banana, Cherry }
+
+    [Fact]
+    public void Change_event_propagates_enum_value()
+    {
+        // Regression: enum names can't be parsed by Convert.ChangeType, so
+        // selecting any enum option used to silently fall back to default.
+        Fruit captured = Fruit.Apple;
+        var cut = RenderComponent<OmniSelect<Fruit>>(p => p
+            .Add(c => c.Items, new[] { Fruit.Apple, Fruit.Banana, Fruit.Cherry })
+            .Add(c => c.Value, Fruit.Apple)
+            .Add(c => c.ValueChanged, v => captured = v));
+
+        var options = cut.FindAll("option");
+        Assert.Equal("Cherry", options[2].GetAttribute("value"));
+
+        cut.Find("select").Change("Cherry");
+        Assert.Equal(Fruit.Cherry, captured);
     }
 
     [Fact]

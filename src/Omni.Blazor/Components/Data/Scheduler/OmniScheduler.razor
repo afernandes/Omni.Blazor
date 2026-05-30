@@ -1,0 +1,499 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@implements IOmniScheduler
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    OmniScheduler — calendar/agenda component inspired by RadzenScheduler.
+
+    Declarative views (Day/Week/Month) are added as child content; each
+    registers itself and the scheduler builds the view-switch tabs from them.
+    Appointments are projected from `Data` via `StartProperty`/`EndProperty`/
+    `TextProperty` (server-side loading via the `LoadData` callback). Slot,
+    appointment, day and month clicks raise typed callbacks; native HTML5
+    drag-and-drop raises `AppointmentMove` when wired.
+*@
+
+<CascadingValue Value="(IOmniScheduler)this" IsFixed="false">
+    <div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+        @if (ShowHeader)
+        {
+            @if (NavigationTemplate is not null)
+            {
+                @NavigationTemplate
+            }
+            else
+            {
+                <div class="omni-scheduler-nav">
+                    <div class="omni-scheduler-nav-left">
+                        @if (ShowTodayButton)
+                        {
+                            <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Default"
+                                        Text="@TodayText" OnClick="OnTodayAsync" />
+                        }
+                        @if (ShowNavigationButtons)
+                        {
+                            <div class="omni-scheduler-nav-arrows">
+                                <button type="button" class="omni-scheduler-nav-arrow" title="@PrevText"
+                                        aria-label="@PrevText" @onclick="OnPrevAsync">
+                                    <OmniIcon Name="chevron-left" Size="ComponentSize.Sm" />
+                                </button>
+                                <button type="button" class="omni-scheduler-nav-arrow" title="@NextText"
+                                        aria-label="@NextText" @onclick="OnNextAsync">
+                                    <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+                                </button>
+                            </div>
+                        }
+                        @if (ShowDateTitle)
+                        {
+                            <div class="omni-scheduler-nav-title">@(_selectedView?.Title)</div>
+                        }
+                    </div>
+                    @if (_views.Count > 1)
+                    {
+                        <div class="omni-scheduler-nav-views" role="tablist">
+                            @foreach (var v in _views)
+                            {
+                                var view = v;
+                                <button type="button" role="tab" class="@TabCss(view)"
+                                        aria-selected="@(IsSelected(view) ? "true" : "false")"
+                                        @onclick="@(() => SelectViewAsync(view))">
+                                    <OmniIcon Name="@view.Icon" Size="ComponentSize.Sm" />
+                                    <span>@view.Text</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        <div class="omni-scheduler-body">
+            @ChildContent
+        </div>
+    </div>
+</CascadingValue>
+
+@code {
+    // ─── Public parameters ────────────────────────────────────────────────
+
+    /// <summary>The views (e.g. <c>&lt;OmniDayView/&gt; &lt;OmniWeekView/&gt; &lt;OmniMonthView/&gt;</c>).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Custom appointment content. Receives the original <c>TItem</c>. Falls back to the projected text.</summary>
+    [Parameter] public RenderFragment<TItem>? Template { get; set; }
+
+    /// <summary>Replaces the entire built-in navigation bar.</summary>
+    [Parameter] public RenderFragment? NavigationTemplate { get; set; }
+
+    /// <summary>The appointment source. Use together with <see cref="StartProperty"/>/<see cref="EndProperty"/>.</summary>
+    [Parameter] public IEnumerable<TItem>? Data { get; set; }
+
+    /// <summary>Name of the <c>DateTime</c> property holding each item's start.</summary>
+    [Parameter] public string? StartProperty { get; set; }
+
+    /// <summary>Name of the <c>DateTime</c> property holding each item's end.</summary>
+    [Parameter] public string? EndProperty { get; set; }
+
+    /// <summary>Name of the property holding each item's display text.</summary>
+    [Parameter] public string? TextProperty { get; set; }
+
+    /// <summary>Index of the initially selected view. Default 0.</summary>
+    [Parameter] public int SelectedIndex { get; set; }
+
+    /// <summary>Initial date shown. Two-way bindable via <see cref="DateChanged"/>. Default today.</summary>
+    [Parameter] public DateTime Date { get; set; } = DateTime.Today;
+
+    /// <summary>Fires when the displayed date changes (navigation / today).</summary>
+    [Parameter] public EventCallback<DateTime> DateChanged { get; set; }
+
+    /// <summary>Culture for date formatting and first-day-of-week. Default <c>CurrentCulture</c>.</summary>
+    [Parameter] public CultureInfo? Culture { get; set; }
+
+    /// <summary>CSS height of the scheduler. Default <c>"600px"</c>.</summary>
+    [Parameter] public string Height { get; set; } = "600px";
+
+    [Parameter] public bool ShowHeader { get; set; } = true;
+    [Parameter] public bool ShowNavigationButtons { get; set; } = true;
+    [Parameter] public bool ShowTodayButton { get; set; } = true;
+    [Parameter] public bool ShowDateTitle { get; set; } = true;
+
+    [Parameter] public string TodayText { get; set; } = "Hoje";
+    [Parameter] public string NextText { get; set; } = "Próximo";
+    [Parameter] public string PrevText { get; set; } = "Anterior";
+
+    // ─── Event callbacks ──────────────────────────────────────────────────
+
+    [Parameter] public EventCallback<SchedulerSlotSelectEventArgs> SlotSelect { get; set; }
+    [Parameter] public EventCallback<SchedulerAppointmentSelectEventArgs<TItem>> AppointmentSelect { get; set; }
+    [Parameter] public EventCallback<SchedulerTodaySelectEventArgs> TodaySelect { get; set; }
+    [Parameter] public EventCallback<SchedulerDaySelectEventArgs> DaySelect { get; set; }
+    [Parameter] public EventCallback<SchedulerMonthSelectEventArgs> MonthSelect { get; set; }
+    [Parameter] public EventCallback<SchedulerMoreSelectEventArgs> MoreSelect { get; set; }
+    [Parameter] public EventCallback<SchedulerLoadDataEventArgs> LoadData { get; set; }
+    [Parameter] public EventCallback<SchedulerAppointmentMoveEventArgs> AppointmentMove { get; set; }
+    [Parameter] public EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> AppointmentMouseEnter { get; set; }
+    [Parameter] public EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> AppointmentMouseLeave { get; set; }
+
+    /// <summary>Sync per-appointment render hook (add CSS classes / styles / data-* attributes).</summary>
+    [Parameter] public Action<SchedulerAppointmentRenderEventArgs<TItem>>? AppointmentRender { get; set; }
+
+    /// <summary>Sync per-slot render hook.</summary>
+    [Parameter] public Action<SchedulerSlotRenderEventArgs>? SlotRender { get; set; }
+
+    // ─── Internal state ───────────────────────────────────────────────────
+
+    private readonly List<IOmniSchedulerView> _views = new();
+    private IOmniSchedulerView? _selectedView;
+    private readonly List<OmniAppointmentData> _appointments = new();
+    private bool _pendingLoad;
+
+    private ParameterState<DateTime> _dateState = null!;
+    private ParameterState<IEnumerable<TItem>?> _dataState = null!;
+
+    /// <summary>Test-only counter: increments every time appointments are re-projected from <see cref="Data"/>.</summary>
+    internal int AppointmentsRebuildCount { get; private set; }
+
+    /// <summary>Test-only view of the projected appointments.</summary>
+    internal IReadOnlyList<OmniAppointmentData> AppointmentsInternal => _appointments;
+
+    // ─── IOmniScheduler ───────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public DateTime CurrentDate { get; private set; } = DateTime.Today;
+
+    /// <inheritdoc />
+    public bool AppointmentsDraggable => AppointmentMove.HasDelegate;
+
+    /// <inheritdoc />
+    public bool HasAppointmentMouseHandlers => AppointmentMouseEnter.HasDelegate || AppointmentMouseLeave.HasDelegate;
+
+    CultureInfo IOmniScheduler.Culture => Culture ?? CultureInfo.CurrentCulture;
+
+    /// <summary>The currently active view, or null before the first registers.</summary>
+    public IOmniSchedulerView? SelectedView => _selectedView;
+
+    protected override void OnInitialized()
+    {
+        _dateState = RegisterParameter<DateTime>(nameof(Date))
+            .WithParameter(() => Date)
+            .WithChangeHandler(OnDateParamChanged)
+            .Attach();
+        _dataState = RegisterParameter<IEnumerable<TItem>?>(nameof(Data))
+            .WithParameter(() => Data)
+            .WithChangeHandler(RebuildAppointments)
+            .Attach();
+    }
+
+    private void OnDateParamChanged()
+    {
+        CurrentDate = Date.Date;
+        _pendingLoad = true;
+    }
+
+    private string? _lastRenderedTitle;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingLoad)
+        {
+            _pendingLoad = false;
+            await InvokeLoadDataAsync();
+        }
+
+        // The nav title reads the selected view's Title, which can depend on a
+        // view-owned parameter (e.g. a year view's StartMonth) that is only
+        // applied while rendering ChildContent — i.e. AFTER the nav bar in the
+        // same render pass. Detect a late title change and re-render once so the
+        // title stays in sync. Converges after one extra render (no loop).
+        var title = _selectedView?.Title;
+        if (title != _lastRenderedTitle)
+        {
+            _lastRenderedTitle = title;
+            StateHasChanged();
+        }
+    }
+
+    // ─── View registration / selection ────────────────────────────────────
+
+    /// <inheritdoc />
+    public void AddView(IOmniSchedulerView view)
+    {
+        if (_views.Contains(view)) return;
+        _views.Add(view);
+        var index = _views.Count - 1;
+        // Select the configured index when it registers; otherwise keep the
+        // first as a fallback until/unless the configured one shows up.
+        if (index == SelectedIndex || (_selectedView is null && index == 0))
+        {
+            _selectedView = view;
+            _pendingLoad = true;
+        }
+        StateHasChanged();
+    }
+
+    /// <inheritdoc />
+    public void RemoveView(IOmniSchedulerView view)
+    {
+        _views.Remove(view);
+        if (_selectedView == view)
+            _selectedView = _views.Count > 0 ? _views[0] : null;
+        StateHasChanged();
+    }
+
+    /// <inheritdoc />
+    public bool IsSelected(IOmniSchedulerView view) => _selectedView == view;
+
+    /// <summary>Switch to <paramref name="view"/> and reload data for its range.</summary>
+    public async Task SelectViewAsync(IOmniSchedulerView view)
+    {
+        if (_selectedView == view) return;
+        _selectedView = view;
+        await InvokeLoadDataAsync();
+        StateHasChanged();
+    }
+
+    /// <summary>Force a re-projection of <see cref="Data"/> and a data reload for the current view.</summary>
+    public async Task Reload()
+    {
+        RebuildAppointments();
+        await InvokeLoadDataAsync();
+        StateHasChanged();
+    }
+
+    // ─── Navigation ───────────────────────────────────────────────────────
+
+    private async Task OnTodayAsync()
+    {
+        var args = new SchedulerTodaySelectEventArgs { Today = DateTime.Today };
+        if (TodaySelect.HasDelegate) await TodaySelect.InvokeAsync(args);
+        await SetCurrentDateAsync(args.Today.Date);
+    }
+
+    private async Task OnNextAsync()
+    {
+        if (_selectedView is null) return;
+        await SetCurrentDateAsync(_selectedView.Next().Date);
+    }
+
+    private async Task OnPrevAsync()
+    {
+        if (_selectedView is null) return;
+        await SetCurrentDateAsync(_selectedView.Prev().Date);
+    }
+
+    private async Task SetCurrentDateAsync(DateTime date)
+    {
+        CurrentDate = date;
+        if (DateChanged.HasDelegate) await DateChanged.InvokeAsync(CurrentDate);
+        await InvokeLoadDataAsync();
+        StateHasChanged();
+    }
+
+    private async Task InvokeLoadDataAsync()
+    {
+        if (!LoadData.HasDelegate || _selectedView is null) return;
+        await LoadData.InvokeAsync(new SchedulerLoadDataEventArgs
+        {
+            Start = _selectedView.StartDate,
+            End = _selectedView.EndDate,
+            View = _selectedView,
+        });
+    }
+
+    // ─── Appointment projection ───────────────────────────────────────────
+
+    private void RebuildAppointments()
+    {
+        AppointmentsRebuildCount++;
+        _appointments.Clear();
+        if (Data is null || string.IsNullOrEmpty(StartProperty) || string.IsNullOrEmpty(EndProperty))
+            return;
+
+        foreach (var item in Data)
+        {
+            if (item is null) continue;
+            _appointments.Add(new OmniAppointmentData
+            {
+                Start = SchedulerReflection.GetDateTime(item, StartProperty!),
+                End = SchedulerReflection.GetDateTime(item, EndProperty!),
+                Text = string.IsNullOrEmpty(TextProperty)
+                    ? null
+                    : SchedulerReflection.GetValue(item, TextProperty!)?.ToString(),
+                Data = item,
+            });
+        }
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<OmniAppointmentData> GetAppointmentsInRange(DateTime start, DateTime end)
+        => _appointments.Where(a => IsAppointmentInRange(a, start, end));
+
+    /// <inheritdoc />
+    public bool IsAppointmentInRange(OmniAppointmentData item, DateTime start, DateTime end)
+    {
+        // Zero-duration appointments (Start == End) are in range when the
+        // instant falls inside [start, end). Otherwise standard overlap.
+        if (item.Start == item.End && item.Start >= start && item.End < end)
+            return true;
+
+        return item.End > start && item.Start < end;
+    }
+
+    // ─── Rendering hooks ──────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public RenderFragment RenderAppointment(OmniAppointmentData item) => builder =>
+    {
+        if (Template is not null && item.Data is TItem typed)
+            builder.AddContent(0, Template(typed));
+        else
+            builder.AddContent(1, item.Text);
+    };
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, object>? GetAppointmentAttributes(OmniAppointmentData item)
+    {
+        if (AppointmentRender is null) return null;
+        var args = new SchedulerAppointmentRenderEventArgs<TItem>
+        {
+            Start = item.Start,
+            End = item.End,
+            Data = item.Data is TItem t ? t : default,
+        };
+        AppointmentRender(args);
+        return args.Attributes.Count > 0 ? args.Attributes : null;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, object>? GetSlotAttributes(DateTime start, DateTime end, IOmniSchedulerView view, IEnumerable<OmniAppointmentData> appointments)
+    {
+        if (SlotRender is null) return null;
+        var args = new SchedulerSlotRenderEventArgs
+        {
+            Start = start,
+            End = end,
+            View = view,
+            Appointments = appointments,
+        };
+        SlotRender(args);
+        return args.Attributes.Count > 0 ? args.Attributes : null;
+    }
+
+    // ─── Selection callbacks (called by views) ────────────────────────────
+
+    /// <inheritdoc />
+    public async Task SelectSlotAsync(DateTime start, DateTime end, IOmniSchedulerView view, IEnumerable<OmniAppointmentData> appointments)
+    {
+        if (!SlotSelect.HasDelegate) return;
+        await SlotSelect.InvokeAsync(new SchedulerSlotSelectEventArgs
+        {
+            Start = start,
+            End = end,
+            View = view,
+            Appointments = appointments,
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task SelectAppointmentAsync(OmniAppointmentData data)
+    {
+        if (!AppointmentSelect.HasDelegate) return;
+        await AppointmentSelect.InvokeAsync(new SchedulerAppointmentSelectEventArgs<TItem>
+        {
+            Start = data.Start,
+            End = data.End,
+            Text = data.Text,
+            Data = data.Data is TItem t ? t : default,
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task SelectDayAsync(DateTime day, IEnumerable<OmniAppointmentData> appointments, IOmniSchedulerView view)
+    {
+        if (!DaySelect.HasDelegate) return;
+        await DaySelect.InvokeAsync(new SchedulerDaySelectEventArgs
+        {
+            Day = day,
+            Appointments = appointments,
+            View = view,
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task SelectMonthAsync(DateTime monthStart, IEnumerable<OmniAppointmentData> appointments, IOmniSchedulerView view)
+    {
+        if (!MonthSelect.HasDelegate) return;
+        await MonthSelect.InvokeAsync(new SchedulerMonthSelectEventArgs
+        {
+            MonthStart = monthStart,
+            Appointments = appointments,
+            View = view,
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> SelectMoreAsync(DateTime start, DateTime end, IEnumerable<OmniAppointmentData> appointments, IOmniSchedulerView view)
+    {
+        if (!MoreSelect.HasDelegate) return false;
+        var args = new SchedulerMoreSelectEventArgs
+        {
+            Start = start,
+            End = end,
+            Appointments = appointments,
+            View = view,
+        };
+        await MoreSelect.InvokeAsync(args);
+        return args.IsDefaultPrevented;
+    }
+
+    /// <inheritdoc />
+    public async Task MoveAppointmentAsync(OmniAppointmentData appointment, DateTime slotDate)
+    {
+        if (!AppointmentMove.HasDelegate || appointment is null) return;
+        await AppointmentMove.InvokeAsync(new SchedulerAppointmentMoveEventArgs
+        {
+            Appointment = appointment,
+            SlotDate = slotDate,
+            TimeSpan = appointment.End - appointment.Start,
+        });
+    }
+
+    /// <inheritdoc />
+    public Task MouseEnterAppointmentAsync(OmniAppointmentData appointment, double clientX, double clientY)
+        => AppointmentMouseEnter.HasDelegate
+            ? AppointmentMouseEnter.InvokeAsync(MouseArgs(appointment, clientX, clientY))
+            : Task.CompletedTask;
+
+    /// <inheritdoc />
+    public Task MouseLeaveAppointmentAsync(OmniAppointmentData appointment, double clientX, double clientY)
+        => AppointmentMouseLeave.HasDelegate
+            ? AppointmentMouseLeave.InvokeAsync(MouseArgs(appointment, clientX, clientY))
+            : Task.CompletedTask;
+
+    private SchedulerAppointmentMouseEventArgs<TItem> MouseArgs(OmniAppointmentData a, double x, double y) => new()
+    {
+        Start = a.Start,
+        End = a.End,
+        Text = a.Text,
+        Data = a.Data is TItem t ? t : default,
+        ClientX = x,
+        ClientY = y,
+    };
+
+    // ─── CSS ──────────────────────────────────────────────────────────────
+
+    private string RootCss => CssBuilder.Default("omni-scheduler")
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle => $"height:{Height};" + (Style ?? string.Empty);
+
+    private string TabCss(IOmniSchedulerView view) => CssBuilder.Default("omni-scheduler-view-tab")
+        .AddClass("omni-active", IsSelected(view))
+        .Build();
+}

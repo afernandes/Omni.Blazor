@@ -1,0 +1,256 @@
+@namespace Omni.Blazor.Components
+@inherits OmniSchedulerViewBase
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Month grid (6 weeks × 7 days). Add inside an <OmniScheduler>. *@
+
+@if (IsSelectedView && Scheduler is not null)
+{
+    <div class="omni-scheduler-view omni-scheduler-monthview">
+        <div class="omni-scheduler-mv-weekdays">
+            @foreach (var name in _weekdayNames)
+            {
+                <div class="omni-scheduler-mv-weekday">@name</div>
+            }
+        </div>
+        <div class="omni-scheduler-mv-grid" tabindex="0" @ref="_gridRef"
+             @onkeydown="OnKeyDown" @onkeydown:preventDefault="_preventKey">
+            @for (int i = 0; i < _days.Count; i++)
+            {
+                var d = _days[i];
+                var isFocused = _focus == i;
+                var appts = Scheduler.GetAppointmentsInRange(d.Date, d.Date.AddDays(1))
+                    .OrderBy(a => a.Start).ToList();
+                var max = MaxAppointmentsInSlot ?? int.MaxValue;
+                var shown = appts.Take(max).ToList();
+                var overflow = appts.Count - shown.Count;
+                <div @attributes="CellAttributes(d, appts, isFocused)"
+                     @onclick="@(() => OnCellClickAsync(d))"
+                     @ondragover:preventDefault="true"
+                     @ondrop="@(() => OnDropAsync(d))">
+                    <div class="omni-scheduler-mv-daynum" @onclick="@(() => OnDayClickAsync(d, appts))"
+                         @onclick:stopPropagation="true">@d.Day</div>
+                    <div class="omni-scheduler-mv-events">
+                        @foreach (var appt in shown)
+                        {
+                            var a = appt;
+                            <div @attributes="EventAttributes(a)"
+                                 role="button" tabindex="0" aria-label="@($"{a.Text} — {a.Start.ToString("d", Culture)}")"
+                                 draggable="@_draggable"
+                                 @ondragstart="@(() => OnDragStart(a))"
+                                 @onclick="@(() => OnAppointmentClickAsync(a))"
+                                 @onclick:stopPropagation="true"
+                                 @onkeydown="@(ev => OnEventKeyDown(ev, a))"
+                                 @onkeydown:stopPropagation="true"
+                                 @onmouseenter="@(ev => OnMouseEnterAsync(a, ev))"
+                                 @onmouseleave="@(ev => OnMouseLeaveAsync(a, ev))">
+                                <span class="omni-scheduler-mv-event-dot"></span>
+                                <span class="omni-scheduler-mv-event-text">@Scheduler.RenderAppointment(a)</span>
+                            </div>
+                        }
+                        @if (overflow > 0)
+                        {
+                            <button type="button" class="omni-scheduler-mv-more"
+                                    @onclick="@(() => OnMoreClickAsync(d, appts))"
+                                    @onclick:stopPropagation="true"
+                                    @onkeydown:stopPropagation="true">
+                                @string.Format(MoreText, overflow)
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public override string Text { get; set; } = "Mês";
+    [Parameter] public override string Icon { get; set; } = "grid";
+
+    /// <summary>Max appointments rendered per day before a "+N more" link appears. Null = unlimited.</summary>
+    [Parameter] public int? MaxAppointmentsInSlot { get; set; } = 3;
+
+    /// <summary>Overflow link text. <c>{0}</c> is replaced with the hidden count. Default <c>"+ {0} mais"</c>.</summary>
+    [Parameter] public string MoreText { get; set; } = "+ {0} mais";
+
+    private IReadOnlyList<DateTime> _days = Array.Empty<DateTime>();
+    private string[] _weekdayNames = Array.Empty<string>();
+    private string _draggable = "false";
+
+    // ─── Keyboard navigation (roving focus over day cells) ────────────────
+    private int _focus;
+    private bool _preventKey;
+    private bool _focusPending;
+    private ElementReference _gridRef;
+
+    protected override void OnParametersSet()
+    {
+        _draggable = Scheduler?.AppointmentsDraggable == true ? "true" : "false";
+        BuildWeekdays();
+        BuildDays();
+
+        // Keep the cursor on the same calendar day across re-renders; default to
+        // today (when in the grid) or the 1st of the month.
+        var anchor = _focusDate ?? (DateTime.Today >= _days[0] && DateTime.Today <= _days[^1]
+            ? DateTime.Today : MonthStart);
+        var idx = _days.ToList().FindIndex(d => d.Date == anchor.Date);
+        _focus = idx >= 0 ? idx : 0;
+        _focusDate = _days[_focus];
+    }
+
+    private DateTime? _focusDate;
+
+    private DateTime MonthStart => new(CurrentDate.Year, CurrentDate.Month, 1);
+
+    private DateTime GridStart()
+    {
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var offset = ((int)MonthStart.DayOfWeek - firstDow + 7) % 7;
+        return MonthStart.AddDays(-offset);
+    }
+
+    private void BuildDays()
+    {
+        var start = GridStart();
+        var days = new DateTime[42];
+        for (int i = 0; i < 42; i++) days[i] = start.AddDays(i);
+        _days = days;
+    }
+
+    private void BuildWeekdays()
+    {
+        var names = Culture.DateTimeFormat.AbbreviatedDayNames; // index by DayOfWeek
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var rotated = new string[7];
+        for (int i = 0; i < 7; i++)
+        {
+            var raw = names[(firstDow + i) % 7];
+            rotated[i] = raw.Length > 0 ? char.ToUpper(raw[0], Culture) + raw[1..] : raw;
+        }
+        _weekdayNames = rotated;
+    }
+
+    private string CellCss(DateTime d, bool focused) => CssBuilder.Default("omni-scheduler-mv-cell")
+        .AddClass("omni-out", d.Month != CurrentDate.Month)
+        .AddClass("omni-today", d.Date == DateTime.Today)
+        .AddClass("omni-weekend", d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        .AddClass("omni-focused", focused)
+        .Build();
+
+    // ─── Interactions ──────────────────────────────────────────────────────
+
+    private Task OnCellClickAsync(DateTime d)
+    {
+        // A mouse click also moves the keyboard cursor to the clicked day.
+        for (int i = 0; i < _days.Count; i++)
+            if (_days[i].Date == d.Date) { _focus = i; _focusDate = _days[i]; break; }
+
+        var appts = Scheduler!.GetAppointmentsInRange(d.Date, d.Date.AddDays(1)).ToList();
+        return Scheduler.SelectSlotAsync(d.Date, d.Date.AddDays(1), this, appts);
+    }
+
+    private Task OnDayClickAsync(DateTime d, IEnumerable<OmniAppointmentData> appts)
+        => Scheduler!.SelectDayAsync(d.Date, appts.ToList(), this);
+
+    private Task OnAppointmentClickAsync(OmniAppointmentData appt)
+        => Scheduler!.SelectAppointmentAsync(appt);
+
+    private async Task OnEventKeyDown(KeyboardEventArgs args, OmniAppointmentData appt)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+            await Scheduler!.SelectAppointmentAsync(appt);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending)
+        {
+            _focusPending = false;
+            try { await _gridRef.FocusAsync(); } catch { /* detached / SSR */ }
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        _preventKey = false;
+        int f = _focus;
+        switch (e.Key)
+        {
+            case "ArrowLeft": f = Math.Max(0, f - 1); break;
+            case "ArrowRight": f = Math.Min(_days.Count - 1, f + 1); break;
+            case "ArrowUp": f = Math.Max(0, f - 7); break;
+            case "ArrowDown": f = Math.Min(_days.Count - 1, f + 7); break;
+            case "Home": f -= f % 7; break;
+            case "End": f += 6 - (f % 7); break;
+            case "Enter":
+                _preventKey = true;
+                await OnCellClickAsync(_days[_focus]);
+                return;
+            case " ":
+            case "Spacebar":
+                _preventKey = true;
+                await SelectFocusedAppointmentAsync();
+                return;
+            default:
+                return;
+        }
+        _preventKey = true;
+        _focus = f;
+        _focusDate = _days[f];
+        _focusPending = true;
+    }
+
+    private async Task SelectFocusedAppointmentAsync()
+    {
+        var d = _days[_focus];
+        var appt = Scheduler!.GetAppointmentsInRange(d.Date, d.Date.AddDays(1)).FirstOrDefault();
+        if (appt is not null) await Scheduler.SelectAppointmentAsync(appt);
+    }
+
+    // Merge the base chip class with any consumer AppointmentRender style/class.
+    private IReadOnlyDictionary<string, object> EventAttributes(OmniAppointmentData a)
+        => SchedulerAttributes.Merge("omni-scheduler-mv-event", string.Empty, Scheduler!.GetAppointmentAttributes(a));
+
+    // Merge the day-cell class with any consumer SlotRender output (e.g. highlight today).
+    private IReadOnlyDictionary<string, object> CellAttributes(DateTime d, IEnumerable<OmniAppointmentData> appts, bool focused)
+        => SchedulerAttributes.Merge(CellCss(d, focused), string.Empty,
+            Scheduler!.GetSlotAttributes(d.Date, d.Date.AddDays(1), this, appts));
+
+    private Task OnMouseEnterAsync(OmniAppointmentData a, MouseEventArgs e)
+        => Scheduler!.HasAppointmentMouseHandlers
+            ? Scheduler.MouseEnterAppointmentAsync(a, e.ClientX, e.ClientY)
+            : Task.CompletedTask;
+
+    private Task OnMouseLeaveAsync(OmniAppointmentData a, MouseEventArgs e)
+        => Scheduler!.HasAppointmentMouseHandlers
+            ? Scheduler.MouseLeaveAppointmentAsync(a, e.ClientX, e.ClientY)
+            : Task.CompletedTask;
+
+    private Task OnMoreClickAsync(DateTime d, IEnumerable<OmniAppointmentData> appts)
+        => Scheduler!.SelectMoreAsync(d.Date, d.Date.AddDays(1), appts.ToList(), this);
+
+    private OmniAppointmentData? _dragged;
+    private void OnDragStart(OmniAppointmentData appt) => _dragged = appt;
+
+    private async Task OnDropAsync(DateTime d)
+    {
+        if (_dragged is null) return;
+        var appt = _dragged;
+        _dragged = null;
+        // Keep the original time of day, move to the dropped date.
+        await Scheduler!.MoveAppointmentAsync(appt, d.Date + appt.Start.TimeOfDay);
+    }
+
+    // ─── View contract ─────────────────────────────────────────────────────
+
+    public override string Title => Capitalize(CurrentDate.ToString("MMMM yyyy", Culture));
+    public override DateTime StartDate => GridStart();
+    public override DateTime EndDate => GridStart().AddDays(42);
+    public override DateTime Next() => CurrentDate.AddMonths(1);
+    public override DateTime Prev() => CurrentDate.AddMonths(-1);
+
+    private string Capitalize(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0], Culture) + s[1..];
+}

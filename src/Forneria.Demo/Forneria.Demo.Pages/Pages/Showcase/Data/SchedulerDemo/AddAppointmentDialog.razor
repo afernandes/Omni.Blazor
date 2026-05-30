@@ -1,0 +1,44 @@
+@namespace Forneria.Demo.Pages.Pages.Showcase.Data.SchedulerDemo
+@using Omni.Blazor.Services
+@inject DialogService DialogService
+
+<div class="fs-sched-form">
+    <label class="fs-sched-field">
+        <span>Título</span>
+        <OmniTextBox @bind-Value="_model.Text" Placeholder="Novo evento" />
+    </label>
+    <label class="fs-sched-field">
+        <span>Início</span>
+        <OmniDatePicker TValue="DateTime" @bind-Value="_model.Start" ShowTime="true" />
+    </label>
+    <label class="fs-sched-field">
+        <span>Fim</span>
+        <OmniDatePicker TValue="DateTime" @bind-Value="_model.End" ShowTime="true" />
+    </label>
+    <div class="fs-sched-actions">
+        <OmniButton Variant="ButtonVariant.Default" Text="Cancelar" OnClick="@(() => DialogService.Close(null))" />
+        <OmniButton Variant="ButtonVariant.Primary" Text="Salvar" OnClick="Save" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public DateTime Start { get; set; }
+    [Parameter] public DateTime End { get; set; }
+
+    private readonly SchedulerAppointment _model = new();
+    private bool _seeded;
+
+    protected override void OnParametersSet()
+    {
+        if (_seeded) return;
+        _seeded = true;
+        _model.Start = Start;
+        _model.End = End;
+    }
+
+    private void Save()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Text)) _model.Text = "Novo evento";
+        DialogService.Close(_model);
+    }
+}

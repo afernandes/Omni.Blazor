@@ -1,0 +1,381 @@
+@namespace Omni.Blazor.Components
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    Internal renderer shared by OmniDayView (1 column) and OmniWeekView (7
+    columns). Renders an hour gutter + one positioned column per day, with
+    overlapping appointments laid out into side-by-side sub-columns. Not meant
+    to be used directly — use OmniDayView / OmniWeekView.
+*@
+
+<div class="omni-scheduler-view omni-scheduler-timeview">
+    <div class="omni-scheduler-tv-head">
+        <div class="omni-scheduler-tv-corner"></div>
+        @foreach (var day in Days)
+        {
+            var d = day;
+            <div class="@DayHeadCss(d)" role="button" tabindex="0"
+                 @onclick="@(() => OnDayHeadClickAsync(d))"
+                 @onkeydown="@(args => OnDayHeadKeyDown(args, d))">
+                <span class="omni-scheduler-tv-dow">@d.ToString(HeaderFormat, Culture)</span>
+                <span class="omni-scheduler-tv-dom">@d.Day</span>
+            </div>
+        }
+    </div>
+
+    <div class="omni-scheduler-tv-body"
+         @onkeydown="OnKeyDown"
+         @onkeydown:preventDefault="_preventKey">
+        <div class="omni-scheduler-tv-gutter">
+            @foreach (var slot in _slots)
+            {
+                <div class="@($"omni-scheduler-tv-slotlabel{(slot.IsHour ? "" : " omni-minor")}")">
+                    @if (slot.IsHour)
+                    {
+                        @slot.Label
+                    }
+                </div>
+            }
+        </div>
+
+        @for (int di = 0; di < Days.Count; di++)
+        {
+            var dayIndex = di;
+            var d = Days[di];
+            <div class="omni-scheduler-tv-col">
+                @for (int si = 0; si < _slots.Count; si++)
+                {
+                    var slot = _slots[si];
+                    var slotStart = d.Date + StartTime + TimeSpan.FromMinutes(slot.Index * MinutesPerSlot);
+                    var slotEnd = slotStart.AddMinutes(MinutesPerSlot);
+                    var isFocused = _focusDay == dayIndex && _focusSlot == slot.Index;
+                    if (isFocused)
+                    {
+                        <div @ref="_focusEl" @attributes="SlotAttributes(slotStart, slotEnd, slot.IsHour, true)" tabindex="0"
+                             @onclick="@(() => OnSlotClickAsync(dayIndex, slot.Index))"
+                             @ondragover:preventDefault="true"
+                             @ondrop="@(() => OnDropAsync(slotStart))"></div>
+                    }
+                    else
+                    {
+                        <div @attributes="SlotAttributes(slotStart, slotEnd, slot.IsHour, false)" tabindex="-1"
+                             @onclick="@(() => OnSlotClickAsync(dayIndex, slot.Index))"
+                             @ondragover:preventDefault="true"
+                             @ondrop="@(() => OnDropAsync(slotStart))"></div>
+                    }
+                }
+
+                @foreach (var ev in LayoutDay(d))
+                {
+                    var e = ev;
+                    <div @attributes="EventAttributes(e)"
+                         role="button" tabindex="0" aria-label="@AriaLabel(e.Appt)"
+                         draggable="@_draggable"
+                         @ondragstart="@(() => OnDragStart(e.Appt))"
+                         @onclick="@(() => OnAppointmentClickAsync(e.Appt))"
+                         @onclick:stopPropagation="true"
+                         @onkeydown="@(args => OnEventKeyDown(args, e.Appt))"
+                         @onkeydown:stopPropagation="true"
+                         @onmouseenter="@(args => OnMouseEnterAsync(e.Appt, args))"
+                         @onmouseleave="@(args => OnMouseLeaveAsync(e.Appt, args))">
+                        <div class="omni-scheduler-event-time">@TimeRange(e.Appt)</div>
+                        <div class="omni-scheduler-event-body">@Scheduler.RenderAppointment(e.Appt)</div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IOmniScheduler Scheduler { get; set; } = default!;
+    [Parameter, EditorRequired] public IOmniSchedulerView View { get; set; } = default!;
+    [Parameter, EditorRequired] public IReadOnlyList<DateTime> Days { get; set; } = Array.Empty<DateTime>();
+
+    [Parameter] public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
+    [Parameter] public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(24);
+    [Parameter] public int MinutesPerSlot { get; set; } = 30;
+    [Parameter] public string TimeFormat { get; set; } = "HH:mm";
+
+    /// <summary>Format for the day-of-week header label. Default <c>"ddd"</c>.</summary>
+    [Parameter] public string HeaderFormat { get; set; } = "ddd";
+
+    private CultureInfo Culture => Scheduler.Culture;
+    private string _draggable = "false";
+
+    private double TotalMinutes => Math.Max(MinutesPerSlot, (EndTime - StartTime).TotalMinutes);
+
+    private readonly List<SlotInfo> _slots = new();
+    private OmniAppointmentData? _dragged;
+
+    // ─── Keyboard navigation (roving tabindex over slots) ─────────────────
+    private int _focusDay;
+    private int _focusSlot;
+    private bool _kbInit;
+    private bool _preventKey;
+    private bool _focusPending;
+    private ElementReference _focusEl;
+
+    protected override void OnParametersSet()
+    {
+        _draggable = Scheduler.AppointmentsDraggable ? "true" : "false";
+        BuildSlots();
+
+        if (!_kbInit)
+        {
+            _kbInit = true;
+            // Start focus on today's column when visible, else the first day.
+            var todayIdx = -1;
+            for (int i = 0; i < Days.Count; i++)
+                if (Days[i].Date == DateTime.Today) { todayIdx = i; break; }
+            _focusDay = todayIdx >= 0 ? todayIdx : 0;
+            _focusSlot = 0;
+        }
+        _focusDay = Math.Clamp(_focusDay, 0, Math.Max(0, Days.Count - 1));
+        _focusSlot = Math.Clamp(_focusSlot, 0, Math.Max(0, _slots.Count - 1));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending)
+        {
+            _focusPending = false;
+            try { await _focusEl.FocusAsync(); } catch { /* detached / SSR */ }
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        _preventKey = false;
+        var slotsPerHour = Math.Max(1, 60 / Math.Max(1, MinutesPerSlot));
+        int day = _focusDay, slot = _focusSlot;
+        switch (e.Key)
+        {
+            case "ArrowUp": slot = Math.Max(0, slot - 1); break;
+            case "ArrowDown": slot = Math.Min(_slots.Count - 1, slot + 1); break;
+            case "ArrowLeft": day = Math.Max(0, day - 1); break;
+            case "ArrowRight": day = Math.Min(Days.Count - 1, day + 1); break;
+            case "Home": slot = 0; break;
+            case "End": slot = Math.Max(0, _slots.Count - 1); break;
+            case "PageUp": slot = Math.Max(0, slot - slotsPerHour); break;
+            case "PageDown": slot = Math.Min(_slots.Count - 1, slot + slotsPerHour); break;
+            case "Enter":
+                _preventKey = true;
+                await OnSlotClickAsync(_focusDay, _focusSlot);
+                return;
+            case " ":
+            case "Spacebar":
+                _preventKey = true;
+                await SelectFocusedAppointmentAsync();
+                return;
+            default:
+                return;
+        }
+        _preventKey = true;
+        _focusDay = day;
+        _focusSlot = slot;
+        _focusPending = true;
+    }
+
+    private (DateTime Start, DateTime End) SlotRange(int day, int slot)
+    {
+        var start = Days[day].Date + StartTime + TimeSpan.FromMinutes(slot * MinutesPerSlot);
+        return (start, start.AddMinutes(MinutesPerSlot));
+    }
+
+    private async Task SelectFocusedAppointmentAsync()
+    {
+        var (start, end) = SlotRange(_focusDay, _focusSlot);
+        var appt = Scheduler.GetAppointmentsInRange(start, end).FirstOrDefault();
+        if (appt is not null) await Scheduler.SelectAppointmentAsync(appt);
+    }
+
+    private void BuildSlots()
+    {
+        _slots.Clear();
+        var count = (int)Math.Ceiling((EndTime - StartTime).TotalMinutes / MinutesPerSlot);
+        for (int i = 0; i < count; i++)
+        {
+            var t = StartTime + TimeSpan.FromMinutes(i * MinutesPerSlot);
+            var isHour = t.Minutes == 0;
+            _slots.Add(new SlotInfo(i, isHour, isHour ? FormatTime(t) : string.Empty));
+        }
+    }
+
+    private string FormatTime(TimeSpan t)
+        => DateTime.Today.Add(t).ToString(TimeFormat, Culture);
+
+    private string TimeRange(OmniAppointmentData a)
+        => $"{a.Start.ToString(TimeFormat, Culture)}";
+
+    private string DayHeadCss(DateTime d) => CssBuilder.Default("omni-scheduler-tv-dayhead")
+        .AddClass("omni-today", d.Date == DateTime.Today)
+        .AddClass("omni-weekend", d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        .Build();
+
+    // ─── Appointment layout (greedy column packing within overlap clusters) ─
+
+    private List<LaidEvent> LayoutDay(DateTime day)
+    {
+        var dayStart = day.Date + StartTime;
+        var dayEnd = day.Date + EndTime;
+
+        var items = Scheduler.GetAppointmentsInRange(dayStart, dayEnd)
+            .Select(a =>
+            {
+                var s = a.Start < dayStart ? dayStart : a.Start;
+                var e = a.End > dayEnd ? dayEnd : a.End;
+                var startMin = (s - dayStart).TotalMinutes;
+                var endMin = (e - dayStart).TotalMinutes;
+                if (endMin <= startMin) endMin = startMin + MinutesPerSlot;
+                return new Placed { Appt = a, StartMin = startMin, EndMin = endMin };
+            })
+            .OrderBy(x => x.StartMin)
+            .ThenBy(x => x.EndMin)
+            .ToList();
+
+        var result = new List<LaidEvent>(items.Count);
+        var cluster = new List<Placed>();
+        var clusterEnd = double.MinValue;
+
+        foreach (var item in items)
+        {
+            if (cluster.Count > 0 && item.StartMin >= clusterEnd)
+            {
+                FlushCluster(cluster, result);
+                cluster.Clear();
+                clusterEnd = double.MinValue;
+            }
+            cluster.Add(item);
+            clusterEnd = Math.Max(clusterEnd, item.EndMin);
+        }
+        if (cluster.Count > 0) FlushCluster(cluster, result);
+
+        return result;
+    }
+
+    private static void FlushCluster(List<Placed> cluster, List<LaidEvent> result)
+    {
+        var colEnds = new List<double>();
+        foreach (var item in cluster)
+        {
+            var placed = -1;
+            for (int i = 0; i < colEnds.Count; i++)
+            {
+                if (item.StartMin >= colEnds[i])
+                {
+                    colEnds[i] = item.EndMin;
+                    placed = i;
+                    break;
+                }
+            }
+            if (placed < 0)
+            {
+                colEnds.Add(item.EndMin);
+                placed = colEnds.Count - 1;
+            }
+            item.Col = placed;
+        }
+
+        var cols = colEnds.Count;
+        foreach (var item in cluster)
+            result.Add(new LaidEvent(item.Appt, item.StartMin, item.EndMin, item.Col, cols));
+    }
+
+    private string EventStyle(LaidEvent e)
+    {
+        var top = e.StartMin / TotalMinutes * 100;
+        var height = (e.EndMin - e.StartMin) / TotalMinutes * 100;
+        var width = 100.0 / e.Cols;
+        var left = e.Col * width;
+        return string.Format(CultureInfo.InvariantCulture,
+            "top:{0:0.###}%;height:{1:0.###}%;left:calc({2:0.###}% + 2px);width:calc({3:0.###}% - 4px);",
+            top, height, left, width);
+    }
+
+    // Merge the layout style/class with any consumer AppointmentRender output so
+    // a consumer style never clobbers the absolute positioning (and vice-versa).
+    private IReadOnlyDictionary<string, object> EventAttributes(LaidEvent e)
+        => SchedulerAttributes.Merge("omni-scheduler-event", EventStyle(e), Scheduler.GetAppointmentAttributes(e.Appt));
+
+    // Merge the slot base class with any consumer SlotRender output (highlights).
+    private IReadOnlyDictionary<string, object> SlotAttributes(DateTime start, DateTime end, bool isHour, bool focused)
+    {
+        var baseClass = isHour ? "omni-scheduler-tv-slot" : "omni-scheduler-tv-slot omni-minor";
+        if (focused) baseClass += " omni-focused";
+        var custom = Scheduler.GetSlotAttributes(start, end, View, Scheduler.GetAppointmentsInRange(start, end));
+        return SchedulerAttributes.Merge(baseClass, string.Empty, custom);
+    }
+
+    // ─── Interactions ──────────────────────────────────────────────────────
+
+    private Task OnSlotClickAsync(int dayIndex, int slotIndex)
+    {
+        // A mouse click also moves the keyboard cursor to the clicked slot.
+        _focusDay = dayIndex;
+        _focusSlot = slotIndex;
+        var (start, end) = SlotRange(dayIndex, slotIndex);
+        var appts = Scheduler.GetAppointmentsInRange(start, end).ToList();
+        return Scheduler.SelectSlotAsync(start, end, View, appts);
+    }
+
+    private Task OnAppointmentClickAsync(OmniAppointmentData appt)
+        => Scheduler.SelectAppointmentAsync(appt);
+
+    private Task OnMouseEnterAsync(OmniAppointmentData appt, MouseEventArgs e)
+        => Scheduler.HasAppointmentMouseHandlers
+            ? Scheduler.MouseEnterAppointmentAsync(appt, e.ClientX, e.ClientY)
+            : Task.CompletedTask;
+
+    private Task OnMouseLeaveAsync(OmniAppointmentData appt, MouseEventArgs e)
+        => Scheduler.HasAppointmentMouseHandlers
+            ? Scheduler.MouseLeaveAppointmentAsync(appt, e.ClientX, e.ClientY)
+            : Task.CompletedTask;
+
+    private Task OnDayHeadClickAsync(DateTime day)
+    {
+        var appts = Scheduler.GetAppointmentsInRange(day.Date, day.Date.AddDays(1)).ToList();
+        return Scheduler.SelectDayAsync(day.Date, appts, View);
+    }
+
+    private async Task OnDayHeadKeyDown(KeyboardEventArgs args, DateTime day)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+            await OnDayHeadClickAsync(day);
+    }
+
+    private async Task OnEventKeyDown(KeyboardEventArgs args, OmniAppointmentData appt)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+            await Scheduler.SelectAppointmentAsync(appt);
+    }
+
+    private string AriaLabel(OmniAppointmentData a)
+        => $"{a.Text} — {a.Start.ToString(TimeFormat, Culture)}";
+
+    private void OnDragStart(OmniAppointmentData appt) => _dragged = appt;
+
+    private async Task OnDropAsync(DateTime slotStart)
+    {
+        if (_dragged is null) return;
+        var appt = _dragged;
+        _dragged = null;
+        await Scheduler.MoveAppointmentAsync(appt, slotStart);
+    }
+
+    // ─── Records ───────────────────────────────────────────────────────────
+
+    private readonly record struct SlotInfo(int Index, bool IsHour, string Label);
+
+    private sealed class Placed
+    {
+        public OmniAppointmentData Appt = default!;
+        public double StartMin;
+        public double EndMin;
+        public int Col;
+    }
+
+    public readonly record struct LaidEvent(OmniAppointmentData Appt, double StartMin, double EndMin, int Col, int Cols);
+}

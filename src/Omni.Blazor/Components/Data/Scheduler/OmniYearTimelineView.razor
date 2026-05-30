@@ -1,0 +1,14 @@
+@namespace Omni.Blazor.Components
+@inherits OmniYearViewBase
+
+@* Year timeline: 12 month rows × day columns, connected timeline styling (mirrors RadzenYearTimelineView). *@
+
+@if (IsSelectedView && Scheduler is not null)
+{
+    <SchedulerYearGrid Scheduler="Scheduler" View="this" Months="MonthStarts()" Timeline="true" />
+}
+
+@code {
+    [Parameter] public override string Text { get; set; } = "Timeline";
+    [Parameter] public override string Icon { get; set; } = "trending-up";
+}

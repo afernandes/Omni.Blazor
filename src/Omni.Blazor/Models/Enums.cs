@@ -267,6 +267,14 @@ public enum ChartColorScheme { Palette, Accent, Pastel, Semantic }
 /// <summary>Tipo de interpolação para séries lineares (Line/Area).</summary>
 public enum ChartInterpolation { Linear, Smooth, Step }
 
+/// <summary>Mês do ano (0-based, como o <c>Month</c> do Radzen) — usado pelo
+/// <c>StartMonth</c> das views de ano do <c>OmniScheduler</c>.</summary>
+public enum Month
+{
+    January = 0, February = 1, March = 2, April = 3, May = 4, June = 5,
+    July = 6, August = 7, September = 8, October = 9, November = 10, December = 11
+}
+
 /// <summary>
 /// Estilo visual da barra de um <c>OmniSplitter</c>:
 /// <list type="bullet">

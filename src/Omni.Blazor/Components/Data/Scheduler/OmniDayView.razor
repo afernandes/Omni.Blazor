@@ -1,0 +1,39 @@
+@namespace Omni.Blazor.Components
+@inherits OmniSchedulerViewBase
+
+@* Single-day view with time slots. Add inside an <OmniScheduler>. *@
+
+@if (IsSelectedView && Scheduler is not null)
+{
+    <SchedulerTimeView Scheduler="Scheduler" View="this"
+                       Days="_days"
+                       StartTime="StartTime" EndTime="EndTime"
+                       MinutesPerSlot="MinutesPerSlot" TimeFormat="@TimeFormat" />
+}
+
+@code {
+    [Parameter] public override string Text { get; set; } = "Dia";
+    [Parameter] public override string Icon { get; set; } = "clock";
+
+    /// <summary>First time slot of the day. Default 08:00.</summary>
+    [Parameter] public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
+
+    /// <summary>Last time slot of the day (exclusive). Default 24:00.</summary>
+    [Parameter] public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>Minutes per slot row. Default 30.</summary>
+    [Parameter] public int MinutesPerSlot { get; set; } = 30;
+
+    /// <summary>Time format for slot labels. Default <c>"HH:mm"</c>.</summary>
+    [Parameter] public string TimeFormat { get; set; } = "HH:mm";
+
+    private IReadOnlyList<DateTime> _days = Array.Empty<DateTime>();
+
+    protected override void OnParametersSet() => _days = new[] { CurrentDate };
+
+    public override string Title => CurrentDate.ToString("D", Culture);
+    public override DateTime StartDate => CurrentDate;
+    public override DateTime EndDate => CurrentDate.AddDays(1);
+    public override DateTime Next() => CurrentDate.AddDays(1);
+    public override DateTime Prev() => CurrentDate.AddDays(-1);
+}

@@ -1,0 +1,347 @@
+@namespace Omni.Blazor.Components
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    Internal renderer shared by OmniYearPlannerView and OmniYearTimelineView:
+    12 month rows, with appointments rendered as horizontal bars packed into
+    lanes. Two column models (mirrors Radzen):
+
+      • Planner  (Timeline=false): columns are days aligned by day-of-week —
+        37 columns starting at the week of the 1st, weekday headers. Compact,
+        fits the width; shows the weekly rhythm.
+      • Timeline (Timeline=true):  columns are day-of-month 1..31, day-number
+        headers. Wide / horizontally scrollable; taller bars; a linear axis.
+
+    Slots are colored via the scheduler's SlotRender hook. Not used directly.
+*@
+
+<div class="@RootCss" style="--omni-yr-cols:@TotalColumns;" tabindex="0" @ref="_gridRef"
+     @onkeydown="OnKeyDown" @onkeydown:preventDefault="_preventKey">
+    <div class="omni-scheduler-yr-head">
+        <div class="omni-scheduler-yr-corner"></div>
+        <div class="omni-scheduler-yr-colheads">
+            @if (Timeline)
+            {
+                @for (int day = 1; day <= 31; day++)
+                {
+                    <div class="omni-scheduler-yr-colhead">@day</div>
+                }
+            }
+            else
+            {
+                @for (int col = 0; col < TotalColumns; col++)
+                {
+                    <div class="omni-scheduler-yr-colhead">@_weekdayAbbr[col % 7]</div>
+                }
+            }
+        </div>
+    </div>
+
+    @for (int mi = 0; mi < Months.Count; mi++)
+    {
+        var monthIndex = mi;
+        var m = Months[mi];
+        var colStart = ColStart(m);
+        var laid = LayoutMonth(m, colStart);
+        var lanes = laid.Count == 0 ? 1 : laid.Max(x => x.Lane) + 1;
+        <div class="omni-scheduler-yr-row">
+            <button type="button" class="omni-scheduler-yr-monthlabel"
+                    @onclick="@(() => OnMonthClickAsync(m))">
+                @Capitalize(m.ToString("MMM", Culture))
+            </button>
+            <div class="omni-scheduler-yr-track" style="@TrackStyle(lanes)">
+                <div class="omni-scheduler-yr-cells">
+                    @for (int col = 0; col < TotalColumns; col++)
+                    {
+                        var date = colStart.AddDays(col);
+                        if (date.Month == m.Month && date.Year == m.Year)
+                        {
+                            var d = date;
+                            var isFocused = monthIndex == _focusMonth && d.Day == _focusDay;
+                            <div @attributes="CellAttributes(d, isFocused)"
+                                 @onclick="@(() => OnSlotClickAsync(monthIndex, d))"
+                                 @ondragover:preventDefault="true"
+                                 @ondrop="@(() => OnDropAsync(d))">
+                                <span class="@DayNumCss(d)">@d.Day</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="omni-scheduler-yr-cell omni-out"></div>
+                        }
+                    }
+                </div>
+                <div class="omni-scheduler-yr-bars">
+                    @foreach (var bar in laid)
+                    {
+                        var b = bar;
+                        <div @attributes="BarAttributes(b)"
+                             role="button" tabindex="0" aria-label="@($"{b.Appt.Text} — {b.Appt.Start.ToString("d", Culture)}")"
+                             draggable="@_draggable"
+                             @ondragstart="@(() => OnDragStart(b.Appt))"
+                             @onclick="@(() => OnAppointmentClickAsync(b.Appt))"
+                             @onclick:stopPropagation="true"
+                             @onkeydown="@(ev => OnEventKeyDown(ev, b.Appt))"
+                             @onkeydown:stopPropagation="true"
+                             @onmouseenter="@(ev => OnMouseEnterAsync(b.Appt, ev))"
+                             @onmouseleave="@(ev => OnMouseLeaveAsync(b.Appt, ev))">
+                            <span class="omni-scheduler-yr-bar-text">@Scheduler.RenderAppointment(b.Appt)</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IOmniScheduler Scheduler { get; set; } = default!;
+    [Parameter, EditorRequired] public IOmniSchedulerView View { get; set; } = default!;
+    [Parameter, EditorRequired] public IReadOnlyList<DateTime> Months { get; set; } = Array.Empty<DateTime>();
+
+    /// <summary>Timeline (linear day-of-month, wide) vs planner (week-aligned, compact).</summary>
+    [Parameter] public bool Timeline { get; set; }
+
+    private CultureInfo Culture => Scheduler.Culture;
+    private string _draggable = "false";
+    private OmniAppointmentData? _dragged;
+    private string[] _weekdayAbbr = Array.Empty<string>();
+
+    // ─── Keyboard navigation (roving focus over month/day cells) ──────────
+    private int _focusMonth;
+    private int _focusDay = 1;
+    private bool _kbInit;
+    private bool _preventKey;
+    private bool _focusPending;
+    private ElementReference _gridRef;
+
+    // Planner is compact (thin bars); timeline is roomier (taller bars).
+    private int DayNumRow => Timeline ? 22 : 18;
+    private int LaneHeight => Timeline ? 24 : 16;
+
+    /// <summary>37 week-aligned columns for the planner; 31 day-of-month columns for the timeline.</summary>
+    private int TotalColumns => Timeline ? 31 : 37;
+
+    private string RootCss => CssBuilder.Default("omni-scheduler-view omni-scheduler-yeargrid")
+        .AddClass("omni-scheduler-timeline", Timeline)
+        .AddClass("omni-scheduler-planner", !Timeline)
+        .Build();
+
+    protected override void OnParametersSet()
+    {
+        _draggable = Scheduler.AppointmentsDraggable ? "true" : "false";
+        if (!Timeline) BuildWeekdayAbbr();
+
+        if (!_kbInit && Months.Count > 0)
+        {
+            _kbInit = true;
+            // Start on today when it falls inside the displayed year, else month 0.
+            var idx = -1;
+            for (int i = 0; i < Months.Count; i++)
+                if (Months[i].Year == DateTime.Today.Year && Months[i].Month == DateTime.Today.Month) { idx = i; break; }
+            if (idx >= 0) { _focusMonth = idx; _focusDay = DateTime.Today.Day; }
+            else { _focusMonth = 0; _focusDay = 1; }
+        }
+        _focusMonth = Math.Clamp(_focusMonth, 0, Math.Max(0, Months.Count - 1));
+        _focusDay = Math.Clamp(_focusDay, 1, DaysInFocusMonth());
+    }
+
+    private int DaysInFocusMonth()
+    {
+        if (Months.Count == 0) return 31;
+        var m = Months[_focusMonth];
+        return DateTime.DaysInMonth(m.Year, m.Month);
+    }
+
+    private DateTime FocusedDate()
+    {
+        var m = Months[_focusMonth];
+        return new DateTime(m.Year, m.Month, _focusDay);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending)
+        {
+            _focusPending = false;
+            try { await _gridRef.FocusAsync(); } catch { /* detached / SSR */ }
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        _preventKey = false;
+        int month = _focusMonth, day = _focusDay;
+        switch (e.Key)
+        {
+            case "ArrowLeft": day = Math.Max(1, day - 1); break;
+            case "ArrowRight": day = Math.Min(DaysInFocusMonth(), day + 1); break;
+            case "ArrowUp": month = Math.Max(0, month - 1); break;
+            case "ArrowDown": month = Math.Min(Months.Count - 1, month + 1); break;
+            case "Home": day = 1; break;
+            case "End": day = DaysInFocusMonth(); break;
+            case "Enter":
+                _preventKey = true;
+                await OnSlotClickAsync(_focusMonth, FocusedDate());
+                return;
+            case " ":
+            case "Spacebar":
+                _preventKey = true;
+                var date = FocusedDate();
+                var appt = Scheduler.GetAppointmentsInRange(date, date.AddDays(1)).FirstOrDefault();
+                if (appt is not null) await Scheduler.SelectAppointmentAsync(appt);
+                return;
+            default:
+                return;
+        }
+        _preventKey = true;
+        _focusMonth = month;
+        // Clamp the day to the (possibly shorter) target month.
+        _focusDay = Math.Clamp(day, 1, DateTime.DaysInMonth(Months[month].Year, Months[month].Month));
+        _focusPending = true;
+    }
+
+    private void BuildWeekdayAbbr()
+    {
+        var names = Culture.DateTimeFormat.AbbreviatedDayNames;
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var rotated = new string[7];
+        for (int i = 0; i < 7; i++)
+        {
+            var raw = names[(firstDow + i) % 7];
+            rotated[i] = string.IsNullOrEmpty(raw) ? "" : char.ToUpper(raw[0], Culture) + raw[1..];
+        }
+        _weekdayAbbr = rotated;
+    }
+
+    // First column's date for a month: the week-start of the 1st (planner) or
+    // the 1st itself (timeline).
+    private DateTime ColStart(DateTime monthStart)
+    {
+        if (Timeline) return monthStart;
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var offset = ((int)monthStart.DayOfWeek - firstDow + 7) % 7;
+        return monthStart.AddDays(-offset);
+    }
+
+    private string TrackStyle(int lanes)
+        => $"min-height:{DayNumRow + Math.Max(1, lanes) * LaneHeight + 4}px;";
+
+    private bool IsToday(DateTime d) => d.Date == DateTime.Today;
+    private static bool IsWeekend(DateTime d) => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+
+    private string DayNumCss(DateTime d) => CssBuilder.Default("omni-scheduler-yr-daynum")
+        .AddClass("omni-today", IsToday(d))
+        .AddClass("omni-weekend", IsWeekend(d))
+        .Build();
+
+    // ─── Bar layout (greedy lane packing per month) ───────────────────────
+
+    private List<YearBar> LayoutMonth(DateTime monthStart, DateTime colStart)
+    {
+        var monthEnd = monthStart.AddMonths(1);
+        var appts = Scheduler.GetAppointmentsInRange(monthStart, monthEnd)
+            .OrderBy(a => a.Start).ThenByDescending(a => a.End).ToList();
+
+        var laneEnds = new List<int>();
+        var result = new List<YearBar>(appts.Count);
+
+        foreach (var a in appts)
+        {
+            var s = a.Start < monthStart ? monthStart : a.Start;
+            var eExclusive = a.End > monthEnd ? monthEnd : a.End;
+            var lastMoment = eExclusive <= s ? s : eExclusive.AddTicks(-1);
+
+            var startCol = (int)(s.Date - colStart.Date).TotalDays;
+            var endCol = (int)(lastMoment.Date - colStart.Date).TotalDays;
+            startCol = Math.Clamp(startCol, 0, TotalColumns - 1);
+            endCol = Math.Clamp(endCol, startCol, TotalColumns - 1);
+            var span = endCol - startCol + 1;
+
+            var lane = -1;
+            for (int i = 0; i < laneEnds.Count; i++)
+            {
+                if (startCol > laneEnds[i])
+                {
+                    laneEnds[i] = endCol;
+                    lane = i;
+                    break;
+                }
+            }
+            if (lane < 0)
+            {
+                laneEnds.Add(endCol);
+                lane = laneEnds.Count - 1;
+            }
+            result.Add(new YearBar(a, startCol, span, lane));
+        }
+        return result;
+    }
+
+    private IReadOnlyDictionary<string, object> BarAttributes(YearBar b)
+    {
+        var left = (double)b.StartCol / TotalColumns * 100;
+        var width = (double)b.SpanCols / TotalColumns * 100;
+        var style = string.Format(CultureInfo.InvariantCulture,
+            "left:calc({0:0.###}% + 1px);width:calc({1:0.###}% - 2px);top:{2}px;",
+            left, width, DayNumRow + b.Lane * LaneHeight);
+        return SchedulerAttributes.Merge("omni-scheduler-yr-bar", style, Scheduler.GetAppointmentAttributes(b.Appt));
+    }
+
+    private IReadOnlyDictionary<string, object> CellAttributes(DateTime date, bool focused)
+    {
+        var appts = Scheduler.GetAppointmentsInRange(date.Date, date.Date.AddDays(1));
+        var baseClass = "omni-scheduler-yr-cell";
+        if (IsWeekend(date)) baseClass += " omni-weekend";
+        if (focused) baseClass += " omni-focused";
+        return SchedulerAttributes.Merge(baseClass, string.Empty,
+            Scheduler.GetSlotAttributes(date, date.AddDays(1), View, appts));
+    }
+
+    // ─── Interactions ──────────────────────────────────────────────────────
+
+    private Task OnSlotClickAsync(int monthIndex, DateTime date)
+    {
+        // A mouse click also moves the keyboard cursor to the clicked day.
+        _focusMonth = monthIndex;
+        _focusDay = date.Day;
+        var appts = Scheduler.GetAppointmentsInRange(date.Date, date.Date.AddDays(1)).ToList();
+        return Scheduler.SelectSlotAsync(date.Date, date.Date.AddDays(1), View, appts);
+    }
+
+    private Task OnMonthClickAsync(DateTime monthStart)
+    {
+        var appts = Scheduler.GetAppointmentsInRange(monthStart, monthStart.AddMonths(1)).ToList();
+        return Scheduler.SelectMonthAsync(monthStart, appts, View);
+    }
+
+    private Task OnAppointmentClickAsync(OmniAppointmentData appt) => Scheduler.SelectAppointmentAsync(appt);
+
+    private async Task OnEventKeyDown(KeyboardEventArgs args, OmniAppointmentData appt)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+            await Scheduler.SelectAppointmentAsync(appt);
+    }
+
+    private Task OnMouseEnterAsync(OmniAppointmentData a, MouseEventArgs e)
+        => Scheduler.HasAppointmentMouseHandlers ? Scheduler.MouseEnterAppointmentAsync(a, e.ClientX, e.ClientY) : Task.CompletedTask;
+
+    private Task OnMouseLeaveAsync(OmniAppointmentData a, MouseEventArgs e)
+        => Scheduler.HasAppointmentMouseHandlers ? Scheduler.MouseLeaveAppointmentAsync(a, e.ClientX, e.ClientY) : Task.CompletedTask;
+
+    private void OnDragStart(OmniAppointmentData appt) => _dragged = appt;
+
+    private async Task OnDropAsync(DateTime date)
+    {
+        if (_dragged is null) return;
+        var appt = _dragged;
+        _dragged = null;
+        await Scheduler.MoveAppointmentAsync(appt, date.Date + appt.Start.TimeOfDay);
+    }
+
+    private string Capitalize(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0], Culture) + s[1..];
+
+    private readonly record struct YearBar(OmniAppointmentData Appt, int StartCol, int SpanCols, int Lane);
+}

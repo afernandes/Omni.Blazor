@@ -1,0 +1,43 @@
+@namespace Forneria.Demo.Pages.Pages.Showcase.Data.SchedulerDemo
+
+@* Small event log mirroring Radzen's <EventConsole>. Call Log(...) to push a line. *@
+
+<div class="fs-sched-console">
+    <div class="fs-sched-console-head">
+        <span>Event log</span>
+        @if (_lines.Count > 0)
+        {
+            <button type="button" class="fs-sched-console-clear" @onclick="Clear">limpar</button>
+        }
+    </div>
+    <div class="fs-sched-console-body">
+        @if (_lines.Count == 0)
+        {
+            <div class="fs-sched-console-empty">Interaja com a agenda para ver os eventos…</div>
+        }
+        @for (var i = 0; i < _lines.Count; i++)
+        {
+            var line = _lines[i];
+            <div class="fs-sched-console-line" @key="_seq - i">@line</div>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly List<string> _lines = new();
+    private int _seq;
+
+    public void Log(string message)
+    {
+        _seq++;
+        _lines.Insert(0, $"[{DateTime.Now:HH:mm:ss}] {message}");
+        if (_lines.Count > 40) _lines.RemoveAt(_lines.Count - 1);
+        StateHasChanged();
+    }
+
+    private void Clear()
+    {
+        _lines.Clear();
+        StateHasChanged();
+    }
+}

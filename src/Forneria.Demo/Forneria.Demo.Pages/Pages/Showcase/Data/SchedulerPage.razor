@@ -1,0 +1,451 @@
+@page "/showcase/scheduler"
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Forneria.Demo.Pages.Pages.Showcase.Data.SchedulerDemo
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Rendering
+@inject DialogService Dialog
+@inject TooltipService Tooltip
+
+<PageTitle>Scheduler — Showcase</PageTitle>
+
+<style>
+    .fs-sched-form { display: flex; flex-direction: column; gap: 14px; min-width: 320px; }
+    .fs-sched-field { display: flex; flex-direction: column; gap: 4px; }
+    .fs-sched-field > span { font-size: 12px; font-weight: 600; color: var(--omni-fg-muted); }
+    .fs-sched-actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+    .fs-sched-console { margin-top: 12px; border: 1px solid var(--omni-line); border-radius: var(--omni-radius-sm); overflow: hidden; background: var(--omni-bg-elev); }
+    .fs-sched-console-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--omni-fg-soft); background: var(--omni-bg-sunken); border-bottom: 1px solid var(--omni-line); }
+    .fs-sched-console-clear { border: 0; background: transparent; color: var(--omni-accent); font-size: 11px; cursor: pointer; }
+    .fs-sched-console-body { max-height: 160px; overflow: auto; padding: 6px 12px; font-family: var(--omni-font-mono); font-size: 12px; }
+    .fs-sched-console-line { padding: 1px 0; color: var(--omni-fg); }
+    .fs-sched-console-empty { color: var(--omni-fg-soft); font-style: italic; }
+    .fs-sched-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 12px; border: 1px solid var(--omni-line); border-radius: var(--omni-radius-sm); background: var(--omni-bg-elev); }
+</style>
+
+<ShowcasePage Title="Scheduler"
+              Subtitle="Agenda/calendário inspirado no RadzenScheduler. Esta página reproduz todos os exemplos oficiais do Radzen.">
+
+    <Overview>
+        <p>
+            O <code>OmniScheduler&lt;TItem&gt;</code> oferece views de Dia, Semana, Multi-dias,
+            Mês, Ano, Planner e Timeline declaradas como conteúdo filho. Appointments
+            são projetados de <code>Data</code> via <code>StartProperty</code>/<code>EndProperty</code>/<code>TextProperty</code>.
+            Slots, eventos, dias e meses disparam callbacks tipados; <code>SlotRender</code> e
+            <code>AppointmentRender</code> permitem estilizar slots/eventos; e há drag-and-drop
+            nativo e tooltips on-hover.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Agendamentos, reservas, escalas e calendários de eventos.</li>
+            <li>Planejamento por dia/semana/multi-dias, visão mensal e anual (planner/timeline).</li>
+            <li>Criar (clicar no slot), editar (clicar no evento) e mover (arrastar).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Seleção de data única em formulário → <code>OmniDatePicker</code>.</li>
+            <li>Apenas exibir um mês sem eventos → <code>OmniCalendar</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+
+        @* ─────────────────────────── 1. DAY / WEEK / MONTH ─────────────────────────── *@
+        <ShowcaseSection Title="DIA, SEMANA E MÊS"
+                         Description="Clique num slot vazio para adicionar, num evento para editar, e arraste para mover. SlotRender destaca horário comercial (Dia/Semana) e o dia de hoje (Mês). 'Birthday' é pintado de vermelho via AppointmentRender."
+                         Code="@(@"<OmniScheduler @ref=""_sched1"" TItem=""SchedulerAppointment"" Data=""@_main""
+               StartProperty=""Start"" EndProperty=""End"" TextProperty=""Text""
+               SelectedIndex=""2"" ShowHeader=""@_showHeader""
+               SlotRender=""OnSlotRender"" SlotSelect=""OnSlotSelect""
+               AppointmentSelect=""OnAppointmentSelect"" AppointmentRender=""OnAppointmentRender""
+               DaySelect=""OnDaySelect"" AppointmentMove=""OnMove"">
+    <OmniDayView />
+    <OmniWeekView />
+    <OmniMonthView />
+</OmniScheduler>")">
+            <div class="fs-sched-toolbar">
+                <OmniSwitch @bind-Value="_showHeader" Label="Show header" />
+            </div>
+            <OmniScheduler @ref="_sched1" TItem="SchedulerAppointment" Data="@_main"
+                           StartProperty="Start" EndProperty="End" TextProperty="Text"
+                           SelectedIndex="2" Height="720px" ShowHeader="_showHeader"
+                           SlotRender="OnSlotRender"
+                           SlotSelect="@(e => AddAppointmentAsync(e, _main, _sched1, _console1))"
+                           AppointmentSelect="@(e => EditAppointmentAsync(e, _main, _sched1, _console1))"
+                           AppointmentRender="OnAppointmentRender"
+                           DaySelect="@(e => OnDaySelect(e, _console1))"
+                           AppointmentMove="@(e => MoveAsync(e, _sched1))">
+                <OmniDayView />
+                <OmniWeekView />
+                <OmniMonthView />
+            </OmniScheduler>
+            <SchedulerEventConsole @ref="_console1" />
+        </ShowcaseSection>
+
+        @* ─────────────────────── 2. YEAR PLANNER & TIMELINE ─────────────────────── *@
+        <ShowcaseSection Title="YEAR PLANNER E TIMELINE"
+                         Description="Planeje o ano inteiro com Planner e Timeline. SlotRender colore cada dia conforme a quantidade de eventos. O mês inicial (fiscal) é configurável."
+                         Code="@(@"<OmniScheduler TItem=""SchedulerAppointment"" Data=""@_year"" SelectedIndex=""1""
+               StartProperty=""Start"" EndProperty=""End"" TextProperty=""Text""
+               SlotRender=""OnYearSlotRender"" MonthSelect=""OnMonthSelect"" ...>
+    <OmniMonthView />
+    <OmniYearPlannerView StartMonth=""@_startMonth"" />
+    <OmniYearTimelineView StartMonth=""@_startMonth"" />
+    <OmniYearView StartMonth=""@_startMonth"" />
+</OmniScheduler>")">
+            <div class="fs-sched-toolbar">
+                <span style="font-size:13px;font-weight:600;color:var(--omni-fg-muted)">Mês inicial:</span>
+                <OmniSelect TValue="Month" Items="_months" @bind-Value="_startMonth"
+                            TextSelector="@(m => MonthName(m))" Style="width:160px" />
+            </div>
+            <OmniScheduler @ref="_sched2" TItem="SchedulerAppointment" Data="@_year"
+                           StartProperty="Start" EndProperty="End" TextProperty="Text"
+                           SelectedIndex="1" Height="760px"
+                           SlotRender="OnYearSlotRender"
+                           SlotSelect="@(e => AddAppointmentAsync(e, _year, _sched2, _console2))"
+                           AppointmentSelect="@(e => EditAppointmentAsync(e, _year, _sched2, _console2))"
+                           AppointmentRender="OnAppointmentRender"
+                           MonthSelect="OnMonthSelect">
+                <OmniMonthView />
+                <OmniYearPlannerView StartMonth="_startMonth" />
+                <OmniYearTimelineView StartMonth="_startMonth" />
+                <OmniYearView StartMonth="_startMonth" />
+            </OmniScheduler>
+            <SchedulerEventConsole @ref="_console2" />
+        </ShowcaseSection>
+
+        @* ─────────────────────────────── 3. TOOLTIPS ─────────────────────────────── *@
+        <ShowcaseSection Title="TOOLTIPS AO PASSAR O MOUSE"
+                         Description="Use AppointmentMouseEnter/Leave + TooltipService para mostrar detalhes do evento ao passar o mouse."
+                         Code="@(@"<OmniScheduler TItem=""SchedulerAppointment"" Data=""@_tips"" SelectedIndex=""2""
+               AppointmentMouseEnter=""OnApptEnter"" AppointmentMouseLeave=""OnApptLeave"">
+    <OmniDayView /> <OmniWeekView /> <OmniMonthView /> <OmniYearView />
+</OmniScheduler>
+
+@code {
+    void OnApptEnter(SchedulerAppointmentMouseEventArgs<SchedulerAppointment> e)
+        => Tooltip.Open(e.ClientX, e.ClientY, TooltipContent(e.Data));
+    void OnApptLeave(SchedulerAppointmentMouseEventArgs<SchedulerAppointment> e)
+        => Tooltip.Close();
+}")">
+            <OmniScheduler TItem="SchedulerAppointment" Data="@_tips"
+                           StartProperty="Start" EndProperty="End" TextProperty="Text"
+                           SelectedIndex="2" Height="680px"
+                           AppointmentMouseEnter="OnApptEnter"
+                           AppointmentMouseLeave="OnApptLeave">
+                <OmniDayView />
+                <OmniWeekView />
+                <OmniMonthView />
+                <OmniYearView />
+            </OmniScheduler>
+        </ShowcaseSection>
+
+        @* ───────────────────────────── 4. MULTI-DAY ───────────────────────────── *@
+        <ShowcaseSection Title="MÚLTIPLOS DIAS LADO A LADO"
+                         Description="A OmniMultiDayView exibe N dias simultaneamente. Ajuste quantos dias mostrar e de quantos em quantos navegar."
+                         Code="@(@"<OmniMultiDayView NumberOfDays=""@numberOfDays"" AdvanceDays=""@advanceDays"" />")">
+            <div class="fs-sched-toolbar">
+                <span style="font-size:13px;font-weight:600;color:var(--omni-fg-muted)">Dias a exibir:</span>
+                <div style="width:180px"><OmniSlider @bind-Value="_numDays" Min="1" Max="14" Step="1" /></div>
+                <span style="font-size:13px;color:var(--omni-fg)">@((int)_numDays)</span>
+                <div style="width:24px"></div>
+                <span style="font-size:13px;font-weight:600;color:var(--omni-fg-muted)">Avançar dias:</span>
+                <div style="width:180px"><OmniSlider @bind-Value="_advanceDays" Min="1" Max="14" Step="1" /></div>
+                <span style="font-size:13px;color:var(--omni-fg)">@((int)_advanceDays)</span>
+            </div>
+            <OmniScheduler @ref="_sched4" TItem="SchedulerAppointment" Data="@_multi"
+                           StartProperty="Start" EndProperty="End" TextProperty="Text"
+                           SelectedIndex="2" Height="720px"
+                           SlotRender="OnSlotRender"
+                           SlotSelect="@(e => AddAppointmentAsync(e, _multi, _sched4, _console4))"
+                           AppointmentSelect="@(e => EditAppointmentAsync(e, _multi, _sched4, _console4))"
+                           AppointmentRender="OnAppointmentRender"
+                           DaySelect="@(e => OnDaySelect(e, _console4))"
+                           AppointmentMove="@(e => MoveAsync(e, _sched4))">
+                <OmniDayView />
+                <OmniWeekView />
+                <OmniMultiDayView NumberOfDays="@((int)_numDays)" AdvanceDays="@((int)_advanceDays)" />
+                <OmniMonthView />
+            </OmniScheduler>
+            <SchedulerEventConsole @ref="_console4" />
+        </ShowcaseSection>
+
+        @* ──────────────────────── 5. KEYBOARD NAVIGATION ──────────────────────── *@
+        <ShowcaseSection Title="NAVEGAÇÃO POR TECLADO"
+                         Description="Dê Tab para entrar em qualquer view e use as setas para mover o cursor (slot/dia/mês). Enter cria um evento no slot focado; Space seleciona/edita o evento ali. Os eventos também são focáveis por Tab (Enter/Space = editar).">
+            <table class="omni-grid-table" style="width:100%">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;padding:8px 12px;width:40%">Tecla</th>
+                        <th style="text-align:left;padding:8px 12px">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (key, action) in _shortcuts)
+                    {
+                        <tr @key="key">
+                            <td style="padding:6px 12px"><OmniKbd>@key</OmniKbd></td>
+                            <td style="padding:6px 12px">@action</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniScheduler&lt;TItem&gt;">
+            <ShowcaseApiRow Name="Data / StartProperty / EndProperty / TextProperty" Type="—" Default="null"
+                            Description="Fonte e projeção dos appointments." />
+            <ShowcaseApiRow Name="SelectedIndex" Type="int" Default="0" Description="Índice da view inicial." />
+            <ShowcaseApiRow Name="ShowHeader" Type="bool" Default="true" Description="Mostra/esconde a barra de navegação." />
+            <ShowcaseApiRow Name="Culture" Type="CultureInfo?" Default="CurrentCulture" Description="Formatação + 1º dia da semana." />
+            <ShowcaseApiRow Name="SlotRender" Type="Action<...>?" Default="null" Description="Estiliza slots (cor por contagem, destaque)." />
+            <ShowcaseApiRow Name="AppointmentRender" Type="Action<...>?" Default="null" Description="Estiliza eventos." />
+            <ShowcaseApiRow Name="SlotSelect / AppointmentSelect / DaySelect / MonthSelect / MoreSelect" Type="EventCallback<...>" Default="—" Description="Callbacks de interação." />
+            <ShowcaseApiRow Name="AppointmentMove" Type="EventCallback<...>" Default="—" Description="Habilita drag-and-drop." />
+            <ShowcaseApiRow Name="AppointmentMouseEnter / AppointmentMouseLeave" Type="EventCallback<...>" Default="—" Description="Hover (tooltips)." />
+            <ShowcaseApiRow Name="Reload()" Type="Task" Default="—" Description="Reprojeta Data e recarrega a view." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Views (filhos)">
+            <ShowcaseApiRow Name="OmniDayView / OmniWeekView" Type="—" Default="—" Description="Dia / 7 dias com slots (StartTime/EndTime/MinutesPerSlot/TimeFormat)." />
+            <ShowcaseApiRow Name="OmniMultiDayView" Type="—" Default="—" Description="N dias lado a lado (NumberOfDays, AdvanceDays)." />
+            <ShowcaseApiRow Name="OmniMonthView" Type="—" Default="—" Description="Grade do mês (MaxAppointmentsInSlot, MoreText)." />
+            <ShowcaseApiRow Name="OmniYearView" Type="—" Default="—" Description="12 mini-meses (StartMonth)." />
+            <ShowcaseApiRow Name="OmniYearPlannerView / OmniYearTimelineView" Type="—" Default="—" Description="Ano inteiro: meses × dias com barras (StartMonth)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private OmniScheduler<SchedulerAppointment>? _sched1;
+    private OmniScheduler<SchedulerAppointment>? _sched2;
+    private OmniScheduler<SchedulerAppointment>? _sched4;
+    private SchedulerEventConsole? _console1;
+    private SchedulerEventConsole? _console2;
+    private SchedulerEventConsole? _console4;
+
+    private bool _showHeader = true;
+    private Month _startMonth = Month.January;
+    private double _numDays = 2;
+    private double _advanceDays = 1;
+
+    private static readonly Month[] _months = Enum.GetValues<Month>();
+
+    private List<SchedulerAppointment> _main = new();
+    private List<SchedulerAppointment> _year = new();
+    private List<SchedulerAppointment> _tips = new();
+    private List<SchedulerAppointment> _multi = new();
+
+    private static string MonthName(Month m)
+        => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(
+            new DateTime(2000, (int)m + 1, 1).ToString("MMMM", CultureInfo.CurrentCulture));
+
+    protected override void OnInitialized()
+    {
+        _main = BaseAppointments();
+        _tips = BaseAppointments();
+        _multi = BaseAppointments();
+        _year = YearAppointments();
+    }
+
+    // Mirrors Radzen's SchedulerConfig sample data.
+    private static List<SchedulerAppointment> BaseAppointments()
+    {
+        var t = DateTime.Today;
+        return new()
+        {
+            new() { Start = t.AddDays(-2),  End = t.AddDays(-2),                    Text = "Birthday" },
+            new() { Start = t.AddDays(-11), End = t.AddDays(-10),                   Text = "Day off" },
+            new() { Start = t.AddDays(-10), End = t.AddDays(-8),                    Text = "Work from home" },
+            new() { Start = t.AddHours(10), End = t.AddHours(12),                   Text = "Online meeting" },
+            new() { Start = t.AddHours(10), End = t.AddHours(13),                   Text = "Skype call" },
+            new() { Start = t.AddHours(14), End = t.AddHours(14).AddMinutes(30),    Text = "Dentist appointment" },
+            new() { Start = t.AddHours(15), End = t.AddHours(16),                   Text = "Team standup" },
+            new() { Start = t.AddHours(16), End = t.AddHours(17),                   Text = "Code review" },
+            new() { Start = t.AddDays(1),   End = t.AddDays(12),                    Text = "Vacation" },
+        };
+    }
+
+    // Mirrors Radzen's SchedulerPlannerTimeline sample data (many overlapping clients).
+    private static List<SchedulerAppointment> YearAppointments()
+    {
+        var t = DateTime.Today;
+        var list = BaseAppointments();
+        void Add(int day, int hStart, int hEnd, string text)
+            => list.Add(new() { Start = t.AddDays(day).AddHours(hStart), End = t.AddDays(day).AddHours(hEnd), Text = text });
+
+        Add(21, 10, 11, "Client #1"); Add(21, 11, 12, "Client #2"); Add(21, 12, 13, "Client #3"); Add(21, 13, 14, "Client #4");
+        Add(17, 10, 11, "Client #1"); Add(17, 11, 12, "Client #2");
+        Add(18, 10, 11, "Client #1"); Add(18, 11, 12, "Client #2"); Add(18, 12, 13, "Client #3"); Add(18, 13, 14, "Client #4");
+        list.Add(new() { Start = t.AddDays(18).AddHours(14), End = t.AddDays(23).AddHours(15), Text = "Client #5" });
+        Add(6, 10, 11, "Client #1"); Add(6, 11, 12, "Client #2"); Add(6, 12, 13, "Client #3"); Add(6, 13, 14, "Client #4");
+        Add(7, 10, 11, "Client #1"); Add(7, 11, 12, "Client #2");
+        Add(8, 10, 11, "Client #1"); Add(8, 11, 12, "Client #2");
+        Add(9, 10, 11, "Client #1"); Add(9, 11, 12, "Client #2");
+        list.Add(new() { Start = t.AddDays(13).AddHours(10), End = t.AddDays(16).AddHours(11), Text = "Client #1" });
+        list.Add(new() { Start = t.AddDays(13).AddHours(11), End = t.AddDays(16).AddHours(12), Text = "Client #2" });
+        Add(13, 12, 13, "Client #3");
+        list.Add(new() { Start = t.AddDays(13).AddHours(13), End = t.AddDays(16).AddHours(14), Text = "Client #4" });
+        list.Add(new() { Start = t.AddDays(13).AddHours(14), End = t.AddDays(16).AddHours(15), Text = "Client #5" });
+        return list;
+    }
+
+    // ─── SlotRender (day/week working hours + month today highlight) ──────
+    private void OnSlotRender(SchedulerSlotRenderEventArgs args)
+    {
+        var view = args.View?.Text;
+        if (view == "Mês" && args.Start.Date == DateTime.Today)
+            args.Attributes["style"] = "background: rgba(255,220,40,.22);";
+
+        if ((view == "Semana" || view == "Dia" || view == "Multi-dias") && args.Start.Hour > 8 && args.Start.Hour < 19)
+            args.Attributes["style"] = "background: rgba(255,220,40,.18);";
+    }
+
+    // ─── SlotRender for the year planner/timeline (color by appointment count) ──
+    private void OnYearSlotRender(SchedulerSlotRenderEventArgs args)
+    {
+        var view = args.View?.Text;
+        if (view == "Mês" && args.Start.Date == DateTime.Today)
+        {
+            args.Attributes["style"] = "background: rgba(255,220,40,.22);";
+            return;
+        }
+
+        if ((view == "Planner" || view == "Timeline") && args.Start.Month == 12 && _startMonth != Month.January)
+        {
+            args.Attributes["style"] = "border-bottom: 3px double var(--omni-line-strong);";
+            return;
+        }
+
+        var count = args.Appointments.Count();
+        if (count > 4) args.Attributes["style"] = "background: #ffabab;";
+        else if (count > 2) args.Attributes["style"] = "background: #ffc988;";
+        else if (count > 0) args.Attributes["style"] = "background: #c3ffc3;";
+    }
+
+    private void OnAppointmentRender(SchedulerAppointmentRenderEventArgs<SchedulerAppointment> args)
+    {
+        if (args.Data?.Text == "Birthday")
+            args.Attributes["style"] = "background: #ef4444; color: #fff; border-left-color: #b91c1c;";
+    }
+
+    // ─── Selection → Add / Edit dialogs (per-section context) ────────────
+    private async Task AddAppointmentAsync(
+        SchedulerSlotSelectEventArgs args, List<SchedulerAppointment> list,
+        OmniScheduler<SchedulerAppointment>? scheduler, SchedulerEventConsole? console)
+    {
+        console?.Log($"SlotSelect: {args.Start:dd/MM HH:mm} → {args.End:HH:mm}");
+
+        var result = await Dialog.OpenAsync<AddAppointmentDialog>("Adicionar evento",
+            new Dictionary<string, object?> { ["Start"] = args.Start, ["End"] = args.End });
+
+        if (result is SchedulerAppointment data)
+        {
+            list.Add(data);
+            if (scheduler is not null) await scheduler.Reload();
+        }
+    }
+
+    private async Task EditAppointmentAsync(
+        SchedulerAppointmentSelectEventArgs<SchedulerAppointment> args, List<SchedulerAppointment> list,
+        OmniScheduler<SchedulerAppointment>? scheduler, SchedulerEventConsole? console)
+    {
+        console?.Log($"AppointmentSelect: {args.Data?.Text}");
+        if (args.Data is null) return;
+
+        var result = await Dialog.OpenAsync<EditAppointmentDialog>("Editar evento",
+            new Dictionary<string, object?> { ["Appointment"] = args.Data });
+
+        if (result is SchedulerAppointment edited)
+        {
+            args.Data.Start = edited.Start;
+            args.Data.End = edited.End;
+            args.Data.Text = edited.Text;
+            if (scheduler is not null) await scheduler.Reload();
+        }
+        else if (result is string s && s == "delete")
+        {
+            list.Remove(args.Data);
+            if (scheduler is not null) await scheduler.Reload();
+        }
+    }
+
+    private void OnDaySelect(SchedulerDaySelectEventArgs args, SchedulerEventConsole? console)
+        => console?.Log($"DaySelect: {args.Day:dd/MM/yyyy} ({args.Appointments.Count()} evento(s))");
+
+    private void OnMonthSelect(SchedulerMonthSelectEventArgs args)
+        => _console2?.Log($"MonthSelect: {args.MonthStart:MMM yyyy} ({args.Appointments.Count()} evento(s))");
+
+    private async Task MoveAsync(SchedulerAppointmentMoveEventArgs args, OmniScheduler<SchedulerAppointment>? scheduler)
+    {
+        if (args.Appointment.Data is not SchedulerAppointment a) return;
+        var duration = a.End - a.Start;
+        a.Start = args.SlotDate;
+        a.End = args.SlotDate + duration;
+        if (scheduler is not null) await scheduler.Reload();
+    }
+
+    // ─── Tooltips ────────────────────────────────────────────────────────
+    private void OnApptEnter(SchedulerAppointmentMouseEventArgs<SchedulerAppointment> args)
+    {
+        if (args.Data is null) return;
+        Tooltip.Open(args.ClientX, args.ClientY, TooltipContent(args.Data));
+    }
+
+    private void OnApptLeave(SchedulerAppointmentMouseEventArgs<SchedulerAppointment> args) => Tooltip.Close();
+
+    private RenderFragment TooltipContent(SchedulerAppointment a) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "style", "min-width:220px;padding:4px 2px");
+
+        builder.OpenElement(2, "div");
+        builder.AddAttribute(3, "style", "font-weight:700;font-size:14px;margin-bottom:8px");
+        builder.AddContent(4, a.Text);
+        builder.CloseElement();
+
+        AddRow(builder, 5, "Início", a.Start.ToString("HH:mm · dddd, dd MMM", CultureInfo.CurrentCulture));
+        AddRow(builder, 10, "Fim", a.End.ToString("HH:mm · dddd, dd MMM", CultureInfo.CurrentCulture));
+
+        builder.CloseElement();
+    };
+
+    private static void AddRow(RenderTreeBuilder builder, int seq, string label, string value)
+    {
+        builder.OpenElement(seq, "div");
+        builder.AddAttribute(seq + 1, "style", "display:flex;gap:8px;font-size:12px;padding:1px 0");
+        builder.OpenElement(seq + 2, "strong");
+        builder.AddAttribute(seq + 3, "style", "width:44px");
+        builder.AddContent(seq + 4, label);
+        builder.CloseElement();
+        builder.OpenElement(seq + 5, "span");
+        builder.AddContent(seq + 6, value);
+        builder.CloseElement();
+        builder.CloseElement();
+    }
+
+    // ─── Keyboard navigation ─────────────────────────────────────────────
+    private readonly (string Key, string Action)[] _shortcuts =
+    {
+        ("Tab", "Entra na view (cursor) e percorre os eventos."),
+        ("← / → (Dia/Semana)", "Move o cursor para o dia anterior / próximo (colunas)."),
+        ("↑ / ↓ (Dia/Semana)", "Move o cursor para o slot de horário anterior / próximo."),
+        ("PageUp / PageDown", "Move o cursor uma hora para trás / frente (Dia/Semana)."),
+        ("← / → (Mês)", "Dia anterior / próximo."),
+        ("↑ / ↓ (Mês)", "Mesmo dia na semana anterior / próxima."),
+        ("← / → (Planner/Timeline)", "Dia anterior / próximo dentro do mês."),
+        ("↑ / ↓ (Planner/Timeline)", "Mês anterior / próximo."),
+        ("Home / End", "Início / fim do dia (ou da semana, no Mês)."),
+        ("Enter", "Cria um evento no slot/dia focado."),
+        ("Space", "Seleciona/edita o evento do slot/dia focado."),
+        ("Enter / Space (evento)", "Edita o evento focado (via Tab)."),
+    };
+}

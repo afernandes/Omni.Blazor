@@ -1,0 +1,59 @@
+@namespace Omni.Blazor.Components
+@inherits OmniSchedulerViewBase
+@using System.Globalization
+
+@* N consecutive days side-by-side with time slots (mirrors RadzenMultiDayView). *@
+
+@if (IsSelectedView && Scheduler is not null)
+{
+    <SchedulerTimeView Scheduler="Scheduler" View="this"
+                       Days="_days"
+                       StartTime="StartTime" EndTime="EndTime"
+                       MinutesPerSlot="MinutesPerSlot" TimeFormat="@TimeFormat"
+                       HeaderFormat="@HeaderFormat" />
+}
+
+@code {
+    [Parameter] public override string Text { get; set; } = "Multi-dias";
+    [Parameter] public override string Icon { get; set; } = "columns";
+
+    /// <summary>How many days to render side-by-side. Default 2.</summary>
+    [Parameter] public int NumberOfDays { get; set; } = 2;
+
+    /// <summary>How many days the next/prev buttons advance. Default 1.</summary>
+    [Parameter] public int AdvanceDays { get; set; } = 1;
+
+    [Parameter] public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
+    [Parameter] public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(24);
+    [Parameter] public int MinutesPerSlot { get; set; } = 30;
+    [Parameter] public string TimeFormat { get; set; } = "HH:mm";
+
+    /// <summary>Format for the day-of-week header. Default <c>"ddd"</c>.</summary>
+    [Parameter] public string HeaderFormat { get; set; } = "ddd";
+
+    private IReadOnlyList<DateTime> _days = Array.Empty<DateTime>();
+
+    protected override void OnParametersSet()
+    {
+        var n = Math.Max(1, NumberOfDays);
+        var days = new DateTime[n];
+        for (int i = 0; i < n; i++) days[i] = CurrentDate.AddDays(i);
+        _days = days;
+    }
+
+    public override string Title
+    {
+        get
+        {
+            var end = CurrentDate.AddDays(Math.Max(1, NumberOfDays) - 1);
+            return NumberOfDays <= 1
+                ? CurrentDate.ToString("D", Culture)
+                : $"{CurrentDate.ToString("dd MMM", Culture)} – {end.ToString("dd MMM yyyy", Culture)}";
+        }
+    }
+
+    public override DateTime StartDate => CurrentDate;
+    public override DateTime EndDate => CurrentDate.AddDays(Math.Max(1, NumberOfDays));
+    public override DateTime Next() => CurrentDate.AddDays(Math.Max(1, AdvanceDays));
+    public override DateTime Prev() => CurrentDate.AddDays(-Math.Max(1, AdvanceDays));
+}

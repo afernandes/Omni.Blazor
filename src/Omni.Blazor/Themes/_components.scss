@@ -6452,3 +6452,518 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
     transition: none !important;
   }
 }
+
+// ============================================================================
+// OmniScheduler — calendar / agenda (Day / Week / Month views)
+// ============================================================================
+.omni-scheduler {
+  --omni-scheduler-slot-h: 44px;
+  --omni-scheduler-gutter-w: 64px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--omni-fg);
+  font-family: var(--omni-font-ui);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  overflow: hidden;
+}
+
+// ——— Navigation bar —————————————————————————————————————————————————————
+.omni-scheduler-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-scheduler-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.omni-scheduler-nav-arrows {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.omni-scheduler-nav-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--omni-fg-muted);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.omni-scheduler-nav-arrow:hover {
+  color: var(--omni-fg);
+  background: var(--omni-bg-sunken);
+  border-color: var(--omni-line-strong);
+}
+.omni-scheduler-nav-title {
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.omni-scheduler-nav-views {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+}
+.omni-scheduler-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--omni-fg-muted);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--omni-radius-sm) - 2px);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.omni-scheduler-view-tab:hover { color: var(--omni-fg); }
+.omni-scheduler-view-tab.omni-active {
+  color: var(--omni-fg);
+  background: var(--omni-bg-elev);
+  box-shadow: var(--omni-shadow-sm);
+}
+
+// ——— Body ————————————————————————————————————————————————————————————————
+.omni-scheduler-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.omni-scheduler-view { min-height: 100%; }
+
+// ——— Time view (Day / Week) ————————————————————————————————————————————————
+.omni-scheduler-timeview { display: flex; flex-direction: column; }
+.omni-scheduler-tv-head {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--omni-bg-elev);
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-scheduler-tv-corner {
+  flex: 0 0 var(--omni-scheduler-gutter-w);
+  width: var(--omni-scheduler-gutter-w);
+}
+.omni-scheduler-tv-dayhead {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-left: 1px solid var(--omni-line);
+  cursor: pointer;
+}
+.omni-scheduler-tv-dayhead:hover { background: var(--omni-bg-sunken); }
+.omni-scheduler-tv-dow {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--omni-fg-soft);
+}
+.omni-scheduler-tv-dom { font-size: 18px; font-weight: 600; line-height: 1; }
+.omni-scheduler-tv-dayhead.omni-today .omni-scheduler-tv-dom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--omni-accent-fg);
+  background: var(--omni-accent);
+  border-radius: 50%;
+}
+.omni-scheduler-tv-dayhead.omni-weekend .omni-scheduler-tv-dow { color: var(--omni-danger); }
+
+.omni-scheduler-tv-body { display: flex; }
+.omni-scheduler-tv-gutter {
+  flex: 0 0 var(--omni-scheduler-gutter-w);
+  width: var(--omni-scheduler-gutter-w);
+}
+.omni-scheduler-tv-slotlabel {
+  height: var(--omni-scheduler-slot-h);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0 8px 0 0;
+  font-size: 11px;
+  color: var(--omni-fg-soft);
+  transform: translateY(-7px);
+}
+.omni-scheduler-tv-col {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  border-left: 1px solid var(--omni-line);
+}
+.omni-scheduler-tv-slot {
+  height: var(--omni-scheduler-slot-h);
+  border-top: 1px solid var(--omni-line);
+  cursor: pointer;
+}
+.omni-scheduler-tv-slot.omni-minor { border-top-color: color-mix(in oklab, var(--omni-line) 50%, transparent); }
+.omni-scheduler-tv-slot:hover { background: var(--omni-accent-soft); }
+
+.omni-scheduler-event {
+  position: absolute;
+  z-index: 1;
+  overflow: hidden;
+  padding: 3px 7px;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--omni-fg);
+  background: var(--omni-accent-soft);
+  border-left: 3px solid var(--omni-accent);
+  border-radius: var(--omni-radius-sm);
+  box-shadow: var(--omni-shadow-sm);
+  cursor: pointer;
+  transition: filter .12s;
+}
+.omni-scheduler-event:hover { filter: brightness(0.97); z-index: 3; }
+.omni-scheduler-event[draggable="true"] { cursor: grab; }
+.omni-scheduler-event[draggable="true"]:active { cursor: grabbing; }
+.omni-scheduler-event-time { font-size: 11px; font-weight: 600; color: var(--omni-fg-muted); }
+.omni-scheduler-event-body { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+// ——— Month view ————————————————————————————————————————————————————————————
+.omni-scheduler-monthview { display: flex; flex-direction: column; min-height: 100%; }
+.omni-scheduler-mv-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--omni-bg-elev);
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-scheduler-mv-weekday {
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  text-align: right;
+  color: var(--omni-fg-soft);
+}
+.omni-scheduler-mv-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(96px, 1fr);
+}
+.omni-scheduler-mv-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px;
+  border-right: 1px solid var(--omni-line);
+  border-bottom: 1px solid var(--omni-line);
+  cursor: pointer;
+  transition: background .12s;
+}
+.omni-scheduler-mv-cell:nth-child(7n) { border-right: 0; }
+.omni-scheduler-mv-cell:hover { background: var(--omni-bg-sunken); }
+.omni-scheduler-mv-cell.omni-out { background: var(--omni-bg-sunken); }
+.omni-scheduler-mv-cell.omni-out .omni-scheduler-mv-daynum { color: var(--omni-fg-soft); opacity: .6; }
+.omni-scheduler-mv-daynum {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 50%;
+}
+.omni-scheduler-mv-cell.omni-today .omni-scheduler-mv-daynum {
+  color: var(--omni-accent-fg);
+  background: var(--omni-accent);
+}
+.omni-scheduler-mv-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.omni-scheduler-mv-event {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  background: var(--omni-accent-soft);
+  border-radius: var(--omni-radius-sm);
+  cursor: pointer;
+}
+.omni-scheduler-mv-event:hover { filter: brightness(0.97); }
+.omni-scheduler-mv-event[draggable="true"] { cursor: grab; }
+.omni-scheduler-mv-event-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  background: var(--omni-accent);
+  border-radius: 50%;
+}
+.omni-scheduler-mv-event-text { overflow: hidden; text-overflow: ellipsis; }
+.omni-scheduler-mv-more {
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--omni-fg-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--omni-radius-sm);
+  cursor: pointer;
+}
+.omni-scheduler-mv-more:hover { color: var(--omni-accent); background: var(--omni-bg-elev); }
+
+// ——— Year view (12 mini-months) ————————————————————————————————————————————
+.omni-scheduler-yearview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  padding: 14px;
+}
+.omni-scheduler-ym {
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  overflow: hidden;
+  background: var(--omni-bg-elev);
+}
+.omni-scheduler-ym-header {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--omni-fg);
+  background: var(--omni-bg-sunken);
+  border: 0;
+  border-bottom: 1px solid var(--omni-line);
+  cursor: pointer;
+}
+.omni-scheduler-ym-header:hover { color: var(--omni-accent); }
+.omni-scheduler-ym-weekdays,
+.omni-scheduler-ym-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.omni-scheduler-ym-weekdays {
+  padding: 4px 4px 0;
+}
+.omni-scheduler-ym-weekdays span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--omni-fg-soft);
+}
+.omni-scheduler-ym-grid { padding: 2px 4px 6px; gap: 1px; }
+.omni-scheduler-ym-day {
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 11px;
+  color: var(--omni-fg);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.omni-scheduler-ym-day:hover:not(:disabled) { background: var(--omni-bg-sunken); }
+.omni-scheduler-ym-day.omni-out { visibility: hidden; }
+.omni-scheduler-ym-day.omni-today { color: var(--omni-accent-fg); background: var(--omni-accent); }
+.omni-scheduler-ym-day.omni-has-events::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--omni-accent);
+}
+.omni-scheduler-ym-day.omni-today.omni-has-events::after { background: var(--omni-accent-fg); }
+
+// ——— Year grid (Planner / Timeline) ————————————————————————————————————————
+.omni-scheduler-yeargrid {
+  --omni-yr-label-w: 56px;
+  font-size: 11px;
+}
+.omni-scheduler-yr-head {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--omni-bg-elev);
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-scheduler-yr-corner {
+  flex: 0 0 var(--omni-yr-label-w);
+  width: var(--omni-yr-label-w);
+}
+.omni-scheduler-yr-colheads {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--omni-yr-cols, 31), 1fr);
+}
+.omni-scheduler-yr-colhead {
+  text-align: center;
+  padding: 4px 0;
+  font-size: 10px;
+  color: var(--omni-fg-soft);
+  border-left: 1px solid var(--omni-line);
+}
+.omni-scheduler-yr-row {
+  display: flex;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-scheduler-yr-monthlabel {
+  flex: 0 0 var(--omni-yr-label-w);
+  width: var(--omni-yr-label-w);
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--omni-fg);
+  background: var(--omni-bg-sunken);
+  border: 0;
+  border-right: 1px solid var(--omni-line);
+  cursor: pointer;
+}
+.omni-scheduler-yr-monthlabel:hover { color: var(--omni-accent); }
+.omni-scheduler-yr-track {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+.omni-scheduler-yr-cells {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--omni-yr-cols, 31), 1fr);
+}
+.omni-scheduler-yr-cell {
+  border-left: 1px solid var(--omni-line);
+  cursor: pointer;
+}
+.omni-scheduler-yr-cell:hover { background: var(--omni-accent-soft); }
+.omni-scheduler-yr-cell.omni-out { background: var(--omni-bg-sunken); cursor: default; }
+.omni-scheduler-yr-cell.omni-weekend { background: color-mix(in oklab, var(--omni-bg-sunken) 60%, transparent); }
+.omni-scheduler-yr-daynum {
+  display: block;
+  padding: 2px 0 0 2px;
+  font-size: 10px;
+  color: var(--omni-fg-soft);
+}
+.omni-scheduler-yr-daynum.omni-today {
+  color: var(--omni-accent-fg);
+  background: var(--omni-accent);
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  text-align: center;
+  line-height: 15px;
+  padding: 0;
+  margin: 1px;
+}
+.omni-scheduler-yr-bars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.omni-scheduler-yr-bar {
+  position: absolute;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--omni-fg);
+  background: var(--omni-accent-soft);
+  border-left: 3px solid var(--omni-accent);
+  border-radius: var(--omni-radius-sm);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.omni-scheduler-yr-bar:hover { filter: brightness(0.97); z-index: 3; }
+.omni-scheduler-yr-bar[draggable="true"] { cursor: grab; }
+.omni-scheduler-yr-bar-text { overflow: hidden; text-overflow: ellipsis; }
+
+// ——— Planner variant — compact, week-aligned, fits the width ———
+.omni-scheduler-planner .omni-scheduler-yr-colhead { font-size: 9px; text-transform: uppercase; }
+
+// ——— Timeline variant — wide, horizontally scrollable, taller pill bars ———
+.omni-scheduler-timeline.omni-scheduler-yeargrid {
+  min-width: calc(var(--omni-yr-label-w) + 31 * 40px);
+}
+.omni-scheduler-timeline .omni-scheduler-yr-monthlabel,
+.omni-scheduler-timeline .omni-scheduler-yr-corner {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.omni-scheduler-timeline .omni-scheduler-yr-bar {
+  height: 20px;
+  padding: 0 8px;
+  color: var(--omni-accent-fg);
+  background: var(--omni-accent);
+  border-left: 0;
+  border-radius: 999px;
+}
+
+// ——— Keyboard navigation — roving-cursor focus highlight ————————————————————
+// The highlight only shows while the view actually holds focus (the focused
+// slot in time views; the grid container in month/year views). When focus
+// leaves — clicking outside, tabbing away — the highlight disappears instead
+// of staying "stuck" on the last keyboard-navigated cell.
+.omni-scheduler-tv-slot.omni-focused:focus,
+.omni-scheduler-mv-grid:focus .omni-scheduler-mv-cell.omni-focused,
+.omni-scheduler-yeargrid:focus .omni-scheduler-yr-cell.omni-focused {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: -2px;
+  background: var(--omni-accent-soft);
+}
+// The month/year grids drive focus through the highlighted cell, so the
+// container itself shouldn't show its own focus ring.
+.omni-scheduler-mv-grid:focus,
+.omni-scheduler-mv-grid:focus-visible,
+.omni-scheduler-yeargrid:focus,
+.omni-scheduler-yeargrid:focus-visible {
+  outline: none;
+}

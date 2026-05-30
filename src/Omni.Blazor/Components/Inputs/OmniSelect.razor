@@ -18,7 +18,10 @@
     {
         foreach (var item in Items)
         {
-            var v = FormatValue(ValueSelector is not null ? ValueSelector(item) : default);
+            // Without a ValueSelector each item *is* its own value (identity).
+            // Using `default` here made every option share the same value, so
+            // any selection resolved back to default(TValue).
+            var v = FormatValue(ValueSelector is not null ? ValueSelector(item) : item);
             var t = TextSelector is not null ? TextSelector(item) : item?.ToString() ?? "";
             <option value="@v">@t</option>
         }
@@ -48,8 +51,12 @@
         {
             var target = typeof(TValue);
             target = Nullable.GetUnderlyingType(target) ?? target;
-            var converted = (TValue?)Convert.ChangeType(raw, target, System.Globalization.CultureInfo.InvariantCulture);
-            return SetValueAsync(converted);
+            // Convert.ChangeType can't parse an enum's name back to the enum —
+            // it throws, so enum-valued selects need Enum.Parse explicitly.
+            object converted = target.IsEnum
+                ? Enum.Parse(target, raw)
+                : Convert.ChangeType(raw, target, System.Globalization.CultureInfo.InvariantCulture);
+            return SetValueAsync((TValue?)converted);
         }
         catch
         {

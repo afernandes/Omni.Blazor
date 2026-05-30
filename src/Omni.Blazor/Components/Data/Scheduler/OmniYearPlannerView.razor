@@ -1,0 +1,14 @@
+@namespace Omni.Blazor.Components
+@inherits OmniYearViewBase
+
+@* Year planner: 12 month rows × day columns with appointment bars (mirrors RadzenYearPlannerView). *@
+
+@if (IsSelectedView && Scheduler is not null)
+{
+    <SchedulerYearGrid Scheduler="Scheduler" View="this" Months="MonthStarts()" Timeline="false" />
+}
+
+@code {
+    [Parameter] public override string Text { get; set; } = "Planner";
+    [Parameter] public override string Icon { get; set; } = "grid";
+}

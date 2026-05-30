@@ -1,0 +1,66 @@
+@namespace Omni.Blazor.Components
+@inherits OmniSchedulerViewBase
+@using System.Globalization
+
+@* Seven-day week view with time slots. Add inside an <OmniScheduler>. *@
+
+@if (IsSelectedView && Scheduler is not null)
+{
+    <SchedulerTimeView Scheduler="Scheduler" View="this"
+                       Days="_days"
+                       StartTime="StartTime" EndTime="EndTime"
+                       MinutesPerSlot="MinutesPerSlot" TimeFormat="@TimeFormat"
+                       HeaderFormat="@HeaderFormat" />
+}
+
+@code {
+    [Parameter] public override string Text { get; set; } = "Semana";
+    [Parameter] public override string Icon { get; set; } = "calendar";
+
+    /// <summary>First time slot of the day. Default 08:00.</summary>
+    [Parameter] public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
+
+    /// <summary>Last time slot of the day (exclusive). Default 24:00.</summary>
+    [Parameter] public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>Minutes per slot row. Default 30.</summary>
+    [Parameter] public int MinutesPerSlot { get; set; } = 30;
+
+    /// <summary>Time format for slot labels. Default <c>"HH:mm"</c>.</summary>
+    [Parameter] public string TimeFormat { get; set; } = "HH:mm";
+
+    /// <summary>Format for the day-of-week header. Default <c>"ddd"</c>.</summary>
+    [Parameter] public string HeaderFormat { get; set; } = "ddd";
+
+    private IReadOnlyList<DateTime> _days = Array.Empty<DateTime>();
+
+    protected override void OnParametersSet()
+    {
+        var start = WeekStart();
+        var days = new DateTime[7];
+        for (int i = 0; i < 7; i++) days[i] = start.AddDays(i);
+        _days = days;
+    }
+
+    private DateTime WeekStart()
+    {
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var offset = ((int)CurrentDate.DayOfWeek - firstDow + 7) % 7;
+        return CurrentDate.AddDays(-offset);
+    }
+
+    public override string Title
+    {
+        get
+        {
+            var start = WeekStart();
+            var end = start.AddDays(6);
+            return $"{start.ToString("dd MMM", Culture)} – {end.ToString("dd MMM yyyy", Culture)}";
+        }
+    }
+
+    public override DateTime StartDate => WeekStart();
+    public override DateTime EndDate => WeekStart().AddDays(7);
+    public override DateTime Next() => CurrentDate.AddDays(7);
+    public override DateTime Prev() => CurrentDate.AddDays(-7);
+}

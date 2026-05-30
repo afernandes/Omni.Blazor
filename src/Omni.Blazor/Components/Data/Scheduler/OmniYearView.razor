@@ -1,0 +1,92 @@
+@namespace Omni.Blazor.Components
+@inherits OmniYearViewBase
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Twelve mini-month calendars (mirrors RadzenYearView). Days with appointments
+   are marked; clicking a day fires DaySelect and a month header fires MonthSelect. *@
+
+@if (IsSelectedView && Scheduler is not null)
+{
+    <div class="omni-scheduler-view omni-scheduler-yearview">
+        @foreach (var month in MonthStarts())
+        {
+            var m = month;
+            <div class="omni-scheduler-ym">
+                <button type="button" class="omni-scheduler-ym-header"
+                        @onclick="@(() => OnMonthClickAsync(m))">
+                    @Capitalize(m.ToString("MMMM", Culture))
+                </button>
+                <div class="omni-scheduler-ym-weekdays">
+                    @foreach (var wd in _weekdayInitials)
+                    {
+                        <span>@wd</span>
+                    }
+                </div>
+                <div class="omni-scheduler-ym-grid">
+                    @foreach (var day in MonthDays(m))
+                    {
+                        var d = day;
+                        var inMonth = d.Month == m.Month;
+                        var has = inMonth && Scheduler.GetAppointmentsInRange(d.Date, d.Date.AddDays(1)).Any();
+                        <button type="button" class="@DayCss(d, m, has)"
+                                disabled="@(!inMonth)"
+                                @onclick="@(() => OnDayClickAsync(d))">@d.Day</button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public override string Text { get; set; } = "Ano";
+    [Parameter] public override string Icon { get; set; } = "calendar";
+
+    private string[] _weekdayInitials = Array.Empty<string>();
+
+    protected override void OnParametersSet() => BuildWeekdayInitials();
+
+    private void BuildWeekdayInitials()
+    {
+        var names = Culture.DateTimeFormat.ShortestDayNames;
+        if (names is null || names.Length != 7) names = new[] { "D", "S", "T", "Q", "Q", "S", "S" };
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var rotated = new string[7];
+        for (int i = 0; i < 7; i++)
+        {
+            var raw = names[(firstDow + i) % 7];
+            rotated[i] = string.IsNullOrEmpty(raw) ? "" : char.ToUpper(raw[0], Culture).ToString();
+        }
+        _weekdayInitials = rotated;
+    }
+
+    private IEnumerable<DateTime> MonthDays(DateTime monthStart)
+    {
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var offset = ((int)monthStart.DayOfWeek - firstDow + 7) % 7;
+        var start = monthStart.AddDays(-offset);
+        for (int i = 0; i < 42; i++) yield return start.AddDays(i);
+    }
+
+    private string DayCss(DateTime d, DateTime monthStart, bool hasEvents) => CssBuilder.Default("omni-scheduler-ym-day")
+        .AddClass("omni-out", d.Month != monthStart.Month)
+        .AddClass("omni-today", d.Date == DateTime.Today)
+        .AddClass("omni-has-events", hasEvents)
+        .Build();
+
+    private Task OnDayClickAsync(DateTime d)
+    {
+        var appts = Scheduler!.GetAppointmentsInRange(d.Date, d.Date.AddDays(1)).ToList();
+        return Scheduler.SelectDayAsync(d.Date, appts, this);
+    }
+
+    private Task OnMonthClickAsync(DateTime monthStart)
+    {
+        var appts = Scheduler!.GetAppointmentsInRange(monthStart, monthStart.AddMonths(1)).ToList();
+        return Scheduler.SelectMonthAsync(monthStart, appts, this);
+    }
+
+    private string Capitalize(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0], Culture) + s[1..];
+}
