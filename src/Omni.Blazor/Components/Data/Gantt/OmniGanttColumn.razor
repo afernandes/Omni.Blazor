@@ -20,11 +20,25 @@
     /// <summary>CSS width of the column (e.g. <c>"200px"</c>). Default <c>"140px"</c>.</summary>
     [Parameter] public string Width { get; set; } = "140px";
 
+    /// <summary>Whether this column can be resized when the gantt has <c>AllowColumnResize</c>. Default true.</summary>
+    [Parameter] public bool Resizable { get; set; } = true;
+
+    /// <summary>Minimum width (e.g. <c>"60px"</c>) the user can drag this column down to. Default 60px.</summary>
+    [Parameter] public string? MinWidth { get; set; }
+
     /// <summary>Optional composite format string (e.g. <c>"{0:d}"</c>, <c>"{0:P0}"</c>).</summary>
     [Parameter] public string? FormatString { get; set; }
 
     /// <summary>Optional custom cell template (overrides <see cref="Property"/>).</summary>
     [Parameter] public RenderFragment<TItem>? Template { get; set; }
+
+    /// <summary>Width set at runtime by a column resize (overrides <see cref="Width"/> when set).</summary>
+    internal string? WidthInternal { get; set; }
+
+    /// <summary>The effective width — the resized width if any, else the declared <see cref="Width"/>.</summary>
+    internal string EffectiveWidth => WidthInternal ?? Width;
+
+    internal void SetWidth(string width) => WidthInternal = width;
 
     protected override void OnInitialized() => Parent?.AddColumn(this);
 

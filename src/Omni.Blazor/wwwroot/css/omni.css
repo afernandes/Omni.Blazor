@@ -10250,6 +10250,7 @@ button.omni-upload-file-remove:hover {
 }
 
 .omni-gantt-left-hcell {
+  position: relative;
   flex-shrink: 0;
   padding: 0 10px;
   display: flex;
@@ -10260,6 +10261,47 @@ button.omni-upload-file-remove:hover {
   letter-spacing: 0.03em;
   color: var(--omni-fg-soft);
   border-right: 1px solid var(--omni-line);
+}
+
+.omni-gantt-hcell-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omni-gantt-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 1;
+}
+
+.omni-gantt-resizer::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  right: 3px;
+  width: 1px;
+  height: 50%;
+  background: var(--omni-line-strong);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.omni-gantt-left-hcell:hover .omni-gantt-resizer::after,
+.omni-gantt-resizer:hover::after {
+  opacity: 1;
+}
+
+.omni-gantt-resizer:hover::after {
+  background: var(--omni-accent);
 }
 
 .omni-gantt-left-row {

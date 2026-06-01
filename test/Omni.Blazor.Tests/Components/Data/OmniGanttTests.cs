@@ -212,4 +212,92 @@ public class OmniGanttTests : TestContextBase
             EventCallback.Factory.Create<GanttTaskMovedEventArgs<GTask>>(this, _ => { })));
         Assert.Equal("true", cut.Find(".omni-gantt-bar").GetAttribute("draggable"));
     }
+
+    // ─── Column resize ────────────────────────────────────────────────────
+
+    private static RenderFragment TwoColumns() => builder =>
+    {
+        builder.OpenComponent<OmniGanttColumn<GTask>>(0);
+        builder.AddAttribute(1, nameof(OmniGanttColumn<GTask>.Title), "Tarefa");
+        builder.AddAttribute(2, nameof(OmniGanttColumn<GTask>.Property), (Func<GTask, object?>)(t => t.Name));
+        builder.AddAttribute(3, nameof(OmniGanttColumn<GTask>.Width), "200px");
+        builder.CloseComponent();
+
+        builder.OpenComponent<OmniGanttColumn<GTask>>(4);
+        builder.AddAttribute(5, nameof(OmniGanttColumn<GTask>.Title), "Início");
+        builder.AddAttribute(6, nameof(OmniGanttColumn<GTask>.Property), (Func<GTask, object?>)(t => t.Start));
+        builder.AddAttribute(7, nameof(OmniGanttColumn<GTask>.Width), "90px");
+        builder.AddAttribute(8, nameof(OmniGanttColumn<GTask>.Resizable), false);
+        builder.CloseComponent();
+    };
+
+    private IRenderedComponent<OmniGantt<GTask>> RenderGanttWith(
+        RenderFragment cols,
+        Action<ComponentParameterCollectionBuilder<OmniGantt<GTask>>>? extra = null)
+        => RenderComponent<OmniGantt<GTask>>(p =>
+        {
+            p.Add(g => g.Data, Sample());
+            p.Add(g => g.IdProperty, "Id");
+            p.Add(g => g.ParentIdProperty, "ParentId");
+            p.Add(g => g.TextProperty, "Name");
+            p.Add(g => g.StartProperty, "Start");
+            p.Add(g => g.EndProperty, "End");
+            p.Add(g => g.ProgressProperty, "Progress");
+            p.Add(g => g.ChildContent, cols);
+            extra?.Invoke(p);
+        });
+
+    [Fact]
+    public void Renders_resize_handle_per_column_by_default()
+    {
+        var cut = RenderGantt();
+        // AllowColumnResize defaults to true; the single sample column gets a handle.
+        Assert.Single(cut.FindAll(".omni-gantt-resizer"));
+        Assert.Contains("omni-gantt-left-resizable", cut.Find(".omni-gantt-left").ClassName);
+    }
+
+    [Fact]
+    public void No_handles_when_resize_disabled()
+    {
+        var cut = RenderGantt(p => p.Add(g => g.AllowColumnResize, false));
+        Assert.Empty(cut.FindAll(".omni-gantt-resizer"));
+        Assert.DoesNotContain("omni-gantt-left-resizable", cut.Find(".omni-gantt-left").ClassName);
+    }
+
+    [Fact]
+    public void Column_with_Resizable_false_has_no_handle()
+    {
+        var cut = RenderGanttWith(TwoColumns());
+        // Two columns, second is Resizable=false → only one handle.
+        Assert.Single(cut.FindAll(".omni-gantt-resizer"));
+    }
+
+    [Fact]
+    public void Left_pane_width_is_sum_of_column_widths()
+    {
+        var cut = RenderGanttWith(TwoColumns());
+        // 200px + 90px = 290px — pane hugs its columns (no overflow into timeline).
+        var style = (cut.Find(".omni-gantt-left").GetAttribute("style") ?? "").Replace(" ", "");
+        Assert.Contains("width:290px", style);
+        Assert.Contains("--omni-gantt-col-0:200px", style);
+        Assert.Contains("--omni-gantt-col-1:90px", style);
+    }
+
+    [Fact]
+    public async Task OnGanttColumnResized_updates_var_and_fires_event()
+    {
+        GanttColumnResizedEventArgs? captured = null;
+        var cut = RenderGanttWith(TwoColumns(), p => p
+            .Add(g => g.ColumnResized,
+                EventCallback.Factory.Create<GanttColumnResizedEventArgs>(this, e => captured = e)));
+
+        await cut.InvokeAsync(() => cut.Instance.OnGanttColumnResized(0, 260));
+
+        Assert.NotNull(captured);
+        Assert.Equal(260, captured!.Width);
+        Assert.Equal("Tarefa", captured.Title);
+        var style = (cut.Find(".omni-gantt-left").GetAttribute("style") ?? "").Replace(" ", "");
+        Assert.Contains("--omni-gantt-col-0:260px", style);
+        Assert.Contains("width:350px", style); // 260 + 90
+    }
 }

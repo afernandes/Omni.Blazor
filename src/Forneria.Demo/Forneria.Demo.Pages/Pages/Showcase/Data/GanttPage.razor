@@ -46,7 +46,7 @@
     <ChildContent>
 
         <ShowcaseSection Title="BÁSICO — ÁRVORE + TIMELINE + DEPENDÊNCIAS"
-                         Description="Hierarquia, progresso, colunas, dependências e zoom. Clique nos chevrons para expandir/recolher."
+                         Description="Hierarquia, progresso, colunas, dependências e zoom. Clique nos chevrons para expandir/recolher. Arraste a borda direita dos cabeçalhos (Tarefa/Início/Fim/%) para redimensionar as colunas — o painel acompanha a soma das larguras (AllowColumnResize, ligado por padrão)."
                          Code="@(@"<OmniGantt TItem=""GanttTask"" Data=""@_tasks"" Dependencies=""@_deps""
            IdProperty=""Id"" ParentIdProperty=""ParentId"" TextProperty=""Name""
            StartProperty=""Start"" EndProperty=""End"" ProgressProperty=""Progress"">
@@ -172,7 +172,9 @@
             <ShowcaseApiRow Name="Markers" Type="IEnumerable<GanttMarker>?" Default="null" Description="Linhas verticais (deadline/release)." />
             <ShowcaseApiRow Name="TaskRender" Type="Action<...>?" Default="null" Description="Estiliza cada barra." />
             <ShowcaseApiRow Name="TaskTemplate" Type="RenderFragment<TItem>?" Default="null" Description="Conteúdo customizado da barra." />
-            <ShowcaseApiRow Name="LeftPaneWidth / RowHeightPx" Type="—" Default="360px / 34" Description="Layout." />
+            <ShowcaseApiRow Name="LeftPaneWidth / RowHeightPx" Type="—" Default="360px / 34" Description="Largura do painel é a soma das colunas; LeftPaneWidth é fallback sem colunas." />
+            <ShowcaseApiRow Name="AllowColumnResize / Column.Resizable / Column.MinWidth" Type="bool / bool / string?" Default="true / true / 60px" Description="Redimensiona colunas do painel esquerdo arrastando o cabeçalho." />
+            <ShowcaseApiRow Name="ColumnResized" Type="EventCallback<GanttColumnResizedEventArgs>" Default="—" Description="Dispara ao soltar o resize de uma coluna." />
             <ShowcaseApiRow Name="TaskClick / RowClick" Type="EventCallback<TItem>" Default="—" Description="Cliques." />
             <ShowcaseApiRow Name="TaskMouseEnter / TaskMouseLeave" Type="EventCallback<...>" Default="—" Description="Hover (tooltips)." />
             <ShowcaseApiRow Name="TaskMove / TaskResize" Type="EventCallback<...>" Default="—" Description="Habilita drag / resize." />

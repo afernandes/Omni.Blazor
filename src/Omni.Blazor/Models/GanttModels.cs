@@ -13,6 +13,13 @@ public enum GanttZoomLevel
     Year,
 }
 
+/// <summary>
+/// Args for <c>OmniGantt.ColumnResized</c> — fired after the user finishes
+/// dragging a left-pane column's resize handle. <c>Title</c> identifies the
+/// column; <c>Width</c> is the new width in pixels.
+/// </summary>
+public sealed record GanttColumnResizedEventArgs(string? Title, double Width);
+
 /// <summary>Type of a Gantt dependency link.</summary>
 public enum GanttDependencyType
 {

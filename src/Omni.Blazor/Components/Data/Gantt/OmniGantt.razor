@@ -2,6 +2,8 @@
 @typeparam TItem
 @attribute [CascadingTypeParameter(nameof(TItem))]
 @inherits OmniComponent
+@implements IDisposable
+@inject IJSRuntime JS
 @using System.Globalization
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
@@ -42,11 +44,21 @@
     <div class="omni-gantt-scroll">
         <div class="omni-gantt-panes">
             @* ─── Left pane: hierarchical task tree ─── *@
-            <div class="omni-gantt-left" style="@($"flex:0 0 {LeftPaneWidth};width:{LeftPaneWidth};")">
+            <div class="@LeftPaneCss" id="@($"{Id}-gleft")" style="@LeftPaneStyle">
                 <div class="omni-gantt-left-head" style="@HeadHeightStyle">
-                    @foreach (var col in _columns)
+                    @for (int hc = 0; hc < _columns.Count; hc++)
                     {
-                        <div class="omni-gantt-left-hcell" style="@($"width:{col.Width};")">@col.Title</div>
+                        var col = _columns[hc];
+                        var hi = hc;
+                        <div class="omni-gantt-left-hcell" id="@($"{Id}-ghcell-{hi}")" style="@($"width:var(--omni-gantt-col-{hi});")">
+                            <span class="omni-gantt-hcell-text">@col.Title</span>
+                            @if (AllowColumnResize && col.Resizable)
+                            {
+                                <span class="omni-gantt-resizer" title="Redimensionar coluna"
+                                      @onmousedown:preventDefault="true" @onmousedown:stopPropagation="true"
+                                      @onmousedown="@(e => StartColumnResizeAsync(e, hi))"></span>
+                            }
+                        </div>
                     }
                 </div>
                 @for (int i = 0; i < _rows.Count; i++)
@@ -58,7 +70,7 @@
                         @for (int c = 0; c < _columns.Count; c++)
                         {
                             var col = _columns[c];
-                            <div class="omni-gantt-left-cell" style="@($"width:{col.Width};")">
+                            <div class="omni-gantt-left-cell" style="@($"width:var(--omni-gantt-col-{c});")">
                                 @if (c == 0)
                                 {
                                     <span class="omni-gantt-indent" style="@($"width:{row.Level * 16}px;")"></span>
@@ -253,8 +265,19 @@
     [Parameter] public GanttZoomLevel ZoomLevel { get; set; } = GanttZoomLevel.Week;
     [Parameter] public DateTime? ViewStart { get; set; }
     [Parameter] public DateTime? ViewEnd { get; set; }
+    /// <summary>
+    /// Fallback width for the left task pane when no columns are declared. When
+    /// columns exist the pane auto-sizes to the sum of their (effective) widths,
+    /// so a column never overflows into the timeline.
+    /// </summary>
     [Parameter] public string LeftPaneWidth { get; set; } = "360px";
     [Parameter] public int RowHeightPx { get; set; } = 34;
+
+    /// <summary>Lets the user resize left-pane columns by dragging the right edge of a header cell. Default true.</summary>
+    [Parameter] public bool AllowColumnResize { get; set; } = true;
+
+    /// <summary>Fired after a left-pane column is resized (drag of the header handle finished).</summary>
+    [Parameter] public EventCallback<GanttColumnResizedEventArgs> ColumnResized { get; set; }
     [Parameter] public bool ShowNavigation { get; set; } = true;
     [Parameter] public bool ShowTodayLine { get; set; } = true;
     [Parameter] public bool ShowWeekends { get; set; } = true;
@@ -314,6 +337,77 @@
     internal void RemoveColumn(OmniGanttColumn<TItem> column)
     {
         _columns.Remove(column); StateHasChanged();
+    }
+
+    // ─── Left-pane width + column resize ──────────────────────────────────
+    // The pane width is the SUM of the columns' effective widths (not a fixed
+    // LeftPaneWidth) so a column can never overflow into the timeline. Each
+    // column's width is exposed as a CSS custom property on the pane container
+    // (--omni-gantt-col-{i}); header AND body cells read it via var(). A live
+    // resize then mutates ONE property on the container and every cell follows.
+    private string LeftPaneCss => CssBuilder.Default("omni-gantt-left")
+        .AddClass("omni-gantt-left-resizable", AllowColumnResize)
+        .Build();
+
+    private static int? ParsePx(string? w)
+    {
+        if (string.IsNullOrWhiteSpace(w)) return null;
+        var s = w.Trim();
+        if (s.EndsWith("px", StringComparison.OrdinalIgnoreCase)) s = s[..^2];
+        return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v)
+            ? (int)Math.Round(v) : null;
+    }
+
+    private int ColPx(OmniGanttColumn<TItem> c) => ParsePx(c.EffectiveWidth) ?? 140;
+    private int ColMinPx(OmniGanttColumn<TItem> c) => ParsePx(c.MinWidth) ?? 60;
+
+    private int LeftPanePx =>
+        _columns.Count == 0 ? (ParsePx(LeftPaneWidth) ?? 360) : _columns.Sum(ColPx);
+
+    private string LeftPaneStyle
+    {
+        get
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append(CultureInfo.InvariantCulture, $"flex:0 0 {LeftPanePx}px;width:{LeftPanePx}px;");
+            for (int i = 0; i < _columns.Count; i++)
+                sb.Append(CultureInfo.InvariantCulture, $"--omni-gantt-col-{i}:{ColPx(_columns[i])}px;");
+            return sb.ToString();
+        }
+    }
+
+    private DotNetObjectReference<OmniGantt<TItem>>? _selfRef;
+
+    private async Task StartColumnResizeAsync(MouseEventArgs e, int index)
+    {
+        if (index < 0 || index >= _columns.Count) return;
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.ganttStartColumnResize",
+                $"{Id}-gleft", $"{Id}-ghcell-{index}", $"--omni-gantt-col-{index}",
+                _selfRef, index, e.ClientX, ColMinPx(_columns[index]));
+        }
+        catch { /* SSR / JS not ready */ }
+    }
+
+    /// <summary>Invoked from JS when a left-pane column resize drag finishes.</summary>
+    [JSInvokable]
+    public Task OnGanttColumnResized(int index, double width)
+    {
+        if (index < 0 || index >= _columns.Count) return Task.CompletedTask;
+        var col = _columns[index];
+        col.SetWidth($"{Math.Round(width)}px");
+        StateHasChanged();
+        return ColumnResized.HasDelegate
+            ? ColumnResized.InvokeAsync(new GanttColumnResizedEventArgs(col.Title, width))
+            : Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _selfRef?.Dispose();
+        _selfRef = null;
     }
 
     protected override void OnParametersSet() => Rebuild();

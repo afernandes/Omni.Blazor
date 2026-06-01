@@ -2286,4 +2286,41 @@
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   };
+
+  // ─── Gantt left-pane column resize ────────────────────────────────────
+  // The pane (paneId) carries a CSS custom property per column (varName);
+  // header AND body cells read it via var(), so updating the single property
+  // resizes the whole column live. We also grow/shrink the pane's own width so
+  // it keeps hugging its columns during the drag (no overflow into the
+  // timeline). On mouseup the final width is reported to C#.
+  ns.ganttStartColumnResize = function (paneId, headCellId, varName, dotnetRef, index, startClientX, minWidth) {
+    var pane = document.getElementById(paneId);
+    var cell = document.getElementById(headCellId);
+    if (!pane || !cell) return;
+    var startColWidth = cell.getBoundingClientRect().width;
+    var startPaneWidth = pane.getBoundingClientRect().width;
+    var min = minWidth || 60;
+    var lastColWidth = startColWidth;
+
+    var move = function (e) {
+      lastColWidth = Math.max(min, startColWidth + (e.clientX - startClientX));
+      var applied = lastColWidth - startColWidth; // clamped delta
+      pane.style.setProperty(varName, lastColWidth + 'px');
+      var newPane = startPaneWidth + applied;
+      pane.style.width = newPane + 'px';
+      pane.style.flexBasis = newPane + 'px';
+    };
+    var up = function () {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      document.body.style.cursor = '';
+      document.body.classList.remove('omni-grid-resizing');
+      try { dotnetRef.invokeMethodAsync('OnGanttColumnResized', index, Math.round(lastColWidth)); } catch { }
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.classList.add('omni-grid-resizing');
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
 })();
