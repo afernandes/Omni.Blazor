@@ -67,7 +67,19 @@
                     @LoadingTemplate
                 </div>
             }
-            <table class="omni-grid-table">
+            <table class="@TableCss">
+                <colgroup>
+                    @if (AllowMultiSelection) { <col style="width:36px" /> }
+                    @if (DetailTemplate is not null) { <col style="width:36px" /> }
+                    @{ var _ci = 0; }
+                    @foreach (var c in VisibleColumns)
+                    {
+                        <col id="@ColUid(_ci)" style="@ColWidthStyle(c)" />
+                        _ci++;
+                    }
+                    @if (EditMode != DataGridEditMode.None) { <col style="width:110px" /> }
+                    @if (HasFillerColumn) { <col class="omni-grid-col-filler" /> }
+                </colgroup>
                 <thead>
                     <tr>
                         @if (AllowMultiSelection)
@@ -80,8 +92,10 @@
                         {
                             <th class="omni-grid-th-expand" style="width: 36px;"></th>
                         }
+                        @{ var _hi = 0; }
                         @foreach (var c in VisibleColumns)
                         {
+                            var hi = _hi;
                             <th class="@($"{HeaderCss(c)} {CellCss(c)}")" style="@CellStyle(c)"
                                 @onclick="@(e => OnHeaderClickAsync(c, e))">
                                 @c.Title
@@ -96,11 +110,23 @@
                                         <span class="omni-grid-th-sort-idx">@(sortIdx + 1)</span>
                                     }
                                 }
+                                @if (AllowColumnResize && c.Resizable)
+                                {
+                                    <span class="omni-grid-resizer" title="Redimensionar coluna"
+                                          @onclick:preventDefault="true" @onclick:stopPropagation="true"
+                                          @onmousedown:preventDefault="true" @onmousedown:stopPropagation="true"
+                                          @onmousedown="@(e => StartColumnResizeAsync(hi, e))"></span>
+                                }
                             </th>
+                            _hi++;
                         }
                         @if (EditMode != DataGridEditMode.None)
                         {
                             <th style="width: 110px;"></th>
+                        }
+                        @if (HasFillerColumn)
+                        {
+                            <th class="omni-grid-th-filler" aria-hidden="true"></th>
                         }
                     </tr>
                     @if (AllowColumnFilter && _columns.Any(c => c.Filterable))
@@ -126,6 +152,7 @@
                             {
                                 <td></td>
                             }
+                            @if (HasFillerColumn) { <td class="omni-grid-td-filler"></td> }
                         </tr>
                     }
                 </thead>
@@ -140,7 +167,7 @@
                     }
                     else if (totalRows == 0 && !_loading)
                     {
-                        <tr><td colspan="@TotalColCount" class="omni-grid-empty">
+                        <tr><td colspan="@FullColSpan" class="omni-grid-empty">
                             @if (EmptyTemplate is not null) { @EmptyTemplate }
                             else { @EmptyText }
                         </td></tr>
@@ -205,6 +232,7 @@
                             {
                                 <td></td>
                             }
+                            @if (HasFillerColumn) { <td class="omni-grid-td-filler"></td> }
                         </tr>
                     </tfoot>
                 }
@@ -275,6 +303,12 @@
 
     /// <summary>Shows the column visibility menu in the toolbar.</summary>
     [Parameter] public bool AllowColumnVisibility { get; set; }
+
+    /// <summary>Lets the user resize columns by dragging the right edge of a header cell.</summary>
+    [Parameter] public bool AllowColumnResize { get; set; }
+
+    /// <summary>Fired after a column is resized (drag of the header handle finished).</summary>
+    [Parameter] public EventCallback<DataGridColumnResizedEventArgs> ColumnResized { get; set; }
 
     /// <summary>
     /// Renderiza uma linha de agregação (<c>&lt;tfoot&gt;</c>) somando/contando/etc.
@@ -434,6 +468,20 @@
         + (AllowMultiSelection ? 1 : 0)
         + (DetailTemplate is not null ? 1 : 0)
         + (EditMode != DataGridEditMode.None ? 1 : 0);
+
+    /// <summary>
+    /// When column resizing is on we append a trailing "filler" column with no
+    /// width. Under <c>table-layout: fixed</c> a width-less &lt;col&gt; absorbs all
+    /// leftover horizontal space, so the real columns render at their EXACT
+    /// declared widths instead of being stretched to fill 100%. That removes the
+    /// stretch→re-measure feedback loop that made a resize "jump" on the first
+    /// pixel of drag, and keeps shrinking precise (the filler grows to take the
+    /// slack instead of redistributing it across the other columns).
+    /// </summary>
+    private bool HasFillerColumn => AllowColumnResize;
+
+    /// <summary>Colspan that spans every column including the resize filler.</summary>
+    private int FullColSpan => TotalColCount + (HasFillerColumn ? 1 : 0);
 
     private bool AllSelectedOnPage => _view.Count > 0 && _view.All(it => Selection.Contains(it));
 
@@ -910,14 +958,22 @@
     private string CellCss(OmniDataGridColumn<TItem> c)
         => _frozenStyles.TryGetValue(c, out var s) ? s.Css : string.Empty;
 
+    // Column widths live on the <colgroup> <col> elements (so a resize updates
+    // one element, not every cell). Cells only carry frozen-column positioning.
     private string? CellStyle(OmniDataGridColumn<TItem> c)
     {
-        var widthPart = c.Width is null ? "" : $"width:{c.Width};";
         var frozenPart = _frozenStyles.TryGetValue(c, out var s) ? s.Style : "";
-        return string.IsNullOrEmpty(widthPart) && string.IsNullOrEmpty(frozenPart)
-            ? null
-            : $"{widthPart} {frozenPart}".Trim();
+        return string.IsNullOrEmpty(frozenPart) ? null : frozenPart;
     }
+
+    private string TableCss => CssBuilder.Default("omni-grid-table")
+        .AddClass("omni-grid-resizable", AllowColumnResize)
+        .Build();
+
+    private string ColUid(int visibleIndex) => $"{Id}-gcol-{visibleIndex}";
+
+    private string? ColWidthStyle(OmniDataGridColumn<TItem> c)
+        => c.EffectiveWidth is null ? null : $"width:{c.EffectiveWidth}";
 
     // ——— Row expand ————————————————————————————————————————————————————
     private async Task ToggleExpandAsync(TItem row)
@@ -1245,6 +1301,7 @@
                     }
                 </td>
             }
+            @if (HasFillerColumn) { <td class="omni-grid-td-filler"></td> }
         </tr>
     };
 
@@ -1297,11 +1354,12 @@
                     }
                 </td>
             }
+            @if (HasFillerColumn) { <td class="omni-grid-td-filler"></td> }
         </tr>
         @if (isExpanded)
         {
             <tr class="omni-grid-detail-row">
-                <td colspan="@TotalColCount">
+                <td colspan="@FullColSpan">
                     @DetailTemplate!(row)
                 </td>
             </tr>
@@ -1327,6 +1385,7 @@
                     </td>
                 }
                 @if (EditMode != DataGridEditMode.None) { <td class="omni-grid-edit-actions"></td> }
+                @if (HasFillerColumn) { <td class="omni-grid-td-filler"></td> }
             </tr>
         }
     };
@@ -1356,6 +1415,34 @@
         return false;
     }
 
+    // ─── Column resize ────────────────────────────────────────────────────
+    private DotNetObjectReference<OmniDataGrid<TItem>>? _selfRef;
+
+    private async Task StartColumnResizeAsync(int visibleIndex, MouseEventArgs e)
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.gridStartColumnResize",
+                ColUid(visibleIndex), _selfRef, visibleIndex, e.ClientX, 48);
+        }
+        catch { /* SSR / JS not ready */ }
+    }
+
+    /// <summary>Invoked from JS when a column resize drag finishes.</summary>
+    [JSInvokable]
+    public Task OnColumnResized(int visibleIndex, double width)
+    {
+        var cols = VisibleColumns.ToList();
+        if (visibleIndex < 0 || visibleIndex >= cols.Count) return Task.CompletedTask;
+        var col = cols[visibleIndex];
+        col.SetWidth($"{Math.Round(width)}px");
+        StateHasChanged();
+        return ColumnResized.HasDelegate
+            ? ColumnResized.InvokeAsync(new DataGridColumnResizedEventArgs(col.ResolvedPropertyName, width))
+            : Task.CompletedTask;
+    }
+
     public void Dispose()
     {
         _searchDebounceTimer?.Dispose();
@@ -1363,5 +1450,7 @@
         _loadCts?.Cancel();
         _loadCts?.Dispose();
         _loadCts = null;
+        _selfRef?.Dispose();
+        _selfRef = null;
     }
 }

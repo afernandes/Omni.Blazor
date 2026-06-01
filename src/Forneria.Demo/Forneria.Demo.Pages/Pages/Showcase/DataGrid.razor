@@ -72,6 +72,46 @@
             </OmniDataGrid>
         </ShowcaseSection>
 
+        <ShowcaseSection Title="Redimensionamento de colunas"
+                         Description="Arraste a borda direita de qualquer header. AllowColumnResize liga as alças; ColumnResized dispara ao soltar. Como as colunas não preenchem a largura toda, uma coluna-filler invisível no fim absorve a sobra — assim cada coluna mantém o tamanho exato e o arraste acompanha o mouse com precisão (sem 'pulo'). Arraste além da largura disponível e aparece scroll horizontal. Use Resizable=false para travar uma coluna (ex.: Status)."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory"" AllowColumnResize
+               ColumnResized=""@(e => _lastResize = $""{e.PropertyName} → {e.Width:F0}px"")"">
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Cliente"" Property=""@(o => o.Cliente)"" Width=""200px"" />
+        <OmniDataGridColumn TItem=""Order"" Title=""Status"" Property=""@(o => o.Status)"" Resizable=""false"" />
+    </Columns>
+</OmniDataGrid>")">
+            <div class="omni-stack omni-gap-2">
+                <div class="omni-text-soft omni-mono" style="font-size:12px;">
+                    Último resize: <strong>@(_lastResize ?? "—")</strong>
+                </div>
+                <OmniDataGrid TItem="Order" Data="@_inMemory" AllowColumnResize AllowSorting AllowPaging PageSize="6"
+                              ColumnResized="@(e => _lastResize = $"{e.PropertyName} → {e.Width:F0}px")">
+                    <Columns>
+                        <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)" Width="120px">
+                            <Template><span class="omni-mono">#@context.Numero</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" Width="200px" />
+                        <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)" Width="130px">
+                            <Template><OmniBadge Text="@context.Canal" Variant="BadgeVariant.Plain" /></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Itens" PropertyName="Itens" Property="@(o => (object)o.Itens)" Width="90px">
+                            <Template><span class="omni-mono">@context.Itens</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Status (fixa)" PropertyName="Status" Property="@(o => o.Status)" Width="150px" Resizable="false">
+                            <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)" Width="150px">
+                            <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Data/hora" PropertyName="QuandoUtc" Property="@(o => (object)o.QuandoUtc)" Width="170px">
+                            <Template><span class="omni-mono">@context.QuandoUtc.ToLocalTime().ToString("dd/MM HH:mm")</span></Template>
+                        </OmniDataGridColumn>
+                    </Columns>
+                </OmniDataGrid>
+            </div>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="Server-side simulado (10.000 pedidos)"
                          Description="LoadData callback. Latência de 220ms exibe o loading overlay. Search com debounce de 300ms. Paginação chama o servidor."
                          Code="@(@"<OmniDataGrid TItem=""Order""
@@ -595,6 +635,7 @@
 
     private List<Order> _inMemory = new();
     private HashSet<Order> _selected = new();
+    private string? _lastResize;
 
     // —— Hierarquia (tree-grid) ——
     private OmniDataGrid<SharingNode>? _treeGridRef;

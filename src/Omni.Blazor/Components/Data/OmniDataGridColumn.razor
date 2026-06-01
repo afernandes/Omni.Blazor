@@ -9,6 +9,9 @@
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Width { get; set; }
     [Parameter] public bool Sortable { get; set; } = true;
+
+    /// <summary>Whether this column can be resized when the grid has <c>AllowColumnResize</c>. Default true.</summary>
+    [Parameter] public bool Resizable { get; set; } = true;
     [Parameter] public Func<TItem, object?>? Property { get; set; }
     [Parameter] public Func<TItem, string?>? TextSelector { get; set; }
     [Parameter] public RenderFragment<TItem>? Template { get; set; }
@@ -71,6 +74,14 @@
 
     /// <summary>Backing field for runtime visibility toggling.</summary>
     internal bool VisibleInternal { get; set; } = true;
+
+    /// <summary>Width set at runtime by a column resize (overrides <see cref="Width"/> when set).</summary>
+    internal string? WidthInternal { get; set; }
+
+    /// <summary>The effective column width — the resized width if any, else the declared <see cref="Width"/>.</summary>
+    internal string? EffectiveWidth => WidthInternal ?? Width;
+
+    internal void SetWidth(string width) => WidthInternal = width;
 
     /// <summary>Resolved property name (PropertyName ou Title como fallback).</summary>
     internal string ResolvedPropertyName => PropertyName ?? Title ?? string.Empty;

@@ -1,5 +1,7 @@
 using Bunit;
+using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Components;
+using Omni.Blazor.Models;
 
 namespace Omni.Blazor.Tests.Components.Data;
 
@@ -123,5 +125,101 @@ public class OmniDataGridTests : TestContextBase
             .Add(c => c.Columns, ColumnsFragment()));
 
         Assert.Equal("grid1", cut.Find("div.omni-grid").GetAttribute("data-testid"));
+    }
+
+    // ─── Column resize ────────────────────────────────────────────────────
+
+    [Fact]
+    public void AllowColumnResize_marks_table_and_renders_handles()
+    {
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowColumnResize, true)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        Assert.Contains("omni-grid-resizable", cut.Find("table.omni-grid-table").ClassName);
+        Assert.Equal(2, cut.FindAll(".omni-grid-resizer").Count);
+    }
+
+    [Fact]
+    public void No_resize_handles_when_disabled()
+    {
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        Assert.Empty(cut.FindAll(".omni-grid-resizer"));
+        Assert.DoesNotContain("omni-grid-resizable", cut.Find("table.omni-grid-table").ClassName);
+    }
+
+    [Fact]
+    public void Column_with_Resizable_false_has_no_handle()
+    {
+        RenderFragment frag = b =>
+        {
+            b.OpenComponent<OmniDataGridColumn<Person>>(0);
+            b.AddAttribute(1, nameof(OmniDataGridColumn<Person>.Title), "Name");
+            b.AddAttribute(2, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(p => p.Name));
+            b.CloseComponent();
+
+            b.OpenComponent<OmniDataGridColumn<Person>>(3);
+            b.AddAttribute(4, nameof(OmniDataGridColumn<Person>.Title), "Age");
+            b.AddAttribute(5, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(p => p.Age));
+            b.AddAttribute(6, nameof(OmniDataGridColumn<Person>.Resizable), false);
+            b.CloseComponent();
+        };
+
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowColumnResize, true)
+            .Add(c => c.Columns, frag));
+
+        // Only the first (resizable) column shows a handle.
+        Assert.Single(cut.FindAll(".omni-grid-resizer"));
+    }
+
+    [Fact]
+    public void Renders_colgroup_col_with_id_per_visible_column()
+    {
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowColumnResize, true)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        // One <col> per data column (each carries an id), plus the trailing
+        // width-less filler <col> that absorbs leftover space.
+        var dataCols = cut.FindAll("table.omni-grid-table colgroup col:not(.omni-grid-col-filler)");
+        Assert.Equal(2, dataCols.Count);
+        Assert.All(dataCols, col => Assert.False(string.IsNullOrEmpty(col.GetAttribute("id"))));
+        Assert.Single(cut.FindAll("table.omni-grid-table colgroup col.omni-grid-col-filler"));
+    }
+
+    [Fact]
+    public void No_filler_column_when_resize_disabled()
+    {
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        Assert.Empty(cut.FindAll(".omni-grid-col-filler"));
+    }
+
+    [Fact]
+    public async Task OnColumnResized_updates_col_width_and_fires_event()
+    {
+        DataGridColumnResizedEventArgs? captured = null;
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowColumnResize, true)
+            .Add(c => c.ColumnResized,
+                EventCallback.Factory.Create<DataGridColumnResizedEventArgs>(this, e => captured = e))
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        await cut.InvokeAsync(() => cut.Instance.OnColumnResized(0, 222));
+
+        Assert.NotNull(captured);
+        Assert.Equal(222, captured!.Width);
+        var firstCol = cut.FindAll("table.omni-grid-table colgroup col")[0];
+        Assert.Contains("width:222px", (firstCol.GetAttribute("style") ?? "").Replace(" ", ""));
     }
 }

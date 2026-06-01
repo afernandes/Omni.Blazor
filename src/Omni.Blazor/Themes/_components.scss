@@ -2741,6 +2741,56 @@ button.omni-autocomplete-option.omni-selected { color: var(--omni-accent); }
 .omni-grid-th-sort.omni-active { color: var(--omni-fg); }
 .omni-grid-th-sort.omni-active .omni-grid-th-sort-ico { opacity: 1; color: var(--omni-accent); }
 
+// ─── Column resize ────────────────────────────────────────────────────────
+// Resizable grids switch to a fixed layout so the <colgroup> <col> widths are
+// authoritative (the only way to shrink a column below its content width).
+.omni-grid-table.omni-grid-resizable {
+  table-layout: fixed;
+
+  thead th, tbody td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+// The drag handle sits on the right edge of the header cell (th is already
+// position:sticky, which establishes the containing block for this absolute).
+.omni-grid-resizer {
+  position: absolute;
+  top: 0; right: 0;
+  width: 7px; height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 3;
+}
+.omni-grid-resizer::after {
+  content: "";
+  position: absolute;
+  top: 25%; right: 3px;
+  width: 1px; height: 50%;
+  background: var(--omni-line-strong);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.omni-grid-table thead th:hover .omni-grid-resizer::after,
+.omni-grid-resizer:hover::after { opacity: 1; }
+.omni-grid-resizer:hover::after { background: var(--omni-accent); }
+// While a drag is in progress (class set on <body> by JS) freeze selection.
+body.omni-grid-resizing { cursor: col-resize !important; user-select: none; }
+body.omni-grid-resizing * { cursor: col-resize !important; }
+
+// Trailing filler column (rendered only when resizable). A width-less <col>
+// under table-layout:fixed soaks up the leftover space so the real columns keep
+// their EXACT declared widths (no stretch → no resize jump; shrinking stays
+// precise because the filler — not the siblings — absorbs the freed space).
+// Its cells are empty but inherit the row chrome (header background, row
+// border-bottom) so borders/backgrounds still reach the right edge.
+.omni-grid-col-filler { width: auto; }
+.omni-grid-th-filler,
+.omni-grid-td-filler { padding: 0; }
+.omni-grid-th-filler { cursor: default; }
+
 .omni-grid-table tbody td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--omni-line);

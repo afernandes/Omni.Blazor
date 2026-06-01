@@ -2255,4 +2255,35 @@
     element.removeEventListener('pointercancel', h.onUp);
     delete element.__tvsBSDrag;
   };
+
+  // ─── DataGrid column resize ───────────────────────────────────────────
+  // Mirrors Radzen's mechanism: the header handle's mousedown calls into C#,
+  // which calls this. We grab the <col> for the column, then live-update its
+  // width on mousemove and report the final width back on mouseup. Width lives
+  // on a single <col> element (via <colgroup>), so one node changes per frame
+  // instead of every cell.
+  ns.gridStartColumnResize = function (colId, dotnetRef, index, startClientX, minWidth) {
+    const col = document.getElementById(colId);
+    if (!col) return;
+    const startWidth = col.getBoundingClientRect().width;
+    const min = minWidth || 40;
+    let lastWidth = startWidth;
+
+    const move = (e) => {
+      lastWidth = Math.max(min, startWidth + (e.clientX - startClientX));
+      col.style.width = lastWidth + 'px';
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      document.body.style.cursor = '';
+      document.body.classList.remove('omni-grid-resizing');
+      try { dotnetRef.invokeMethodAsync('OnColumnResized', index, Math.round(lastWidth)); } catch { }
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.classList.add('omni-grid-resizing');
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
 })();

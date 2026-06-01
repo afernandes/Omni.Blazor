@@ -8,6 +8,13 @@ namespace Omni.Blazor.Models;
 public sealed record SortDescriptor(string Property, SortDirection Direction);
 
 /// <summary>
+/// Args for <c>OmniDataGrid.ColumnResized</c> — fired after the user finishes
+/// dragging a column's resize handle. <c>PropertyName</c> identifies the column;
+/// <c>Width</c> is the new width in pixels.
+/// </summary>
+public sealed record DataGridColumnResizedEventArgs(string? PropertyName, double Width);
+
+/// <summary>
 /// Critério de filtro aplicado a uma coluna. <c>SecondValue</c> é usado por
 /// operadores binários (<c>Between</c>, <c>NotBetween</c>); ignorado nos demais.
 /// </summary>

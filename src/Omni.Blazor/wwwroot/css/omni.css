@@ -4557,6 +4557,70 @@ button.omni-autocomplete-option.omni-selected {
   color: var(--omni-accent);
 }
 
+.omni-grid-table.omni-grid-resizable {
+  table-layout: fixed;
+}
+.omni-grid-table.omni-grid-resizable thead th, .omni-grid-table.omni-grid-resizable tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omni-grid-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 3;
+}
+
+.omni-grid-resizer::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  right: 3px;
+  width: 1px;
+  height: 50%;
+  background: var(--omni-line-strong);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.omni-grid-table thead th:hover .omni-grid-resizer::after,
+.omni-grid-resizer:hover::after {
+  opacity: 1;
+}
+
+.omni-grid-resizer:hover::after {
+  background: var(--omni-accent);
+}
+
+body.omni-grid-resizing {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.omni-grid-resizing * {
+  cursor: col-resize !important;
+}
+
+.omni-grid-col-filler {
+  width: auto;
+}
+
+.omni-grid-th-filler,
+.omni-grid-td-filler {
+  padding: 0;
+}
+
+.omni-grid-th-filler {
+  cursor: default;
+}
+
 .omni-grid-table tbody td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--omni-line);
