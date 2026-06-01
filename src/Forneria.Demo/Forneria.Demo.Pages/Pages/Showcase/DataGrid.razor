@@ -112,6 +112,53 @@
             </div>
         </ShowcaseSection>
 
+        <ShowcaseSection Title="Agrupamento (grouping)"
+                         Description="AllowGrouping mostra o painel de drop — arraste o grip (⋮⋮) de uma coluna Groupable até ele, ou use a API programática (GroupByAsync). Colunas aninham (multi-nível). HideGroupedColumn esconde a coluna agrupada; ShowGroupFooters soma/conta por grupo reusando o motor de agregação. Clique no chevron para colapsar um grupo."
+                         Code="@(@"<OmniDataGrid @ref=""_g"" TItem=""Order"" Data=""@_inMemory""
+               AllowGrouping HideGroupedColumn ShowGroupFooters>
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Status"" PropertyName=""Status""
+                             Property=""@(o => o.Status)"" Groupable />
+        <OmniDataGridColumn TItem=""Order"" Title=""Total"" Property=""@(o => (object)o.Total)""
+                             Aggregate=""AggregateFunction.Sum"" />
+    </Columns>
+</OmniDataGrid>
+@* Programático: *@ await _g.GroupByAsync(""Status"");")">
+            <div class="omni-stack omni-gap-2">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Default" Icon="layers"
+                                Text="Agrupar por Status" OnClick="@(() => _groupGrid!.GroupByAsync("Status"))" />
+                    <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Default" Icon="layers"
+                                Text="+ Canal" OnClick="@(() => _groupGrid!.GroupByAsync("Canal"))" />
+                    <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost" Icon="x"
+                                Text="Limpar" OnClick="@(() => _groupGrid!.ClearGroupingAsync())" />
+                </div>
+                <OmniDataGrid @ref="_groupGrid" TItem="Order" Data="@_inMemory"
+                              AllowGrouping HideGroupedColumn ShowGroupFooters AllowSorting>
+                    <Columns>
+                        <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)" Width="120px">
+                            <Template><span class="omni-mono">#@context.Numero</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" />
+                        <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)" Groupable>
+                            <Template><OmniBadge Text="@context.Canal" Variant="BadgeVariant.Plain" /></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)" Groupable>
+                            <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Itens" PropertyName="Itens" Property="@(o => (object)o.Itens)"
+                                             Aggregate="AggregateFunction.Sum">
+                            <Template><span class="omni-mono">@context.Itens</span></Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)"
+                                             Aggregate="AggregateFunction.Sum">
+                            <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
+                        </OmniDataGridColumn>
+                    </Columns>
+                </OmniDataGrid>
+            </div>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="Server-side simulado (10.000 pedidos)"
                          Description="LoadData callback. Latência de 220ms exibe o loading overlay. Search com debounce de 300ms. Paginação chama o servidor."
                          Code="@(@"<OmniDataGrid TItem=""Order""
@@ -636,6 +683,7 @@
     private List<Order> _inMemory = new();
     private HashSet<Order> _selected = new();
     private string? _lastResize;
+    private OmniDataGrid<Order>? _groupGrid;
 
     // —— Hierarquia (tree-grid) ——
     private OmniDataGrid<SharingNode>? _treeGridRef;

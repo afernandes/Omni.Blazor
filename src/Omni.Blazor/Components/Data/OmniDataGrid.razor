@@ -54,6 +54,29 @@
         @* Hidden column registration *@
         <div style="display:none">@Columns</div>
 
+        @if (AllowGrouping)
+        {
+            <div class="omni-grid-group-panel" @ondragover:preventDefault="true" @ondrop="OnGroupPanelDropAsync">
+                @if (_groupCols.Count == 0)
+                {
+                    <span class="omni-grid-group-panel-hint">@GroupPanelText</span>
+                }
+                else
+                {
+                    @foreach (var gc in _groupCols)
+                    {
+                        <span class="omni-grid-group-chip" @key="gc">
+                            <span class="omni-grid-group-chip-text">@gc.Title</span>
+                            <button type="button" class="omni-grid-group-chip-x" aria-label="Remover agrupamento"
+                                    @onclick="@(() => UngroupAsync(gc))">
+                                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                            </button>
+                        </span>
+                    }
+                }
+            </div>
+        }
+
         <div class="omni-grid-scroller">
             @if (_loading && LoadingTemplate is null && !LoadingSkeleton)
             {
@@ -98,6 +121,12 @@
                             var hi = _hi;
                             <th class="@($"{HeaderCss(c)} {CellCss(c)}")" style="@CellStyle(c)"
                                 @onclick="@(e => OnHeaderClickAsync(c, e))">
+                                @if (AllowGrouping && c.Groupable)
+                                {
+                                    <span class="omni-grid-col-drag" draggable="true" title="Arraste para agrupar"
+                                          @onclick:preventDefault="true" @onclick:stopPropagation="true"
+                                          @ondragstart="@(() => OnColGroupDragStart(c))"></span>
+                                }
                                 @c.Title
                                 @if (c.Sortable && AllowSorting)
                                 {
@@ -189,6 +218,13 @@
                             {
                                 @RenderTreeRowFragment(treeRow)
                             }
+                        }
+                    }
+                    else if (IsGroupMode)
+                    {
+                        foreach (var node in _groups)
+                        {
+                            @RenderGroupNodeFragment(node, "")
                         }
                     }
                     else
@@ -309,6 +345,25 @@
 
     /// <summary>Fired after a column is resized (drag of the header handle finished).</summary>
     [Parameter] public EventCallback<DataGridColumnResizedEventArgs> ColumnResized { get; set; }
+
+    /// <summary>
+    /// Enables row grouping. Shows a drop panel above the grid; drag a column's
+    /// grip there (column must be <c>Groupable</c>) — or call <see cref="GroupByAsync"/> —
+    /// to group rows by that column. Multiple columns nest.
+    /// </summary>
+    [Parameter] public bool AllowGrouping { get; set; }
+
+    /// <summary>Hides a column from the table once it is used as a grouping key (its value shows in the group header instead).</summary>
+    [Parameter] public bool HideGroupedColumn { get; set; }
+
+    /// <summary>Renders a per-group aggregate footer row (reuses each column's <c>Aggregate</c>). Requires aggregated columns.</summary>
+    [Parameter] public bool ShowGroupFooters { get; set; }
+
+    /// <summary>Placeholder text shown in the (empty) group panel.</summary>
+    [Parameter] public string GroupPanelText { get; set; } = "Arraste o cabeçalho de uma coluna aqui para agrupar";
+
+    /// <summary>Fired whenever the grouping changes; carries the ordered grouped property names.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> Grouped { get; set; }
 
     /// <summary>
     /// Renderiza uma linha de agregação (<c>&lt;tfoot&gt;</c>) somando/contando/etc.
@@ -444,6 +499,22 @@
 
     private HashSet<TItem> Selection => SelectedItems ?? _selectedInternal;
 
+    // Grouping state
+    private readonly List<OmniDataGridColumn<TItem>> _groupCols = new();
+    private List<GroupNode> _groups = new();
+    private readonly HashSet<string> _collapsedGroups = new();
+    private OmniDataGridColumn<TItem>? _draggingGroupCol;
+
+    // A single grouped node: all items under it, plus nested subgroups (null at
+    // the deepest grouping level, where the items render as data rows).
+    private sealed record GroupNode(
+        OmniDataGridColumn<TItem> Column,
+        object? Key,
+        int Count,
+        int Level,
+        IReadOnlyList<TItem> Items,
+        IReadOnlyList<GroupNode>? Children);
+
     // Tree-grid state
     private readonly HashSet<TItem> _treeExpanded = new();
 #pragma warning disable CS8714 // TItem may not satisfy 'notnull' — usuário garante chaves não-nulas via ChildrenSelector/LoadChildren
@@ -455,13 +526,16 @@
 
     private bool IsHierarchyMode => ChildrenSelector is not null || LoadChildren is not null;
 
+    /// <summary>True when at least one column is grouped (and not in tree mode).</summary>
+    private bool IsGroupMode => _groupCols.Count > 0 && !IsHierarchyMode;
+
     private sealed record TreeRow(TItem Item, int Level, bool HasChildren);
 
     // Frozen column inline styles (recomputed when visible columns / widths change)
     private readonly Dictionary<OmniDataGridColumn<TItem>, (string Css, string Style)> _frozenStyles = new();
 
     private IEnumerable<OmniDataGridColumn<TItem>> VisibleColumns =>
-        _columns.Where(c => c.VisibleInternal);
+        _columns.Where(c => c.VisibleInternal && !(HideGroupedColumn && _groupCols.Contains(c)));
 
     private int TotalColCount =>
         VisibleColumns.Count()
@@ -564,6 +638,7 @@
             await FlattenTreeAsync();
         }
 
+        BuildGroups();
         RecomputeFrozenStyles();
         StateHasChanged();
     }
@@ -1175,6 +1250,113 @@
         };
     }
 
+    // Aggregate over an explicit item list (used by per-group footers).
+    private static object? ComputeAggregate(OmniDataGridColumn<TItem> col, IReadOnlyList<TItem> items)
+    {
+        if (col.Aggregate is null) return null;
+        var fn = col.Aggregate.Value;
+        if (fn == AggregateFunction.Count) return items.Count;
+        var values = items.Select(col.GetAggregateValue).Where(v => v.HasValue).Select(v => v!.Value).ToList();
+        if (values.Count == 0) return null;
+        return fn switch
+        {
+            AggregateFunction.Sum => values.Sum(),
+            AggregateFunction.Average => values.Average(),
+            AggregateFunction.Min => values.Min(),
+            AggregateFunction.Max => values.Max(),
+            _ => null
+        };
+    }
+
+    // ─── Grouping ─────────────────────────────────────────────────────────
+    private void BuildGroups() => _groups = IsGroupMode ? BuildGroupLevel(_view, 0) : new();
+
+    private List<GroupNode> BuildGroupLevel(IReadOnlyList<TItem> items, int level)
+    {
+        var col = _groupCols[level];
+        var isLeaf = level == _groupCols.Count - 1;
+        return items
+            .GroupBy(it => col.GetSortValue(it))
+            .Select(g =>
+            {
+                var groupItems = g.ToList();
+                return new GroupNode(
+                    Column: col,
+                    Key: g.Key,
+                    Count: groupItems.Count,
+                    Level: level,
+                    Items: groupItems,
+                    Children: isLeaf ? null : BuildGroupLevel(groupItems, level + 1));
+            })
+            .ToList();
+    }
+
+    // Stable identity for a group across renders = path of keys from the root.
+    private static string GroupPath(string parentPath, GroupNode node)
+        => $"{parentPath}/{node.Level}:{node.Key?.ToString() ?? "∅"}";
+
+    private string GroupKeyText(GroupNode node)
+    {
+        var txt = node.Items.Count > 0 ? node.Column.GetCellText(node.Items[0]) : node.Key?.ToString();
+        return string.IsNullOrEmpty(txt) ? "(vazio)" : txt;
+    }
+
+    private void ToggleGroup(string path)
+    {
+        if (!_collapsedGroups.Remove(path)) _collapsedGroups.Add(path);
+    }
+
+    private async Task AddGroupColumnAsync(OmniDataGridColumn<TItem> col)
+    {
+        if (col is null || !col.Groupable || _groupCols.Contains(col)) return;
+        _groupCols.Add(col);
+        await OnGroupsChangedAsync();
+    }
+
+    internal async Task UngroupAsync(OmniDataGridColumn<TItem> col)
+    {
+        if (_groupCols.Remove(col)) await OnGroupsChangedAsync();
+    }
+
+    private async Task OnGroupsChangedAsync()
+    {
+        _collapsedGroups.Clear();
+        await ApplyAndRenderAsync();
+        if (Grouped.HasDelegate)
+            await Grouped.InvokeAsync(_groupCols.Select(c => c.ResolvedPropertyName).ToList());
+    }
+
+    /// <summary>Programmatically groups by the column with the given resolved property name.</summary>
+    public Task GroupByAsync(string propertyName)
+    {
+        var col = _columns.FirstOrDefault(c => c.ResolvedPropertyName == propertyName);
+        return col is null ? Task.CompletedTask : AddGroupColumnAsync(col);
+    }
+
+    /// <summary>Removes the given property from the grouping.</summary>
+    public Task UngroupByAsync(string propertyName)
+    {
+        var col = _columns.FirstOrDefault(c => c.ResolvedPropertyName == propertyName);
+        return col is null ? Task.CompletedTask : UngroupAsync(col);
+    }
+
+    /// <summary>Clears all grouping.</summary>
+    public Task ClearGroupingAsync()
+    {
+        if (_groupCols.Count == 0) return Task.CompletedTask;
+        _groupCols.Clear();
+        return OnGroupsChangedAsync();
+    }
+
+    private void OnColGroupDragStart(OmniDataGridColumn<TItem> col) => _draggingGroupCol = col;
+
+    private async Task OnGroupPanelDropAsync()
+    {
+        var col = _draggingGroupCol;
+        _draggingGroupCol = null;
+        if (col is not null) await AddGroupColumnAsync(col);
+    }
+
     private static string AggregateLabel(AggregateFunction fn) => fn switch
     {
         AggregateFunction.Sum     => "Σ",
@@ -1364,6 +1546,71 @@
                 </td>
             </tr>
         }
+    };
+
+    // Recursive group renderer: a collapsible header row, then either nested
+    // group rows or leaf data rows, then (optionally) a per-group aggregate row.
+    private RenderFragment RenderGroupNodeFragment(GroupNode node, string parentPath) => __builder =>
+    {
+        var path = GroupPath(parentPath, node);
+        var collapsed = _collapsedGroups.Contains(path);
+        var indent = node.Level * 18;
+        <tr class="omni-grid-group-row" @key="path">
+            <td colspan="@FullColSpan" class="omni-grid-group-cell">
+                <div class="omni-grid-group-head" style="@($"padding-left:{indent + 8}px;")">
+                    <button type="button" class="omni-grid-group-toggle"
+                            aria-expanded="@((!collapsed).ToString().ToLowerInvariant())"
+                            @onclick="@(() => ToggleGroup(path))">
+                        <OmniIcon Name="@(collapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                    </button>
+                    <span class="omni-grid-group-title">@node.Column.Title</span>
+                    <span class="omni-grid-group-key">@GroupKeyText(node)</span>
+                    <span class="omni-grid-group-count">@node.Count</span>
+                </div>
+            </td>
+        </tr>
+        @if (!collapsed)
+        {
+            if (node.Children is not null)
+            {
+                foreach (var child in node.Children)
+                {
+                    @RenderGroupNodeFragment(child, path)
+                }
+            }
+            else
+            {
+                foreach (var item in node.Items)
+                {
+                    @RenderFlatRowFragment(item)
+                }
+            }
+            if (ShowGroupFooters && _columns.Any(c => c.Aggregate.HasValue))
+            {
+                @RenderGroupFooterFragment(node)
+            }
+        }
+    };
+
+    private RenderFragment RenderGroupFooterFragment(GroupNode node) => __builder =>
+    {
+        <tr class="omni-grid-group-footer">
+            @if (AllowMultiSelection) { <td></td> }
+            @if (DetailTemplate is not null) { <td></td> }
+            @foreach (var c in VisibleColumns)
+            {
+                <td class="@CellCss(c)" style="@CellStyle(c)">
+                    @if (c.Aggregate.HasValue)
+                    {
+                        var v = ComputeAggregate(c, node.Items);
+                        <span class="omni-grid-aggregate-label">@AggregateLabel(c.Aggregate!.Value)</span>
+                        <span class="omni-grid-aggregate-value">@FormatAggregate(c, v)</span>
+                    }
+                </td>
+            }
+            @if (EditMode != DataGridEditMode.None) { <td></td> }
+            @if (HasFillerColumn) { <td class="omni-grid-td-filler"></td> }
+        </tr>
     };
 
     private RenderFragment RenderLoadingSkeleton => __builder =>

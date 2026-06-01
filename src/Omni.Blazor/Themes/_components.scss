@@ -3010,6 +3010,107 @@ body.omni-grid-resizing * { cursor: col-resize !important; }
   font-weight: 600;
 }
 
+// ─── Grouping ──────────────────────────────────────────────────────────────
+// Drop panel above the grid: drag a column's grip here (or call GroupByAsync).
+.omni-grid-group-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px;
+  background: var(--omni-bg-sunken);
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-grid-group-panel-hint {
+  font-size: 12px;
+  color: var(--omni-fg-muted);
+  font-style: italic;
+}
+.omni-grid-group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--omni-fg);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line-strong);
+  border-radius: 999px;
+}
+.omni-grid-group-chip-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  padding: 0;
+  color: var(--omni-fg-muted);
+  background: transparent; border: 0; border-radius: 50%;
+  cursor: pointer;
+}
+.omni-grid-group-chip-x:hover { color: var(--omni-danger); background: var(--omni-bg-sunken); }
+
+// The drag grip shown in a Groupable column header.
+.omni-grid-col-drag {
+  display: inline-block;
+  width: 10px; height: 14px;
+  margin-right: 6px;
+  vertical-align: middle;
+  cursor: grab;
+  opacity: 0.5;
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 4px 4px;
+  background-position: 0 1px;
+}
+.omni-grid-col-drag:hover { opacity: 1; color: var(--omni-accent); }
+.omni-grid-col-drag:active { cursor: grabbing; }
+
+// Group header row.
+.omni-grid-group-row > td {
+  padding: 0;
+  background: var(--omni-bg-elev);
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-grid-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+}
+.omni-grid-group-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  padding: 0;
+  color: var(--omni-fg-muted);
+  background: transparent; border: 0;
+  cursor: pointer;
+}
+.omni-grid-group-toggle:hover { color: var(--omni-accent); }
+.omni-grid-group-title {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--omni-fg-muted); font-weight: 600;
+}
+.omni-grid-group-key {
+  font-size: 13px; font-weight: 700; color: var(--omni-fg);
+}
+.omni-grid-group-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 18px; padding: 0 6px;
+  font-size: 11px; font-weight: 600; font-family: var(--omni-font-mono);
+  color: var(--omni-fg-soft);
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+}
+// Per-group aggregate footer row.
+.omni-grid-group-footer td {
+  padding: 8px 14px;
+  background: var(--omni-bg-sunken);
+  border-bottom: 2px solid var(--omni-line-strong);
+  font-family: var(--omni-font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 // Inline edit affordances
 .omni-grid-row-editing td {
   background: var(--omni-accent-softer);
