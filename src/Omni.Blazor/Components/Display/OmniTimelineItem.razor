@@ -1,0 +1,68 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    A single event on an <OmniTimeline>. Three regions: the opposite/label side
+    (start), the centered axis carrying the point/dot, and the main content side
+    (end). Layout (which side shows, alternation, the line) is decided by the
+    parent's modifier classes via CSS — this item only carries its own point
+    style/variant/size.
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="omni-timeline-content-start">
+        @LabelContent
+        @if (!string.IsNullOrEmpty(Label))
+        {
+            <span class="omni-timeline-label">@Label</span>
+        }
+    </div>
+    <div class="omni-timeline-axis">
+        <div class="@PointCss">@PointContent</div>
+    </div>
+    <div class="omni-timeline-content-end">
+        @ChildContent
+        @if (!string.IsNullOrEmpty(Text))
+        {
+            <span class="omni-timeline-text">@Text</span>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Color/intent of the point. Default <see cref="TimelinePointStyle.Base"/>.</summary>
+    [Parameter] public TimelinePointStyle PointStyle { get; set; } = TimelinePointStyle.Base;
+
+    /// <summary>Fill variant of the point. Default <see cref="TimelinePointVariant.Filled"/>.</summary>
+    [Parameter] public TimelinePointVariant PointVariant { get; set; } = TimelinePointVariant.Filled;
+
+    /// <summary>Point size. Default <see cref="ComponentSize.Md"/>.</summary>
+    [Parameter] public ComponentSize PointSize { get; set; } = ComponentSize.Md;
+
+    /// <summary>Content rendered inside the dot (icon, letter, avatar…).</summary>
+    [Parameter] public RenderFragment? PointContent { get; set; }
+
+    /// <summary>Opposite-side content (date/label). Rendered before <see cref="Label"/>.</summary>
+    [Parameter] public RenderFragment? LabelContent { get; set; }
+
+    /// <summary>Opposite-side text shorthand (rendered after <see cref="LabelContent"/>).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Main content. Rendered before <see cref="Text"/>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Main content text shorthand (rendered after <see cref="ChildContent"/>).</summary>
+    [Parameter] public string? Text { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-timeline-item")
+        .AddClass($"omni-timeline-size-{PointSize.ToString().ToLowerInvariant()}")
+        .AddClass(Class)
+        .Build();
+
+    private string PointCss => CssBuilder.Default("omni-timeline-point")
+        .AddClass($"omni-timeline-point-{PointStyle.ToString().ToLowerInvariant()}")
+        .AddClass($"omni-timeline-point-{PointVariant.ToString().ToLowerInvariant()}")
+        .Build();
+}

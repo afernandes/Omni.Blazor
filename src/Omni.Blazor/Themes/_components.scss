@@ -7456,3 +7456,157 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   background: var(--omni-gantt-marker-color, var(--omni-danger));
   border-radius: 3px;
 }
+
+// ═══ Timeline ══════════════════════════════════════════════════════════════
+// Each item draws its own line segment via ::before; consecutive segments join
+// into one continuous line. The axis is a fixed flex track the line runs
+// through the middle of, so the point always lands on the line. Line position
+// and alternation are pure CSS off the root modifier classes.
+.omni-timeline {
+  --omni-timeline-axis-size: 56px;
+  --omni-timeline-line-width: 2px;
+  --omni-timeline-line-color: var(--omni-line-strong);
+  --omni-timeline-point-size: 16px;
+  --omni-timeline-item-padding: 10px;
+  --omni-timeline-ring: var(--omni-bg-elev);
+  display: flex;
+}
+.omni-timeline-vertical { flex-direction: column; }
+.omni-timeline-horizontal { flex-direction: row; }
+
+.omni-timeline-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: var(--omni-timeline-item-padding);
+  box-sizing: border-box;
+}
+.omni-timeline-horizontal .omni-timeline-item { flex-direction: column; flex: 1 1 0; }
+
+// ── The connecting line ──
+.omni-timeline-item::before {
+  content: "";
+  position: absolute;
+  background: var(--omni-timeline-line-color);
+}
+.omni-timeline-vertical .omni-timeline-item::before {
+  width: var(--omni-timeline-line-width);
+  top: 0; bottom: 0;
+  left: calc(50% - var(--omni-timeline-line-width) / 2);
+}
+.omni-timeline-vertical .omni-timeline-item:first-child::before { top: 50%; }
+.omni-timeline-vertical .omni-timeline-item:last-child::before { bottom: 50%; }
+.omni-timeline-horizontal .omni-timeline-item::before {
+  height: var(--omni-timeline-line-width);
+  left: 0; right: 0;
+  top: calc(50% - var(--omni-timeline-line-width) / 2);
+}
+.omni-timeline-horizontal .omni-timeline-item:first-child::before { left: 50%; }
+.omni-timeline-horizontal .omni-timeline-item:last-child::before { right: 50%; }
+
+// ── Axis + point ──
+.omni-timeline-axis {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--omni-timeline-axis-size);
+}
+.omni-timeline-vertical .omni-timeline-axis { width: var(--omni-timeline-axis-size); }
+.omni-timeline-horizontal .omni-timeline-axis { height: var(--omni-timeline-axis-size); width: 100%; }
+
+.omni-timeline-point {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--omni-timeline-point-size);
+  height: var(--omni-timeline-point-size);
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px var(--omni-timeline-ring);
+  font-size: calc(var(--omni-timeline-point-size) * 0.58);
+  font-weight: 700;
+  line-height: 1;
+}
+
+// Point sizes (set the per-item size var; cascades to the point).
+.omni-timeline-size-sm { --omni-timeline-point-size: 12px; }
+.omni-timeline-size-md { --omni-timeline-point-size: 16px; }
+.omni-timeline-size-lg { --omni-timeline-point-size: 28px; }
+.omni-timeline-size-xl { --omni-timeline-point-size: 40px; }
+
+// Point colors (semantic intent).
+.omni-timeline-point-base   { --pt: var(--omni-fg-muted); }
+.omni-timeline-point-accent { --pt: var(--omni-accent); }
+.omni-timeline-point-good   { --pt: var(--omni-good); }
+.omni-timeline-point-warn   { --pt: var(--omni-warn); }
+.omni-timeline-point-danger { --pt: var(--omni-danger); }
+.omni-timeline-point-info   { --pt: var(--omni-info); }
+
+// Point fill variants.
+.omni-timeline-point-filled   { background: var(--pt); color: #fff; }
+.omni-timeline-point-outlined { background: var(--omni-bg-elev); color: var(--pt); box-shadow: 0 0 0 3px var(--omni-timeline-ring), inset 0 0 0 2px var(--pt); }
+.omni-timeline-point-text     { background: var(--omni-bg-elev); color: var(--pt); }
+
+// ── Content slots ──
+.omni-timeline-content-start,
+.omni-timeline-content-end {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 14px;
+}
+.omni-timeline-vertical .omni-timeline-content-start {
+  text-align: right;
+  max-width: calc(50% - var(--omni-timeline-axis-size) / 2);
+}
+.omni-timeline-vertical .omni-timeline-content-end {
+  text-align: left;
+  max-width: calc(50% - var(--omni-timeline-axis-size) / 2);
+}
+.omni-timeline-horizontal .omni-timeline-content-start,
+.omni-timeline-horizontal .omni-timeline-content-end { text-align: center; }
+
+.omni-timeline-label { display: block; font-size: 12px; font-weight: 600; color: var(--omni-fg-soft); }
+.omni-timeline-text { display: block; color: var(--omni-fg); }
+
+// ── Line position: Start (line at the inline-start edge) ──
+.omni-timeline-vertical.omni-timeline-start .omni-timeline-content-start { display: none; }
+.omni-timeline-vertical.omni-timeline-start .omni-timeline-content-end { max-width: none; text-align: left; }
+.omni-timeline-vertical.omni-timeline-start .omni-timeline-item::before {
+  left: calc(var(--omni-timeline-item-padding) + var(--omni-timeline-axis-size) / 2 - var(--omni-timeline-line-width) / 2);
+}
+
+// ── Line position: End (line at the inline-end edge) ──
+.omni-timeline-vertical.omni-timeline-end .omni-timeline-item { flex-direction: row-reverse; }
+.omni-timeline-vertical.omni-timeline-end .omni-timeline-content-start { display: none; }
+.omni-timeline-vertical.omni-timeline-end .omni-timeline-content-end { max-width: none; text-align: right; }
+.omni-timeline-vertical.omni-timeline-end .omni-timeline-item::before {
+  left: auto;
+  right: calc(var(--omni-timeline-item-padding) + var(--omni-timeline-axis-size) / 2 - var(--omni-timeline-line-width) / 2);
+}
+
+// ── Line position: Alternate (zig-zag — even items flip sides) ──
+.omni-timeline-vertical.omni-timeline-alternate .omni-timeline-item:nth-child(even) { flex-direction: row-reverse; }
+.omni-timeline-vertical.omni-timeline-alternate .omni-timeline-item:nth-child(even) .omni-timeline-content-start { text-align: left; }
+.omni-timeline-vertical.omni-timeline-alternate .omni-timeline-item:nth-child(even) .omni-timeline-content-end { text-align: right; }
+
+// ── Horizontal: Start = line above the row, End = line below ──
+.omni-timeline-horizontal.omni-timeline-start .omni-timeline-content-start { display: none; }
+.omni-timeline-horizontal.omni-timeline-start .omni-timeline-item::before {
+  top: calc(var(--omni-timeline-item-padding) + var(--omni-timeline-axis-size) / 2 - var(--omni-timeline-line-width) / 2);
+}
+.omni-timeline-horizontal.omni-timeline-end .omni-timeline-item { flex-direction: column-reverse; }
+.omni-timeline-horizontal.omni-timeline-end .omni-timeline-content-start { display: none; }
+.omni-timeline-horizontal.omni-timeline-end .omni-timeline-item::before {
+  top: auto;
+  bottom: calc(var(--omni-timeline-item-padding) + var(--omni-timeline-axis-size) / 2 - var(--omni-timeline-line-width) / 2);
+}
+.omni-timeline-horizontal.omni-timeline-alternate .omni-timeline-item:nth-child(even) { flex-direction: column-reverse; }
+
+// ── Reverse: swap the two content sides ──
+.omni-timeline-vertical.omni-timeline-center.omni-timeline-reverse .omni-timeline-item { flex-direction: row-reverse; }
+.omni-timeline-vertical.omni-timeline-center.omni-timeline-reverse .omni-timeline-content-start { text-align: left; }
+.omni-timeline-vertical.omni-timeline-center.omni-timeline-reverse .omni-timeline-content-end { text-align: right; }
+.omni-timeline-horizontal.omni-timeline-center.omni-timeline-reverse .omni-timeline-item { flex-direction: column-reverse; }

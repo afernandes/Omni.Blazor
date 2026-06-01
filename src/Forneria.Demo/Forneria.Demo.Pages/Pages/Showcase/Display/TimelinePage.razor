@@ -1,0 +1,222 @@
+@page "/showcase/timeline"
+@layout ShowcaseLayout
+
+<PageTitle>Timeline — Showcase</PageTitle>
+
+<ShowcasePage Title="Timeline"
+              Subtitle="Sequência de eventos ao longo de uma linha — releases, histórico de pedido, auditoria.">
+
+    <Overview>
+        <p>
+            O <code>OmniTimeline</code> dispõe uma lista de <code>OmniTimelineItem</code> ao longo de
+            uma linha conectora. Cada item tem três regiões: o <strong>lado oposto</strong>
+            (<code>Label</code>/<code>LabelContent</code> — tipicamente a data), o <strong>ponto</strong>
+            no eixo central (cor/variante/tamanho configuráveis, com conteúdo livre via
+            <code>PointContent</code>) e o <strong>conteúdo principal</strong>
+            (<code>Text</code>/<code>ChildContent</code>).
+        </p>
+        <p>
+            A linha, as pontas e o zigue-zague são 100% CSS a partir das classes do root — a posição
+            (<code>Center</code>/<code>Start</code>/<code>End</code>/<code>Alternate</code>), a
+            <code>Orientation</code> (vertical/horizontal) e <code>Reverse</code> recompõem o layout
+            sem nenhum JS. Ajuste visual fino via CSS vars: <code>--omni-timeline-axis-size</code>,
+            <code>--omni-timeline-line-width</code>, <code>--omni-timeline-line-color</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Histórico/rastreamento de um pedido (recebido → preparo → pronto → entregue).</li>
+            <li>Changelog / roadmap de releases com datas.</li>
+            <li>Trilha de auditoria, atividade de uma conta, log de eventos.</li>
+            <li>Linha do tempo de marketing ("nossa jornada") com itens alternados.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Fluxo interativo com etapas navegáveis → use <code>OmniStepper</code>.</li>
+            <li>Lista tabular de eventos com colunas → use <code>OmniDataGrid</code>.</li>
+            <li>Apenas um status atual (sem histórico) → use <code>OmniStatusBadge</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO (VERTICAL, CENTRALIZADA)"
+                         Description="Data no lado oposto (Label) + descrição no conteúdo. O primeiro ponto destaca o evento mais recente."
+                         Code="@(@"<OmniTimeline>
+    <OmniTimelineItem PointStyle=""TimelinePointStyle.Accent"" Label=""NOV 2025"">
+        Lançamento da versão 1.0 da Omni.Blazor.
+    </OmniTimelineItem>
+    <OmniTimelineItem Label=""SET 2025"">Beta pública com 120 componentes.</OmniTimelineItem>
+</OmniTimeline>")">
+            <OmniTimeline>
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Accent" Label="NOV 2025">
+                    Lançamento da versão <strong>1.0</strong> da Omni.Blazor.
+                </OmniTimelineItem>
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Good" Label="SET 2025">
+                    Beta pública com 120 componentes e tema escuro.
+                </OmniTimelineItem>
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Info" Label="JUL 2025">
+                    Primeira POC do DataGrid e do Scheduler.
+                </OmniTimelineItem>
+                <OmniTimelineItem Label="MAI 2025">
+                    Início do projeto.
+                </OmniTimelineItem>
+            </OmniTimeline>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="POSIÇÃO DA LINHA"
+                         Description="Center (oposto + conteúdo), Start (linha à esquerda, conteúdo cheio à direita), End (espelhado). Troque ao vivo:"
+                         Code="@(@"<OmniTimeline LinePosition=""@_pos"">…</OmniTimeline>")">
+            <OmniSegmentedControl TValue="TimelineLinePosition" @bind-Value="_pos" Items="@_posItems" />
+            <div style="margin-top:16px;max-width:620px;">
+                <OmniTimeline LinePosition="_pos">
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Accent" Label="14:02">
+                        Pedido recebido pelo caixa.
+                    </OmniTimelineItem>
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Warn" Label="14:05">
+                        Em preparo na cozinha.
+                    </OmniTimelineItem>
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Info" Label="14:18">
+                        Pronto — aguardando entregador.
+                    </OmniTimelineItem>
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Good" Label="14:31">
+                        Entregue ao cliente.
+                    </OmniTimelineItem>
+                </OmniTimeline>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ALTERNADO (ZIGUE-ZAGUE)"
+                         Description="LinePosition.Alternate centraliza a linha e alterna os itens de lado — ótimo para 'nossa jornada'."
+                         Code="@(@"<OmniTimeline LinePosition=""TimelineLinePosition.Alternate"">…</OmniTimeline>")">
+            <div style="max-width:640px;margin:0 auto;">
+                <OmniTimeline LinePosition="TimelineLinePosition.Alternate">
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Warn">
+                        <LabelContent><OmniBadge Text="2019" Variant="BadgeVariant.Warn" /></LabelContent>
+                        <ChildContent><strong>Primeira loja</strong> aberta no centro.</ChildContent>
+                    </OmniTimelineItem>
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Danger">
+                        <LabelContent><OmniBadge Text="2021" Variant="BadgeVariant.Danger" /></LabelContent>
+                        <ChildContent>Expansão para <strong>5 unidades</strong>.</ChildContent>
+                    </OmniTimelineItem>
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Accent">
+                        <LabelContent><OmniBadge Text="2024" Variant="BadgeVariant.Accent" /></LabelContent>
+                        <ChildContent>Lançamento do <strong>app de delivery</strong> próprio.</ChildContent>
+                    </OmniTimelineItem>
+                    <OmniTimelineItem PointStyle="TimelinePointStyle.Good">
+                        <LabelContent><OmniBadge Text="2026" Variant="BadgeVariant.Good" /></LabelContent>
+                        <ChildContent>Franquia em <strong>3 estados</strong>.</ChildContent>
+                    </OmniTimelineItem>
+                </OmniTimeline>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HORIZONTAL"
+                         Description="Orientation.Horizontal flui da esquerda para a direita, com conteúdo acima e abaixo da linha."
+                         Code="@(@"<OmniTimeline Orientation=""Orientation.Horizontal"">…</OmniTimeline>")">
+            <OmniTimeline Orientation="Orientation.Horizontal">
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Accent" Label="Plano" Text="Definição de escopo." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Warn" Label="Design" Text="Wireframes e tokens." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Info" Label="Build" Text="Implementação." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Good" Label="Ship" Text="Release 1.0." />
+            </OmniTimeline>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESTILOS DE PONTO"
+                         Description="Seis intenções semânticas mapeadas para os tokens de cor."
+                         Code="@(@"<OmniTimelineItem PointStyle=""TimelinePointStyle.Good"" Text=""Good"" />")">
+            <OmniTimeline LinePosition="TimelineLinePosition.Start">
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Base" Text="Base — neutro." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Accent" Text="Accent — destaque." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Good" Text="Good — sucesso." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Warn" Text="Warn — atenção." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Danger" Text="Danger — erro." />
+                <OmniTimelineItem PointStyle="TimelinePointStyle.Info" Text="Info — informativo." />
+            </OmniTimeline>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VARIANTES + CONTEÚDO NO PONTO"
+                         Description="Filled / Outlined / Text, e PointContent para colocar ícone, letra ou número dentro do ponto (use PointSize=Lg/Xl)."
+                         Code="@(@"<OmniTimelineItem PointSize=""ComponentSize.Lg"" PointStyle=""TimelinePointStyle.Good""
+                  PointVariant=""TimelinePointVariant.Text"">
+    <PointContent><OmniIcon Name=""check"" /></PointContent>
+    <ChildContent>Concluído</ChildContent>
+</OmniTimelineItem>")">
+            <OmniTimeline LinePosition="TimelineLinePosition.Start">
+                <OmniTimelineItem PointSize="ComponentSize.Lg" PointStyle="TimelinePointStyle.Accent" PointVariant="TimelinePointVariant.Filled">
+                    <PointContent><OmniIcon Name="user" Size="ComponentSize.Sm" /></PointContent>
+                    <ChildContent><strong>Filled</strong> — ícone na cor de contraste.</ChildContent>
+                </OmniTimelineItem>
+                <OmniTimelineItem PointSize="ComponentSize.Lg" PointStyle="TimelinePointStyle.Warn" PointVariant="TimelinePointVariant.Outlined">
+                    <PointContent>2</PointContent>
+                    <ChildContent><strong>Outlined</strong> — anel colorido, número dentro.</ChildContent>
+                </OmniTimelineItem>
+                <OmniTimelineItem PointSize="ComponentSize.Lg" PointStyle="TimelinePointStyle.Good" PointVariant="TimelinePointVariant.Text">
+                    <PointContent><OmniIcon Name="check" Size="ComponentSize.Sm" /></PointContent>
+                    <ChildContent><strong>Text</strong> — só o ícone colorido.</ChildContent>
+                </OmniTimelineItem>
+            </OmniTimeline>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS DO PONTO"
+                         Description="Sm / Md / Lg / Xl via PointSize (reusa ComponentSize)."
+                         Code="@(@"<OmniTimelineItem PointSize=""ComponentSize.Xl"" Text=""Xl"" />")">
+            <OmniTimeline LinePosition="TimelineLinePosition.Start">
+                <OmniTimelineItem PointSize="ComponentSize.Sm" PointStyle="TimelinePointStyle.Accent" Text="Sm" />
+                <OmniTimelineItem PointSize="ComponentSize.Md" PointStyle="TimelinePointStyle.Accent" Text="Md (default)" />
+                <OmniTimelineItem PointSize="ComponentSize.Lg" PointStyle="TimelinePointStyle.Accent" Text="Lg" />
+                <OmniTimelineItem PointSize="ComponentSize.Xl" PointStyle="TimelinePointStyle.Accent" Text="Xl" />
+            </OmniTimeline>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniTimeline">
+            <ShowcaseApiRow Name="Orientation" Type="Orientation" Default="Vertical"
+                            Description="Vertical (column) ou Horizontal (row)." />
+            <ShowcaseApiRow Name="LinePosition" Type="TimelineLinePosition" Default="Center"
+                            Description="Center | Start | End | Alternate." />
+            <ShowcaseApiRow Name="Reverse" Type="bool" Default="false"
+                            Description="Inverte o lado do conteúdo (oposto ↔ principal)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
+                            Description="Os OmniTimelineItem." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Parâmetros — OmniTimelineItem">
+            <ShowcaseApiRow Name="PointStyle" Type="TimelinePointStyle" Default="Base"
+                            Description="Base | Accent | Good | Warn | Danger | Info." />
+            <ShowcaseApiRow Name="PointVariant" Type="TimelinePointVariant" Default="Filled"
+                            Description="Filled | Outlined | Text." />
+            <ShowcaseApiRow Name="PointSize" Type="ComponentSize" Default="Md"
+                            Description="Sm | Md | Lg | Xl." />
+            <ShowcaseApiRow Name="PointContent" Type="RenderFragment?" Default="null"
+                            Description="Conteúdo dentro do ponto (ícone, letra, avatar)." />
+            <ShowcaseApiRow Name="Label / LabelContent" Type="string? / RenderFragment?" Default="null"
+                            Description="Conteúdo do lado oposto (data/badge)." />
+            <ShowcaseApiRow Name="Text / ChildContent" Type="string? / RenderFragment?" Default="null"
+                            Description="Conteúdo principal do evento." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="CSS custom properties">
+            <ShowcaseApiRow Name="--omni-timeline-axis-size" Type="length" Default="56px"
+                            Description="Largura/altura do eixo central (espaço para o ponto)." />
+            <ShowcaseApiRow Name="--omni-timeline-line-width" Type="length" Default="2px" Description="Espessura da linha." />
+            <ShowcaseApiRow Name="--omni-timeline-line-color" Type="color" Default="--omni-line-strong" Description="Cor da linha." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private TimelineLinePosition _pos = TimelineLinePosition.Center;
+
+    private readonly IEnumerable<OmniSegmentedControl<TimelineLinePosition>.Item> _posItems = new[]
+    {
+        new OmniSegmentedControl<TimelineLinePosition>.Item(TimelineLinePosition.Center, "Center"),
+        new OmniSegmentedControl<TimelineLinePosition>.Item(TimelineLinePosition.Start, "Start"),
+        new OmniSegmentedControl<TimelineLinePosition>.Item(TimelineLinePosition.End, "End"),
+        new OmniSegmentedControl<TimelineLinePosition>.Item(TimelineLinePosition.Alternate, "Alternate"),
+    };
+}

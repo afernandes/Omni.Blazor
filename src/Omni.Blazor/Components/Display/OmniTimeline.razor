@@ -1,0 +1,43 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniTimeline — vertical/horizontal sequence of events along a connecting
+    line, inspired by RadzenTimeline. Each child <OmniTimelineItem> renders its
+    own [opposite/label | point | content] layout; the line, caps and
+    alternation are pure CSS driven by the modifier classes on this root (no
+    registrar needed). Override visuals per-instance via CSS vars:
+    --omni-timeline-axis-size, --omni-timeline-line-width, --omni-timeline-line-color.
+
+    Usage:
+        <OmniTimeline LinePosition="TimelineLinePosition.Alternate">
+            <OmniTimelineItem PointStyle="TimelinePointStyle.Accent" Label="NOV 2025">
+                Lançamento da versão 1.0.
+            </OmniTimelineItem>
+            <OmniTimelineItem PointStyle="TimelinePointStyle.Good" Label="JAN 2026" Text="GA estável." />
+        </OmniTimeline>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Vertical (column, default) or Horizontal (row) flow.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Vertical;
+
+    /// <summary>Where the line sits relative to content (Center/Start/End/Alternate).</summary>
+    [Parameter] public TimelineLinePosition LinePosition { get; set; } = TimelineLinePosition.Center;
+
+    /// <summary>Reverses the visual side of content (swaps opposite/main).</summary>
+    [Parameter] public bool Reverse { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-timeline")
+        .AddClass(Orientation == Orientation.Vertical ? "omni-timeline-vertical" : "omni-timeline-horizontal")
+        .AddClass($"omni-timeline-{LinePosition.ToString().ToLowerInvariant()}")
+        .AddClass("omni-timeline-reverse", Reverse)
+        .AddClass(Class)
+        .Build();
+}

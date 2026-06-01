@@ -311,3 +311,25 @@ public enum LinkVariant { Default, Muted, Danger }
 
 /// <summary>Variante visual de um <c>OmniToggleButton</c>.</summary>
 public enum ToggleVariant { Default, Primary, Accent, Ghost }
+
+/// <summary>Cor/intent semântico do ponto (dot) de um <c>OmniTimelineItem</c>.
+/// Mapeia para os tokens <c>--omni-fg-muted</c> (Base), <c>--omni-accent</c>,
+/// <c>--omni-good</c>, <c>--omni-warn</c>, <c>--omni-danger</c> ou <c>--omni-info</c>.</summary>
+public enum TimelinePointStyle { Base, Accent, Good, Warn, Danger, Info }
+
+/// <summary>Variante de preenchimento do ponto de um <c>OmniTimelineItem</c>:
+/// <list type="bullet">
+///   <item><term>Filled</term><description>fundo sólido na cor do estilo (default).</description></item>
+///   <item><term>Outlined</term><description>fundo neutro com anel interno colorido.</description></item>
+///   <item><term>Text</term><description>fundo neutro, sem anel — só o conteúdo (ícone/letra) colorido.</description></item>
+/// </list></summary>
+public enum TimelinePointVariant { Filled, Outlined, Text }
+
+/// <summary>Posição da linha de um <c>OmniTimeline</c> em relação ao conteúdo:
+/// <list type="bullet">
+///   <item><term>Center</term><description>linha no centro, conteúdo dos dois lados (default).</description></item>
+///   <item><term>Start</term><description>linha na borda inicial; conteúdo só do lado final.</description></item>
+///   <item><term>End</term><description>linha na borda final; conteúdo só do lado inicial.</description></item>
+///   <item><term>Alternate</term><description>linha no centro; itens alternam de lado (zigue-zague).</description></item>
+/// </list></summary>
+public enum TimelineLinePosition { Center, Start, End, Alternate }
