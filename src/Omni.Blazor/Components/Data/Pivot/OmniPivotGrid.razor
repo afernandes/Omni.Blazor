@@ -1,0 +1,537 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@attribute [CascadingTypeParameter(nameof(TItem))]
+@inherits OmniComponent
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniPivotGrid — pivot table (RadzenPivotDataGrid port). Cross-tabulates a flat
+    Data list into row groups × column groups, aggregating one or more measures at
+    each intersection. Declare dimensions/measures via child components:
+
+        <OmniPivotGrid Data="@sales" TItem="Sale" ShowRowTotals ShowColumnTotals>
+            <Rows>
+                <OmniPivotRow TItem="Sale" Property="Category" Title="Categoria" />
+                <OmniPivotRow TItem="Sale" Property="Product" Title="Produto" />
+            </Rows>
+            <Columns>
+                <OmniPivotColumn TItem="Sale" Property="Year" Title="Ano" />
+            </Columns>
+            <Values>
+                <OmniPivotValue TItem="Sale" Property="Total" Aggregate="AggregateFunction.Sum" FormatString="{0:C}" />
+            </Values>
+        </OmniPivotGrid>
+
+    Drill-down (expand/collapse) works on both axes (AllowDrillDown). Aggregation
+    is a single bucketed pass over the data (not per-cell re-queries).
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <div style="display:none">@Rows@Columns@Values</div>
+</CascadingValue>
+
+@{ EnsureModel(); }
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (_empty)
+    {
+        <div class="omni-pivot-empty">@EmptyText</div>
+    }
+    else
+    {
+        <div class="omni-pivot-scroll">
+            <table class="omni-pivot-table">
+                <thead class="omni-pivot-head">
+                    @for (int hr = 0; hr < _colLevels; hr++)
+                    {
+                        <tr>
+                            @if (hr == 0)
+                            {
+                                @for (int r = 0; r < _rowLevels; r++)
+                                {
+                                    <th class="omni-pivot-corner" rowspan="@(_colLevels + 1)">@_rows[r].GetTitle()</th>
+                                }
+                            }
+                            @foreach (var cell in _colHeaderRows[hr])
+                            {
+                                <th class="omni-pivot-col-head" colspan="@cell.ColSpan" rowspan="@cell.RowSpan">
+                                    <span class="omni-pivot-head-inner">
+                                        @if (AllowDrillDown && cell.HasChildren)
+                                        {
+                                            <button type="button" class="omni-pivot-toggle" @onclick="@(() => ToggleCol(cell.PathKey))">
+                                                <OmniIcon Name="@(cell.Collapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                                            </button>
+                                        }
+                                        <span>@cell.Text</span>
+                                    </span>
+                                </th>
+                            }
+                            @if (hr == 0 && ShowRowTotals)
+                            {
+                                @foreach (var v in _values)
+                                {
+                                    <th class="omni-pivot-total-head" rowspan="@(_colLevels + 1)">
+                                        @TotalsText@if (_values.Count > 1) { <br />@v.GetTitle() }
+                                    </th>
+                                }
+                            }
+                        </tr>
+                    }
+                    <tr class="omni-pivot-agg-row">
+                        @if (_colLevels == 0)
+                        {
+                            @for (int r = 0; r < _rowLevels; r++)
+                            {
+                                <th class="omni-pivot-corner" rowspan="1">@_rows[r].GetTitle()</th>
+                            }
+                        }
+                        @for (int ci = 0; ci < _visibleColLeaves.Count; ci++)
+                        {
+                            @foreach (var v in _values)
+                            {
+                                <th class="omni-pivot-agg-head" style="@($"text-align:{v.Align}")">@v.GetTitle()</th>
+                            }
+                        }
+                        @if (_colLevels == 0 && ShowRowTotals)
+                        {
+                            @foreach (var v in _values)
+                            {
+                                <th class="omni-pivot-total-head">
+                                    @TotalsText@if (_values.Count > 1) { <br />@v.GetTitle() }
+                                </th>
+                            }
+                        }
+                    </tr>
+                </thead>
+                <tbody class="omni-pivot-body">
+                    @{ var rowIdx = 0; }
+                    @foreach (var row in _bodyRows)
+                    {
+                        var ri = rowIdx;
+                        <tr class="@($"omni-pivot-row {(ri % 2 == 1 ? "omni-pivot-row-alt" : "")}")">
+                            @foreach (var h in row.Headers)
+                            {
+                                <td class="@($"omni-pivot-row-head {(h.Indent == 0 ? "omni-pivot-row-head-root" : "")}")"
+                                    rowspan="@h.RowSpan" colspan="@h.ColSpan"
+                                    style="@($"padding-inline-start:{h.Indent * 16 + 10}px")">
+                                    <span class="omni-pivot-head-inner">
+                                        @if (AllowDrillDown && h.HasChildren)
+                                        {
+                                            <button type="button" class="omni-pivot-toggle" @onclick="@(() => ToggleRow(h.PathKey))">
+                                                <OmniIcon Name="@(h.Collapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                                            </button>
+                                        }
+                                        <span>@h.Text</span>
+                                    </span>
+                                </td>
+                            }
+                            @for (int ci = 0; ci < _visibleColLeaves.Count; ci++)
+                            {
+                                @for (int vi = 0; vi < _values.Count; vi++)
+                                {
+                                    var v = _values[vi];
+                                    var val = row.Values[ci * _values.Count + vi];
+                                    <td class="omni-pivot-value" style="@($"text-align:{v.Align}")">
+                                        @if (v.Template is not null) { @v.Template(val) }
+                                        else { @v.Format(val) }
+                                    </td>
+                                }
+                            }
+                            @if (ShowRowTotals)
+                            {
+                                @for (int vi = 0; vi < _values.Count; vi++)
+                                {
+                                    var v = _values[vi];
+                                    <td class="omni-pivot-total-cell" style="@($"text-align:{v.Align}")">@v.Format(row.RowTotals[vi])</td>
+                                }
+                            }
+                        </tr>
+                        rowIdx++;
+                    }
+                </tbody>
+                @if (ShowColumnTotals)
+                {
+                    <tfoot class="omni-pivot-foot">
+                        <tr>
+                            <th class="omni-pivot-foot-head" colspan="@Math.Max(1, _rowLevels)">@GrandTotalText</th>
+                            @for (int ci = 0; ci < _visibleColLeaves.Count; ci++)
+                            {
+                                @for (int vi = 0; vi < _values.Count; vi++)
+                                {
+                                    var v = _values[vi];
+                                    <td class="omni-pivot-foot-cell" style="@($"text-align:{v.Align}")">@v.Format(_colTotals[ci][vi])</td>
+                                }
+                            }
+                            @if (ShowRowTotals)
+                            {
+                                @for (int vi = 0; vi < _values.Count; vi++)
+                                {
+                                    var v = _values[vi];
+                                    <td class="omni-pivot-foot-grand" style="@($"text-align:{v.Align}")">@v.Format(_grand[vi])</td>
+                                }
+                            }
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Flat data source to pivot.</summary>
+    [Parameter] public IReadOnlyList<TItem>? Data { get; set; }
+
+    /// <summary>Row dimension declarations (<c>OmniPivotRow</c>).</summary>
+    [Parameter] public RenderFragment? Rows { get; set; }
+
+    /// <summary>Column dimension declarations (<c>OmniPivotColumn</c>).</summary>
+    [Parameter] public RenderFragment? Columns { get; set; }
+
+    /// <summary>Value/measure declarations (<c>OmniPivotValue</c>).</summary>
+    [Parameter] public RenderFragment? Values { get; set; }
+
+    /// <summary>Shows a right-hand totals column (per measure, per row group).</summary>
+    [Parameter] public bool ShowRowTotals { get; set; }
+
+    /// <summary>Shows a bottom totals row (per measure, per column group) + grand total.</summary>
+    [Parameter] public bool ShowColumnTotals { get; set; }
+
+    /// <summary>Lets the user expand/collapse row and column groups. Default true.</summary>
+    [Parameter] public bool AllowDrillDown { get; set; } = true;
+
+    /// <summary>Text shown when there's nothing to pivot.</summary>
+    [Parameter] public string EmptyText { get; set; } = "Sem dados para exibir.";
+
+    /// <summary>Label of the totals column/row headers.</summary>
+    [Parameter] public string TotalsText { get; set; } = "Total";
+
+    /// <summary>Label of the grand-total footer cell.</summary>
+    [Parameter] public string GrandTotalText { get; set; } = "Total geral";
+
+    private readonly List<OmniPivotRow<TItem>> _rows = new();
+    private readonly List<OmniPivotColumn<TItem>> _cols = new();
+    private readonly List<OmniPivotValue<TItem>> _values = new();
+    private readonly HashSet<string> _collapsedRows = new();
+    private readonly HashSet<string> _collapsedCols = new();
+    private bool _dirty = true;
+
+    private string RootCss => CssBuilder.Default("omni-pivot").AddClass(Class).Build();
+
+    // ─── Registration ──────────────────────────────────────────────────────
+    internal void AddRow(OmniPivotRow<TItem> f) { if (!_rows.Contains(f)) { _rows.Add(f); MarkDirty(); } }
+    internal void RemoveRow(OmniPivotRow<TItem> f) { if (_rows.Remove(f)) MarkDirty(); }
+    internal void AddColumn(OmniPivotColumn<TItem> f) { if (!_cols.Contains(f)) { _cols.Add(f); MarkDirty(); } }
+    internal void RemoveColumn(OmniPivotColumn<TItem> f) { if (_cols.Remove(f)) MarkDirty(); }
+    internal void AddValue(OmniPivotValue<TItem> f) { if (!_values.Contains(f)) { _values.Add(f); MarkDirty(); } }
+    internal void RemoveValue(OmniPivotValue<TItem> f) { if (_values.Remove(f)) MarkDirty(); }
+
+    private void MarkDirty() { _dirty = true; StateHasChanged(); }
+
+    protected override void OnParametersSet() => _dirty = true;
+
+    private void ToggleCol(string pathKey) { if (!_collapsedCols.Remove(pathKey)) _collapsedCols.Add(pathKey); MarkDirty(); }
+    private void ToggleRow(string pathKey) { if (!_collapsedRows.Remove(pathKey)) _collapsedRows.Add(pathKey); MarkDirty(); }
+
+    // ─── Model (render-ready) ──────────────────────────────────────────────
+    private bool _empty;
+    private int _rowLevels, _colLevels;
+    private List<List<ColCell>> _colHeaderRows = new();
+    private List<PivotNode> _visibleColLeaves = new();
+    private List<BodyRow> _bodyRows = new();
+    private object?[][] _colTotals = System.Array.Empty<object?[]>();
+    private object?[] _grand = System.Array.Empty<object?>();
+
+    private sealed class PivotNode
+    {
+        public object? Key;
+        public OmniPivotFieldBase<TItem> Field = null!;
+        public int Level;
+        public List<TItem> Items = new();
+        public List<PivotNode> Children = new();
+        public PivotNode? Parent;
+        public string PathKey = "";
+        public bool IsLeaf => Children.Count == 0;
+    }
+
+    private sealed class ColCell
+    {
+        public string Text = "";
+        public int ColSpan, RowSpan;
+        public bool HasChildren, Collapsed;
+        public string PathKey = "";
+    }
+
+    private sealed class RowCell
+    {
+        public string Text = "";
+        public int RowSpan, ColSpan, Indent;
+        public bool HasChildren, Collapsed;
+        public string PathKey = "";
+    }
+
+    private sealed class BodyRow
+    {
+        public List<RowCell> Headers = new();
+        public object?[] Values = System.Array.Empty<object?>();
+        public object?[] RowTotals = System.Array.Empty<object?>();
+    }
+
+    private sealed class Acc
+    {
+        public long Count, NumCount;
+        public double Sum, Min = double.MaxValue, Max = double.MinValue;
+        public void Add(object? raw)
+        {
+            Count++;
+            if (raw is null) return;
+            if (TryNum(raw, out var d)) { NumCount++; Sum += d; if (d < Min) Min = d; if (d > Max) Max = d; }
+        }
+        public object? Finalize(AggregateFunction fn) => fn switch
+        {
+            AggregateFunction.Count => Count == 0 ? null : (object)Count,
+            AggregateFunction.Sum => NumCount > 0 ? Sum : null,
+            AggregateFunction.Average => NumCount > 0 ? Sum / NumCount : null,
+            AggregateFunction.Min => NumCount > 0 ? Min : null,
+            AggregateFunction.Max => NumCount > 0 ? Max : null,
+            _ => null
+        };
+        private static bool TryNum(object raw, out double d)
+        {
+            switch (raw)
+            {
+                case double x: d = x; return true;
+                case int x: d = x; return true;
+                case long x: d = x; return true;
+                case decimal x: d = (double)x; return true;
+                case float x: d = x; return true;
+                case short x: d = x; return true;
+                case byte x: d = x; return true;
+                default:
+                    try { d = System.Convert.ToDouble(raw, CultureInfo.InvariantCulture); return true; }
+                    catch { d = 0; return false; }
+            }
+        }
+    }
+
+    private void EnsureModel()
+    {
+        if (!_dirty) return;
+        _dirty = false;
+        BuildModel();
+    }
+
+    private bool IsColCollapsed(PivotNode n) => AllowDrillDown && !n.IsLeaf && _collapsedCols.Contains(n.PathKey);
+    private bool IsRowCollapsed(PivotNode n) => AllowDrillDown && !n.IsLeaf && _collapsedRows.Contains(n.PathKey);
+
+    private void BuildModel()
+    {
+        var data = Data ?? System.Array.Empty<TItem>();
+        _rowLevels = _rows.Count;
+        _colLevels = _cols.Count;
+        var V = _values.Count;
+
+        _empty = data.Count == 0 || _rows.Count == 0 || _values.Count == 0;
+        if (_empty) { _bodyRows = new(); _visibleColLeaves = new(); _colHeaderRows = new(); return; }
+
+        // Build trees.
+        var rowTree = BuildLevel(data, _rows.Cast<OmniPivotFieldBase<TItem>>().ToList(), 0, "", null);
+        var colTree = _cols.Count == 0
+            ? new List<PivotNode>()
+            : BuildLevel(data, _cols.Cast<OmniPivotFieldBase<TItem>>().ToList(), 0, "", null);
+
+        // Visible (frontier) leaves.
+        var rowLeaves = new List<PivotNode>();
+        foreach (var r in rowTree) CollectRowLeaves(r, rowLeaves);
+
+        _visibleColLeaves = new();
+        if (_cols.Count == 0)
+        {
+            _visibleColLeaves.Add(new PivotNode { Items = data.ToList(), PathKey = "" }); // single virtual column
+        }
+        else
+        {
+            foreach (var c in colTree) CollectColLeaves(c, _visibleColLeaves);
+        }
+
+        // Column header rows (with colspan/rowspan).
+        _colHeaderRows = new();
+        for (int i = 0; i < _cols.Count; i++) _colHeaderRows.Add(new List<ColCell>());
+        foreach (var c in colTree) FillColHeaders(c, 0, V);
+
+        // ── Aggregation (single bucketed pass) ──
+        var C = _visibleColLeaves.Count;
+        var R = rowLeaves.Count;
+
+        // Map each data item to its column-leaf index (the frontier leaves
+        // partition the data). Reference identity keys — works for class items.
+        var itemCol = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+        for (int ci = 0; ci < C; ci++)
+            foreach (var it in _visibleColLeaves[ci].Items)
+                if (it is not null) itemCol[it] = ci;
+
+        var cell = new Acc[R][][];
+        var rowTotal = new Acc[R][];
+        for (int ri = 0; ri < R; ri++)
+        {
+            cell[ri] = new Acc[C][];
+            for (int ci = 0; ci < C; ci++) { cell[ri][ci] = new Acc[V]; for (int vi = 0; vi < V; vi++) cell[ri][ci][vi] = new Acc(); }
+            rowTotal[ri] = new Acc[V];
+            for (int vi = 0; vi < V; vi++) rowTotal[ri][vi] = new Acc();
+        }
+
+        for (int ri = 0; ri < R; ri++)
+        {
+            foreach (var it in rowLeaves[ri].Items)
+            {
+                var ci = it is not null && itemCol.TryGetValue(it, out var x) ? x : -1;
+                for (int vi = 0; vi < V; vi++)
+                {
+                    var val = _values[vi].GetValue(it);
+                    if (ci >= 0) cell[ri][ci][vi].Add(val);
+                    rowTotal[ri][vi].Add(val);
+                }
+            }
+        }
+
+        // Column totals + grand (only needed when shown).
+        _colTotals = new object?[C][];
+        _grand = new object?[V];
+        if (ShowColumnTotals)
+        {
+            for (int ci = 0; ci < C; ci++)
+            {
+                var accs = new Acc[V];
+                for (int vi = 0; vi < V; vi++) accs[vi] = new Acc();
+                foreach (var it in _visibleColLeaves[ci].Items)
+                    for (int vi = 0; vi < V; vi++) accs[vi].Add(_values[vi].GetValue(it));
+                _colTotals[ci] = new object?[V];
+                for (int vi = 0; vi < V; vi++) _colTotals[ci][vi] = accs[vi].Finalize(_values[vi].Aggregate);
+            }
+            var grandAcc = new Acc[V];
+            for (int vi = 0; vi < V; vi++) grandAcc[vi] = new Acc();
+            foreach (var it in data)
+                for (int vi = 0; vi < V; vi++) grandAcc[vi].Add(_values[vi].GetValue(it));
+            for (int vi = 0; vi < V; vi++) _grand[vi] = grandAcc[vi].Finalize(_values[vi].Aggregate);
+        }
+
+        // ── Body rows (row headers with rowspan merging) ──
+        _bodyRows = new();
+        var active = new int[Math.Max(1, _rows.Count)];
+        for (int ri = 0; ri < R; ri++)
+        {
+            var leaf = rowLeaves[ri];
+            var path = PathTo(leaf);
+            var headers = new List<RowCell>();
+            for (int p = 0; p <= leaf.Level; p++)
+            {
+                if (active[p] > 0) { active[p]--; continue; }
+                var node = path[p];
+                bool atLeaf = p == leaf.Level;
+                int rowspan = RowLeafCount(node);
+                int colspan = atLeaf ? (_rows.Count - leaf.Level) : 1;
+                headers.Add(new RowCell
+                {
+                    Text = node.Field.KeyText(node.Key),
+                    RowSpan = rowspan,
+                    ColSpan = colspan,
+                    Indent = p,
+                    HasChildren = !node.IsLeaf,
+                    Collapsed = atLeaf && !node.IsLeaf
+                    ,
+                    PathKey = node.PathKey
+                });
+                active[p] = rowspan - 1;
+            }
+
+            var values = new object?[C * V];
+            for (int ci = 0; ci < C; ci++)
+                for (int vi = 0; vi < V; vi++)
+                    values[ci * V + vi] = cell[ri][ci][vi].Finalize(_values[vi].Aggregate);
+
+            var rowTotals = new object?[V];
+            for (int vi = 0; vi < V; vi++) rowTotals[vi] = rowTotal[ri][vi].Finalize(_values[vi].Aggregate);
+
+            _bodyRows.Add(new BodyRow { Headers = headers, Values = values, RowTotals = rowTotals });
+        }
+    }
+
+    private List<PivotNode> BuildLevel(IReadOnlyList<TItem> items, IReadOnlyList<OmniPivotFieldBase<TItem>> fields, int level, string parentKey, PivotNode? parent)
+    {
+        var nodes = new List<PivotNode>();
+        if (level >= fields.Count) return nodes;
+        var field = fields[level];
+        var groups = items.GroupBy(field.GetValue).OrderBy(g => g.Key, PivotKeyComparer.Instance).ToList();
+        foreach (var g in groups)
+        {
+            var groupItems = g.ToList();
+            var keyStr = g.Key?.ToString() ?? "∅";
+            var pathKey = parentKey.Length == 0 ? keyStr : parentKey + "|" + keyStr;
+            var node = new PivotNode { Key = g.Key, Field = field, Level = level, Items = groupItems, PathKey = pathKey, Parent = parent };
+            node.Children = BuildLevel(groupItems, fields, level + 1, pathKey, node);
+            nodes.Add(node);
+        }
+        return nodes;
+    }
+
+    private void CollectRowLeaves(PivotNode n, List<PivotNode> acc)
+    {
+        if (n.IsLeaf || IsRowCollapsed(n)) acc.Add(n);
+        else foreach (var c in n.Children) CollectRowLeaves(c, acc);
+    }
+    private void CollectColLeaves(PivotNode n, List<PivotNode> acc)
+    {
+        if (n.IsLeaf || IsColCollapsed(n)) acc.Add(n);
+        else foreach (var c in n.Children) CollectColLeaves(c, acc);
+    }
+
+    private int RowLeafCount(PivotNode n)
+    {
+        if (n.IsLeaf || IsRowCollapsed(n)) return 1;
+        return n.Children.Sum(RowLeafCount);
+    }
+    private int ColLeafCount(PivotNode n)
+    {
+        if (n.IsLeaf || IsColCollapsed(n)) return 1;
+        return n.Children.Sum(ColLeafCount);
+    }
+
+    private void FillColHeaders(PivotNode n, int level, int V)
+    {
+        bool frontier = n.IsLeaf || IsColCollapsed(n);
+        _colHeaderRows[level].Add(new ColCell
+        {
+            Text = n.Field.KeyText(n.Key),
+            ColSpan = (frontier ? 1 : ColLeafCount(n)) * Math.Max(1, V),
+            RowSpan = frontier ? (_cols.Count - level) : 1,
+            HasChildren = !n.IsLeaf,
+            Collapsed = IsColCollapsed(n),
+            PathKey = n.PathKey
+        });
+        if (!frontier) foreach (var c in n.Children) FillColHeaders(c, level + 1, V);
+    }
+
+    private static List<PivotNode> PathTo(PivotNode leaf)
+    {
+        var list = new List<PivotNode>();
+        for (var n = leaf; n is not null; n = n.Parent) list.Add(n);
+        list.Reverse();
+        return list;
+    }
+
+    // Orders group keys: nulls last, then natural (IComparable) or string.
+    private sealed class PivotKeyComparer : IComparer<object?>
+    {
+        public static readonly PivotKeyComparer Instance = new();
+        public int Compare(object? x, object? y)
+        {
+            if (x is null && y is null) return 0;
+            if (x is null) return 1;
+            if (y is null) return -1;
+            if (x is IComparable cx && x.GetType() == y.GetType()) return cx.CompareTo(y);
+            return string.Compare(x.ToString(), y.ToString(), StringComparison.CurrentCulture);
+        }
+    }
+}

@@ -1,0 +1,155 @@
+@page "/showcase/pivot"
+@layout ShowcaseLayout
+
+<PageTitle>Pivot Grid — Showcase</PageTitle>
+
+<ShowcasePage Title="Pivot Grid"
+              Subtitle="Tabela dinâmica: cruza os dados em grupos de linha × grupos de coluna, agregando medidas em cada interseção.">
+
+    <Overview>
+        <p>
+            O <code>OmniPivotGrid</code> transforma uma lista plana numa <strong>tabela dinâmica</strong>.
+            Você declara <strong>linhas</strong> (<code>OmniPivotRow</code>), <strong>colunas</strong>
+            (<code>OmniPivotColumn</code>) e <strong>medidas</strong> (<code>OmniPivotValue</code> com
+            <code>Aggregate</code>). Cada célula é o agregado dos registros que caem naquele cruzamento;
+            linhas e colunas <strong>aninham</strong> (multi-nível).
+        </p>
+        <p>
+            Ative <code>ShowRowTotals</code>/<code>ShowColumnTotals</code> para os totais por linha/coluna
+            e o total geral. Com <code>AllowDrillDown</code> (ligado por padrão), clique nos chevrons dos
+            cabeçalhos para <strong>expandir/recolher</strong> grupos nos dois eixos. A agregação é uma
+            passagem única por bucket (não re-consulta célula a célula).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Relatórios de vendas por categoria × período × região.</li>
+            <li>Análise cruzada (cohorts, canais × meses, produto × loja).</li>
+            <li>Resumos com subtotais e total geral.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Lista detalhada linha a linha → use <code>OmniDataGrid</code>.</li>
+            <li>Agrupamento de uma dimensão só com linhas de detalhe → use o grouping do <code>OmniDataGrid</code>.</li>
+            <li>Série temporal/visual → use <code>OmniChart</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO — CATEGORIA × ANO"
+                         Description="Linhas = Categoria, Colunas = Ano, medida = Soma do total. Totais de linha e coluna ligados."
+                         Code="@(@"<OmniPivotGrid Data=""@_sales"" TItem=""Sale"" ShowRowTotals ShowColumnTotals>
+    <Rows>    <OmniPivotRow TItem=""Sale"" Property=""Category"" Title=""Categoria"" /> </Rows>
+    <Columns> <OmniPivotColumn TItem=""Sale"" Property=""Year"" Title=""Ano"" />        </Columns>
+    <Values>  <OmniPivotValue TItem=""Sale"" Property=""Amount"" Title=""Total""
+                               Aggregate=""AggregateFunction.Sum"" FormatString=""{0:C0}"" /> </Values>
+</OmniPivotGrid>")">
+            <div>
+                <OmniPivotGrid Data="@_sales" TItem="Sale" ShowRowTotals ShowColumnTotals>
+                    <Rows>
+                        <OmniPivotRow TItem="Sale" Property="Category" Title="Categoria" />
+                    </Rows>
+                    <Columns>
+                        <OmniPivotColumn TItem="Sale" Property="Year" Title="Ano" />
+                    </Columns>
+                    <Values>
+                        <OmniPivotValue TItem="Sale" Property="Amount" Title="Total"
+                                        Aggregate="AggregateFunction.Sum" FormatString="{0:C0}" />
+                    </Values>
+                </OmniPivotGrid>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ANINHADO + MÚLTIPLAS MEDIDAS"
+                         Description="Linhas Categoria→Produto, Colunas Ano→Região, e 3 medidas (Soma R$, Soma Qtde, Preço médio). Clique nos chevrons para drill-down nos dois eixos."
+                         Code="@(@"<OmniPivotGrid Data=""@_sales"" TItem=""Sale"" ShowRowTotals ShowColumnTotals>
+    <Rows>
+        <OmniPivotRow TItem=""Sale"" Property=""Category"" Title=""Categoria"" />
+        <OmniPivotRow TItem=""Sale"" Property=""Product"" Title=""Produto"" />
+    </Rows>
+    <Columns>
+        <OmniPivotColumn TItem=""Sale"" Property=""Year"" Title=""Ano"" />
+        <OmniPivotColumn TItem=""Sale"" Property=""Region"" Title=""Região"" />
+    </Columns>
+    <Values>
+        <OmniPivotValue TItem=""Sale"" Property=""Amount"" Title=""Total"" Aggregate=""AggregateFunction.Sum"" FormatString=""{0:C0}"" />
+        <OmniPivotValue TItem=""Sale"" Property=""Qty"" Title=""Qtde"" Aggregate=""AggregateFunction.Sum"" FormatString=""{0:0}"" />
+        <OmniPivotValue TItem=""Sale"" Property=""UnitPrice"" Title=""Preço méd."" Aggregate=""AggregateFunction.Average"" FormatString=""{0:C2}"" />
+    </Values>
+</OmniPivotGrid>")">
+            <div>
+                <OmniPivotGrid Data="@_sales" TItem="Sale" ShowRowTotals ShowColumnTotals Style="max-height:460px">
+                    <Rows>
+                        <OmniPivotRow TItem="Sale" Property="Category" Title="Categoria" />
+                        <OmniPivotRow TItem="Sale" Property="Product" Title="Produto" />
+                    </Rows>
+                    <Columns>
+                        <OmniPivotColumn TItem="Sale" Property="Year" Title="Ano" />
+                        <OmniPivotColumn TItem="Sale" Property="Region" Title="Região" />
+                    </Columns>
+                    <Values>
+                        <OmniPivotValue TItem="Sale" Property="Amount" Title="Total" Aggregate="AggregateFunction.Sum" FormatString="{0:C0}" />
+                        <OmniPivotValue TItem="Sale" Property="Qty" Title="Qtde" Aggregate="AggregateFunction.Sum" FormatString="{0:0}" />
+                        <OmniPivotValue TItem="Sale" Property="UnitPrice" Title="Preço méd." Aggregate="AggregateFunction.Average" FormatString="{0:C2}" />
+                    </Values>
+                </OmniPivotGrid>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniPivotGrid">
+            <ShowcaseApiRow Name="Data" Type="IReadOnlyList<TItem>?" Default="null" Description="Lista plana a ser cruzada." />
+            <ShowcaseApiRow Name="Rows / Columns / Values" Type="RenderFragment" Default="—" Description="Dimensões de linha/coluna e medidas." />
+            <ShowcaseApiRow Name="ShowRowTotals" Type="bool" Default="false" Description="Coluna de totais à direita (por medida)." />
+            <ShowcaseApiRow Name="ShowColumnTotals" Type="bool" Default="false" Description="Linha de totais embaixo + total geral." />
+            <ShowcaseApiRow Name="AllowDrillDown" Type="bool" Default="true" Description="Expande/recolhe grupos de linha e coluna." />
+            <ShowcaseApiRow Name="EmptyText / TotalsText / GrandTotalText" Type="string" Default="—" Description="Textos." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniPivotRow / OmniPivotColumn / OmniPivotValue">
+            <ShowcaseApiRow Name="Property / Title" Type="string?" Default="null" Description="Propriedade lida + cabeçalho." />
+            <ShowcaseApiRow Name="Aggregate (Value)" Type="AggregateFunction" Default="Sum" Description="Sum | Average | Count | Min | Max." />
+            <ShowcaseApiRow Name="FormatString (Value)" Type="string?" Default="null" Description="Formato da célula (ex.: {0:C0})." />
+            <ShowcaseApiRow Name="Align (Value)" Type="string" Default="right" Description="text-align das células da medida." />
+            <ShowcaseApiRow Name="Template (Value)" Type="RenderFragment<object?>?" Default="null" Description="Template da célula (recebe o valor agregado)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    public record Sale(string Category, string Product, int Year, string Region, decimal Amount, int Qty, decimal UnitPrice);
+
+    private List<Sale> _sales = new();
+
+    protected override void OnInitialized()
+    {
+        var cats = new (string cat, string[] prods)[]
+        {
+            ("Pizzas", new[] { "Margherita", "Calabresa", "Portuguesa" }),
+            ("Bebidas", new[] { "Refrigerante", "Suco", "Cerveja" }),
+            ("Sobremesas", new[] { "Petit Gateau", "Pudim" }),
+        };
+        var regions = new[] { "Norte", "Sul" };
+        var years = new[] { 2024, 2025 };
+        var rng = new Random(7);
+        foreach (var (cat, prods) in cats)
+            foreach (var prod in prods)
+                foreach (var year in years)
+                    foreach (var region in regions)
+                    {
+                        // a few rows per combination
+                        var n = rng.Next(1, 4);
+                        for (int i = 0; i < n; i++)
+                        {
+                            var price = rng.Next(8, 60);
+                            var qty = rng.Next(1, 12);
+                            _sales.Add(new Sale(cat, prod, year, region, price * qty, qty, price));
+                        }
+                    }
+    }
+}
