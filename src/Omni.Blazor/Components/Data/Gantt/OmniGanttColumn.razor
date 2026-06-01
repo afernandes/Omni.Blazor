@@ -1,0 +1,41 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@implements IDisposable
+@using System.Globalization
+
+@* Left-pane column for an OmniGantt. The first declared column is the tree
+   column (gets the expand/collapse chevron + indentation). Renders nothing
+   itself — it just registers with the parent gantt. *@
+
+@code {
+    [CascadingParameter] internal OmniGantt<TItem>? Parent { get; set; }
+
+    /// <summary>Header text.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Value selector for the cell content.</summary>
+    [Parameter] public Func<TItem, object?>? Property { get; set; }
+
+    /// <summary>CSS width of the column (e.g. <c>"200px"</c>). Default <c>"140px"</c>.</summary>
+    [Parameter] public string Width { get; set; } = "140px";
+
+    /// <summary>Optional composite format string (e.g. <c>"{0:d}"</c>, <c>"{0:P0}"</c>).</summary>
+    [Parameter] public string? FormatString { get; set; }
+
+    /// <summary>Optional custom cell template (overrides <see cref="Property"/>).</summary>
+    [Parameter] public RenderFragment<TItem>? Template { get; set; }
+
+    protected override void OnInitialized() => Parent?.AddColumn(this);
+
+    public void Dispose() => Parent?.RemoveColumn(this);
+
+    internal string? GetText(TItem item)
+    {
+        var v = Property?.Invoke(item);
+        if (v is null) return null;
+        return string.IsNullOrEmpty(FormatString)
+            ? v.ToString()
+            : string.Format(CultureInfo.CurrentCulture, FormatString, v);
+    }
+}

@@ -1,0 +1,983 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@attribute [CascadingTypeParameter(nameof(TItem))]
+@inherits OmniComponent
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniGantt — project timeline inspired by RadzenGantt. A split view: a
+    hierarchical task tree on the left and a day-based timeline with task bars
+    on the right. Supports progress, milestones, baselines, dependencies (4
+    types) with arrows, critical path (CPM), today line, weekend shading,
+    markers, zoom levels, and drag-to-move / resize (native HTML5 DnD).
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <div style="display:none">@ChildContent</div>
+</CascadingValue>
+
+<div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+    @if (ShowNavigation)
+    {
+        <div class="omni-gantt-nav">
+            <div class="omni-gantt-nav-title">@Title</div>
+            <div class="omni-gantt-nav-actions">
+                <div class="omni-gantt-zoom" role="tablist">
+                    @foreach (var z in _zoomLevels)
+                    {
+                        var zl = z;
+                        <button type="button" class="@ZoomBtnCss(zl)" @onclick="@(() => SetZoomAsync(zl))">@ZoomLabel(zl)</button>
+                    }
+                </div>
+                <button type="button" class="omni-gantt-nav-btn" title="@ZoomToFitText"
+                        @onclick="ZoomToFitAsync">
+                    <OmniIcon Name="maximize" Size="ComponentSize.Sm" />
+                </button>
+            </div>
+        </div>
+    }
+
+    <div class="omni-gantt-scroll">
+        <div class="omni-gantt-panes">
+            @* ─── Left pane: hierarchical task tree ─── *@
+            <div class="omni-gantt-left" style="@($"flex:0 0 {LeftPaneWidth};width:{LeftPaneWidth};")">
+                <div class="omni-gantt-left-head" style="@HeadHeightStyle">
+                    @foreach (var col in _columns)
+                    {
+                        <div class="omni-gantt-left-hcell" style="@($"width:{col.Width};")">@col.Title</div>
+                    }
+                </div>
+                @for (int i = 0; i < _rows.Count; i++)
+                {
+                    var row = _rows[i];
+                    var item = row.Item;
+                    <div class="@LeftRowCss(item)" style="@($"height:{RowHeightPx}px;")"
+                         @onclick="@(() => OnRowClickAsync(item))">
+                        @for (int c = 0; c < _columns.Count; c++)
+                        {
+                            var col = _columns[c];
+                            <div class="omni-gantt-left-cell" style="@($"width:{col.Width};")">
+                                @if (c == 0)
+                                {
+                                    <span class="omni-gantt-indent" style="@($"width:{row.Level * 16}px;")"></span>
+                                    @if (row.HasChildren)
+                                    {
+                                        <button type="button" class="omni-gantt-chevron"
+                                                @onclick="@(() => ToggleExpand(row))" @onclick:stopPropagation="true">
+                                            <OmniIcon Name="@(row.IsExpanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="omni-gantt-chevron-spacer"></span>
+                                    }
+                                }
+                                @if (col.Template is not null)
+                                {
+                                    @col.Template(item)
+                                }
+                                else
+                                {
+                                    <span class="omni-gantt-left-text">@col.GetText(item)</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* ─── Right pane: timeline ─── *@
+            <div class="omni-gantt-timeline" style="@($"width:{TimelineWidthPx}px;")">
+                <div class="omni-gantt-tl-head" style="@HeadHeightStyle">
+                    <div class="omni-gantt-tl-groups">
+                        @foreach (var g in _headerGroups)
+                        {
+                            <div class="omni-gantt-tl-group" style="@($"width:{g.WidthPx}px;")">@g.Label</div>
+                        }
+                    </div>
+                    <div class="omni-gantt-tl-days">
+                        @foreach (var col in _cols)
+                        {
+                            <div class="@ColHeadCss(col)" style="@($"width:{Px(col.WidthPx)}px;")">@col.Label</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="omni-gantt-tl-body" style="@($"height:{_rows.Count * RowHeightPx}px;")">
+                    @for (int i = 0; i < _rows.Count; i++)
+                    {
+                        var item = _rows[i].Item;
+                        <div class="omni-gantt-tl-row" style="@($"top:{i * RowHeightPx}px;height:{RowHeightPx}px;")">
+                            @foreach (var col in _cols)
+                            {
+                                var c = col;
+                                <div class="@ColCss(c)" style="@($"width:{Px(c.WidthPx)}px;")"
+                                     @ondragover:preventDefault="true"
+                                     @ondrop="@(() => OnColDropAsync(c.Start, c.End))"></div>
+                            }
+
+                            @{
+                                var ms = IsMilestone(item);
+                                var place = BarPlacement(item);
+                            }
+                            @if (place is not null)
+                            {
+                                var baseline = BaselinePlacement(item);
+                                if (baseline is not null)
+                                {
+                                    <div class="omni-gantt-baseline" style="@baseline"></div>
+                                }
+                                if (ms)
+                                {
+                                    <div class="@MilestoneCss(item)" style="@MilestoneStyle(item)"
+                                         draggable="@DraggableAttr"
+                                         @ondragstart="@(e => OnBarDragStart(e, item, "move"))"
+                                         @onclick="@(() => OnTaskClickAsync(item))"
+                                         @onmouseenter="@(e => OnTaskEnterAsync(item, e))"
+                                         @onmouseleave="@(e => OnTaskLeaveAsync(item, e))"></div>
+                                }
+                                else
+                                {
+                                    <div class="@BarCss(item)" style="@place" @attributes="BarAttributes(item)"
+                                         draggable="@DraggableAttr"
+                                         @ondragstart="@(e => OnBarDragStart(e, item, "move"))"
+                                         @onclick="@(() => OnTaskClickAsync(item))"
+                                         @onmouseenter="@(e => OnTaskEnterAsync(item, e))"
+                                         @onmouseleave="@(e => OnTaskLeaveAsync(item, e))">
+                                        @if (_resizable)
+                                        {
+                                            <span class="omni-gantt-bar-handle omni-left" draggable="true"
+                                                  @ondragstart="@(e => OnBarDragStart(e, item, "resize-left"))"
+                                                  @ondragstart:stopPropagation="true"></span>
+                                        }
+                                        <div class="omni-gantt-bar-content">
+                                            @if (TaskTemplate is not null)
+                                            {
+                                                @TaskTemplate(item)
+                                            }
+                                            else
+                                            {
+                                                var p = ProgressOf(item);
+                                                if (p is not null)
+                                                {
+                                                    <div class="omni-gantt-bar-progress" style="@($"width:{Pct(p.Value)}%;")"></div>
+                                                }
+                                                <span class="omni-gantt-bar-label">@TextOf(item)</span>
+                                            }
+                                        </div>
+                                        @if (_resizable)
+                                        {
+                                            <span class="omni-gantt-bar-handle omni-right" draggable="true"
+                                                  @ondragstart="@(e => OnBarDragStart(e, item, "resize-right"))"
+                                                  @ondragstart:stopPropagation="true"></span>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+
+                    @if (_links.Count > 0)
+                    {
+                        <svg class="omni-gantt-links" style="@($"width:{TimelineWidthPx}px;height:{_rows.Count * RowHeightPx}px;")">
+                            <defs>
+                                <marker id="@($"{Id}-arrow")" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                                    <path d="M0,0 L6,3 L0,6 Z" class="omni-gantt-link-arrow" />
+                                </marker>
+                                <marker id="@($"{Id}-arrow-crit")" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                                    <path d="M0,0 L6,3 L0,6 Z" class="omni-gantt-link-arrow omni-critical" />
+                                </marker>
+                            </defs>
+                            @foreach (var link in _links)
+                            {
+                                <path d="@link.Path" class="@(link.Critical ? "omni-gantt-link omni-critical" : "omni-gantt-link")"
+                                      marker-end="@($"url(#{Id}-arrow{(link.Critical ? "-crit" : "")})")" />
+                            }
+                        </svg>
+                    }
+
+                    @if (ShowTodayLine && _todayPx is not null)
+                    {
+                        <div class="omni-gantt-today-line" style="@($"left:{Px(_todayPx.Value)}px;")"></div>
+                    }
+
+                    @if (Markers is not null)
+                    {
+                        foreach (var m in Markers)
+                        {
+                            var mx = PxAt(m.Date);
+                            if (mx is not null)
+                            {
+                                <div class="omni-gantt-marker" style="@MarkerStyle(m, mx.Value)">
+                                    @if (!string.IsNullOrWhiteSpace(m.Label))
+                                    {
+                                        <span class="omni-gantt-marker-label">@m.Label</span>
+                                    }
+                                </div>
+                            }
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    // ─── Data binding ─────────────────────────────────────────────────────
+    [Parameter] public IEnumerable<TItem>? Data { get; set; }
+    [Parameter] public string? IdProperty { get; set; }
+    [Parameter] public string? ParentIdProperty { get; set; }
+    [Parameter] public string? TextProperty { get; set; }
+    [Parameter] public string? StartProperty { get; set; }
+    [Parameter] public string? EndProperty { get; set; }
+    [Parameter] public string? ProgressProperty { get; set; }
+    [Parameter] public string? BaselineStartProperty { get; set; }
+    [Parameter] public string? BaselineEndProperty { get; set; }
+
+    /// <summary>Left-pane column definitions (<c>OmniGanttColumn</c>) — pass them as child content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    // ─── Dependencies ─────────────────────────────────────────────────────
+    [Parameter] public IEnumerable<GanttDependency<TItem>>? Dependencies { get; set; }
+    [Parameter] public IEnumerable<object>? DependencyData { get; set; }
+    [Parameter] public string? DependencyFromProperty { get; set; }
+    [Parameter] public string? DependencyToProperty { get; set; }
+    [Parameter] public string? DependencyTypeProperty { get; set; }
+
+    // ─── Layout / timeline ────────────────────────────────────────────────
+    [Parameter] public GanttZoomLevel ZoomLevel { get; set; } = GanttZoomLevel.Week;
+    [Parameter] public DateTime? ViewStart { get; set; }
+    [Parameter] public DateTime? ViewEnd { get; set; }
+    [Parameter] public string LeftPaneWidth { get; set; } = "360px";
+    [Parameter] public int RowHeightPx { get; set; } = 34;
+    [Parameter] public bool ShowNavigation { get; set; } = true;
+    [Parameter] public bool ShowTodayLine { get; set; } = true;
+    [Parameter] public bool ShowWeekends { get; set; } = true;
+    [Parameter] public IEnumerable<DayOfWeek> NonWorkingDays { get; set; } = new[] { DayOfWeek.Saturday, DayOfWeek.Sunday };
+    [Parameter] public IEnumerable<GanttMarker>? Markers { get; set; }
+    [Parameter] public bool ShowCriticalPath { get; set; }
+
+    /// <summary>Per-bar render hook (CSS class / inline style).</summary>
+    [Parameter] public Action<GanttBarRenderEventArgs<TItem>>? TaskRender { get; set; }
+    /// <summary>Custom content inside each task bar (replaces progress + label).</summary>
+    [Parameter] public RenderFragment<TItem>? TaskTemplate { get; set; }
+
+    [Parameter] public string ZoomToFitText { get; set; } = "Ajustar à tela";
+
+    // ─── Callbacks ────────────────────────────────────────────────────────
+    [Parameter] public EventCallback<TItem> TaskClick { get; set; }
+    [Parameter] public EventCallback<TItem> RowClick { get; set; }
+    [Parameter] public EventCallback<GanttTaskMouseEventArgs<TItem>> TaskMouseEnter { get; set; }
+    [Parameter] public EventCallback<GanttTaskMouseEventArgs<TItem>> TaskMouseLeave { get; set; }
+    [Parameter] public EventCallback<GanttTaskMovedEventArgs<TItem>> TaskMove { get; set; }
+    [Parameter] public EventCallback<GanttTaskMovedEventArgs<TItem>> TaskResize { get; set; }
+
+    // ─── Internal state ───────────────────────────────────────────────────
+    internal readonly List<OmniGanttColumn<TItem>> _columns = new();
+    private readonly List<GanttRow> _rows = new();
+    private readonly HashSet<object> _expanded = new();
+    private bool _expandInit;
+    private List<TlCol> _cols = new();
+    private double _timelineWidth;
+    private DateTime _rangeStart, _rangeEnd;
+    private List<HeaderGroup> _headerGroups = new();
+    private List<GanttLink> _links = new();
+    private HashSet<object>? _criticalItems;
+    private double? _todayPx;
+    private bool _draggable;
+    private bool _resizable;
+    private string DraggableAttr => _draggable ? "true" : "false";
+
+    private static readonly GanttZoomLevel[] _zoomLevels =
+        { GanttZoomLevel.Day, GanttZoomLevel.Week, GanttZoomLevel.Month, GanttZoomLevel.Year };
+
+    private sealed record GanttRow(TItem Item, int Level, bool HasChildren, bool IsExpanded);
+    private sealed record HeaderGroup(string Label, double WidthPx);
+    // A timeline column. Granularity varies by zoom (hour/day/week/month).
+    private sealed record TlCol(DateTime Start, DateTime End, string Label, string Group, double WidthPx, bool NonWorking);
+    private sealed record GanttLink(string Path, bool Critical);
+
+    /// <summary>Test-only counter — increments every full rebuild.</summary>
+    internal int RebuildCount { get; private set; }
+    internal int RowCountInternal => _rows.Count;
+
+    internal void AddColumn(OmniGanttColumn<TItem> column)
+    {
+        if (!_columns.Contains(column)) { _columns.Add(column); StateHasChanged(); }
+    }
+
+    internal void RemoveColumn(OmniGanttColumn<TItem> column)
+    {
+        _columns.Remove(column); StateHasChanged();
+    }
+
+    protected override void OnParametersSet() => Rebuild();
+
+    private void Rebuild()
+    {
+        RebuildCount++;
+        _draggable = TaskMove.HasDelegate;
+        _resizable = TaskResize.HasDelegate;
+        BuildRows();
+        BuildRange();
+        BuildColumns();
+        BuildHeaderGroups();
+        ComputeCriticalPath();
+        BuildLinks();
+        BuildTodayAndMarkers();
+    }
+
+    // ─── Hierarchy ────────────────────────────────────────────────────────
+    private void BuildRows()
+    {
+        _rows.Clear();
+        var items = Data?.ToList() ?? new List<TItem>();
+        if (items.Count == 0) return;
+
+        if (string.IsNullOrEmpty(IdProperty) || string.IsNullOrEmpty(ParentIdProperty))
+        {
+            foreach (var it in items) _rows.Add(new GanttRow(it, 0, false, false));
+            return;
+        }
+
+        var byParent = new Dictionary<object, List<TItem>>();
+        var roots = new List<TItem>();
+        foreach (var it in items)
+        {
+            var pid = SchedulerReflection.GetValue(it, ParentIdProperty!);
+            if (pid is null) roots.Add(it);
+            else
+            {
+                if (!byParent.TryGetValue(pid, out var list)) { list = new(); byParent[pid] = list; }
+                list.Add(it);
+            }
+        }
+
+        if (!_expandInit)
+        {
+            _expandInit = true;
+            foreach (var it in items)
+            {
+                var id = SchedulerReflection.GetValue(it, IdProperty!);
+                if (id is not null && byParent.ContainsKey(id)) _expanded.Add(id);
+            }
+        }
+
+        void AddLevel(List<TItem> nodes, int level)
+        {
+            foreach (var n in nodes)
+            {
+                var id = SchedulerReflection.GetValue(n, IdProperty!);
+                var hasChildren = id is not null && byParent.ContainsKey(id);
+                var expanded = id is not null && _expanded.Contains(id);
+                _rows.Add(new GanttRow(n, level, hasChildren, expanded));
+                if (hasChildren && expanded) AddLevel(byParent[id!], level + 1);
+            }
+        }
+        AddLevel(roots, 0);
+    }
+
+    private void ToggleExpand(GanttRow row)
+    {
+        if (string.IsNullOrEmpty(IdProperty)) return;
+        var id = SchedulerReflection.GetValue(row.Item, IdProperty!);
+        if (id is null) return;
+        if (!_expanded.Remove(id)) _expanded.Add(id);
+        BuildRows();
+        BuildLinks();
+        StateHasChanged();
+    }
+
+    // ─── Timeline range / days ────────────────────────────────────────────
+    private void BuildRange()
+    {
+        DateTime? min = ViewStart, max = ViewEnd;
+        if (min is null || max is null)
+        {
+            foreach (var r in _rows)
+            {
+                var s = StartOf(r.Item);
+                var e = EndOf(r.Item);
+                if (s is not null) min = min is null ? s : (s < min ? s : min);
+                if (e is not null) max = max is null ? e : (e > max ? e : max);
+            }
+        }
+        if (min is null || max is null) { _rangeStart = DateTime.Today; _rangeEnd = DateTime.Today.AddDays(14); return; }
+
+        var start = min.Value.Date;
+        var end = max.Value.Date;
+        if (end < start) (start, end) = (end, start);
+        var pad = ZoomPad(ZoomLevel);
+        _rangeStart = ViewStart?.Date ?? start.AddDays(-pad);
+        _rangeEnd = ViewEnd?.Date ?? end.AddDays(pad);
+    }
+
+    // ─── Timeline columns (granularity varies by zoom, like Radzen) ───────
+    private void BuildColumns()
+    {
+        _cols = new();
+        if (_rangeEnd <= _rangeStart) { _timelineWidth = 0; return; }
+        switch (ZoomLevel)
+        {
+            case GanttZoomLevel.Day: BuildDayCols(48); break;       // wide day columns
+            case GanttZoomLevel.Month: BuildWeekCols(); break;       // one column per week
+            case GanttZoomLevel.Year: BuildMonthCols(); break;       // one column per month
+            default: BuildDayCols(26); break;                        // Week: narrower day columns
+        }
+        _timelineWidth = _cols.Sum(c => c.WidthPx);
+    }
+
+    private void BuildDayCols(int width)
+    {
+        for (var d = _rangeStart.Date; d < _rangeEnd.Date; d = d.AddDays(1))
+            _cols.Add(new TlCol(d, d.AddDays(1),
+                width >= 40 ? d.ToString("ddd d", Culture) : d.Day.ToString(Culture),
+                Cap(d.ToString("MMMM yyyy", Culture)), width, IsNonWorking(d)));
+    }
+
+    private void BuildWeekCols()
+    {
+        var firstDow = (int)Culture.DateTimeFormat.FirstDayOfWeek;
+        var start = _rangeStart.Date;
+        start = start.AddDays(-(((int)start.DayOfWeek - firstDow + 7) % 7));
+        for (var d = start; d < _rangeEnd.Date; d = d.AddDays(7))
+            _cols.Add(new TlCol(d, d.AddDays(7), d.ToString("d/M", Culture),
+                Cap(d.ToString("MMMM yyyy", Culture)), 9 * 7, false));
+    }
+
+    private void BuildMonthCols()
+    {
+        var cur = new DateTime(_rangeStart.Year, _rangeStart.Month, 1);
+        while (cur < _rangeEnd.Date)
+        {
+            var next = cur.AddMonths(1);
+            var quarter = (cur.Month - 1) / 3 + 1;
+            _cols.Add(new TlCol(cur, next, Cap(cur.ToString("MMM", Culture)),
+                $"T{quarter} {cur.Year}", (next - cur).Days * 2.4, false));
+            cur = next;
+        }
+    }
+
+    private void BuildHeaderGroups()
+    {
+        _headerGroups = new();
+        string? cur = null; double width = 0;
+        foreach (var col in _cols)
+        {
+            if (col.Group == cur) width += col.WidthPx;
+            else
+            {
+                if (cur is not null) _headerGroups.Add(new HeaderGroup(cur, width));
+                cur = col.Group; width = col.WidthPx;
+            }
+        }
+        if (cur is not null) _headerGroups.Add(new HeaderGroup(cur, width));
+    }
+
+    private void BuildTodayAndMarkers() => _todayPx = ShowTodayLine ? PxAt(DateTime.Now) : null;
+
+    private CultureInfo Culture => CultureInfo.CurrentCulture;
+    internal double TimelineWidthPx => _timelineWidth;
+
+    // ─── Placement helpers (tick-based / continuous, like Radzen) ─────────
+    private bool IsMilestone(TItem item)
+    {
+        var s = StartOf(item); var e = EndOf(item);
+        return s is not null && e is not null && s.Value == e.Value;
+    }
+
+    // X position (px) of a datetime, or null when outside the range.
+    private double? PxAt(DateTime value)
+    {
+        var total = (_rangeEnd - _rangeStart).Ticks;
+        if (total <= 0 || value < _rangeStart || value > _rangeEnd) return null;
+        return (value - _rangeStart).Ticks / (double)total * _timelineWidth;
+    }
+
+    // X position (px), clamped to the timeline edges.
+    private double ClampPx(DateTime value)
+    {
+        var total = (_rangeEnd - _rangeStart).Ticks;
+        if (total <= 0) return 0;
+        var clamped = value < _rangeStart ? _rangeStart : (value > _rangeEnd ? _rangeEnd : value);
+        return (clamped - _rangeStart).Ticks / (double)total * _timelineWidth;
+    }
+
+    private string? BarPlacement(TItem item)
+    {
+        var s = StartOf(item); var e = EndOf(item);
+        if (s is null || e is null || _timelineWidth <= 0) return null;
+        var sv = s.Value; var ev = e.Value;
+        if (ev < sv) (sv, ev) = (ev, sv);
+        if (ev < _rangeStart || sv > _rangeEnd) return null;
+        var leftPx = ClampPx(sv);
+        var widthPx = Math.Max(6, ClampPx(ev) - leftPx);
+        return string.Format(Inv, "left:{0:0.###}px;width:{1:0.###}px;", leftPx, widthPx);
+    }
+
+    private string MilestoneStyle(TItem item)
+        => string.Format(Inv, "left:{0:0.###}px;", ClampPx(StartOf(item)!.Value));
+
+    private string? BaselinePlacement(TItem item)
+    {
+        if (string.IsNullOrEmpty(BaselineStartProperty) || string.IsNullOrEmpty(BaselineEndProperty)) return null;
+        var bs = ToDateTime(SchedulerReflection.GetValue(item, BaselineStartProperty!));
+        var be = ToDateTime(SchedulerReflection.GetValue(item, BaselineEndProperty!));
+        if (bs is null || be is null || be <= bs) return null;
+        if (be.Value < _rangeStart || bs.Value > _rangeEnd) return null;
+        var leftPx = ClampPx(bs.Value);
+        var widthPx = Math.Max(2, ClampPx(be.Value) - leftPx);
+        return string.Format(Inv, "left:{0:0.###}px;width:{1:0.###}px;", leftPx, widthPx);
+    }
+
+    // ─── Bar CSS / attributes (TaskRender) ────────────────────────────────
+    private string BarCss(TItem item)
+    {
+        var css = CssBuilder.Default("omni-gantt-bar")
+            .AddClass("omni-critical", IsCritical(item))
+            .Build();
+        return AppendRenderCss(item, css);
+    }
+
+    private string MilestoneCss(TItem item)
+        => CssBuilder.Default("omni-gantt-milestone").AddClass("omni-critical", IsCritical(item)).Build();
+
+    private string AppendRenderCss(TItem item, string css)
+    {
+        if (TaskRender is null) return css;
+        var args = GetRenderArgs(item);
+        return string.IsNullOrWhiteSpace(args.CssClass) ? css : $"{css} {args.CssClass}";
+    }
+
+    private IReadOnlyDictionary<string, object>? BarAttributes(TItem item)
+    {
+        if (TaskRender is null) return null;
+        var args = GetRenderArgs(item);
+        return args.Attributes.Count > 0 ? args.Attributes : null;
+    }
+
+    private readonly Dictionary<TItem, GanttBarRenderEventArgs<TItem>> _renderCache = new();
+    private GanttBarRenderEventArgs<TItem> GetRenderArgs(TItem item)
+    {
+        if (_renderCache.TryGetValue(item, out var cached)) return cached;
+        var args = new GanttBarRenderEventArgs<TItem> { Data = item };
+        TaskRender!(args);
+        _renderCache[item] = args;
+        return args;
+    }
+
+    private bool IsCritical(TItem item)
+    {
+        if (_criticalItems is null || _criticalItems.Count == 0) return false;
+        var id = !string.IsNullOrEmpty(IdProperty) ? SchedulerReflection.GetValue(item, IdProperty!) : item;
+        return id is not null && _criticalItems.Contains(id);
+    }
+
+    private string MarkerStyle(GanttMarker m, double px)
+        => string.IsNullOrWhiteSpace(m.Color)
+            ? string.Format(Inv, "left:{0}px;", px)
+            : string.Format(Inv, "left:{0}px;--omni-gantt-marker-color:{1};", px, m.Color);
+
+    // ─── Property accessors ───────────────────────────────────────────────
+    private DateTime? StartOf(TItem item) => string.IsNullOrEmpty(StartProperty) ? null : ToDateTime(SchedulerReflection.GetValue(item, StartProperty!));
+    private DateTime? EndOf(TItem item) => string.IsNullOrEmpty(EndProperty) ? null : ToDateTime(SchedulerReflection.GetValue(item, EndProperty!));
+    private string? TextOf(TItem item) => string.IsNullOrEmpty(TextProperty) ? null : SchedulerReflection.GetValue(item, TextProperty!)?.ToString();
+
+    private double? ProgressOf(TItem item)
+    {
+        if (string.IsNullOrEmpty(ProgressProperty)) return null;
+        var v = SchedulerReflection.GetValue(item, ProgressProperty!);
+        if (v is null) return null;
+        try { return Convert.ToDouble(v, Inv); } catch { return null; }
+    }
+
+    private static DateTime? ToDateTime(object? v) => v switch
+    {
+        DateTime dt => dt,
+        DateTimeOffset dto => dto.LocalDateTime,
+        null => null,
+        string s when DateTime.TryParse(s, Inv, DateTimeStyles.AssumeLocal, out var p) => p,
+        _ => null,
+    };
+
+    private static string Pct(double v) => Math.Clamp(v, 0, 100).ToString("0.##", Inv);
+    private static string Px(double v) => v.ToString("0.###", Inv);
+    private string Cap(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0], Culture) + s[1..];
+
+    // ─── Header / column CSS ──────────────────────────────────────────────
+    private bool IsNonWorking(DateTime d) => ShowWeekends && NonWorkingDays is not null && NonWorkingDays.Contains(d.DayOfWeek);
+
+    private string ColHeadCss(TlCol c) => CssBuilder.Default("omni-gantt-tl-dayhead")
+        .AddClass("omni-nonworking", c.NonWorking)
+        .AddClass("omni-today", c.Start.Date <= DateTime.Today && DateTime.Today < c.End.Date)
+        .Build();
+
+    private string ColCss(TlCol c) => CssBuilder.Default("omni-gantt-tl-daycol")
+        .AddClass("omni-nonworking", c.NonWorking)
+        .Build();
+
+    private string LeftRowCss(TItem item) => CssBuilder.Default("omni-gantt-left-row")
+        .AddClass("omni-critical", IsCritical(item))
+        .Build();
+
+    private string HeadHeightStyle => "height:42px;";
+
+    private string RootCss => CssBuilder.Default("omni-gantt").AddClass(Class).Build();
+    private string RootStyle => Style ?? string.Empty;
+
+    // ─── Zoom ─────────────────────────────────────────────────────────────
+    private static int ZoomPad(GanttZoomLevel z) => z switch
+    {
+        GanttZoomLevel.Day => 2,
+        GanttZoomLevel.Week => 7,
+        GanttZoomLevel.Month => 14,
+        GanttZoomLevel.Year => 30,
+        _ => 7,
+    };
+
+    private static string ZoomLabel(GanttZoomLevel z) => z switch
+    {
+        GanttZoomLevel.Day => "Dia",
+        GanttZoomLevel.Week => "Semana",
+        GanttZoomLevel.Month => "Mês",
+        GanttZoomLevel.Year => "Ano",
+        _ => z.ToString(),
+    };
+
+    private string ZoomBtnCss(GanttZoomLevel z) => CssBuilder.Default("omni-gantt-zoom-btn")
+        .AddClass("omni-active", z == ZoomLevel)
+        .Build();
+
+    private Task SetZoomAsync(GanttZoomLevel z)
+    {
+        ZoomLevel = z;
+        ViewStart = null; ViewEnd = null;
+        Rebuild();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Auto-pick the zoom level so the whole project fits comfortably.</summary>
+    public Task ZoomToFitAsync()
+    {
+        DateTime? min = null, max = null;
+        foreach (var r in _rows)
+        {
+            var s = StartOf(r.Item); var e = EndOf(r.Item);
+            if (s is not null) min = min is null ? s : (s < min ? s : min);
+            if (e is not null) max = max is null ? e : (e > max ? e : max);
+        }
+        if (min is null || max is null) return Task.CompletedTask;
+        var span = (max.Value - min.Value).TotalDays;
+        ZoomLevel = span <= 2 ? GanttZoomLevel.Day
+            : span <= 60 ? GanttZoomLevel.Week
+            : span <= 180 ? GanttZoomLevel.Month
+            : GanttZoomLevel.Year;
+        ViewStart = null; ViewEnd = null;
+        Rebuild();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private string Title
+    {
+        get
+        {
+            if (_cols.Count == 0) return string.Empty;
+            var fmt = Culture.DateTimeFormat.ShortDatePattern;
+            return $"{_rangeStart.ToString(fmt, Culture)} – {_rangeEnd.ToString(fmt, Culture)}";
+        }
+    }
+
+    // ─── Interactions ─────────────────────────────────────────────────────
+    private Task OnTaskClickAsync(TItem item) => TaskClick.HasDelegate ? TaskClick.InvokeAsync(item) : Task.CompletedTask;
+    private Task OnRowClickAsync(TItem item) => RowClick.HasDelegate ? RowClick.InvokeAsync(item) : Task.CompletedTask;
+
+    private Task OnTaskEnterAsync(TItem item, MouseEventArgs e)
+        => TaskMouseEnter.HasDelegate
+            ? TaskMouseEnter.InvokeAsync(new() { Data = item, ClientX = e.ClientX, ClientY = e.ClientY })
+            : Task.CompletedTask;
+
+    private Task OnTaskLeaveAsync(TItem item, MouseEventArgs e)
+        => TaskMouseLeave.HasDelegate
+            ? TaskMouseLeave.InvokeAsync(new() { Data = item, ClientX = e.ClientX, ClientY = e.ClientY })
+            : Task.CompletedTask;
+
+    // ─── Drag / resize (native HTML5 DnD) ─────────────────────────────────
+    private TItem? _dragItem;
+    private string _dragMode = "";
+    private int _grabDayOffset;
+
+    private void OnBarDragStart(DragEventArgs e, TItem item, string mode)
+    {
+        _dragItem = item;
+        _dragMode = mode;
+        // For a move, record where (in whole days) along the bar the user grabbed.
+        if (mode == "move")
+        {
+            var s = StartOf(item); var en = EndOf(item);
+            var barPx = (s is not null && en is not null) ? ClampPx(en.Value) - ClampPx(s.Value) : 0;
+            var frac = barPx > 0 ? e.OffsetX / barPx : 0;
+            var durDays = (s is not null && en is not null) ? Math.Max(0, (en.Value.Date - s.Value.Date).Days) : 0;
+            _grabDayOffset = (int)Math.Round(frac * durDays);
+        }
+        else
+        {
+            _grabDayOffset = 0;
+        }
+    }
+
+    // Drop fires on the timeline column under the cursor, so we know the exact
+    // column boundaries — snap to days, no fragile offset math.
+    private async Task OnColDropAsync(DateTime colStart, DateTime colEnd)
+    {
+        if (_dragItem is null) return;
+        var item = _dragItem; var mode = _dragMode;
+        _dragItem = default;
+        var s = StartOf(item); var en = EndOf(item);
+        if (s is null || en is null) return;
+
+        if (mode == "move" && TaskMove.HasDelegate)
+        {
+            var newStart = colStart.Date.AddDays(-_grabDayOffset) + s.Value.TimeOfDay;
+            var newEnd = newStart + (en.Value - s.Value);
+            await TaskMove.InvokeAsync(new() { Data = item, NewStart = newStart, NewEnd = newEnd });
+        }
+        else if (mode == "resize-left" && TaskResize.HasDelegate)
+        {
+            var newStart = colStart.Date + s.Value.TimeOfDay;
+            if (newStart >= en.Value) return;
+            await TaskResize.InvokeAsync(new() { Data = item, NewStart = newStart, NewEnd = en.Value });
+        }
+        else if (mode == "resize-right" && TaskResize.HasDelegate)
+        {
+            // End is exclusive — extend to the dropped column's end boundary.
+            var newEnd = colEnd.Date;
+            if (newEnd <= s.Value) return;
+            await TaskResize.InvokeAsync(new() { Data = item, NewStart = s.Value, NewEnd = newEnd });
+        }
+
+        _renderCache.Clear();
+        Rebuild();
+        StateHasChanged();
+    }
+
+    /// <summary>Force a rebuild (call after mutating <c>Data</c> items in place).</summary>
+    public Task Reload()
+    {
+        _renderCache.Clear();
+        Rebuild();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    // ─── Dependencies + critical path ─────────────────────────────────────
+    private IEnumerable<GanttDependency<TItem>> ResolveDependencies()
+    {
+        if (DependencyData is not null && !string.IsNullOrEmpty(DependencyFromProperty) && !string.IsNullOrEmpty(DependencyToProperty))
+            return ResolveDependencyData();
+        return Dependencies ?? Enumerable.Empty<GanttDependency<TItem>>();
+    }
+
+    private IEnumerable<GanttDependency<TItem>> ResolveDependencyData()
+    {
+        if (Data is null || string.IsNullOrEmpty(IdProperty)) return Enumerable.Empty<GanttDependency<TItem>>();
+        var byId = new Dictionary<object, TItem>();
+        foreach (var it in Data)
+        {
+            var id = SchedulerReflection.GetValue(it, IdProperty!);
+            if (id is not null) byId[id] = it;
+        }
+        var links = new List<GanttDependency<TItem>>();
+        foreach (var dep in DependencyData!)
+        {
+            if (dep is null) continue;
+            var fromId = SchedulerReflection.GetValue(dep, DependencyFromProperty!);
+            var toId = SchedulerReflection.GetValue(dep, DependencyToProperty!);
+            if (fromId is null || toId is null) continue;
+            if (!byId.TryGetValue(fromId, out var from) || !byId.TryGetValue(toId, out var to)) continue;
+            var type = GanttDependencyType.FinishToStart;
+            if (!string.IsNullOrEmpty(DependencyTypeProperty))
+            {
+                var raw = SchedulerReflection.GetValue(dep, DependencyTypeProperty!);
+                if (raw is GanttDependencyType gdt) type = gdt;
+                else if (raw is not null && Enum.TryParse<GanttDependencyType>(raw.ToString(), out var parsed)) type = parsed;
+            }
+            links.Add(new() { From = from, To = to, Type = type });
+        }
+        return links;
+    }
+
+    private void BuildLinks()
+    {
+        _links = new();
+        var deps = ResolveDependencies().ToList();
+        if (deps.Count == 0) return;
+
+        // Map item -> row index (by Id for equality safety).
+        var rowOf = new Dictionary<object, int>();
+        for (int i = 0; i < _rows.Count; i++)
+        {
+            var key = KeyOf(_rows[i].Item);
+            if (key is not null) rowOf[key] = i;
+        }
+
+        foreach (var dep in deps)
+        {
+            if (dep.From is null || dep.To is null) continue;
+            var fk = KeyOf(dep.From); var tk = KeyOf(dep.To);
+            if (fk is null || tk is null) continue;
+            if (!rowOf.TryGetValue(fk, out var fromRow) || !rowOf.TryGetValue(tk, out var toRow)) continue;
+
+            var fs = StartOf(dep.From); var fe = EndOf(dep.From);
+            var ts = StartOf(dep.To); var te = EndOf(dep.To);
+            if (fs is null || fe is null || ts is null || te is null) continue;
+
+            double x1, x2;
+            switch (dep.Type)
+            {
+                case GanttDependencyType.StartToStart: x1 = ClampPx(fs.Value); x2 = ClampPx(ts.Value); break;
+                case GanttDependencyType.FinishToFinish: x1 = ClampPx(fe.Value); x2 = ClampPx(te.Value); break;
+                case GanttDependencyType.StartToFinish: x1 = ClampPx(fs.Value); x2 = ClampPx(te.Value); break;
+                default: x1 = ClampPx(fe.Value); x2 = ClampPx(ts.Value); break;
+            }
+
+            var y1 = fromRow * RowHeightPx + RowHeightPx * 0.5;
+            var y2 = toRow * RowHeightPx + RowHeightPx * 0.5;
+            var critical = IsCritical(dep.From) && IsCritical(dep.To);
+            _links.Add(new GanttLink(BuildLinkPath(x1, y1, x2, y2, dep.Type), critical));
+        }
+    }
+
+    private object? KeyOf(TItem item)
+        => !string.IsNullOrEmpty(IdProperty) ? SchedulerReflection.GetValue(item, IdProperty!) : item;
+
+    private string BuildLinkPath(double x1, double y1, double x2, double y2, GanttDependencyType type)
+    {
+        const double offset = 12;
+        var halfRow = RowHeightPx * 0.5;
+        var exitRight = type is GanttDependencyType.FinishToStart or GanttDependencyType.FinishToFinish;
+        var enterRight = type is GanttDependencyType.FinishToFinish or GanttDependencyType.StartToFinish;
+        var exitX = x1 + offset * (exitRight ? 1 : -1);
+        var enterX = x2 + offset * (enterRight ? 1 : -1);
+
+        var canStraight = exitRight != enterRight
+            ? (exitRight ? x2 - x1 > offset * 2 : x1 - x2 > offset * 2)
+            : (exitRight ? exitX < enterX : exitX > enterX);
+
+        if (canStraight && y1 != y2)
+        {
+            var midX = (exitX + enterX) / 2.0;
+            return string.Format(Inv, "M{0},{1} L{2},{1} L{2},{3} L{4},{3}", x1, y1, midX, y2, x2);
+        }
+        var midY = y2 > y1 ? y1 + halfRow : (y2 < y1 ? y1 - halfRow : y1 + halfRow);
+        return string.Format(Inv, "M{0},{1} L{2},{1} L{2},{3} L{4},{3} L{4},{5} L{6},{5}", x1, y1, exitX, midY, enterX, y2, x2);
+    }
+
+    private void ComputeCriticalPath()
+    {
+        _criticalItems = null;
+        if (!ShowCriticalPath) return;
+        var deps = ResolveDependencies().ToList();
+        if (deps.Count == 0) return;
+
+        var items = _rows.Select(r => r.Item).ToList();
+        var keys = new HashSet<object>();
+        foreach (var it in items) { var k = KeyOf(it); if (k is not null) keys.Add(k); }
+
+        var es = new Dictionary<object, double>();
+        var ef = new Dictionary<object, double>();
+        var ls = new Dictionary<object, double>();
+        var lf = new Dictionary<object, double>();
+        var dur = new Dictionary<object, double>();
+        var keyByItem = new Dictionary<TItem, object>();
+
+        DateTime refDate = DateTime.MaxValue;
+        foreach (var t in items)
+        {
+            var s = StartOf(t);
+            if (s is not null && s.Value < refDate) refDate = s.Value;
+        }
+        if (refDate == DateTime.MaxValue) return;
+
+        foreach (var t in items)
+        {
+            var k = KeyOf(t); if (k is null) continue;
+            keyByItem[t] = k;
+            var s = StartOf(t) ?? refDate;
+            var e = EndOf(t) ?? s;
+            dur[k] = Math.Max(0, (e - s).TotalDays);
+            es[k] = (s - refDate).TotalDays;
+            ef[k] = es[k] + dur[k];
+        }
+
+        var preds = new Dictionary<object, List<(object From, GanttDependencyType Type)>>();
+        var succs = new Dictionary<object, List<(object To, GanttDependencyType Type)>>();
+        foreach (var k in keys) { preds[k] = new(); succs[k] = new(); }
+        foreach (var d in deps)
+        {
+            var fk = KeyOf(d.From); var tk = KeyOf(d.To);
+            if (fk is null || tk is null || !keys.Contains(fk) || !keys.Contains(tk)) continue;
+            succs[fk].Add((tk, d.Type));
+            preds[tk].Add((fk, d.Type));
+        }
+
+        // Forward pass
+        for (int iter = 0; iter < keys.Count; iter++)
+        {
+            var changed = false;
+            foreach (var k in keys)
+            {
+                foreach (var (from, type) in preds[k])
+                {
+                    var constraint = type switch
+                    {
+                        GanttDependencyType.FinishToStart => ef[from],
+                        GanttDependencyType.StartToStart => es[from],
+                        GanttDependencyType.FinishToFinish => ef[from] - dur[k],
+                        GanttDependencyType.StartToFinish => es[from] - dur[k],
+                        _ => ef[from],
+                    };
+                    if (constraint > es[k]) { es[k] = constraint; ef[k] = es[k] + dur[k]; changed = true; }
+                }
+            }
+            if (!changed) break;
+        }
+
+        var projectEnd = keys.Count > 0 ? keys.Max(k => ef[k]) : 0;
+        foreach (var k in keys) { lf[k] = projectEnd; ls[k] = lf[k] - dur[k]; }
+
+        // Backward pass
+        for (int iter = 0; iter < keys.Count; iter++)
+        {
+            var changed = false;
+            foreach (var k in keys)
+            {
+                foreach (var (to, type) in succs[k])
+                {
+                    if (type is GanttDependencyType.FinishToStart or GanttDependencyType.FinishToFinish)
+                    {
+                        var constraint = type == GanttDependencyType.FinishToStart ? ls[to] : lf[to];
+                        if (constraint < lf[k]) { lf[k] = constraint; ls[k] = lf[k] - dur[k]; changed = true; }
+                    }
+                    else
+                    {
+                        var constraint = type == GanttDependencyType.StartToStart ? ls[to] + dur[k] : lf[to] + dur[k];
+                        if (constraint - dur[k] < ls[k]) { ls[k] = constraint - dur[k]; lf[k] = ls[k] + dur[k]; changed = true; }
+                    }
+                }
+            }
+            if (!changed) break;
+        }
+
+        const double tol = 0.001;
+        _criticalItems = new HashSet<object>();
+        foreach (var k in keys)
+            if (Math.Abs(ls[k] - es[k]) < tol) _criticalItems.Add(k);
+    }
+}
