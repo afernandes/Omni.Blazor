@@ -1,0 +1,72 @@
+@namespace Omni.Blazor.Components
+@using System.Collections
+@using Omni.Blazor.Utilities
+
+@* Declarative binding for one depth of a data-bound OmniTree. Renders nothing —
+   it just registers with the parent tree and tells it how to read each node at
+   this level (text, children, icon, has-children, etc.). If the tree is deeper
+   than the number of declared levels, the LAST level repeats (self-referencing
+   hierarchies need a single level). *@
+
+@code {
+    [CascadingParameter] internal OmniTree? Tree { get; set; }
+
+    /// <summary>Property name read for each node's text.</summary>
+    [Parameter] public string? TextProperty { get; set; }
+
+    /// <summary>Explicit text selector (wins over <see cref="TextProperty"/>).</summary>
+    [Parameter] public Func<object, string?>? Text { get; set; }
+
+    /// <summary>Property name whose value (an <see cref="IEnumerable"/>) holds the children.</summary>
+    [Parameter] public string? ChildrenProperty { get; set; }
+
+    /// <summary>Explicit children selector (wins over <see cref="ChildrenProperty"/>).</summary>
+    [Parameter] public Func<object, IEnumerable?>? Children { get; set; }
+
+    /// <summary>Property name read for each node's leading icon.</summary>
+    [Parameter] public string? IconProperty { get; set; }
+
+    /// <summary>Explicit icon selector (wins over <see cref="IconProperty"/>).</summary>
+    [Parameter] public Func<object, string?>? Icon { get; set; }
+
+    /// <summary>Whether a node has children (controls the chevron). Defaults to "children non-empty".</summary>
+    [Parameter] public Func<object, bool>? HasChildren { get; set; }
+
+    /// <summary>Whether a node starts expanded.</summary>
+    [Parameter] public Func<object, bool>? Expanded { get; set; }
+
+    /// <summary>Whether a node starts selected.</summary>
+    [Parameter] public Func<object, bool>? Selected { get; set; }
+
+    /// <summary>Whether a node's checkbox is enabled. Default: all checkable.</summary>
+    [Parameter] public Func<object, bool>? Checkable { get; set; }
+
+    /// <summary>Per-node template (receives the <see cref="OmniTreeItem"/>; use <c>context.Value</c>/<c>context.Text</c>).</summary>
+    [Parameter] public RenderFragment<OmniTreeItem>? Template { get; set; }
+
+    protected override void OnInitialized() => Tree?.AddLevel(this);
+
+    internal string GetText(object node)
+        => Text?.Invoke(node)
+           ?? (TextProperty is not null ? SchedulerReflection.GetValue(node, TextProperty)?.ToString() : node?.ToString())
+           ?? "";
+
+    internal IEnumerable? GetChildren(object node)
+        => Children?.Invoke(node)
+           ?? (ChildrenProperty is not null ? SchedulerReflection.GetValue(node, ChildrenProperty) as IEnumerable : null);
+
+    internal string? GetIcon(object node)
+        => Icon?.Invoke(node)
+           ?? (IconProperty is not null ? SchedulerReflection.GetValue(node, IconProperty)?.ToString() : null);
+
+    internal bool GetHasChildren(object node)
+    {
+        if (HasChildren is not null) return HasChildren(node);
+        var ch = GetChildren(node);
+        return ch is not null && ch.Cast<object>().Any();
+    }
+
+    internal bool GetExpanded(object node) => Expanded?.Invoke(node) ?? false;
+    internal bool GetSelected(object node) => Selected?.Invoke(node) ?? false;
+    internal bool GetCheckable(object node) => Checkable?.Invoke(node) ?? true;
+}

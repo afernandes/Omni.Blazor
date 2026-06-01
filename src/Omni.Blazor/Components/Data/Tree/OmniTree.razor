@@ -1,0 +1,399 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using System.Collections
+@using Microsoft.AspNetCore.Components.Rendering
+@using Omni.Blazor.Utilities
+
+@*
+    OmniTree — hierarchical tree view (RadzenTree port). Two ways to feed it:
+      • Inline: nest <OmniTreeItem> components by hand.
+      • Data-bound: set Data + one or more <OmniTreeLevel> (TextProperty,
+        ChildrenProperty, …). The last level repeats for deeper self-referencing
+        hierarchies.
+    Supports single selection (@bind-Value), tri-state checkboxes
+    (@bind-CheckedValues with parent/child cascade), lazy loading (Expand event),
+    per-level/per-item templates, and leading icons.
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes" role="tree"
+     aria-multiselectable="@(AllowCheckboxes ? "true" : null)" tabindex="-1"
+     @onkeydown="OnKeyDownAsync" @onkeydown:preventDefault="_preventKeyDefault">
+    <ul class="omni-tree-list">
+        <CascadingValue Value="this" IsFixed="true">
+            @ChildContent
+            @if (Data is not null && _levels.Count > 0)
+            {
+                @RenderData(Data, 0)
+            }
+        </CascadingValue>
+    </ul>
+</div>
+
+@code {
+    /// <summary>Data source for a data-bound tree (used with <c>OmniTreeLevel</c>).</summary>
+    [Parameter] public IEnumerable? Data { get; set; }
+
+    /// <summary>Inline content: <c>OmniTreeItem</c> and/or <c>OmniTreeLevel</c>.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The currently selected node's value (two-way bindable).</summary>
+    [Parameter] public object? Value { get; set; }
+    [Parameter] public EventCallback<object?> ValueChanged { get; set; }
+
+    /// <summary>Fired when the selection changes (carries value + text).</summary>
+    [Parameter] public EventCallback<TreeEventArgs> SelectionChanged { get; set; }
+
+    /// <summary>Fired when a node is expanded — set <c>args.Children</c> here to lazy-load.</summary>
+    [Parameter] public EventCallback<TreeExpandEventArgs> Expand { get; set; }
+
+    /// <summary>Fired after a node expands (post-load).</summary>
+    [Parameter] public EventCallback<TreeEventArgs> Expanded { get; set; }
+
+    /// <summary>Fired after a node collapses.</summary>
+    [Parameter] public EventCallback<TreeEventArgs> Collapsed { get; set; }
+
+    /// <summary>Shows a tri-state checkbox on every node.</summary>
+    [Parameter] public bool AllowCheckboxes { get; set; }
+
+    /// <summary>When checking a node also checks all its descendants. Default true.</summary>
+    [Parameter] public bool AllowCheckChildren { get; set; } = true;
+
+    /// <summary>When all children of a node are checked, the parent auto-checks. Default true.</summary>
+    [Parameter] public bool AllowCheckParents { get; set; } = true;
+
+    /// <summary>The set of checked values (two-way bindable).</summary>
+    [Parameter] public IEnumerable<object>? CheckedValues { get; set; }
+    [Parameter] public EventCallback<IEnumerable<object>> CheckedValuesChanged { get; set; }
+
+    internal enum TreeCheckState { Unchecked, Checked, Indeterminate }
+
+    private readonly List<OmniTreeLevel> _levels = new();
+    private readonly List<OmniTreeItem> _items = new();
+    private HashSet<object> _checked = new();
+    private IEnumerable<object>? _checkedSnapshot;
+    private OmniTreeItem? _focusedItem;
+    private bool _preventKeyDefault;
+
+    private string RootCss => CssBuilder.Default("omni-tree")
+        .AddClass("omni-tree-checkable", AllowCheckboxes)
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnParametersSet()
+    {
+        // Resync the working set only when CheckedValues changed externally
+        // (don't clobber our own just-committed value when the consumer is unbound).
+        if (!ReferenceEquals(CheckedValues, _checkedSnapshot))
+        {
+            _checked = CheckedValues is null ? new() : new HashSet<object>(CheckedValues);
+            _checkedSnapshot = CheckedValues;
+        }
+    }
+
+    internal void AddLevel(OmniTreeLevel level)
+    {
+        if (!_levels.Contains(level)) { _levels.Add(level); StateHasChanged(); }
+    }
+
+    internal void RegisterItem(OmniTreeItem item)
+    {
+        if (!_items.Contains(item)) _items.Add(item);
+    }
+    internal void UnregisterItem(OmniTreeItem item) => _items.Remove(item);
+
+    private void NotifyItems()
+    {
+        foreach (var it in _items.ToList()) it.NotifyStateChanged();
+    }
+
+    // ─── Keyboard navigation (WAI-ARIA "tree" roving-tabindex model) ───────
+    // Visible nodes in DOM order: preorder walk of roots, descending only into
+    // expanded subtrees (collapsed children aren't rendered, so aren't in _items).
+    private List<OmniTreeItem> VisibleNodes()
+    {
+        var result = new List<OmniTreeItem>();
+        void Walk(OmniTreeItem node)
+        {
+            result.Add(node);
+            if (node.IsExpanded)
+                foreach (var c in node.ChildItems) Walk(c);
+        }
+        foreach (var root in _items.Where(i => i.Parent is null)) Walk(root);
+        return result;
+    }
+
+    // Roving tabindex: exactly one node is the tab stop (the focused one, or the
+    // selected one, or the first visible node).
+    internal int TabIndexFor(OmniTreeItem item)
+    {
+        var focus = _focusedItem
+            ?? _items.FirstOrDefault(IsSelected)
+            ?? VisibleNodes().FirstOrDefault();
+        return ReferenceEquals(item, focus) ? 0 : -1;
+    }
+
+    internal void SetFocused(OmniTreeItem item)
+    {
+        if (!ReferenceEquals(_focusedItem, item)) { _focusedItem = item; NotifyItems(); }
+    }
+
+    private async Task FocusNodeAsync(OmniTreeItem item)
+    {
+        _focusedItem = item;
+        NotifyItems();
+        await item.FocusAsync();
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        var visible = VisibleNodes();
+        if (visible.Count == 0) { _preventKeyDefault = false; return; }
+
+        var current = _focusedItem is not null && visible.Contains(_focusedItem)
+            ? _focusedItem : visible[0];
+        var idx = visible.IndexOf(current);
+        _preventKeyDefault = false;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _preventKeyDefault = true;
+                if (idx < visible.Count - 1) await FocusNodeAsync(visible[idx + 1]);
+                break;
+            case "ArrowUp":
+                _preventKeyDefault = true;
+                if (idx > 0) await FocusNodeAsync(visible[idx - 1]);
+                break;
+            case "ArrowRight":
+                _preventKeyDefault = true;
+                if (current.CanExpand && !current.IsExpanded)
+                {
+                    await current.ExpandAsync();
+                }
+                else if (current.CanExpand && current.IsExpanded)
+                {
+                    var first = current.ChildItems.FirstOrDefault();
+                    if (first is not null) await FocusNodeAsync(first);
+                }
+                break;
+            case "ArrowLeft":
+                _preventKeyDefault = true;
+                if (current.CanExpand && current.IsExpanded)
+                {
+                    await current.CollapseAsync();
+                }
+                else if (current.Parent is not null)
+                {
+                    await FocusNodeAsync(current.Parent);
+                }
+                break;
+            case "Home":
+                _preventKeyDefault = true;
+                await FocusNodeAsync(visible[0]);
+                break;
+            case "End":
+                _preventKeyDefault = true;
+                await FocusNodeAsync(visible[^1]);
+                break;
+            case " ":
+                _preventKeyDefault = true;
+                if (AllowCheckboxes) await current.CheckFromKeyboardAsync();
+                else await current.SelectFromKeyboardAsync();
+                break;
+            case "Enter":
+                if (AllowCheckboxes) await current.CheckFromKeyboardAsync();
+                else await current.SelectFromKeyboardAsync();
+                break;
+        }
+    }
+
+    // ─── Selection ────────────────────────────────────────────────────────
+    internal bool IsSelected(OmniTreeItem item)
+        => item.Value is not null && Value is not null && Equals(Value, item.Value);
+
+    internal async Task SelectItemAsync(OmniTreeItem item, bool silent = false)
+    {
+        Value = item.Value;
+        _focusedItem = item;
+        if (!silent)
+        {
+            if (ValueChanged.HasDelegate) await ValueChanged.InvokeAsync(item.Value);
+            if (SelectionChanged.HasDelegate)
+                await SelectionChanged.InvokeAsync(new TreeEventArgs { Value = item.Value, Text = item.Text });
+        }
+        NotifyItems();
+    }
+
+    // ─── Expand / lazy load ───────────────────────────────────────────────
+    internal async Task ExpandItemAsync(OmniTreeItem item)
+    {
+        if (!Expand.HasDelegate) return;
+        var args = new TreeExpandEventArgs { Value = item.Value, Text = item.Text };
+        await Expand.InvokeAsync(args);
+        if (args.Children.Data is null) return;
+        item.SetLazyChildren(BuildLazyChildren(args.Children, item.Depth + 1));
+    }
+
+    internal async Task OnExpandedAsync(OmniTreeItem item)
+    {
+        if (Expanded.HasDelegate)
+            await Expanded.InvokeAsync(new TreeEventArgs { Value = item.Value, Text = item.Text });
+    }
+
+    internal async Task OnCollapsedAsync(OmniTreeItem item)
+    {
+        if (Collapsed.HasDelegate)
+            await Collapsed.InvokeAsync(new TreeEventArgs { Value = item.Value, Text = item.Text });
+    }
+
+    // ─── Checkboxes ───────────────────────────────────────────────────────
+    internal TreeCheckState CheckStateOf(OmniTreeItem item)
+    {
+        if (item.Value is null) return TreeCheckState.Unchecked;
+        if (_checked.Contains(item.Value)) return TreeCheckState.Checked;
+        if (AllowCheckChildren)
+        {
+            foreach (var v in DescendantValues(item))
+                if (_checked.Contains(v)) return TreeCheckState.Indeterminate;
+        }
+        return TreeCheckState.Unchecked;
+    }
+
+    internal async Task ToggleCheckAsync(OmniTreeItem item)
+    {
+        if (item.Value is null || !item.Checkable) return;
+        var willCheck = CheckStateOf(item) != TreeCheckState.Checked;
+        var affected = AllowCheckChildren
+            ? SelfAndDescendantValues(item)
+            : new List<object> { item.Value };
+
+        if (willCheck) foreach (var v in affected) _checked.Add(v);
+        else foreach (var v in affected) _checked.Remove(v);
+
+        if (AllowCheckParents) UpdateAncestors(item);
+
+        CheckedValues = _checked.ToList();
+        _checkedSnapshot = CheckedValues;
+        if (CheckedValuesChanged.HasDelegate) await CheckedValuesChanged.InvokeAsync(CheckedValues);
+        NotifyItems();
+    }
+
+    private void UpdateAncestors(OmniTreeItem item)
+    {
+        var parent = item.ParentItem;
+        while (parent is not null)
+        {
+            if (parent.Value is not null)
+            {
+                var desc = DescendantValues(parent).ToList();
+                var allChecked = desc.Count > 0 && desc.All(_checked.Contains);
+                if (allChecked) _checked.Add(parent.Value);
+                else _checked.Remove(parent.Value);
+            }
+            parent = parent.ParentItem;
+        }
+    }
+
+    // value + descendants
+    private List<object> SelfAndDescendantValues(OmniTreeItem item)
+    {
+        var list = new List<object>();
+        if (item.Value is not null) list.Add(item.Value);
+        list.AddRange(DescendantValues(item));
+        return list;
+    }
+
+    // descendant values only (data-derived when levels exist, else from rendered children)
+    private IEnumerable<object> DescendantValues(OmniTreeItem item)
+    {
+        if (_levels.Count > 0 && item.Value is not null)
+        {
+            var acc = new List<object>();
+            CollectDataDescendants(item.Value, item.Depth, acc);
+            return acc;
+        }
+        var inline = new List<object>();
+        CollectInlineDescendants(item, inline);
+        return inline;
+    }
+
+    // `depth` is the depth of `value` itself; its own level defines how to read
+    // its children (ChildrenProperty), and grandchildren recurse at depth + 1.
+    private void CollectDataDescendants(object value, int depth, List<object> acc)
+    {
+        var level = depth < _levels.Count ? _levels[depth] : _levels[^1];
+        var children = level.GetChildren(value);
+        if (children is null) return;
+        foreach (var child in children)
+        {
+            if (child is null) continue;
+            acc.Add(child);
+            CollectDataDescendants(child, depth + 1, acc);
+        }
+    }
+
+    private void CollectInlineDescendants(OmniTreeItem item, List<object> acc)
+    {
+        foreach (var c in item.ChildItems)
+        {
+            if (c.Value is not null) acc.Add(c.Value);
+            CollectInlineDescendants(c, acc);
+        }
+    }
+
+    // ─── Data-bound render ────────────────────────────────────────────────
+    private RenderFragment RenderData(IEnumerable data, int depth) => builder =>
+    {
+        var level = depth < _levels.Count ? _levels[depth] : _levels[^1];
+        Func<object, string>? text = null;
+
+        foreach (var node in data)
+        {
+            if (node is null) continue;
+            var hasChildren = level.GetHasChildren(node);
+            var children = level.GetChildren(node);
+
+            builder.OpenComponent<OmniTreeItem>(0);
+            builder.AddAttribute(1, nameof(OmniTreeItem.Value), node);
+            builder.AddAttribute(2, nameof(OmniTreeItem.Text), level.GetText(node));
+            builder.AddAttribute(3, nameof(OmniTreeItem.Icon), level.GetIcon(node));
+            builder.AddAttribute(4, nameof(OmniTreeItem.HasChildren), hasChildren);
+            builder.AddAttribute(5, nameof(OmniTreeItem.Expanded), level.GetExpanded(node));
+            builder.AddAttribute(6, nameof(OmniTreeItem.Selected), Value == node || level.GetSelected(node));
+            builder.AddAttribute(7, nameof(OmniTreeItem.Checkable), level.GetCheckable(node));
+            builder.AddAttribute(8, nameof(OmniTreeItem.Template), level.Template);
+            if (hasChildren && children is not null)
+            {
+                builder.AddAttribute(9, nameof(OmniTreeItem.ChildContent), RenderData(children, depth + 1));
+            }
+            builder.SetKey(node);
+            builder.CloseComponent();
+        }
+    };
+
+    private RenderFragment BuildLazyChildren(TreeItemSettings s, int depth) => builder =>
+    {
+        if (s.Data is null) return;
+        foreach (var node in s.Data)
+        {
+            if (node is null) continue;
+            var text = s.Text?.Invoke(node)
+                ?? (s.TextProperty is not null ? SchedulerReflection.GetValue(node, s.TextProperty)?.ToString() : node.ToString())
+                ?? "";
+            var icon = s.Icon?.Invoke(node)
+                ?? (s.IconProperty is not null ? SchedulerReflection.GetValue(node, s.IconProperty)?.ToString() : null);
+
+            builder.OpenComponent<OmniTreeItem>(0);
+            builder.AddAttribute(1, nameof(OmniTreeItem.Value), node);
+            builder.AddAttribute(2, nameof(OmniTreeItem.Text), text);
+            builder.AddAttribute(3, nameof(OmniTreeItem.Icon), icon);
+            builder.AddAttribute(4, nameof(OmniTreeItem.HasChildren), s.HasChildren(node));
+            builder.AddAttribute(5, nameof(OmniTreeItem.Expanded), s.Expanded(node));
+            builder.AddAttribute(6, nameof(OmniTreeItem.Selected), s.Selected(node));
+            builder.AddAttribute(7, nameof(OmniTreeItem.Checkable), s.Checkable(node));
+            builder.AddAttribute(8, nameof(OmniTreeItem.Template), s.Template);
+            builder.SetKey(node);
+            builder.CloseComponent();
+        }
+    };
+}

@@ -1,0 +1,201 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    A single node of an OmniTree. Used both for inline trees (the consumer nests
+    these by hand) and data-bound trees (the tree generates them from Data +
+    OmniTreeLevel). Renders: [toggle chevron][checkbox?][icon?][label] and, when
+    expanded, a nested <ul> of children (which may be lazily loaded).
+*@
+
+<li class="omni-tree-node" style="@Style" @attributes="Attributes">
+    <div class="@ContentCss" role="treeitem" @ref="_contentRef"
+         tabindex="@(Tree?.TabIndexFor(this) ?? -1)"
+         aria-selected="@IsSelected.ToString().ToLowerInvariant()"
+         aria-expanded="@(HasNodeChildren ? _expanded.ToString().ToLowerInvariant() : null)"
+         aria-level="@(Depth + 1)"
+         style="@($"padding-inline-start:{Depth * 18 + 6}px;")"
+         @onclick="SelectAsync" @onfocus="OnFocus">
+        @if (HasNodeChildren)
+        {
+            <span class="omni-tree-toggle" role="button" aria-label="@(_expanded ? "Recolher" : "Expandir")"
+                  @onclick="ToggleAsync" @onclick:stopPropagation>
+                <OmniIcon Name="@(_expanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
+            </span>
+        }
+        else
+        {
+            <span class="omni-tree-toggle omni-tree-toggle-empty"></span>
+        }
+
+        @if (Tree?.AllowCheckboxes == true)
+        {
+            var state = Tree.CheckStateOf(this);
+            <button type="button" class="@CheckCss(state)" role="checkbox"
+                    aria-checked="@(state == OmniTree.TreeCheckState.Indeterminate ? "mixed" : (state == OmniTree.TreeCheckState.Checked).ToString().ToLowerInvariant())"
+                    disabled="@(!Checkable)"
+                    @onclick="OnCheckToggleAsync" @onclick:stopPropagation>
+                @if (state == OmniTree.TreeCheckState.Checked)
+                {
+                    <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                }
+                else if (state == OmniTree.TreeCheckState.Indeterminate)
+                {
+                    <OmniIcon Name="minus" Size="ComponentSize.Sm" />
+                }
+            </button>
+        }
+
+        @if (Template is not null)
+        {
+            <span class="omni-tree-label">@Template(this)</span>
+        }
+        else
+        {
+            <span class="omni-tree-label">
+                @if (!string.IsNullOrEmpty(Icon))
+                {
+                    <OmniIcon Name="@Icon" Size="ComponentSize.Sm" Class="omni-tree-icon" />
+                }
+                <span class="omni-tree-text">@Text</span>
+            </span>
+        }
+    </div>
+
+    @if (_expanded && EffectiveChildContent is not null)
+    {
+        <CascadingValue Value="this" IsFixed="true">
+            <ul class="omni-tree-children">
+                @EffectiveChildContent
+            </ul>
+        </CascadingValue>
+    }
+</li>
+
+@code {
+    [CascadingParameter] internal OmniTree? Tree { get; set; }
+    [CascadingParameter] internal OmniTreeItem? ParentItem { get; set; }
+
+    /// <summary>The value bound to this node (passed to events / selection / checks).</summary>
+    [Parameter] public object? Value { get; set; }
+
+    /// <summary>The node's text (used when no <see cref="Template"/>).</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Optional leading icon name (Omni icon library).</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Whether this node has children — shows the chevron even before children load (lazy).</summary>
+    [Parameter] public bool HasChildren { get; set; }
+
+    /// <summary>Whether this node starts expanded.</summary>
+    [Parameter] public bool Expanded { get; set; }
+
+    /// <summary>Whether this node starts selected.</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    /// <summary>Whether this node's checkbox is enabled. Default true.</summary>
+    [Parameter] public bool Checkable { get; set; } = true;
+
+    /// <summary>Custom template (receives this item — use <c>context.Value</c>/<c>context.Text</c>).</summary>
+    [Parameter] public RenderFragment<OmniTreeItem>? Template { get; set; }
+
+    /// <summary>Nested child nodes (inline) or data-bound children render fragment.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _expanded;
+    private RenderFragment? _lazyChildren;
+    private readonly List<OmniTreeItem> _childItems = new();
+    private ElementReference _contentRef;
+
+    internal int Depth => ParentItem is null ? 0 : ParentItem.Depth + 1;
+    internal IReadOnlyList<OmniTreeItem> ChildItems => _childItems;
+    internal bool IsExpanded => _expanded;
+
+    // ── Accessors used by the tree's keyboard navigation ──
+    internal OmniTreeItem? Parent => ParentItem;
+    internal bool CanExpand => HasNodeChildren;
+    internal ValueTask FocusAsync() => _contentRef.FocusAsync();
+    internal Task ExpandAsync() => (CanExpand && !_expanded) ? ToggleAsync() : Task.CompletedTask;
+    internal Task CollapseAsync() => (CanExpand && _expanded) ? ToggleAsync() : Task.CompletedTask;
+    internal Task SelectFromKeyboardAsync() => SelectAsync();
+    internal Task CheckFromKeyboardAsync() => OnCheckToggleAsync();
+    private void OnFocus() => Tree?.SetFocused(this);
+
+    private RenderFragment? EffectiveChildContent => ChildContent ?? _lazyChildren;
+    private bool HasNodeChildren => HasChildren || ChildContent is not null || _lazyChildren is not null;
+    private bool IsSelected => Tree is not null && Tree.IsSelected(this);
+
+    private string ContentCss => CssBuilder.Default("omni-tree-content")
+        .AddClass("omni-tree-content-selected", IsSelected)
+        .AddClass(Class)
+        .Build();
+
+    private static string CheckCss(OmniTree.TreeCheckState state) => CssBuilder.Default("omni-tree-check")
+        .AddClass("omni-checked", state == OmniTree.TreeCheckState.Checked)
+        .AddClass("omni-indeterminate", state == OmniTree.TreeCheckState.Indeterminate)
+        .Build();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ParentItem?.RegisterChild(this);
+        Tree?.RegisterItem(this);
+        if (Expanded)
+        {
+            _expanded = true;
+            if (EffectiveChildContent is null && HasChildren && Tree is not null)
+            {
+                await Tree.ExpandItemAsync(this);
+            }
+        }
+        if (Selected && Tree is not null)
+        {
+            await Tree.SelectItemAsync(this, silent: true);
+        }
+    }
+
+    public void Dispose()
+    {
+        ParentItem?.UnregisterChild(this);
+        Tree?.UnregisterItem(this);
+    }
+
+    internal void RegisterChild(OmniTreeItem child)
+    {
+        if (!_childItems.Contains(child)) _childItems.Add(child);
+    }
+    internal void UnregisterChild(OmniTreeItem child) => _childItems.Remove(child);
+
+    // Called by the tree after a lazy Expand handler supplies children.
+    internal void SetLazyChildren(RenderFragment children)
+    {
+        _lazyChildren = children;
+        StateHasChanged();
+    }
+
+    internal void NotifyStateChanged() => StateHasChanged();
+
+    private async Task ToggleAsync()
+    {
+        if (!HasNodeChildren) return;
+        _expanded = !_expanded;
+        if (_expanded)
+        {
+            if (EffectiveChildContent is null && HasChildren && Tree is not null)
+            {
+                await Tree.ExpandItemAsync(this);
+            }
+            if (Tree is not null) await Tree.OnExpandedAsync(this);
+        }
+        else if (Tree is not null)
+        {
+            await Tree.OnCollapsedAsync(this);
+        }
+    }
+
+    private Task SelectAsync() => Tree?.SelectItemAsync(this) ?? Task.CompletedTask;
+    private Task OnCheckToggleAsync() => Tree?.ToggleCheckAsync(this) ?? Task.CompletedTask;
+}
