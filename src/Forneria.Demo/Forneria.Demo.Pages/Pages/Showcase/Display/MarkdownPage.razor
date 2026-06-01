@@ -1,0 +1,119 @@
+@page "/showcase/markdown"
+@layout ShowcaseLayout
+
+<PageTitle>Markdown — Showcase</PageTitle>
+
+<ShowcasePage Title="Markdown"
+              Subtitle="Renderiza Markdown (CommonMark + tabelas GFM) como HTML — parser próprio em C#, sem dependências, XSS-safe.">
+
+    <Overview>
+        <p>
+            O <code>OmniMarkdown</code> converte texto Markdown em HTML usando um
+            <strong>parser próprio em C#</strong> (sem JavaScript, sem pacote externo). Passe o
+            conteúdo via <code>Text</code> ou escrevendo o markdown entre as tags.
+        </p>
+        <p>
+            É <strong>seguro por construção</strong>: todo texto é escapado, URLs de link/imagem passam por
+            uma <em>allow-list</em> de esquema (http/https/mailto/tel — <code>javascript:</code> é descartado),
+            e HTML embutido é escapado por padrão. <code>AllowHtml</code> libera HTML embutido passando por um
+            sanitizador best-effort (remove scripts, handlers <code>on*</code> e URLs perigosas) — use só com
+            conteúdo confiável.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>READMEs, changelogs, documentação e ajuda renderizados em runtime.</li>
+            <li>Conteúdo de CMS/banco em Markdown (descrições, posts).</li>
+            <li>Pré-visualização de campos Markdown editáveis pelo usuário.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Texto simples sem formatação → renderize direto.</li>
+            <li>HTML arbitrário de fonte não confiável → não use <code>AllowHtml</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="EDITOR AO VIVO"
+                         Description="Edite o Markdown à esquerda e veja o resultado à direita. O switch liga/desliga HTML embutido."
+                         Code="@(@"<OmniMarkdown Text=""@_md"" AllowHtml=""@_allowHtml"" />")">
+            <div class="omni-grid-2" style="gap:16px;align-items:start;">
+                <OmniTextArea @bind-Value="_md" Rows="18" Style="font-family:var(--omni-font-mono);font-size:13px;" />
+                <div style="border:1px solid var(--omni-line);border-radius:10px;background:var(--omni-bg-elev);padding:16px;">
+                    <OmniMarkdown Text="@_md" AllowHtml="_allowHtml" />
+                </div>
+            </div>
+            <div style="margin-top:12px;">
+                <OmniCheckBox @bind-Value="_allowHtml" Label="AllowHtml (renderiza HTML embutido sanitizado)" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ENTRE AS TAGS"
+                         Description="Você também pode escrever o Markdown diretamente entre as tags (a indentação comum é removida)."
+                         Code="@(@"<OmniMarkdown>
+## Título
+- item **1**
+- item 2
+</OmniMarkdown>")">
+            <div style="border:1px solid var(--omni-line);border-radius:10px;background:var(--omni-bg-elev);padding:16px;">
+                <OmniMarkdown>
+## Cardápio do dia
+1. **Pizzas** — Margherita, Calabresa
+2. **Bebidas** — Refrigerante, Suco
+
+> Promoção: 2 pizzas grandes por `R$ 79,90`.
+                </OmniMarkdown>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniMarkdown">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null" Description="Fonte Markdown (tem precedência sobre ChildContent)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null" Description="Markdown escrito entre as tags." />
+            <ShowcaseApiRow Name="AllowHtml" Type="bool" Default="false" Description="Permite HTML embutido (sanitizado). Só para conteúdo confiável." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Sintaxe suportada">
+            <ShowcaseApiRow Name="Blocos" Type="—" Default="—" Description="Headings #..######, parágrafos, listas (ul/ol aninhadas), blockquote, code fence ```lang, regra ---, tabelas GFM." />
+            <ShowcaseApiRow Name="Inline" Type="—" Default="—" Description="**negrito**, *itálico*, ~~tachado~~, `código`, [link](url), ![img](url), <autolink>, quebra dura (2 espaços)." />
+            <ShowcaseApiRow Name="Segurança" Type="—" Default="—" Description="Texto escapado; URLs por allow-list de esquema; HTML escapado salvo AllowHtml." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool _allowHtml;
+
+    private string _md = """
+        # Omni.Blazor :)
+
+        **OmniMarkdown** renderiza *Markdown* com um parser próprio em C#.
+
+        ## Recursos
+        - Headings, **negrito**, *itálico*, ~~tachado~~ e `código`
+        - Listas aninhadas:
+          - sub-item A
+          - sub-item B
+        - [Links](https://example.com) e imagens
+
+        ## Código
+        ```csharp
+        var html = MarkdownRenderer.ToHtml("# Olá");
+        ```
+
+        ## Tabela
+        | Produto    | Qtde | Preço   |
+        |:-----------|:----:|--------:|
+        | Margherita |  3   | R$ 45,00 |
+        | Calabresa  |  2   | R$ 42,00 |
+
+        > **Dica:** tudo é escapado — `<script>` vira texto, não executa.
+
+        ---
+        Feito com Omni.Blazor.
+        """;
+}

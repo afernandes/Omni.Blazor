@@ -1,0 +1,86 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using System.Text
+@using Microsoft.AspNetCore.Components.Rendering
+@using Microsoft.AspNetCore.Components.RenderTree
+@using Omni.Blazor.Utilities
+
+@*
+    OmniMarkdown — renders CommonMark-ish Markdown as HTML (RadzenMarkdown port).
+    Self-contained C# parser, no JS / no external package. XSS-safe: text is
+    escaped, URLs go through a scheme allow-list, and raw HTML is escaped unless
+    AllowHtml is set (then it passes a best-effort sanitizer).
+
+    Usage:
+        <OmniMarkdown Text="@("# Olá\n\nTexto **em negrito** e `código`.")" />
+      or write the markdown between the tags:
+        <OmniMarkdown>
+        ## Título
+        - item 1
+        - item 2
+        </OmniMarkdown>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">@Rendered</div>
+
+@code {
+    /// <summary>The markdown source. Takes precedence over <see cref="ChildContent"/>.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Markdown written raw between the tags (text frames are concatenated).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// When true, embedded raw HTML is sanitized and rendered; when false (default)
+    /// it is escaped and shown literally. Only enable for trusted content — the
+    /// sanitizer is best-effort.
+    /// </summary>
+    [Parameter] public bool AllowHtml { get; set; }
+
+    private MarkupString Rendered => (MarkupString)MarkdownRenderer.ToHtml(ResolveSource(), AllowHtml);
+
+    private string RootCss => CssBuilder.Default("omni-markdown").AddClass(Class).Build();
+
+    private string? ResolveSource()
+    {
+        if (!string.IsNullOrEmpty(Text)) return Text;
+        if (ChildContent is not null) return Dedent(ExtractText(ChildContent));
+        return null;
+    }
+
+    // Render the child fragment into a throwaway builder and concatenate its
+    // text/markup frames — this recovers the raw markdown written between the tags.
+    private static string ExtractText(RenderFragment fragment)
+    {
+        using var builder = new RenderTreeBuilder();
+        builder.AddContent(0, fragment);
+        var range = builder.GetFrames();
+        var frames = range.Array;
+        var sb = new StringBuilder();
+        for (int i = 0; i < range.Count; i++)
+        {
+            var f = frames[i];
+            if (f.FrameType == RenderTreeFrameType.Text) sb.Append(f.TextContent);
+            else if (f.FrameType == RenderTreeFrameType.Markup) sb.Append(f.MarkupContent);
+        }
+        return sb.ToString();
+    }
+
+    // Strip the common leading indentation introduced by writing markdown
+    // indented under the .razor tag.
+    private static string Dedent(string text)
+    {
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        int min = int.MaxValue;
+        foreach (var l in lines)
+        {
+            if (string.IsNullOrWhiteSpace(l)) continue;
+            int n = 0; while (n < l.Length && l[n] == ' ') n++;
+            if (n < min) min = n;
+        }
+        if (min is 0 or int.MaxValue) return text.Trim('\n');
+        for (int i = 0; i < lines.Length; i++)
+            if (lines[i].Length >= min) lines[i] = lines[i].Substring(min);
+        return string.Join("\n", lines).Trim('\n');
+    }
+}
