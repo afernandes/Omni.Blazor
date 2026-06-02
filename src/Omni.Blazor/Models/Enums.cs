@@ -347,3 +347,11 @@ public enum TimelinePointVariant { Filled, Outlined, Text }
 ///   <item><term>Alternate</term><description>linha no centro; itens alternam de lado (zigue-zague).</description></item>
 /// </list></summary>
 public enum TimelineLinePosition { Center, Start, End, Alternate }
+
+/// <summary>Posição do paginador (dots) de um <c>OmniCarousel</c>:
+/// <list type="bullet">
+///   <item><term>Top</term><description>dots acima dos slides.</description></item>
+///   <item><term>Bottom</term><description>dots abaixo dos slides (default).</description></item>
+///   <item><term>TopAndBottom</term><description>dots nas duas extremidades.</description></item>
+/// </list></summary>
+public enum CarouselPagerPosition { Top, Bottom, TopAndBottom }

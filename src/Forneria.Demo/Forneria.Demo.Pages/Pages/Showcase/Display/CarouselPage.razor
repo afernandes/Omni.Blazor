@@ -1,0 +1,184 @@
+@page "/showcase/carousel"
+@layout ShowcaseLayout
+
+<PageTitle>Carousel — Showcase</PageTitle>
+
+<ShowcasePage Title="Carousel"
+              Subtitle="Slideshow com scroll-snap nativo — auto-play, dots, setas, swipe, teclado e binding bidirecional do índice.">
+
+    <Overview>
+        <p>
+            O <code>OmniCarousel</code> cicla por <code>OmniCarouselItem</code> (slides com qualquer
+            conteúdo: imagens, cards, layouts). A trilha usa <em>scroll-snap</em> nativo com rolagem
+            suave assistida por JS. Suporta <code>Auto</code> (auto-play) + <code>Interval</code>,
+            paginação por <em>dots</em> (<code>PagerPosition</code>/<code>PagerOverlay</code>),
+            setas anterior/próximo, swipe em toque, navegação por teclado (Setas, Home/End) e
+            <code>@@bind-SelectedIndex</code> bidirecional.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Galerias de imagens, banners de destaque, depoimentos rotativos.</li>
+            <li>Vitrines de produtos (vários por vez com <code>ItemsPerPage</code>).</li>
+            <li>Onboarding/tour em telas pequenas (swipe natural).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Conteúdo crítico que o usuário precisa ver todo — prefira uma lista/grid.</li>
+            <li>Navegação entre seções → use <code>OmniTabs</code> ou <code>OmniStepper</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="AUTO-PLAY (PADRÃO)"
+                         Description="Auto-play ligado, dots sobrepostos embaixo e setas. Passe o mouse para ver as setas; o swipe funciona no toque."
+                         Code="@(@"<OmniCarousel Style=""height:340px"">
+    @foreach (var s in photos)
+    {
+        <OmniCarouselItem @key=""s.Url"">
+            <OmniImage Src=""@s.Url"" Alt=""@s.Alt"" Fit=""ObjectFit.Cover""
+                       Style=""width:100%;height:100%"" />
+        </OmniCarouselItem>
+    }
+</OmniCarousel>")">
+            <OmniCarousel Style="height:340px;max-width:760px">
+                @foreach (var s in _photos)
+                {
+                    <OmniCarouselItem @key="s.Url">
+                        <OmniImage Src="@s.Url" Alt="@s.Alt" Fit="ObjectFit.Cover" Style="width:100%;height:100%" />
+                    </OmniCarouselItem>
+                }
+            </OmniCarousel>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MANUAL + BINDING DO ÍNDICE"
+                         Description="Auto-play desligado. O slide ativo é vinculado bidirecionalmente — botões externos também navegam. Slides com conteúdo arbitrário (não só imagens)."
+                         Code="@(@"<OmniCarousel Auto=""false"" @bind-SelectedIndex=""idx"" Style=""height:280px"">
+    @foreach (var p in panels)
+    {
+        <OmniCarouselItem @key=""p.Title"">
+            <div style=""@($""...background:{p.Bg}..."")"">@p.Title</div>
+        </OmniCarouselItem>
+    }
+</OmniCarousel>
+<span>Slide @(idx + 1) de @panels.Count</span>")">
+            <OmniCarousel Auto="false" @bind-SelectedIndex="_idx" Style="height:280px;max-width:760px">
+                @foreach (var p in _panels)
+                {
+                    <OmniCarouselItem @key="p.Title">
+                        <div style="@($"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;text-align:center;padding:24px;background:{p.Bg}")">
+                            <strong style="font-size:24px">@p.Title</strong>
+                            <span style="opacity:.9;max-width:32ch">@p.Text</span>
+                        </div>
+                    </OmniCarouselItem>
+                }
+            </OmniCarousel>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;">
+                <OmniButton Text="Anterior" Icon="chevron-left" Variant="ButtonVariant.Default" Size="ComponentSize.Sm"
+                            OnClick="@(() => _idx = (_idx - 1 + _panels.Count) % _panels.Count)" />
+                <OmniButton Text="Próximo" TrailingIcon="chevron-right" Variant="ButtonVariant.Default" Size="ComponentSize.Sm"
+                            OnClick="@(() => _idx = (_idx + 1) % _panels.Count)" />
+                <span style="font-size:13px;color:var(--omni-fg-soft);">Slide <strong>@(_idx + 1)</strong> de @_panels.Count</span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VÁRIOS POR PÁGINA (ItemsPerPage)"
+                         Description="ItemsPerPage=3 mostra três slides por vez; cada dot avança uma página. Ótimo para vitrines de produto."
+                         Code="@(@"<OmniCarousel ItemsPerPage=""3"" Auto=""false"" PagerOverlay=""false""
+              Style=""height:200px"">
+    @foreach (var g in gallery)
+    {
+        <OmniCarouselItem @key=""g.Url"">...</OmniCarouselItem>
+    }
+</OmniCarousel>")">
+            <OmniCarousel ItemsPerPage="3" Auto="false" PagerOverlay="false" Style="height:210px">
+                @foreach (var g in _gallery)
+                {
+                    <OmniCarouselItem @key="g.Url">
+                        <div style="width:100%;height:100%;padding:8px;">
+                            <OmniImage Src="@g.Url" Alt="@g.Alt" Fit="ObjectFit.Cover"
+                                       Style="width:100%;height:100%;border-radius:10px" />
+                        </div>
+                    </OmniCarouselItem>
+                }
+            </OmniCarousel>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DOTS NO TOPO, FORA DOS SLIDES"
+                         Description="PagerPosition=Top com PagerOverlay=false coloca os dots numa faixa acima da trilha. Interval menor acelera o ciclo."
+                         Code="@(@"<OmniCarousel PagerPosition=""CarouselPagerPosition.Top""
+              PagerOverlay=""false"" Interval=""2500"" Style=""height:320px"">
+    ...
+</OmniCarousel>")">
+            <OmniCarousel PagerPosition="CarouselPagerPosition.Top" PagerOverlay="false" Interval="2500"
+                          Style="height:320px;max-width:760px;background:var(--omni-bg-elev)">
+                @foreach (var s in _photos)
+                {
+                    <OmniCarouselItem @key="s.Url">
+                        <OmniImage Src="@s.Url" Alt="@s.Alt" Fit="ObjectFit.Cover" Style="width:100%;height:100%" />
+                    </OmniCarouselItem>
+                }
+            </OmniCarousel>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniCarousel">
+            <ShowcaseApiRow Name="SelectedIndex" Type="int" Default="0" Description="Índice do slide ativo (two-way via bind-SelectedIndex)." />
+            <ShowcaseApiRow Name="Change" Type="EventCallback<int>" Default="—" Description="Disparado quando o slide ativo muda." />
+            <ShowcaseApiRow Name="Auto" Type="bool" Default="true" Description="Liga o auto-play." />
+            <ShowcaseApiRow Name="Interval" Type="double" Default="4000" Description="Intervalo do auto-play (ms)." />
+            <ShowcaseApiRow Name="AnimationDuration" Type="double?" Default="null" Description="Duração da transição (ms). null = suave (~400ms); 0 = instantâneo." />
+            <ShowcaseApiRow Name="ItemsPerPage" Type="int" Default="1" Description="Quantos slides visíveis por vez." />
+            <ShowcaseApiRow Name="PagerPosition" Type="CarouselPagerPosition" Default="Bottom" Description="Top | Bottom | TopAndBottom." />
+            <ShowcaseApiRow Name="PagerOverlay" Type="bool" Default="true" Description="Dots sobrepostos aos slides (vs. faixa própria)." />
+            <ShowcaseApiRow Name="AllowPaging" Type="bool" Default="true" Description="Mostra os dots de paginação." />
+            <ShowcaseApiRow Name="AllowNavigation" Type="bool" Default="true" Description="Mostra as setas anterior/próximo." />
+            <ShowcaseApiRow Name="AllowScroll" Type="bool" Default="true" Description="Permite rolar/arrastar (swipe) entre slides." />
+            <ShowcaseApiRow Name="PrevIcon / NextIcon" Type="string" Default="chevron-left/right" Description="Ícones das setas." />
+            <ShowcaseApiRow Name="PrevText / NextText" Type="string" Default="(vazio)" Description="Texto opcional nas setas." />
+            <ShowcaseApiRow Name="ButtonVariant / ButtonSize" Type="ButtonVariant / ComponentSize" Default="Ghost / Lg" Description="Estilo das setas." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="Métodos">
+            <ShowcaseApiRow Name="NextAsync() / PrevAsync()" Type="Task" Default="—" Description="Avança/retrocede um slide (com wrap-around)." />
+            <ShowcaseApiRow Name="NavigateAsync(int)" Type="Task" Default="—" Description="Vai para um índice específico." />
+            <ShowcaseApiRow Name="Start() / Stop() / Reset()" Type="void" Default="—" Description="Controla o timer de auto-play." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int _idx;
+
+    private record Slide(string Url, string Alt);
+    private record Panel(string Title, string Text, string Bg);
+
+    private readonly List<Slide> _photos = new()
+    {
+        new("https://picsum.photos/seed/omni-c1/900/420", "Paisagem montanhosa"),
+        new("https://picsum.photos/seed/omni-c2/900/420", "Cidade ao entardecer"),
+        new("https://picsum.photos/seed/omni-c3/900/420", "Floresta"),
+        new("https://picsum.photos/seed/omni-c4/900/420", "Praia"),
+    };
+
+    private readonly List<Panel> _panels = new()
+    {
+        new("Bem-vindo", "Slides aceitam qualquer conteúdo — não apenas imagens.", "linear-gradient(135deg,#2563eb,#7c3aed)"),
+        new("Recursos", "Auto-play, dots, swipe em toque e atalhos de teclado.", "linear-gradient(135deg,#059669,#0891b2)"),
+        new("Acessível", "Setas, Home/End e aria-labels em cada dot.", "linear-gradient(135deg,#d97706,#dc2626)"),
+    };
+
+    private readonly List<Slide> _gallery = new()
+    {
+        new("https://picsum.photos/seed/omni-g1/360/300", "Produto 1"),
+        new("https://picsum.photos/seed/omni-g2/360/300", "Produto 2"),
+        new("https://picsum.photos/seed/omni-g3/360/300", "Produto 3"),
+        new("https://picsum.photos/seed/omni-g4/360/300", "Produto 4"),
+        new("https://picsum.photos/seed/omni-g5/360/300", "Produto 5"),
+        new("https://picsum.photos/seed/omni-g6/360/300", "Produto 6"),
+    };
+}

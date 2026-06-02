@@ -8208,3 +8208,152 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 .omni-image-scaledown { object-fit: scale-down; }
 .omni-image-clickable { cursor: pointer; }
 .omni-image-clickable:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 2px; }
+
+// ═══ Carousel ════════════════════════════════════════════════════════════════
+.omni-carousel {
+  --omni-carousel-pager-height: 3rem;
+  --omni-carousel-dot-size: 0.7rem;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-sunken);
+  outline: none;
+}
+.omni-carousel:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 2px;
+}
+
+// Non-overlay pager occupies its own band, shrinking the slide track.
+.omni-carousel:not(.omni-carousel-pager-overlay) {
+  .omni-carousel-pager-top ~ .omni-carousel-items,
+  .omni-carousel-items:has(+ .omni-carousel-pager-bottom) {
+    height: calc(100% - var(--omni-carousel-pager-height));
+  }
+  .omni-carousel-pager-top ~ .omni-carousel-items:has(+ .omni-carousel-pager-bottom) {
+    height: calc(100% - (2 * var(--omni-carousel-pager-height)));
+  }
+}
+
+.omni-carousel-items {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  height: 100%;
+  overflow-x: scroll;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border-radius: inherit;
+}
+.omni-carousel-items::-webkit-scrollbar { display: none; }
+
+.omni-carousel-no-scroll {
+  overflow-x: hidden;
+  touch-action: none;
+  scroll-snap-type: none;
+}
+
+.omni-carousel-item {
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+.omni-carousel-item > img,
+.omni-carousel-item > .omni-image { max-width: 100%; max-height: 100%; }
+
+.omni-carousel-snapper {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  scroll-snap-align: center;
+}
+
+// Pager dots
+.omni-carousel-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  height: var(--omni-carousel-pager-height);
+}
+.omni-carousel-pager-button {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding: 0;
+  width: var(--omni-carousel-dot-size);
+  height: var(--omni-carousel-dot-size);
+  border-radius: 50%;
+  border: 2px solid var(--omni-fg-soft);
+  background: var(--omni-fg-soft);
+  opacity: 0.5;
+  transition: opacity .15s, background .15s, border-color .15s, transform .15s;
+}
+.omni-carousel-pager-button:hover { opacity: 0.85; background: transparent; }
+.omni-carousel-pager-button:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 2px; }
+.omni-carousel-pager-button.omni-active {
+  opacity: 1;
+  background: var(--omni-accent);
+  border-color: var(--omni-accent);
+}
+
+// Overlay pager floats over the slides (white dots for contrast on imagery).
+.omni-carousel-pager-overlay .omni-carousel-pager {
+  position: absolute;
+  z-index: 5;
+  inset-inline: 0;
+}
+.omni-carousel-pager-overlay .omni-carousel-pager-top { inset-block-start: 0; }
+.omni-carousel-pager-overlay .omni-carousel-pager-bottom { inset-block-end: 0; }
+.omni-carousel-pager-overlay .omni-carousel-pager-button {
+  border-color: #fff;
+  background: color-mix(in srgb, #fff 80%, transparent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+  opacity: 1;
+}
+.omni-carousel-pager-overlay .omni-carousel-pager-button:hover { background: transparent; }
+.omni-carousel-pager-overlay .omni-carousel-pager-button.omni-active {
+  background: var(--omni-accent);
+  border-color: #fff;
+}
+
+// Prev / Next floating buttons
+.omni-carousel-prev,
+.omni-carousel-next {
+  position: absolute;
+  z-index: 6;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--omni-bg-elev) 82%, transparent);
+  backdrop-filter: blur(4px);
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
+  transition: background .15s ease, box-shadow .15s ease;
+}
+.omni-carousel-prev:hover:not(:disabled),
+.omni-carousel-next:hover:not(:disabled) { background: var(--omni-bg-elev); box-shadow: 0 2px 6px rgba(0, 0, 0, .22); }
+// Keep the button vertically centred while pressed — the global
+// `.omni-btn:active { transform: translateY(1px) }` would otherwise clobber the
+// centring transform and drop the button off the pointer. Subtle press only.
+.omni-carousel-prev:active:not(:disabled),
+.omni-carousel-next:active:not(:disabled) { transform: translateY(-50%); box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
+.omni-carousel-prev { inset-inline-start: 0.75rem; }
+.omni-carousel-next { inset-inline-end: 0.75rem; }
+
+.omni-carousel-no-navigation .omni-carousel-prev,
+.omni-carousel-no-navigation .omni-carousel-next { display: none; }
+
+[dir="rtl"] .omni-carousel-prev .omni-icon,
+[dir="rtl"] .omni-carousel-next .omni-icon { transform: rotate(180deg); }

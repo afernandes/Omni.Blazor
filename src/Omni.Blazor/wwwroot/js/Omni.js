@@ -2516,4 +2516,84 @@
     ref.removeEventListener('paste', ref.__omniPaste);
     document.removeEventListener('selectionchange', ref.__omniSel);
   };
+
+  // ─── Carousel (scroll-snap slideshow) ──────────────────────────────────
+  // Scrolls a track so the slide at `index` becomes active. The track is closed
+  // over (never re-marshaled per call). Resolves the slide by index from the
+  // container's children.
+  //   duration === 0    → instant jump (no animation)
+  //   duration < 0/null → smooth scroll at the default duration (~400ms)
+  //   duration > 0      → smooth scroll, final position guaranteed after `duration`
+  // NOTES:
+  //  • `scroll-snap-type: x mandatory` snaps a programmatic scroll straight back
+  //    to the origin, so snap is disabled for the move and re-enabled on the
+  //    target (itself a snap point).
+  //  • Native smooth scroll only animates while the page is actively painting;
+  //    in a background tab / headless context it is a no-op. So after the
+  //    animation window we ALWAYS force the final position instantly — the slide
+  //    changes everywhere, and animates smoothly where the frame loop is alive.
+  function carouselTween(container, index, duration) {
+    if (!container) return;
+    var el = container.children[index];
+    if (!el) return;
+    var target = el.offsetLeft;
+    container.style.scrollSnapType = 'none';
+    if (duration === 0) {
+      container.style.scrollBehavior = 'auto';
+      container.scrollLeft = target;
+      container.style.scrollBehavior = '';
+      container.style.scrollSnapType = '';
+      return;
+    }
+    var dwell = (duration && duration > 0) ? duration : 400;
+    container.style.scrollBehavior = 'smooth';
+    try { container.scrollTo({ left: target, behavior: 'smooth' }); } catch (e) { container.scrollLeft = target; }
+    if (container.__omniSnapT) clearTimeout(container.__omniSnapT);
+    container.__omniSnapT = setTimeout(function () {
+      container.style.scrollBehavior = 'auto';
+      container.scrollLeft = target;          // guarantee the final position
+      container.style.scrollBehavior = '';
+      container.style.scrollSnapType = '';    // re-enable snap, already aligned
+      container.__omniSnapT = null;
+    }, dwell + 60);
+  }
+
+  // Standalone variant (used by tests / direct callers).
+  ns.carouselScrollToItem = function (container, index, duration) { carouselTween(container, index, duration); };
+
+  // Watches the track for user scroll/swipe and reports the centred slide index
+  // back to .NET (debounced). The returned object also exposes scrollTo(index,
+  // duration). Both the listener and scrollTo resolve the LIVE track element via
+  // its stable data-omni-cid attribute every time — Blazor may replace the <ul>
+  // across prerender/hydration, which would otherwise leave a stale (detached)
+  // reference that scrolls nothing visible.
+  ns.carouselCreate = function (container, dotnetRef) {
+    if (!container) return null;
+    var cid = container.getAttribute && container.getAttribute('data-omni-cid');
+    function track() {
+      if (cid) { var live = document.querySelector('[data-omni-cid="' + cid + '"]'); if (live) return live; }
+      return container;
+    }
+    var t = null;
+    function handler() {
+      if (t) clearTimeout(t);
+      t = setTimeout(function () {
+        var trk = track();
+        var kids = trk.children;
+        if (!kids.length) return;
+        var w = kids[0].offsetWidth;
+        if (!w) return;
+        var index = Math.round(trk.scrollLeft / w);
+        if (index < 0) index = 0;
+        if (index >= kids.length) index = kids.length - 1;
+        try { dotnetRef.invokeMethodAsync('OnScroll', index); } catch (e) { }
+      }, 100);
+    }
+    var listenEl = track();
+    listenEl.addEventListener('scroll', handler, { passive: true });
+    return {
+      scrollTo: function (index, duration) { carouselTween(track(), index, duration); },
+      dispose: function () { listenEl.removeEventListener('scroll', handler); if (t) clearTimeout(t); }
+    };
+  };
 })();

@@ -1,0 +1,48 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*
+    OmniCarouselItem — a single slide inside an <OmniCarousel>. Holds arbitrary
+    content (image, card, custom layout). Width is driven by the parent's
+    ItemsPerPage; the inner snapper provides the scroll-snap target.
+
+    Usage:
+      <OmniCarousel>
+          <OmniCarouselItem><OmniImage Src="1.jpg" Alt="..." /></OmniCarouselItem>
+          <OmniCarouselItem><OmniImage Src="2.jpg" Alt="..." /></OmniCarouselItem>
+      </OmniCarousel>
+*@
+
+<li class="@RootCss" style="@ItemStyle" @attributes="Attributes" tabindex="0">
+    @ChildContent
+    <div class="omni-carousel-snapper"></div>
+</li>
+
+@code {
+    [CascadingParameter] internal OmniCarousel? Parent { get; set; }
+
+    /// <summary>The slide content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-carousel-item")
+        .AddClass(Class)
+        .Build();
+
+    // When more than one item is visible, each slide takes an equal fraction of
+    // the viewport width. Single-item carousels fall back to the CSS default (100%).
+    private string? ItemStyle
+    {
+        get
+        {
+            var n = Parent?.ItemsPerPage ?? 1;
+            var widthRule = n > 1 ? $"flex:0 0 calc(100% / {n});width:calc(100% / {n});" : null;
+            return string.Concat(widthRule, Style);
+        }
+    }
+
+    protected override void OnInitialized() => Parent?.Register(this);
+
+    public void Dispose() => Parent?.Unregister(this);
+}

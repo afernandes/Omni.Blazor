@@ -1,0 +1,363 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniCarousel — a slideshow that cycles through <OmniCarouselItem> slides
+    (RadzenCarousel port). Native scroll-snap track + JS-assisted smooth scroll,
+    pager dots, prev/next buttons, auto-play (Auto/Interval), touch swipe, keyboard
+    (Arrow/Home/End) and two-way @bind-SelectedIndex.
+
+    Usage:
+      <OmniCarousel @bind-SelectedIndex="i" Interval="3000">
+          <OmniCarouselItem><OmniImage Src="1.jpg" Alt="A" /></OmniCarouselItem>
+          <OmniCarouselItem><OmniImage Src="2.jpg" Alt="B" /></OmniCarouselItem>
+      </OmniCarousel>
+*@
+
+<CascadingValue Value="this" IsFixed="true">
+    <section class="@RootCss" style="@Style" @attributes="Attributes"
+             @ref="_sectionRef" tabindex="0" @onkeydown="OnKeyDownAsync">
+
+        @if (ShowTopPager)
+        {
+            @Pager("omni-carousel-pager-top")
+        }
+
+        @if (AllowNavigation)
+        {
+            <OmniButton Class="omni-carousel-prev" Icon="@PrevIcon" Text="@PrevText"
+                        IconOnly="@string.IsNullOrEmpty(PrevText)"
+                        Variant="ButtonVariant" Size="ButtonSize"
+                        aria-label="@PrevAriaLabel" OnClick="PrevAsync" />
+            <OmniButton Class="omni-carousel-next" Icon="@NextIcon" Text="@NextText"
+                        IconOnly="@string.IsNullOrEmpty(NextText)"
+                        Variant="ButtonVariant" Size="ButtonSize"
+                        aria-label="@NextAriaLabel" OnClick="NextAsync" />
+        }
+
+        <ul class="@ItemsCss" @ref="_itemsRef" data-omni-cid="@Id"
+            @ontouchstart="OnTouchStart" @ontouchend="OnTouchEndAsync" @ontouchcancel="OnTouchCancel">
+            @ChildContent
+        </ul>
+
+        @if (ShowBottomPager)
+        {
+            @Pager("omni-carousel-pager-bottom")
+        }
+    </section>
+</CascadingValue>
+
+@code {
+    private readonly List<OmniCarouselItem> _items = new();
+    private ElementReference _sectionRef;
+    private ElementReference _itemsRef;
+    private DotNetObjectReference<OmniCarousel>? _selfRef;
+    private IJSObjectReference? _scrollSub;
+    private System.Threading.Timer? _timer;
+    private int _selectedIndex;
+    private bool _created;
+    private double? _touchX, _touchY;
+
+    // ─── Parameters ──────────────────────────────────────────────────────────
+
+    /// <summary>Index of the active slide. Two-way bindable via <c>@bind-SelectedIndex</c>.</summary>
+    [Parameter] public int SelectedIndex { get; set; }
+
+    /// <summary>Raised when the active slide changes (binding callback).</summary>
+    [Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
+
+    /// <summary>Raised when the active slide changes (general-purpose event).</summary>
+    [Parameter] public EventCallback<int> Change { get; set; }
+
+    /// <summary>Whether the carousel auto-cycles. Default true.</summary>
+    [Parameter] public bool Auto { get; set; } = true;
+
+    /// <summary>Auto-cycle interval in milliseconds. Default 4000.</summary>
+    [Parameter] public double Interval { get; set; } = 4000;
+
+    /// <summary>Slide transition duration (ms). <c>null</c> = default smooth (~400ms), <c>0</c> = instant.</summary>
+    [Parameter] public double? AnimationDuration { get; set; }
+
+    /// <summary>Pager (dots) position. Default Bottom.</summary>
+    [Parameter] public CarouselPagerPosition PagerPosition { get; set; } = CarouselPagerPosition.Bottom;
+
+    /// <summary>Whether the pager overlays the slides (vs. sitting outside). Default true.</summary>
+    [Parameter] public bool PagerOverlay { get; set; } = true;
+
+    /// <summary>Whether the pager dots are shown. Default true.</summary>
+    [Parameter] public bool AllowPaging { get; set; } = true;
+
+    /// <summary>Whether the prev/next buttons are shown. Default true.</summary>
+    [Parameter] public bool AllowNavigation { get; set; } = true;
+
+    /// <summary>Number of slides visible at once. Default 1.</summary>
+    [Parameter] public int ItemsPerPage { get; set; } = 1;
+
+    /// <summary>Whether the user can scroll/swipe between slides. Default true.</summary>
+    [Parameter] public bool AllowScroll { get; set; } = true;
+
+    /// <summary>Variant of the prev/next buttons. Default Ghost.</summary>
+    [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Ghost;
+
+    /// <summary>Size of the prev/next buttons. Default Lg.</summary>
+    [Parameter] public ComponentSize ButtonSize { get; set; } = ComponentSize.Lg;
+
+    /// <summary>Previous-button icon name. Default "chevron-left".</summary>
+    [Parameter] public string PrevIcon { get; set; } = "chevron-left";
+
+    /// <summary>Next-button icon name. Default "chevron-right".</summary>
+    [Parameter] public string NextIcon { get; set; } = "chevron-right";
+
+    /// <summary>Optional previous-button text (shown alongside / instead of the icon).</summary>
+    [Parameter] public string PrevText { get; set; } = "";
+
+    /// <summary>Optional next-button text.</summary>
+    [Parameter] public string NextText { get; set; } = "";
+
+    /// <summary>Accessible label for the previous button. Default "Slide anterior".</summary>
+    [Parameter] public string PrevAriaLabel { get; set; } = "Slide anterior";
+
+    /// <summary>Accessible label for the next button. Default "Próximo slide".</summary>
+    [Parameter] public string NextAriaLabel { get; set; } = "Próximo slide";
+
+    /// <summary>Format string for each pager dot's aria-label ({0} = 1-based page). Default "Ir para o slide {0}".</summary>
+    [Parameter] public string PagerButtonAriaLabelFormat { get; set; } = "Ir para o slide {0}";
+
+    // ─── Derived ─────────────────────────────────────────────────────────────
+
+    private int PageCount => ItemsPerPage > 1 ? (int)Math.Ceiling((double)_items.Count / ItemsPerPage) : _items.Count;
+    private int ActivePage => ItemsPerPage > 1 ? _selectedIndex / ItemsPerPage : _selectedIndex;
+
+    private bool ShowTopPager => AllowPaging && (PagerPosition is CarouselPagerPosition.Top or CarouselPagerPosition.TopAndBottom);
+    private bool ShowBottomPager => AllowPaging && (PagerPosition is CarouselPagerPosition.Bottom or CarouselPagerPosition.TopAndBottom);
+
+    private string RootCss => CssBuilder.Default("omni-carousel")
+        .AddClass("omni-carousel-no-navigation", !AllowNavigation)
+        .AddClass("omni-carousel-pager-overlay", PagerOverlay)
+        .AddClass(Class)
+        .Build();
+
+    private string ItemsCss => CssBuilder.Default("omni-carousel-items")
+        .AddClass("omni-carousel-no-scroll", !AllowScroll)
+        .Build();
+
+    private static string PagerButtonCss(bool active) => CssBuilder.Default("omni-carousel-pager-button")
+        .AddClass("omni-active", active)
+        .Build();
+
+    private RenderFragment Pager(string posClass) =>@<div class="omni-carousel-pager @posClass" role="list">
+        @for (var p = 0; p < PageCount; p++)
+        {
+            var pageIndex = p;
+            var itemIndex = pageIndex * ItemsPerPage;
+            <button @key="pageIndex" type="button" role="listitem"
+                    class="@PagerButtonCss(pageIndex == ActivePage)"
+                    aria-label="@string.Format(PagerButtonAriaLabelFormat, pageIndex + 1)"
+                    @onclick="@(() => NavigateAsync(itemIndex))"></button>
+        }
+    </div>;
+
+    // ─── Registrar ───────────────────────────────────────────────────────────
+
+    internal void Register(OmniCarouselItem item)
+    {
+        if (_items.Contains(item)) return;
+        _items.Add(item);
+        StateHasChanged();
+    }
+
+    internal void Unregister(OmniCarouselItem item)
+    {
+        if (_items.Remove(item))
+        {
+            try { _ = InvokeAsync(StateHasChanged); } catch { /* circuit gone */ }
+        }
+    }
+
+    // ─── Navigation ──────────────────────────────────────────────────────────
+
+    /// <summary>Navigates to the slide at <paramref name="index"/> (resets the auto-cycle timer).</summary>
+    public async Task NavigateAsync(int index)
+    {
+        if (Auto) Reset();
+        await GoToAsync(index);
+    }
+
+    /// <summary>Moves to the previous slide (wraps around).</summary>
+    public async Task PrevAsync()
+    {
+        if (ItemsPerPage > 1)
+        {
+            var prev = _selectedIndex - ItemsPerPage;
+            await NavigateAsync(prev < 0 ? (PageCount - 1) * ItemsPerPage : prev);
+        }
+        else
+        {
+            await NavigateAsync(_selectedIndex == 0 ? _items.Count - 1 : _selectedIndex - 1);
+        }
+    }
+
+    /// <summary>Moves to the next slide (wraps around).</summary>
+    public async Task NextAsync()
+    {
+        if (ItemsPerPage > 1)
+        {
+            var next = _selectedIndex + ItemsPerPage;
+            await NavigateAsync(next >= _items.Count ? 0 : next);
+        }
+        else
+        {
+            await NavigateAsync(_selectedIndex == _items.Count - 1 ? 0 : _selectedIndex + 1);
+        }
+    }
+
+    private async Task GoToAsync(int index)
+    {
+        if (index >= 0 && index <= _items.Count - 1 && _selectedIndex != index)
+        {
+            _selectedIndex = index;
+            if (SelectedIndexChanged.HasDelegate) await SelectedIndexChanged.InvokeAsync(_selectedIndex);
+            if (Change.HasDelegate) await Change.InvokeAsync(_selectedIndex);
+            await ScrollToCurrentAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ScrollToCurrentAsync()
+    {
+        // Scroll THROUGH the carouselCreate handle so the track element (closed
+        // over in JS) is never re-marshaled per call.
+        if (_scrollSub is not null && _selectedIndex >= 0 && _selectedIndex < _items.Count)
+        {
+            double dur = AnimationDuration ?? -1; // <0 → default smooth duration in JS
+            try { await _scrollSub.InvokeVoidAsync("scrollTo", _selectedIndex, dur); }
+            catch { /* prerender / circuit gone */ }
+        }
+    }
+
+    /// <summary>Stops the auto-cycle timer.</summary>
+    public void Stop() => _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+
+    /// <summary>Starts (or restarts) the auto-cycle timer.</summary>
+    public void Start()
+    {
+        var total = TimeSpan.FromMilliseconds(Interval + (AnimationDuration ?? 0));
+        _timer?.Change(total, total);
+    }
+
+    /// <summary>Resets the auto-cycle timer.</summary>
+    public void Reset() { Stop(); Start(); }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (!AllowNavigation) return;
+        switch (e.Key)
+        {
+            case "ArrowLeft": await PrevAsync(); break;
+            case "ArrowRight": await NextAsync(); break;
+            case "Home": await NavigateAsync(0); break;
+            case "End": await NavigateAsync(ItemsPerPage > 1 ? (PageCount - 1) * ItemsPerPage : _items.Count - 1); break;
+        }
+    }
+
+    // ─── Touch (swipe) ───────────────────────────────────────────────────────
+
+    private void OnTouchStart(TouchEventArgs e)
+    {
+        if (!AllowScroll || e.Touches.Length == 0) return;
+        _touchX = e.Touches[0].ClientX;
+        _touchY = e.Touches[0].ClientY;
+    }
+
+    private async Task OnTouchEndAsync(TouchEventArgs e)
+    {
+        if (_touchX is null || _touchY is null || e.ChangedTouches.Length == 0) return;
+        var dx = _touchX.Value - e.ChangedTouches[0].ClientX;
+        var dy = _touchY.Value - e.ChangedTouches[0].ClientY;
+        _touchX = _touchY = null;
+        if (Math.Abs(dx) < 100 && Math.Abs(dy) < 100) return;
+        if (Math.Abs(dx) > Math.Abs(dy))
+        {
+            if (dx > 0) await NextAsync(); else await PrevAsync();
+        }
+    }
+
+    private void OnTouchCancel(TouchEventArgs e) { _touchX = _touchY = null; }
+
+    // ─── JS scroll callback ──────────────────────────────────────────────────
+
+    /// <summary>Called from JS when the user scrolls/swipes the track to a new slide.</summary>
+    [JSInvokable]
+    public async Task OnScroll(int index)
+    {
+        if (!AllowScroll) return;
+        if (index >= 0 && index <= _items.Count - 1 && _selectedIndex != index)
+        {
+            _selectedIndex = index;
+            if (SelectedIndexChanged.HasDelegate) await SelectedIndexChanged.InvokeAsync(_selectedIndex);
+            if (Change.HasDelegate) await Change.InvokeAsync(_selectedIndex);
+            if (Auto) Reset();
+            StateHasChanged();
+        }
+    }
+
+    // ─── Lifecycle ───────────────────────────────────────────────────────────
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        var scrollNeeded = false;
+        var autoChanged = false;
+
+        if (parameters.TryGetValue<int>(nameof(SelectedIndex), out var si) && si != _selectedIndex)
+        {
+            _selectedIndex = si;
+            scrollNeeded = _created;
+        }
+        if (parameters.TryGetValue<bool>(nameof(Auto), out var a) && a != Auto) autoChanged = true;
+        if (parameters.TryGetValue<double>(nameof(Interval), out var iv) && iv != Interval) autoChanged = true;
+
+        await base.SetParametersAsync(parameters);
+
+        if (_created)
+        {
+            if (autoChanged) { if (Auto) Reset(); else Stop(); }
+            if (scrollNeeded) await ScrollToCurrentAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            Element = _sectionRef;
+
+            var total = TimeSpan.FromMilliseconds(Interval + (AnimationDuration ?? 0));
+            _timer = new System.Threading.Timer(_ => InvokeAsync(NextAsync),
+                null, Auto ? total : Timeout.InfiniteTimeSpan, total);
+
+            try { _scrollSub = await JS.InvokeAsync<IJSObjectReference>("omniBlazor.carouselCreate", _itemsRef, _selfRef); }
+            catch { /* prerender */ }
+
+            _created = true;
+            if (_selectedIndex > 0) await ScrollToCurrentAsync();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_timer != null) { await _timer.DisposeAsync(); _timer = null; }
+        if (_scrollSub != null)
+        {
+            try { await _scrollSub.InvokeVoidAsync("dispose"); } catch { }
+            try { await _scrollSub.DisposeAsync(); } catch { }
+            _scrollSub = null;
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+}
