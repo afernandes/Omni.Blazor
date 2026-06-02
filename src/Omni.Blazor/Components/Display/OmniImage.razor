@@ -1,0 +1,53 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniImage — a thin, consistent <img> wrapper (RadzenImage port). Adds optional
+    click-to-activate (keyboard accessible), object-fit, and native lazy loading.
+
+    Usage:
+      <OmniImage Src="logo.png" Alt="Logo da empresa" Style="width:200px" />
+      <OmniImage Src="@p.Photo" Alt="@p.Name" Fit="ObjectFit.Cover" Click="@(_ => Open(p))"
+                 Style="width:120px;height:120px;border-radius:8px" />
+*@
+
+<img class="@RootCss" style="@Style" @attributes="Attributes"
+     src="@Src" alt="@Alt"
+     loading="@(Lazy ? "lazy" : null)"
+     role="@(Click.HasDelegate ? "button" : null)"
+     tabindex="@(Click.HasDelegate ? "0" : null)"
+     @onclick="OnClickAsync" @onkeydown="OnKeyDownAsync" />
+
+@code {
+    /// <summary>Image source (URL, app path, or a <c>data:</c> URI).</summary>
+    [Parameter] public string? Src { get; set; }
+
+    /// <summary>Alt text — describe the image, or leave empty for purely decorative images.</summary>
+    [Parameter] public string Alt { get; set; } = "";
+
+    /// <summary>How the image fills its box (CSS <c>object-fit</c>). Needs a sized box (width/height).</summary>
+    [Parameter] public ObjectFit Fit { get; set; } = ObjectFit.Fill;
+
+    /// <summary>Native lazy loading (<c>loading="lazy"</c>). Default true.</summary>
+    [Parameter] public bool Lazy { get; set; } = true;
+
+    /// <summary>Makes the image interactive (renders as a button, Enter/Space activate).</summary>
+    [Parameter] public EventCallback<MouseEventArgs> Click { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-image")
+        .AddClass($"omni-image-{Fit.ToString().ToLowerInvariant()}", Fit != ObjectFit.Fill)
+        .AddClass("omni-image-clickable", Click.HasDelegate)
+        .AddClass(Class)
+        .Build();
+
+    private Task OnClickAsync(MouseEventArgs e)
+        => Click.HasDelegate ? Click.InvokeAsync(e) : Task.CompletedTask;
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (Click.HasDelegate && (e.Key == "Enter" || e.Key == " "))
+            await Click.InvokeAsync(new MouseEventArgs());
+    }
+}

@@ -1,0 +1,94 @@
+@page "/showcase/image"
+@layout ShowcaseLayout
+
+<PageTitle>Image — Showcase</PageTitle>
+
+<ShowcasePage Title="Image"
+              Subtitle="Wrapper consistente de <img> — alt acessível, object-fit, lazy loading e modo clicável (acessível por teclado).">
+
+    <Overview>
+        <p>
+            O <code>OmniImage</code> é um <code>&lt;img&gt;</code> com conveniências: <code>Src</code> (URL,
+            caminho do app ou <code>data:</code> URI), <code>Alt</code> acessível, <code>Fit</code>
+            (object-fit), <code>Lazy</code> (carregamento sob demanda) e <code>Click</code> — que torna a
+            imagem interativa (vira <code>role="button"</code>, ativável por Enter/Espaço).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Fotos de produto, logos, thumbnails, galerias (com <code>Click</code> abrindo um lightbox).</li>
+            <li>Imagens responsivas com recorte controlado (<code>Fit</code>).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Avatar de usuário → use <code>OmniAvatar</code>.</li>
+            <li>Ícones → use <code>OmniIcon</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DA URL"
+                         Description="Src aponta para uma URL. Defina o tamanho via Style; Lazy (padrão) adia o carregamento."
+                         Code="@(@"<OmniImage Src=""https://picsum.photos/seed/omni/480/240""
+           Alt=""Paisagem aleatória"" Style=""width:100%;max-width:480px;border-radius:10px"" />")">
+            <OmniImage Src="https://picsum.photos/seed/omni/480/240" Alt="Paisagem aleatória"
+                       Style="width:100%;max-width:480px;border-radius:10px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="OBJECT-FIT"
+                         Description="Numa caixa fixa (160×160), Fit controla o recorte: Cover preenche cortando, Contain cabe inteira, Fill estica."
+                         Code="@(@"<OmniImage Src=""..."" Fit=""ObjectFit.Cover"" Style=""width:160px;height:160px"" />")">
+            <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                @foreach (var fit in new[] { ObjectFit.Cover, ObjectFit.Contain, ObjectFit.Fill })
+                {
+                    <div style="text-align:center;">
+                        <OmniImage Src="https://picsum.photos/seed/fit/300/180" Alt="@($"Exemplo {fit}")"
+                                   Fit="fit" Style="width:160px;height:160px;border:1px solid var(--omni-line);border-radius:10px;background:var(--omni-bg-sunken)" />
+                        <div style="margin-top:6px;font-size:12px;color:var(--omni-fg-soft);">@fit</div>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CLICÁVEL (LIGHTBOX)"
+                         Description="Com Click, a imagem vira um botão (Enter/Espaço ativam). Use para abrir um lightbox/galeria."
+                         Code="@(@"<OmniImage Src=""..."" Click=""@(_ => Open())"" Style=""cursor:pointer;..."" />")">
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+                <OmniImage Src="https://picsum.photos/seed/click/200/200" Alt="Clique para ampliar"
+                           Fit="ObjectFit.Cover" Click="@(_ => _clicks++)"
+                           Style="width:120px;height:120px;border-radius:10px" />
+                <span style="font-size:13px;color:var(--omni-fg-soft);">Cliques na imagem: <strong>@_clicks</strong></span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DATA URI (base64 / SVG inline)"
+                         Description="Src também aceita data: URIs — útil para imagens geradas ou embutidas."
+                         Code="@(@"<OmniImage Src=""data:image/svg+xml;utf8,..."" Alt=""Selo"" />")">
+            <OmniImage Src="@_svgDataUri" Alt="Selo Omni" Style="width:96px;height:96px" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniImage">
+            <ShowcaseApiRow Name="Src" Type="string?" Default="null" Description="URL, caminho do app ou data: URI." />
+            <ShowcaseApiRow Name="Alt" Type="string" Default="(vazio)" Description="Texto alternativo (descreva a imagem ou deixe vazio se decorativa)." />
+            <ShowcaseApiRow Name="Fit" Type="ObjectFit" Default="Fill" Description="Fill | Contain | Cover | None | ScaleDown (precisa de caixa com tamanho)." />
+            <ShowcaseApiRow Name="Lazy" Type="bool" Default="true" Description="loading lazy (carregamento sob demanda)." />
+            <ShowcaseApiRow Name="Click" Type="EventCallback<MouseEventArgs>" Default="—" Description="Torna a imagem interativa (role=button, Enter/Espaço)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int _clicks;
+
+    private const string _svgDataUri =
+        "data:image/svg+xml;utf8," +
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'>" +
+        "<rect width='96' height='96' rx='18' fill='%232563eb'/>" +
+        "<text x='48' y='62' font-size='44' font-family='sans-serif' fill='white' text-anchor='middle'>O</text></svg>";
+}

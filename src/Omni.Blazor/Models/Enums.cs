@@ -315,6 +315,9 @@ public enum ToggleVariant { Default, Primary, Accent, Ghost }
 /// <summary>Modo de edição do <c>OmniHtmlEditor</c>: WYSIWYG (Design) ou HTML cru (Source).</summary>
 public enum HtmlEditorMode { Design, Source }
 
+/// <summary>Como a imagem do <c>OmniImage</c> preenche sua caixa (CSS <c>object-fit</c>).</summary>
+public enum ObjectFit { Fill, Contain, Cover, None, ScaleDown }
+
 /// <summary>Tipo de entrada do <c>OmniSecurityCode</c>:
 /// <list type="bullet">
 ///   <item><term>Text</term><description>qualquer caractere.</description></item>
