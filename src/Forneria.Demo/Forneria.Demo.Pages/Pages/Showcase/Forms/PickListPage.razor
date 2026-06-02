@@ -1,0 +1,124 @@
+@page "/showcase/picklist"
+@layout ShowcaseLayout
+
+<PageTitle>PickList — Showcase</PageTitle>
+
+<ShowcasePage Title="PickList"
+              Subtitle="Seletor de duas listas (transfer) — mova itens selecionados ou todos entre origem e destino.">
+
+    <Overview>
+        <p>
+            O <code>OmniPickList</code> mostra duas listas lado a lado (ou empilhadas) com botões para
+            transferir itens: <strong>selecionados</strong> (seta simples) ou <strong>todos</strong>
+            (seta dupla), em cada direção. As coleções <code>Source</code> e <code>Target</code> são
+            <strong>bidirecionais</strong> (<code>@@bind-Source</code> / <code>@@bind-Target</code>).
+            Suporta filtro por lista, cabeçalhos, orientação horizontal/vertical e itens de qualquer
+            tipo via <code>TextSelector</code>/<code>IconSelector</code>. Por baixo, usa o
+            <code>OmniListBox</code> (multi-seleção) em cada lado.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Atribuir permissões/papéis, escolher colunas, montar listas de convidados.</li>
+            <li>Qualquer “escolha um subconjunto de uma lista maior” com reordenação por transferência.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Seleção simples de poucos itens → use <code>OmniCheckBoxList</code> ou <code>OmniMultiSelect</code>.</li>
+            <li>Uma única escolha → use <code>OmniSelect</code> ou <code>OmniListBox</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Selecione itens (clique para alternar) e use as setas. A seta dupla move todos."
+                         Code="@(@"<OmniPickList TItem=""string"" @bind-Source=""available"" @bind-Target=""chosen""
+              SourceTitle=""Disponíveis"" TargetTitle=""Selecionados"" />")">
+            <OmniPickList TItem="string" @bind-Source="_available" @bind-Target="_chosen"
+                          SourceTitle="Disponíveis" TargetTitle="Selecionados" ListHeight="220px" />
+            <div style="margin-top:10px;font-size:12px;color:var(--omni-fg-soft)">
+                Selecionados: <strong>@(_chosen is null ? 0 : _chosen.Count())</strong>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM FILTRO"
+                         Description="AllowFiltering adiciona uma busca acima de cada lista."
+                         Code="@(@"<OmniPickList TItem=""string"" @bind-Source=""a"" @bind-Target=""b""
+              AllowFiltering=""true"" SourceTitle=""Países"" TargetTitle=""Favoritos"" />")">
+            <OmniPickList TItem="string" @bind-Source="_countries" @bind-Target="_favCountries"
+                          AllowFiltering="true" SourceTitle="Países" TargetTitle="Favoritos" ListHeight="240px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="OBJETOS (TextSelector + IconSelector)"
+                         Description="Itens de qualquer tipo: TextSelector define o rótulo; IconSelector um ícone opcional."
+                         Code="@(@"<OmniPickList TItem=""Member"" @bind-Source=""pool"" @bind-Target=""team""
+              TextSelector=""@(m => m.Name)"" IconSelector=""@(m => ""user"")""
+              SourceTitle=""Pessoas"" TargetTitle=""Time"" />")">
+            <OmniPickList TItem="Member" @bind-Source="_pool" @bind-Target="_team"
+                          TextSelector="@(m => m!.Name)" IconSelector="@(_ => "user")"
+                          SourceTitle="Pessoas" TargetTitle="Time" ListHeight="240px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VERTICAL"
+                         Description="Orientation=Vertical empilha as listas; os botões viram uma linha (setas para cima/baixo)."
+                         Code="@(@"<OmniPickList TItem=""string"" @bind-Source=""a"" @bind-Target=""b""
+              Orientation=""Orientation.Vertical"" />")">
+            <OmniPickList TItem="string" @bind-Source="_vTop" @bind-Target="_vBottom"
+                          Orientation="Orientation.Vertical" SourceTitle="A fazer" TargetTitle="Concluído" ListHeight="160px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEM “MOVER TODOS”"
+                         Description="AllowMoveAll=false esconde as setas duplas — só transfere os selecionados."
+                         Code="@(@"<OmniPickList TItem=""string"" @bind-Source=""a"" @bind-Target=""b""
+              AllowMoveAll=""false"" />")">
+            <OmniPickList TItem="string" @bind-Source="_noAllLeft" @bind-Target="_noAllRight"
+                          AllowMoveAll="false" SourceTitle="Origem" TargetTitle="Destino" ListHeight="200px" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniPickList&lt;TItem&gt;">
+            <ShowcaseApiRow Name="Source / Target" Type="IEnumerable<TItem>?" Default="null" Description="Listas origem/destino (two-way via bind-Source / bind-Target)." />
+            <ShowcaseApiRow Name="Moved" Type="EventCallback<PickListMoveEventArgs<TItem>>" Default="—" Description="Disparado após cada transferência." />
+            <ShowcaseApiRow Name="TextSelector" Type="Func<TItem?, string>?" Default="ToString()" Description="Rótulo de cada item." />
+            <ShowcaseApiRow Name="IconSelector" Type="Func<TItem?, string?>?" Default="null" Description="Ícone opcional por item." />
+            <ShowcaseApiRow Name="DisabledSelector" Type="Func<TItem?, bool>?" Default="null" Description="Marca itens não selecionáveis." />
+            <ShowcaseApiRow Name="Orientation" Type="Orientation" Default="Horizontal" Description="Horizontal (lado a lado) ou Vertical (empilhado)." />
+            <ShowcaseApiRow Name="AllowFiltering" Type="bool" Default="false" Description="Mostra busca acima de cada lista." />
+            <ShowcaseApiRow Name="AllowMoveAll" Type="bool" Default="true" Description="Mostra os botões de seta dupla (mover todos)." />
+            <ShowcaseApiRow Name="ListHeight" Type="string" Default="260px" Description="Altura máxima de cada lista." />
+            <ShowcaseApiRow Name="ShowHeader / SourceTitle / TargetTitle" Type="bool / string" Default="true / —" Description="Cabeçalhos das listas (ou SourceHeader/TargetHeader RenderFragment)." />
+            <ShowcaseApiRow Name="ButtonVariant / ButtonSize" Type="ButtonVariant / ComponentSize" Default="Default / Sm" Description="Estilo dos botões de transferência." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desabilita todo o controle." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    // Basic
+    private IEnumerable<string>? _available = new List<string> { "HTML", "CSS", "JavaScript", "TypeScript", "Blazor", "Razor" };
+    private IEnumerable<string>? _chosen = new List<string> { "C#" };
+
+    // Filter
+    private IEnumerable<string>? _countries = new List<string>
+    { "Brasil", "Portugal", "Argentina", "Chile", "Uruguai", "Espanha", "França", "Itália", "Alemanha", "Japão", "Canadá", "México" };
+    private IEnumerable<string>? _favCountries;
+
+    // Objects
+    public record Member(int Id, string Name);
+    private IEnumerable<Member>? _pool = new List<Member>
+    { new(1, "Ana"), new(2, "Bruno"), new(3, "Carla"), new(4, "Diego"), new(5, "Elena") };
+    private IEnumerable<Member>? _team = new List<Member> { new(6, "Felipe") };
+
+    // Vertical
+    private IEnumerable<string>? _vTop = new List<string> { "Comprar leite", "Lavar o carro", "Estudar Blazor" };
+    private IEnumerable<string>? _vBottom = new List<string> { "Pagar contas" };
+
+    // No move-all
+    private IEnumerable<string>? _noAllLeft = new List<string> { "Item 1", "Item 2", "Item 3", "Item 4" };
+    private IEnumerable<string>? _noAllRight;
+}

@@ -1,0 +1,238 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniPickList — a dual-list "transfer" picker (RadzenPickList port). Two
+    always-open lists (source / target) with buttons to move the selected items,
+    or all items, in either direction. Both collections are two-way bindable.
+
+    Usage:
+      <OmniPickList TItem="string"
+                    @bind-Source="available" @bind-Target="chosen"
+                    SourceTitle="Disponíveis" TargetTitle="Selecionados"
+                    AllowFiltering="true" />
+
+      <OmniPickList TItem="Person" @bind-Source="a" @bind-Target="b"
+                    TextSelector="@(p => p.Name)" />
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @* ── Source pane ── *@
+    <div class="omni-picklist-pane">
+        @if (ShowHeader && (SourceHeader is not null || !string.IsNullOrEmpty(SourceTitle)))
+        {
+            <div class="omni-picklist-header">@(SourceHeader ?? RenderTitle(SourceTitle))</div>
+        }
+        @if (AllowFiltering)
+        {
+            <input class="omni-picklist-filter" type="search" placeholder="@FilterPlaceholder"
+                   value="@_sourceFilter" @oninput="@(e => _sourceFilter = e.Value?.ToString() ?? "")"
+                   disabled="@Disabled" aria-label="@($"{FilterPlaceholder} ({SourceTitle})")" />
+        }
+        @if (FilteredSource.Count > 0)
+        {
+            <OmniListBox TValue="TItem" Items="FilteredSource" Multiple="true"
+                         Values="_selectedSource" ValuesChanged="OnSourceSelectionChanged"
+                         TextSelector="TextSelector" IconSelector="IconSelector" DisabledSelector="DisabledSelector"
+                         MaxHeight="@ListHeight" Disabled="Disabled" AriaLabel="@(SourceTitle ?? "Origem")" />
+        }
+        else
+        {
+            <div class="omni-picklist-empty" style="@($"min-height:{ListHeight}")">@SourceEmptyText</div>
+        }
+    </div>
+
+    @* ── Transfer buttons ── *@
+    <div class="omni-picklist-buttons">
+        <OmniButton Class="omni-picklist-btn" IconOnly="true" Icon="@SelectedToTargetIcon"
+                    Variant="ButtonVariant" Size="ButtonSize" OnClick="MoveSelectedToTargetAsync"
+                    Disabled="@(Disabled || _selectedSource.Count == 0)"
+                    title="@SelectedToTargetTitle" aria-label="@SelectedToTargetTitle" />
+        <OmniButton Class="omni-picklist-btn" IconOnly="true" Icon="@SelectedToSourceIcon"
+                    Variant="ButtonVariant" Size="ButtonSize" OnClick="MoveSelectedToSourceAsync"
+                    Disabled="@(Disabled || _selectedTarget.Count == 0)"
+                    title="@SelectedToSourceTitle" aria-label="@SelectedToSourceTitle" />
+        @if (AllowMoveAll)
+        {
+            <OmniButton Class="omni-picklist-btn" IconOnly="true" Icon="@AllToTargetIcon"
+                        Variant="ButtonVariant" Size="ButtonSize" OnClick="MoveAllToTargetAsync"
+                        Disabled="@(Disabled || !HasSource)"
+                        title="@AllToTargetTitle" aria-label="@AllToTargetTitle" />
+            <OmniButton Class="omni-picklist-btn" IconOnly="true" Icon="@AllToSourceIcon"
+                        Variant="ButtonVariant" Size="ButtonSize" OnClick="MoveAllToSourceAsync"
+                        Disabled="@(Disabled || !HasTarget)"
+                        title="@AllToSourceTitle" aria-label="@AllToSourceTitle" />
+        }
+    </div>
+
+    @* ── Target pane ── *@
+    <div class="omni-picklist-pane">
+        @if (ShowHeader && (TargetHeader is not null || !string.IsNullOrEmpty(TargetTitle)))
+        {
+            <div class="omni-picklist-header">@(TargetHeader ?? RenderTitle(TargetTitle))</div>
+        }
+        @if (AllowFiltering)
+        {
+            <input class="omni-picklist-filter" type="search" placeholder="@FilterPlaceholder"
+                   value="@_targetFilter" @oninput="@(e => _targetFilter = e.Value?.ToString() ?? "")"
+                   disabled="@Disabled" aria-label="@($"{FilterPlaceholder} ({TargetTitle})")" />
+        }
+        @if (FilteredTarget.Count > 0)
+        {
+            <OmniListBox TValue="TItem" Items="FilteredTarget" Multiple="true"
+                         Values="_selectedTarget" ValuesChanged="OnTargetSelectionChanged"
+                         TextSelector="TextSelector" IconSelector="IconSelector" DisabledSelector="DisabledSelector"
+                         MaxHeight="@ListHeight" Disabled="Disabled" AriaLabel="@(TargetTitle ?? "Destino")" />
+        }
+        else
+        {
+            <div class="omni-picklist-empty" style="@($"min-height:{ListHeight}")">@TargetEmptyText</div>
+        }
+    </div>
+</div>
+
+@code {
+    // ─── Data ────────────────────────────────────────────────────────────────
+
+    /// <summary>Items in the left (source) list. Two-way bindable.</summary>
+    [Parameter] public IEnumerable<TItem>? Source { get; set; }
+    [Parameter] public EventCallback<IEnumerable<TItem>> SourceChanged { get; set; }
+
+    /// <summary>Items in the right (target) list. Two-way bindable.</summary>
+    [Parameter] public IEnumerable<TItem>? Target { get; set; }
+    [Parameter] public EventCallback<IEnumerable<TItem>> TargetChanged { get; set; }
+
+    /// <summary>Raised after a move, once Source/Target already reflect it.</summary>
+    [Parameter] public EventCallback<PickListMoveEventArgs<TItem>> Moved { get; set; }
+
+    // ─── Item rendering ───────────────────────────────────────────────────────
+
+    /// <summary>Maps an item to its display text. Defaults to <c>ToString()</c>.</summary>
+    [Parameter] public Func<TItem?, string>? TextSelector { get; set; }
+    /// <summary>Maps an item to an optional leading icon name.</summary>
+    [Parameter] public Func<TItem?, string?>? IconSelector { get; set; }
+    /// <summary>Maps an item to whether it is disabled (non-selectable).</summary>
+    [Parameter] public Func<TItem?, bool>? DisabledSelector { get; set; }
+
+    // ─── Layout / behaviour ───────────────────────────────────────────────────
+
+    /// <summary>Layout: Horizontal (lists side by side) or Vertical (stacked).</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>Max height of each list (CSS length). Default "260px".</summary>
+    [Parameter] public string ListHeight { get; set; } = "260px";
+
+    /// <summary>Show a search box above each list. Default false.</summary>
+    [Parameter] public bool AllowFiltering { get; set; }
+
+    /// <summary>Show the "move all" (double-arrow) buttons. Default true.</summary>
+    [Parameter] public bool AllowMoveAll { get; set; } = true;
+
+    /// <summary>Disable the whole control.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Variant of the transfer buttons. Default Default.</summary>
+    [Parameter] public ButtonVariant ButtonVariant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Size of the transfer buttons. Default Sm.</summary>
+    [Parameter] public ComponentSize ButtonSize { get; set; } = ComponentSize.Sm;
+
+    // ─── Headers / text ───────────────────────────────────────────────────────
+
+    /// <summary>Show pane headers. Default true.</summary>
+    [Parameter] public bool ShowHeader { get; set; } = true;
+    [Parameter] public string? SourceTitle { get; set; }
+    [Parameter] public string? TargetTitle { get; set; }
+    [Parameter] public RenderFragment? SourceHeader { get; set; }
+    [Parameter] public RenderFragment? TargetHeader { get; set; }
+
+    /// <summary>Text shown when the source list is empty.</summary>
+    [Parameter] public string SourceEmptyText { get; set; } = "Lista vazia";
+    /// <summary>Text shown when the target list is empty.</summary>
+    [Parameter] public string TargetEmptyText { get; set; } = "Lista vazia";
+    /// <summary>Placeholder for the filter boxes.</summary>
+    [Parameter] public string FilterPlaceholder { get; set; } = "Filtrar…";
+
+    // ─── State ────────────────────────────────────────────────────────────────
+
+    private List<TItem> _selectedSource = new();
+    private List<TItem> _selectedTarget = new();
+    private string _sourceFilter = "";
+    private string _targetFilter = "";
+
+    private bool HasSource => Source?.Any() == true;
+    private bool HasTarget => Target?.Any() == true;
+
+    private List<TItem> FilteredSource => Filter(Source, _sourceFilter);
+    private List<TItem> FilteredTarget => Filter(Target, _targetFilter);
+
+    private List<TItem> Filter(IEnumerable<TItem>? items, string term)
+    {
+        if (items is null) return new();
+        if (string.IsNullOrWhiteSpace(term)) return items.ToList();
+        return items.Where(i => TextOf(i).Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private string TextOf(TItem? item) => (TextSelector is not null ? TextSelector(item) : item?.ToString()) ?? "";
+
+    private RenderFragment RenderTitle(string? title) =>@<span class="omni-picklist-title">@title</span>;
+
+    // ─── Icons / titles (orientation-aware) ──────────────────────────────────
+
+    private bool Vert => Orientation == Orientation.Vertical;
+    private string SelectedToTargetIcon => Vert ? "chevron-down" : "chevron-right";
+    private string SelectedToSourceIcon => Vert ? "chevron-up" : "chevron-left";
+    private string AllToTargetIcon => Vert ? "chevrons-down" : "chevrons-right";
+    private string AllToSourceIcon => Vert ? "chevrons-up" : "chevrons-left";
+    private string SelectedToTargetTitle => "Mover selecionados para " + (Vert ? "baixo" : "a direita");
+    private string SelectedToSourceTitle => "Mover selecionados para " + (Vert ? "cima" : "a esquerda");
+    private string AllToTargetTitle => "Mover todos para " + (Vert ? "baixo" : "a direita");
+    private string AllToSourceTitle => "Mover todos para " + (Vert ? "cima" : "a esquerda");
+
+    private string RootCss => CssBuilder.Default("omni-picklist")
+        .AddClass(Vert ? "omni-picklist-vertical" : "omni-picklist-horizontal")
+        .AddClass("omni-picklist-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    // ─── Selection ────────────────────────────────────────────────────────────
+
+    private void OnSourceSelectionChanged(IEnumerable<TItem> values) => _selectedSource = values.ToList();
+    private void OnTargetSelectionChanged(IEnumerable<TItem> values) => _selectedTarget = values.ToList();
+
+    // ─── Moves ────────────────────────────────────────────────────────────────
+
+    private Task MoveSelectedToTargetAsync() => MoveAsync(true, _selectedSource.ToList());
+    private Task MoveSelectedToSourceAsync() => MoveAsync(false, _selectedTarget.ToList());
+    private Task MoveAllToTargetAsync() => MoveAsync(true, Source?.ToList() ?? new());
+    private Task MoveAllToSourceAsync() => MoveAsync(false, Target?.ToList() ?? new());
+
+    private async Task MoveAsync(bool toTarget, List<TItem> moved)
+    {
+        if (Disabled || moved.Count == 0) return;
+
+        var src = Source?.ToList() ?? new();
+        var tgt = Target?.ToList() ?? new();
+
+        if (toTarget)
+        {
+            foreach (var m in moved) { src.Remove(m); if (!tgt.Contains(m)) tgt.Add(m); }
+        }
+        else
+        {
+            foreach (var m in moved) { tgt.Remove(m); if (!src.Contains(m)) src.Add(m); }
+        }
+
+        // Selections are consumed by the move.
+        _selectedSource.Clear();
+        _selectedTarget.Clear();
+
+        if (SourceChanged.HasDelegate) await SourceChanged.InvokeAsync(src);
+        if (TargetChanged.HasDelegate) await TargetChanged.InvokeAsync(tgt);
+        if (Moved.HasDelegate)
+            await Moved.InvokeAsync(new PickListMoveEventArgs<TItem> { ToTarget = toTarget, Items = moved });
+    }
+}
