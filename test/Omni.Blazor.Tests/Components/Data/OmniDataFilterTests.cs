@@ -40,6 +40,15 @@ public class OmniDataFilterTests : TestContextBase
     private static void AddCondition(IRenderedComponent<OmniDataFilter<Person>> cut)
         => cut.FindAll(".omni-datafilter-add")[0].Click();
 
+    // Drive a custom OmniSelect inside a condition: open it, then click the option by label.
+    // kind = "omni-datafilter-prop" | "omni-datafilter-op".
+    private static void Pick(IRenderedComponent<OmniDataFilter<Person>> cut, int condIndex, string kind, string label)
+    {
+        cut.FindAll(".omni-datafilter-condition")[condIndex].QuerySelector($".{kind} .omni-select-trigger")!.Click();
+        cut.FindAll(".omni-datafilter-condition")[condIndex]
+            .QuerySelectorAll(".omni-select-option").First(o => o.TextContent.Trim() == label).Click();
+    }
+
     [Fact]
     public void Renders_root_with_add_buttons()
     {
@@ -62,7 +71,7 @@ public class OmniDataFilterTests : TestContextBase
         var cut = RenderFilter();
         AddCondition(cut);
         var cond = cut.Find(".omni-datafilter-condition");
-        Assert.Equal(2, cond.QuerySelectorAll("select").Length); // property + operator
+        Assert.Equal(2, cond.QuerySelectorAll(".omni-select").Length); // property + operator (custom dropdowns)
         Assert.NotNull(cond.QuerySelector(".omni-datafilter-input")); // text value editor (Contains)
     }
 
@@ -93,9 +102,9 @@ public class OmniDataFilterTests : TestContextBase
         var cut = RenderFilter(onFilter: v => view = v);
         AddCondition(cut);
 
-        cut.Find(".omni-datafilter-condition").QuerySelectorAll("select")[0].Change("Age");
-        cut.Find(".omni-datafilter-condition").QuerySelectorAll("select")[1].Change("GreaterThan");
-        cut.Find(".omni-datafilter-condition .omni-datafilter-input").Input("30");
+        Pick(cut, 0, "omni-datafilter-prop", "Idade");
+        Pick(cut, 0, "omni-datafilter-op", "Maior que");
+        cut.Find(".omni-datafilter-condition .omni-numeric-input").Change("30");
 
         Assert.Equal(new[] { "Bruno", "Carla" }, view!.Select(p => p.Name).OrderBy(n => n));
     }
@@ -107,7 +116,7 @@ public class OmniDataFilterTests : TestContextBase
         var cut = RenderFilter(onFilter: v => view = v);
         AddCondition(cut);
 
-        cut.Find(".omni-datafilter-condition").QuerySelectorAll("select")[0].Change("Active"); // boolean → default value true
+        Pick(cut, 0, "omni-datafilter-prop", "Ativo"); // boolean → default value true
         // operator defaults to Equals; value defaults to true → keep
         Assert.Equal(new[] { "Ana", "Carla", "Diego" }, view!.Select(p => p.Name).OrderBy(n => n));
     }
@@ -117,7 +126,7 @@ public class OmniDataFilterTests : TestContextBase
     {
         var cut = RenderFilter();
         AddCondition(cut);
-        cut.Find(".omni-datafilter-condition").QuerySelectorAll("select")[1].Change("IsEmpty");
+        Pick(cut, 0, "omni-datafilter-op", "Vazio");
         Assert.Empty(cut.FindAll(".omni-datafilter-condition .omni-datafilter-input"));
     }
 
@@ -140,11 +149,10 @@ public class OmniDataFilterTests : TestContextBase
         AddCondition(cut); // condition 1: Name / Contains
         cut.FindAll(".omni-datafilter-condition")[0].QuerySelector(".omni-datafilter-input")!.Input("a"); // Ana, Carla, Diego
 
-        AddCondition(cut); // condition 2: Age (change) / GreaterThan 30
-        var c2 = cut.FindAll(".omni-datafilter-condition")[1];
-        c2.QuerySelectorAll("select")[0].Change("Age");
-        cut.FindAll(".omni-datafilter-condition")[1].QuerySelectorAll("select")[1].Change("GreaterThan");
-        cut.FindAll(".omni-datafilter-condition")[1].QuerySelector(".omni-datafilter-input")!.Input("30");
+        AddCondition(cut); // condition 2: Idade / Maior que 30
+        Pick(cut, 1, "omni-datafilter-prop", "Idade");
+        Pick(cut, 1, "omni-datafilter-op", "Maior que");
+        cut.FindAll(".omni-datafilter-condition")[1].QuerySelector(".omni-numeric-input")!.Change("30");
 
         // Name contains "a" AND Age > 30 → Carla (35). (Ana 28 no, Diego 23 no, Bruno has no "a"? "Bruno" no)
         Assert.Equal(new[] { "Carla" }, view!.Select(p => p.Name));
@@ -185,7 +193,7 @@ public class OmniDataFilterTests : TestContextBase
 
         // The code-set condition renders without any interaction...
         var cond = cut.Find(".omni-datafilter-condition");
-        Assert.Equal("30", cond.QuerySelector(".omni-datafilter-input")!.GetAttribute("value"));
+        Assert.Contains("30", cond.QuerySelector(".omni-numeric-input")!.GetAttribute("value") ?? "");
 
         // ...and the filter is applied on init (Filter raised, View computed).
         Assert.NotNull(view);

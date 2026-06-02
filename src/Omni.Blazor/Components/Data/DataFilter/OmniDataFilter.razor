@@ -71,6 +71,9 @@
     /// <summary>Allow nested groups (the "add group" button). Default true.</summary>
     [Parameter] public bool AllowGroups { get; set; } = true;
 
+    /// <summary>Height/typography of every field (selects, inputs, date &amp; list editors). Default Sm.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Sm;
+
     /// <summary>Disable the whole builder.</summary>
     [Parameter] public bool Disabled { get; set; }
 
@@ -100,6 +103,8 @@
     public IEnumerable<TItem> View { get; private set; } = Enumerable.Empty<TItem>();
 
     private string RootCss => CssBuilder.Default("omni-datafilter")
+        .AddClass("omni-datafilter-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-datafilter-lg", Size == ComponentSize.Lg)
         .AddClass("omni-datafilter-disabled", Disabled)
         .AddClass(Class)
         .Build();
@@ -228,6 +233,7 @@
     IReadOnlyList<OmniFilterPropertyInfo> IOmniDataFilterOwner.Properties => _properties;
     bool IOmniDataFilterOwner.AllowGroups => AllowGroups;
     bool IOmniDataFilterOwner.Disabled => Disabled;
+    ComponentSize IOmniDataFilterOwner.FieldSize => Size;
     string IOmniDataFilterOwner.AddFilterText => AddFilterText;
     string IOmniDataFilterOwner.AddGroupText => AddGroupText;
     string IOmniDataFilterOwner.RemoveFilterText => RemoveFilterText;

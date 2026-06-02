@@ -66,6 +66,7 @@ internal interface IOmniDataFilterOwner
     IReadOnlyList<OmniFilterPropertyInfo> Properties { get; }
     bool AllowGroups { get; }
     bool Disabled { get; }
+    ComponentSize FieldSize { get; }
 
     void RegisterProperty(OmniFilterPropertyInfo info);
     void UnregisterProperty(OmniFilterPropertyInfo info);

@@ -2812,6 +2812,27 @@ progress {
   padding-right: 38px;
 }
 
+.omni-input-group.omni-input-sm {
+  padding: 0;
+}
+
+.omni-input-group.omni-input-sm .omni-input {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.omni-input-group.omni-input-lg {
+  padding: 0;
+}
+
+.omni-input-group.omni-input-lg .omni-input {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  font-size: 15px;
+}
+
 button.omni-input-clear {
   pointer-events: auto;
   background: none;
@@ -3019,6 +3040,8 @@ button.omni-input-clear:hover {
   background: transparent;
   color: var(--omni-fg);
   font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -3082,6 +3105,10 @@ button.omni-input-clear:hover {
 .omni-numeric-spinner button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.omni-numeric-sm {
+  border-radius: 6px;
 }
 
 .omni-numeric-sm .omni-numeric-input {
@@ -3703,7 +3730,8 @@ button.omni-calendar-day.omni-calendar-day-range-hover-end {
   padding-right: 38px;
 }
 
-.omni-autocomplete-panel {
+.omni-autocomplete-panel,
+.omni-select-panel {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -3719,7 +3747,8 @@ button.omni-calendar-day.omni-calendar-day-range-hover-end {
   animation: omni-fade-in 120ms ease-out;
 }
 
-button.omni-autocomplete-option {
+button.omni-autocomplete-option,
+button.omni-select-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3738,15 +3767,25 @@ button.omni-autocomplete-option {
 }
 
 button.omni-autocomplete-option:hover,
-button.omni-autocomplete-option.omni-active {
+button.omni-autocomplete-option.omni-active,
+button.omni-select-option:hover,
+button.omni-select-option.omni-active {
   background: var(--omni-bg-sunken);
 }
 
-button.omni-autocomplete-option.omni-selected {
+button.omni-autocomplete-option.omni-selected,
+button.omni-select-option.omni-selected {
   color: var(--omni-accent);
 }
 
-.omni-autocomplete-status {
+.omni-select-option-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omni-autocomplete-status,
+.omni-select-status {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -3906,26 +3945,34 @@ button.omni-autocomplete-option.omni-selected {
 }
 
 .omni-select {
-  appearance: none;
-  width: 100%;
-  padding: 10px 36px 10px 12px;
-  border: 1px solid var(--omni-line);
-  border-radius: 8px;
-  background-color: var(--omni-bg-elev);
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  font-family: var(--omni-font-ui);
-  font-size: 14px;
-  color: var(--omni-fg);
-  cursor: pointer;
-  transition: border-color 120ms, box-shadow 120ms;
+  position: relative;
 }
 
-.omni-select:focus {
-  outline: none;
-  border-color: var(--omni-accent);
-  box-shadow: 0 0 0 3px var(--omni-accent-soft);
+.omni-select .omni-input {
+  padding-right: 38px;
+}
+
+.omni-select-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: start;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.omni-select-trigger:disabled {
+  cursor: not-allowed;
+}
+
+.omni-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omni-select-placeholder {
+  color: var(--omni-fg-soft);
 }
 
 .omni-chip {
@@ -12511,7 +12558,7 @@ button.omni-upload-file-remove:hover {
   content: "";
   position: absolute;
   inset-inline-start: -15px;
-  inset-block-start: 22px;
+  inset-block-start: 26px;
   width: 13px;
   height: 2px;
   background: var(--omni-line);
@@ -12545,21 +12592,20 @@ button.omni-upload-file-remove:hover {
 
 .omni-datafilter-condition:focus-within {
   border-color: var(--omni-accent);
-  box-shadow: 0 0 0 3px var(--omni-accent-soft);
 }
 
 .omni-datafilter-select,
 .omni-datafilter-input {
   box-sizing: border-box;
-  height: 32px;
-  padding: 5px 10px;
+  padding: 10px 12px;
   border: 1px solid var(--omni-line);
-  border-radius: var(--omni-radius-sm);
-  background: var(--omni-bg);
+  border-radius: 8px;
+  background: var(--omni-bg-elev);
   color: var(--omni-fg);
   font: inherit;
-  font-size: 13px;
-  transition: border-color 0.15s;
+  font-size: 14px;
+  line-height: 1.4;
+  transition: border-color 120ms, box-shadow 120ms;
 }
 
 .omni-datafilter-select:hover:not(:disabled),
@@ -12567,24 +12613,44 @@ button.omni-upload-file-remove:hover {
   border-color: var(--omni-line-strong);
 }
 
-.omni-datafilter-select:focus-visible,
-.omni-datafilter-input:focus-visible {
-  outline: 2px solid var(--omni-accent);
-  outline-offset: 1px;
+.omni-datafilter-select:focus,
+.omni-datafilter-input:focus {
+  outline: none;
   border-color: var(--omni-accent);
+  box-shadow: 0 0 0 3px var(--omni-accent-soft);
 }
 
 .omni-datafilter-prop {
-  min-width: 132px;
+  min-width: 140px;
   font-weight: 600;
 }
 
 .omni-datafilter-op {
-  min-width: 132px;
+  min-width: 140px;
 }
 
 .omni-datafilter-input {
-  min-width: 150px;
+  min-width: 170px;
+}
+
+.omni-datafilter-editor {
+  min-width: 170px;
+  flex: 0 1 240px;
+}
+
+.omni-datafilter-sm .omni-datafilter-select,
+.omni-datafilter-sm .omni-datafilter-input {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.omni-datafilter-lg .omni-datafilter-select,
+.omni-datafilter-lg .omni-datafilter-input {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  font-size: 15px;
 }
 
 .omni-datafilter-remove {
@@ -12667,6 +12733,7 @@ button.omni-upload-file-remove:hover {
 
 .omni-datafilter-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
@@ -12674,6 +12741,26 @@ button.omni-upload-file-remove:hover {
 .omni-datafilter-disabled {
   opacity: 0.6;
   pointer-events: none;
+}
+
+.omni-datafilter {
+  container-type: inline-size;
+}
+
+@container (max-width: 560px) {
+  .omni-datafilter-condition {
+    gap: 6px;
+  }
+  .omni-datafilter-condition > .omni-datafilter-prop {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .omni-datafilter-condition > .omni-datafilter-op,
+  .omni-datafilter-condition > .omni-datafilter-editor,
+  .omni-datafilter-condition > .omni-datafilter-input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 /*# sourceMappingURL=omni.css.map */

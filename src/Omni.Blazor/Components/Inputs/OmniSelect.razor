@@ -1,66 +1,236 @@
 @namespace Omni.Blazor.Components
 @typeparam TValue
 @inherits FormComponent<TValue>
+@implements IDisposable
+@inject IJSRuntime JS
 @using Omni.Blazor.Utilities
 
-<select class="@RootCss"
-        style="@Style"
-        disabled="@Disabled"
-        name="@Name"
-        value="@FormatValue(Value)"
-        @onchange="OnChange"
-        @attributes="Attributes">
-    @if (Placeholder is not null)
-    {
-        <option value="" disabled selected="@(Value is null)">@Placeholder</option>
-    }
-    @if (Items is not null)
-    {
-        foreach (var item in Items)
+@*
+    Single-choice select with a fully styled dropdown (matches OmniAutoComplete).
+    Replaces the native <select> so the open list, chevron and spacing are part of
+    the design system rather than the OS.
+
+    Usage:
+        <OmniSelect TValue="string" Items="@cidades" @bind-Value="cidade"
+                    Placeholder="Selecione..." />
+        <OmniSelect TValue="Status" Items="@todos" TextSelector="@(s => s.Nome)"
+                    ValueSelector="@(s => s)" @bind-Value="status" />
+*@
+
+<div class="@RootCss" style="@Style" data-omni-scid="@_id" @attributes="Attributes">
+    <button type="button" class="omni-input omni-select-trigger"
+            disabled="@Disabled"
+            role="combobox" aria-haspopup="listbox" aria-expanded="@(_open ? "true" : "false")"
+            @onclick="ToggleAsync" @onkeydown="OnKeyDownAsync">
+        @if (SelectedText is not null)
         {
-            // Without a ValueSelector each item *is* its own value (identity).
-            // Using `default` here made every option share the same value, so
-            // any selection resolved back to default(TValue).
-            var v = FormatValue(ValueSelector is not null ? ValueSelector(item) : item);
-            var t = TextSelector is not null ? TextSelector(item) : item?.ToString() ?? "";
-            <option value="@v">@t</option>
+            <span class="omni-select-value">@SelectedText</span>
         }
+        else
+        {
+            <span class="omni-select-placeholder">@Placeholder</span>
+        }
+    </button>
+
+    @if (Clearable && Value is not null && !Disabled)
+    {
+        <button type="button" class="omni-input-group-ico omni-input-group-ico-right omni-input-clear"
+                tabindex="-1" aria-label="Limpar"
+                @onclick="ClearAsync" @onclick:stopPropagation>
+            <OmniIcon Name="x" Size="ComponentSize.Sm" />
+        </button>
     }
-    @ChildContent
-</select>
+    else
+    {
+        <span class="omni-input-group-ico omni-input-group-ico-right omni-select-caret">
+            <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" />
+        </span>
+    }
+
+    @if (_open)
+    {
+        <div class="omni-select-panel" role="listbox" @onclick:stopPropagation>
+            @if (_items.Count == 0)
+            {
+                <div class="omni-select-status">@EmptyText</div>
+            }
+            else
+            {
+                @foreach (var (item, idx) in _items.Select((it, i) => (it, i)))
+                {
+                    var value = ValueSelector is not null ? ValueSelector(item) : item;
+                    var selected = EqualityComparer<TValue>.Default.Equals(Value, value);
+                    var active = idx == _highlightedIndex;
+                    <button type="button" role="option" aria-selected="@(selected ? "true" : "false")"
+                            class="@OptionCss(active, selected)"
+                            @onclick="@(_ => SelectAsync(value))">
+                        <span class="omni-select-option-text">@TextOf(item)</span>
+                        @if (selected) { <OmniIcon Name="check" Size="ComponentSize.Sm" /> }
+                    </button>
+                }
+            }
+        </div>
+    }
+</div>
 
 @code {
     [Parameter] public string? Placeholder { get; set; }
     [Parameter] public IEnumerable<TValue>? Items { get; set; }
     [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
     [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
+
+    /// <summary>Kept for API compatibility. Prefer <see cref="Items"/> + selectors.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string RootCss => CssBuilder.Default("omni-select")
+    /// <summary>Control height/typography. Default Md (matches the other inputs).</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Show a clear (×) button when a value is selected. Default false.</summary>
+    [Parameter] public bool Clearable { get; set; }
+
+    /// <summary>Text shown when there are no items.</summary>
+    [Parameter] public string EmptyText { get; set; } = "Sem opções";
+
+    private readonly string _id = $"sel-{Guid.NewGuid():N}";
+    private bool _open;
+    private int _highlightedIndex;
+    private string _typeBuffer = "";
+    private DateTime _lastTypeUtc = DateTime.MinValue;
+
+    private List<TValue> _items = new();
+
+    protected override void OnParametersSet() => _items = Items?.ToList() ?? new();
+
+    private string RootCss => CssBuilder.Default("omni-input-group")
+        .AddClass("omni-input-group-right")
+        .AddClass("omni-select")
+        .AddClass("omni-input-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-input-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-select-open", _open)
         .AddClass("omni-invalid", IsInvalid)
         .AddClass(Class)
         .Build();
 
-    private string? FormatValue(TValue? v) => v?.ToString();
+    private static string OptionCss(bool active, bool selected) =>
+        CssBuilder.Default("omni-select-option")
+            .AddClass("omni-active", active)
+            .AddClass("omni-selected", selected)
+            .Build();
 
-    private Task OnChange(ChangeEventArgs e)
+    private string TextOf(TValue? item) => (TextSelector is not null ? TextSelector(item) : item?.ToString()) ?? "";
+
+    private string? SelectedText
     {
-        var raw = e.Value?.ToString();
-        if (string.IsNullOrEmpty(raw)) return SetValueAsync(default);
+        get
+        {
+            if (Value is null) return null;
+            foreach (var item in _items)
+            {
+                var v = ValueSelector is not null ? ValueSelector(item) : item;
+                if (EqualityComparer<TValue>.Default.Equals(v, Value)) return TextOf(item);
+            }
+            return TextOf(Value);
+        }
+    }
+
+    // ─── Open / close ──────────────────────────────────────────────────────────
+
+    private Task ToggleAsync() => _open ? CloseAsync() : OpenAsync();
+
+    private async Task OpenAsync()
+    {
+        if (Disabled || _open) return;
+        _open = true;
+        _highlightedIndex = Math.Max(0, _items.FindIndex(it =>
+            EqualityComparer<TValue>.Default.Equals(ValueSelector is not null ? ValueSelector(it) : it, Value)));
+        StateHasChanged();
         try
         {
-            var target = typeof(TValue);
-            target = Nullable.GetUnderlyingType(target) ?? target;
-            // Convert.ChangeType can't parse an enum's name back to the enum —
-            // it throws, so enum-valued selects need Enum.Parse explicitly.
-            object converted = target.IsEnum
-                ? Enum.Parse(target, raw)
-                : Convert.ChangeType(raw, target, System.Globalization.CultureInfo.InvariantCulture);
-            return SetValueAsync((TValue?)converted);
+            var dotnet = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+                _id, $"[data-omni-scid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
         }
-        catch
+        catch { }
+    }
+
+    [JSInvokable]
+    public Task OnClickOutsideAsync() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!_open) return;
+        _open = false;
+        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
+        catch { }
+        StateHasChanged();
+    }
+
+    // ─── Selection ───────────────────────────────────────────────────────────
+
+    private async Task SelectAsync(TValue? value)
+    {
+        await SetValueAsync(value);
+        await CloseAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        await SetValueAsync(default);
+        await CloseAsync();
+    }
+
+    // ─── Keyboard ──────────────────────────────────────────────────────────────
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (Disabled) return;
+
+        if (!_open)
         {
-            return SetValueAsync(default);
+            if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ") await OpenAsync();
+            return;
         }
+
+        switch (e.Key)
+        {
+            case "ArrowDown": _highlightedIndex = Math.Min(_items.Count - 1, _highlightedIndex + 1); break;
+            case "ArrowUp": _highlightedIndex = Math.Max(0, _highlightedIndex - 1); break;
+            case "Home": _highlightedIndex = 0; break;
+            case "End": _highlightedIndex = _items.Count - 1; break;
+            case "Enter":
+            case " ":
+                if (_highlightedIndex >= 0 && _highlightedIndex < _items.Count)
+                {
+                    var it = _items[_highlightedIndex];
+                    await SelectAsync(ValueSelector is not null ? ValueSelector(it) : it);
+                }
+                return;
+            case "Escape":
+            case "Tab":
+                await CloseAsync();
+                return;
+            default:
+                if (e.Key.Length == 1 && !char.IsControl(e.Key[0])) TypeAhead(e.Key);
+                else return;
+                break;
+        }
+        StateHasChanged();
+    }
+
+    private void TypeAhead(string key)
+    {
+        var now = DateTime.UtcNow;
+        if ((now - _lastTypeUtc).TotalMilliseconds > 700) _typeBuffer = "";
+        _lastTypeUtc = now;
+        _typeBuffer += char.ToLowerInvariant(key[0]);
+
+        var match = _items.FindIndex(it => TextOf(it).StartsWith(_typeBuffer, StringComparison.OrdinalIgnoreCase));
+        if (match >= 0) _highlightedIndex = match;
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _ = CloseAsync();
     }
 }

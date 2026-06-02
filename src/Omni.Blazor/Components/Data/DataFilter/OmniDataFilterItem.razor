@@ -61,54 +61,40 @@
 else
 {
     <div class="omni-datafilter-condition">
-        <select class="omni-datafilter-select omni-datafilter-prop" disabled="@Owner!.Disabled"
-                @onchange="OnPropertyChangedAsync" aria-label="Campo">
-            @foreach (var p in Owner.Properties)
-            {
-                <option value="@p.Property" selected="@(p.Property == Rule.Property)">@p.Title</option>
-            }
-        </select>
+        <OmniSelect TValue="string" Class="omni-datafilter-prop" Size="@Owner!.FieldSize" Disabled="@Owner.Disabled"
+                    Items="@PropertyNames" TextSelector="@(p => PropertyTitle(p))"
+                    Value="@Rule.Property" ValueChanged="OnPropertyChangedAsync" />
 
-        <select class="omni-datafilter-select omni-datafilter-op" disabled="@Owner.Disabled"
-                @onchange="OnOperatorChangedAsync" aria-label="Operador">
-            @foreach (var op in Owner.OperatorsFor(Rule.Property))
-            {
-                <option value="@op" selected="@(op == Rule.Operator)">@Owner.OperatorText(op)</option>
-            }
-        </select>
+        <OmniSelect TValue="FilterOperator" Class="omni-datafilter-op" Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                    Items="@Owner.OperatorsFor(Rule.Property)" TextSelector="@(op => Owner.OperatorText(op))"
+                    Value="@Rule.Operator" ValueChanged="OnOperatorChangedAsync" />
 
         @if (Owner.OperatorNeedsValue(Rule.Operator))
         {
             switch (FieldType)
             {
                 case ColumnFilterType.Number:
-                    <input class="omni-datafilter-input" type="number" disabled="@Owner.Disabled"
-                           value="@AsText(Rule.Value)" placeholder="@Owner.ValuePlaceholder"
-                           @oninput="@(e => SetValueAsync(ParseNumber(e.Value?.ToString())))" aria-label="Valor" />
+                    <OmniNumeric TValue="decimal?" Value="@AsDecimal(Rule.Value)"
+                                 ValueChanged="@(v => SetValueAsync(v))"
+                                 Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                 Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
                     break;
                 case ColumnFilterType.Date:
-                    <input class="omni-datafilter-input" type="date" disabled="@Owner.Disabled"
-                           value="@AsDateText(Rule.Value)"
-                           @onchange="@(e => SetValueAsync(ParseDate(e.Value?.ToString())))" aria-label="Valor" />
+                    <OmniDatePicker TValue="DateTime?" Value="@AsDate(Rule.Value)"
+                                    ValueChanged="@(v => SetValueAsync(v))"
+                                    Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                    Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
                     break;
                 case ColumnFilterType.Boolean:
-                    <select class="omni-datafilter-select" disabled="@Owner.Disabled"
-                            @onchange="@(e => SetValueAsync(e.Value?.ToString() == "true"))" aria-label="Valor">
-                        <option value="true" selected="@(Rule.Value is bool tb && tb)">Sim</option>
-                        <option value="false" selected="@(Rule.Value is bool fb && !fb)">Não</option>
-                    </select>
+                    <OmniSelect TValue="bool" Class="omni-datafilter-editor" Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                Items="_boolItems" TextSelector="@(b => b ? "Sim" : "Não")"
+                                Value="@((Rule.Value as bool?) ?? true)" ValueChanged="@(v => SetValueAsync(v))" />
                     break;
                 case ColumnFilterType.Select:
-                    <select class="omni-datafilter-select" disabled="@Owner.Disabled"
-                            @onchange="OnSelectValueChangedAsync" aria-label="Valor">
-                        <option value="" selected="@(Rule.Value is null)">@Owner.ValuePlaceholder</option>
-                        @{ var opts = Owner.FindProperty(Rule.Property)?.Options ?? Array.Empty<object>(); var i = 0; }
-                        @foreach (var opt in opts)
-                        {
-                            var idx = i++;
-                            <option value="@idx" selected="@(Equals(opt, Rule.Value))">@OptionText(opt)</option>
-                        }
-                    </select>
+                    <OmniAutoComplete TItem="object" Items="@SelectOptions" TextSelector="@(o => OptionText(o))"
+                                      Value="@Rule.Value" ValueChanged="@(v => SetValueAsync(v))"
+                                      Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                      Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
                     break;
                 default:
                     <input class="omni-datafilter-input" type="text" disabled="@Owner.Disabled"
@@ -183,28 +169,26 @@ else
 
     // ─── Condition actions ─────────────────────────────────────────────────────
 
-    private async Task OnPropertyChangedAsync(ChangeEventArgs e)
+    private IEnumerable<string> PropertyNames => Owner?.Properties.Select(p => p.Property) ?? Enumerable.Empty<string>();
+    private string PropertyTitle(string? name) => Owner?.FindProperty(name)?.Title ?? name ?? "";
+    private static readonly bool[] _boolItems = { true, false };
+
+    private async Task OnPropertyChangedAsync(string? value)
     {
-        Rule.Property = e.Value?.ToString();
+        Rule.Property = value;
         Rule.Operator = Owner!.OperatorsFor(Rule.Property).FirstOrDefault();
         var info = Owner.FindProperty(Rule.Property);
         Rule.Value = info?.Type == ColumnFilterType.Boolean ? true : null;
         await Notify();
     }
 
-    private async Task OnOperatorChangedAsync(ChangeEventArgs e)
+    private async Task OnOperatorChangedAsync(FilterOperator op)
     {
-        if (Enum.TryParse<FilterOperator>(e.Value?.ToString(), out var op)) Rule.Operator = op;
+        Rule.Operator = op;
         await Notify();
     }
 
-    private async Task OnSelectValueChangedAsync(ChangeEventArgs e)
-    {
-        var opts = Owner!.FindProperty(Rule.Property)?.Options;
-        Rule.Value = int.TryParse(e.Value?.ToString(), out var idx) && opts is not null && idx >= 0 && idx < opts.Count
-            ? opts[idx] : null;
-        await Notify();
-    }
+    private IEnumerable<object> SelectOptions => Owner?.FindProperty(Rule.Property)?.Options ?? Array.Empty<object>();
 
     private async Task SetValueAsync(object? value)
     {
@@ -230,16 +214,18 @@ else
         _ => v.ToString() ?? ""
     };
 
-    private static object? ParseNumber(string? s) =>
-        double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : null;
-
-    private static object? ParseDate(string? s) =>
-        DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ? dt : null;
-
-    private static string AsDateText(object? v) => v switch
+    private static decimal? AsDecimal(object? v)
     {
-        DateTime dt => dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-        DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-        _ => ""
+        if (v is null) return null;
+        if (v is decimal dec) return dec;
+        try { return Convert.ToDecimal(v, CultureInfo.InvariantCulture); }
+        catch { return null; }
+    }
+
+    private static DateTime? AsDate(object? v) => v switch
+    {
+        DateTime dt => dt,
+        DateOnly d => d.ToDateTime(TimeOnly.MinValue),
+        _ => null
     };
 }
