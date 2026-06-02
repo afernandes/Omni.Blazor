@@ -315,6 +315,14 @@ public enum ToggleVariant { Default, Primary, Accent, Ghost }
 /// <summary>Modo de edição do <c>OmniHtmlEditor</c>: WYSIWYG (Design) ou HTML cru (Source).</summary>
 public enum HtmlEditorMode { Design, Source }
 
+/// <summary>Tipo de entrada do <c>OmniSecurityCode</c>:
+/// <list type="bullet">
+///   <item><term>Text</term><description>qualquer caractere.</description></item>
+///   <item><term>Numeric</term><description>só dígitos (inputmode numérico).</description></item>
+///   <item><term>Password</term><description>mascarado (•), qualquer caractere.</description></item>
+/// </list></summary>
+public enum SecurityCodeType { Text, Numeric, Password }
+
 /// <summary>Cor/intent semântico do ponto (dot) de um <c>OmniTimelineItem</c>.
 /// Mapeia para os tokens <c>--omni-fg-muted</c> (Base), <c>--omni-accent</c>,
 /// <c>--omni-good</c>, <c>--omni-warn</c>, <c>--omni-danger</c> ou <c>--omni-info</c>.</summary>

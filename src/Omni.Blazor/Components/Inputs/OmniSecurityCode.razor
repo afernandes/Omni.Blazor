@@ -1,0 +1,107 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@implements IDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniSecurityCode — a row of single-character cells for entering an OTP / PIN /
+    verification code (RadzenSecurityCode port). Typing auto-advances to the next
+    cell, Backspace goes back, paste distributes the code across cells, and the
+    joined value is bound via @bind-Value. Numeric / text / masked (password)
+    modes. The cells are JS-driven (focus management); the value flows back to
+    .NET on every change.
+
+    Usage:  <OmniSecurityCode @bind-Value="code" Count="6" Type="SecurityCodeType.Numeric" />
+*@
+
+<div class="@RootCss" style="@($"--omni-seccode-gap:{Gap};{Style}")" @attributes="Attributes" @ref="_container">
+    @for (int i = 0; i < Count; i++)
+    {
+        var n = i + 1;
+        <input class="omni-seccode-input" type="@InputType" maxlength="1"
+               inputmode="@(Type == SecurityCodeType.Numeric ? "numeric" : null)"
+               autocomplete="one-time-code" disabled="@Disabled" readonly="@ReadOnly"
+               aria-label="@($"{AriaLabel} {n}")" />
+    }
+</div>
+
+@code {
+    /// <summary>Number of code cells. Default 4.</summary>
+    [Parameter] public int Count { get; set; } = 4;
+
+    /// <summary>Input type: Text (any char), Numeric (digits only) or Password (masked).</summary>
+    [Parameter] public SecurityCodeType Type { get; set; } = SecurityCodeType.Text;
+
+    /// <summary>Gap between cells (CSS length). Default 8px.</summary>
+    [Parameter] public string Gap { get; set; } = "8px";
+
+    /// <summary>Accessible label prefix for each cell (e.g. "Dígito 1"). Default "Dígito".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Dígito";
+
+    private ElementReference _container;
+    private DotNetObjectReference<OmniSecurityCode>? _selfRef;
+    private string _value = "";
+    private bool _created;
+    private bool _pushPending;
+    private int _lastCount;
+
+    private string RootCss => CssBuilder.Default("omni-seccode")
+        .AddClass("omni-seccode-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private string InputType => Type == SecurityCodeType.Password ? "password" : "text";
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (_created && (Value ?? "") != _value) _pushPending = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || _lastCount != Count)
+        {
+            if (_created && _lastCount != Count)
+                await JS.InvokeVoidAsync("omniBlazor.securityCodeDestroy", _container);
+
+            _selfRef ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.securityCodeInit", _container, _selfRef,
+                Type == SecurityCodeType.Numeric);
+            _created = true;
+            _lastCount = Count;
+            _value = Value ?? "";
+            await JS.InvokeVoidAsync("omniBlazor.securityCodeSet", _container, _value);
+        }
+        else if (_pushPending)
+        {
+            _pushPending = false;
+            _value = Value ?? "";
+            await JS.InvokeVoidAsync("omniBlazor.securityCodeSet", _container, _value);
+        }
+    }
+
+    /// <summary>Invoked from JS whenever the joined code changes.</summary>
+    [JSInvokable]
+    public Task OnCodeChanged(string value)
+    {
+        _value = value;
+        return SetValueAsync(value);
+    }
+
+    /// <summary>Moves focus to the first empty (or first) cell.</summary>
+    public ValueTask FocusAsync() => JS.InvokeVoidAsync("omniBlazor.securityCodeFocus", _container);
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        if (_created)
+        {
+            try { _ = JS.InvokeVoidAsync("omniBlazor.securityCodeDestroy", _container); } catch { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+}

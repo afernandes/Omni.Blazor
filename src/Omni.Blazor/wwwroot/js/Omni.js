@@ -2422,6 +2422,71 @@
     ta.addEventListener('keydown', ta.__omniEnter);
   };
   ns.chatDetach = function (ta) { if (ta && ta.__omniEnter) ta.removeEventListener('keydown', ta.__omniEnter); };
+
+  // ─── Security code (OTP/PIN cells) ────────────────────────────────────
+  ns.securityCodeInit = function (container, dotnetRef, isNumeric) {
+    if (!container) return;
+    var inputs = [].slice.call(container.querySelectorAll('.omni-seccode-input'));
+    function report() {
+      var v = inputs.map(function (i) { return i.value; }).join('');
+      try { dotnetRef.invokeMethodAsync('OnCodeChanged', v); } catch (e) { }
+    }
+    inputs.forEach(function (inp, idx) {
+      inp.__omniInput = function () {
+        var v = inp.value;
+        if (v.length > 1) v = v.slice(-1);           // keep only the last typed char
+        if (isNumeric && v && !/[0-9]/.test(v)) v = ''; // reject non-digits
+        inp.value = v;
+        report();
+        if (v && idx < inputs.length - 1) inputs[idx + 1].focus();
+      };
+      inp.__omniKeydown = function (e) {
+        if (e.key === 'Backspace' && inp.value === '' && idx > 0) {
+          e.preventDefault();
+          inputs[idx - 1].focus();
+          inputs[idx - 1].value = '';
+          report();
+        } else if (e.key === 'ArrowLeft' && idx > 0) {
+          e.preventDefault(); inputs[idx - 1].focus();
+        } else if (e.key === 'ArrowRight' && idx < inputs.length - 1) {
+          e.preventDefault(); inputs[idx + 1].focus();
+        }
+      };
+      inp.__omniPaste = function (e) {
+        e.preventDefault();
+        var data = ((e.clipboardData || window.clipboardData).getData('text') || '');
+        for (var i = 0; i < inputs.length && i < data.length; i++) {
+          var ch = data[i];
+          inputs[i].value = (isNumeric && !/[0-9]/.test(ch)) ? '' : ch;
+        }
+        report();
+        var last = Math.min(data.length, inputs.length) - 1;
+        if (last >= 0) inputs[Math.min(last, inputs.length - 1)].focus();
+      };
+      inp.addEventListener('input', inp.__omniInput);
+      inp.addEventListener('keydown', inp.__omniKeydown);
+      inp.addEventListener('paste', inp.__omniPaste);
+    });
+  };
+  ns.securityCodeSet = function (container, value) {
+    if (!container) return;
+    value = value || '';
+    [].slice.call(container.querySelectorAll('.omni-seccode-input'))
+      .forEach(function (inp, i) { inp.value = value[i] || ''; });
+  };
+  ns.securityCodeFocus = function (container) {
+    if (!container) return;
+    var first = container.querySelector('.omni-seccode-input:not([disabled])');
+    if (first) first.focus();
+  };
+  ns.securityCodeDestroy = function (container) {
+    if (!container) return;
+    [].slice.call(container.querySelectorAll('.omni-seccode-input')).forEach(function (inp) {
+      if (inp.__omniInput) inp.removeEventListener('input', inp.__omniInput);
+      if (inp.__omniKeydown) inp.removeEventListener('keydown', inp.__omniKeydown);
+      if (inp.__omniPaste) inp.removeEventListener('paste', inp.__omniPaste);
+    });
+  };
   ns.htmlEditorSetHtml = function (ref, html) { if (ref) ref.innerHTML = html == null ? '' : html; };
   ns.htmlEditorGetHtml = function (ref) { return ref ? ref.innerHTML : ''; };
   ns.htmlEditorFocus = function (ref) { if (ref) ref.focus(); };

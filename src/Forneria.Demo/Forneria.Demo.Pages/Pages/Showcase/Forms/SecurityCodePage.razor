@@ -1,0 +1,105 @@
+@page "/showcase/security-code"
+@layout ShowcaseLayout
+
+<PageTitle>Security Code — Showcase</PageTitle>
+
+<ShowcasePage Title="Security Code"
+              Subtitle="Entrada de código OTP/PIN — caixas de um caractere com auto-avanço, backspace, colar e binding do código completo.">
+
+    <Overview>
+        <p>
+            O <code>OmniSecurityCode</code> renderiza <code>Count</code> caixas de um caractere para
+            códigos de verificação (2FA, PIN, OTP). Digitar <strong>avança</strong> para a próxima caixa,
+            <strong>Backspace</strong> volta, <strong>colar</strong> distribui o código entre as caixas, e
+            as setas navegam. O valor concatenado é exposto via <code>@@bind-Value</code>.
+        </p>
+        <p>
+            Herda <code>FormComponent&lt;string&gt;</code> (integra com <code>OmniForm</code>/validação).
+            <code>Type</code> escolhe <strong>Numeric</strong> (só dígitos, teclado numérico no mobile),
+            <strong>Text</strong> ou <strong>Password</strong> (mascarado).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Confirmação de 2FA / código enviado por SMS ou e-mail.</li>
+            <li>PIN de acesso, código de cupom curto.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Texto livre / senha longa → use <code>OmniTextBox</code> (Password).</li>
+            <li>Número com formatação → use <code>OmniNumeric</code> ou <code>OmniMaskedTextBox</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="NUMÉRICO (2FA)"
+                         Description="6 dígitos. Cole um código (ex.: 123456) para preencher tudo de uma vez. Quando completo, valida."
+                         Code="@(@"<OmniSecurityCode @bind-Value=""_code"" Count=""6"" Type=""SecurityCodeType.Numeric"" />")">
+            <OmniSecurityCode @bind-Value="_code" Count="6" Type="SecurityCodeType.Numeric" />
+            <div style="margin-top:14px;font-size:13px;">
+                @if (_code.Length == 6)
+                {
+                    <span style="color:var(--omni-good);font-weight:600;">✓ Código completo: <span class="omni-mono">@_code</span></span>
+                }
+                else
+                {
+                    <span style="color:var(--omni-fg-soft);">Digitado: <span class="omni-mono">@(_code.Length == 0 ? "—" : _code)</span> (@_code.Length/6)</span>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TEXTO E SENHA (MASCARADO)"
+                         Description="Type=Text aceita qualquer caractere; Type=Password mascara com •."
+                         Code="@(@"<OmniSecurityCode @bind-Value=""_codeA"" Count=""4"" Type=""SecurityCodeType.Text"" />
+<OmniSecurityCode @bind-Value=""_codeB"" Count=""4"" Type=""SecurityCodeType.Password"" />")">
+            <div style="display:flex;gap:32px;flex-wrap:wrap;">
+                <div>
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--omni-fg-muted);margin-bottom:6px;">Texto</div>
+                    <OmniSecurityCode @bind-Value="_codeA" Count="4" Type="SecurityCodeType.Text" />
+                </div>
+                <div>
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--omni-fg-muted);margin-bottom:6px;">Senha</div>
+                    <OmniSecurityCode @bind-Value="_codeB" Count="4" Type="SecurityCodeType.Password" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DESABILITADO + GAP"
+                         Description="Disabled trava as caixas; Gap ajusta o espaçamento."
+                         Code="@(@"<OmniSecurityCode Value=""1234"" Count=""4"" Disabled />
+<OmniSecurityCode Count=""5"" Gap=""4px"" />")">
+            <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-end;">
+                <div>
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--omni-fg-muted);margin-bottom:6px;">Disabled</div>
+                    <OmniSecurityCode Value="1234" Count="4" Disabled />
+                </div>
+                <div>
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--omni-fg-muted);margin-bottom:6px;">Gap 4px</div>
+                    <OmniSecurityCode Count="5" Gap="4px" Type="SecurityCodeType.Numeric" />
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniSecurityCode">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="string" Default="null" Description="Código concatenado (two-way)." />
+            <ShowcaseApiRow Name="Count" Type="int" Default="4" Description="Número de caixas." />
+            <ShowcaseApiRow Name="Type" Type="SecurityCodeType" Default="Text" Description="Text | Numeric | Password." />
+            <ShowcaseApiRow Name="Gap" Type="string" Default="8px" Description="Espaçamento entre as caixas." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string" Default="Dígito" Description="Prefixo do rótulo acessível de cada caixa." />
+            <ShowcaseApiRow Name="Disabled / ReadOnly" Type="bool" Default="false" Description="Estado de edição." />
+            <ShowcaseApiRow Name="FocusAsync()" Type="ValueTask" Default="—" Description="Foca a primeira caixa." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string _code = "";
+    private string _codeA = "";
+    private string _codeB = "";
+}
