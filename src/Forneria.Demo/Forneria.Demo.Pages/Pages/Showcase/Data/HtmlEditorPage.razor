@@ -1,0 +1,98 @@
+@page "/showcase/html-editor"
+@layout ShowcaseLayout
+
+<PageTitle>HTML Editor — Showcase</PageTitle>
+
+<ShowcasePage Title="HTML Editor"
+              Subtitle="Editor WYSIWYG de rich text — área contenteditable + toolbar de formatação, two-way binding do HTML.">
+
+    <Overview>
+        <p>
+            O <code>OmniHtmlEditor</code> é um editor de texto rico baseado em <code>contenteditable</code> +
+            <code>document.execCommand</code>. Faça two-way bind do HTML com <code>@@bind-Value</code>. Uma
+            <strong>toolbar padrão</strong> é renderizada automaticamente; para uma toolbar customizada, componha
+            <code>OmniHtmlEditorButton</code> entre as tags.
+        </p>
+        <p>
+            Herda <code>FormComponent&lt;string&gt;</code> (integra com <code>OmniForm</code>/validação). Suporta
+            modo <strong>código</strong> (botão <code>&lt;/&gt;</code> alterna para HTML cru), atalhos
+            (Ctrl+B/I/U) e <strong>colagem sanitizada</strong> (scripts, handlers <code>on*</code> e URLs perigosas
+            são removidos ao colar).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Descrições de produto, posts, e-mails e conteúdo rico editável pelo usuário.</li>
+            <li>Campos de CMS onde o resultado é HTML.</li>
+            <li>Comentários/anotações com formatação básica.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Conteúdo em Markdown → use <code>OmniMarkdown</code> (renderiza) + um textarea.</li>
+            <li>Texto simples → use <code>OmniTextArea</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="PADRÃO (two-way Value)"
+                         Description="Toolbar completa. O HTML resultante aparece abaixo (atualiza ao sair do editor ou aplicar um comando)."
+                         Code="@(@"<OmniHtmlEditor @bind-Value=""_html"" Height=""360px"" />")">
+            <OmniHtmlEditor @bind-Value="_html" Height="340px" />
+            <div style="margin-top:12px;">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--omni-fg-muted);margin-bottom:4px;">HTML</div>
+                <pre style="margin:0;padding:12px;background:var(--omni-bg-sunken);border:1px solid var(--omni-line);border-radius:8px;font-size:12px;overflow:auto;max-height:160px;"><code>@_html</code></pre>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TOOLBAR CUSTOMIZADA"
+                         Description="Componha só as ferramentas que quiser com OmniHtmlEditorButton (Command = nome do execCommand)."
+                         Code="@(@"<OmniHtmlEditor @bind-Value=""_html2"" Height=""260px"">
+    <OmniHtmlEditorButton Command=""bold"" Icon=""bold"" Title=""Negrito"" Shortcut=""Ctrl+B"" />
+    <OmniHtmlEditorButton Command=""italic"" Icon=""italic"" Title=""Itálico"" />
+    <OmniHtmlEditorButton Command=""insertUnorderedList"" Icon=""list"" Title=""Lista"" />
+    <OmniHtmlEditorButton Command=""formatBlock"" Value=""h2"" Icon=""type"" Title=""Título 2"" />
+</OmniHtmlEditor>")">
+            <OmniHtmlEditor @bind-Value="_html2" Height="240px">
+                <OmniHtmlEditorButton Command="bold" Icon="bold" Title="Negrito" Shortcut="Ctrl+B" />
+                <OmniHtmlEditorButton Command="italic" Icon="italic" Title="Itálico" />
+                <OmniHtmlEditorButton Command="underline" Icon="underline" Title="Sublinhado" />
+                <OmniHtmlEditorButton Command="insertUnorderedList" Icon="list" Title="Lista" />
+                <OmniHtmlEditorButton Command="insertOrderedList" Icon="list-ordered" Title="Lista numerada" />
+                <OmniHtmlEditorButton Command="formatBlock" Value="blockquote" Icon="code" Title="Citação" />
+            </OmniHtmlEditor>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SOMENTE LEITURA (Disabled)"
+                         Description="Disabled trava a edição mantendo o conteúdo renderizado."
+                         Code="@(@"<OmniHtmlEditor Value=""@_html3"" Disabled Height=""180px"" />")">
+            <OmniHtmlEditor Value="@_html3" Disabled Height="180px" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniHtmlEditor">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="string" Default="null" Description="HTML editado (two-way)." />
+            <ShowcaseApiRow Name="ShowToolbar" Type="bool" Default="true" Description="Mostra a toolbar." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null" Description="Toolbar customizada (OmniHtmlEditorButton). Null = toolbar padrão." />
+            <ShowcaseApiRow Name="Mode" Type="HtmlEditorMode" Default="Design" Description="Design (WYSIWYG) ou Source (HTML)." />
+            <ShowcaseApiRow Name="Height" Type="string" Default="320px" Description="Altura da área de edição." />
+            <ShowcaseApiRow Name="Input / Execute" Type="EventCallback<string>" Default="—" Description="Input por tecla / nome do comando executado." />
+            <ShowcaseApiRow Name="ExecuteCommandAsync / FocusAsync" Type="Task" Default="—" Description="API programática." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniHtmlEditorButton">
+            <ShowcaseApiRow Name="Command" Type="string" Default="—" Description="Nome do execCommand (bold, italic, justifyCenter, insertOrderedList, formatBlock…)." />
+            <ShowcaseApiRow Name="Value" Type="string?" Default="null" Description="Valor do comando (ex.: h2 para formatBlock)." />
+            <ShowcaseApiRow Name="Icon / Title / Shortcut" Type="string" Default="—" Description="Ícone, tooltip e atalho (ex.: Ctrl+B)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string _html = "<h2>Bem-vindo ao OmniHtmlEditor</h2><p>Edite este texto: deixe <strong>negrito</strong>, <em>itálico</em> ou crie listas.</p><ul><li>Item um</li><li>Item dois</li></ul>";
+    private string _html2 = "<p>Toolbar enxuta — só o essencial.</p>";
+    private string _html3 = "<h3>Conteúdo somente leitura</h3><p>Este editor está <strong>desabilitado</strong>.</p>";
+}

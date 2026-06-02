@@ -1,0 +1,301 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@implements IDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniHtmlEditor — WYSIWYG rich-text editor (RadzenHtmlEditor port). A
+    contenteditable surface driven by document.execCommand, with a toolbar of
+    formatting tools. Two-way bind the HTML via @bind-Value. A default toolbar
+    renders when no ChildContent is supplied; otherwise compose your own from
+    <OmniHtmlEditorButton> tools. Paste is sanitized (scripts/handlers/dangerous
+    URLs stripped).
+*@
+
+<div class="@RootCss" style="@($"{RootStyle}{Style}")" @attributes="Attributes">
+    @if (ShowToolbar)
+    {
+        <div class="omni-he-toolbar">
+            <CascadingValue Value="this" IsFixed="true">
+                @if (ChildContent is not null)
+                {
+                    @ChildContent
+                }
+                else
+                {
+                    @RenderDefaultToolbar
+                }
+            </CascadingValue>
+        </div>
+    }
+
+    @if (_mode == HtmlEditorMode.Source)
+    {
+        <textarea class="omni-he-source" spellcheck="false" disabled="@Disabled"
+                  value="@_html" @onchange="OnSourceChangedAsync"></textarea>
+    }
+
+    <div class="omni-he-content" @ref="_contentRef" contenteditable="@((!Disabled).ToString().ToLowerInvariant())"
+         hidden="@(_mode != HtmlEditorMode.Design)" @onblur="OnBlurAsync"></div>
+</div>
+
+@code {
+    /// <summary>Shows the formatting toolbar. Default true.</summary>
+    [Parameter] public bool ShowToolbar { get; set; } = true;
+
+    /// <summary>Design (WYSIWYG) or Source (raw HTML) view. Default Design.</summary>
+    [Parameter] public HtmlEditorMode Mode { get; set; } = HtmlEditorMode.Design;
+
+    /// <summary>Custom toolbar content (<c>OmniHtmlEditorButton</c> tools). When null, a default toolbar renders.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Fired on every content change in design mode (per keystroke).</summary>
+    [Parameter] public EventCallback<string> Input { get; set; }
+
+    /// <summary>Fired whenever a command runs (carries the execCommand name).</summary>
+    [Parameter] public EventCallback<string> Execute { get; set; }
+
+    /// <summary>Height of the editor surface (CSS). Default 320px.</summary>
+    [Parameter] public string Height { get; set; } = "320px";
+
+    /// <summary>The current command/toolbar state (which buttons are active).</summary>
+    public OmniHtmlEditorCommandState State { get; private set; } = new();
+
+    /// <summary>Raised when <see cref="State"/> changes — tool buttons subscribe to re-render their active highlight.</summary>
+    internal event Action? StateChanged;
+
+    private ElementReference _contentRef;
+    private DotNetObjectReference<OmniHtmlEditor>? _selfRef;
+    private HtmlEditorMode _mode = HtmlEditorMode.Design;
+    private string _html = "";
+    private bool _dirty;
+    private bool _created;
+    private bool _pushHtml;
+    private readonly Dictionary<string, Func<Task>> _shortcuts = new();
+
+    private string RootCss => CssBuilder.Default("omni-he")
+        .AddClass("omni-he-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle => $"--omni-he-height:{Height};";
+
+    // Decide whether to push Value into the DOM based on a PARAMETER change
+    // (external set) — never on the post-event re-render that follows the editor's
+    // own OnContentChanged (where Value lags the DOM until the next commit, and
+    // pushing it would revert the user's edit + reset the caret).
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (_created && (Value ?? "") != _html) _pushHtml = true;
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _mode = Mode;
+        // Default keyboard shortcuts (also handled by the JS keydown interceptor).
+        RegisterShortcut("Ctrl+B", () => ExecuteCommandAsync("bold"));
+        RegisterShortcut("Ctrl+I", () => ExecuteCommandAsync("italic"));
+        RegisterShortcut("Ctrl+U", () => ExecuteCommandAsync("underline"));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.htmlEditorCreate", _contentRef, _selfRef, _shortcuts.Keys.ToArray());
+            _created = true;
+            _html = Value ?? "";
+            await JS.InvokeVoidAsync("omniBlazor.htmlEditorSetHtml", _contentRef, _html);
+        }
+        else if (_pushHtml && _mode == HtmlEditorMode.Design)
+        {
+            // External Value change → push to the contenteditable (never via markup,
+            // which would fight the browser and reset the caret).
+            _pushHtml = false;
+            _html = Value ?? "";
+            await JS.InvokeVoidAsync("omniBlazor.htmlEditorSetHtml", _contentRef, _html);
+        }
+    }
+
+    // ─── Public API (used by tools + consumers) ───────────────────────────
+    public async Task ExecuteCommandAsync(string name, string? value = null)
+    {
+        if (Disabled) return;
+        State = await JS.InvokeAsync<OmniHtmlEditorCommandState>("omniBlazor.htmlEditorExec", _contentRef, name, value) ?? new();
+        if (Execute.HasDelegate) await Execute.InvokeAsync(name);
+        if (State.Html is not null && State.Html != _html)
+        {
+            _html = State.Html;
+            _dirty = true;
+            await CommitAsync();
+        }
+        StateChanged?.Invoke();
+        StateHasChanged();
+    }
+
+    public ValueTask SaveSelectionAsync() => JS.InvokeVoidAsync("omniBlazor.htmlEditorSaveSelection", _contentRef);
+    public ValueTask RestoreSelectionAsync() => JS.InvokeVoidAsync("omniBlazor.htmlEditorRestoreSelection", _contentRef);
+    public ValueTask FocusAsync() => JS.InvokeVoidAsync("omniBlazor.htmlEditorFocus", _contentRef);
+
+    public void RegisterShortcut(string key, Func<Task> handler) => _shortcuts[key] = handler;
+    public void UnregisterShortcut(string key) => _shortcuts.Remove(key);
+
+    internal HtmlEditorMode CurrentMode => _mode;
+
+    // ─── JS callbacks ─────────────────────────────────────────────────────
+    [JSInvokable]
+    public async Task OnContentChanged(string html)
+    {
+        _html = html;
+        _dirty = true;
+        if (Input.HasDelegate) await Input.InvokeAsync(html);
+    }
+
+    [JSInvokable]
+    public void OnSelectionChanged(OmniHtmlEditorCommandState state)
+    {
+        State = state ?? new();
+        StateChanged?.Invoke();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnShortcut(string key)
+    {
+        if (_shortcuts.TryGetValue(key, out var handler)) await handler();
+    }
+
+    // ─── Internals ────────────────────────────────────────────────────────
+    private async Task OnBlurAsync()
+    {
+        if (_dirty) await CommitAsync();
+    }
+
+    private async Task CommitAsync()
+    {
+        if ((Value ?? "") != _html)
+        {
+            await SetValueAsync(_html);
+        }
+        _dirty = false;
+    }
+
+    private async Task OnSourceChangedAsync(ChangeEventArgs e)
+    {
+        _html = e.Value?.ToString() ?? "";
+        _dirty = true;
+        await CommitAsync();
+    }
+
+    private async Task ToggleSourceAsync()
+    {
+        if (_mode == HtmlEditorMode.Design)
+        {
+            _html = await JS.InvokeAsync<string>("omniBlazor.htmlEditorGetHtml", _contentRef);
+            _mode = HtmlEditorMode.Source;
+        }
+        else
+        {
+            _mode = HtmlEditorMode.Design;
+            await CommitAsync();
+            StateHasChanged();
+            await JS.InvokeVoidAsync("omniBlazor.htmlEditorSetHtml", _contentRef, _html);
+        }
+    }
+
+    private async Task OnFormatAsync(ChangeEventArgs e)
+    {
+        await RestoreSelectionAsync();
+        await ExecuteCommandAsync("formatBlock", e.Value?.ToString());
+    }
+
+    private async Task OnColorAsync(string command, ChangeEventArgs e)
+    {
+        await RestoreSelectionAsync();
+        await ExecuteCommandAsync(command, e.Value?.ToString());
+    }
+
+    private async Task OnLinkAsync()
+    {
+        await SaveSelectionAsync();
+        var url = await JS.InvokeAsync<string?>("omniBlazor.htmlEditorPrompt", "URL do link:", "https://");
+        if (string.IsNullOrWhiteSpace(url)) return;
+        if (!IsSafeUrl(url)) return;
+        await RestoreSelectionAsync();
+        await ExecuteCommandAsync("createLink", url);
+    }
+
+    private static bool IsSafeUrl(string url)
+    {
+        var u = url.Trim().ToLowerInvariant();
+        if (System.Text.RegularExpressions.Regex.IsMatch(u, @"^[a-z][a-z0-9+.\-]*:"))
+            return u.StartsWith("http:") || u.StartsWith("https:") || u.StartsWith("mailto:") || u.StartsWith("tel:");
+        return true; // relative / anchor
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        if (_created)
+        {
+            try { _ = JS.InvokeVoidAsync("omniBlazor.htmlEditorDestroy", _contentRef); } catch { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+
+    // ─── Default toolbar ──────────────────────────────────────────────────
+    private RenderFragment RenderDefaultToolbar => __builder =>
+    {
+        <OmniHtmlEditorButton Command="undo" Icon="arrow-left" Title="Desfazer" />
+        <OmniHtmlEditorButton Command="redo" Icon="arrow-right" Title="Refazer" />
+        @Sep
+        <OmniHtmlEditorButton Command="bold" Icon="bold" Title="Negrito (Ctrl+B)" />
+        <OmniHtmlEditorButton Command="italic" Icon="italic" Title="Itálico (Ctrl+I)" />
+        <OmniHtmlEditorButton Command="underline" Icon="underline" Title="Sublinhado (Ctrl+U)" />
+        <OmniHtmlEditorButton Command="strikeThrough" Icon="strikethrough" Title="Tachado" />
+        @Sep
+        <select class="omni-he-select" disabled="@Disabled" title="Estilo do bloco"
+                @onmousedown="@(_ => SaveSelectionAsync())" @onchange="OnFormatAsync">
+            <option value="p" selected="@(State.FormatBlock == "p")">Parágrafo</option>
+            <option value="h1" selected="@(State.FormatBlock == "h1")">Título 1</option>
+            <option value="h2" selected="@(State.FormatBlock == "h2")">Título 2</option>
+            <option value="h3" selected="@(State.FormatBlock == "h3")">Título 3</option>
+            <option value="blockquote" selected="@(State.FormatBlock == "blockquote")">Citação</option>
+            <option value="pre" selected="@(State.FormatBlock == "pre")">Código</option>
+        </select>
+        @Sep
+        <OmniHtmlEditorButton Command="justifyLeft" Icon="align-left" Title="Alinhar à esquerda" />
+        <OmniHtmlEditorButton Command="justifyCenter" Icon="align-center" Title="Centralizar" />
+        <OmniHtmlEditorButton Command="justifyRight" Icon="align-right" Title="Alinhar à direita" />
+        @Sep
+        <OmniHtmlEditorButton Command="insertUnorderedList" Icon="list" Title="Lista" />
+        <OmniHtmlEditorButton Command="insertOrderedList" Icon="list-ordered" Title="Lista numerada" />
+        @Sep
+        <label class="omni-he-color" title="Cor do texto">
+            <OmniIcon Name="droplet" Size="ComponentSize.Sm" />
+            <input type="color" disabled="@Disabled"
+                   @onmousedown="@(_ => SaveSelectionAsync())" @onchange="@(e => OnColorAsync("foreColor", e))" />
+        </label>
+        <button type="button" class="omni-he-btn" disabled="@Disabled" title="Inserir link"
+                @onmousedown:preventDefault="true" @onclick="OnLinkAsync">
+            <OmniIcon Name="link" Size="ComponentSize.Sm" />
+        </button>
+        <OmniHtmlEditorButton Command="removeFormat" Icon="x" Title="Limpar formatação" />
+        @Sep
+        <button type="button" class="@($"omni-he-btn {(_mode == HtmlEditorMode.Source ? "omni-active" : "")}")"
+                title="Ver código" @onmousedown:preventDefault="true" @onclick="ToggleSourceAsync">
+            <OmniIcon Name="code" Size="ComponentSize.Sm" />
+        </button>
+    };
+
+    private readonly RenderFragment Sep = __builder =>
+    {
+        <span class="omni-he-sep" aria-hidden="true"></span>
+    };
+}

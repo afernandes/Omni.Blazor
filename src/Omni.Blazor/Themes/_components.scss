@@ -7903,3 +7903,121 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 .omni-markdown .omni-md-table tbody tr:nth-child(even) td {
   background: color-mix(in oklab, var(--omni-bg-sunken) 45%, transparent);
 }
+
+// ═══ HTML editor ═══════════════════════════════════════════════════════════
+.omni-he {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--omni-line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--omni-bg-elev);
+}
+.omni-he:focus-within { border-color: var(--omni-accent); }
+.omni-he-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--omni-bg-sunken);
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-he-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--omni-fg-soft);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+.omni-he-btn:hover:not(:disabled) { background: var(--omni-bg-elev); color: var(--omni-fg); border-color: var(--omni-line); }
+.omni-he-btn.omni-active { background: var(--omni-accent-soft); color: var(--omni-accent); border-color: transparent; }
+.omni-he-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.omni-he-sep { width: 1px; align-self: stretch; margin: 2px 4px; background: var(--omni-line); }
+.omni-he-select {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--omni-fg);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.omni-he-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 0 4px;
+  color: var(--omni-fg-soft);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.omni-he-color:hover { background: var(--omni-bg-elev); }
+.omni-he-color input[type="color"] {
+  width: 22px; height: 22px; padding: 0;
+  border: 1px solid var(--omni-line); border-radius: 4px;
+  background: transparent; cursor: pointer;
+}
+.omni-he-content {
+  flex: 1 1 auto;
+  min-height: var(--omni-he-height, 320px);
+  max-height: var(--omni-he-height, 320px);
+  overflow: auto;
+  padding: 12px 16px;
+  outline: none;
+  color: var(--omni-fg);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.omni-he-content:empty::before {
+  content: attr(data-placeholder);
+  color: var(--omni-fg-muted);
+}
+.omni-he-content > :first-child { margin-top: 0; }
+.omni-he-content h1, .omni-he-content h2, .omni-he-content h3 { margin: 0.8em 0 0.4em; line-height: 1.25; }
+.omni-he-content h1 { font-size: 1.7em; }
+.omni-he-content h2 { font-size: 1.4em; }
+.omni-he-content h3 { font-size: 1.2em; }
+.omni-he-content p { margin: 0 0 0.8em; }
+.omni-he-content ul, .omni-he-content ol { margin: 0 0 0.8em; padding-inline-start: 1.6em; }
+.omni-he-content a { color: var(--omni-accent); }
+.omni-he-content blockquote {
+  margin: 0 0 0.8em; padding: 0.3em 1em;
+  color: var(--omni-fg-soft);
+  border-inline-start: 4px solid var(--omni-line-strong);
+}
+.omni-he-content pre {
+  margin: 0 0 0.8em; padding: 12px;
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-radius: 6px;
+  font-family: var(--omni-font-mono); font-size: 0.9em;
+  white-space: pre-wrap;
+}
+.omni-he-content img { max-width: 100%; }
+.omni-he-content img.omni-he-selected { outline: 2px solid var(--omni-accent); }
+.omni-he-source {
+  flex: 1 1 auto;
+  min-height: var(--omni-he-height, 320px);
+  max-height: var(--omni-he-height, 320px);
+  overflow: auto;
+  padding: 12px 16px;
+  border: 0;
+  outline: none;
+  resize: none;
+  color: var(--omni-fg);
+  background: var(--omni-bg-elev);
+  font-family: var(--omni-font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.omni-he-disabled { opacity: 0.7; }

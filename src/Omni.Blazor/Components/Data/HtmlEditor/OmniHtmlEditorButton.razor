@@ -1,0 +1,56 @@
+@namespace Omni.Blazor.Components
+@inherits ComponentBase
+@implements IDisposable
+@using Omni.Blazor.Utilities
+
+@*
+    A toolbar tool for OmniHtmlEditor. Runs an execCommand on click and lights up
+    when that command is active. Compose custom toolbars with these, e.g.
+    <OmniHtmlEditorButton Command="bold" Icon="bold" Title="Negrito" Shortcut="Ctrl+B" />
+*@
+
+<button type="button" class="@BtnCss" title="@Title" disabled="@(Editor?.Disabled ?? false)"
+        @onmousedown:preventDefault="true" @onclick="OnClickAsync">
+    <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
+</button>
+
+@code {
+    [CascadingParameter] internal OmniHtmlEditor? Editor { get; set; }
+
+    /// <summary>The execCommand name (e.g. <c>bold</c>, <c>justifyCenter</c>, <c>insertOrderedList</c>).</summary>
+    [Parameter, EditorRequired] public string Command { get; set; } = "";
+
+    /// <summary>Optional command value (e.g. a color, or a block tag for <c>formatBlock</c>).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Icon name (Omni icon library).</summary>
+    [Parameter, EditorRequired] public string Icon { get; set; } = "";
+
+    /// <summary>Tooltip / accessible title.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Optional keyboard shortcut (e.g. <c>Ctrl+B</c>) registered with the editor.</summary>
+    [Parameter] public string? Shortcut { get; set; }
+
+    private bool Active => Editor?.State.IsActive(Command) ?? false;
+
+    private string BtnCss => CssBuilder.Default("omni-he-btn")
+        .AddClass("omni-active", Active)
+        .Build();
+
+    protected override void OnInitialized()
+    {
+        if (Editor is not null) Editor.StateChanged += OnStateChanged;
+        if (!string.IsNullOrEmpty(Shortcut)) Editor?.RegisterShortcut(Shortcut!, OnClickAsync);
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (Editor is not null) Editor.StateChanged -= OnStateChanged;
+        if (!string.IsNullOrEmpty(Shortcut)) Editor?.UnregisterShortcut(Shortcut!);
+    }
+
+    private Task OnClickAsync() => Editor?.ExecuteCommandAsync(Command, Value) ?? Task.CompletedTask;
+}

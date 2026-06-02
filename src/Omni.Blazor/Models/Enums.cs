@@ -312,6 +312,9 @@ public enum LinkVariant { Default, Muted, Danger }
 /// <summary>Variante visual de um <c>OmniToggleButton</c>.</summary>
 public enum ToggleVariant { Default, Primary, Accent, Ghost }
 
+/// <summary>Modo de edição do <c>OmniHtmlEditor</c>: WYSIWYG (Design) ou HTML cru (Source).</summary>
+public enum HtmlEditorMode { Design, Source }
+
 /// <summary>Cor/intent semântico do ponto (dot) de um <c>OmniTimelineItem</c>.
 /// Mapeia para os tokens <c>--omni-fg-muted</c> (Base), <c>--omni-accent</c>,
 /// <c>--omni-good</c>, <c>--omni-warn</c>, <c>--omni-danger</c> ou <c>--omni-info</c>.</summary>
