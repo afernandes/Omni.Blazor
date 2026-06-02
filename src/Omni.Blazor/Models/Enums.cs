@@ -83,6 +83,9 @@ public enum FilterOperator
 /// <summary>Tipo de UI/operadores oferecidos por uma coluna filtrável.</summary>
 public enum ColumnFilterType { Text, Number, Date, Boolean, Select }
 
+/// <summary>Operador lógico que combina condições/grupos num <c>OmniDataFilter</c>.</summary>
+public enum FilterLogic { And, Or }
+
 /// <summary>Função agregadora aplicada numa coluna (footer/group footer).</summary>
 public enum AggregateFunction { Sum, Average, Count, Min, Max }
 

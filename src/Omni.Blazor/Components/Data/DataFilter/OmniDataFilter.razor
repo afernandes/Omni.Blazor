@@ -1,0 +1,295 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponentWithChildren
+@implements IOmniDataFilterOwner
+@using System.Reflection
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniDataFilter — a visual query builder (RadzenDataFilter port). Declare the
+    filterable fields with <OmniDataFilterProperty>; users compose conditions and
+    nested AND/OR groups. Produces an in-memory predicate and a filtered View.
+
+    Usage:
+      <OmniDataFilter TItem="Person" Data="people" Filter="@(v => view = v.ToList())">
+          <OmniDataFilterProperty Property="Name" Title="Nome" />
+          <OmniDataFilterProperty Property="Age"  Title="Idade" Type="ColumnFilterType.Number" />
+      </OmniDataFilter>
+*@
+
+<CascadingValue Value="(IOmniDataFilterOwner)this" IsFixed="true">
+    @* Property registrations — render no visible output. *@
+    @ChildContent
+
+    <div class="@RootCss" style="@Style" @attributes="Attributes">
+        <OmniDataFilterItem Rule="_root" IsRoot="true" />
+
+        @if (!Auto || HasRules)
+        {
+            <div class="omni-datafilter-actions">
+                @if (!Auto)
+                {
+                    <OmniButton Text="@ApplyFilterText" Icon="filter" Variant="ButtonVariant.Primary"
+                                Size="ComponentSize.Sm" OnClick="ApplyFilterAsync" Disabled="@Disabled" />
+                }
+                @if (HasRules)
+                {
+                    <OmniButton Text="@ClearFilterText" Icon="x" Variant="ButtonVariant.Default"
+                                Size="ComponentSize.Sm" OnClick="ClearAsync" Disabled="@Disabled" />
+                }
+            </div>
+        }
+    </div>
+</CascadingValue>
+
+@code {
+    // ─── Data ────────────────────────────────────────────────────────────────
+
+    /// <summary>The items to filter.</summary>
+    [Parameter] public IEnumerable<TItem>? Data { get; set; }
+
+    /// <summary>Re-filter and raise <see cref="Filter"/> on every change. Default true.</summary>
+    [Parameter] public bool Auto { get; set; } = true;
+
+    /// <summary>Root list of rules. Two-way bindable.</summary>
+    [Parameter] public List<OmniFilterRule>? Rules { get; set; }
+    [Parameter] public EventCallback<List<OmniFilterRule>> RulesChanged { get; set; }
+
+    /// <summary>Logic combining the root rules. Two-way bindable.</summary>
+    [Parameter] public FilterLogic Logic { get; set; } = FilterLogic.And;
+    [Parameter] public EventCallback<FilterLogic> LogicChanged { get; set; }
+
+    /// <summary>Raised with the filtered items (Auto mode, or when ApplyFilterAsync runs).</summary>
+    [Parameter] public EventCallback<IEnumerable<TItem>> Filter { get; set; }
+
+    /// <summary>Raised with the filtered items alongside <see cref="Filter"/> (binding-friendly).</summary>
+    [Parameter] public EventCallback<IEnumerable<TItem>> ViewChanged { get; set; }
+
+    // ─── Behaviour / text ──────────────────────────────────────────────────────
+
+    /// <summary>Allow nested groups (the "add group" button). Default true.</summary>
+    [Parameter] public bool AllowGroups { get; set; } = true;
+
+    /// <summary>Disable the whole builder.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public string AddFilterText { get; set; } = "Adicionar condição";
+    [Parameter] public string AddGroupText { get; set; } = "Adicionar grupo";
+    [Parameter] public string RemoveFilterText { get; set; } = "Remover";
+    [Parameter] public string ClearFilterText { get; set; } = "Limpar tudo";
+    [Parameter] public string ApplyFilterText { get; set; } = "Aplicar";
+    [Parameter] public string AndOperatorText { get; set; } = "E";
+    [Parameter] public string OrOperatorText { get; set; } = "OU";
+    [Parameter] public string ValuePlaceholder { get; set; } = "valor";
+
+    // ─── State ─────────────────────────────────────────────────────────────────
+
+    private readonly OmniFilterRule _root = OmniFilterRule.Group();
+    private readonly List<OmniFilterPropertyInfo> _properties = new();
+    private readonly Dictionary<string, PropertyInfo?> _piCache = new();
+    private FilterLogic _lastLogic = FilterLogic.And;
+    private Func<TItem, bool> _predicate = _ => true;
+
+    private bool HasRules => _root.Rules!.Count > 0;
+
+    /// <summary>The compiled predicate for the current filter tree.</summary>
+    public Func<TItem, bool> Predicate => _predicate;
+
+    /// <summary>The filtered items (recomputed whenever the filter changes).</summary>
+    public IEnumerable<TItem> View { get; private set; } = Enumerable.Empty<TItem>();
+
+    private string RootCss => CssBuilder.Default("omni-datafilter")
+        .AddClass("omni-datafilter-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private bool _initialApplied;
+    private IEnumerable<TItem>? _lastData;
+
+    protected override void OnInitialized() => _lastLogic = Logic;
+
+    protected override void OnParametersSet()
+    {
+        // Adopt a consumer-provided rules list (and keep using the same reference after).
+        if (Rules is not null && !ReferenceEquals(Rules, _root.Rules)) _root.Rules = Rules;
+        // Only honour the Logic parameter when it actually changed — otherwise an
+        // uncontrolled toggle would be reset on every render.
+        if (Logic != _lastLogic) { _root.Logic = Logic; _lastLogic = Logic; }
+
+        // Re-apply when the data source is swapped after init (Auto mode).
+        if (_initialApplied && Auto && !ReferenceEquals(Data, _lastData))
+        {
+            _lastData = Data;
+            _ = InvokeAsync(EmitAsync);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Apply any code-seeded Rules and initialise View/Predicate immediately,
+            // so a pre-set filter takes effect without requiring a user edit.
+            _initialApplied = true;
+            _lastData = Data;
+            await EmitAsync();
+        }
+    }
+
+    // Recompute + publish the view (no RulesChanged/LogicChanged — the rules were
+    // not edited by the user here). Used for the initial apply and data swaps.
+    private async Task EmitAsync()
+    {
+        Recompute();
+        StateHasChanged();
+        if (Auto)
+        {
+            if (Filter.HasDelegate) await Filter.InvokeAsync(View);
+            if (ViewChanged.HasDelegate) await ViewChanged.InvokeAsync(View);
+        }
+    }
+
+    // ─── Public API ────────────────────────────────────────────────────────────
+
+    /// <summary>Recomputes <see cref="View"/> and raises <see cref="Filter"/> (use when Auto is false).</summary>
+    public async Task ApplyFilterAsync()
+    {
+        Recompute();
+        StateHasChanged();
+        if (Filter.HasDelegate) await Filter.InvokeAsync(View);
+        if (ViewChanged.HasDelegate) await ViewChanged.InvokeAsync(View);
+    }
+
+    private async Task ClearAsync()
+    {
+        _root.Rules!.Clear();
+        await NotifyChangedAsync();
+    }
+
+    // ─── Predicate building ────────────────────────────────────────────────────
+
+    private void Recompute()
+    {
+        _predicate = BuildGroup(_root.Rules!, _root.Logic);
+        View = Data is null ? Enumerable.Empty<TItem>() : Data.Where(_predicate).ToList();
+    }
+
+    private Func<TItem, bool> BuildGroup(List<OmniFilterRule> rules, FilterLogic logic)
+    {
+        var preds = new List<Func<TItem, bool>>();
+        foreach (var r in rules)
+        {
+            var p = BuildRule(r);
+            if (p is not null) preds.Add(p);
+        }
+        if (preds.Count == 0) return _ => true;
+        return logic == FilterLogic.And
+            ? item => preds.All(p => p(item))
+            : item => preds.Any(p => p(item));
+    }
+
+    private Func<TItem, bool>? BuildRule(OmniFilterRule r)
+    {
+        if (r.IsGroup) return BuildGroup(r.Rules ?? new(), r.Logic);
+        if (string.IsNullOrEmpty(r.Property)) return null;
+        var needsValue = OperatorNeedsValueImpl(r.Operator);
+        if (needsValue && (r.Value is null || (r.Value is string s && s.Length == 0))) return null;
+        var prop = r.Property!;
+        var op = r.Operator;
+        var val = r.Value;
+        return item => DataFilterEval.Matches(GetMember(item, prop), op, val);
+    }
+
+    private object? GetMember(TItem item, string name)
+    {
+        if (!_piCache.TryGetValue(name, out var pi))
+        {
+            pi = typeof(TItem).GetProperty(name);
+            _piCache[name] = pi;
+        }
+        return item is null ? null : pi?.GetValue(item);
+    }
+
+    private static IReadOnlyList<FilterOperator> DefaultOperators(ColumnFilterType type) => type switch
+    {
+        ColumnFilterType.Number => new[] { FilterOperator.Equals, FilterOperator.NotEquals, FilterOperator.GreaterThan, FilterOperator.GreaterOrEqual, FilterOperator.LessThan, FilterOperator.LessOrEqual },
+        ColumnFilterType.Date => new[] { FilterOperator.Equals, FilterOperator.NotEquals, FilterOperator.GreaterThan, FilterOperator.GreaterOrEqual, FilterOperator.LessThan, FilterOperator.LessOrEqual },
+        ColumnFilterType.Boolean => new[] { FilterOperator.Equals, FilterOperator.NotEquals },
+        ColumnFilterType.Select => new[] { FilterOperator.Equals, FilterOperator.NotEquals },
+        _ => new[] { FilterOperator.Contains, FilterOperator.NotContains, FilterOperator.Equals, FilterOperator.NotEquals, FilterOperator.StartsWith, FilterOperator.EndsWith, FilterOperator.IsEmpty, FilterOperator.IsNotEmpty }
+    };
+
+    private static bool OperatorNeedsValueImpl(FilterOperator op) =>
+        op != FilterOperator.IsEmpty && op != FilterOperator.IsNotEmpty;
+
+    // ─── IOmniDataFilterOwner ─────────────────────────────────────────────────
+
+    IReadOnlyList<OmniFilterPropertyInfo> IOmniDataFilterOwner.Properties => _properties;
+    bool IOmniDataFilterOwner.AllowGroups => AllowGroups;
+    bool IOmniDataFilterOwner.Disabled => Disabled;
+    string IOmniDataFilterOwner.AddFilterText => AddFilterText;
+    string IOmniDataFilterOwner.AddGroupText => AddGroupText;
+    string IOmniDataFilterOwner.RemoveFilterText => RemoveFilterText;
+    string IOmniDataFilterOwner.AndText => AndOperatorText;
+    string IOmniDataFilterOwner.OrText => OrOperatorText;
+    string IOmniDataFilterOwner.PropertyPlaceholder => "Campo";
+    string IOmniDataFilterOwner.ValuePlaceholder => ValuePlaceholder;
+
+    void IOmniDataFilterOwner.RegisterProperty(OmniFilterPropertyInfo info)
+    {
+        if (!_properties.Contains(info)) { _properties.Add(info); StateHasChanged(); }
+    }
+
+    void IOmniDataFilterOwner.UnregisterProperty(OmniFilterPropertyInfo info)
+    {
+        if (_properties.Remove(info)) { try { _ = InvokeAsync(StateHasChanged); } catch { } }
+    }
+
+    OmniFilterPropertyInfo? IOmniDataFilterOwner.FindProperty(string? name) =>
+        name is null ? null : _properties.FirstOrDefault(p => p.Property == name);
+
+    IReadOnlyList<FilterOperator> IOmniDataFilterOwner.OperatorsFor(string? property)
+    {
+        var info = property is null ? null : _properties.FirstOrDefault(p => p.Property == property);
+        if (info?.Operators is { Count: > 0 }) return info.Operators;
+        return DefaultOperators(info?.Type ?? ColumnFilterType.Text);
+    }
+
+    string IOmniDataFilterOwner.OperatorText(FilterOperator op) => op switch
+    {
+        FilterOperator.Contains => "Contém",
+        FilterOperator.NotContains => "Não contém",
+        FilterOperator.Equals => "Igual a",
+        FilterOperator.NotEquals => "Diferente de",
+        FilterOperator.StartsWith => "Começa com",
+        FilterOperator.EndsWith => "Termina com",
+        FilterOperator.GreaterThan => "Maior que",
+        FilterOperator.GreaterOrEqual => "Maior ou igual",
+        FilterOperator.LessThan => "Menor que",
+        FilterOperator.LessOrEqual => "Menor ou igual",
+        FilterOperator.Between => "Entre",
+        FilterOperator.NotBetween => "Fora do intervalo",
+        FilterOperator.IsEmpty => "Vazio",
+        FilterOperator.IsNotEmpty => "Não vazio",
+        _ => op.ToString()
+    };
+
+    bool IOmniDataFilterOwner.OperatorNeedsValue(FilterOperator op) => OperatorNeedsValueImpl(op);
+
+    async Task IOmniDataFilterOwner.NotifyChangedAsync() => await NotifyChangedAsync();
+
+    private async Task NotifyChangedAsync()
+    {
+        Recompute();
+        StateHasChanged();
+        if (RulesChanged.HasDelegate) await RulesChanged.InvokeAsync(_root.Rules);
+        if (Logic != _root.Logic) { Logic = _root.Logic; _lastLogic = _root.Logic; }
+        if (LogicChanged.HasDelegate) await LogicChanged.InvokeAsync(_root.Logic);
+        if (Auto)
+        {
+            if (Filter.HasDelegate) await Filter.InvokeAsync(View);
+            if (ViewChanged.HasDelegate) await ViewChanged.InvokeAsync(View);
+        }
+    }
+}

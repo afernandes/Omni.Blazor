@@ -8515,3 +8515,204 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 .omni-picklist-vertical   .omni-picklist-buttons { flex-direction: row; }
 
 .omni-picklist-disabled { opacity: 0.6; pointer-events: none; }
+
+// ═══ DataFilter (visual query builder) ═══════════════════════════════════════
+// "Logic rail" layout: rows hang off a vertical spine; the AND/OR pill labels
+// the join; nested groups carry an accent spine for depth. All tokenised.
+.omni-datafilter { font-size: 13px; color: var(--omni-fg); }
+
+.omni-datafilter-group {
+  position: relative;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  background: var(--omni-bg-sunken);
+  padding: 12px 14px;
+}
+// Root: a light frame, not a heavy sunken box.
+.omni-datafilter-root { background: var(--omni-bg); }
+// Nested groups read as deeper via an accent spine + a touch of elevation.
+.omni-datafilter-group:not(.omni-datafilter-root) {
+  border-inline-start: 3px solid var(--omni-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+
+.omni-datafilter-grouphead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+// AND / OR — a compact pill toggle.
+.omni-datafilter-logic {
+  display: inline-flex;
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--omni-bg);
+}
+.omni-datafilter-logic-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--omni-fg-soft);
+  padding: 4px 16px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  transition: background .15s, color .15s;
+}
+.omni-datafilter-logic-btn:hover:not(:disabled) { color: var(--omni-fg); }
+.omni-datafilter-logic-btn.omni-active { background: var(--omni-accent); color: #fff; }
+
+// The rail: a spine the rows connect to.
+.omni-datafilter-list {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  padding-inline-start: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.omni-datafilter-list::before {
+  content: "";
+  position: absolute;
+  inset-block: 6px;
+  inset-inline-start: 7px;
+  width: 2px;
+  background: var(--omni-line);
+  border-radius: 2px;
+}
+.omni-datafilter-li { position: relative; }
+.omni-datafilter-li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -15px;
+  inset-block-start: 22px;
+  width: 13px;
+  height: 2px;
+  background: var(--omni-line);
+  border-radius: 2px;
+}
+// No rail/stubs when the group is empty (just the hint + add bar).
+.omni-datafilter-list:has(.omni-datafilter-empty-li)::before,
+.omni-datafilter-list:has(.omni-datafilter-empty-li) .omni-datafilter-li::before { display: none; }
+.omni-datafilter-empty-li::before { display: none; }
+
+// Condition = an elevated card with hover + focus affordances.
+.omni-datafilter-condition {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--omni-bg);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  transition: border-color .15s, box-shadow .15s;
+}
+.omni-datafilter-condition:hover { border-color: var(--omni-line-strong); }
+.omni-datafilter-condition:focus-within {
+  border-color: var(--omni-accent);
+  box-shadow: 0 0 0 3px var(--omni-accent-soft);
+}
+
+.omni-datafilter-select,
+.omni-datafilter-input {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  background: var(--omni-bg);
+  color: var(--omni-fg);
+  font: inherit;
+  font-size: 13px;
+  transition: border-color .15s;
+}
+.omni-datafilter-select:hover:not(:disabled),
+.omni-datafilter-input:hover:not(:disabled) { border-color: var(--omni-line-strong); }
+.omni-datafilter-select:focus-visible,
+.omni-datafilter-input:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 1px;
+  border-color: var(--omni-accent);
+}
+.omni-datafilter-prop { min-width: 132px; font-weight: 600; }
+.omni-datafilter-op   { min-width: 132px; }
+.omni-datafilter-input { min-width: 150px; }
+
+// Remove — quiet until the row is hovered / focused.
+.omni-datafilter-remove {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--omni-fg-soft);
+  cursor: pointer;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+  opacity: .5;
+  transition: opacity .15s, background .15s, color .15s;
+}
+.omni-datafilter-condition:hover .omni-datafilter-remove,
+.omni-datafilter-grouphead .omni-datafilter-remove,
+.omni-datafilter-remove:focus-visible { opacity: 1; }
+.omni-datafilter-remove:hover:not(:disabled) { background: var(--omni-bg-sunken); color: var(--omni-danger); }
+
+// Empty state.
+.omni-datafilter-empty {
+  display: inline-block;
+  padding: 2px 0;
+  color: var(--omni-fg-soft);
+  font-size: 12px;
+  font-style: italic;
+}
+
+// Add affordances — primary (condition) is filled-soft; group is a ghost.
+.omni-datafilter-addbar { display: flex; gap: 8px; }
+.omni-datafilter-add {
+  appearance: none;
+  cursor: pointer;
+  border: 1px dashed var(--omni-line);
+  background: transparent;
+  color: var(--omni-fg-soft);
+  border-radius: var(--omni-radius-sm);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.omni-datafilter-add:hover:not(:disabled) {
+  border-color: var(--omni-accent);
+  color: var(--omni-accent);
+  background: var(--omni-accent-soft);
+}
+.omni-datafilter-add-primary {
+  border-style: solid;
+  border-color: transparent;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+}
+.omni-datafilter-add-primary:hover:not(:disabled) {
+  background: var(--omni-accent);
+  color: #fff;
+  border-color: var(--omni-accent);
+}
+
+.omni-datafilter-actions { display: flex; gap: 8px; margin-top: 12px; }
+.omni-datafilter-disabled { opacity: 0.6; pointer-events: none; }

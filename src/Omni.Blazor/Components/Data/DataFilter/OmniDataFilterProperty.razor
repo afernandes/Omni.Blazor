@@ -1,0 +1,62 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@using Omni.Blazor.Models
+
+@*
+    OmniDataFilterProperty — declares one filterable field inside an
+    <OmniDataFilter>. Renders nothing; it registers metadata (member name, label,
+    type, operators, select options) with the parent.
+
+    Usage:
+      <OmniDataFilter TItem="Person" Data="people">
+          <OmniDataFilterProperty Property="Name"  Title="Nome" />
+          <OmniDataFilterProperty Property="Age"   Title="Idade" Type="ColumnFilterType.Number" />
+          <OmniDataFilterProperty Property="Active" Title="Ativo" Type="ColumnFilterType.Boolean" />
+          <OmniDataFilterProperty Property="City"  Title="Cidade" Type="ColumnFilterType.Select"
+                                  Options="cities" />
+      </OmniDataFilter>
+*@
+
+@code {
+    [CascadingParameter] internal IOmniDataFilterOwner? Owner { get; set; }
+
+    /// <summary>Member name on the item type (used for reflection).</summary>
+    [Parameter, EditorRequired] public string Property { get; set; } = "";
+
+    /// <summary>Label shown in the property dropdown. Defaults to <see cref="Property"/>.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>UI/operator family. Default Text.</summary>
+    [Parameter] public ColumnFilterType Type { get; set; } = ColumnFilterType.Text;
+
+    /// <summary>Override the available operators (otherwise derived from <see cref="Type"/>).</summary>
+    [Parameter] public IEnumerable<FilterOperator>? Operators { get; set; }
+
+    /// <summary>Selectable values when <see cref="Type"/> is Select.</summary>
+    [Parameter] public IEnumerable<object>? Options { get; set; }
+
+    /// <summary>Renders an option's label (Select). Defaults to <c>ToString()</c>.</summary>
+    [Parameter] public Func<object?, string>? OptionText { get; set; }
+
+    private OmniFilterPropertyInfo? _info;
+
+    protected override void OnInitialized()
+    {
+        _info = new OmniFilterPropertyInfo
+        {
+            Property = Property,
+            Title = string.IsNullOrEmpty(Title) ? Property : Title!,
+            Type = Type,
+            Operators = Operators?.ToList(),
+            Options = Options?.ToList(),
+            OptionText = OptionText
+        };
+        Owner?.RegisterProperty(_info);
+    }
+
+    public void Dispose()
+    {
+        if (_info is not null) Owner?.UnregisterProperty(_info);
+    }
+}

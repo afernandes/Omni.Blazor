@@ -1,0 +1,166 @@
+@page "/showcase/datafilter"
+@layout ShowcaseLayout
+
+<PageTitle>DataFilter — Showcase</PageTitle>
+
+<ShowcasePage Title="DataFilter"
+              Subtitle="Construtor visual de consultas — condições e grupos aninhados (E/OU) que geram um predicado em memória.">
+
+    <Overview>
+        <p>
+            O <code>OmniDataFilter</code> deixa o usuário montar um filtro composto: cada
+            <strong>condição</strong> é <em>campo + operador + valor</em>, e várias condições se
+            combinam por <strong>E</strong>/<strong>OU</strong>. Dá para aninhar <strong>grupos</strong>
+            para expressões complexas. Os campos filtráveis são declarados com
+            <code>OmniDataFilterProperty</code> (com <code>Type</code> = Text/Number/Date/Boolean/Select),
+            que define os operadores e o editor de valor apropriado. O componente produz um
+            <code>Predicate</code> e uma <code>View</code> filtrada, e dispara <code>Filter</code> a cada
+            mudança (modo <code>Auto</code>) ou ao clicar em <em>Aplicar</em>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Telas de relatório/busca avançada onde o usuário monta os próprios critérios.</li>
+            <li>Pré-filtro de um <code>OmniDataGrid</code> ou de qualquer lista em memória.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Filtro simples de uma coluna → use o filtro embutido do <code>OmniDataGrid</code>.</li>
+            <li>Uma única busca textual → use um <code>OmniTextBox</code> + filtro manual.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="FILTRO INICIAL VIA CÓDIGO (AUTO)"
+                         Description="Abre já filtrado: Rules é semeado no código (Cidade = São Paulo) e aplicado na inicialização. Edite à vontade — a tabela reflete em tempo real."
+                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" @bind-Rules=""rules""
+                Filter=""@(v => view = v.ToList())"">
+    <OmniDataFilterProperty Property=""Name"" Title=""Nome"" />
+    <OmniDataFilterProperty Property=""City"" Title=""Cidade"" Type=""ColumnFilterType.Select"" Options=""cities"" />
+    ...
+</OmniDataFilter>
+
+@code {
+    // filtro pré-aplicado via código
+    List<OmniFilterRule> rules = new()
+    {
+        new() { Property = ""City"", Operator = FilterOperator.Equals, Value = ""São Paulo"" }
+    };
+}")">
+            <OmniDataFilter TItem="Person" Data="_people" @bind-Rules="_rules" Filter="@(v => { _view = v.ToList(); })">
+                <OmniDataFilterProperty Property="Name" Title="Nome" />
+                <OmniDataFilterProperty Property="Age" Title="Idade" Type="ColumnFilterType.Number" />
+                <OmniDataFilterProperty Property="City" Title="Cidade" Type="ColumnFilterType.Select" Options="_cityOptions" />
+                <OmniDataFilterProperty Property="Active" Title="Ativo" Type="ColumnFilterType.Boolean" />
+                <OmniDataFilterProperty Property="JoinDate" Title="Entrada" Type="ColumnFilterType.Date" />
+            </OmniDataFilter>
+
+            <div style="margin-top:14px;font-size:12px;color:var(--omni-fg-soft)">
+                Mostrando <strong>@_view.Count()</strong> de @_people.Count
+            </div>
+            <div style="margin-top:6px;overflow:auto;border:1px solid var(--omni-line);border-radius:10px;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="background:var(--omni-bg-sunken);text-align:start;">
+                            <th style="@_th">Nome</th><th style="@_th">Idade</th><th style="@_th">Cidade</th>
+                            <th style="@_th">Ativo</th><th style="@_th">Entrada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in _view)
+                        {
+                            <tr @key="p" style="border-top:1px solid var(--omni-line);">
+                                <td style="@_td">@p.Name</td>
+                                <td style="@_td">@p.Age</td>
+                                <td style="@_td">@p.City</td>
+                                <td style="@_td">@(p.Active ? "Sim" : "Não")</td>
+                                <td style="@_td">@p.JoinDate.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                        @if (!_view.Any())
+                        {
+                            <tr><td colspan="5" style="@_td;text-align:center;color:var(--omni-fg-soft)">Nenhum resultado</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MANUAL (Auto=false)"
+                         Description="Com Auto=false o filtro só é aplicado ao clicar em “Aplicar” — útil para consultas caras."
+                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" Auto=""false""
+                Filter=""@(v => view = v.ToList())"">
+    ...propriedades...
+</OmniDataFilter>")">
+            <OmniDataFilter TItem="Person" Data="_people" Auto="false" Filter="@(v => { _view2 = v.ToList(); })">
+                <OmniDataFilterProperty Property="Name" Title="Nome" />
+                <OmniDataFilterProperty Property="Age" Title="Idade" Type="ColumnFilterType.Number" />
+                <OmniDataFilterProperty Property="Active" Title="Ativo" Type="ColumnFilterType.Boolean" />
+            </OmniDataFilter>
+            <div style="margin-top:10px;font-size:12px;color:var(--omni-fg-soft)">
+                Resultado aplicado: <strong>@_view2.Count()</strong> registro(s)
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniDataFilter&lt;TItem&gt;">
+            <ShowcaseApiRow Name="Data" Type="IEnumerable<TItem>?" Default="null" Description="Itens a filtrar." />
+            <ShowcaseApiRow Name="Filter / ViewChanged" Type="EventCallback<IEnumerable<TItem>>" Default="—" Description="Itens filtrados (em Auto ou ao Aplicar)." />
+            <ShowcaseApiRow Name="View" Type="IEnumerable<TItem>" Default="—" Description="Itens filtrados (propriedade somente-leitura)." />
+            <ShowcaseApiRow Name="Predicate" Type="Func<TItem, bool>" Default="—" Description="Predicado compilado do filtro atual." />
+            <ShowcaseApiRow Name="Auto" Type="bool" Default="true" Description="Refiltra a cada mudança; senão, só ao Aplicar." />
+            <ShowcaseApiRow Name="Rules / Logic" Type="List<OmniFilterRule> / FilterLogic" Default="— / And" Description="Árvore de regras e operador raiz (bindável)." />
+            <ShowcaseApiRow Name="AllowGroups" Type="bool" Default="true" Description="Permite grupos aninhados." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desabilita o construtor." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniDataFilterProperty">
+            <ShowcaseApiRow Name="Property" Type="string" Default="—" Description="Nome do membro (reflection)." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="Property" Description="Rótulo no seletor de campo." />
+            <ShowcaseApiRow Name="Type" Type="ColumnFilterType" Default="Text" Description="Text | Number | Date | Boolean | Select." />
+            <ShowcaseApiRow Name="Operators" Type="IEnumerable<FilterOperator>?" Default="(por tipo)" Description="Operadores disponíveis (override)." />
+            <ShowcaseApiRow Name="Options / OptionText" Type="IEnumerable<object>? / Func" Default="—" Description="Valores e rótulo para o tipo Select." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    public record Person(string Name, int Age, string City, bool Active, DateTime JoinDate);
+
+    private readonly List<Person> _people = new()
+    {
+        new("Ana Souza", 28, "São Paulo", true, new DateTime(2021, 3, 14)),
+        new("Bruno Lima", 41, "Rio de Janeiro", false, new DateTime(2018, 7, 1)),
+        new("Carla Dias", 35, "Curitiba", true, new DateTime(2020, 11, 22)),
+        new("Diego Alves", 23, "São Paulo", true, new DateTime(2023, 1, 9)),
+        new("Elena Costa", 52, "Belo Horizonte", false, new DateTime(2015, 5, 30)),
+        new("Felipe Rocha", 30, "Rio de Janeiro", true, new DateTime(2019, 9, 17)),
+        new("Gabi Mendes", 19, "Curitiba", true, new DateTime(2024, 2, 5)),
+        new("Hugo Pereira", 47, "Belo Horizonte", true, new DateTime(2016, 12, 12)),
+    };
+
+    private readonly IEnumerable<object> _cityOptions = new object[]
+    { "São Paulo", "Rio de Janeiro", "Curitiba", "Belo Horizonte" };
+
+    // Filtro pré-aplicado via código — semeado em Rules e aplicado na inicialização.
+    private List<OmniFilterRule> _rules = new()
+    {
+        new() { Property = "City", Operator = FilterOperator.Equals, Value = "São Paulo" }
+    };
+
+    private IEnumerable<Person> _view = Enumerable.Empty<Person>();
+    private IEnumerable<Person> _view2 = Enumerable.Empty<Person>();
+
+    private const string _th = "padding:8px 10px;font-weight:600;color:var(--omni-fg-soft);white-space:nowrap;";
+    private const string _td = "padding:8px 10px;";
+
+    protected override void OnInitialized()
+    {
+        _view = _people;
+        _view2 = _people;
+    }
+}

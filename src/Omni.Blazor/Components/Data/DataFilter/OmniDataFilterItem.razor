@@ -1,0 +1,245 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniDataFilterItem — one node of an <OmniDataFilter> tree. Renders a condition
+    (property / operator / value) or, recursively, a group (logic toggle + child
+    items + add bar). Used internally by OmniDataFilter; not meant to be placed
+    directly by consumers.
+*@
+
+@if (Rule.IsGroup)
+{
+    <div class="@GroupCss">
+        <div class="omni-datafilter-grouphead">
+            <div class="omni-datafilter-logic" role="group">
+                <button type="button" class="@LogicCss(FilterLogic.And)" disabled="@Owner!.Disabled"
+                        @onclick="@(() => SetLogicAsync(FilterLogic.And))">@Owner.AndText</button>
+                <button type="button" class="@LogicCss(FilterLogic.Or)" disabled="@Owner.Disabled"
+                        @onclick="@(() => SetLogicAsync(FilterLogic.Or))">@Owner.OrText</button>
+            </div>
+            @if (!IsRoot)
+            {
+                <button type="button" class="omni-datafilter-remove" disabled="@Owner.Disabled"
+                        title="@Owner.RemoveFilterText" aria-label="@Owner.RemoveFilterText" @onclick="RemoveSelfAsync">
+                    <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                </button>
+            }
+        </div>
+        <ul class="omni-datafilter-list">
+            @foreach (var child in Rule.Rules!)
+            {
+                <li class="omni-datafilter-li @(child.IsGroup ? "omni-datafilter-li-group" : "")" @key="child">
+                    <OmniDataFilterItem Rule="child" ParentRules="Rule.Rules" />
+                </li>
+            }
+            @if (Rule.Rules!.Count == 0)
+            {
+                <li class="omni-datafilter-li omni-datafilter-empty-li">
+                    <span class="omni-datafilter-empty">@(IsRoot ? "Nenhuma condição ainda — comece adicionando uma abaixo." : "Grupo vazio")</span>
+                </li>
+            }
+            <li class="omni-datafilter-li omni-datafilter-addbar">
+                <button type="button" class="omni-datafilter-add omni-datafilter-add-primary" disabled="@Owner.Disabled"
+                        @onclick="@(() => AddChildAsync(false))">
+                    <OmniIcon Name="plus" Size="ComponentSize.Sm" /> @Owner.AddFilterText
+                </button>
+                @if (Owner.AllowGroups)
+                {
+                    <button type="button" class="omni-datafilter-add" disabled="@Owner.Disabled"
+                            @onclick="@(() => AddChildAsync(true))">
+                        <OmniIcon Name="plus" Size="ComponentSize.Sm" /> @Owner.AddGroupText
+                    </button>
+                }
+            </li>
+        </ul>
+    </div>
+}
+else
+{
+    <div class="omni-datafilter-condition">
+        <select class="omni-datafilter-select omni-datafilter-prop" disabled="@Owner!.Disabled"
+                @onchange="OnPropertyChangedAsync" aria-label="Campo">
+            @foreach (var p in Owner.Properties)
+            {
+                <option value="@p.Property" selected="@(p.Property == Rule.Property)">@p.Title</option>
+            }
+        </select>
+
+        <select class="omni-datafilter-select omni-datafilter-op" disabled="@Owner.Disabled"
+                @onchange="OnOperatorChangedAsync" aria-label="Operador">
+            @foreach (var op in Owner.OperatorsFor(Rule.Property))
+            {
+                <option value="@op" selected="@(op == Rule.Operator)">@Owner.OperatorText(op)</option>
+            }
+        </select>
+
+        @if (Owner.OperatorNeedsValue(Rule.Operator))
+        {
+            switch (FieldType)
+            {
+                case ColumnFilterType.Number:
+                    <input class="omni-datafilter-input" type="number" disabled="@Owner.Disabled"
+                           value="@AsText(Rule.Value)" placeholder="@Owner.ValuePlaceholder"
+                           @oninput="@(e => SetValueAsync(ParseNumber(e.Value?.ToString())))" aria-label="Valor" />
+                    break;
+                case ColumnFilterType.Date:
+                    <input class="omni-datafilter-input" type="date" disabled="@Owner.Disabled"
+                           value="@AsDateText(Rule.Value)"
+                           @onchange="@(e => SetValueAsync(ParseDate(e.Value?.ToString())))" aria-label="Valor" />
+                    break;
+                case ColumnFilterType.Boolean:
+                    <select class="omni-datafilter-select" disabled="@Owner.Disabled"
+                            @onchange="@(e => SetValueAsync(e.Value?.ToString() == "true"))" aria-label="Valor">
+                        <option value="true" selected="@(Rule.Value is bool tb && tb)">Sim</option>
+                        <option value="false" selected="@(Rule.Value is bool fb && !fb)">Não</option>
+                    </select>
+                    break;
+                case ColumnFilterType.Select:
+                    <select class="omni-datafilter-select" disabled="@Owner.Disabled"
+                            @onchange="OnSelectValueChangedAsync" aria-label="Valor">
+                        <option value="" selected="@(Rule.Value is null)">@Owner.ValuePlaceholder</option>
+                        @{ var opts = Owner.FindProperty(Rule.Property)?.Options ?? Array.Empty<object>(); var i = 0; }
+                        @foreach (var opt in opts)
+                        {
+                            var idx = i++;
+                            <option value="@idx" selected="@(Equals(opt, Rule.Value))">@OptionText(opt)</option>
+                        }
+                    </select>
+                    break;
+                default:
+                    <input class="omni-datafilter-input" type="text" disabled="@Owner.Disabled"
+                           value="@AsText(Rule.Value)" placeholder="@Owner.ValuePlaceholder"
+                           @oninput="@(e => SetValueAsync(e.Value?.ToString()))" aria-label="Valor" />
+                    break;
+            }
+        }
+
+        <button type="button" class="omni-datafilter-remove" disabled="@Owner.Disabled"
+                title="@Owner.RemoveFilterText" aria-label="@Owner.RemoveFilterText" @onclick="RemoveSelfAsync">
+            <OmniIcon Name="x" Size="ComponentSize.Sm" />
+        </button>
+    </div>
+}
+
+@code {
+    [CascadingParameter] internal IOmniDataFilterOwner? Owner { get; set; }
+
+    /// <summary>The rule this item renders (condition or group).</summary>
+    [Parameter, EditorRequired] public OmniFilterRule Rule { get; set; } = default!;
+
+    /// <summary>The list that contains <see cref="Rule"/> (so it can remove itself). Null at the root.</summary>
+    [Parameter] public List<OmniFilterRule>? ParentRules { get; set; }
+
+    /// <summary>True for the top-level group (hides the remove button, no group border).</summary>
+    [Parameter] public bool IsRoot { get; set; }
+
+    private ColumnFilterType FieldType => Owner?.FindProperty(Rule.Property)?.Type ?? ColumnFilterType.Text;
+
+    private string GroupCss => CssBuilder.Default("omni-datafilter-group")
+        .AddClass("omni-datafilter-root", IsRoot)
+        .Build();
+
+    private string LogicCss(FilterLogic logic) => CssBuilder.Default("omni-datafilter-logic-btn")
+        .AddClass("omni-active", Rule.Logic == logic)
+        .Build();
+
+    private string OptionText(object? opt)
+    {
+        var info = Owner?.FindProperty(Rule.Property);
+        return (info?.OptionText is not null ? info.OptionText(opt) : opt?.ToString()) ?? "";
+    }
+
+    // ─── Group actions ─────────────────────────────────────────────────────────
+
+    private async Task SetLogicAsync(FilterLogic logic)
+    {
+        if (Rule.Logic == logic) return;
+        Rule.Logic = logic;
+        await Notify();
+    }
+
+    private async Task AddChildAsync(bool group)
+    {
+        Rule.Rules ??= new();
+        if (group)
+        {
+            Rule.Rules.Add(OmniFilterRule.Group());
+        }
+        else
+        {
+            var first = Owner!.Properties.FirstOrDefault();
+            var rule = OmniFilterRule.Condition();
+            rule.Property = first?.Property;
+            rule.Operator = Owner.OperatorsFor(rule.Property).FirstOrDefault();
+            if (first?.Type == ColumnFilterType.Boolean) rule.Value = true;
+            Rule.Rules.Add(rule);
+        }
+        await Notify();
+    }
+
+    // ─── Condition actions ─────────────────────────────────────────────────────
+
+    private async Task OnPropertyChangedAsync(ChangeEventArgs e)
+    {
+        Rule.Property = e.Value?.ToString();
+        Rule.Operator = Owner!.OperatorsFor(Rule.Property).FirstOrDefault();
+        var info = Owner.FindProperty(Rule.Property);
+        Rule.Value = info?.Type == ColumnFilterType.Boolean ? true : null;
+        await Notify();
+    }
+
+    private async Task OnOperatorChangedAsync(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<FilterOperator>(e.Value?.ToString(), out var op)) Rule.Operator = op;
+        await Notify();
+    }
+
+    private async Task OnSelectValueChangedAsync(ChangeEventArgs e)
+    {
+        var opts = Owner!.FindProperty(Rule.Property)?.Options;
+        Rule.Value = int.TryParse(e.Value?.ToString(), out var idx) && opts is not null && idx >= 0 && idx < opts.Count
+            ? opts[idx] : null;
+        await Notify();
+    }
+
+    private async Task SetValueAsync(object? value)
+    {
+        Rule.Value = value;
+        await Notify();
+    }
+
+    private async Task RemoveSelfAsync()
+    {
+        ParentRules?.Remove(Rule);
+        await Notify();
+    }
+
+    private Task Notify() => Owner?.NotifyChangedAsync() ?? Task.CompletedTask;
+
+    // ─── Value parsing / formatting ────────────────────────────────────────────
+
+    private static string AsText(object? v) => v switch
+    {
+        null => "",
+        double d => d.ToString(CultureInfo.InvariantCulture),
+        IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
+        _ => v.ToString() ?? ""
+    };
+
+    private static object? ParseNumber(string? s) =>
+        double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : null;
+
+    private static object? ParseDate(string? s) =>
+        DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ? dt : null;
+
+    private static string AsDateText(object? v) => v switch
+    {
+        DateTime dt => dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        _ => ""
+    };
+}
