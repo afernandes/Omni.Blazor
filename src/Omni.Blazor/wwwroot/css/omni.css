@@ -12205,4 +12205,127 @@ button.omni-upload-file-remove:hover {
   transform: rotate(180deg);
 }
 
+.omni-progress-circular {
+  --omni-pc-size: 3rem;
+  --omni-pc-track-w: 2px;
+  --omni-pc-value-w: 3px;
+  --omni-pc-font: 0.75rem;
+  --omni-pc-color: var(--omni-accent);
+  position: relative;
+  display: inline-flex;
+  box-sizing: border-box;
+  width: var(--omni-pc-size);
+  height: var(--omni-pc-size);
+  vertical-align: middle;
+}
+
+.omni-progress-circular-viewbox {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.omni-progress-circular-track {
+  stroke: var(--omni-line);
+  stroke-width: var(--omni-pc-track-w);
+}
+
+.omni-progress-circular-value {
+  stroke: var(--omni-pc-color);
+  stroke-width: var(--omni-pc-value-w);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s ease;
+  transform-box: fill-box;
+}
+
+.omni-progress-circular-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: var(--omni-pc-font);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--omni-fg);
+  padding: 0 6%;
+  box-sizing: border-box;
+}
+
+.omni-progress-circular:not(.omni-progress-circular-indeterminate) .omni-progress-circular-value {
+  stroke-dasharray: 100;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.omni-progress-circular-sm {
+  --omni-pc-size: 2rem;
+  --omni-pc-font: 0.5rem;
+}
+
+.omni-progress-circular-md {
+  --omni-pc-size: 3rem;
+  --omni-pc-font: 0.75rem;
+}
+
+.omni-progress-circular-lg {
+  --omni-pc-size: 4.5rem;
+  --omni-pc-font: 1rem;
+}
+
+.omni-progress-circular-xl {
+  --omni-pc-size: 6rem;
+  --omni-pc-font: 1.25rem;
+}
+
+.omni-progress-circular-good {
+  --omni-pc-color: var(--omni-good);
+}
+
+.omni-progress-circular-warn {
+  --omni-pc-color: var(--omni-warn);
+}
+
+.omni-progress-circular-danger {
+  --omni-pc-color: var(--omni-danger);
+}
+
+.omni-progress-circular-info {
+  --omni-pc-color: var(--omni-info);
+}
+
+.omni-progress-circular-indeterminate .omni-progress-circular-value {
+  transform-origin: center;
+  transition: none;
+  animation: omni-pc-rotate 2.1s linear infinite, omni-pc-dash 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes omni-pc-rotate {
+  100% {
+    transform: rotate(1turn);
+  }
+}
+@keyframes omni-pc-dash {
+  0% {
+    stroke-dasharray: 1, 100;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 70, 100;
+    stroke-dashoffset: -28;
+  }
+  100% {
+    stroke-dasharray: 70, 100;
+    stroke-dashoffset: -99;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .omni-progress-circular-indeterminate .omni-progress-circular-value {
+    animation-duration: 4.2s, 2.8s;
+  }
+}
+
 /*# sourceMappingURL=omni.css.map */

@@ -1,0 +1,143 @@
+@page "/showcase/progress-circular"
+@layout ShowcaseLayout
+
+<PageTitle>Progress Circular — Showcase</PageTitle>
+
+<ShowcasePage Title="Progress Circular"
+              Subtitle="Indicador de progresso em anel (SVG) — determinado com rótulo central ou indeterminado (spinner).">
+
+    <Overview>
+        <p>
+            O <code>OmniProgressCircular</code> mostra o avanço de uma tarefa como um anel.
+            No modo <strong>determinado</strong>, o arco preenche proporcionalmente a
+            <code>Value</code> entre <code>Min</code> e <code>Max</code>, com um rótulo central
+            (<code>Value</code> + <code>Unit</code>) opcional. No modo <strong>indeterminado</strong>
+            (<code>Indeterminate</code>), gira continuamente — ideal para esperas sem progresso conhecido.
+            Tem 4 tamanhos (<code>Sm→Xl</code>), variantes semânticas e centro customizável via conteúdo.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Upload/download, processamento, ou qualquer % de conclusão compacto.</li>
+            <li>Medidores em cards/dashboards (uso de cota, metas, pontuação).</li>
+            <li>Espera indeterminada (spinner) quando o tempo é desconhecido.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Progresso linear em listas/formulários → use <code>OmniProgress</code>.</li>
+            <li>Apenas “carregando” inline → use <code>OmniSpinner</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Determinado, tamanho médio. O rótulo central mostra Value + Unit (padrão %)."
+                         Code="@(@"<OmniProgressCircular Value=""65"" />")">
+            <OmniProgressCircular Value="65" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="INTERATIVO"
+                         Description="Ajuste o valor — o arco e o rótulo acompanham."
+                         Code="@(@"<OmniProgressCircular Value=""@v"" Size=""ComponentSize.Lg"" />
+<input type=""range"" min=""0"" max=""100"" @bind=""v"" @bind:event=""oninput"" />")">
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                <OmniProgressCircular Value="_v" Size="ComponentSize.Lg" />
+                <input type="range" min="0" max="100" @bind="_v" @bind:event="oninput" style="width:220px" />
+                <span style="font-size:13px;color:var(--omni-fg-soft)">Value = <strong>@_v</strong></span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Sm, Md, Lg e Xl. O rótulo escala com o anel."
+                         Code="@(@"<OmniProgressCircular Value=""72"" Size=""ComponentSize.Sm"" />
+<OmniProgressCircular Value=""72"" Size=""ComponentSize.Md"" />
+<OmniProgressCircular Value=""72"" Size=""ComponentSize.Lg"" />
+<OmniProgressCircular Value=""72"" Size=""ComponentSize.Xl"" />")">
+            <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                @foreach (var sz in new[] { ComponentSize.Sm, ComponentSize.Md, ComponentSize.Lg, ComponentSize.Xl })
+                {
+                    <div style="text-align:center" @key="sz">
+                        <OmniProgressCircular Value="72" Size="sz" />
+                        <div style="margin-top:6px;font-size:12px;color:var(--omni-fg-soft)">@sz</div>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VARIANTES DE COR"
+                         Description="Accent (padrão), Good, Warn, Danger e Info — mapeiam para os tokens semânticos."
+                         Code="@(@"<OmniProgressCircular Value=""80"" Variant=""BadgeVariant.Good"" />
+<OmniProgressCircular Value=""80"" Variant=""BadgeVariant.Warn"" />
+<OmniProgressCircular Value=""80"" Variant=""BadgeVariant.Danger"" />")">
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                @foreach (var (val, variant, name) in new[] {
+                    (90, BadgeVariant.Accent, "Accent"),
+                    (80, BadgeVariant.Good,   "Good"),
+                    (55, BadgeVariant.Warn,   "Warn"),
+                    (28, BadgeVariant.Danger, "Danger"),
+                    (64, BadgeVariant.Info,   "Info") })
+                {
+                    <div style="text-align:center" @key="name">
+                        <OmniProgressCircular Value="val" Variant="variant" Size="ComponentSize.Lg" />
+                        <div style="margin-top:6px;font-size:12px;color:var(--omni-fg-soft)">@name</div>
+                    </div>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="INDETERMINADO (SPINNER)"
+                         Description="Sem progresso conhecido: o anel gira continuamente. Normalmente com ShowValue=false."
+                         Code="@(@"<OmniProgressCircular Indeterminate=""true"" ShowValue=""false"" Size=""ComponentSize.Sm"" />
+<OmniProgressCircular Indeterminate=""true"" ShowValue=""false"" />
+<OmniProgressCircular Indeterminate=""true"" ShowValue=""false"" Size=""ComponentSize.Lg"" Variant=""BadgeVariant.Good"" />")">
+            <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                <OmniProgressCircular Indeterminate="true" ShowValue="false" Size="ComponentSize.Sm" />
+                <OmniProgressCircular Indeterminate="true" ShowValue="false" />
+                <OmniProgressCircular Indeterminate="true" ShowValue="false" Size="ComponentSize.Lg" Variant="BadgeVariant.Good" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MAX, UNIT E CENTRO CUSTOMIZADO"
+                         Description="Max muda a escala; Unit troca o sufixo. Forneça conteúdo para substituir o rótulo central."
+                         Code="@(@"<OmniProgressCircular Value=""750"" Max=""1000"" Unit="" vendas"" Size=""ComponentSize.Xl"" Variant=""BadgeVariant.Good"" />
+
+<OmniProgressCircular Value=""4.6"" Max=""5"" ShowValue=""true"" Size=""ComponentSize.Xl"" Variant=""BadgeVariant.Warn"">
+    <strong style=""font-size:1.2rem"">4.6</strong>
+    <span style=""font-size:.7rem;color:var(--omni-fg-soft)"">/ 5</span>
+</OmniProgressCircular>")">
+            <div style="display:flex;align-items:center;gap:32px;flex-wrap:wrap;">
+                <OmniProgressCircular Value="750" Max="1000" Unit=" vendas" Size="ComponentSize.Xl" Variant="BadgeVariant.Good" />
+                <OmniProgressCircular Value="4.6" Max="5" Size="ComponentSize.Xl" Variant="BadgeVariant.Warn">
+                    <div style="display:flex;flex-direction:column;align-items:center;line-height:1.1">
+                        <strong style="font-size:1.2rem">4.6</strong>
+                        <span style="font-size:.62rem;color:var(--omni-fg-soft)">de 5</span>
+                    </div>
+                </OmniProgressCircular>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniProgressCircular">
+            <ShowcaseApiRow Name="Value" Type="double" Default="0" Description="Valor atual (entre Min e Max)." />
+            <ShowcaseApiRow Name="Min" Type="double" Default="0" Description="Valor mínimo." />
+            <ShowcaseApiRow Name="Max" Type="double" Default="100" Description="Valor máximo." />
+            <ShowcaseApiRow Name="Unit" Type="string" Default="%" Description="Sufixo após o valor no rótulo central." />
+            <ShowcaseApiRow Name="ShowValue" Type="bool" Default="true" Description="Mostra o rótulo/conteúdo central." />
+            <ShowcaseApiRow Name="Indeterminate" Type="bool" Default="false" Description="Spinner contínuo (ignora Value)." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md" Description="Sm | Md | Lg | Xl." />
+            <ShowcaseApiRow Name="Variant" Type="BadgeVariant" Default="Accent" Description="Cor do arco: Accent | Good | Warn | Danger | Info." />
+            <ShowcaseApiRow Name="Color" Type="string?" Default="null" Description="Cor CSS arbitrária do arco (sobrepõe Variant)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null" Description="Conteúdo central customizado (substitui o rótulo)." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string?" Default="null" Description="Rótulo acessível do progressbar." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int _v = 65;
+}

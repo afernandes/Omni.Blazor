@@ -1,0 +1,105 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniProgressCircular — an SVG ring progress indicator (RadzenProgressBarCircular
+    port). Determinate (Value/Min/Max) with an optional centred label, or
+    Indeterminate (continuous spinner). Sizes Sm→Xl, semantic variants, and an
+    optional custom centre via <ChildContent>.
+
+    Usage:
+      <OmniProgressCircular Value="65" />
+      <OmniProgressCircular Value="@sales" Max="1000" Unit=" vendas" Size="ComponentSize.Lg" Variant="BadgeVariant.Good" />
+      <OmniProgressCircular Indeterminate="true" ShowValue="false" Size="ComponentSize.Sm" />
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes"
+     role="progressbar"
+     aria-valuemin="@Min.ToString(CultureInfo.InvariantCulture)"
+     aria-valuemax="@Max.ToString(CultureInfo.InvariantCulture)"
+     aria-valuenow="@(Indeterminate ? null : Value.ToString(CultureInfo.InvariantCulture))"
+     aria-label="@AriaLabel">
+    <svg class="omni-progress-circular-viewbox" viewBox="-19 -19 38 38">
+        <circle class="omni-progress-circular-track" r="15.91549" fill="none" />
+        <circle class="omni-progress-circular-value" r="15.91549" fill="none"
+                stroke-dashoffset="@(Indeterminate ? null : DashOffset)"
+                style="@ValueStroke" />
+    </svg>
+    @if (ShowValue)
+    {
+        <div class="omni-progress-circular-label">
+            @if (ChildContent is not null)
+            {
+                @ChildContent
+            }
+            else
+            {
+                @ValueText
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Current progress value (between <see cref="Min"/> and <see cref="Max"/>).</summary>
+    [Parameter] public double Value { get; set; }
+
+    /// <summary>Minimum value. Default 0.</summary>
+    [Parameter] public double Min { get; set; } = 0;
+
+    /// <summary>Maximum value. Default 100.</summary>
+    [Parameter] public double Max { get; set; } = 100;
+
+    /// <summary>Unit suffix appended after the value in the centre label. Default "%".</summary>
+    [Parameter] public string Unit { get; set; } = "%";
+
+    /// <summary>Whether to show the centred value/label. Default true.</summary>
+    [Parameter] public bool ShowValue { get; set; } = true;
+
+    /// <summary>Continuous indeterminate spinner (ignores Value). Default false.</summary>
+    [Parameter] public bool Indeterminate { get; set; }
+
+    /// <summary>Ring size. Default Md.</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Semantic colour of the progress arc. Default Accent.</summary>
+    [Parameter] public BadgeVariant Variant { get; set; } = BadgeVariant.Accent;
+
+    /// <summary>Optional arbitrary CSS colour for the arc (overrides <see cref="Variant"/>).</summary>
+    [Parameter] public string? Color { get; set; }
+
+    /// <summary>Accessible label for the progressbar.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    // Fraction filled, clamped to [0,1]. Circle circumference is normalised to 100
+    // (r = 100 / 2π ≈ 15.91549), so the dash offset is simply the empty percentage.
+    private double NormalizedValue => Max <= Min ? 0 : Math.Clamp((Value - Min) / (Max - Min), 0, 1);
+    private string DashOffset => ((1 - NormalizedValue) * 100).ToString("0.###", CultureInfo.InvariantCulture);
+    private string ValueText => Value.ToString("0.##", CultureInfo.InvariantCulture) + Unit;
+    private string? ValueStroke => string.IsNullOrEmpty(Color) ? null : $"stroke:{Color}";
+
+    private string SizeClass => Size switch
+    {
+        ComponentSize.Sm => "sm",
+        ComponentSize.Lg => "lg",
+        ComponentSize.Xl => "xl",
+        _ => "md"
+    };
+
+    private string RootCss => CssBuilder.Default("omni-progress-circular")
+        .AddClass($"omni-progress-circular-{SizeClass}")
+        .AddClass("omni-progress-circular-indeterminate", Indeterminate)
+        .AddClass(Variant switch
+        {
+            BadgeVariant.Good   => "omni-progress-circular-good",
+            BadgeVariant.Warn   => "omni-progress-circular-warn",
+            BadgeVariant.Danger => "omni-progress-circular-danger",
+            BadgeVariant.Info   => "omni-progress-circular-info",
+            _ => null
+        })
+        .AddClass(Class)
+        .Build();
+}
