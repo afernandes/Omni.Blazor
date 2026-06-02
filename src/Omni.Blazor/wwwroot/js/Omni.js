@@ -2400,6 +2400,28 @@
 
   ns.htmlEditorState = function (ref) { return omniEditorState(ref); };
   ns.htmlEditorPrompt = function (message, defaultValue) { return window.prompt(message, defaultValue || ''); };
+
+  // ─── Chat ─────────────────────────────────────────────────────────────
+  ns.chatScrollToBottom = function (el) { if (el) el.scrollTop = el.scrollHeight; };
+  ns.chatIsNearBottom = function (el, threshold) {
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= (threshold || 60);
+  };
+  // Enter sends (Shift+Enter inserts a newline). Clears the textarea synchronously
+  // and reports the typed value so the value never lags behind a fast keystroke.
+  ns.chatEnterToSend = function (ta, dotnetRef) {
+    if (!ta) return;
+    ta.__omniEnter = function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        var v = ta.value;
+        ta.value = '';
+        try { dotnetRef.invokeMethodAsync('OnEnterPressed', v); } catch (er) { }
+      }
+    };
+    ta.addEventListener('keydown', ta.__omniEnter);
+  };
+  ns.chatDetach = function (ta) { if (ta && ta.__omniEnter) ta.removeEventListener('keydown', ta.__omniEnter); };
   ns.htmlEditorSetHtml = function (ref, html) { if (ref) ref.innerHTML = html == null ? '' : html; };
   ns.htmlEditorGetHtml = function (ref) { return ref ? ref.innerHTML : ''; };
   ns.htmlEditorFocus = function (ref) { if (ref) ref.focus(); };

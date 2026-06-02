@@ -1,0 +1,251 @@
+@page "/showcase/chat"
+@layout ShowcaseLayout
+@implements IDisposable
+
+<PageTitle>Chat — Showcase</PageTitle>
+
+<ShowcasePage Title="Chat"
+              Subtitle="UI de chat self-contained — header + lista de mensagens (bolhas alinhadas por autor) + caixa de envio. Presentacional, dirigido por callbacks.">
+
+    <Overview>
+        <p>
+            O <code>OmniChat</code> é uma interface de chat pronta: cabeçalho (título + avatares dos
+            participantes + limpar), lista de mensagens rolável e caixa de composição (Enter envia,
+            Shift+Enter quebra linha). As bolhas são renderizadas como <strong>Markdown</strong> e
+            alinhadas pela comparação <code>UserId == CurrentUserId</code> (minhas à direita, dos outros à
+            esquerda).
+        </p>
+        <p>
+            É <strong>presentacional</strong>: faça bind de <code>Messages</code> + <code>MessagesChanged</code>
+            (o consumidor reatribui a lista) e trate <code>MessageSent</code>. O transporte (SignalR, etc.)
+            fica por sua conta. Tem indicador de digitação, separadores de data e auto-scroll.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Chat de equipe/suporte, comentários em tempo real, mensagens diretas.</li>
+            <li>Assistente/bot conversacional (renderize as respostas em Markdown).</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Lista de notificações → use <code>OmniNotification</code>.</li>
+            <li>Feed/timeline de eventos → use <code>OmniTimeline</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="CHAT AO VIVO"
+                         Description="Envie uma mensagem e o time responde (com indicador de digitação). Ligue 'Conversa ao vivo' e os outros usuários passam a digitar e mandar mensagens sozinhos. Os botões demonstram a API: SetUserTypingAsync, SendAsync(content, userId) e ClearChatAsync."
+                         Code="@(@"<OmniChat @ref=""_chat"" CurrentUserId=""@_me"" Users=""@_users""
+          Messages=""@_messages"" MessagesChanged=""OnMessagesChanged""
+          ShowTypingIndicator MessageSent=""OnMessageSent"" />
+
+@* Simular alguém digitando: *@
+await _chat.SetUserTypingAsync(""user2"", true);
+await Task.Delay(1500);
+await _chat.SetUserTypingAsync(""user2"", false);")">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+                <span style="font-size:13px;color:var(--omni-fg-soft);">Sou:</span>
+                <select class="omni-he-select" @bind="_me" @bind:after="OnMeChanged" style="height:32px;">
+                    @foreach (var u in _users)
+                    {
+                        <option value="@u.Id">@u.Name</option>
+                    }
+                </select>
+                <div style="flex:1"></div>
+                <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Default" Icon="edit"
+                            Text="Simular Bob digitando" OnClick="SimulateBobTypingAsync" />
+                <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Default" Icon="message-square"
+                            Text="Bob envia" OnClick="BobSendsAsync" />
+                <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost" Icon="x"
+                            Text="Limpar" OnClick="@(() => _chat!.ClearChatAsync())" />
+            </div>
+            <OmniChat @ref="_chat" CurrentUserId="@_me" Users="@_users"
+                      Messages="@_messages" MessagesChanged="OnMessagesChanged"
+                      Title="Equipe Forneria" ShowTypingIndicator
+                      MessageSent="OnMessageSent" Height="460px" />
+            <div style="margin-top:12px;">
+                <OmniCheckBox @bind-Value="_live" @bind-Value:after="ToggleLive"
+                              Label="Conversa ao vivo (os outros digitam e respondem sozinhos)" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CUSTOMIZAÇÃO"
+                         Description="Ligue/desligue partes da UI ao vivo: avatares no header, nomes acima das mensagens, botão limpar, separador de data, Markdown e indicador de digitação."
+                         Code="@(@"<OmniChat ShowUsers=""@showUsers"" ShowUserNames=""@showNames""
+          ShowClearButton=""@showClear"" ShowDateSeparator=""@showDate""
+          RenderMarkdown=""@markdown"" Placeholder=""@placeholder"" ... />")">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 16px;margin-bottom:16px;">
+                <OmniCheckBox @bind-Value="_cShowUsers" Label="ShowUsers" />
+                <OmniCheckBox @bind-Value="_cShowNames" Label="ShowUserNames" />
+                <OmniCheckBox @bind-Value="_cShowClear" Label="ShowClearButton" />
+                <OmniCheckBox @bind-Value="_cShowDate" Label="ShowDateSeparator" />
+                <OmniCheckBox @bind-Value="_cMarkdown" Label="RenderMarkdown" />
+                <OmniCheckBox @bind-Value="_cTyping" Label="ShowTypingIndicator" />
+            </div>
+            <OmniChat CurrentUserId="user1" Users="@_users" Messages="@_customMessages"
+                      MessagesChanged="@(m => _customMessages = m.ToList())"
+                      Title="Customização"
+                      ShowUsers="_cShowUsers" ShowUserNames="_cShowNames" ShowClearButton="_cShowClear"
+                      ShowDateSeparator="_cShowDate" RenderMarkdown="_cMarkdown" ShowTypingIndicator="_cTyping"
+                      Height="360px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEM HEADER / TEXTO SIMPLES"
+                         Description="ShowUsers/Title off + RenderMarkdown=false para um chat minimalista de texto puro (ex.: suporte)."
+                         Code="@(@"<OmniChat CurrentUserId=""me"" Users=""@_users2"" Messages=""@_messages2""
+          Title=""@null"" ShowUsers=""false"" RenderMarkdown=""false"" Height=""320px"" />")">
+            <OmniChat CurrentUserId="me" Users="@_users2" Messages="@_messages2"
+                      MessagesChanged="@(m => _messages2 = m.ToList())"
+                      ShowUsers="false" ShowClearButton="false" RenderMarkdown="false" Height="300px" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniChat">
+            <ShowcaseApiRow Name="CurrentUserId" Type="string" Default="—" Description="Quem sou eu (alinha minhas mensagens à direita)." />
+            <ShowcaseApiRow Name="Users / Messages" Type="IEnumerable<…>" Default="empty" Description="Participantes e mensagens." />
+            <ShowcaseApiRow Name="MessagesChanged" Type="EventCallback<…>" Default="—" Description="Reatribua a lista no handler (two-way)." />
+            <ShowcaseApiRow Name="MessageSent / MessageAdded / ChatCleared / TypingChanged" Type="EventCallback" Default="—" Description="Eventos." />
+            <ShowcaseApiRow Name="Title / ShowUsers / ShowUserNames / ShowClearButton / ShowDateSeparator" Type="bool/string" Default="—" Description="Toggles do header/lista." />
+            <ShowcaseApiRow Name="RenderMarkdown / ShowTypingIndicator / Height" Type="bool / bool / string" Default="true / false / 480px" Description="Bolha em Markdown, indicador de digitação, altura." />
+            <ShowcaseApiRow Name="SendAsync / ClearChatAsync / SetUserTypingAsync" Type="Task" Default="—" Description="API programática (bot responder / outro usuário digitando)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private OmniChat? _chat;
+    private string _me = "user1";
+
+    private readonly List<OmniChatUser> _users = new()
+    {
+        new() { Id = "user1", Name = "Você",      Color = "#2563eb" },
+        new() { Id = "user2", Name = "Bob Silva", Color = "#16a34a" },
+        new() { Id = "user3", Name = "Ana Costa", Color = "#db2777" },
+    };
+
+    private List<OmniChatMessage> _messages = new()
+    {
+        new() { Content = "Bem-vindos ao chat da equipe! 👋", UserId = "user2", Timestamp = DateTime.Now.AddMinutes(-12) },
+        new() { Content = "Valeu! Já consigo ver as **bolhas** alinhadas.", UserId = "user1", Timestamp = DateTime.Now.AddMinutes(-11) },
+        new() { Content = "E suporta `código` e [links](https://omni.dev) no Markdown.", UserId = "user3", Timestamp = DateTime.Now.AddMinutes(-10) },
+    };
+
+    // Customization section
+    private bool _cShowUsers = true, _cShowNames = true, _cShowClear = true, _cShowDate = true, _cMarkdown = true, _cTyping = true;
+    private List<OmniChatMessage> _customMessages = new()
+    {
+        new() { Content = "Mensagem **de ontem**.", UserId = "user2", Timestamp = DateTime.Now.AddDays(-1) },
+        new() { Content = "E uma de hoje, com `código`.", UserId = "user1", Timestamp = DateTime.Now },
+    };
+
+    // Minimal section
+    private readonly List<OmniChatUser> _users2 = new()
+    {
+        new() { Id = "me", Name = "Eu" },
+        new() { Id = "atendimento", Name = "Atendimento" },
+    };
+    private List<OmniChatMessage> _messages2 = new()
+    {
+        new() { Content = "Olá! Como posso ajudar?", UserId = "atendimento", Timestamp = DateTime.Now.AddMinutes(-2) },
+    };
+
+    private static readonly string[] _replies =
+    {
+        "Boa! Anotado. 👍", "Concordo com você.", "Vou verificar e te respondo.",
+        "Pode deixar comigo!", "Interessante, conta mais."
+    };
+    private static readonly string[] _ambient =
+    {
+        "Alguém revisou o PR de ontem?", "Acabei de subir a correção 🚀", "Bom dia, time!",
+        "Reunião às 14h, não esqueçam.", "Testei aqui e funcionou 👍", "Esse componente ficou ótimo!",
+        "Vou almoçar, já volto.", "Preciso de uma ajuda com o deploy."
+    };
+    private int _replyIdx;
+    private readonly Random _rng = new();
+    private bool _live;
+    private CancellationTokenSource? _liveCts;
+
+    private void OnMessagesChanged(IEnumerable<OmniChatMessage> m) => _messages = m.ToList();
+    private void OnMeChanged() => StateHasChanged();
+
+    private async Task OnMessageSent(OmniChatMessage msg)
+    {
+        // Only react to MY messages — someone else replies (with a typing indicator).
+        if (_chat is null || msg.UserId != _me) return;
+        var bot = _users.FirstOrDefault(u => u.Id != _me);
+        if (bot is null) return;
+        await Task.Delay(400);
+        await _chat.SetUserTypingAsync(bot.Id, true);
+        await Task.Delay(1100);
+        await _chat.SetUserTypingAsync(bot.Id, false);
+        await _chat.SendAsync(_replies[_replyIdx++ % _replies.Length], bot.Id);
+    }
+
+    private async Task SimulateBobTypingAsync()
+    {
+        if (_chat is null) return;
+        await _chat.SetUserTypingAsync("user2", true);
+        await Task.Delay(1800);
+        await _chat.SetUserTypingAsync("user2", false);
+    }
+
+    private async Task BobSendsAsync()
+    {
+        if (_chat is null) return;
+        await _chat.SetUserTypingAsync("user2", true);
+        await Task.Delay(1100);
+        await _chat.SetUserTypingAsync("user2", false);
+        await _chat.SendAsync(_ambient[_rng.Next(_ambient.Length)], "user2");
+    }
+
+    private void ToggleLive()
+    {
+        if (_live)
+        {
+            _liveCts = new CancellationTokenSource();
+            _ = RunAmbientAsync(_liveCts.Token);
+        }
+        else
+        {
+            _liveCts?.Cancel();
+            _liveCts = null;
+        }
+    }
+
+    private async Task RunAmbientAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                await Task.Delay(_rng.Next(2800, 5200), ct);
+                if (ct.IsCancellationRequested || _chat is null) break;
+                var others = _users.Where(u => u.Id != _me).ToList();
+                if (others.Count == 0) continue;
+                var who = others[_rng.Next(others.Count)];
+
+                await InvokeAsync(() => _chat!.SetUserTypingAsync(who.Id, true));
+                await Task.Delay(_rng.Next(900, 1900), ct);
+                if (ct.IsCancellationRequested) break;
+                await InvokeAsync(async () =>
+                {
+                    await _chat!.SetUserTypingAsync(who.Id, false);
+                    await _chat!.SendAsync(_ambient[_rng.Next(_ambient.Length)], who.Id);
+                });
+            }
+        }
+        catch (OperationCanceledException) { /* stopped */ }
+    }
+
+    public void Dispose()
+    {
+        _liveCts?.Cancel();
+        _liveCts?.Dispose();
+    }
+}

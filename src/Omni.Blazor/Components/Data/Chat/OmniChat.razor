@@ -1,0 +1,337 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@inject IJSRuntime JS
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniChat — self-contained chat UI (RadzenChat port): header (title + roster +
+    clear), a scrollable message list (avatar + bubble, aligned by author), and a
+    compose box (Enter sends, Shift+Enter newline). Presentational + callback
+    driven: bind Messages + MessagesChanged and wire MessageSent — transport
+    (SignalR, etc.) is the app's job. Bubbles render as Markdown by default.
+*@
+
+<div class="@RootCss" style="@($"--omni-chat-height:{Height};{Style}")" @attributes="Attributes">
+    @if (HasHeader)
+    {
+        <div class="omni-chat-header">
+            <div class="omni-chat-header-main">
+                @if (!string.IsNullOrEmpty(Title))
+                {
+                    <span class="omni-chat-title">@Title</span>
+                }
+                @if (ShowUsers && _users.Count > 0)
+                {
+                    <div class="omni-chat-roster">
+                        @foreach (var u in _users.Take(MaxVisibleUsers))
+                        {
+                            <span class="omni-chat-roster-avatar" title="@u.Name" @key="u.Id">
+                                <OmniAvatar Initials="@u.GetInitials()" ImageUrl="@u.AvatarUrl" Size="AvatarSize.Sm"
+                                            Style="@AvatarStyle(u)" />
+                            </span>
+                        }
+                        @if (_users.Count > MaxVisibleUsers)
+                        {
+                            <span class="omni-chat-roster-more">+@(_users.Count - MaxVisibleUsers)</span>
+                        }
+                    </div>
+                }
+            </div>
+            @if (ShowClearButton && !Disabled)
+            {
+                <button type="button" class="omni-chat-clear" @onclick="ClearChatAsync">@ClearButtonText</button>
+            }
+        </div>
+    }
+
+    <div class="omni-chat-messages" @ref="_messagesRef">
+        @if (_messages.Count == 0)
+        {
+            <div class="omni-chat-empty">
+                @if (EmptyTemplate is not null) { @EmptyTemplate }
+                else { @EmptyMessage }
+            </div>
+        }
+        else
+        {
+            DateTime? prevDate = null;
+            @foreach (var m in _messages)
+            {
+                if (ShowDateSeparator && m.Timestamp.Date != prevDate)
+                {
+                    prevDate = m.Timestamp.Date;
+                    <div class="omni-chat-date" @key="@($"d-{m.Timestamp.Date.Ticks}")">
+                        <span>@m.Timestamp.ToString(DateSeparatorFormat, Culture)</span>
+                    </div>
+                }
+                var user = GetUser(m.UserId);
+                var mine = m.UserId == CurrentUserId;
+                <div class="@MessageCss(mine)" @key="m.Id">
+                    @if (MessageTemplate is not null)
+                    {
+                        @MessageTemplate(m)
+                    }
+                    else
+                    {
+                        <OmniAvatar Class="omni-chat-avatar" title="@user?.Name"
+                                    Initials="@(user?.GetInitials() ?? "?")" ImageUrl="@user?.AvatarUrl"
+                                    Size="AvatarSize.Md" Style="@AvatarStyle(user)" />
+                        <div class="omni-chat-bubble-col">
+                            <div class="omni-chat-meta">
+                                @if (!mine && ShowUserNames && user is not null)
+                                {
+                                    <span class="omni-chat-name" style="@(user.Color is null ? null : $"color:{user.Color}")">@user.Name</span>
+                                }
+                                <span class="omni-chat-time">@m.Timestamp.ToString(TimestampFormat, Culture)</span>
+                            </div>
+                            <div class="omni-chat-bubble">
+                                @if (m.IsStreaming)
+                                {
+                                    @m.Content
+                                    <span class="omni-chat-streaming">…</span>
+                                }
+                                else if (RenderMarkdown)
+                                {
+                                    <OmniMarkdown Text="@m.Content" />
+                                }
+                                else
+                                {
+                                    @m.Content
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        @if (ShowTypingIndicator && _typing.Count > 0)
+        {
+            <div class="omni-chat-typing">
+                <span class="omni-chat-typing-dots"><span></span><span></span><span></span></span>
+                <span class="omni-chat-typing-text">@TypingText</span>
+            </div>
+        }
+    </div>
+
+    <div class="omni-chat-input">
+        <textarea class="omni-chat-textarea" rows="1" placeholder="@Placeholder"
+                  @ref="_inputRef" value="@_input" @oninput="OnInputChangedAsync"
+                  disabled="@(Disabled || ReadOnly)"></textarea>
+        <button type="button" class="omni-chat-send" title="Enviar"
+                disabled="@(Disabled || ReadOnly || string.IsNullOrWhiteSpace(_input))"
+                @onclick="@(() => SendAsync(_input))">
+            <OmniIcon Name="arrow-up" Size="ComponentSize.Sm" />
+        </button>
+    </div>
+</div>
+
+@code {
+    /// <summary>The id of the current user — their messages align right; others' align left.</summary>
+    [Parameter] public string CurrentUserId { get; set; } = "";
+
+    /// <summary>The chat participants (avatars/names/colors).</summary>
+    [Parameter] public IEnumerable<OmniChatUser>? Users { get; set; }
+
+    /// <summary>The messages to render (two-way via <see cref="MessagesChanged"/>).</summary>
+    [Parameter] public IEnumerable<OmniChatMessage>? Messages { get; set; }
+
+    /// <summary>Fired with the new list whenever messages change (consumer assigns it back).</summary>
+    [Parameter] public EventCallback<IEnumerable<OmniChatMessage>> MessagesChanged { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool ShowUsers { get; set; } = true;
+    [Parameter] public bool ShowUserNames { get; set; } = true;
+    [Parameter] public int MaxVisibleUsers { get; set; } = 5;
+    [Parameter] public bool ShowClearButton { get; set; } = true;
+    [Parameter] public string ClearButtonText { get; set; } = "Limpar";
+    [Parameter] public bool ShowDateSeparator { get; set; } = true;
+    [Parameter] public string DateSeparatorFormat { get; set; } = "D";
+    [Parameter] public string TimestampFormat { get; set; } = "HH:mm";
+    [Parameter] public string Placeholder { get; set; } = "Digite uma mensagem...";
+    [Parameter] public string EmptyMessage { get; set; } = "Nenhuma mensagem ainda. Comece a conversa!";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public int MaxMessages { get; set; } = 200;
+
+    /// <summary>Render bubble content as Markdown (default) or plain text.</summary>
+    [Parameter] public bool RenderMarkdown { get; set; } = true;
+
+    /// <summary>Height of the chat (CSS). Default 480px.</summary>
+    [Parameter] public string Height { get; set; } = "480px";
+
+    [Parameter] public RenderFragment<OmniChatMessage>? MessageTemplate { get; set; }
+    [Parameter] public RenderFragment? EmptyTemplate { get; set; }
+
+    [Parameter] public bool ShowTypingIndicator { get; set; }
+    [Parameter] public int TypingTimeout { get; set; } = 1500;
+
+    [Parameter] public EventCallback<OmniChatMessage> MessageSent { get; set; }
+    [Parameter] public EventCallback<OmniChatMessage> MessageAdded { get; set; }
+    [Parameter] public EventCallback ChatCleared { get; set; }
+    [Parameter] public EventCallback<OmniChatTypingEventArgs> TypingChanged { get; set; }
+
+    private List<OmniChatUser> _users = new();
+    private List<OmniChatMessage> _messages = new();
+    private readonly HashSet<string> _typing = new();
+    private string _input = "";
+    private ElementReference _messagesRef;
+    private ElementReference _inputRef;
+    private DotNetObjectReference<OmniChat>? _selfRef;
+    private bool _created;
+    private int _lastCount = -1;
+    private System.Threading.Timer? _typingTimer;
+    private bool _typingActive;
+
+    private string RootCss => CssBuilder.Default("omni-chat").AddClass(Class).Build();
+    private bool HasHeader => !string.IsNullOrEmpty(Title) || (ShowClearButton && !Disabled) || (ShowUsers && (Users?.Any() ?? false));
+
+    protected override void OnParametersSet()
+    {
+        _users = Users?.ToList() ?? new();
+        _messages = Messages?.ToList() ?? new();
+    }
+
+    private CultureInfo Culture => CultureInfo.CurrentCulture;
+
+    private OmniChatUser? GetUser(string id) => _users.FirstOrDefault(u => u.Id == id);
+
+    // Apply the user's color directly to the avatar (background + white initials for
+    // contrast). Falls back to OmniAvatar's default accent tint when no color is set.
+    private static string? AvatarStyle(OmniChatUser? u)
+        => string.IsNullOrEmpty(u?.Color) ? null : $"background:{u!.Color};color:#fff;";
+
+    private string MessageCss(bool mine) => CssBuilder.Default("omni-chat-message")
+        .AddClass(mine ? "omni-chat-message-mine" : "omni-chat-message-other")
+        .Build();
+
+    private string TypingText
+    {
+        get
+        {
+            var names = _typing.Select(id => GetUser(id)?.Name ?? "Alguém").ToList();
+            return names.Count switch
+            {
+                0 => "",
+                1 => $"{names[0]} está digitando…",
+                2 => $"{names[0]} e {names[1]} estão digitando…",
+                _ => $"{names[0]} e mais {names.Count - 1} estão digitando…"
+            };
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("omniBlazor.chatEnterToSend", _inputRef, _selfRef);
+            _created = true;
+            await ScrollToBottomAsync();
+            _lastCount = _messages.Count;
+        }
+        else if (_messages.Count != _lastCount)
+        {
+            _lastCount = _messages.Count;
+            await ScrollToBottomAsync();
+        }
+    }
+
+    private ValueTask ScrollToBottomAsync() => JS.InvokeVoidAsync("omniBlazor.chatScrollToBottom", _messagesRef);
+
+    // ─── Public API ───────────────────────────────────────────────────────
+    public async Task SendAsync(string content, string? userId = null)
+    {
+        var text = content?.Trim() ?? "";
+        if (text.Length == 0 || Disabled || ReadOnly) return;
+        var sender = userId ?? CurrentUserId;
+        if (string.IsNullOrEmpty(sender)) return;
+
+        var msg = new OmniChatMessage { Content = text, UserId = sender, Timestamp = DateTime.Now };
+        var list = _messages.ToList();
+        list.Add(msg);
+        while (list.Count > MaxMessages) list.RemoveAt(0);
+        _messages = list;
+        _input = "";
+        await StopTypingAsync();
+
+        if (MessagesChanged.HasDelegate) await MessagesChanged.InvokeAsync(list);
+        if (MessageAdded.HasDelegate) await MessageAdded.InvokeAsync(msg);
+        if (MessageSent.HasDelegate) await MessageSent.InvokeAsync(msg);
+        StateHasChanged();
+    }
+
+    public async Task ClearChatAsync()
+    {
+        _messages = new();
+        if (MessagesChanged.HasDelegate) await MessagesChanged.InvokeAsync(_messages);
+        if (ChatCleared.HasDelegate) await ChatCleared.InvokeAsync();
+        StateHasChanged();
+    }
+
+    /// <summary>Marks a (remote) user as typing or not — drives the typing indicator.</summary>
+    public async Task SetUserTypingAsync(string userId, bool typing)
+    {
+        var changed = typing ? _typing.Add(userId) : _typing.Remove(userId);
+        if (changed)
+        {
+            await InvokeAsync(StateHasChanged);
+            if (typing) await ScrollToBottomAsync();
+        }
+    }
+
+    // ─── JS callbacks / input ─────────────────────────────────────────────
+    [JSInvokable]
+    public Task OnEnterPressed(string text)
+    {
+        _input = "";
+        return SendAsync(text);
+    }
+
+    private async Task OnInputChangedAsync(ChangeEventArgs e)
+    {
+        _input = e.Value?.ToString() ?? "";
+        await NotifyTypingAsync();
+    }
+
+    private async Task NotifyTypingAsync()
+    {
+        if (!TypingChanged.HasDelegate || string.IsNullOrEmpty(CurrentUserId)) return;
+        if (!_typingActive)
+        {
+            _typingActive = true;
+            await TypingChanged.InvokeAsync(new OmniChatTypingEventArgs { UserId = CurrentUserId, IsTyping = true });
+        }
+        _typingTimer?.Dispose();
+        _typingTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(StopTypingAsync);
+        }, null, Math.Max(250, TypingTimeout), System.Threading.Timeout.Infinite);
+    }
+
+    private async Task StopTypingAsync()
+    {
+        _typingTimer?.Dispose();
+        _typingTimer = null;
+        if (_typingActive)
+        {
+            _typingActive = false;
+            if (TypingChanged.HasDelegate && !string.IsNullOrEmpty(CurrentUserId))
+                await TypingChanged.InvokeAsync(new OmniChatTypingEventArgs { UserId = CurrentUserId, IsTyping = false });
+        }
+    }
+
+    public void Dispose()
+    {
+        _typingTimer?.Dispose();
+        if (_created)
+        {
+            try { _ = JS.InvokeVoidAsync("omniBlazor.chatDetach", _inputRef); } catch { }
+        }
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+}
