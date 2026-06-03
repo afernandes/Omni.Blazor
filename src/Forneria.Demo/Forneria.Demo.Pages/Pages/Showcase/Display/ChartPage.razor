@@ -4,14 +4,14 @@
 <PageTitle>Chart — Showcase</PageTitle>
 
 <ShowcasePage Title="Chart"
-              Subtitle="Gráficos SVG full-featured: Line, Area, Column, Bar, Pie e Donut. Múltiplas séries, eixos, legenda e tooltip.">
+              Subtitle="Gráficos SVG full-featured: Line, Area, Column, Bar, Pie, Donut e Waterfall. Múltiplas séries, eixos, legenda e tooltip.">
 
     <Overview>
         <p>
             O <code>OmniChart</code> é um componente único que aceita uma coleção de
             <code>ChartSeries</code> e renderiza tudo em SVG puro — sem D3, sem Chart.js, sem
-            dependências externas. Suporta seis tipos de série combináveis (Line/Area/Column/Bar
-            simultâneos no mesmo chart; Pie/Donut isolados).
+            dependências externas. Suporta sete tipos de série (Line/Area/Column/Bar
+            simultâneos no mesmo chart; Pie/Donut/Waterfall isolados, uma série cada).
         </p>
         <p>
             Cada série tem <code>Title</code>, <code>Type</code>, <code>Color</code> (opcional —
@@ -27,6 +27,7 @@
             <li>Dashboards com tendências temporais (Line/Area).</li>
             <li>Comparação entre categorias (Column/Bar).</li>
             <li>Distribuição percentual (Pie/Donut).</li>
+            <li>Decomposição de um total — receita → custos → lucro, fluxo de caixa (Waterfall).</li>
             <li>KPIs visuais com múltiplas séries (Line + Column combinados).</li>
         </ul>
     </WhenToUse>
@@ -102,6 +103,30 @@ new() { Type = ChartSeriesType.Line, Interpolation = ChartInterpolation.Step }")
                          Code="@(@"new ChartSeries { Type = ChartSeriesType.Column, Title = ""Pedidos"", ... }
 new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)"", ShowMarkers = true, ... }")">
             <OmniChart Series="@_mixedTypes" Height="280px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="WATERFALL — PONTE (BRIDGE)"
+                         Description="Decompõe um total em entradas e saídas. Marque IsTotal=true nos pontos de total (barra a partir do zero); os demais são deltas que flutuam a partir do acumulado. Verde = entradas, vermelho = saídas, cinza = totais. Passe o mouse para ver cada valor."
+                         Code="@(@"<OmniChart Series=""@_waterfall"" Height=""300px""
+            LegendPosition=""ChartLegendPosition.None""
+            ValueFormatter=""@(v => $""R$ {v/1000:0}k"")"" />
+
+@code {
+    private List<ChartSeries> _waterfall = new() {
+        new() { Title = ""Fluxo de caixa"", Type = ChartSeriesType.Waterfall,
+            Points = new[] {
+                new ChartDataPoint { Category = ""Saldo inicial"", Value = 12000, IsTotal = true },
+                new ChartDataPoint { Category = ""Vendas"",        Value =  38200 },
+                new ChartDataPoint { Category = ""Reembolsos"",    Value =  -4100 },
+                new ChartDataPoint { Category = ""Insumos"",       Value = -16800 },
+                new ChartDataPoint { Category = ""Impostos"",      Value =  -5200 },
+                new ChartDataPoint { Category = ""Saldo final"",   Value =  24100, IsTotal = true },
+            }}
+    };
+}")">
+            <OmniChart Series="@_waterfall" Height="300px"
+                        LegendPosition="ChartLegendPosition.None"
+                        ValueFormatter="@(v => $"R$ {v/1000:0}k")" />
         </ShowcaseSection>
 
         <ShowcaseSection Title="PIE — DISTRIBUIÇÃO"
@@ -185,7 +210,7 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
             <ShowcaseApiRow Name="Title" Type="string" Default="&quot;&quot;"
                             Description="Nome exibido na legenda/tooltip." />
             <ShowcaseApiRow Name="Type" Type="ChartSeriesType" Default="Line"
-                            Description="Line | Area | Column | Bar | Pie | Donut." />
+                            Description="Line | Area | Column | Bar | Pie | Donut | Waterfall." />
             <ShowcaseApiRow Name="Color" Type="string?" Default="null"
                             Description="Override de cor; quando nulo, puxa do ColorScheme." />
             <ShowcaseApiRow Name="Points" Type="IEnumerable<ChartDataPoint>" Default="empty"
@@ -207,6 +232,8 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
                             Description="Valor numérico." />
             <ShowcaseApiRow Name="Color" Type="string?" Default="null"
                             Description="Cor opcional (Pie/Donut — override por fatia)." />
+            <ShowcaseApiRow Name="IsTotal" Type="bool" Default="false"
+                            Description="Waterfall: marca o ponto como total absoluto (barra a partir do zero). Quando false, é um delta que flutua a partir do acumulado." />
         </ShowcaseApiTable>
     </Api>
 
@@ -364,6 +391,24 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
                 new ChartDataPoint { Category = "Sex", Value = 62 },
                 new ChartDataPoint { Category = "Sáb", Value = 68 },
                 new ChartDataPoint { Category = "Dom", Value = 64 },
+            }
+        }
+    };
+
+    private List<ChartSeries> _waterfall = new()
+    {
+        new ChartSeries
+        {
+            Title = "Fluxo de caixa",
+            Type = ChartSeriesType.Waterfall,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Saldo inicial", Value =  12000, IsTotal = true },
+                new ChartDataPoint { Category = "Vendas",        Value =  38200 },
+                new ChartDataPoint { Category = "Reembolsos",    Value =  -4100 },
+                new ChartDataPoint { Category = "Insumos",       Value = -16800 },
+                new ChartDataPoint { Category = "Impostos",      Value =  -5200 },
+                new ChartDataPoint { Category = "Saldo final",   Value =  24100, IsTotal = true },
             }
         }
     };

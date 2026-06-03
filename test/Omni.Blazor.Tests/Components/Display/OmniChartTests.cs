@@ -22,6 +22,19 @@ public class OmniChartTests : TestContextBase
         }
     };
 
+    private static ChartSeries SampleWaterfall() => new()
+    {
+        Title = "Cash flow",
+        Type = ChartSeriesType.Waterfall,
+        Points = new[]
+        {
+            new ChartDataPoint { Category = "Start", Value = 100, IsTotal = true },
+            new ChartDataPoint { Category = "Gain",  Value =  40 },
+            new ChartDataPoint { Category = "Loss",  Value = -25 },
+            new ChartDataPoint { Category = "End",   Value = 115, IsTotal = true },
+        }
+    };
+
     [Fact]
     public void Renders_default_chart_root_and_svg()
     {
@@ -129,5 +142,60 @@ public class OmniChartTests : TestContextBase
 
         Assert.NotSame(seriesBefore, cut.Instance._series);
         Assert.Equal(2, cut.Instance._categories.Length);
+    }
+
+    // ─── Waterfall ────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Waterfall_derives_categories_and_renders_one_rect_per_point()
+    {
+        var cut = RenderComponent<OmniChart>(p => p
+            .Add(c => c.Series, new[] { SampleWaterfall() }));
+
+        // Categories come straight from the points (order preserved).
+        Assert.Equal(new[] { "Start", "Gain", "Loss", "End" }, cut.Instance._categories);
+        // One floating bar per point; no grid/axis <line> counted here.
+        Assert.Equal(4, cut.FindAll("svg.omni-chart-svg rect").Count);
+    }
+
+    [Fact]
+    public void Waterfall_colors_encode_total_gain_and_loss()
+    {
+        var cut = RenderComponent<OmniChart>(p => p
+            .Add(c => c.Series, new[] { SampleWaterfall() }));
+
+        var rects = cut.FindAll("svg.omni-chart-svg rect");
+        // Totals → neutral; positive delta → good; negative delta → danger.
+        Assert.Contains("--omni-fg-soft", rects[0].GetAttribute("fill"));
+        Assert.Contains("--omni-good", rects[1].GetAttribute("fill"));
+        Assert.Contains("--omni-danger", rects[2].GetAttribute("fill"));
+        Assert.Contains("--omni-fg-soft", rects[3].GetAttribute("fill"));
+    }
+
+    [Fact]
+    public void Waterfall_rect_carries_value_tooltip()
+    {
+        var cut = RenderComponent<OmniChart>(p => p
+            .Add(c => c.Series, new[] { SampleWaterfall() }));
+
+        var firstTitle = cut.Find("svg.omni-chart-svg rect title");
+        Assert.Contains("Start", firstTitle.TextContent);
+    }
+
+    [Fact]
+    public void Waterfall_per_point_Color_overrides_semantic_default()
+    {
+        var custom = SampleWaterfall();
+        custom.Points = new[]
+        {
+            new ChartDataPoint { Category = "Start", Value = 100, IsTotal = true },
+            new ChartDataPoint { Category = "Gain",  Value =  40, Color = "rebeccapurple" },
+            new ChartDataPoint { Category = "End",   Value = 140, IsTotal = true },
+        };
+
+        var cut = RenderComponent<OmniChart>(p => p
+            .Add(c => c.Series, new[] { custom }));
+
+        Assert.Equal("rebeccapurple", cut.FindAll("svg.omni-chart-svg rect")[1].GetAttribute("fill"));
     }
 }

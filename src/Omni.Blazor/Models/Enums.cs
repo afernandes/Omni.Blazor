@@ -252,7 +252,7 @@ public enum QRCodeModuleShape { Square, Rounded, Circle }
 public enum QRCodeEyeShape { Square, Rounded, Framed }
 
 /// <summary>Tipos de série suportados pelo <c>OmniChart</c>.</summary>
-public enum ChartSeriesType { Line, Area, Column, Bar, Pie, Donut }
+public enum ChartSeriesType { Line, Area, Column, Bar, Pie, Donut, Waterfall }
 
 /// <summary>Posição da legenda do <c>OmniChart</c>.</summary>
 public enum ChartLegendPosition { Top, Right, Bottom, Left, None }

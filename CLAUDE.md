@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Three first-class projects under `src/`, plus a single test project:
 
-- **`src/Omni.Blazor/`** — packable Razor Class Library (`Microsoft.NET.Sdk.Razor`). ~140 components across `Components/{Buttons,Display,Inputs,Layout,Navigation,Overlay,Data,Forms,Marketing,Base}/`. Ships its own SCSS bundle (`Themes/omni.scss` → auto-compiled by `AspNetCore.SassCompiler` on build → served via `_content/Omni.Blazor/css/omni.css`). The only project where `IsPackable=true`.
+- **`src/Omni.Blazor/`** — packable Razor Class Library (`Microsoft.NET.Sdk.Razor`). ~150 single-file components (inline `@code` — there are no `.razor.cs` code-behinds) across `Components/{Buttons,Display,Inputs,Layout,Navigation,Overlay,Data,Forms,Marketing,Base}/`. Ships its own SCSS bundle (`Themes/omni.scss` → auto-compiled by `AspNetCore.SassCompiler` on build → served via `_content/Omni.Blazor/css/omni.css`). The only project where `IsPackable=true`.
 - **`src/Forneria.Demo/`** — three-project showcase: `.Pages` (RCL with all demo pages), `Forneria.Demo` (Blazor Server host), `Forneria.Demo.Wasm` (Blazor WebAssembly host). Dual-render — both hosts reference the same `.Pages` RCL.
 - **`src/FoodService/`** — POS-style consumer app: `FoodService.Pages` (RCL) + `FoodService` (Server host only). Two domain features: `PdvFeature/` (operator point-of-sale) and `CardapioFeature/` (customer-facing digital menu with 7-screen state machine).
-- **`test/Omni.Blazor.Tests/`** — bUnit + xUnit.v3, one `Components/{Folder}/Omni{Name}Tests.cs` per library component (~1000 tests).
+- **`test/Omni.Blazor.Tests/`** — bUnit + xUnit.v3, one `Components/{Folder}/Omni{Name}Tests.cs` per library component (~138 files, ~1330 tests).
 
 Solution file: `Omni.Blazor.slnx` (new SDK-style solution format). Central Package Management is on — `Directory.Packages.props` is the single source of truth for versions; csproj files reference packages by ID only.
 
@@ -46,6 +46,12 @@ dotnet format
 **Lock pitfall**: when FoodService or Forneria.Demo is running, building the executable project fails because `Omni.Blazor.dll` is locked in the host's bin. Either stop the host first, or build only `src/Omni.Blazor/Omni.Blazor.csproj` — its output goes to its own `bin/` and isn't affected by the running consumer.
 
 SCSS recompiles automatically on every build via `AspNetCore.SassCompiler`. No `npm install` required.
+
+### Browser / visual verification
+
+`.claude/launch.json` defines two preview servers for the `preview_*` tooling: **`forneria`** (port 5253) and **`foodservice`** (port 5301). Both launch with `--no-build`, so build first (e.g. `dotnet build src/Forneria.Demo/Forneria.Demo/Forneria.Demo.csproj`) before starting or refreshing a preview.
+
+The running host serves the compiled `omni.css` *and* locks `Omni.Blazor.dll`, so **after editing SCSS or a component you must stop the preview → rebuild → restart** for the change to show up — a plain page refresh won't pick up recompiled CSS, and a rebuild fails while the host holds the lock. `delete-bin-obj.ps1` clears stale `bin/`/`obj/` if a lock gets wedged.
 
 ## Component authoring conventions (non-negotiable)
 
@@ -101,6 +107,8 @@ All visual tokens are CSS custom properties in `src/Omni.Blazor/Themes/_tokens.s
 - Density: `<html data-density="compact|comfortable|spacious">` rescales topbar height, radii, padding, gaps.
 
 `<OmniTheme />` in `<head>` injects the stylesheet link. `<OmniAppearanceToggle />` exposes a user-facing toggle (persists to localStorage). `<OmniBreakpointProvider>` cascades the current breakpoint (Xs/Sm/Md/Lg/Xl/Xxl) — query `BreakpointService` for the live value.
+
+**SCSS is one bundle, not per-component files.** The entry point `Themes/omni.scss` imports `_reset → _tokens → _base → _components` in that order, and **every component's styles are appended to the single `Themes/_components.scss`** (~9000 lines). Add a new component's block there — and mind the cascade: when two rules collide the later block wins, so a stale or duplicate block further down can silently override yours (favor container queries over viewport `@media` for widgets that should react to their own width). All JS is likewise one file, `wwwroot/js/Omni.js`, under `window.omniBlazor`.
 
 ## Testing
 

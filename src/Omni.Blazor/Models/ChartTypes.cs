@@ -13,6 +13,12 @@ public sealed class ChartDataPoint
 
     /// <summary>Cor opcional só para Pie/Donut (override do scheme/cor da série).</summary>
     public string? Color { get; set; }
+
+    /// <summary>Em séries <see cref="ChartSeriesType.Waterfall"/>: marca este ponto como um total
+    /// absoluto (barra desenhada a partir do zero — ex.: base e final). Quando false, é um delta
+    /// que flutua a partir do acumulado corrente (<see cref="Value"/> negativo desce). Ignorado
+    /// nos demais tipos de série.</summary>
+    public bool IsTotal { get; set; }
 }
 
 /// <summary>Uma série de dados do <c>OmniChart</c>. Múltiplas séries cartesianas

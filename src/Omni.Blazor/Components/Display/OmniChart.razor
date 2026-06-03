@@ -96,6 +96,14 @@
                 </rect>
             }
 
+            @* Waterfall (colunas flutuantes: base → deltas → total) *@
+            @foreach (var wf in WaterfallRects())
+            {
+                <rect x="@F(wf.X)" y="@F(wf.Y)" width="@F(wf.W)" height="@F(wf.H)" fill="@wf.Color" rx="1.5">
+                    <title>@wf.Title</title>
+                </rect>
+            }
+
             @* Areas (fill under line + the line itself + optional markers) *@
             @foreach (var s in _series.Where(s => s.Type == ChartSeriesType.Area))
             {
@@ -218,6 +226,29 @@
             _categories = _series[0].Points.Select(p => p.Category).ToArray();
             _yMin = 0;
             _yMax = _series[0].Points.Sum(p => p.Value);
+            return;
+        }
+
+        // Waterfall: categorias = pontos; o range de valores vem dos extents ACUMULADOS
+        // (cada barra flutua a partir do acumulado corrente; totais resetam para o valor absoluto).
+        if (_series[0].Type == ChartSeriesType.Waterfall)
+        {
+            var wf = _series[0];
+            _categories = wf.Points.Select(p => p.Category).ToArray();
+            double running = 0, lo = 0, hi = 0;
+            foreach (var pt in wf.Points)
+            {
+                double bottomVal, topVal;
+                if (pt.IsTotal) { bottomVal = 0; topVal = pt.Value; running = pt.Value; }
+                else { var s0 = running; var e0 = running + pt.Value; running = e0; bottomVal = Math.Min(s0, e0); topVal = Math.Max(s0, e0); }
+                lo = Math.Min(lo, bottomVal); hi = Math.Max(hi, topVal);
+            }
+            _yMin = Math.Min(0, lo); _yMax = hi;
+            if (_yMax - _yMin < 1e-9) _yMax = _yMin + 1;
+            _yMax += (_yMax - _yMin) * 0.05;
+            var wstep = NiceStep((_yMax - _yMin) / ValueTicks);
+            _yMin = Math.Floor(_yMin / wstep) * wstep;
+            _yMax = Math.Ceiling(_yMax / wstep) * wstep;
             return;
         }
 
@@ -353,6 +384,35 @@
                 var w = Math.Max(0.5, Math.Abs(xRight - xLeft));
                 yield return (x, y, w, h, color, $"{serie.Title}: {pt.Category} · {pt.Value:0.##}");
             }
+        }
+    }
+
+    // ─── Waterfall (colunas flutuantes) ───────────────────────────────────
+    private IEnumerable<(double X, double Y, double W, double H, string Color, string Title)> WaterfallRects()
+    {
+        var serie = _series.FirstOrDefault(s => s.Type == ChartSeriesType.Waterfall);
+        if (serie is null) yield break;
+        var pts = serie.Points.ToList();
+        var plotW = VW - _marginL - _marginR;
+        var slotW = plotW / Math.Max(1, _categories.Length);
+        var barW = Math.Min(40, slotW * 0.6);
+        double running = 0;
+        for (int i = 0; i < pts.Count; i++)
+        {
+            var pt = pts[i];
+            double bottomVal, topVal;
+            if (pt.IsTotal) { bottomVal = 0; topVal = pt.Value; running = pt.Value; }
+            else { var s0 = running; var e0 = running + pt.Value; running = e0; bottomVal = Math.Min(s0, e0); topVal = Math.Max(s0, e0); }
+            var yTop = ValueY(topVal);
+            var yBot = ValueY(bottomVal);
+            var x = _marginL + i * slotW + (slotW - barW) / 2;
+            var y = Math.Min(yTop, yBot);
+            var h = Math.Max(1, Math.Abs(yTop - yBot));
+            var color = !string.IsNullOrEmpty(pt.Color) ? pt.Color!
+                : pt.IsTotal ? "var(--omni-fg-soft)"
+                : pt.Value >= 0 ? "var(--omni-good)"
+                : "var(--omni-danger)";
+            yield return (x, y, barW, h, color, $"{pt.Category}: {pt.Value:0.##}");
         }
     }
 
