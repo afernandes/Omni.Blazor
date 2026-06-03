@@ -1,0 +1,36 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniCardGroup — connects several <OmniCard> into one segmented set
+    (RadzenCardGroup port): no gaps, squared inner corners, rounded outer ends,
+    shared 1px dividers. Horizontal by default; with Responsive it stacks to a
+    vertical group when its own width gets narrow (container query).
+
+    Usage:
+      <OmniCardGroup>
+          <OmniCard>...</OmniCard>
+          <OmniCard>...</OmniCard>
+          <OmniCard>...</OmniCard>
+      </OmniCardGroup>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Layout direction. Horizontal (default) connects side by side; Vertical stacks.</summary>
+    [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>When Horizontal, stack the cards once the group gets narrow. Default true.</summary>
+    [Parameter] public bool Responsive { get; set; } = true;
+
+    private string RootCss => CssBuilder.Default("omni-card-group")
+        .AddClass(Orientation == Orientation.Vertical ? "omni-card-group-vertical" : "omni-card-group-horizontal")
+        .AddClass("omni-card-group-responsive", Responsive && Orientation == Orientation.Horizontal)
+        .AddClass(Class)
+        .Build();
+}

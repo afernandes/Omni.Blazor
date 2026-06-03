@@ -1,0 +1,111 @@
+@page "/showcase/card-group"
+@layout ShowcaseLayout
+
+<PageTitle>Card Group — Showcase</PageTitle>
+
+<ShowcasePage Title="Card Group"
+              Subtitle="Conecta vários OmniCard num conjunto segmentado — sem espaços, cantos internos retos e pontas arredondadas.">
+
+    <Overview>
+        <p>
+            O <code>OmniCardGroup</code> agrupa <code>OmniCard</code> num bloco único: remove os espaços,
+            zera os cantos internos, arredonda só as pontas e funde as bordas vizinhas — como um
+            <em>segmented set</em>. Em <code>Horizontal</code> (padrão) os cards ficam lado a lado com
+            largura igual; com <code>Responsive</code> eles <strong>empilham</strong> quando o próprio
+            grupo fica estreito (container query — funciona em sidebar, dialog ou tela cheia).
+            Em <code>Vertical</code>, ficam empilhados e conectados.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Conjuntos de métricas/KPIs lado a lado (dashboards).</li>
+            <li>Grupos de opções/planos conectados, segmentos de resumo.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Cards independentes com respiro entre eles → use um grid/stack com gap.</li>
+            <li>Um único card → use <code>OmniCard</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="HORIZONTAL (PADRÃO)"
+                         Description="Três cards conectados, largura igual. Estreite a janela para vê-los empilhar (Responsive)."
+                         Code="@(@"<OmniCardGroup>
+    <OmniCard Title=""Receita"">R$ 48.200</OmniCard>
+    <OmniCard Title=""Pedidos"">1.284</OmniCard>
+    <OmniCard Title=""Ticket médio"">R$ 37,50</OmniCard>
+</OmniCardGroup>")">
+            <OmniCardGroup>
+                @foreach (var m in _metrics)
+                {
+                    <OmniCard Title="@m.Label" @key="m.Label">
+                        <div style="font-size:22px;font-weight:700">@m.Value</div>
+                        <div style="font-size:12px;color:var(--omni-good)">@m.Delta</div>
+                    </OmniCard>
+                }
+            </OmniCardGroup>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="VERTICAL"
+                         Description="Orientation=Vertical empilha e conecta os cards verticalmente."
+                         Code="@(@"<OmniCardGroup Orientation=""Orientation.Vertical"">
+    <OmniCard Title=""Plano Free"">...</OmniCard>
+    <OmniCard Title=""Plano Pro"">...</OmniCard>
+</OmniCardGroup>")">
+            <div style="max-width:360px">
+                <OmniCardGroup Orientation="Orientation.Vertical">
+                    @foreach (var p in _plans)
+                    {
+                        <OmniCard Title="@p.Name" Subtitle="@p.Price" @key="p.Name">
+                            <span style="font-size:13px;color:var(--omni-fg-soft)">@p.Detail</span>
+                        </OmniCard>
+                    }
+                </OmniCardGroup>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEM RESPONSIVE"
+                         Description="Responsive=false mantém os cards sempre lado a lado (não empilha)."
+                         Code="@(@"<OmniCardGroup Responsive=""false"">...</OmniCardGroup>")">
+            <OmniCardGroup Responsive="false">
+                @foreach (var m in _metrics)
+                {
+                    <OmniCard Title="@m.Label" @key="@($"nr-{m.Label}")">
+                        <div style="font-size:18px;font-weight:700">@m.Value</div>
+                    </OmniCard>
+                }
+            </OmniCardGroup>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniCardGroup">
+            <ShowcaseApiRow Name="Orientation" Type="Orientation" Default="Horizontal" Description="Horizontal (lado a lado) ou Vertical (empilhado)." />
+            <ShowcaseApiRow Name="Responsive" Type="bool" Default="true" Description="Empilha quando o grupo fica estreito (só no modo Horizontal)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" Default="—" Description="Os OmniCard a conectar." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private record Metric(string Label, string Value, string Delta);
+    private readonly List<Metric> _metrics = new()
+    {
+        new("Receita", "R$ 48.200", "▲ 12%"),
+        new("Pedidos", "1.284", "▲ 8%"),
+        new("Ticket médio", "R$ 37,50", "▲ 3%"),
+    };
+
+    private record Plan(string Name, string Price, string Detail);
+    private readonly List<Plan> _plans = new()
+    {
+        new("Free", "R$ 0", "Até 1 loja, recursos básicos."),
+        new("Pro", "R$ 99/mês", "Lojas ilimitadas, relatórios avançados."),
+        new("Enterprise", "Sob consulta", "SLA, SSO e suporte dedicado."),
+    };
+}

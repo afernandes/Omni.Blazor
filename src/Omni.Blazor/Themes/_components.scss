@@ -1295,21 +1295,9 @@
 .omni-card-toned.omni-card-outline .omni-card-footer { border-color: var(--omni-card-tone); }
 .omni-card-toned.omni-card-outline .omni-card-title  { color: var(--omni-card-tone); }
 
-// —— Card group (Bootstrap .card-group) ————————————————————————————————
-.omni-card-group { display: flex; flex-wrap: wrap; }
-.omni-card-group > .omni-card { flex: 1 0 0%; }
-@media (min-width: 577px) {
-  .omni-card-group > .omni-card { border-radius: 0; }
-  .omni-card-group > .omni-card + .omni-card { border-left: 0; }
-  .omni-card-group > .omni-card:first-child {
-    border-top-left-radius: var(--omni-radius);
-    border-bottom-left-radius: var(--omni-radius);
-  }
-  .omni-card-group > .omni-card:last-child {
-    border-top-right-radius: var(--omni-radius);
-    border-bottom-right-radius: var(--omni-radius);
-  }
-}
+// —— Card group —— see the canonical OmniCardGroup block further below
+// (orientation-aware + container-query responsive). The old viewport-based
+// .card-group rules were removed; they stripped the left border in vertical mode.
 
 // —— List utility (Bootstrap list-group-flush inside a card) ————————————
 .omni-list { list-style: none; margin: 0; padding: 0; }
@@ -8754,4 +8742,72 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   .omni-datafilter-condition > .omni-datafilter-op,
   .omni-datafilter-condition > .omni-datafilter-editor,
   .omni-datafilter-condition > .omni-datafilter-input { flex: 1 1 100%; min-width: 0; }
+}
+
+// ═══ CardGroup ═══════════════════════════════════════════════════════════════
+// Connects OmniCard children into one segmented set: no gaps, squared inner
+// corners, rounded outer ends, shared 1px dividers. Responsive stacking reacts
+// to the group's OWN width (container query).
+.omni-card-group { display: flex; container-type: inline-size; }
+.omni-card-group-horizontal { flex-direction: row; flex-wrap: wrap; }
+.omni-card-group-vertical { flex-direction: column; }
+
+// Every card squared by default; first/last set ALL FOUR logical corners
+// explicitly (RTL-aware + avoids the shorthand-vs-longhand cascade leak).
+.omni-card-group > .omni-card { flex: 1 1 0; min-width: 0; border-radius: 0; }
+.omni-card-group > .omni-card:only-child { border-radius: var(--omni-radius); }
+// Vertical cards size to their content (basis 0 in a column would collapse them).
+.omni-card-group-vertical > .omni-card { flex: 0 0 auto; }
+
+// Horizontal: collapse inner side borders; round the two outer ends.
+.omni-card-group-horizontal > .omni-card + .omni-card { border-inline-start: 0; }
+.omni-card-group-horizontal > .omni-card:first-child {        // round the leading (inline-start) corners
+  border-start-start-radius: var(--omni-radius);
+  border-end-start-radius: var(--omni-radius);
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+.omni-card-group-horizontal > .omni-card:last-child {         // round the trailing (inline-end) corners
+  border-start-end-radius: var(--omni-radius);
+  border-end-end-radius: var(--omni-radius);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+// Vertical: collapse inner top borders; round top of first / bottom of last.
+.omni-card-group-vertical > .omni-card + .omni-card { border-block-start: 0; }
+.omni-card-group-vertical > .omni-card:first-child {          // round the top corners
+  border-start-start-radius: var(--omni-radius);
+  border-start-end-radius: var(--omni-radius);
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+.omni-card-group-vertical > .omni-card:last-child {           // round the bottom corners
+  border-end-start-radius: var(--omni-radius);
+  border-end-end-radius: var(--omni-radius);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+// Responsive: a horizontal group stacks vertically once it gets narrow. Each card
+// goes full-width (wraps), side borders are restored and inner top borders merge.
+@container (max-width: 560px) {
+  .omni-card-group-horizontal.omni-card-group-responsive > .omni-card {
+    flex: 1 1 100%;
+    border-inline-start: 1px solid var(--omni-line);
+  }
+  .omni-card-group-horizontal.omni-card-group-responsive > .omni-card + .omni-card { border-block-start: 0; }
+  .omni-card-group-horizontal.omni-card-group-responsive > .omni-card:first-child {
+    border-start-start-radius: var(--omni-radius);
+    border-start-end-radius: var(--omni-radius);
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+  }
+  .omni-card-group-horizontal.omni-card-group-responsive > .omni-card:last-child {
+    border-end-start-radius: var(--omni-radius);
+    border-end-end-radius: var(--omni-radius);
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+  .omni-card-group-horizontal.omni-card-group-responsive > .omni-card:only-child { border-radius: var(--omni-radius); }
 }
