@@ -4201,6 +4201,10 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   border-bottom: 1px solid var(--omni-line);
 }
 .omni-view-title { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+// O título de view/pane costuma receber foco PROGRAMÁTICO (ex.: FocusOnNavigate com tabindex=-1)
+// a cada navegação. Como o tabindex negativo o torna inalcançável por teclado, suprimimos o
+// focus-ring aqui — o anel é para foco por teclado, não para foco movido por script.
+.omni-view-title:focus, .omni-view-title:focus-visible { outline: none; box-shadow: none; }
 .omni-view-sub   { color: var(--omni-fg-muted); font-size: 13px; margin: 2px 0 0; }
 .omni-view-actions { display: flex; gap: 8px; align-items: center; }
 .omni-view-body { padding: 20px 28px; flex: 1; overflow: auto; }
@@ -8810,4 +8814,297 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
     border-start-end-radius: 0;
   }
   .omni-card-group-horizontal.omni-card-group-responsive > .omni-card:only-child { border-radius: var(--omni-radius); }
+}
+
+// ——— DiagramCanvas ————————————————————————————————————————————————————
+// Infinite graph editor: grid, nodes with ports, bezier edges, minimap,
+// zoom controls, marquee, run-state overlay. Geometry constants live in
+// Models/DiagramModels.cs (DiagramGeometry) and wwwroot/js/omni-diagram.js.
+
+.omni-diagram {
+  position: relative;
+  overflow: hidden;
+  background: var(--omni-bg-sunken);
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  user-select: none;
+}
+
+.omni-diagram-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--omni-line-strong) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+.omni-diagram-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+// ——— edges ———
+.omni-diagram-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.omni-diagram-edge {
+  fill: none;
+  stroke: var(--omni-line-strong);
+  stroke-width: 2;
+  pointer-events: stroke;
+  cursor: pointer;
+  transition: stroke 120ms;
+}
+.omni-diagram-edgehit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.omni-diagram-edgegrp:hover .omni-diagram-edge { stroke: var(--omni-accent); }
+.omni-diagram-edge-selected { stroke: var(--omni-accent) !important; stroke-width: 2.5; }
+.omni-diagram-edge-true { stroke: var(--omni-good); }
+.omni-diagram-edge-false { stroke: var(--omni-danger); }
+.omni-diagram-edge-dim { opacity: 0.25; }
+.omni-diagram-edge-run-done { stroke: var(--omni-good); }
+.omni-diagram-edge-run-active {
+  stroke: var(--omni-info) !important;
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  animation: omni-diagram-dash 0.5s linear infinite;
+}
+.omni-diagram-edge-pending {
+  stroke: var(--omni-accent);
+  stroke-dasharray: 5 5;
+  pointer-events: none;
+}
+@keyframes omni-diagram-dash { to { stroke-dashoffset: -24; } }
+.omni-diagram-edgelabel {
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--omni-fg-muted);
+}
+.omni-diagram-token { fill: var(--omni-info); filter: drop-shadow(0 0 5px var(--omni-info)); }
+.omni-diagram-arrow { fill: var(--omni-line-strong); }
+.omni-diagram-arrow-accent { fill: var(--omni-accent); }
+.omni-diagram-arrow-good { fill: var(--omni-good); }
+.omni-diagram-arrow-info { fill: var(--omni-info); }
+
+// ——— nodes ———
+.omni-diagram-node {
+  position: absolute;
+  background: var(--omni-bg-elev);
+  border: 1.5px solid var(--omni-line);
+  border-radius: 12px;
+  box-shadow: var(--omni-shadow-sm);
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 120ms, border-color 120ms;
+}
+.omni-diagram-node:hover { box-shadow: var(--omni-shadow); border-color: var(--omni-line-strong); }
+.omni-diagram-node-selected {
+  border-color: var(--omni-accent);
+  box-shadow: 0 0 0 3px var(--omni-accent-soft), var(--omni-shadow);
+}
+.omni-diagram-node-current {
+  border-color: var(--omni-info);
+  animation: omni-diagram-pulse 1.1s ease-in-out infinite;
+}
+.omni-diagram-node-done { border-color: var(--omni-good); }
+.omni-diagram-node-error {
+  border-color: var(--omni-danger);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--omni-danger) 24%, transparent);
+}
+.omni-diagram-node-waiting {
+  border-color: var(--omni-warn);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--omni-warn) 26%, transparent);
+}
+.omni-diagram-node-dim { opacity: 0.5; }
+@keyframes omni-diagram-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in oklab, var(--omni-info) 30%, transparent), 0 0 16px -2px color-mix(in oklab, var(--omni-info) 45%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in oklab, var(--omni-info) 18%, transparent), 0 0 26px 0 color-mix(in oklab, var(--omni-info) 65%, transparent); }
+}
+.omni-diagram-node-head { display: flex; align-items: center; gap: 9px; padding: 10px 11px; }
+.omni-diagram-node-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.omni-diagram-node-titles { min-width: 0; flex: 1; }
+.omni-diagram-node-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.omni-diagram-node-type {
+  font-family: var(--omni-font-mono);
+  font-size: 9.5px;
+  color: var(--omni-fg-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.omni-diagram-node-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border: 2px solid var(--omni-bg-elev);
+  z-index: 1;
+}
+.omni-diagram-spin { animation: omni-diagram-rotate 1s linear infinite; }
+@keyframes omni-diagram-rotate { to { transform: rotate(360deg); } }
+
+// ——— ports ———
+.omni-diagram-portrow {
+  position: absolute;
+  right: -7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.omni-diagram-portrow-in { left: -7px; right: auto; flex-direction: row-reverse; }
+.omni-diagram-port {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--omni-bg-elev);
+  border: 2px solid var(--omni-line-strong);
+  cursor: crosshair;
+  flex-shrink: 0;
+  transition: border-color 100ms, transform 100ms, background 100ms;
+}
+.omni-diagram-port:hover,
+.omni-diagram-port-hot {
+  border-color: var(--omni-accent);
+  background: var(--omni-accent);
+  transform: scale(1.25);
+}
+.omni-diagram-port-in { cursor: cell; }
+.omni-diagram-port-true { border-color: var(--omni-good); }
+.omni-diagram-port-false { border-color: var(--omni-danger); }
+.omni-diagram-portname {
+  font-family: var(--omni-font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--omni-fg-soft);
+  background: var(--omni-bg-elev);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--omni-line);
+  white-space: nowrap;
+}
+.omni-diagram-portname-true { color: var(--omni-good); }
+.omni-diagram-portname-false { color: var(--omni-danger); }
+
+// ——— marquee ———
+.omni-diagram-marquee {
+  position: absolute;
+  border: 1px solid var(--omni-accent);
+  background: var(--omni-accent-soft);
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 3px;
+}
+
+// ——— controls ———
+.omni-diagram-controls {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+.omni-diagram-ctlgroup {
+  display: flex;
+  flex-direction: column;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 9px;
+  box-shadow: var(--omni-shadow);
+  overflow: hidden;
+}
+.omni-diagram-ctlgroup-row { flex-direction: row; }
+.omni-diagram-ctlbtn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-diagram-ctlgroup-row .omni-diagram-ctlbtn { border-bottom: none; border-right: 1px solid var(--omni-line); }
+.omni-diagram-ctlgroup-row .omni-diagram-ctlbtn:last-child,
+.omni-diagram-ctlgroup .omni-diagram-ctlbtn:last-child { border: none; }
+.omni-diagram-ctlbtn:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
+.omni-diagram-zoomlabel {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--omni-fg-muted);
+  padding: 0 8px;
+  display: grid;
+  place-items: center;
+  min-width: 50px;
+  border-right: 1px solid var(--omni-line);
+}
+
+// ——— minimap ———
+.omni-diagram-minimap {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 190px;
+  height: 124px;
+  background: color-mix(in oklab, var(--omni-bg-elev) 90%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--omni-line);
+  border-radius: 9px;
+  box-shadow: var(--omni-shadow);
+  overflow: hidden;
+  z-index: 10;
+  cursor: pointer;
+}
+.omni-diagram-minimap svg { width: 100%; height: 100%; display: block; }
+.omni-diagram-mmnode { fill: var(--omni-fg-soft); }
+.omni-diagram-mmnode-sel { fill: var(--omni-accent); }
+.omni-diagram-mmedge { stroke: var(--omni-line-strong); stroke-width: 1; }
+.omni-diagram-mmview { fill: var(--omni-accent-soft); stroke: var(--omni-accent); stroke-width: 1.5; }
+
+// ——— empty state ———
+.omni-diagram-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }

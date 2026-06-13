@@ -1,0 +1,250 @@
+@page "/showcase/diagram"
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+
+<PageTitle>Diagram Canvas — Showcase</PageTitle>
+
+<ShowcasePage Title="Diagram Canvas"
+              Subtitle="Editor de grafos infinito: pan/zoom, nós com portas nomeadas, conexões bezier, marquee, minimap e auto-layout — sobre um modelo de grafo abstrato.">
+
+    <Overview>
+        <p>
+            O <code>OmniDiagramCanvas</code> renderiza um grafo de <code>DiagramNode</code> /
+            <code>DiagramEdge</code> em um canvas infinito. Toda interação de alta frequência
+            (pan, zoom, arraste de nós, drag-to-connect, marquee) vive em um módulo JS lazy —
+            o C# recebe apenas <strong>commits</strong> (<code>NodesMoved</code>,
+            <code>OnConnect</code>, <code>SelectionChanged</code>, <code>ViewportChanged</code>),
+            nunca mousemove. Ideal para Blazor Server.
+        </p>
+        <p>
+            O componente é agnóstico: não sabe o que um nó representa. O payload do consumidor
+            vai em <code>DiagramNode.Data</code>, o visual padrão (ícone + título + subtítulo +
+            portas) pode ser substituído via <code>NodeTemplate</code>, e estados de execução
+            entram pelo overlay <code>RunState</code> (atual, concluídos, falha, arestas tomadas,
+            token animado).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Editores de workflow / pipeline / state machine (nó + portas + conexões).</li>
+            <li>Visualização read-only de execuções com caminho destacado (<code>ReadOnly</code> + <code>RunState</code>).</li>
+            <li>Qualquer diagrama node-based com drag-and-drop a partir de um palette externo.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Hierarquias simples → use <code>OmniTree</code>.</li>
+            <li>Linha do tempo de projeto → use <code>OmniGantt</code>.</li>
+            <li>Gráficos de dados → use <code>OmniChart</code> / <code>OmniSparkline</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="Editor interativo"
+                         Description="Arraste nós, conecte arrastando de uma porta de saída até outro nó, selecione com clique/marquee (Shift = aditivo), Delete remove, Espaço+arrastar = pan, scroll = zoom. Arraste uma atividade do palette para criar um nó."
+                         Code="@(@"<OmniDiagramCanvas Nodes=""_nodes"" Edges=""_edges""
+                   Selection=""_selection"" SelectionChanged=""s => _selection = s""
+                   NodesMoved=""OnMoved"" OnConnect=""OnConnect""
+                   OnDeleteRequested=""OnDelete"" OnExternalDrop=""OnDrop"" />")">
+            <div style="display:flex;gap:0;border:1px solid var(--omni-line);border-radius:10px;overflow:hidden;height:480px;">
+                <div style="width:170px;border-right:1px solid var(--omni-line);background:var(--omni-bg-elev);padding:10px;flex-shrink:0;">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--omni-fg-soft);margin-bottom:8px;">Palette</div>
+                    @foreach (var item in _palette)
+                    {
+                        <div draggable="true"
+                             ondragstart="event.dataTransfer.setData('application/x-omni-diagram', '@item.Key'); event.dataTransfer.effectAllowed='copy';"
+                             style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:grab;border:1px solid transparent;"
+                             onmouseover="this.style.background='var(--omni-bg-sunken)'" onmouseout="this.style.background=''">
+                            <span style="width:26px;height:26px;border-radius:7px;background:@item.Color;display:grid;place-items:center;color:#fff;flex-shrink:0;">
+                                <OmniIcon Name="@item.Icon" Size="ComponentSize.Sm" />
+                            </span>
+                            <span style="font-size:12px;font-weight:600;">@item.Title</span>
+                        </div>
+                    }
+                    <div style="margin-top:14px;font-size:11px;color:var(--omni-fg-soft);line-height:1.5;">
+                        Seleção: <b>@(_selection.NodeIds.Count) nó(s)@(_selection.EdgeId is null ? "" : " + 1 conexão")</b>
+                    </div>
+                </div>
+                <OmniDiagramCanvas Nodes="_nodes"
+                                   Edges="_edges"
+                                   Selection="_selection"
+                                   SelectionChanged="s => _selection = s"
+                                   NodesMoved="OnMoved"
+                                   OnConnect="OnConnect"
+                                   OnDeleteRequested="OnDelete"
+                                   OnExternalDrop="OnDrop"
+                                   FitOnMount="true">
+                    <EmptyContent>
+                        <div style="text-align:center;color:var(--omni-fg-soft);">
+                            <h3 style="margin:0 0 6px;font-size:15px;color:var(--omni-fg-muted);">Canvas vazio</h3>
+                            <p style="margin:0;font-size:12.5px;">Arraste um item do palette para começar.</p>
+                        </div>
+                    </EmptyContent>
+                </OmniDiagramCanvas>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Overlay de execução (RunState)"
+                         Description="O mesmo grafo em ReadOnly com DiagramRunState: nó atual pulsando, concluídos verdes com check, aresta tomada verde, token animado na aresta ativa e nós fora do caminho esmaecidos."
+                         Code="@(@"<OmniDiagramCanvas Nodes=""_nodes"" Edges=""_edges"" ReadOnly=""true""
+                   RunState=""@(new DiagramRunState { Current = ""pay"", Done = [""start"", ""check""],
+                                                      TakenEdges = [""e1"", ""e3""], ActiveEdge = ""e3"",
+                                                      DimNodes = [""mail""], DimEdges = [""e2""] })"" />")">
+            <div style="border:1px solid var(--omni-line);border-radius:10px;overflow:hidden;height:380px;">
+                <OmniDiagramCanvas Nodes="_runNodes"
+                                   Edges="_runEdges"
+                                   ReadOnly="true"
+                                   FitOnMount="true"
+                                   ShowAutoLayout="false"
+                                   RunState="_runState" />
+            </div>
+            <div style="margin-top:10px;display:flex;gap:8px;">
+                <OmniButton Size="ComponentSize.Sm" OnClick="AdvanceRun">Avançar passo</OmniButton>
+                <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost" OnClick="ResetRun">Reiniciar</OmniButton>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseApiTable>
+            <ShowcaseApiRow Name="Nodes / Edges" Type="IReadOnlyList&lt;DiagramNode&gt; / &lt;DiagramEdge&gt;" Description="O grafo. Coordenadas em world-space; geometria em DiagramGeometry." />
+            <ShowcaseApiRow Name="Selection" Type="DiagramSelection" Description="Seleção atual (nós + aresta). Two-way via SelectionChanged." />
+            <ShowcaseApiRow Name="Viewport" Type="DiagramViewport" Description="Offset + zoom. Two-way via ViewportChanged (commit pós-gesto)." />
+            <ShowcaseApiRow Name="RunState" Type="DiagramRunState?" Description="Overlay de execução: Current, Done, Faulted, Waiting, TakenEdges, ActiveEdge (token), Dim*." />
+            <ShowcaseApiRow Name="ReadOnly" Type="bool" Description="Desativa edição (drag/conexão/marquee/delete/drop); pan/zoom continuam." />
+            <ShowcaseApiRow Name="FitOnMount" Type="bool" Description="Enquadra o grafo na primeira renderização com nós." />
+            <ShowcaseApiRow Name="NodeTemplate" Type="RenderFragment&lt;DiagramNode&gt;" Description="Substitui o card padrão do nó; as portas continuam sendo renderizadas pelo canvas." />
+            <ShowcaseApiRow Name="OnConnect" Type="EventCallback&lt;DiagramConnectEventArgs&gt;" Description="Commit de drag-to-connect entre uma porta de saída e um nó alvo." />
+            <ShowcaseApiRow Name="NodesMoved" Type="EventCallback&lt;IReadOnlyList&lt;DiagramNodeMove&gt;&gt;" Description="Commit de arraste (multi-seleção) ou auto-layout." />
+            <ShowcaseApiRow Name="OnDeleteRequested" Type="EventCallback&lt;DiagramSelection&gt;" Description="Delete/Backspace com o canvas focado e seleção não vazia." />
+            <ShowcaseApiRow Name="OnExternalDrop" Type="EventCallback&lt;DiagramExternalDropEventArgs&gt;" Description="Drop HTML5 com o formato DropPayloadFormat; coords em world-space." />
+            <ShowcaseApiRow Name="FitToViewAsync() / AutoLayoutAsync()" Type="métodos" Description="Enquadra a visão / aplica layout em camadas L→R (DiagramGeometry.AutoLayout)." />
+        </ShowcaseApiTable>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private sealed record PaletteItem(string Key, string Title, string Icon, string Color);
+
+    private readonly List<PaletteItem> _palette =
+    [
+        new("http", "HTTP Endpoint", "globe", "#2563eb"),
+        new("if", "Decisão", "git-branch", "#7c3aed"),
+        new("mail", "Enviar E-mail", "mail", "#0d9488"),
+        new("db", "Consultar Banco", "database", "#4f46e5"),
+    ];
+
+    private List<DiagramNode> _nodes = [];
+    private List<DiagramEdge> _edges = [];
+    private DiagramSelection _selection = DiagramSelection.Empty;
+    private int _seq = 100;
+
+    protected override void OnInitialized()
+    {
+        _nodes =
+        [
+            new DiagramNode { Id = "n1", X = 60, Y = 140, Title = "Receber Pedido", Subtitle = "Omni.HttpEndpoint", Icon = "globe", Color = "#2563eb", HasInPort = false, OutPorts = [new DiagramPort("Done")] },
+            new DiagramNode { Id = "n2", X = 360, Y = 140, Title = "Total > 1000?", Subtitle = "Omni.If", Icon = "git-branch", Color = "#7c3aed", OutPorts = [new DiagramPort("Verdadeiro", DiagramPortKind.Success), new DiagramPort("Falso", DiagramPortKind.Failure)] },
+            new DiagramNode { Id = "n3", X = 680, Y = 40, Title = "Aprovação do gerente", Subtitle = "Omni.SendEmail", Icon = "mail", Color = "#0d9488", OutPorts = [new DiagramPort("Done")] },
+            new DiagramNode { Id = "n4", X = 680, Y = 260, Title = "Cobrar cliente", Subtitle = "Omni.ConfirmarPagamento", Icon = "credit-card", Color = "#d97706", OutPorts = [new DiagramPort("Aprovado", DiagramPortKind.Success), new DiagramPort("Recusado", DiagramPortKind.Failure)] },
+        ];
+        _edges =
+        [
+            new DiagramEdge("e1", "n1", "Done", "n2"),
+            new DiagramEdge("e2", "n2", "Verdadeiro", "n3"),
+            new DiagramEdge("e3", "n2", "Falso", "n4"),
+        ];
+        ResetRun();
+    }
+
+    private void OnMoved(IReadOnlyList<DiagramNodeMove> moves)
+    {
+        foreach (var move in moves)
+        {
+            var i = _nodes.FindIndex(n => n.Id == move.Id);
+            if (i >= 0) _nodes[i] = _nodes[i] with { X = move.X, Y = move.Y };
+        }
+    }
+
+    private void OnConnect(DiagramConnectEventArgs args)
+    {
+        if (_edges.Any(e => e.Source == args.SourceId && e.SourcePort == args.SourcePort && e.Target == args.TargetId)) return;
+        _edges.Add(new DiagramEdge($"e{++_seq}", args.SourceId, args.SourcePort, args.TargetId, args.TargetPort));
+    }
+
+    private void OnDelete(DiagramSelection selection)
+    {
+        if (selection.EdgeId is not null)
+        {
+            _edges.RemoveAll(e => e.Id == selection.EdgeId);
+        }
+        if (selection.NodeIds.Count > 0)
+        {
+            var ids = selection.NodeIds.ToHashSet();
+            _nodes.RemoveAll(n => ids.Contains(n.Id));
+            _edges.RemoveAll(e => ids.Contains(e.Source) || ids.Contains(e.Target));
+        }
+        _selection = DiagramSelection.Empty;
+    }
+
+    private void OnDrop(DiagramExternalDropEventArgs args)
+    {
+        var item = _palette.FirstOrDefault(p => p.Key == args.Payload);
+        if (item is null) return;
+        var ports = item.Key == "if"
+            ? new[] { new DiagramPort("Verdadeiro", DiagramPortKind.Success), new DiagramPort("Falso", DiagramPortKind.Failure) }
+            : [new DiagramPort("Done")];
+        _nodes.Add(new DiagramNode
+        {
+            Id = $"n{++_seq}",
+            X = Math.Round(args.X - DiagramGeometry.NodeWidth / 2),
+            Y = Math.Round(args.Y - DiagramGeometry.HeadHeight / 2),
+            Title = item.Title,
+            Subtitle = $"Omni.{item.Key}",
+            Icon = item.Icon,
+            Color = item.Color,
+            HasInPort = item.Key != "http",
+            OutPorts = ports,
+        });
+    }
+
+    // ───── run-state demo ─────
+
+    private List<DiagramNode> _runNodes = [];
+    private List<DiagramEdge> _runEdges = [];
+    private DiagramRunState? _runState;
+    private int _runStep;
+
+    private void ResetRun()
+    {
+        _runNodes =
+        [
+            new DiagramNode { Id = "start", X = 40, Y = 120, Title = "Início", Subtitle = "Omni.Start", Icon = "play-line", Color = "#7c3aed", HasInPort = false, OutPorts = [new DiagramPort("Done")] },
+            new DiagramNode { Id = "check", X = 330, Y = 120, Title = "Pagamento OK?", Subtitle = "Omni.If", Icon = "git-branch", Color = "#7c3aed", OutPorts = [new DiagramPort("Sim", DiagramPortKind.Success), new DiagramPort("Não", DiagramPortKind.Failure)] },
+            new DiagramNode { Id = "pay", X = 640, Y = 40, Title = "Emitir fatura", Subtitle = "Omni.EmitirFatura", Icon = "file-text", Color = "#d97706", OutPorts = [new DiagramPort("Done")] },
+            new DiagramNode { Id = "mail", X = 640, Y = 240, Title = "Avisar cliente", Subtitle = "Omni.SendEmail", Icon = "mail", Color = "#0d9488", OutPorts = [new DiagramPort("Done")] },
+        ];
+        _runEdges =
+        [
+            new DiagramEdge("r1", "start", "Done", "check"),
+            new DiagramEdge("r2", "check", "Sim", "pay"),
+            new DiagramEdge("r3", "check", "Não", "mail"),
+        ];
+        _runStep = 0;
+        _runState = new DiagramRunState { Current = "start" };
+    }
+
+    private void AdvanceRun()
+    {
+        _runStep++;
+        _runState = _runStep switch
+        {
+            1 => new DiagramRunState { Done = ["start"], ActiveEdge = "r1", TakenEdges = ["r1"], TokenTick = _runStep },
+            2 => new DiagramRunState { Done = ["start"], Current = "check", TakenEdges = ["r1"] },
+            3 => new DiagramRunState { Done = ["start", "check"], ActiveEdge = "r2", TakenEdges = ["r1", "r2"], DimEdges = ["r3"], DimNodes = ["mail"], TokenTick = _runStep },
+            4 => new DiagramRunState { Done = ["start", "check"], Current = "pay", TakenEdges = ["r1", "r2"], DimEdges = ["r3"], DimNodes = ["mail"] },
+            _ => new DiagramRunState { Done = ["start", "check", "pay"], TakenEdges = ["r1", "r2"], DimEdges = ["r3"], DimNodes = ["mail"] },
+        };
+        if (_runStep >= 5) _runStep = 5;
+    }
+}

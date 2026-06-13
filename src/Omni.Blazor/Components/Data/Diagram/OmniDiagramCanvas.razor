@@ -1,0 +1,573 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniDiagramCanvas — generic infinite graph editor: pan/zoom, dotted grid,
+    nodes with named ports, bezier edges, drag-to-connect, marquee selection,
+    minimap, zoom controls and auto-layout. It operates on an abstract graph
+    model (DiagramNode/DiagramEdge) and knows nothing about what the nodes
+    represent.
+
+    High-frequency interaction (pan, zoom, node drag, connect, marquee) lives
+    entirely in the lazy JS module wwwroot/js/omni-diagram.js; .NET is invoked
+    only on gesture COMMIT — never per mousemove. That module is intentionally
+    separate from Omni.js so it loads on demand and stays isolated.
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes" id="@Id" tabindex="0">
+    <div class="omni-diagram-grid"></div>
+
+    <div class="omni-diagram-world">
+        <svg class="omni-diagram-svg" width="1" height="1">
+            <defs>
+                <marker id="@($"{Id}-arrow")" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" class="omni-diagram-arrow" />
+                </marker>
+                <marker id="@($"{Id}-arrow-a")" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" class="omni-diagram-arrow-accent" />
+                </marker>
+                <marker id="@($"{Id}-arrow-g")" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" class="omni-diagram-arrow-good" />
+                </marker>
+                <marker id="@($"{Id}-arrow-i")" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" class="omni-diagram-arrow-info" />
+                </marker>
+            </defs>
+
+            @foreach (var edge in Edges)
+            {
+                var source = FindNode(edge.Source);
+                var target = FindNode(edge.Target);
+                if (source is null || target is null) { continue; }
+                var (ax, ay) = DiagramGeometry.OutAnchor(source, edge.SourcePort);
+                var (bx, by) = DiagramGeometry.InAnchor(target);
+                var d = DiagramGeometry.BezierPath(ax, ay, bx, by);
+                var port = FindPort(source, edge.SourcePort);
+                <g class="omni-diagram-edgegrp" data-dgedgegrp="@edge.Id" @key="edge.Id">
+                    <path class="omni-diagram-edgehit" d="@d"></path>
+                    <path class="@EdgeCss(edge, port)" d="@d"
+                          data-dgedge="@edge.Id" data-source="@edge.Source" data-sourceport="@edge.SourcePort" data-target="@edge.Target"
+                          marker-end="@EdgeMarker(edge)"></path>
+                    @if (port is not null && port.Kind != DiagramPortKind.Default)
+                    {
+                        @* <text> is a Razor keyword — emit the SVG element as raw markup *@
+                        @((MarkupString)$"""<text class="omni-diagram-edgelabel" x="{Fmt(ax + 14)}" y="{Fmt(ay - 5)}">{System.Net.WebUtility.HtmlEncode(edge.SourcePort)}</text>""")
+                    }
+                </g>
+            }
+
+            @if (RunState?.ActiveEdge is not null && FindEdge(RunState.ActiveEdge) is { } activeEdge
+                 && FindNode(activeEdge.Source) is { } tokenSource && FindNode(activeEdge.Target) is { } tokenTarget)
+            {
+                var (tax, tay) = DiagramGeometry.OutAnchor(tokenSource, activeEdge.SourcePort);
+                var (tbx, tby) = DiagramGeometry.InAnchor(tokenTarget);
+                <circle class="omni-diagram-token" r="5" @key="@($"{RunState.ActiveEdge}-{RunState.TokenTick}")">
+                    <animateMotion dur="0.85s" repeatCount="indefinite" path="@DiagramGeometry.BezierPath(tax, tay, tbx, tby)" />
+                </circle>
+            }
+        </svg>
+
+        @foreach (var node in Nodes)
+        {
+            <div class="@NodeCss(node)" @key="node.Id"
+                 data-dgnode="@node.Id" data-x="@Fmt(node.X)" data-y="@Fmt(node.Y)"
+                 style="@($"left:{Fmt(node.X)}px;top:{Fmt(node.Y)}px;width:{Fmt(DiagramGeometry.NodeWidth)}px;height:{Fmt(DiagramGeometry.NodeHeight(node))}px;")">
+                @if (RunBadge(node) is { } badge)
+                {
+                    <div class="omni-diagram-node-badge" style="@($"background:{badge.Bg};")">
+                        <OmniIcon Name="@badge.Icon" Class="@(badge.Spin ? "omni-diagram-spin" : null)" Style="font-size:13px;" />
+                    </div>
+                }
+
+                @if (NodeTemplate is not null)
+                {
+                    @NodeTemplate(node)
+                }
+                else
+                {
+                    <div class="omni-diagram-node-head">
+                        @if (!string.IsNullOrEmpty(node.Icon))
+                        {
+                            <div class="omni-diagram-node-ico" style="@($"background:{node.Color ?? "var(--omni-accent)"};")">
+                                <OmniIcon Name="@node.Icon" Style="font-size:17px;" />
+                            </div>
+                        }
+                        <div class="omni-diagram-node-titles">
+                            <div class="omni-diagram-node-name">@node.Title</div>
+                            @if (!string.IsNullOrEmpty(node.Subtitle))
+                            {
+                                <div class="omni-diagram-node-type">@node.Subtitle</div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (node.HasInPort)
+                {
+                    <div class="omni-diagram-portrow omni-diagram-portrow-in" style="@($"top:{Fmt(DiagramGeometry.InAnchorY - 7)}px;")">
+                        <div class="omni-diagram-port omni-diagram-port-in" data-port-in></div>
+                    </div>
+                }
+                @for (var i = 0; i < node.OutPorts.Count; i++)
+                {
+                    var port = node.OutPorts[i];
+                    var top = DiagramGeometry.HeadHeight + i * DiagramGeometry.PortRowHeight + DiagramGeometry.PortRowHeight / 2 - 7;
+                    <div class="omni-diagram-portrow" @key="port.Name" style="@($"top:{Fmt(top)}px;")">
+                        <div class="@PortNameCss(port)">@port.Name</div>
+                        <div class="@PortCss(port)" data-port="@port.Name"></div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (Nodes.Count == 0 && EmptyContent is not null)
+    {
+        <div class="omni-diagram-empty">@EmptyContent</div>
+    }
+
+    @if (ShowControls)
+    {
+        <div class="omni-diagram-controls">
+            @if (ShowAutoLayout && !ReadOnly)
+            {
+                <div class="omni-diagram-ctlgroup">
+                    <button type="button" class="omni-diagram-ctlbtn" title="@AutoLayoutText" @onclick="AutoLayoutAsync">
+                        <OmniIcon Name="layout-dashboard" Style="font-size:18px;" />
+                    </button>
+                </div>
+            }
+            <div class="omni-diagram-ctlgroup omni-diagram-ctlgroup-row">
+                <button type="button" class="omni-diagram-ctlbtn" title="@ZoomOutText" @onclick="@(() => ZoomByAsync(-1))">
+                    <OmniIcon Name="zoom-out" Style="font-size:17px;" />
+                </button>
+                <div class="omni-diagram-zoomlabel">@Math.Round(_viewport.Zoom * 100)%</div>
+                <button type="button" class="omni-diagram-ctlbtn" title="@ZoomInText" @onclick="@(() => ZoomByAsync(1))">
+                    <OmniIcon Name="zoom-in" Style="font-size:17px;" />
+                </button>
+                <button type="button" class="omni-diagram-ctlbtn" title="@FitText" @onclick="FitToViewAsync">
+                    <OmniIcon Name="maximize" Style="font-size:16px;" />
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (ShowMinimap && Nodes.Count > 0)
+    {
+        var bounds = MinimapBounds();
+        <div class="omni-diagram-minimap">
+            <svg viewBox="@($"0 0 {Fmt(bounds.W * bounds.Scale)} {Fmt(bounds.H * bounds.Scale)}")"
+                 data-minx="@Fmt(bounds.MinX)" data-miny="@Fmt(bounds.MinY)" data-scale="@Fmt(bounds.Scale)">
+                @foreach (var edge in Edges)
+                {
+                    var source = FindNode(edge.Source);
+                    var target = FindNode(edge.Target);
+                    if (source is null || target is null) { continue; }
+                    <line @key="edge.Id"
+                          x1="@Fmt((source.X + DiagramGeometry.NodeWidth - bounds.MinX) * bounds.Scale)"
+                          y1="@Fmt((source.Y + DiagramGeometry.InAnchorY - bounds.MinY) * bounds.Scale)"
+                          x2="@Fmt((target.X - bounds.MinX) * bounds.Scale)"
+                          y2="@Fmt((target.Y + DiagramGeometry.InAnchorY - bounds.MinY) * bounds.Scale)"
+                          class="omni-diagram-mmedge" />
+                }
+                @foreach (var node in Nodes)
+                {
+                    <rect @key="node.Id" class="@MmNodeCss(node)" rx="2"
+                          x="@Fmt((node.X - bounds.MinX) * bounds.Scale)"
+                          y="@Fmt((node.Y - bounds.MinY) * bounds.Scale)"
+                          width="@Fmt(DiagramGeometry.NodeWidth * bounds.Scale)"
+                          height="@Fmt(DiagramGeometry.NodeHeight(node) * bounds.Scale)" />
+                }
+                <rect class="omni-diagram-mmview" x="0" y="0" width="0" height="0" rx="2" />
+            </svg>
+        </div>
+    }
+
+    @ChildContent
+</div>
+
+@code {
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _instance;
+    private DotNetObjectReference<OmniDiagramCanvas>? _selfRef;
+    private DiagramViewport _viewport = DiagramViewport.Default;
+    private DiagramSelection _selection = DiagramSelection.Empty;
+    private bool _fitted;
+
+    /// <summary>Graph nodes (world coordinates).</summary>
+    [Parameter] public IReadOnlyList<DiagramNode> Nodes { get; set; } = [];
+
+    /// <summary>Graph edges.</summary>
+    [Parameter] public IReadOnlyList<DiagramEdge> Edges { get; set; } = [];
+
+    /// <summary>Current selection. Two-way bindable.</summary>
+    [Parameter] public DiagramSelection Selection { get; set; } = DiagramSelection.Empty;
+
+    /// <summary>Raised when the user changes the selection (click, marquee).</summary>
+    [Parameter] public EventCallback<DiagramSelection> SelectionChanged { get; set; }
+
+    /// <summary>Viewport (offset + zoom). Two-way bindable; committed after gestures.</summary>
+    [Parameter] public DiagramViewport Viewport { get; set; } = DiagramViewport.Default;
+
+    /// <summary>Raised when a gesture commits a new viewport.</summary>
+    [Parameter] public EventCallback<DiagramViewport> ViewportChanged { get; set; }
+
+    /// <summary>Optional execution overlay (current/done/faulted/taken edges...).</summary>
+    [Parameter] public DiagramRunState? RunState { get; set; }
+
+    /// <summary>Disables editing gestures (drag, connect, marquee, delete, drop). Pan/zoom stay enabled.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Fits the graph into view once, on first render with nodes.</summary>
+    [Parameter] public bool FitOnMount { get; set; }
+
+    /// <summary>Shows the minimap (bottom-right).</summary>
+    [Parameter] public bool ShowMinimap { get; set; } = true;
+
+    /// <summary>Shows the zoom control group (bottom-left).</summary>
+    [Parameter] public bool ShowControls { get; set; } = true;
+
+    /// <summary>Shows the auto-layout button inside the controls.</summary>
+    [Parameter] public bool ShowAutoLayout { get; set; } = true;
+
+    /// <summary>Replaces the default node card content. Ports are always rendered by the canvas.</summary>
+    [Parameter] public RenderFragment<DiagramNode>? NodeTemplate { get; set; }
+
+    /// <summary>Rendered centered when the graph has no nodes.</summary>
+    [Parameter] public RenderFragment? EmptyContent { get; set; }
+
+    /// <summary>Extra overlay content (hints, run bars...) rendered inside the canvas.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>HTML5 drag payload format accepted by <see cref="OnExternalDrop"/>.</summary>
+    [Parameter] public string DropPayloadFormat { get; set; } = "application/x-omni-diagram";
+
+    /// <summary>Raised when the user finishes a drag-to-connect between two ports.</summary>
+    [Parameter] public EventCallback<DiagramConnectEventArgs> OnConnect { get; set; }
+
+    /// <summary>Raised when a node drag (possibly multi-node) or auto-layout commits.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<DiagramNodeMove>> NodesMoved { get; set; }
+
+    /// <summary>Raised when Delete/Backspace is pressed with the canvas focused.</summary>
+    [Parameter] public EventCallback<DiagramSelection> OnDeleteRequested { get; set; }
+
+    /// <summary>Raised when an external item is dropped on the canvas (world coords).</summary>
+    [Parameter] public EventCallback<DiagramExternalDropEventArgs> OnExternalDrop { get; set; }
+
+    /// <summary>Tooltip text for the auto-layout button.</summary>
+    [Parameter] public string AutoLayoutText { get; set; } = "Auto-layout (organizar)";
+
+    /// <summary>Tooltip text for the zoom-in button.</summary>
+    [Parameter] public string ZoomInText { get; set; } = "Aumentar zoom";
+
+    /// <summary>Tooltip text for the zoom-out button.</summary>
+    [Parameter] public string ZoomOutText { get; set; } = "Diminuir zoom";
+
+    /// <summary>Tooltip text for the fit button.</summary>
+    [Parameter] public string FitText { get; set; } = "Ajustar à tela";
+
+    private string RootCss => CssBuilder.Default("omni-diagram")
+        .AddClass("omni-diagram-readonly", ReadOnly)
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnInitialized()
+    {
+        _viewport = Viewport;
+        _selection = Selection;
+
+        RegisterParameter<DiagramViewport>(nameof(Viewport))
+            .WithParameter(() => Viewport)
+            .WithChangeHandler(async _ =>
+            {
+                _viewport = Viewport;
+                if (_instance is not null)
+                {
+                    await _instance.InvokeVoidAsync("setViewport", _viewport.X, _viewport.Y, _viewport.Zoom);
+                }
+            })
+            .Attach();
+
+        RegisterParameter<DiagramSelection>(nameof(Selection))
+            .WithParameter(() => Selection)
+            .WithChangeHandler(() => _selection = Selection)
+            .Attach();
+
+        RegisterParameter<bool>(nameof(ReadOnly))
+            .WithParameter(() => ReadOnly)
+            .WithChangeHandler(async _ =>
+            {
+                if (_instance is not null) await _instance.InvokeVoidAsync("setReadOnly", ReadOnly);
+            })
+            .Attach();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Omni.Blazor/js/omni-diagram.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("init",
+                Id, _selfRef, new
+                {
+                    readOnly = ReadOnly,
+                    payloadFormat = DropPayloadFormat,
+                    x = _viewport.X,
+                    y = _viewport.Y,
+                    zoom = _viewport.Zoom,
+                });
+        }
+
+        if (_instance is not null && FitOnMount && !_fitted && Nodes.Count > 0)
+        {
+            _fitted = true;
+            await FitToViewAsync();
+        }
+
+        if (_instance is not null && !firstRender)
+        {
+            await _instance.InvokeVoidAsync("refreshOverlay");
+        }
+    }
+
+    // ───────────────────────── public API ─────────────────────────
+
+    /// <summary>Centers and zooms so every node is visible (zoom capped at 1.4).</summary>
+    public async Task FitToViewAsync()
+    {
+        if (_instance is null) return;
+        var size = await _instance.InvokeAsync<JsSize>("measure");
+        DiagramViewport target;
+        if (Nodes.Count == 0)
+        {
+            target = DiagramViewport.Default;
+        }
+        else
+        {
+            double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+            foreach (var n in Nodes)
+            {
+                minX = Math.Min(minX, n.X);
+                minY = Math.Min(minY, n.Y);
+                maxX = Math.Max(maxX, n.X + DiagramGeometry.NodeWidth);
+                maxY = Math.Max(maxY, n.Y + DiagramGeometry.NodeHeight(n));
+            }
+            const double pad = 70;
+            var w = maxX - minX + pad * 2;
+            var h = maxY - minY + pad * 2;
+            var zoom = Math.Min(1.4, Math.Min(size.W / w, size.H / h));
+            target = new DiagramViewport(
+                (size.W - w * zoom) / 2 - (minX - pad) * zoom,
+                (size.H - h * zoom) / 2 - (minY - pad) * zoom,
+                zoom);
+        }
+
+        await ApplyViewportAsync(target);
+    }
+
+    /// <summary>Runs the built-in left-to-right layout and raises <see cref="NodesMoved"/>.</summary>
+    public async Task AutoLayoutAsync()
+    {
+        var moves = DiagramGeometry.AutoLayout(Nodes, Edges);
+        if (moves.Count == 0) return;
+        await NodesMoved.InvokeAsync(moves);
+    }
+
+    private async Task ZoomByAsync(int direction)
+    {
+        if (_instance is null) return;
+        var size = await _instance.InvokeAsync<JsSize>("measure");
+        var zoom = Math.Min(DiagramGeometry.MaxZoom, Math.Max(DiagramGeometry.MinZoom,
+            _viewport.Zoom * (direction > 0 ? 1.2 : 0.83)));
+        var cx = size.W / 2;
+        var cy = size.H / 2;
+        var wx = (cx - _viewport.X) / _viewport.Zoom;
+        var wy = (cy - _viewport.Y) / _viewport.Zoom;
+        await ApplyViewportAsync(new DiagramViewport(cx - wx * zoom, cy - wy * zoom, zoom));
+    }
+
+    private async Task ApplyViewportAsync(DiagramViewport viewport)
+    {
+        _viewport = viewport;
+        if (_instance is not null)
+        {
+            await _instance.InvokeVoidAsync("setViewport", viewport.X, viewport.Y, viewport.Zoom);
+        }
+        await ViewportChanged.InvokeAsync(viewport);
+        StateHasChanged();
+    }
+
+    // ───────────────────────── JS commits ─────────────────────────
+
+    /// <summary>JS commit: viewport after pan/zoom gesture.</summary>
+    [JSInvokable]
+    public async Task JsCommitViewport(double x, double y, double zoom)
+    {
+        _viewport = new DiagramViewport(x, y, zoom);
+        await ViewportChanged.InvokeAsync(_viewport);
+        StateHasChanged();
+    }
+
+    /// <summary>JS commit: selection from click or marquee.</summary>
+    [JSInvokable]
+    public async Task JsSelect(string[] nodeIds, string? edgeId)
+    {
+        _selection = new DiagramSelection(nodeIds, edgeId);
+        await SelectionChanged.InvokeAsync(_selection);
+        StateHasChanged();
+    }
+
+    /// <summary>JS commit: node drag finished.</summary>
+    [JSInvokable]
+    public async Task JsMoveNodes(DiagramNodeMove[] moves)
+    {
+        await NodesMoved.InvokeAsync(moves);
+    }
+
+    /// <summary>JS commit: drag-to-connect finished over a valid input port.</summary>
+    [JSInvokable]
+    public async Task JsConnect(string sourceId, string sourcePort, string targetId)
+    {
+        await OnConnect.InvokeAsync(new DiagramConnectEventArgs(sourceId, sourcePort, targetId));
+    }
+
+    /// <summary>JS commit: Delete/Backspace pressed with canvas focus.</summary>
+    [JSInvokable]
+    public async Task JsDeleteRequested()
+    {
+        if (!_selection.IsEmpty)
+        {
+            await OnDeleteRequested.InvokeAsync(_selection);
+        }
+    }
+
+    /// <summary>JS commit: external payload dropped at world coordinates.</summary>
+    [JSInvokable]
+    public async Task JsExternalDrop(string payload, double x, double y)
+    {
+        await OnExternalDrop.InvokeAsync(new DiagramExternalDropEventArgs(payload, x, y));
+    }
+
+    // ───────────────────────── render helpers ─────────────────────────
+
+    private DiagramNode? FindNode(string id)
+    {
+        foreach (var n in Nodes) { if (n.Id == id) return n; }
+        return null;
+    }
+
+    private DiagramEdge? FindEdge(string id)
+    {
+        foreach (var e in Edges) { if (e.Id == id) return e; }
+        return null;
+    }
+
+    private static DiagramPort? FindPort(DiagramNode node, string name)
+    {
+        foreach (var p in node.OutPorts) { if (p.Name == name) return p; }
+        return null;
+    }
+
+    private string NodeCss(DiagramNode node) => CssBuilder.Default("omni-diagram-node")
+        .AddClass("omni-diagram-node-selected", _selection.NodeIds.Contains(node.Id))
+        .AddClass(RunState switch
+        {
+            null => null,
+            var r when r.Faulted == node.Id => "omni-diagram-node-error",
+            var r when r.Waiting == node.Id => "omni-diagram-node-waiting",
+            var r when r.Current == node.Id => "omni-diagram-node-current",
+            var r when r.Done.Contains(node.Id) => "omni-diagram-node-done",
+            var r when r.DimNodes.Contains(node.Id) => "omni-diagram-node-dim",
+            _ => null,
+        })
+        .Build();
+
+    private (string Icon, string Bg, bool Spin)? RunBadge(DiagramNode node) => RunState switch
+    {
+        null => null,
+        var r when r.Faulted == node.Id => ("x", "var(--omni-danger)", false),
+        var r when r.Waiting == node.Id => ("pause", "var(--omni-warn)", false),
+        var r when r.Done.Contains(node.Id) => ("check", "var(--omni-good)", false),
+        var r when r.Current == node.Id => ("loader", "var(--omni-info)", true),
+        _ => null,
+    };
+
+    private string EdgeCss(DiagramEdge edge, DiagramPort? port) => CssBuilder.Default("omni-diagram-edge")
+        .AddClass("omni-diagram-edge-true", port?.Kind == DiagramPortKind.Success)
+        .AddClass("omni-diagram-edge-false", port?.Kind == DiagramPortKind.Failure)
+        .AddClass("omni-diagram-edge-selected", _selection.EdgeId == edge.Id)
+        .AddClass("omni-diagram-edge-run-done", RunState?.TakenEdges.Contains(edge.Id) == true)
+        .AddClass("omni-diagram-edge-run-active", RunState?.ActiveEdge == edge.Id)
+        .AddClass("omni-diagram-edge-dim", RunState?.DimEdges.Contains(edge.Id) == true)
+        .Build();
+
+    private string EdgeMarker(DiagramEdge edge)
+    {
+        if (RunState?.ActiveEdge == edge.Id) return $"url(#{Id}-arrow-i)";
+        if (RunState?.TakenEdges.Contains(edge.Id) == true) return $"url(#{Id}-arrow-g)";
+        if (_selection.EdgeId == edge.Id) return $"url(#{Id}-arrow-a)";
+        return $"url(#{Id}-arrow)";
+    }
+
+    private static string PortCss(DiagramPort port) => CssBuilder.Default("omni-diagram-port")
+        .AddClass("omni-diagram-port-true", port.Kind == DiagramPortKind.Success)
+        .AddClass("omni-diagram-port-false", port.Kind == DiagramPortKind.Failure)
+        .Build();
+
+    private static string PortNameCss(DiagramPort port) => CssBuilder.Default("omni-diagram-portname")
+        .AddClass("omni-diagram-portname-true", port.Kind == DiagramPortKind.Success)
+        .AddClass("omni-diagram-portname-false", port.Kind == DiagramPortKind.Failure)
+        .Build();
+
+    private string MmNodeCss(DiagramNode node) => CssBuilder.Default("omni-diagram-mmnode")
+        .AddClass("omni-diagram-mmnode-sel", _selection.NodeIds.Contains(node.Id))
+        .Build();
+
+    private (double MinX, double MinY, double W, double H, double Scale) MinimapBounds()
+    {
+        double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
+        double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+        foreach (var n in Nodes)
+        {
+            minX = Math.Min(minX, n.X);
+            minY = Math.Min(minY, n.Y);
+            maxX = Math.Max(maxX, n.X + DiagramGeometry.NodeWidth);
+            maxY = Math.Max(maxY, n.Y + DiagramGeometry.NodeHeight(n));
+        }
+        const double pad = 80;
+        minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+        var w = maxX - minX;
+        var h = maxY - minY;
+        var scale = Math.Min(190 / w, 124 / h);
+        return (minX, minY, w, h, scale);
+    }
+
+    private static string Fmt(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private sealed record JsSize(double W, double H);
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null)
+            {
+                await _instance.InvokeVoidAsync("dispose");
+                await _instance.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // circuit gone — nothing to clean up client-side
+        }
+        _selfRef?.Dispose();
+    }
+}
