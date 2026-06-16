@@ -38,7 +38,7 @@
             {
                 <span class="omni-panel-menu-icon" aria-hidden="true"></span>
             }
-            <span class="omni-panel-menu-label">@Text</span>
+            <span class="omni-panel-menu-label">@if (TextContent is not null) { @TextContent } else { @Text }</span>
             @if (Count.HasValue)
             {
                 <span class="@CountCss">@Count.Value</span>
@@ -92,7 +92,7 @@
             {
                 <span class="omni-panel-menu-icon" aria-hidden="true"></span>
             }
-            <span class="omni-panel-menu-label">@Text</span>
+            <span class="omni-panel-menu-label">@if (TextContent is not null) { @TextContent } else { @Text }</span>
             @if (Count.HasValue)
             {
                 <span class="@CountCss">@Count.Value</span>
@@ -114,7 +114,7 @@
             {
                 <span class="omni-panel-menu-icon" aria-hidden="true"></span>
             }
-            <span class="omni-panel-menu-label">@Text</span>
+            <span class="omni-panel-menu-label">@if (TextContent is not null) { @TextContent } else { @Text }</span>
             @if (Count.HasValue)
             {
                 <span class="@CountCss">@Count.Value</span>
@@ -144,6 +144,9 @@
 
     /// <summary>Label.</summary>
     [Parameter] public string Text { get; set; } = "";
+
+    /// <summary>Optional rich label (e.g. with highlighted matches). Falls back to <see cref="Text"/>.</summary>
+    [Parameter] public RenderFragment? TextContent { get; set; }
 
     /// <summary>Optional icon name.</summary>
     [Parameter] public string? Icon { get; set; }

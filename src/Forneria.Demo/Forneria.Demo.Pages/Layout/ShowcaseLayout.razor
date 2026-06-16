@@ -1,165 +1,246 @@
 @inherits LayoutComponentBase
 @layout AppShell
+@implements IDisposable
+@using Forneria.Demo.Pages.Layout
+@using Omni.Blazor.Models
+@using Microsoft.AspNetCore.Components.Routing
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+@inject Microsoft.JSInterop.IJSRuntime JS
 
-@* Bootstrap-style component browser: categorized sub-sidebar + main pane.
-   Every component in the library has a dedicated page reachable from here. *@
+@* Component browser. Nav is auto-built from every routable /showcase page (ShowcaseCatalog):
+   nested routes become collapsible submenus; categories are collapsible; live filter
+   (accent-insensitive + synonyms) with match highlight; per-category counts; "Novo" badges;
+   and ⌘K jumps to any component. Styles live in ShowcaseLayout.razor.css (CSS isolation). *@
 
-<OmniSplitView AsideSize="ComponentSize.Lg">
-    <AsideContent>
-        <OmniSplitAsideLabel Text="Overview" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Começar" Icon="zap" Path="/showcase/get-started" />
-            <OmniPanelMenuItem Text="Bem-vindo" Icon="grid" Path="/showcase" Match="NavLinkMatch.All" />
-            <OmniPanelMenuItem Text="Typography" Icon="file-text" Path="/showcase/typography" />
-            <OmniPanelMenuItem Text="Theme & tokens" Icon="zap" Path="/showcase/theme" />
-            <OmniPanelMenuItem Text="Theme Picker + Density" Icon="settings" Path="/showcase/theme-picker" />
-            <OmniPanelMenuItem Text="Appearance Toggle" Icon="sun" Path="/showcase/appearance-toggle" />
-            <OmniPanelMenuItem Text="Acessibilidade (a11y)" Icon="shield" Path="/showcase/a11y" />
-            <OmniPanelMenuItem Text="UX Markers (HTML)" Icon="command" Path="/showcase/ux-markers" />
-            <OmniPanelMenuItem Text="Breakpoints" Icon="grid" Path="/showcase/breakpoints" />
-            <OmniPanelMenuItem Text="Hidden (por viewport)" Icon="zap" Path="/showcase/hidden" />
-            <OmniPanelMenuItem Text="Media Query (headless)" Icon="zap" Path="/showcase/media-query" />
-            <OmniPanelMenuItem Text="Scroll manager" Icon="arrow-up" Path="/showcase/scroll" />
-        </OmniPanelMenu>
+<div class="sc-shell">
+    <OmniSplitView AsideSize="ComponentSize.Lg">
+        <AsideContent>
+            <div class="sc-aside">
+                <div class="sc-aside-head">
+                    <div class="sc-aside-search">
+                        <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                        <input type="search" value="@_query" @oninput="OnSearch"
+                               placeholder="Filtrar componentes…  (⌘K p/ pular)" aria-label="Filtrar componentes"
+                               autocomplete="off" spellcheck="false" />
+                        @if (_query.Length > 0)
+                        {
+                            <button type="button" class="sc-aside-clear" @onclick="Clear" aria-label="Limpar">
+                                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                            </button>
+                        }
+                    </div>
+                    <div class="sc-aside-count">
+                        @if (_query.Length == 0)
+                        {
+                            <span><strong>@ShowcaseCatalog.All.Count</strong> componentes</span>
+                        }
+                        else
+                        {
+                            <span><strong>@_matchedCount</strong> de @ShowcaseCatalog.All.Count</span>
+                        }
+                    </div>
+                </div>
 
-        <OmniSplitAsideLabel Text="Estrutura & Layout" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Layout & SplitView" Icon="layout-dashboard" Path="/showcase/layout" />
-            <OmniPanelMenuItem Text="Auth Layout"        Icon="lock"             Path="/showcase/auth-layout" />
-            <OmniPanelMenuItem Text="Wireframes (LEGO)" Icon="layout"            Path="/showcase/wireframes" />
-            <OmniPanelMenuItem Text="Container"          Icon="package"          Path="/showcase/container" />
-            <OmniPanelMenuItem Text="Grid 12 (Row+Col)"  Icon="grid"             Path="/showcase/grid" />
-            <OmniPanelMenuItem Text="Splitter"           Icon="layout-dashboard" Path="/showcase/splitter" />
-            <OmniPanelMenuItem Text="Swipe Area"         Icon="zap"              Path="/showcase/swipearea" />
-            <OmniPanelMenuItem Text="Stack"              Icon="list"             Path="/showcase/stack" />
-            <OmniPanelMenuItem Text="TileGroup"          Icon="package"          Path="/showcase/tile-group" />
-            <OmniPanelMenuItem Text="Panel menu"         Icon="list"             Path="/showcase/panel-menu" />
-            <OmniPanelMenuItem Text="Menu bar"           Icon="menu"             Path="/showcase/menubar" />
-            <OmniPanelMenuItem Text="Exit Prompt"        Icon="alert-triangle"   Path="/showcase/exit-prompt" />
-            <OmniPanelMenuItem Text="Hotkeys"            Icon="command"          Path="/showcase/hotkeys" />
-            <OmniPanelMenuItem Text="Key Interceptor"    Icon="command"          Path="/showcase/key-interceptor" />
-        </OmniPanelMenu>
+                <div class="sc-aside-list">
+                    @{ var roots = VisibleRoots().ToList(); }
+                    @if (roots.Count == 0)
+                    {
+                        <div class="sc-aside-empty">
+                            <OmniIcon Name="search" />
+                            <span>Nenhum componente para “@_query”.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var group in roots.GroupBy(l => (l.Category, l.CategoryOrder)).OrderBy(g => g.Key.CategoryOrder))
+                        {
+                            var cat = group.Key.Category;
+                            var collapsed = _query.Length == 0 && _collapsed.Contains(cat);
+                            <button type="button" class="sc-cat" @onclick="@(() => ToggleCat(cat))" aria-expanded="@(!collapsed)">
+                                <OmniIcon Name="@(collapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                                <span class="sc-cat-name">@cat</span>
+                                <span class="sc-cat-count">@(CategoryTotals.GetValueOrDefault(cat))</span>
+                            </button>
+                            @if (!collapsed)
+                            {
+                                <OmniPanelMenu>
+                                    @foreach (var root in group)
+                                    {
+                                        var kids = VisibleChildren(root.Path);
+                                        @if (kids.Count == 0)
+                                        {
+                                            <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon" Path="@root.Path"
+                                                               Match="@(root.Path == "/showcase" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                                                               CountText="@(ShowcaseCatalog.IsNew(root.Path) ? "Novo" : null)" />
+                                        }
+                                        else
+                                        {
+                                            <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon"
+                                                               Expanded="@(_query.Length > 0 || IsUnder(root.Path))">
+                                                <ChildContent>
+                                                    <OmniPanelMenuItem Text="Galeria" Icon="@root.Icon" Path="@root.Path" Match="NavLinkMatch.All" />
+                                                    @foreach (var kid in kids)
+                                                    {
+                                                        <OmniPanelMenuItem Text="@kid.Title" TextContent="@Lbl(kid.Title)" Icon="@kid.Icon" Path="@kid.Path"
+                                                                           Match="NavLinkMatch.Prefix"
+                                                                           CountText="@(ShowcaseCatalog.IsNew(kid.Path) ? "Novo" : null)" />
+                                                    }
+                                                </ChildContent>
+                                            </OmniPanelMenuItem>
+                                        }
+                                    }
+                                </OmniPanelMenu>
+                            }
+                        }
+                    }
+                </div>
+            </div>
+        </AsideContent>
+        <ChildContent>
+            @Body
+        </ChildContent>
+    </OmniSplitView>
+</div>
 
-        <OmniSplitAsideLabel Text="Navegação" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Breadcrumb"         Icon="chevron-right"    Path="/showcase/breadcrumb" />
-            <OmniPanelMenuItem Text="Tabs"               Icon="grid"             Path="/showcase/tabs" />
-            <OmniPanelMenuItem Text="Segmented control"  Icon="grid"             Path="/showcase/segmented" />
-            <OmniPanelMenuItem Text="Pagination"         Icon="chevron-right"    Path="/showcase/pagination" />
-            <OmniPanelMenuItem Text="Stepper"            Icon="check-circle"     Path="/showcase/stepper" />
-        </OmniPanelMenu>
+@* ⌘K / Ctrl+K — jump to any of the discovered components. *@
+<OmniCommandPalette Commands="_commands" HistoryKey="showcase" />
 
-        <OmniSplitAsideLabel Text="Buttons" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Button"                 Icon="package" Path="/showcase/buttons" />
-            <OmniPanelMenuItem Text="Split & Toggle Button"  Icon="layers"  Path="/showcase/split-toggle-button" />
-            <OmniPanelMenuItem Text="FAB & FabMenu"          Icon="plus"    Path="/showcase/fab" />
-            <OmniPanelMenuItem Text="Social Button"          Icon="lock"    Path="/showcase/social-button" />
-        </OmniPanelMenu>
+@code {
+    // ── tree (computed once from the catalog) ───────────────────────────────
+    private static readonly Dictionary<string, string> ParentOf = BuildParents();
+    private static readonly List<ShowcaseLink> Roots =
+        ShowcaseCatalog.All.Where(l => !ParentOf.ContainsKey(l.Path)).ToList();
+    private static readonly Dictionary<string, List<ShowcaseLink>> ChildrenOf =
+        ShowcaseCatalog.All.Where(l => ParentOf.ContainsKey(l.Path))
+            .GroupBy(l => ParentOf[l.Path])
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, int> CategoryTotals =
+        ShowcaseCatalog.All.GroupBy(l => l.Category).ToDictionary(g => g.Key, g => g.Count());
 
-        <OmniSplitAsideLabel Text="Inputs básicos" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="TextBox / Password / TextArea" Icon="edit"        Path="/showcase/textbox" />
-            <OmniPanelMenuItem Text="Numeric"                       Icon="dollar-sign" Path="/showcase/numeric" />
-            <OmniPanelMenuItem Text="Qty Stepper"                   Icon="plus"        Path="/showcase/qty-stepper" />
-            <OmniPanelMenuItem Text="Masked TextBox"                Icon="tag"         Path="/showcase/masked" />
-            <OmniPanelMenuItem Text="Security Code (OTP)"           Icon="lock"        Path="/showcase/security-code" />
-            <OmniPanelMenuItem Text="DatePicker & Range"            Icon="calendar"    Path="/showcase/datepicker" />
-            <OmniPanelMenuItem Text="Slider & Rating"               Icon="sliders"     Path="/showcase/slider-rating" />
-            <OmniPanelMenuItem Text="Speech to Text"                Icon="mic"         Path="/showcase/speech-to-text" />
-            <OmniPanelMenuItem Text="Password Strength"             Icon="lock"        Path="/showcase/password-strength" />
-        </OmniPanelMenu>
+    private static Dictionary<string, string> BuildParents()
+    {
+        var paths = ShowcaseCatalog.All.Select(l => l.Path).ToList();
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in paths)
+        {
+            string? best = null;
+            foreach (var p in paths)
+            {
+                if (string.Equals(p, "/showcase", StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(p, path, StringComparison.OrdinalIgnoreCase)) continue;
+                if (path.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase) && (best is null || p.Length > best.Length))
+                    best = p;
+            }
+            if (best is not null) map[path] = best;
+        }
+        return map;
+    }
 
-        <OmniSplitAsideLabel Text="Seleção & avançados" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Select & AutoComplete"         Icon="search"      Path="/showcase/select" />
-            <OmniPanelMenuItem Text="CheckBox / Switch / Radio"     Icon="check"       Path="/showcase/checkbox-switch-radio" />
-            <OmniPanelMenuItem Text="CheckBoxList / ListBox / Multi" Icon="list"       Path="/showcase/selection-extras" />
-            <OmniPanelMenuItem Text="Pick List"                     Icon="columns"     Path="/showcase/picklist" />
-            <OmniPanelMenuItem Text="File Upload"                   Icon="upload"      Path="/showcase/upload" />
-        </OmniPanelMenu>
+    // ── state ────────────────────────────────────────────────────────────────
+    private OmniCommand[] _commands = Array.Empty<OmniCommand>();
+    private string _query = "";
+    private HashSet<string>? _visible;                       // null = show everything
+    private int _matchedCount = ShowcaseCatalog.All.Count;
+    private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);
+    private bool _scrollPending;
 
-        <OmniSplitAsideLabel Text="Formulários" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="FormField & Validation"        Icon="help-circle" Path="/showcase/formfield" />
-            <OmniPanelMenuItem Text="Form Validation (OmniForm)"   Icon="shield"      Path="/showcase/form-validation" />
-        </OmniPanelMenu>
+    protected override void OnInitialized()
+    {
+        _commands = ShowcaseCatalog.All.Select(l =>
+        {
+            var path = l.Path;
+            return new OmniCommand(l.Title) { Category = l.Category, Icon = l.Icon, Action = () => { Nav.NavigateTo(path); return Task.CompletedTask; } };
+        }).ToArray();
+        Nav.LocationChanged += OnLocationChanged;
+    }
 
-        <OmniSplitAsideLabel Text="Data display" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Card"         Icon="package"     Path="/showcase/card" />
-            <OmniPanelMenuItem Text="Card Group"   Icon="columns"     Path="/showcase/card-group" />
-            <OmniPanelMenuItem Text="Result (status)" Icon="alert-circle" Path="/showcase/result" />
-            <OmniPanelMenuItem Text="Empty State"  Icon="inbox"       Path="/showcase/empty-state" />
-            <OmniPanelMenuItem Text="Badge & Chip" Icon="tag"         Path="/showcase/badge-chip" />
-            <OmniPanelMenuItem Text="Label & Link" Icon="link"        Path="/showcase/label-link" />
-            <OmniPanelMenuItem Text="Avatar"       Icon="user"        Path="/showcase/avatar" />
-            <OmniPanelMenuItem Text="Avatar Group" Icon="users"       Path="/showcase/avatar-group" />
-            <OmniPanelMenuItem Text="Image"        Icon="image"       Path="/showcase/image" />
-            <OmniPanelMenuItem Text="Carousel"     Icon="film"        Path="/showcase/carousel" />
-            <OmniPanelMenuItem Text="Stat"         Icon="trending-up" Path="/showcase/stat" />
-            <OmniPanelMenuItem Text="Stat Group"   Icon="grid"        Path="/showcase/stat-group" />
-            <OmniPanelMenuItem Text="Description List" Icon="list"     Path="/showcase/description-list" />
-            <OmniPanelMenuItem Text="Option Card"  Icon="check-circle" Path="/showcase/option-card" />
-            <OmniPanelMenuItem Text="Progress"     Icon="bar-chart"   Path="/showcase/progress" />
-            <OmniPanelMenuItem Text="Progress Circular" Icon="loader" Path="/showcase/progress-circular" />
-            <OmniPanelMenuItem Text="Accordion"    Icon="list"        Path="/showcase/accordion" />
-            <OmniPanelMenuItem Text="Timeline"     Icon="clock"       Path="/showcase/timeline" />
-            <OmniPanelMenuItem Text="Markdown"     Icon="file-text"   Path="/showcase/markdown" />
-        </OmniPanelMenu>
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _scrollPending = true;
+        InvokeAsync(StateHasChanged);
+    }
 
-        <OmniSplitAsideLabel Text="Utilitários" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Icon"     Icon="star"            Path="/showcase/icons" />
-            <OmniPanelMenuItem Text="Kbd"      Icon="grid"            Path="/showcase/kbd" />
-            <OmniPanelMenuItem Text="Skeleton" Icon="more-horizontal" Path="/showcase/skeleton" />
-            <OmniPanelMenuItem Text="Spinner & Loading" Icon="refresh" Path="/showcase/loading" />
-        </OmniPanelMenu>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || _scrollPending)
+        {
+            _scrollPending = false;
+            try { await JS.InvokeVoidAsync("omniBlazor.scrollIntoView", ".sc-aside-list .omni-active", "nearest"); }
+            catch { }
+        }
+    }
 
-        <OmniSplitAsideLabel Text="Feedback & overlay" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Alert"         Icon="alert-triangle" Path="/showcase/alert" />
-            <OmniPanelMenuItem Text="Banner"        Icon="alert-triangle" Path="/showcase/banner" />
-            <OmniPanelMenuItem Text="Dialog"        Icon="alert-circle"   Path="/showcase/dialog" />
-            <OmniPanelMenuItem Text="Confirm Prompt" Icon="alert-triangle" Path="/showcase/confirm-prompt" />
-            <OmniPanelMenuItem Text="Command Palette (⌘K)" Icon="search" Path="/showcase/command-palette" />
-            <OmniPanelMenuItem Text="Notification"  Icon="bell"           Path="/showcase/notification" />
-            <OmniPanelMenuItem Text="Tooltip"       Icon="info"           Path="/showcase/tooltip" />
-            <OmniPanelMenuItem Text="Popover"       Icon="more-horizontal" Path="/showcase/popover" />
-            <OmniPanelMenuItem Text="Context menu"  Icon="more-vertical"  Path="/showcase/context-menu" />
-            <OmniPanelMenuItem Text="Overlay"       Icon="layers"         Path="/showcase/overlay" />
-            <OmniPanelMenuItem Text="Bottom Sheet"  Icon="layers"         Path="/showcase/bottom-sheet" />
-        </OmniPanelMenu>
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 
-        <OmniSplitAsideLabel Text="Data" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="DataGrid"   Icon="list"          Path="/showcase/datagrid" />
-            <OmniPanelMenuItem Text="Data Filter" Icon="filter"       Path="/showcase/datafilter" />
-            <OmniPanelMenuItem Text="Pivot Grid" Icon="grid"          Path="/showcase/pivot" />
-            <OmniPanelMenuItem Text="HTML Editor" Icon="edit"         Path="/showcase/html-editor" />
-            <OmniPanelMenuItem Text="Chat"       Icon="message-square" Path="/showcase/chat" />
-            <OmniPanelMenuItem Text="Tree"       Icon="folder"        Path="/showcase/tree" />
-            <OmniPanelMenuItem Text="Scheduler"  Icon="calendar"      Path="/showcase/scheduler" />
-            <OmniPanelMenuItem Text="Gantt"      Icon="bar-chart"     Path="/showcase/gantt" />
-            <OmniPanelMenuItem Text="DropZone"   Icon="layers"        Path="/showcase/dropzone" />
-            <OmniPanelMenuItem Text="Virtualize" Icon="grid"     Path="/showcase/virtualize" />
-            <OmniPanelMenuItem Text="Diagram"    Icon="workflow"      Path="/showcase/diagram" />
-        </OmniPanelMenu>
+    // ── filter ─────────────────────────────────────────────────────────────────
+    private void OnSearch(ChangeEventArgs e) { _query = e.Value?.ToString() ?? ""; Recompute(); }
+    private void Clear() { _query = ""; Recompute(); }
+    private void ToggleCat(string cat) { if (!_collapsed.Remove(cat)) _collapsed.Add(cat); }
 
-        <OmniSplitAsideLabel Text="Data viz" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Sparkline" Icon="trending-up" Path="/showcase/sparkline" />
-            <OmniPanelMenuItem Text="Chart"     Icon="bar-chart"   Path="/showcase/chart" />
-            <OmniPanelMenuItem Text="Barcode"   Icon="grid"        Path="/showcase/barcode" />
-            <OmniPanelMenuItem Text="QR Code"   Icon="grid"        Path="/showcase/qrcode" />
-        </OmniPanelMenu>
+    private void Recompute()
+    {
+        var q = _query.Trim();
+        if (q.Length == 0) { _visible = null; _matchedCount = ShowcaseCatalog.All.Count; return; }
 
-        <OmniSplitAsideLabel Text="Marketing" />
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Hero, Eyebrow & Mosaic" Icon="star" Path="/showcase/marketing" />
-        </OmniPanelMenu>
-    </AsideContent>
-    <ChildContent>
-        @Body
-    </ChildContent>
-</OmniSplitView>
+        var matched = ShowcaseCatalog.All.Where(l => Matches(l, q)).ToList();
+        _matchedCount = matched.Count;
+
+        var vis = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var m in matched)
+        {
+            vis.Add(m.Path);
+            for (var p = ParentOf.GetValueOrDefault(m.Path); p is not null; p = ParentOf.GetValueOrDefault(p))
+                vis.Add(p);
+            foreach (var d in ShowcaseCatalog.All)
+                if (d.Path.StartsWith(m.Path + "/", StringComparison.OrdinalIgnoreCase)) vis.Add(d.Path);
+        }
+        _visible = vis;
+    }
+
+    private bool IsVisible(ShowcaseLink l) => _visible is null || _visible.Contains(l.Path);
+    private IEnumerable<ShowcaseLink> VisibleRoots() => Roots.Where(IsVisible);
+    private List<ShowcaseLink> VisibleChildren(string path)
+        => ChildrenOf.TryGetValue(path, out var list) ? list.Where(IsVisible).ToList() : new();
+
+    private bool IsUnder(string path)
+    {
+        var cur = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/');
+        return cur.StartsWith(path + "/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool Matches(ShowcaseLink l, string q)
+    {
+        var f = Fold(q);
+        if (Fold(l.Title).Contains(f) || Fold(l.Category).Contains(f)) return true;
+        foreach (var a in ShowcaseCatalog.AliasesOf(l.Path))
+            if (Fold(a).Contains(f)) return true;
+        return false;
+    }
+
+    // ── match highlight (best-effort: case-insensitive on the original text) ──
+    private RenderFragment Lbl(string text) => builder =>
+    {
+        var q = _query.Trim();
+        var idx = q.Length == 0 ? -1 : text.IndexOf(q, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) { builder.AddContent(0, text); return; }
+        var seq = 0;
+        if (idx > 0) builder.AddContent(seq++, text[..idx]);
+        builder.OpenElement(seq++, "mark");
+        builder.AddAttribute(seq++, "class", "sc-hl");
+        builder.AddContent(seq++, text.Substring(idx, q.Length));
+        builder.CloseElement();
+        var rest = idx + q.Length;
+        if (rest < text.Length) builder.AddContent(seq++, text[rest..]);
+    };
+
+    // lowercase + strip accents so "visao" matches "Visão", "botao" matches "Botões".
+    private static string Fold(string s)
+    {
+        var d = s.Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder(d.Length);
+        foreach (var c in d)
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                sb.Append(char.ToLowerInvariant(c));
+        return sb.ToString();
+    }
+}

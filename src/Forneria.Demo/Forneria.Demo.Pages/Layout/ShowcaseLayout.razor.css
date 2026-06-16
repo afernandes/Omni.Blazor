@@ -1,0 +1,27 @@
+/* Scoped styles for ShowcaseLayout (CSS isolation).
+   Two rules cross the component boundary and use ::deep:
+   - .omni-split-aside belongs to the OmniSplitView child and is an ANCESTOR of our
+     markup, so we anchor on a layout-transparent (.sc-shell, display:contents) wrapper.
+   - .sc-hl is the highlight <mark> built in code (RenderTreeBuilder), which doesn't
+     receive the scope attribute, so it's reached from the scoped .sc-aside-list. */
+
+.sc-shell { display: contents; }
+.sc-shell ::deep .omni-split-aside { padding: 0; overflow: hidden; }
+
+.sc-aside { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+
+.sc-aside-head { flex: 0 0 auto; padding: 10px 10px 8px; border-bottom: 1px solid var(--omni-line); background: var(--omni-bg-elev); }
+.sc-aside-search { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--omni-line); border-radius: 8px; background: var(--omni-bg-sunken); }
+.sc-aside-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--omni-fg); font-size: 13px; }
+.sc-aside-clear { border: 0; background: transparent; color: var(--omni-fg-muted); cursor: pointer; display: inline-flex; }
+.sc-aside-count { margin-top: 6px; font-size: 11px; color: var(--omni-fg-muted); padding: 0 2px; }
+
+.sc-aside-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px 10px 14px; }
+.sc-aside-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 16px; color: var(--omni-fg-muted); text-align: center; font-size: 13px; }
+
+.sc-cat { display: flex; align-items: center; gap: 4px; width: 100%; border: 0; background: transparent; cursor: pointer; padding: 12px 8px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--omni-fg-soft); font-weight: 600; font-family: var(--omni-font-mono); }
+.sc-cat:hover { color: var(--omni-fg); }
+.sc-cat-name { flex: 1; text-align: left; }
+.sc-cat-count { font-weight: 400; color: var(--omni-fg-muted); }
+
+.sc-aside-list ::deep .sc-hl { background: transparent; color: var(--omni-accent); font-weight: 700; }
