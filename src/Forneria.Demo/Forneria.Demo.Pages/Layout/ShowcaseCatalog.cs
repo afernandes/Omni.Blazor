@@ -8,7 +8,7 @@ namespace Forneria.Demo.Pages.Layout;
 public sealed record ShowcaseLink(
     string Category, int CategoryOrder, int ItemOrder,
     string Title, string Icon, string Path,
-    string[] Aliases, bool IsNew);
+    string[] Aliases, bool IsNew, bool Featured);
 
 /// <summary>
 /// The closed set of showcase nav categories. <see cref="Cat.Auto"/> means "derive from the
@@ -42,8 +42,11 @@ public sealed class ShowcaseInfoAttribute : Attribute
     /// <summary>Sort order within the category (lower = first; ties fall back to title).</summary>
     public int Order { get; set; }
 
-    /// <summary>Flags the page with a "Novo" badge in the nav.</summary>
+    /// <summary>Flags a genuinely-new component with a "Novo" badge (reserved for future additions).</summary>
     public bool New { get; set; }
+
+    /// <summary>Flags a flagship/advanced differentiator (rare or absent in MudBlazor/Radzen) with a "Destaque" badge.</summary>
+    public bool Featured { get; set; }
 
     /// <summary>Comma-separated search synonyms so the page is found by intent, not just its name.</summary>
     public string? Aliases { get; set; }
@@ -120,8 +123,11 @@ public static class ShowcaseCatalog
     public static string[] AliasesOf(string path) =>
         ByPath.TryGetValue(path, out var l) ? l.Aliases : Array.Empty<string>();
 
-    /// <summary>Whether a route is flagged as recently added.</summary>
+    /// <summary>Whether a route is flagged as a genuinely-new component.</summary>
     public static bool IsNew(string path) => ByPath.TryGetValue(path, out var l) && l.IsNew;
+
+    /// <summary>Whether a route is flagged as a flagship/advanced differentiator.</summary>
+    public static bool IsFeatured(string path) => ByPath.TryGetValue(path, out var l) && l.Featured;
 
     private static List<ShowcaseLink> Build()
     {
@@ -146,8 +152,9 @@ public static class ShowcaseCatalog
             var order = info?.Order ?? 0;
             var aliases = ParseAliases(info?.Aliases);
             var isNew = info?.New ?? false;
+            var featured = info?.Featured ?? false;
 
-            list.Add(new ShowcaseLink(def.Name, def.Order, order, title, icon, route, aliases, isNew));
+            list.Add(new ShowcaseLink(def.Name, def.Order, order, title, icon, route, aliases, isNew, featured));
         }
         return list
             .OrderBy(l => l.CategoryOrder)

@@ -71,7 +71,7 @@
                                         {
                                             <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon" Path="@root.Path"
                                                                Match="@(root.Path == "/showcase" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
-                                                               CountText="@(ShowcaseCatalog.IsNew(root.Path) ? "Novo" : null)" />
+                                                               CountText="@BadgeText(root)" CountKind="@BadgeKind(root)" />
                                         }
                                         else
                                         {
@@ -83,7 +83,7 @@
                                                     {
                                                         <OmniPanelMenuItem Text="@kid.Title" TextContent="@Lbl(kid.Title)" Icon="@kid.Icon" Path="@kid.Path"
                                                                            Match="NavLinkMatch.Prefix"
-                                                                           CountText="@(ShowcaseCatalog.IsNew(kid.Path) ? "Novo" : null)" />
+                                                                           CountText="@BadgeText(kid)" CountKind="@BadgeKind(kid)" />
                                                     }
                                                 </ChildContent>
                                             </OmniPanelMenuItem>
@@ -216,6 +216,11 @@
             if (Fold(a).Contains(f)) return true;
         return false;
     }
+
+    // Nav badge: flagship/advanced differentiators get an accent "★ Destaque"; genuinely-new
+    // components get a green "Novo" (reserved for future use). Featured wins if both are set.
+    private static string? BadgeText(ShowcaseLink l) => l.Featured ? "★ Destaque" : l.IsNew ? "Novo" : null;
+    private static MenuMetaKind BadgeKind(ShowcaseLink l) => l.Featured ? MenuMetaKind.Accent : MenuMetaKind.Good;
 
     // ── match highlight (best-effort: case-insensitive on the original text) ──
     private RenderFragment Lbl(string text) => builder =>
