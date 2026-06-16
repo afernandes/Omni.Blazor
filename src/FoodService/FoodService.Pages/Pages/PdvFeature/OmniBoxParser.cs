@@ -3,23 +3,24 @@ using System.Text.RegularExpressions;
 namespace FoodService.Pages.Pages.PdvFeature;
 
 /// <summary>Comandos reconhecíveis pelo Omnibox.
-/// Discriminated union via record + pattern matching no consumidor.</summary>
-public abstract record OmniCommand
+/// Discriminated union via record + pattern matching no consumidor.
+/// (Nomeado OmniBoxCommand para não colidir com Omni.Blazor.Models.OmniBoxCommand.)</summary>
+public abstract record OmniBoxCommand
 {
     /// <summary>Adiciona N produtos pelo código curto (ex: "201", "2x201").</summary>
-    public sealed record AddProduct(string Code, int Qty) : OmniCommand;
+    public sealed record AddProduct(string Code, int Qty) : OmniBoxCommand;
 
     /// <summary>Monta uma pizza meio-a-meio (ou inteira) com tamanho e borda opcionais.
     /// Ex.: "G101/102.C" → AddPizza(Grande, "101", "102", "C")
     ///      "101/102"    → AddPizza(null,   "101", "102", null)
     ///      "G101"       → AddPizza(Grande, "101", null,  null)</summary>
-    public sealed record AddPizza(PizzaSize? Size, string Flavor1, string? Flavor2, string? BordaCode) : OmniCommand;
+    public sealed record AddPizza(PizzaSize? Size, string Flavor1, string? Flavor2, string? BordaCode) : OmniBoxCommand;
 
     /// <summary>Busca textual livre (palavras).</summary>
-    public sealed record Search(string Query) : OmniCommand;
+    public sealed record Search(string Query) : OmniBoxCommand;
 
     /// <summary>Comando inválido / não reconhecido.</summary>
-    public sealed record Unknown(string Raw) : OmniCommand;
+    public sealed record Unknown(string Raw) : OmniBoxCommand;
 }
 
 /// <summary>Parser do Omnibox. Sintaxe (case-insensitive):
@@ -45,10 +46,10 @@ public static class OmniBoxParser
         @"^(?:(?<qty>\d{1,3})x)?(?<code>\d{3,4})$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    public static OmniCommand Parse(string? input)
+    public static OmniBoxCommand Parse(string? input)
     {
         var raw = (input ?? "").Trim();
-        if (string.IsNullOrEmpty(raw)) return new OmniCommand.Unknown("");
+        if (string.IsNullOrEmpty(raw)) return new OmniBoxCommand.Unknown("");
 
         // Pizza tem prioridade (tem barra ou prefixo de tamanho ou ponto)
         var pizzaMatch = PizzaRegex.Match(raw);
@@ -63,7 +64,7 @@ public static class OmniBoxParser
             var b  = pizzaMatch.Groups["borda"].Success
                 ? pizzaMatch.Groups["borda"].Value.ToUpperInvariant()
                 : null;
-            return new OmniCommand.AddPizza(size, f1, f2, b);
+            return new OmniBoxCommand.AddPizza(size, f1, f2, b);
         }
 
         var prodMatch = ProductRegex.Match(raw);
@@ -72,10 +73,10 @@ public static class OmniBoxParser
             var qty = prodMatch.Groups["qty"].Success
                 ? int.Parse(prodMatch.Groups["qty"].Value)
                 : 1;
-            return new OmniCommand.AddProduct(prodMatch.Groups["code"].Value, qty);
+            return new OmniBoxCommand.AddProduct(prodMatch.Groups["code"].Value, qty);
         }
 
-        return new OmniCommand.Search(raw);
+        return new OmniBoxCommand.Search(raw);
     }
 
     public static PizzaSize SizeFromLetter(char c) => char.ToUpperInvariant(c) switch

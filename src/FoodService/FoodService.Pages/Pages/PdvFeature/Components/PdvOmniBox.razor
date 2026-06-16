@@ -90,7 +90,7 @@
     private bool _focused;
 
     // Pizza preview state
-    private OmniCommand.AddPizza? _pizzaCmd;
+    private OmniBoxCommand.AddPizza? _pizzaCmd;
     private PizzaFlavor? _flavor1;
     private PizzaFlavor? _flavor2;
     private PizzaSize _pizzaSize = PizzaSize.Grande;
@@ -134,7 +134,7 @@
         _activeIdx = 0;
 
         // Pizza preview
-        if (cmd is OmniCommand.AddPizza p)
+        if (cmd is OmniBoxCommand.AddPizza p)
         {
             _pizzaCmd = p;
             _flavor1 = PdvMockData.Flavors.FirstOrDefault(f => f.Code == p.Flavor1);
@@ -218,11 +218,11 @@
         var cmd = OmniBoxParser.Parse(_value);
         switch (cmd)
         {
-            case OmniCommand.AddProduct ap when Order.TryAddByCode(ap.Code, ap.Qty):
+            case OmniBoxCommand.AddProduct ap when Order.TryAddByCode(ap.Code, ap.Qty):
                 Toast.Success($"Adicionado {ap.Qty}× código {ap.Code}");
                 ResetInput();
                 break;
-            case OmniCommand.Search s:
+            case OmniBoxCommand.Search s:
                 Toast.Info($"Nenhum resultado para “{s.Query}”");
                 break;
             default:
