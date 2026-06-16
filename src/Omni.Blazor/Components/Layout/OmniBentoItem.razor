@@ -1,0 +1,137 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+@using Omni.Blazor.Models
+
+@*  OmniBentoItem — tile tipado de um <c>OmniBento</c>. É uma "surface" estilo Apple
+    (background, borda e arredondamento dos tokens do design system) e expõe span
+    responsivo, tom (hero/semântico), proporção fixa, alinhamento de conteúdo e
+    comportamento interativo (link/botão) — para que o tile seja autossuficiente
+    sem precisar cair num OmniCard e perder a API tipada de span.
+
+      <OmniBento Columns="4">
+        <OmniBentoItem ColSpan="2" RowSpan="2" Tone="CardTone.Accent">Hero</OmniBentoItem>
+        <OmniBentoItem Href="/relatorio">Tile clicável</OmniBentoItem>
+        <OmniBentoItem AspectRatio="1/1" AlignContent="StackAlign.Center">Quadrado</OmniBentoItem>
+      </OmniBento>
+
+    Renderiza &lt;a&gt; quando Href, &lt;button&gt; quando OnClick, senão &lt;div&gt;.
+    O focus ring vem da regra base :focus-visible; em prefers-reduced-motion as
+    transições são desligadas globalmente.
+*@
+@if (Href is not null)
+{
+    <a href="@Href" target="@Target" class="@RootCss" style="@RootStyle"
+       aria-disabled="@(Disabled ? "true" : null)" @attributes="Attributes">
+        @ChildContent
+    </a>
+}
+else if (OnClick.HasDelegate)
+{
+    <button type="button" class="@RootCss" style="@RootStyle" disabled="@Disabled"
+            @onclick="HandleClickAsync" @attributes="Attributes">
+        @ChildContent
+    </button>
+}
+else
+{
+    <div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+        @ChildContent
+    </div>
+}
+
+@code {
+    /// <summary>Quantas colunas o tile ocupa (base, mobile-first). Default 1.</summary>
+    [Parameter] public int ColSpan { get; set; } = 1;
+
+    /// <summary>Override de <see cref="ColSpan"/> em ≥640px. Default null.</summary>
+    [Parameter] public int? ColSpanSm { get; set; }
+
+    /// <summary>Override de <see cref="ColSpan"/> em ≥1024px. Default null.</summary>
+    [Parameter] public int? ColSpanMd { get; set; }
+
+    /// <summary>Override de <see cref="ColSpan"/> em ≥1440px. Default null.</summary>
+    [Parameter] public int? ColSpanLg { get; set; }
+
+    /// <summary>Quantas linhas o tile ocupa (base). Default 1.</summary>
+    [Parameter] public int RowSpan { get; set; } = 1;
+
+    /// <summary>Override de <see cref="RowSpan"/> em ≥640px. Default null.</summary>
+    [Parameter] public int? RowSpanSm { get; set; }
+
+    /// <summary>Override de <see cref="RowSpan"/> em ≥1024px. Default null.</summary>
+    [Parameter] public int? RowSpanMd { get; set; }
+
+    /// <summary>Override de <see cref="RowSpan"/> em ≥1440px. Default null.</summary>
+    [Parameter] public int? RowSpanLg { get; set; }
+
+    /// <summary>Remove o padding interno do tile. Default false.</summary>
+    [Parameter] public bool NoPadding { get; set; }
+
+    /// <summary>Tom do tile — hero/accent + semânticos (tinta suave + borda). Default None.</summary>
+    [Parameter] public CardTone Tone { get; set; } = CardTone.None;
+
+    /// <summary>Torna o tile um link (renderiza &lt;a&gt;). Mutuamente exclusivo com <see cref="OnClick"/>.</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Alvo do link quando <see cref="Href"/> é definido (ex.: "_blank").</summary>
+    [Parameter] public string? Target { get; set; }
+
+    /// <summary>Torna o tile um botão (renderiza &lt;button&gt;) quando definido e <see cref="Href"/> é nulo.</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    /// <summary>Desabilita o tile interativo.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>CSS aspect-ratio do tile (ex.: "1/1", "16/9"). Não combine com RowSpan/RowHeight.</summary>
+    [Parameter] public string? AspectRatio { get; set; }
+
+    /// <summary>Alinhamento (cross-axis) do conteúdo dentro do tile — torna o tile um flex column.</summary>
+    [Parameter] public StackAlign? AlignContent { get; set; }
+
+    /// <summary>Distribuição (main-axis) do conteúdo dentro do tile — torna o tile um flex column.</summary>
+    [Parameter] public StackAlign? JustifyContent { get; set; }
+
+    /// <summary>Adiciona um scrim (gradiente inferior) p/ texto sobre imagem full-bleed. Use com <see cref="NoPadding"/>.</summary>
+    [Parameter] public bool Scrim { get; set; }
+
+    private bool Interactive => Href is not null || OnClick.HasDelegate;
+
+    private string RootCss => CssBuilder.Default("omni-bento-item")
+        .AddClass("omni-bento-item-flush", NoPadding)
+        .AddClass($"omni-bento-span-{ColSpan}", ColSpan > 1)
+        .AddClass(ColSpanSm is int cs ? $"omni-bento-span-sm-{cs}" : null)
+        .AddClass(ColSpanMd is int cm ? $"omni-bento-span-md-{cm}" : null)
+        .AddClass(ColSpanLg is int cl ? $"omni-bento-span-lg-{cl}" : null)
+        .AddClass($"omni-bento-row-span-{RowSpan}", RowSpan > 1)
+        .AddClass(RowSpanSm is int rs ? $"omni-bento-row-span-sm-{rs}" : null)
+        .AddClass(RowSpanMd is int rm ? $"omni-bento-row-span-md-{rm}" : null)
+        .AddClass(RowSpanLg is int rl ? $"omni-bento-row-span-lg-{rl}" : null)
+        .AddClass(Tone switch { CardTone.None => null, _ => $"omni-bento-item-tone-{Tone.ToString().ToLowerInvariant()}" })
+        .AddClass("omni-bento-item-interactive", Interactive)
+        .AddClass("omni-bento-item-disabled", Disabled)
+        .AddClass("omni-bento-item-ar", !string.IsNullOrWhiteSpace(AspectRatio))
+        .AddClass("omni-bento-item-flex", AlignContent is not null || JustifyContent is not null)
+        .AddClass(AlignContent is StackAlign a ? $"omni-bento-item-align-{a.ToString().ToLowerInvariant()}" : null)
+        .AddClass(JustifyContent is StackAlign j ? $"omni-bento-item-justify-{j.ToString().ToLowerInvariant()}" : null)
+        .AddClass("omni-bento-item-scrim", Scrim)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle
+    {
+        get
+        {
+            var parts = new List<string>(2);
+            if (!string.IsNullOrWhiteSpace(AspectRatio)) parts.Add($"--omni-bento-ar: {AspectRatio}");
+            if (!string.IsNullOrWhiteSpace(Style)) parts.Add(Style!);
+            return string.Join("; ", parts);
+        }
+    }
+
+    private async Task HandleClickAsync(MouseEventArgs e)
+    {
+        if (Disabled) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync(e);
+    }
+}

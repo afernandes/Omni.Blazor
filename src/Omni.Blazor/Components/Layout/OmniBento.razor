@@ -1,0 +1,119 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+@using Omni.Blazor.Models
+
+@*  OmniBento — grade 2D densa (Bento). Empacota tiles de tamanhos variados com
+    span de coluna e linha (grid-auto-flow: row dense). É a única primitiva da
+    biblioteca para layout Bento. Para faixas 1D (abas / list-group) use
+    <c>OmniCardGroup</c>.
+
+    Default = estilo Apple: gaps reais (<see cref="Gap"/>) + tiles arredondados,
+    usando os tokens do design system (--omni-bg-elev, --omni-line, --omni-radius).
+
+    Tiles: use <c>OmniBentoItem</c> (tipado, com ColSpan/RowSpan) ou qualquer
+    elemento (ex.: OmniCard) com as classes utilitárias
+    <c>omni-bento-span-{2..12}</c> / <c>omni-bento-row-span-{2..6}</c>.
+
+    Opções:
+      • <see cref="MinTileWidth"/> — responsividade intrínseca (auto-fit) sem breakpoints.
+      • <see cref="RowHeight"/>     — altura-base de linha (ritmo vertical consistente).
+      • <see cref="Square"/>        — remove o arredondamento dos tiles.
+      • <see cref="Connected"/>     — visual "grudado" de 1px (telas operacionais densas).
+*@
+@if (Container)
+{
+    @* Wrapper p/ container queries: um elemento não consulta a própria largura,
+       então o wrapper é o container e a grade (.omni-bento-container) é o descendente. *@
+    <div class="omni-bento-cq">
+        <div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+            @ChildContent
+        </div>
+    </div>
+}
+else
+{
+    <div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+        @ChildContent
+    </div>
+}
+
+@code {
+    /// <summary>Número de colunas (mobile-first). Default 12. Ignorado quando <see cref="MinTileWidth"/> é definido.</summary>
+    [Parameter] public int Columns { get; set; } = 12;
+
+    /// <summary>Override de <see cref="Columns"/> em ≥640px. Default null.</summary>
+    [Parameter] public int? ColumnsSm { get; set; }
+
+    /// <summary>Override de <see cref="Columns"/> em ≥1024px. Default null.</summary>
+    [Parameter] public int? ColumnsMd { get; set; }
+
+    /// <summary>Override de <see cref="Columns"/> em ≥1440px. Default null.</summary>
+    [Parameter] public int? ColumnsLg { get; set; }
+
+    /// <summary>Largura mínima do tile em px. Quando definido, usa auto-fit
+    /// (repeat(auto-fit, minmax(MinTileWidth, 1fr))) — os tiles refluem pela largura
+    /// do container sem breakpoints, e <see cref="Columns"/> é ignorado.</summary>
+    [Parameter] public int? MinTileWidth { get; set; }
+
+    /// <summary>Espaçamento entre tiles em px. Default 16 (estilo Apple). Ignorado quando <see cref="Connected"/>.</summary>
+    [Parameter] public int Gap { get; set; } = 16;
+
+    /// <summary>Altura-base de cada linha do grid em px (grid-auto-rows minmax). Default null (altura por conteúdo).</summary>
+    [Parameter] public int? RowHeight { get; set; }
+
+    /// <summary>Remove o arredondamento dos tiles (cantos retos). Default false.</summary>
+    [Parameter] public bool Square { get; set; }
+
+    /// <summary>Visual "grudado" de 1px (tiles achatados, sem gap) — para telas operacionais densas. Default false.</summary>
+    [Parameter] public bool Connected { get; set; }
+
+    /// <summary>Empacotamento denso (grid-auto-flow: row dense). Default true. Defina false
+    /// para preservar a ordem do DOM = ordem visual (foco/leitura quando os tiles são interativos).</summary>
+    [Parameter] public bool Dense { get; set; } = true;
+
+    /// <summary>Alinhamento vertical dos tiles na célula (align-items do grid). Default Stretch.</summary>
+    [Parameter] public StackAlign AlignItems { get; set; } = StackAlign.Stretch;
+
+    /// <summary>Linhas de altura igual (grid-auto-rows: 1fr) — visual Apple alinhado. Vence RowHeight. Default false.</summary>
+    [Parameter] public bool EqualRows { get; set; }
+
+    /// <summary>Responsividade por container query: colunas/spans reagem à largura do PRÓPRIO Bento
+    /// (não do viewport), via um wrapper. Use para Bentos dentro de painéis/sidebars. Default false.
+    /// (Alternativa ao <see cref="MinTileWidth"/>, que já é container-relativo.)</summary>
+    [Parameter] public bool Container { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-bento")
+        .AddClass("omni-bento-autofit", MinTileWidth is not null)
+        .AddClass("omni-bento-rows", RowHeight is not null)
+        .AddClass("omni-bento-square", Square)
+        .AddClass("omni-bento-connected", Connected)
+        .AddClass("omni-bento-sparse", !Dense)
+        .AddClass("omni-bento-equal", EqualRows)
+        .AddClass("omni-bento-container", Container)
+        .AddClass($"omni-bento-align-{AlignItems.ToString().ToLowerInvariant()}")
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle
+    {
+        get
+        {
+            var parts = new List<string>(6) { $"--omni-bento-gap: {Gap}px" };
+            if (MinTileWidth is int min)
+            {
+                parts.Add($"--omni-bento-min: {min}px");
+            }
+            else
+            {
+                parts.Add($"--omni-bento-cols: {Columns}");
+                if (ColumnsSm is int s) parts.Add($"--omni-bento-cols-sm: {s}");
+                if (ColumnsMd is int m) parts.Add($"--omni-bento-cols-md: {m}");
+                if (ColumnsLg is int l) parts.Add($"--omni-bento-cols-lg: {l}");
+            }
+            if (RowHeight is int h) parts.Add($"--omni-bento-row-h: {h}px");
+            if (!string.IsNullOrWhiteSpace(Style)) parts.Add(Style!);
+            return string.Join("; ", parts);
+        }
+    }
+}

@@ -44,11 +44,6 @@ public enum MenuMetaKind { Neutral, Accent, Good, Warn, Danger }
 /// <c>--omni-fg-muted</c> (Neutral).</summary>
 public enum StatusBadgeKind { Neutral, Accent, Good, Warn, Danger }
 
-/// <summary>Direção do empilhamento dos filhos de um <c>OmniTileGroup</c>.
-/// Column = stack vertical (default, estilo list-group);
-/// Row = stack horizontal; Grid = grade 2D N-colunas (Bento dashboard).</summary>
-public enum TileDirection { Column, Row, Grid }
-
 /// <summary>Direção de empilhamento do <c>OmniStack</c>.
 /// Column = vertical (default), Row = horizontal.</summary>
 public enum StackDirection { Column, Row }

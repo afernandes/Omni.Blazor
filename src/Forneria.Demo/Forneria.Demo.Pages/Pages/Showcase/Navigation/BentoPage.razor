@@ -1,0 +1,294 @@
+@page "/showcase/bento"
+@attribute [ShowcaseInfo(Title = "Bento", Category = Cat.Layout, Icon = "grid")]
+@layout ShowcaseLayout
+
+<PageTitle>Bento — Showcase</PageTitle>
+
+<ShowcasePage Title="Bento (OmniBento)"
+              Subtitle="Grade 2D densa — tiles de tamanhos variados, empacotados, com span de coluna e linha. Default estilo Apple (gaps + cantos arredondados).">
+
+    <Overview>
+        <p>
+            O <code>OmniBento</code> é a primitiva de <strong>Bento grid</strong>: uma grade CSS 2D
+            <em>densa</em> (<code>grid-auto-flow: row dense</code>) que empacota tiles de tamanhos
+            variados, com <strong>span de coluna e de linha</strong>. É o único componente da
+            biblioteca que faz colocação 2D com preenchimento automático de buracos.
+        </p>
+        <p>
+            <strong>Por padrão, estilo Apple</strong>: gaps reais entre os tiles e cantos
+            arredondados, usando os tokens do design system (<code>--omni-bg-elev</code>,
+            <code>--omni-line</code>, <code>--omni-radius</code>). Não é masonry — no Bento as linhas
+            <em>e</em> colunas alinham numa grade estrita com spans inteiros; no masonry só as colunas
+            alinham (alturas livres).
+        </p>
+        <p>
+            <strong>Tiles</strong>: use <code>&lt;OmniBentoItem ColSpan RowSpan&gt;</code> (tipado,
+            já é uma surface arredondada) ou qualquer elemento — ex.: <code>OmniCard</code> — com as
+            classes <code>omni-bento-span-{2..12}</code> / <code>omni-bento-row-span-{2..6}</code>.
+        </p>
+        <p>
+            <strong>Para faixas 1D</strong> (abas horizontais ou um <em>list-group</em> vertical de
+            cards grudados) use o <code>OmniCardGroup</code> — o Bento é focado no 2D.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Dashboards Bento — KPI principal em destaque (span) + métricas menores empacotadas ao redor.</li>
+            <li>Galerias / vitrines de features com tiles de tamanhos variados (estilo Apple/Vercel).</li>
+            <li>Grades 2D que devem se empacotar sem buracos e refluir pela largura (auto-fit).</li>
+            <li>Telas operacionais densas (PDV, KDS, live ops) → use <code>Connected</code> para o visual grudado de 1px.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Faixa 1D de cards grudados (abas / list-group) → <code>OmniCardGroup</code>.</li>
+            <li>Dashboards arejados em grade fixa de 12 colunas → <code>OmniRow</code> + <code>OmniCol</code>.</li>
+            <li>Fluxo de itens de altura variável sem alinhamento de linha (masonry real) → não há suporte.</li>
+            <li>Seções colapsáveis → <code>OmniAccordion</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="BENTO ESTILO APPLE (default)"
+                         Description="Gaps reais + tiles arredondados. OmniBentoItem é o tile tipado; ColSpan/RowSpan declaram o span. Os buracos são preenchidos por grid-auto-flow: row dense."
+                         Code="@(@"<OmniBento Columns=""2"" ColumnsMd=""4"">
+    <OmniBentoItem ColSpan=""2"" RowSpanMd=""2"">
+        <OmniStat Label=""Receita"" Value=""R$ 11.266,65"" Delta=""▲ +18,4%"" />
+    </OmniBentoItem>
+    <OmniBentoItem><OmniStat Label=""Pedidos"" Value=""142"" /></OmniBentoItem>
+    <OmniBentoItem><OmniStat Label=""Ticket""  Value=""R$ 79,34"" /></OmniBentoItem>
+    <OmniBentoItem ColSpan=""2"">Canais ativos</OmniBentoItem>
+    <OmniBentoItem>Tempo médio</OmniBentoItem>
+</OmniBento>")">
+            <OmniBento Columns="2" ColumnsMd="4">
+                <OmniBentoItem ColSpan="2" RowSpanMd="2">
+                    <OmniStat Label="Receita" Value="R$ 11.266,65" Delta="▲ +18,4%" DeltaCaption="vs ontem" />
+                </OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Pedidos" Value="142" Delta="▲ +9,2%" DeltaCaption="vs ontem" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Ticket médio" Value="R$ 79,34" Delta="▲ +8,4%" DeltaCaption="vs ontem" /></OmniBentoItem>
+                <OmniBentoItem ColSpan="2"><OmniStat Label="Canais ativos" Value="4" DeltaCaption="iFood · Uber · WhatsApp · Balcão" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Tempo médio" Value="24'18" Delta="▼ −2'04" DeltaDown /></OmniBentoItem>
+            </OmniBento>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RESPONSIVO POR AUTO-FIT"
+                         Description="MinTileWidth define a largura mínima do tile; o grid usa repeat(auto-fit, minmax(MinTileWidth, 1fr)) e reflui sozinho pela largura do container, sem precisar de Columns por breakpoint."
+                         Code="@(@"<OmniBento MinTileWidth=""200"">
+    <OmniBentoItem>Receita</OmniBentoItem>
+    <OmniBentoItem>Pedidos</OmniBentoItem>
+    <OmniBentoItem>Ticket</OmniBentoItem>
+    <OmniBentoItem>Cozinha</OmniBentoItem>
+</OmniBento>")">
+            <OmniBento MinTileWidth="200">
+                <OmniBentoItem><OmniStat Label="Receita" Value="R$ 11.266" Delta="▲ +18,4%" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Pedidos" Value="142" Delta="▲ +9,2%" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Ticket médio" Value="R$ 79,34" Delta="▲ +8,4%" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Cozinha" Value="12" DeltaCaption="em preparo" /></OmniBentoItem>
+            </OmniBento>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SPANS RESPONSIVOS"
+                         Description="ColSpan/RowSpan têm variantes Sm/Md/Lg (como o OmniCol). Mobile-first: o span base vale no celular e os tiles colapsam — aqui Columns=2→4 e a Cozinha cai de ColSpan=2 (full no mobile) para 1 (¼ no desktop). Redimensione para ver."
+                         Code="@(@"<OmniBento Columns=""2"" ColumnsMd=""4"">
+    <OmniBentoItem ColSpan=""2"">Receita (full no mobile · ½ no desktop)</OmniBentoItem>
+    <OmniBentoItem>Pedidos</OmniBentoItem>
+    <OmniBentoItem>Ticket</OmniBentoItem>
+    <OmniBentoItem ColSpan=""2"" ColSpanMd=""1"">Cozinha (full no mobile · ¼ no desktop)</OmniBentoItem>
+</OmniBento>")">
+            <OmniBento Columns="2" ColumnsMd="4">
+                <OmniBentoItem ColSpan="2"><OmniStat Label="Receita" Value="R$ 11.266" Delta="▲ +18,4%" DeltaCaption="vs ontem" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Pedidos" Value="142" Delta="▲ +9,2%" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Ticket médio" Value="R$ 79" Delta="▲ +8,4%" /></OmniBentoItem>
+                <OmniBentoItem ColSpan="2" ColSpanMd="1"><OmniStat Label="Cozinha" Value="12" DeltaCaption="em preparo" /></OmniBentoItem>
+            </OmniBento>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CONNECTED (grudado 1px)"
+                         Description="Opt-in para telas operacionais densas: gap de 1px que vira linha divisória, tiles achatados. O mesmo motor, com a aparência de tabela operacional."
+                         Code="@(@"<OmniBento Columns=""2"" ColumnsMd=""4"" Connected>
+    <OmniCard Class=""omni-bento-span-2"">Receita</OmniCard>
+    <OmniCard>Pedidos</OmniCard>
+    <OmniCard>Ticket</OmniCard>
+</OmniBento>")">
+            <OmniBento Columns="2" ColumnsMd="4" Connected>
+                <OmniCard Class="omni-bento-span-2"><OmniStat Label="Receita" Value="R$ 11.266,65" Delta="▲ +18,4%" /></OmniCard>
+                <OmniCard><OmniStat Label="Pedidos" Value="142" Delta="▲ +9,2%" /></OmniCard>
+                <OmniCard><OmniStat Label="Ticket médio" Value="R$ 79,34" /></OmniCard>
+                <OmniCard><OmniStat Label="Cozinha" Value="12" /></OmniCard>
+            </OmniBento>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COMPOSIÇÃO — BENTO + CARDGROUP"
+                         Description="Divisão de responsabilidades: o Bento (2D) organiza o dashboard; dentro de um tile, um OmniCardGroup (1D) faz a faixa de abas grudadas."
+                         Code="@(@"<OmniBento Columns=""1"" ColumnsMd=""3"">
+    <OmniBentoItem ColSpan=""1"" ColSpanMd=""2"" NoPadding>
+        <OmniCardGroup>
+            <OmniCard>Balcão</OmniCard>
+            <OmniCard>Delivery</OmniCard>
+            <OmniCard>Retirada</OmniCard>
+        </OmniCardGroup>
+    </OmniBentoItem>
+    <OmniBentoItem><OmniStat Label=""Pedidos"" Value=""142"" /></OmniBentoItem>
+</OmniBento>")">
+            <OmniBento Columns="1" ColumnsMd="3">
+                <OmniBentoItem ColSpan="1" ColSpanMd="2" NoPadding>
+                    <OmniCardGroup>
+                        <OmniCard><div style="text-align:center;font-weight:500;">Balcão</div></OmniCard>
+                        <OmniCard><div style="text-align:center;font-weight:500;">Delivery</div></OmniCard>
+                        <OmniCard><div style="text-align:center;font-weight:500;">Retirada</div></OmniCard>
+                    </OmniCardGroup>
+                </OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Pedidos" Value="142" Delta="▲ +9,2%" DeltaCaption="vs ontem" /></OmniBentoItem>
+            </OmniBento>
+        </ShowcaseSection>
+        <ShowcaseSection Title="TONE / HERO"
+                         Description="Tile.Tone dá hierarquia visual com tinta suave + borda (estilo Apple): Accent p/ hero, e semânticos (Success/Warning/Danger). Promove o 'KPI destacado' a parâmetro de primeira classe."
+                         Code="@(@"<OmniBento Columns=""2"" ColumnsMd=""4"">
+    <OmniBentoItem ColSpan=""2"" RowSpanMd=""2"" Tone=""CardTone.Accent"">Hero</OmniBentoItem>
+    <OmniBentoItem Tone=""CardTone.Success"">Meta batida</OmniBentoItem>
+    <OmniBentoItem Tone=""CardTone.Warning"">Atenção</OmniBentoItem>
+</OmniBento>")">
+            <OmniBento Columns="2" ColumnsMd="4">
+                <OmniBentoItem ColSpan="2" RowSpanMd="2" Tone="CardTone.Accent" JustifyContent="StackAlign.End">
+                    <OmniStat Label="Receita" Value="R$ 11.266,65" Delta="▲ +18,4%" DeltaCaption="vs ontem" />
+                </OmniBentoItem>
+                <OmniBentoItem Tone="CardTone.Success"><OmniStat Label="Meta" Value="112%" Delta="▲ atingida" /></OmniBentoItem>
+                <OmniBentoItem Tone="CardTone.Warning"><OmniStat Label="Estoque" Value="3" DeltaCaption="itens baixos" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Pedidos" Value="142" /></OmniBentoItem>
+                <OmniBentoItem><OmniStat Label="Cozinha" Value="12" /></OmniBentoItem>
+            </OmniBento>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TILES INTERATIVOS"
+                         Description="Href torna o tile um <a>; OnClick um <button> — com hover (elevação) e focus ring nativo (a11y). Disabled desabilita. O tile é autossuficiente: nunca precisa cair num OmniCard."
+                         Code="@(@"<OmniBento MinTileWidth=""180"">
+    <OmniBentoItem Href=""/showcase/datagrid"">DataGrid →</OmniBentoItem>
+    <OmniBentoItem OnClick=""@(() => _clicks++)"">Cliquei @_clicks×</OmniBentoItem>
+    <OmniBentoItem Disabled OnClick=""@(() => {})"">Desabilitado</OmniBentoItem>
+</OmniBento>")">
+            <OmniBento MinTileWidth="180">
+                <OmniBentoItem Href="/showcase/datagrid">
+                    <div style="font-weight:600;">DataGrid →</div>
+                    <p class="omni-muted" style="margin:.25rem 0 0; font-size:12px;">Tile como link (&lt;a&gt;)</p>
+                </OmniBentoItem>
+                <OmniBentoItem OnClick="@(() => _clicks++)">
+                    <div style="font-weight:600;">Clique aqui</div>
+                    <p class="omni-muted" style="margin:.25rem 0 0; font-size:12px;">@_clicks clique(s) · &lt;button&gt;</p>
+                </OmniBentoItem>
+                <OmniBentoItem Disabled OnClick="@(() => { })">
+                    <div style="font-weight:600;">Desabilitado</div>
+                    <p class="omni-muted" style="margin:.25rem 0 0; font-size:12px;">sem hover/clique</p>
+                </OmniBentoItem>
+            </OmniBento>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ASPECT-RATIO + SCRIM"
+                         Description="AspectRatio fixa a proporção do tile (galerias). Scrim adiciona um gradiente p/ texto legível sobre imagem full-bleed (use com NoPadding)."
+                         Code="@(@"<OmniBento MinTileWidth=""150"">
+    <OmniBentoItem AspectRatio=""1/1"" AlignContent=""StackAlign.Center"">1:1</OmniBentoItem>
+    <OmniBentoItem ColSpan=""2"" NoPadding Scrim JustifyContent=""StackAlign.End"">imagem + título</OmniBentoItem>
+</OmniBento>")">
+            <OmniBento MinTileWidth="150">
+                <OmniBentoItem AspectRatio="1/1" Tone="CardTone.Accent" AlignContent="StackAlign.Center" JustifyContent="StackAlign.Center">
+                    <span style="font-weight:600;">1 : 1</span>
+                </OmniBentoItem>
+                <OmniBentoItem AspectRatio="1/1" AlignContent="StackAlign.Center" JustifyContent="StackAlign.Center">
+                    <span style="font-weight:600;">1 : 1</span>
+                </OmniBentoItem>
+                <OmniBentoItem ColSpan="2" NoPadding Scrim JustifyContent="StackAlign.End"
+                               Style="min-height:120px; background:linear-gradient(135deg, var(--omni-accent), var(--omni-good));">
+                    <span style="position:relative; z-index:1; padding:12px; color:#fff; font-weight:600;">Título sobre imagem</span>
+                </OmniBentoItem>
+            </OmniBento>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CONTAINER QUERY (reage à própria largura)"
+                         Description="Com Container, as colunas reagem à largura do PRÓPRIO Bento (via wrapper), não do viewport. Os dois Bentos abaixo são idênticos na MESMA viewport — o estreito mostra menos colunas que o largo."
+                         Code="@(@"<OmniBento Container Columns=""1"" ColumnsSm=""2"" ColumnsMd=""4"">
+    <OmniBentoItem>…</OmniBentoItem>
+</OmniBento>")">
+            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+                <div style="flex:0 0 240px; max-width:100%;">
+                    <p class="omni-muted" style="margin:0 0 8px; font-size:12px;">container ≈240px → 1 coluna</p>
+                    <OmniBento Container Columns="1" ColumnsSm="2" ColumnsMd="4">
+                        <OmniBentoItem><OmniStat Label="Receita" Value="R$ 11.266" /></OmniBentoItem>
+                        <OmniBentoItem><OmniStat Label="Pedidos" Value="142" /></OmniBentoItem>
+                        <OmniBentoItem><OmniStat Label="Ticket" Value="R$ 79" /></OmniBentoItem>
+                        <OmniBentoItem><OmniStat Label="Cozinha" Value="12" /></OmniBentoItem>
+                    </OmniBento>
+                </div>
+                <div style="flex:1 1 420px; min-width:0;">
+                    <p class="omni-muted" style="margin:0 0 8px; font-size:12px;">container largo → mais colunas</p>
+                    <OmniBento Container Columns="1" ColumnsSm="2" ColumnsMd="4">
+                        <OmniBentoItem><OmniStat Label="Receita" Value="R$ 11.266" /></OmniBentoItem>
+                        <OmniBentoItem><OmniStat Label="Pedidos" Value="142" /></OmniBentoItem>
+                        <OmniBentoItem><OmniStat Label="Ticket" Value="R$ 79" /></OmniBentoItem>
+                        <OmniBentoItem><OmniStat Label="Cozinha" Value="12" /></OmniBentoItem>
+                    </OmniBento>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniBento — parâmetros">
+            <ShowcaseApiRow Name="Columns" Type="int" Default="12"
+                            Description="Número de colunas (mobile-first). Ignorado quando MinTileWidth é definido." />
+            <ShowcaseApiRow Name="ColumnsSm / Md / Lg" Type="int?" Default="null"
+                            Description="Override de Columns em ≥640 / ≥1024 / ≥1440 px." />
+            <ShowcaseApiRow Name="MinTileWidth" Type="int?" Default="null"
+                            Description="Largura mínima do tile (px). Ativa auto-fit: repeat(auto-fit, minmax(MinTileWidth, 1fr))." />
+            <ShowcaseApiRow Name="Gap" Type="int" Default="16"
+                            Description="Espaçamento entre tiles (px). Estilo Apple. Ignorado quando Connected." />
+            <ShowcaseApiRow Name="RowHeight" Type="int?" Default="null"
+                            Description="Altura-base de cada linha (px) via grid-auto-rows minmax." />
+            <ShowcaseApiRow Name="Square" Type="bool" Default="false"
+                            Description="Remove o arredondamento dos tiles (cantos retos)." />
+            <ShowcaseApiRow Name="Connected" Type="bool" Default="false"
+                            Description="Visual grudado de 1px (tiles achatados) para telas operacionais densas." />
+            <ShowcaseApiRow Name="Dense" Type="bool" Default="true"
+                            Description="Empacotamento denso (grid-auto-flow: row dense). false preserva a ordem do DOM = ordem visual (a11y)." />
+            <ShowcaseApiRow Name="AlignItems" Type="StackAlign" Default="Stretch"
+                            Description="Alinhamento vertical dos tiles na célula (align-items): Stretch, Start, Center, End, Baseline." />
+            <ShowcaseApiRow Name="EqualRows" Type="bool" Default="false"
+                            Description="Linhas de altura igual (grid-auto-rows: 1fr) — visual Apple alinhado. Vence RowHeight." />
+            <ShowcaseApiRow Name="Container" Type="bool" Default="false"
+                            Description="Colunas/spans reagem à largura do PRÓPRIO Bento (container query, via wrapper) em vez do viewport. Alternativa ao MinTileWidth." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniBentoItem — parâmetros">
+            <ShowcaseApiRow Name="ColSpan" Type="int" Default="1" Description="Quantas colunas o tile ocupa (base, mobile-first)." />
+            <ShowcaseApiRow Name="ColSpanSm / Md / Lg" Type="int?" Default="null"
+                            Description="Override de ColSpan em ≥640 / ≥1024 / ≥1440 px (ex.: ColSpan=4 + ColSpanSm=1 colapsa no mobile)." />
+            <ShowcaseApiRow Name="RowSpan" Type="int" Default="1" Description="Quantas linhas o tile ocupa (base)." />
+            <ShowcaseApiRow Name="RowSpanSm / Md / Lg" Type="int?" Default="null"
+                            Description="Override de RowSpan em ≥640 / ≥1024 / ≥1440 px." />
+            <ShowcaseApiRow Name="NoPadding" Type="bool" Default="false" Description="Remove o padding interno do tile." />
+            <ShowcaseApiRow Name="Tone" Type="CardTone" Default="None"
+                            Description="Tom do tile (hero/accent + semânticos): Accent, Neutral, Info, Success, Warning, Danger." />
+            <ShowcaseApiRow Name="Href / Target" Type="string?" Default="null"
+                            Description="Torna o tile um link (renderiza &lt;a&gt;) com hover + focus ring." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback" Default="—"
+                            Description="Torna o tile um botão (renderiza &lt;button&gt;) quando Href é nulo." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desabilita o tile interativo." />
+            <ShowcaseApiRow Name="AspectRatio" Type="string?" Default="null" Description="Proporção fixa (ex.: &quot;1/1&quot;, &quot;16/9&quot;). Não combine com RowSpan." />
+            <ShowcaseApiRow Name="AlignContent / JustifyContent" Type="StackAlign?" Default="null"
+                            Description="Alinha o conteúdo dentro do tile (vira flex column)." />
+            <ShowcaseApiRow Name="Scrim" Type="bool" Default="false" Description="Gradiente p/ texto sobre imagem full-bleed (use com NoPadding)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Classes utilitárias de span (alternativa ao OmniBentoItem)">
+            <ShowcaseApiRow Name="omni-bento-span-{N}" Type="CSS class" Default="—"
+                            Description="Filho ocupa N colunas (2..12). Ex.: Class=&quot;omni-bento-span-2&quot; num OmniCard." />
+            <ShowcaseApiRow Name="omni-bento-row-span-{N}" Type="CSS class" Default="—"
+                            Description="Filho ocupa N linhas (2..6). Ex.: Class=&quot;omni-bento-row-span-2&quot;." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private int _clicks;
+}

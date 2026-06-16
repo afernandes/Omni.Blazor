@@ -1305,50 +1305,8 @@
   background: var(--omni-accent-softer);
 }
 
-// ——— /tiles demo page ———————————————————————————————————————————————
-// Estilos específicos da página /tiles que mostra o OmniTileGroup nas
-// 3 direções (Column, Row, Grid). Componente vive na lib; estes são
-// só auxiliares da página demo (títulos de seção + células custom).
-.omni-tiles-section-title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
-.omni-tiles-section-sub   { color: var(--omni-fg-muted); font-size: 13px; margin: 0; }
-.omni-tiles-section-sub code {
-  font-family: var(--omni-font-mono);
-  font-size: 12px;
-  background: var(--omni-bg-sunken);
-  padding: 1px 5px;
-  border-radius: 4px;
-}
-
-// Célula da TileGroup Row (abas Balcão/Delivery/...): ícone + texto centrados
-.omni-tile-cell {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 14px 16px;
-  font-size: 13px; font-weight: 500;
-  color: var(--omni-fg-muted);
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
-}
-.omni-tile-cell:hover     { background: var(--omni-bg-sunken); color: var(--omni-fg); }
-.omni-tile-cell-active    { background: var(--omni-accent-softer); color: var(--omni-accent); font-weight: 600; }
-
-// Lista interna do Card "Itens do pedido" — linhas tracejadas
-.omni-tile-list { display: flex; flex-direction: column; }
-.omni-tile-list-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 8px 0;
-  border-top: 1px dashed var(--omni-line);
-  font-size: 13px;
-}
-.omni-tile-list-row:first-child { border-top: 0; }
-
-// Placeholder do mapa no Bento
-.omni-tiles-map-placeholder {
-  display: grid; place-items: center;
-  min-height: 120px;
-  background: var(--omni-bg-sunken);
-  border-radius: var(--omni-radius);
-  color: var(--omni-fg-muted);
-}
+// (A página /tiles foi removida — o OmniBento tem seu próprio showcase em
+// /showcase/bento e o OmniCardGroup em /showcase/card-group.)
 
 // ——— /garcom — tela operacional do garçom (tablet UI) ——————————————————
 // Adaptado do mock garcom.html (sistema-pizzaria/Anthropic Design). Layout
@@ -1839,8 +1797,8 @@
 // ——— /liveops — Live Operations dashboard (Bento) ————————————————————————
 // Adaptado do mock liveops-bento.html (sistema-pizzaria / Anthropic Design).
 // Top bar fina + 6 rows de bento: KPIs, fila, sparkbars, estações, pizza+frota,
-// ticker. Prefixo .omni-lo-* ("live operations"). Reusa <OmniTileGroup
-// Direction="Grid"> como container das rows; tudo aqui são apenas os widgets.
+// ticker. Prefixo .omni-lo-* ("live operations"). Reusa <OmniBento Connected>
+// como container das rows; tudo aqui são apenas os widgets.
 
 // ─── Shell ───────────────────────────────────────────────────────────────
 .omni-lo-app {
@@ -1957,7 +1915,7 @@
 .omni-lo-kpi-vs   { color: var(--omni-fg-soft); margin-left: 6px; }
 
 // KPI accent (1º card destacado em laranja). Selector duplo (0,2,0)
-// para vencer o `.omni-tile-group > *` (0,1,1) que pinta o filho de bg-elev.
+// para vencer o `.omni-bento-connected > *` que pinta o filho de bg-elev.
 .omni-lo-kpi.omni-lo-kpi-accent {
   background: var(--omni-accent);
   color: #fff;

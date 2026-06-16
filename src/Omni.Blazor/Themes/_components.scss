@@ -453,21 +453,51 @@
   .omni-stack-lg-column { flex-direction: column; }
 }
 
-// ——— Responsive TileGroup ———————————————————————————————————————————
+// ——— Responsive OmniBento — colunas + spans por breakpoint (VIEWPORT, @media) ———
+// Spans vão de 1..N p/ um tile largo "resetar" no mobile (ex.: ColSpan=4 + ColSpanSm=1).
+// Escopo :not(.omni-bento-container): no modo Container quem manda são as @container abaixo.
 @media (min-width: 640px) {
-  .omni-tile-group-grid {
-    grid-template-columns: repeat(var(--omni-tile-cols-sm, var(--omni-tile-cols, 12)), minmax(0, 1fr));
+  .omni-bento:not(.omni-bento-container) {
+    grid-template-columns: repeat(var(--omni-bento-cols-sm, var(--omni-bento-cols, 12)), minmax(0, 1fr));
   }
+  @for $i from 1 through 12 { .omni-bento:not(.omni-bento-container) .omni-bento-span-sm-#{$i}     { grid-column: span #{$i}; } }
+  @for $i from 1 through 6  { .omni-bento:not(.omni-bento-container) .omni-bento-row-span-sm-#{$i} { grid-row: span #{$i}; } }
 }
 @media (min-width: 1024px) {
-  .omni-tile-group-grid {
-    grid-template-columns: repeat(var(--omni-tile-cols-md, var(--omni-tile-cols-sm, var(--omni-tile-cols, 12))), minmax(0, 1fr));
+  .omni-bento:not(.omni-bento-container) {
+    grid-template-columns: repeat(var(--omni-bento-cols-md, var(--omni-bento-cols-sm, var(--omni-bento-cols, 12))), minmax(0, 1fr));
   }
+  @for $i from 1 through 12 { .omni-bento:not(.omni-bento-container) .omni-bento-span-md-#{$i}     { grid-column: span #{$i}; } }
+  @for $i from 1 through 6  { .omni-bento:not(.omni-bento-container) .omni-bento-row-span-md-#{$i} { grid-row: span #{$i}; } }
 }
 @media (min-width: 1440px) {
-  .omni-tile-group-grid {
-    grid-template-columns: repeat(var(--omni-tile-cols-lg, var(--omni-tile-cols-md, var(--omni-tile-cols-sm, var(--omni-tile-cols, 12)))), minmax(0, 1fr));
+  .omni-bento:not(.omni-bento-container) {
+    grid-template-columns: repeat(var(--omni-bento-cols-lg, var(--omni-bento-cols-md, var(--omni-bento-cols-sm, var(--omni-bento-cols, 12)))), minmax(0, 1fr));
   }
+  @for $i from 1 through 12 { .omni-bento:not(.omni-bento-container) .omni-bento-span-lg-#{$i}     { grid-column: span #{$i}; } }
+  @for $i from 1 through 6  { .omni-bento:not(.omni-bento-container) .omni-bento-row-span-lg-#{$i} { grid-row: span #{$i}; } }
+}
+
+// ——— Container-query responsiveness (opt-in via <OmniBento Container>) ———
+// Um elemento não consulta a própria largura → o wrapper .omni-bento-cq é o container
+// e a grade .omni-bento-container é o descendente consultado, então colunas/spans
+// reagem à largura do PRÓPRIO Bento (não do viewport). Idioma já usado em
+// .omni-card-group / .omni-stat-group. @container exige px literais (não lê vars).
+.omni-bento-cq { container-type: inline-size; }
+@container (min-width: 640px) {
+  .omni-bento.omni-bento-container { grid-template-columns: repeat(var(--omni-bento-cols-sm, var(--omni-bento-cols, 12)), minmax(0, 1fr)); }
+  @for $i from 1 through 12 { .omni-bento-container .omni-bento-span-sm-#{$i}     { grid-column: span #{$i}; } }
+  @for $i from 1 through 6  { .omni-bento-container .omni-bento-row-span-sm-#{$i} { grid-row: span #{$i}; } }
+}
+@container (min-width: 1024px) {
+  .omni-bento.omni-bento-container { grid-template-columns: repeat(var(--omni-bento-cols-md, var(--omni-bento-cols-sm, var(--omni-bento-cols, 12))), minmax(0, 1fr)); }
+  @for $i from 1 through 12 { .omni-bento-container .omni-bento-span-md-#{$i}     { grid-column: span #{$i}; } }
+  @for $i from 1 through 6  { .omni-bento-container .omni-bento-row-span-md-#{$i} { grid-row: span #{$i}; } }
+}
+@container (min-width: 1440px) {
+  .omni-bento.omni-bento-container { grid-template-columns: repeat(var(--omni-bento-cols-lg, var(--omni-bento-cols-md, var(--omni-bento-cols-sm, var(--omni-bento-cols, 12)))), minmax(0, 1fr)); }
+  @for $i from 1 through 12 { .omni-bento-container .omni-bento-span-lg-#{$i}     { grid-column: span #{$i}; } }
+  @for $i from 1 through 6  { .omni-bento-container .omni-bento-row-span-lg-#{$i} { grid-row: span #{$i}; } }
 }
 
 // ——— AppBar / Header (legacy .omni-header alias) ————————————————————————
@@ -1104,68 +1134,139 @@
 // Funciona em 1D (linha/coluna) e em 2D (grid com spans) sem nenhum seletor
 // especial — zero edge cases com bordas duplas.
 //
-// Validação: Metronic v9 usa exatamente esse padrão (`gap-px bg-border`)
-// para layouts Bento — não é invenção, é o idioma CSS moderno.
-.omni-tile-group {
+// ——— OmniBento — grade 2D densa (Bento) ————————————————————————————————
+// Default = estilo Apple: gaps reais + tiles arredondados (tokens do design
+// system). `grid-auto-flow: row dense` empacota tiles de tamanhos variados;
+// spans de coluna/linha via <OmniBentoItem> ou classes utilitárias. Para faixas
+// 1D (abas / list-group) use .omni-card-group.
+.omni-bento {
   display: grid;
+  grid-template-columns: repeat(var(--omni-bento-cols, 12), minmax(0, 1fr));
+  grid-auto-flow: row dense;                      // empacota buracos deixados por spans
+  gap: var(--omni-bento-gap, 16px);
+}
+
+.omni-bento > * { min-width: 0; }                 // permite tiles encolherem na célula
+
+// Responsividade intrínseca — auto-fit por largura mínima do tile, sem breakpoints.
+// O `min(100%, …)` evita overflow quando o container é mais estreito que o piso.
+.omni-bento.omni-bento-autofit {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--omni-bento-min, 220px)), 1fr));
+}
+// Em auto-fit a contagem de colunas é desconhecida → spans podem estourar a grade.
+// Ignora spans neste modo (use colunas explícitas ou Container para spans).
+.omni-bento.omni-bento-autofit > [class*="omni-bento-span-"]     { grid-column: auto; }
+.omni-bento.omni-bento-autofit > [class*="omni-bento-row-span-"] { grid-row: auto; }
+
+// Altura-base de linha — ritmo vertical consistente; row-spans crescem em múltiplos.
+.omni-bento.omni-bento-rows { grid-auto-rows: minmax(var(--omni-bento-row-h, 120px), auto); }
+
+// Linhas de altura igual (opt-in) — visual Apple alinhado. Vence RowHeight (last-wins).
+.omni-bento.omni-bento-equal { grid-auto-rows: minmax(0, 1fr); }
+
+// Cantos retos (opt-in) — remove o arredondamento Apple dos tiles.
+.omni-bento.omni-bento-square > * { border-radius: 0; }
+
+// Sparse (opt-in) — desliga o empacotamento denso, preservando a ordem do DOM
+// = ordem visual (importante p/ foco/leitura quando os tiles são interativos).
+.omni-bento.omni-bento-sparse { grid-auto-flow: row; }
+
+// Alinhamento vertical dos tiles na célula (align-items do grid).
+.omni-bento.omni-bento-align-start    { align-items: start; }
+.omni-bento.omni-bento-align-center   { align-items: center; }
+.omni-bento.omni-bento-align-end      { align-items: end; }
+.omni-bento.omni-bento-align-stretch  { align-items: stretch; }
+.omni-bento.omni-bento-align-baseline { align-items: baseline; }
+
+// ——— OmniBentoItem — tile tipado (surface Apple + span via ColSpan/RowSpan) ———
+.omni-bento-item {
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  overflow: hidden;
+  padding: var(--omni-card-padding);
+  min-width: 0;
+}
+.omni-bento-item-flush { padding: 0; }
+
+// Tile interativo (Href/OnClick) — superfície clicável/linkável. Reset de <a>/<button>
+// para parecer um tile; hover com leve elevação. O focus ring vem da regra base
+// :focus-visible; a transição é desligada globalmente em prefers-reduced-motion.
+.omni-bento-item-interactive {
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+}
+.omni-bento:not(.omni-bento-connected) .omni-bento-item-interactive:hover {
+  border-color: var(--omni-line-strong);
+  box-shadow: var(--omni-shadow);
+}
+.omni-bento-item-interactive:active { transform: translateY(1px); }
+.omni-bento-item-disabled { opacity: .6; pointer-events: none; }
+
+// Tom do tile — hero/accent + semânticos (tinta suave + borda, estilo Apple).
+.omni-bento-item-tone-accent  { background: var(--omni-accent-soft); border-color: var(--omni-accent); }
+.omni-bento-item-tone-neutral { background: var(--omni-bg-sunken);  border-color: var(--omni-line-strong); }
+.omni-bento-item-tone-info    { background: color-mix(in oklab, var(--omni-info) 10%, transparent);   border-color: var(--omni-info); }
+.omni-bento-item-tone-success { background: color-mix(in oklab, var(--omni-good) 10%, transparent);   border-color: var(--omni-good); }
+.omni-bento-item-tone-warning { background: color-mix(in oklab, var(--omni-warn) 10%, transparent);   border-color: var(--omni-warn); }
+.omni-bento-item-tone-danger  { background: color-mix(in oklab, var(--omni-danger) 10%, transparent); border-color: var(--omni-danger); }
+
+// Proporção fixa do tile (ex.: 1/1, 16/9). Não combinar com RowSpan/RowHeight.
+.omni-bento-item-ar { aspect-ratio: var(--omni-bento-ar); }
+
+// Alinhamento do conteúdo DENTRO do tile (vira flex column).
+.omni-bento-item-flex { display: flex; flex-direction: column; }
+.omni-bento-item-align-start    { align-items: flex-start; }
+.omni-bento-item-align-center   { align-items: center; }
+.omni-bento-item-align-end      { align-items: flex-end; }
+.omni-bento-item-align-stretch  { align-items: stretch; }
+.omni-bento-item-align-baseline { align-items: baseline; }
+.omni-bento-item-justify-start   { justify-content: flex-start; }
+.omni-bento-item-justify-center  { justify-content: center; }
+.omni-bento-item-justify-end     { justify-content: flex-end; }
+.omni-bento-item-justify-stretch { justify-content: stretch; }
+
+// Scrim de leitura — gradiente inferior p/ texto sobre imagem full-bleed (use com NoPadding).
+.omni-bento-item-scrim { position: relative; }
+.omni-bento-item-scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent 50%);
+}
+
+// Modo "connected" (opt-in) — visual grudado de 1px para telas operacionais
+// densas: o gap de 1px vaza o background do container virando linha divisória;
+// os tiles ficam achatados (sem radius/sombra/borda própria). Idioma `gap-px
+// bg-border` (Metronic v9) — não é invenção, é CSS-grid moderno.
+.omni-bento.omni-bento-connected {
   gap: 1px;
   background: var(--omni-line);
   border: 1px solid var(--omni-line);
   border-radius: var(--omni-radius);
-  overflow: hidden;                              // recorta cantos dos filhos
-
-  // Filhos diretos: background opaco (cobre o "linhão" do container),
-  // sem radius próprio, sem shadow, sem borda (a divisão vem do gap).
-  // Vence por specificity os defaults do .omni-card.
-  //
-  // O `overflow: visible` no filho direto é deliberado: o TileGroup já tem
-  // overflow:hidden + border-radius no exterior, que é o único elemento que
-  // arredonda. Se o filho mantivesse seu próprio overflow:hidden +
-  // border-radius (mesmo zerado), em sub-pixel boundaries podia "vazar" o
-  // background do container nas junções, formando triangulinhos. Visible
-  // dissolve o conflito — o TileGroup ainda recorta o exterior.
-  > * {
-    background: var(--omni-bg-elev);
-    border-radius: 0;
-    box-shadow: none;
-    border: 0;
-    overflow: visible;
-  }
-
-  // Defesa em profundidade: zera radius em qualquer descendente que o
-  // tenha (card-header, card-body, card-footer, card-media, etc.). Garante
-  // que nenhum canto arredondado interior deixe escapar o gap do container.
-  > * * {
-    border-radius: 0;
-  }
+  overflow: hidden;
 }
-
-// Direção COLUNA (default) — stack vertical, 1 coluna
-.omni-tile-group-col {
-  grid-template-columns: 1fr;
-  grid-auto-flow: row;
+.omni-bento-connected > * {
+  background: var(--omni-bg-elev);
+  border-radius: 0;
+  box-shadow: none;
+  border: 0;
+  overflow: visible;
 }
+.omni-bento-connected > * * { border-radius: 0; }
 
-// Direção LINHA — stack horizontal, colunas iguais
-.omni-tile-group-row {
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-}
-
-// Direção GRID — Bento 2D, N colunas (configurável via --omni-tile-cols)
-.omni-tile-group-grid {
-  grid-template-columns: repeat(var(--omni-tile-cols, 12), 1fr);
-  grid-auto-flow: row dense;                     // dense aproveita buracos deixados por spans
-}
-
-// ——— Span helpers (filhos do TileGroup-grid) ———
-// Class="omni-tile-span-N" no OmniCard quando precisar ocupar múltiplas
-// colunas/linhas (layouts Bento assimétricos).
+// ——— Span helpers (em OmniCard ou qualquer filho do Bento) ———
+// Class="omni-bento-span-N" para ocupar múltiplas colunas/linhas (Bento assimétrico).
 @for $i from 2 through 12 {
-  .omni-tile-span-#{$i}     { grid-column: span #{$i}; }
+  .omni-bento-span-#{$i}     { grid-column: span #{$i}; }
 }
 @for $i from 2 through 6 {
-  .omni-tile-row-span-#{$i} { grid-row: span #{$i}; }
+  .omni-bento-row-span-#{$i} { grid-row: span #{$i}; }
 }
 
 .omni-card {
