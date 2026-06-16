@@ -220,4 +220,61 @@ public class OmniDataFilterTests : TestContextBase
         Assert.Contains("margin:4px", root.GetAttribute("style") ?? "");
         Assert.Equal("df1", root.GetAttribute("data-testid"));
     }
+
+    // ─── SQL mode ──────────────────────────────────────────────────────────────
+
+    private static List<OmniFilterRule> Seed() =>
+        new() { new() { Property = "Name", Operator = FilterOperator.Contains, Value = "a" } };
+
+    [Fact]
+    public void AllowSqlMode_renders_the_visual_sql_toggle()
+    {
+        var cut = RenderFilter(extra: p => p.Add(c => c.AllowSqlMode, true));
+        Assert.NotEmpty(cut.FindAll(".omni-datafilter-modes"));
+        Assert.Equal(2, cut.FindAll(".omni-datafilter-mode").Count);
+    }
+
+    [Fact]
+    public void Sql_mode_shows_generated_sql_from_rules()
+    {
+        var cut = RenderFilter(extra: p => { p.Add(c => c.AllowSqlMode, true); p.Add(c => c.Rules, Seed()); });
+        cut.FindAll(".omni-datafilter-mode")[1].Click();   // → SQL
+        Assert.NotEmpty(cut.FindAll(".omni-datafilter-sql-input"));
+        Assert.Contains("Name LIKE '%a%'", cut.Markup);
+    }
+
+    [Fact]
+    public void Apply_valid_sql_updates_filter_and_returns_to_visual()
+    {
+        IEnumerable<Person>? filtered = null;
+        var cut = RenderFilter(onFilter: v => filtered = v, extra: p => p.Add(c => c.AllowSqlMode, true));
+
+        cut.FindAll(".omni-datafilter-mode")[1].Click();          // → SQL
+        cut.Find(".omni-datafilter-sql-input").Input("Age >= 30");
+        cut.FindAll("button").First(b => b.TextContent.Contains("Aplicar ao filtro")).Click();
+
+        Assert.Empty(cut.FindAll(".omni-datafilter-sql"));        // back to visual
+        Assert.NotNull(filtered);
+        Assert.Equal(new[] { "Bruno", "Carla" }, filtered!.Select(x => x.Name).OrderBy(n => n));
+    }
+
+    [Fact]
+    public void Invalid_sql_shows_error_and_disables_apply()
+    {
+        var cut = RenderFilter(extra: p => p.Add(c => c.AllowSqlMode, true));
+        cut.FindAll(".omni-datafilter-mode")[1].Click();
+        cut.Find(".omni-datafilter-sql-input").Input("Idade = 5");   // unknown column (prop is "Age")
+
+        Assert.NotEmpty(cut.FindAll(".omni-datafilter-sql-invalid"));
+        var apply = cut.FindAll("button").First(b => b.TextContent.Contains("Aplicar ao filtro"));
+        Assert.True(apply.HasAttribute("disabled"));
+    }
+
+    [Fact]
+    public void ShowSqlPreview_renders_readonly_generated_sql()
+    {
+        var cut = RenderFilter(extra: p => { p.Add(c => c.ShowSqlPreview, true); p.Add(c => c.Rules, Seed()); });
+        Assert.NotEmpty(cut.FindAll(".omni-datafilter-sqlpreview"));
+        Assert.Contains("Name LIKE '%a%'", cut.Markup);
+    }
 }

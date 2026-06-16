@@ -2,7 +2,9 @@
 @typeparam TItem
 @inherits OmniComponentWithChildren
 @implements IOmniDataFilterOwner
+@inject Microsoft.JSInterop.IJSRuntime JS
 @using System.Reflection
+@using Microsoft.AspNetCore.Components.Web
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
 
@@ -23,22 +25,86 @@
     @ChildContent
 
     <div class="@RootCss" style="@Style" @attributes="Attributes">
-        <OmniDataFilterItem Rule="_root" IsRoot="true" />
-
-        @if (!Auto || HasRules)
+        @if (AllowSqlMode)
         {
-            <div class="omni-datafilter-actions">
-                @if (!Auto)
-                {
-                    <OmniButton Text="@ApplyFilterText" Icon="filter" Variant="ButtonVariant.Primary"
-                                Size="ComponentSize.Sm" OnClick="ApplyFilterAsync" Disabled="@Disabled" />
-                }
-                @if (HasRules)
-                {
-                    <OmniButton Text="@ClearFilterText" Icon="x" Variant="ButtonVariant.Default"
-                                Size="ComponentSize.Sm" OnClick="ClearAsync" Disabled="@Disabled" />
-                }
+            <div class="omni-datafilter-modes" role="group" aria-label="Modo do filtro">
+                <button type="button" class="@ModeCss(false)" disabled="@Disabled" @onclick="@(() => SetSqlModeAsync(false))">
+                    <OmniIcon Name="layout-grid" Size="ComponentSize.Sm" /> @VisualModeText
+                </button>
+                <button type="button" class="@ModeCss(true)" disabled="@Disabled" @onclick="@(() => SetSqlModeAsync(true))">
+                    <OmniIcon Name="code" Size="ComponentSize.Sm" /> @SqlModeText
+                </button>
             </div>
+        }
+
+        @if (_sqlMode)
+        {
+            <div class="omni-datafilter-sql">
+                <textarea class="omni-datafilter-sql-input" rows="4" spellcheck="false" autocomplete="off"
+                          value="@_sqlText" @oninput="OnSqlInput" disabled="@Disabled"
+                          placeholder="@SqlPlaceholder" aria-label="Filtro em SQL"></textarea>
+
+                <div class="@SqlStatusCss" role="status">
+                    @if (_sqlError is not null)
+                    {
+                        <OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /> <span>@_sqlError</span>
+                    }
+                    else
+                    {
+                        <OmniIcon Name="circle-check" Size="ComponentSize.Sm" /> <span>@SqlValidText</span>
+                    }
+                </div>
+
+                @if (_properties.Count > 0)
+                {
+                    <div class="omni-datafilter-sql-fields">
+                        <span class="omni-datafilter-sql-fieldslabel">@FieldsLabel:</span>
+                        @foreach (var p in _properties)
+                        {
+                            <code class="omni-datafilter-sql-chip" @key="p">@p.Property</code>
+                        }
+                    </div>
+                }
+
+                <div class="omni-datafilter-actions">
+                    <OmniButton Text="@CopyText" Icon="copy" Variant="ButtonVariant.Default"
+                                Size="ComponentSize.Sm" OnClick="CopySqlAsync" Disabled="@Disabled" />
+                    <OmniButton Text="@ApplySqlText" Icon="check" Variant="ButtonVariant.Primary"
+                                Size="ComponentSize.Sm" OnClick="ApplySqlAsync" Disabled="@(Disabled || _sqlError is not null)" />
+                </div>
+            </div>
+        }
+        else
+        {
+            <OmniDataFilterItem Rule="_root" IsRoot="true" />
+
+            @if (!Auto || HasRules)
+            {
+                <div class="omni-datafilter-actions">
+                    @if (!Auto)
+                    {
+                        <OmniButton Text="@ApplyFilterText" Icon="filter" Variant="ButtonVariant.Primary"
+                                    Size="ComponentSize.Sm" OnClick="ApplyFilterAsync" Disabled="@Disabled" />
+                    }
+                    @if (HasRules)
+                    {
+                        <OmniButton Text="@ClearFilterText" Icon="x" Variant="ButtonVariant.Default"
+                                    Size="ComponentSize.Sm" OnClick="ClearAsync" Disabled="@Disabled" />
+                    }
+                </div>
+            }
+
+            @if (ShowSqlPreview && HasRules)
+            {
+                <details class="omni-datafilter-sqlpreview">
+                    <summary>@SqlPreviewLabel</summary>
+                    <div class="omni-datafilter-sqlpreview-body">
+                        <pre>@CurrentSql</pre>
+                        <OmniButton Text="@CopyText" Icon="copy" Variant="ButtonVariant.Default"
+                                    Size="ComponentSize.Sm" OnClick="CopyPreviewAsync" Disabled="@Disabled" />
+                    </div>
+                </details>
+            }
         }
     </div>
 </CascadingValue>
@@ -86,6 +152,23 @@
     [Parameter] public string OrOperatorText { get; set; } = "OU";
     [Parameter] public string ValuePlaceholder { get; set; } = "valor";
 
+    // ─── SQL mode ──────────────────────────────────────────────────────────────
+
+    /// <summary>Show the Visual/SQL toggle, enabling an editable SQL view of the filter. Default false.</summary>
+    [Parameter] public bool AllowSqlMode { get; set; }
+
+    /// <summary>Show a read-only "generated SQL" disclosure under the visual builder. Default false.</summary>
+    [Parameter] public bool ShowSqlPreview { get; set; }
+
+    [Parameter] public string VisualModeText { get; set; } = "Visual";
+    [Parameter] public string SqlModeText { get; set; } = "SQL";
+    [Parameter] public string ApplySqlText { get; set; } = "Aplicar ao filtro";
+    [Parameter] public string SqlValidText { get; set; } = "SQL válido";
+    [Parameter] public string SqlPreviewLabel { get; set; } = "SQL gerado";
+    [Parameter] public string CopyText { get; set; } = "Copiar";
+    [Parameter] public string FieldsLabel { get; set; } = "Campos";
+    [Parameter] public string SqlPlaceholder { get; set; } = "ex.: Nome LIKE '%texto%' AND Idade >= 18";
+
     // ─── State ─────────────────────────────────────────────────────────────────
 
     private readonly OmniFilterRule _root = OmniFilterRule.Group();
@@ -93,6 +176,10 @@
     private readonly Dictionary<string, PropertyInfo?> _piCache = new();
     private FilterLogic _lastLogic = FilterLogic.And;
     private Func<TItem, bool> _predicate = _ => true;
+
+    private bool _sqlMode;
+    private string _sqlText = "";
+    private string? _sqlError;
 
     private bool HasRules => _root.Rules!.Count > 0;
 
@@ -170,6 +257,58 @@
     {
         _root.Rules!.Clear();
         await NotifyChangedAsync();
+    }
+
+    // ─── SQL mode ────────────────────────────────────────────────────────────
+
+    private string CurrentSql => FilterSqlConverter.ToSql(_root.Rules!, _root.Logic, _properties);
+
+    private string ModeCss(bool sql) => CssBuilder.Default("omni-datafilter-mode")
+        .AddClass("omni-active", _sqlMode == sql).Build();
+
+    private string SqlStatusCss => CssBuilder.Default("omni-datafilter-sql-status")
+        .AddClass("omni-datafilter-sql-invalid", _sqlError is not null).Build();
+
+    private Task SetSqlModeAsync(bool sql)
+    {
+        if (_sqlMode == sql) return Task.CompletedTask;
+        if (sql) { _sqlText = CurrentSql; ValidateSql(); }  // seed from the live tree
+        _sqlMode = sql;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void OnSqlInput(ChangeEventArgs e)
+    {
+        _sqlText = e.Value?.ToString() ?? "";
+        ValidateSql();
+    }
+
+    private void ValidateSql()
+        => FilterSqlConverter.TryParse(_sqlText, _properties, out _, out _, out _sqlError);
+
+    private async Task ApplySqlAsync()
+    {
+        if (!FilterSqlConverter.TryParse(_sqlText, _properties, out var parsed, out var logic, out var error))
+        {
+            _sqlError = error;
+            StateHasChanged();
+            return;
+        }
+        // Mutate the bound list in place so the consumer's Rules reference stays valid.
+        _root.Rules!.Clear();
+        _root.Rules.AddRange(parsed);
+        _root.Logic = logic;
+        _sqlError = null;
+        _sqlMode = false;
+        await NotifyChangedAsync();
+    }
+
+    private async Task CopySqlAsync() => await CopyAsync(_sqlText);
+    private async Task CopyPreviewAsync() => await CopyAsync(CurrentSql);
+    private async Task CopyAsync(string text)
+    {
+        try { await JS.InvokeVoidAsync("omniBlazor.copyText", text); } catch { }
     }
 
     // ─── Predicate building ────────────────────────────────────────────────────

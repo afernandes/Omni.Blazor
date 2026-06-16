@@ -17,6 +17,11 @@
             <code>Predicate</code> e uma <code>View</code> filtrada, e dispara <code>Filter</code> a cada
             mudança (modo <code>Auto</code>) ou ao clicar em <em>Aplicar</em>.
         </p>
+        <p>
+            Com <code>AllowSqlMode</code> o filtro ganha um toggle <strong>Visual ⇄ SQL</strong>: o usuário vê
+            a cláusula <code>WHERE</code> gerada, edita o SQL e aplica de volta (com validação inline). O motor
+            <code>FilterSqlConverter</code> (<code>ToSql</code>/<code>TryParse</code>) é público e testável.
+        </p>
     </Overview>
 
     <WhenToUse>
@@ -104,6 +109,34 @@
                 Resultado aplicado: <strong>@_view2.Count()</strong> registro(s)
             </div>
         </ShowcaseSection>
+
+        <ShowcaseSection Title="MODO SQL (VISUAL ⇄ SQL)"
+                         Description="AllowSqlMode adiciona o toggle Visual/SQL — gere o WHERE do filtro, edite e aplique de volta (com validação ao vivo). ShowSqlPreview exibe o SQL gerado, somente leitura, no modo visual."
+                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" AllowSqlMode=""true"" ShowSqlPreview=""true""
+                Filter=""@(v => view = v.ToList())"">
+    <OmniDataFilterProperty Property=""Name"" Title=""Nome"" />
+    <OmniDataFilterProperty Property=""Age""  Title=""Idade"" Type=""ColumnFilterType.Number"" />
+    ...
+</OmniDataFilter>
+
+@* Programático (o conversor é público): *@
+@code {
+    string sql = FilterSqlConverter.ToSql(rules, FilterLogic.And, props);
+    bool ok = FilterSqlConverter.TryParse(""Age >= 30 AND Name LIKE '%a%'"",
+                                          props, out var r, out var logic, out var err);
+}")">
+            <OmniDataFilter TItem="Person" Data="_people" AllowSqlMode="true" ShowSqlPreview="true" Filter="@(v => { _view3 = v.ToList(); })">
+                <OmniDataFilterProperty Property="Name" Title="Nome" />
+                <OmniDataFilterProperty Property="Age" Title="Idade" Type="ColumnFilterType.Number" />
+                <OmniDataFilterProperty Property="City" Title="Cidade" Type="ColumnFilterType.Select" Options="_cityOptions" />
+                <OmniDataFilterProperty Property="Active" Title="Ativo" Type="ColumnFilterType.Boolean" />
+                <OmniDataFilterProperty Property="JoinDate" Title="Entrada" Type="ColumnFilterType.Date" />
+            </OmniDataFilter>
+            <div style="margin-top:10px;font-size:12px;color:var(--omni-fg-soft)">
+                Resultado: <strong>@_view3.Count()</strong> de @_people.Count ·
+                experimente no modo SQL: <code>Age &gt;= 30 AND Name LIKE '%a%'</code>
+            </div>
+        </ShowcaseSection>
     </ChildContent>
 
     <Api>
@@ -117,6 +150,8 @@
             <ShowcaseApiRow Name="AllowGroups" Type="bool" Default="true" Description="Permite grupos aninhados." />
             <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Sm" Description="Altura/tipografia de todos os campos (Sm | Md | Lg)." />
             <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desabilita o construtor." />
+            <ShowcaseApiRow Name="AllowSqlMode" Type="bool" Default="false" Description="Toggle Visual/SQL: editar o filtro como WHERE e aplicar de volta (validado)." />
+            <ShowcaseApiRow Name="ShowSqlPreview" Type="bool" Default="false" Description="Disclosure somente-leitura com o SQL gerado, no modo visual." />
         </ShowcaseApiTable>
         <ShowcaseApiTable Title="OmniDataFilterProperty">
             <ShowcaseApiRow Name="Property" Type="string" Default="—" Description="Nome do membro (reflection)." />
@@ -155,6 +190,7 @@
 
     private IEnumerable<Person> _view = Enumerable.Empty<Person>();
     private IEnumerable<Person> _view2 = Enumerable.Empty<Person>();
+    private IEnumerable<Person> _view3 = Enumerable.Empty<Person>();
 
     private const string _th = "padding:8px 10px;font-weight:600;color:var(--omni-fg-soft);white-space:nowrap;";
     private const string _td = "padding:8px 10px;";
@@ -163,5 +199,6 @@
     {
         _view = _people;
         _view2 = _people;
+        _view3 = _people;
     }
 }

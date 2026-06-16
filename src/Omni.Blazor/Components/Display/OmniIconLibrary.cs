@@ -119,6 +119,8 @@ public static class OmniIconLibrary
         ["underline"]          = """<path d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16"/>""",
         ["strikethrough"]      = """<path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6M4 12h16"/>""",
         ["code"]               = """<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>""",
+        ["layout-grid"]        = """<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>""",
+        ["circle-check"]       = """<circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>""",
 
         // Text alignment (block/paragraph editors).
         ["align-left"]         = """<path d="M21 6H3M15 12H3M17 18H3"/>""",
