@@ -30,6 +30,7 @@ public abstract class TestContextBase : BunitTestContext
         Services.AddSingleton<ScrollManager>();
         Services.AddSingleton<DialogService>();
         Services.AddSingleton<HotkeyService>();
+        Services.AddSingleton<CommandHistoryService>();
         Services.AddSingleton<NotificationService>();
         Services.AddSingleton<TooltipService>();
         Services.AddSingleton<ContextMenuService>();

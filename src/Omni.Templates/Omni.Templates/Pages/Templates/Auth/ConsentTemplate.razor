@@ -1,0 +1,74 @@
+@page "/templates/auth/consent"
+@layout TemplatesLayout
+
+<PageTitle>Consentimento OAuth — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Consentimento OAuth"
+                 Description="Tela de autorização de aplicativo de terceiros (OpenIddict): escopos solicitados + autorizar/negar."
+                 Code="@_code">
+        <div style="min-height:560px">
+            <OmniAuthLayout>
+                <div class="omni-auth-card">
+                    <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:16px">
+                        <div style="width:46px; height:46px; border-radius:12px; background:var(--omni-info); color:#fff; display:grid; place-items:center; font-weight:700; font-size:18px">C</div>
+                        <div style="width:34px; border-top:1.5px dashed var(--omni-line-strong)"></div>
+                        <div style="width:46px; height:46px; border-radius:12px; background:var(--omni-accent); color:#fff; display:grid; place-items:center; font-family:var(--omni-font-mono); font-weight:700; font-size:18px">O</div>
+                    </div>
+
+                    <div class="omni-auth-head" style="text-align:center; font-size:18px">Cardápio Web quer acessar sua conta</div>
+                    <div class="omni-auth-lede" style="text-align:center">Conectado como <b>marina@forno.com.br</b></div>
+
+                    <div style="margin:18px 0; display:flex; flex-direction:column; gap:2px">
+                        @foreach (var s in _scopes)
+                        {
+                            <div style="display:flex; gap:12px; padding:12px 2px; align-items:flex-start; border-bottom:1px solid var(--omni-line)" @key="s.Title">
+                                <span style="width:32px; height:32px; border-radius:8px; background:var(--omni-accent-soft); color:var(--omni-accent); display:grid; place-items:center; flex-shrink:0">
+                                    <OmniIcon Name="@s.Icon" Size="ComponentSize.Sm" />
+                                </span>
+                                <div>
+                                    <div style="font-weight:500; font-size:13.5px">@s.Title</div>
+                                    <div style="font-size:12px; color:var(--omni-fg-muted); margin-top:1px">@s.Desc</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div style="display:flex; gap:10px">
+                        <button class="omni-btn omni-btn-block">Negar</button>
+                        <button class="omni-btn omni-btn-primary omni-btn-block">Autorizar</button>
+                    </div>
+
+                    <div class="omni-auth-foot">Você pode revogar o acesso a qualquer momento nas configurações.</div>
+                </div>
+            </OmniAuthLayout>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private record Scope(string Icon, string Title, string Desc);
+    private readonly List<Scope> _scopes = new()
+    {
+        new("user", "Perfil e e-mail", "Ver seu nome, foto e endereço de e-mail."),
+        new("package", "Ler seus pedidos", "Acessar o histórico de pedidos da sua conta."),
+        new("settings", "Gerenciar cardápio", "Criar e editar itens do cardápio em seu nome."),
+    };
+
+    private const string _code = @"<div class=""scope-list"">
+    @foreach (var s in scopes)
+    {
+        <div class=""scope-row"">
+            <span class=""scope-ico""><OmniIcon Name=""@s.Icon"" Size=""ComponentSize.Sm"" /></span>
+            <div>
+                <div class=""scope-t"">@s.Title</div>
+                <div class=""scope-d"">@s.Desc</div>
+            </div>
+        </div>
+    }
+</div>
+<div style=""display:flex; gap:10px"">
+    <button class=""omni-btn omni-btn-block"" @onclick=""Deny"">Negar</button>
+    <button class=""omni-btn omni-btn-primary omni-btn-block"" @onclick=""Allow"">Autorizar</button>
+</div>";
+}

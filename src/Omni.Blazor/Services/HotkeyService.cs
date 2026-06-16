@@ -34,16 +34,29 @@ public sealed class HotkeyService : IAsyncDisposable
     /// <summary>Number of active registrations (handy for leak tests).</summary>
     public int RegistrationCount => _entries.Count;
 
+    private static readonly IReadOnlyList<HotkeyCombo[]> NoSequences = Array.Empty<HotkeyCombo[]>();
+    private static readonly char[] SeqSeparators = { ' ', ',' };   // sequence steps: "g d" or VS-style "Ctrl+K, Ctrl+D"
+
+    /// <summary>
+    /// Register from a spec string. Alternatives split on <c>|</c>; an alternative
+    /// with whitespace or commas is a SEQUENCE — <c>"g d"</c> (GitHub/Linear "go to")
+    /// or VS-style <c>"Ctrl+K, Ctrl+D"</c> — fired by pressing the steps in succession.
+    /// Mix freely: <c>"Ctrl+K|g d"</c> registers both a combo and a sequence.
+    /// Note: register distinct, non-overlapping sequences. A bare single key that is
+    /// also a sequence's first step (<c>"g"</c> + <c>"g d"</c>) shadows the sequence,
+    /// and a sequence that is a prefix of a longer one (<c>"g d"</c> + <c>"g d e"</c>)
+    /// fires first — the longer never completes.
+    /// </summary>
     public Task<IAsyncDisposable> RegisterAsync(
         string combo,
         Func<KeyboardEventArgs, Task> handler,
         bool preventDefault = true,
         bool stopPropagation = false)
     {
-        var combos = HotkeyCombo.ParseMany(combo);
-        if (combos.Length == 0)
-            throw new ArgumentException($"Could not parse any combo from '{combo}'.", nameof(combo));
-        return RegisterAsync(combos, handler, preventDefault, stopPropagation);
+        var (singles, sequences) = ParseSpec(combo);
+        if (singles.Count == 0 && sequences.Count == 0)
+            throw new ArgumentException($"Could not parse any combo or sequence from '{combo}'.", nameof(combo));
+        return RegisterCoreAsync(singles, sequences, handler, preventDefault, stopPropagation);
     }
 
     public Task<IAsyncDisposable> RegisterAsync(
@@ -51,20 +64,31 @@ public sealed class HotkeyService : IAsyncDisposable
         Func<KeyboardEventArgs, Task> handler,
         bool preventDefault = true,
         bool stopPropagation = false)
-        => RegisterAsync(new[] { combo }, handler, preventDefault, stopPropagation);
+        => RegisterCoreAsync(new[] { combo }, NoSequences, handler, preventDefault, stopPropagation);
 
-    public async Task<IAsyncDisposable> RegisterAsync(
+    public Task<IAsyncDisposable> RegisterAsync(
         IEnumerable<HotkeyCombo> combos,
         Func<KeyboardEventArgs, Task> handler,
         bool preventDefault = true,
         bool stopPropagation = false)
     {
+        var comboArray = combos as IReadOnlyList<HotkeyCombo> ?? combos.ToArray();
+        if (comboArray.Count == 0)
+            throw new ArgumentException("At least one combo is required.", nameof(combos));
+        return RegisterCoreAsync(comboArray, NoSequences, handler, preventDefault, stopPropagation);
+    }
+
+    private async Task<IAsyncDisposable> RegisterCoreAsync(
+        IReadOnlyList<HotkeyCombo> combos,
+        IReadOnlyList<HotkeyCombo[]> sequences,
+        Func<KeyboardEventArgs, Task> handler,
+        bool preventDefault,
+        bool stopPropagation)
+    {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(handler);
-
-        var comboArray = combos as HotkeyCombo[] ?? combos.ToArray();
-        if (comboArray.Length == 0)
-            throw new ArgumentException("At least one combo is required.", nameof(combos));
+        if (combos.Count == 0 && sequences.Count == 0)
+            throw new ArgumentException("At least one combo or sequence is required.");
 
         var id = $"hk-{Guid.NewGuid():N}";
         var entry = new Entry(id, handler);
@@ -75,14 +99,8 @@ public sealed class HotkeyService : IAsyncDisposable
         {
             await _js.InvokeVoidAsync("omniBlazor.registerHotkey",
                 id, _selfRef, nameof(OnHotkeyAsync),
-                comboArray.Select(c => new
-                {
-                    key   = c.Key,
-                    ctrl  = c.Modifiers.HasFlag(Modifier.Ctrl),
-                    alt   = c.Modifiers.HasFlag(Modifier.Alt),
-                    shift = c.Modifiers.HasFlag(Modifier.Shift),
-                    meta  = c.Modifiers.HasFlag(Modifier.Meta)
-                }),
+                combos.Select(ToJs),
+                sequences.Select(seq => seq.Select(ToJs)),
                 preventDefault, stopPropagation);
         }
         catch
@@ -92,6 +110,51 @@ public sealed class HotkeyService : IAsyncDisposable
             throw;
         }
         return new Handle(this, id);
+
+        static object ToJs(HotkeyCombo c) => new
+        {
+            key   = c.Key,
+            ctrl  = c.Modifiers.HasFlag(Modifier.Ctrl),
+            alt   = c.Modifiers.HasFlag(Modifier.Alt),
+            shift = c.Modifiers.HasFlag(Modifier.Shift),
+            meta  = c.Modifiers.HasFlag(Modifier.Meta)
+        };
+    }
+
+    /// <summary>
+    /// Split a spec into single combos and sequences. <c>|</c> separates alternatives;
+    /// an alternative with whitespace becomes an ordered sequence of combos.
+    /// </summary>
+    internal static (List<HotkeyCombo> singles, List<HotkeyCombo[]> sequences) ParseSpec(string spec)
+    {
+        var singles = new List<HotkeyCombo>();
+        var sequences = new List<HotkeyCombo[]>();
+        if (string.IsNullOrWhiteSpace(spec)) return (singles, sequences);
+
+        foreach (var alt in spec.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            // A sequence is space- or comma-separated combos, each parsing on its own
+            // ("g d", "Ctrl+K Ctrl+D", or VS-style "Ctrl+K, Ctrl+D"). Requiring 2+ valid
+            // steps means padding around '+' ("Ctrl + K") or a lone comma key ("Ctrl+,")
+            // falls through and parses as a single combo instead of a dead sequence.
+            if (alt.Contains(' ') || alt.Contains(','))
+            {
+                var steps = alt.Split(SeqSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (steps.Length >= 2)
+                {
+                    var combos = new List<HotkeyCombo>(steps.Length);
+                    var ok = true;
+                    foreach (var s in steps)
+                    {
+                        if (HotkeyCombo.TryParse(s, out var c)) combos.Add(c);
+                        else { ok = false; break; }
+                    }
+                    if (ok) { sequences.Add(combos.ToArray()); continue; }
+                }
+            }
+            if (HotkeyCombo.TryParse(alt, out var single)) singles.Add(single);
+        }
+        return (singles, sequences);
     }
 
     /// <summary>Toggle a registration without unregistering it.</summary>

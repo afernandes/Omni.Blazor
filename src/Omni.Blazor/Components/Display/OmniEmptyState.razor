@@ -1,0 +1,78 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Empty / zero-data placeholder — for empty lists, no search results, first-run
+    states, empty inboxes, cleared filters. Neutral by design (no status color);
+    use OmniResult for semantic outcome pages (404/403/success).
+
+    Usage:
+        <OmniEmptyState Icon="inbox" Title="Nenhum pedido ainda"
+                        Description="Quando chegarem pedidos, eles aparecem aqui.">
+            <Actions>
+                <OmniButton Variant="ButtonVariant.Primary">Novo pedido</OmniButton>
+            </Actions>
+        </OmniEmptyState>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="omni-empty-figure">
+        @if (Visual is not null)
+        {
+            @Visual
+        }
+        else
+        {
+            <div class="omni-empty-icon">
+                <OmniIcon Name="@Icon" />
+            </div>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <div class="omni-empty-title">@Title</div>
+    }
+    @if (DescriptionContent is not null || !string.IsNullOrEmpty(Description))
+    {
+        <div class="omni-empty-desc">
+            @if (DescriptionContent is not null) { @DescriptionContent } else { @Description }
+        </div>
+    }
+    @if (ChildContent is not null)
+    {
+        <div class="omni-empty-extra">@ChildContent</div>
+    }
+    @if (Actions is not null)
+    {
+        <div class="omni-empty-actions">@Actions</div>
+    }
+</div>
+
+@code {
+    /// <summary>Icon name (any OmniIcon). Default <c>inbox</c>.</summary>
+    [Parameter] public string Icon { get; set; } = "inbox";
+
+    /// <summary>Short headline (e.g. "Nenhum resultado").</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Supporting text (plain). Ignored when <see cref="DescriptionContent"/> is set.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Rich supporting content (overrides <see cref="Description"/>).</summary>
+    [Parameter] public RenderFragment? DescriptionContent { get; set; }
+
+    /// <summary>Custom figure/illustration replacing the default icon.</summary>
+    [Parameter] public RenderFragment? Visual { get; set; }
+
+    /// <summary>Action buttons row (e.g. "Criar primeiro item").</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Reduced padding for tight panels / dropdowns.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-empty")
+        .AddClass("omni-empty-compact", Compact)
+        .AddClass(Class)
+        .Build();
+}

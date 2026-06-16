@@ -1,0 +1,84 @@
+@page "/templates/auth/register"
+@layout TemplatesLayout
+
+<PageTitle>Cadastro — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Cadastro"
+                 Description="Card central com medidor de força de senha e aceite de termos. OmniAuthLayout + OmniPasswordStrength."
+                 Code="@_code">
+        <div style="min-height:560px">
+            <OmniAuthLayout>
+                <div class="omni-auth-card">
+                    <div class="omni-auth-head">Criar conta</div>
+                    <div class="omni-auth-lede">Comece grátis — leva menos de um minuto.</div>
+
+                    <div style="margin-top:20px">
+                        <OmniFormField Label="Nome completo">
+                            <OmniTextBox @bind-Value="_name" Autocomplete="name" LeadingIcon="user" Placeholder="Seu nome" />
+                        </OmniFormField>
+                        <OmniFormField Label="E-mail">
+                            <OmniTextBox @bind-Value="_email" Type="email" Autocomplete="email" LeadingIcon="mail" Placeholder="voce@empresa.com" />
+                        </OmniFormField>
+                        <OmniFormField Label="Senha">
+                            <OmniPassword @bind-Value="_pw" Autocomplete="new-password" Placeholder="Crie uma senha forte" />
+                        </OmniFormField>
+                        <OmniPasswordStrength Password="@_pw" MinLength="10" />
+
+                        <div style="margin:16px 0 4px">
+                            <OmniCheckBox @bind-Value="_terms">
+                                Li e aceito os <a href="/templates/auth/register" class="omni-link">Termos de uso</a>
+                                e a <a href="/templates/auth/register" class="omni-link">Política de privacidade</a>.
+                            </OmniCheckBox>
+                        </div>
+
+                        <button class="omni-btn omni-btn-primary omni-btn-block omni-btn-lg" style="margin-top:14px">Criar conta</button>
+                    </div>
+
+                    <div class="omni-auth-divider">ou cadastre-se com</div>
+                    <div class="omni-auth-providers-grid">
+                        <OmniSocialButton Provider="SocialProvider.Google" Compact />
+                        <OmniSocialButton Provider="SocialProvider.Microsoft" Compact />
+                        <OmniSocialButton Provider="SocialProvider.Apple" Compact />
+                        <OmniSocialButton Provider="SocialProvider.GitHub" Compact />
+                    </div>
+
+                    <div style="margin-top:20px; text-align:center; font-size:13px; color:var(--omni-fg-muted)">
+                        Já tem conta? <a href="/templates/auth/login" class="omni-link">Entrar</a>
+                    </div>
+                </div>
+            </OmniAuthLayout>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private string _name = "";
+    private string _email = "";
+    private string _pw = "";
+    private bool _terms;
+
+    private const string _code = @"<OmniAuthLayout>
+    <div class=""omni-auth-card"">
+        <div class=""omni-auth-head"">Criar conta</div>
+        <div class=""omni-auth-lede"">Comece grátis — leva menos de um minuto.</div>
+
+        <OmniFormField Label=""Nome completo"">
+            <OmniTextBox @bind-Value=""name"" LeadingIcon=""user"" Placeholder=""Seu nome"" />
+        </OmniFormField>
+        <OmniFormField Label=""E-mail"">
+            <OmniTextBox @bind-Value=""email"" Type=""email"" LeadingIcon=""mail"" Placeholder=""voce@empresa.com"" />
+        </OmniFormField>
+        <OmniFormField Label=""Senha"">
+            <OmniPassword @bind-Value=""pw"" Placeholder=""Crie uma senha forte"" />
+        </OmniFormField>
+        <OmniPasswordStrength Password=""@pw"" MinLength=""10"" />
+
+        <OmniCheckBox @bind-Value=""terms"">
+            Li e aceito os <a href=""#"" class=""omni-link"">Termos</a> e a <a href=""#"" class=""omni-link"">Privacidade</a>.
+        </OmniCheckBox>
+
+        <button class=""omni-btn omni-btn-primary omni-btn-block omni-btn-lg"" @onclick=""Register"">Criar conta</button>
+    </div>
+</OmniAuthLayout>";
+}

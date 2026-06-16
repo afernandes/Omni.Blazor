@@ -1,0 +1,46 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    Overlapping stack of avatars with an optional "+N" overflow chip — for member
+    lists, assignees, participants. Generic. Pass OmniAvatar children; set Size to
+    match them (controls the ring/overlap + the overflow chip). The avatars get a
+    ring (box-shadow) so they read as separate when overlapping.
+
+    Usage:
+        <OmniAvatarGroup More="3">
+            <OmniAvatar Initials="MT" />
+            <OmniAvatar Initials="DA" />
+            <OmniAvatar Initials="CM" />
+        </OmniAvatarGroup>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @ChildContent
+    @if (More is > 0)
+    {
+        <span class="omni-avatar-group-more">+@More</span>
+    }
+</div>
+
+@code {
+    /// <summary>Overflow count rendered as a trailing "+N" chip.</summary>
+    [Parameter] public int? More { get; set; }
+
+    /// <summary>Sizes the overlap + "+N" chip to match the avatars. Default Md.</summary>
+    [Parameter] public AvatarSize Size { get; set; } = AvatarSize.Md;
+
+    private string RootCss => CssBuilder.Default("omni-avatar-group")
+        .AddClass(Size switch
+        {
+            AvatarSize.Sm  => "omni-avatar-group-sm",
+            AvatarSize.Lg  => "omni-avatar-group-lg",
+            AvatarSize.Xl  => "omni-avatar-group-xl",
+            AvatarSize.XXl => "omni-avatar-group-xxl",
+            _ => null
+        })
+        .AddClass(Class)
+        .Build();
+}

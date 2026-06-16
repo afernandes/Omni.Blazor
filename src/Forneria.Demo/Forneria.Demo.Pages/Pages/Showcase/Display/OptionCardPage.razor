@@ -1,0 +1,71 @@
+@page "/showcase/option-card"
+@layout ShowcaseLayout
+
+<PageTitle>Option Card — Showcase</PageTitle>
+
+<ShowcasePage Title="Option Card"
+              Subtitle="Card selecionável (estilo radio) para escolher uma opção: planos, formas de pagamento, tipos de conta.">
+
+    <Overview>
+        <p>
+            O <code>OmniOptionCard</code> é um card clicável com indicador de seleção. O consumidor
+            controla qual está <code>Selected</code> (comportamento de radio) via <code>OnClick</code>.
+            Aceita <code>Title</code>, <code>Description</code>, <code>Badge</code>, <code>Price</code> e
+            conteúdo extra.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Escolha de plano/assinatura.</li>
+            <li>Forma de pagamento, tipo de conta, opção de envio.</li>
+            <li>Qualquer seleção única com mais contexto que um radio simples.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="ESCOLHA DE PLANO"
+                         Description="Clique para selecionar. Badge destaca o recomendado."
+                         Code="@(@"@foreach (var p in plans)
+{
+    <OmniOptionCard Title=""@p.Name"" Description=""@p.Desc"" Price=""@p.Price"" PricePeriod=""/mês""
+                    Badge=""@p.Badge"" Selected=""@(p == _sel)"" OnClick=""@(() => _sel = p)"" />
+}")">
+            <div style="display:flex; flex-direction:column; gap:10px; max-width:440px">
+                @foreach (var p in _plans)
+                {
+                    <OmniOptionCard @key="p.Name" Title="@p.Name" Description="@p.Desc"
+                                    Price="@p.Price" PricePeriod="/mês" Badge="@p.Badge"
+                                    Selected="@(p == _sel)" OnClick="@(() => _sel = p)" />
+                }
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniOptionCard">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null" Description="Nome da opção." />
+            <ShowcaseApiRow Name="Description" Type="string?" Default="null" Description="Descrição de apoio." />
+            <ShowcaseApiRow Name="Badge" Type="string?" Default="null" Description="Selo após o título (ex.: POPULAR)." />
+            <ShowcaseApiRow Name="Price" Type="string?" Default="null" Description="Preço (mono)." />
+            <ShowcaseApiRow Name="PricePeriod" Type="string?" Default="null" Description="Sufixo do preço (ex.: /mês)." />
+            <ShowcaseApiRow Name="Selected" Type="bool" Default="false" Description="Estado selecionado (radio)." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desabilita o card." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback" Default="—" Description="O consumidor define qual fica selecionado." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private record Plan(string Name, string Desc, string Price, string? Badge);
+    private readonly List<Plan> _plans = new()
+    {
+        new("Trial", "14 dias grátis, todos os recursos.", "R$ 0", null),
+        new("Pro", "Para um negócio em crescimento.", "R$ 99", "POPULAR"),
+        new("Scale", "Múltiplas lojas e relatórios avançados.", "R$ 249", null),
+    };
+    private Plan? _sel;
+
+    protected override void OnInitialized() => _sel = _plans[1];
+}

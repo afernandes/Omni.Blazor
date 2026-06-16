@@ -1,0 +1,79 @@
+@page "/templates/admin/sessions"
+@layout TemplatesLayout
+
+<PageTitle>Sessões — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Sessões ativas (admin)"
+                 Description="Dispositivos conectados de todos os usuários do tenant, com revogação. OmniDataGrid + OmniAvatar."
+                 Code="@_code">
+        <div class="tpl-dash">
+            <OmniPaneHeader Title="Sessões ativas" Subtitle="@($"{_rows.Count} sessões em {_rows.Count} dispositivos")">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Encerrar todas</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniDataGrid TItem="SessionRow" Data="_rows" AllowSearch AllowPaging PageSize="7"
+                          SearchPlaceholder="Buscar por usuário, IP...">
+                <Columns>
+                    <OmniDataGridColumn TItem="SessionRow" Title="Usuário" PropertyName="User" TextSelector="@(r => r.User)">
+                        <Template Context="r">
+                            <div style="display:flex; align-items:center; gap:10px">
+                                <OmniAvatar Initials="@r.Initials" Size="AvatarSize.Sm" />
+                                <span style="font-weight:600; font-size:13px">@r.User</span>
+                            </div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="SessionRow" Title="Dispositivo" PropertyName="Device" Property="@(r => r.Device)" />
+                    <OmniDataGridColumn TItem="SessionRow" Title="IP · local" PropertyName="Ip" Property="@(r => r.Ip)">
+                        <Template Context="r"><span class="omni-mono">@r.Ip</span> · @r.Location</Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="SessionRow" Title="Último acesso" PropertyName="When" Property="@(r => r.When)">
+                        <Template Context="r">
+                            @r.When
+                            @if (r.Current) { <OmniStatusBadge Label="Atual" Kind="StatusBadgeKind.Good" /> }
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="SessionRow" Title="" Sortable="false" Width="90px">
+                        <Template Context="r">
+                            @if (!r.Current)
+                            {
+                                <button class="omni-btn omni-btn-sm">Revogar</button>
+                            }
+                        </Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private record SessionRow(string User, string Initials, string Device, string Ip, string Location, string When, bool Current);
+
+    private readonly List<SessionRow> _rows = new()
+    {
+        new("Marina Tavares", "MT", "Chrome · Windows", "189.45.12.7", "São Paulo", "agora", true),
+        new("Diego Antunes", "DA", "Safari · macOS", "200.158.4.91", "Curitiba", "há 12 min", false),
+        new("Carla Menezes", "CM", "Chrome · Android", "189.45.12.7", "São Paulo", "há 1 h", false),
+        new("Rafael Lima", "RL", "Edge · Windows", "177.92.18.40", "Rio de Janeiro", "há 3 h", false),
+        new("Beatriz Souza", "BS", "Chrome · macOS", "200.158.4.91", "Curitiba", "há 5 h", false),
+        new("Ana Ribeiro", "AR", "Firefox · Linux", "191.5.44.10", "Belo Horizonte", "ontem", false),
+    };
+
+    private const string _code = @"<OmniDataGrid TItem=""SessionRow"" Data=""rows"" AllowSearch AllowPaging PageSize=""7"">
+    <Columns>
+        <OmniDataGridColumn TItem=""SessionRow"" Title=""Usuário"">
+            <Template Context=""r"">
+                <OmniAvatar Initials=""@r.Initials"" Size=""AvatarSize.Sm"" /> <b>@r.User</b>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem=""SessionRow"" Title=""Dispositivo"" Property=""@(r => r.Device)"" />
+        <OmniDataGridColumn TItem=""SessionRow"" Title=""IP · local""><Template Context=""r""><span class=""mono"">@r.Ip</span> · @r.Location</Template></OmniDataGridColumn>
+        <OmniDataGridColumn TItem=""SessionRow"" Title="""" Sortable=""false"">
+            <Template Context=""r"">@if (!r.Current) { <button class=""omni-btn omni-btn-sm"" @onclick=""() => Revoke(r)"">Revogar</button> }</Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>";
+}

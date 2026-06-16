@@ -1,0 +1,611 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject Omni.Blazor.Services.HotkeyService Hotkeys
+@inject Omni.Blazor.Services.CommandHistoryService History
+@using System.Linq
+@using System.Text
+@using System.Globalization
+@using System.Threading
+@using Microsoft.AspNetCore.Components.Web
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    ⌘K command palette — a global, searchable, keyboard-driven action menu.
+    Generic: pass a list of OmniCommand (label + category + icon + shortcut +
+    keywords + action + children). Opens on Ctrl/Cmd+K (or set Open). Reuses
+    OmniOverlay for the backdrop, focus-trap and scroll-lock; the search input is
+    autofocused via the .omni-autofocus marker.
+
+    Features: fuzzy + diacritic-insensitive ranked search with highlight, a
+    "Recentes" section (MRU, persisted), nested sub-command pages (drill in /
+    Esc·⌫ back), and an optional async CommandSource for server-side results.
+
+    Usage (drop once in your shell):
+        <OmniCommandPalette Commands="_commands" OnCommand="Run" />
+*@
+
+<OmniOverlay Visible="Open" VisibleChanged="OnVisibleChanged" AutoClose CloseOnEsc="false"
+             ZIndex="1050" Class="omni-cmdk-overlay" OnClosed="OnClosedReset">
+    <div class="@RootCss" style="@Style" @attributes="Attributes" role="dialog" aria-label="Paleta de comandos">
+        @* OmniOverlay's capture-phase Esc handler clicks [data-omni-cancel] (and
+           stops propagation) before our input @onkeydown can see Escape, so we route
+           Esc through this hidden button — it pops a sub-page, or closes at the root. *@
+        <button type="button" data-omni-cancel tabindex="-1" aria-hidden="true"
+                style="display:none" @onclick="OnEscapeProxy"></button>
+        <div class="omni-cmdk-search">
+            @if (_pageStack.Count > 0)
+            {
+                <button type="button" class="omni-cmdk-back" tabindex="-1" aria-label="Voltar" @onclick="PopPage">
+                    <OmniIcon Name="chevron-left" />
+                </button>
+                <span class="omni-cmdk-crumb">@_pageStack[^1].Label</span>
+            }
+            else
+            {
+                <OmniIcon Name="search" />
+            }
+            <input class="omni-autofocus omni-cmdk-input" type="text" value="@_query" @ref="_inputRef"
+                   @oninput="OnInput" @onkeydown="OnKeyDown"
+                   placeholder="@Placeholder" autocomplete="off" spellcheck="false"
+                   role="combobox" aria-expanded="true" aria-controls="@($"{_id}-list")" />
+            @if (_loading)
+            {
+                <span class="omni-cmdk-spin" aria-hidden="true"></span>
+            }
+            else
+            {
+                <kbd class="omni-cmdk-kbd">ESC</kbd>
+            }
+        </div>
+
+        <div class="omni-cmdk-list" id="@($"{_id}-list")" role="listbox">
+            @if (_flat.Count == 0)
+            {
+                <div class="omni-cmdk-empty">
+                    <OmniIcon Name="search" />
+                    <span>@(_loading ? "Buscando…" : $"Nenhum comando para “{_query}”.")</span>
+                </div>
+            }
+            else
+            {
+                var i = -1;
+                var gi = -1;
+                @foreach (var group in _grouped)
+                {
+                    var groupIdx = ++gi;
+                    @if (!string.IsNullOrEmpty(group.Key))
+                    {
+                        @* positional key — labels can legitimately collide (e.g. a real "Recentes" category) *@
+                        <div class="omni-cmdk-group" @key="@($"g-{groupIdx}")">@group.Key</div>
+                    }
+                    @foreach (var cmd in group.Value)
+                    {
+                        var idx = ++i;
+                        var active = idx == _highlightedIndex;
+                        var hasKids = HasChildren(cmd);
+                        <button type="button" tabindex="-1" id="@($"{_id}-item-{idx}")"
+                                role="option" aria-selected="@(active ? "true" : "false")"
+                                class="@ItemCss(active)" @onclick="@(() => ExecuteAsync(cmd))" @key="idx">
+                            @if (!string.IsNullOrEmpty(cmd.Icon))
+                            {
+                                <span class="omni-cmdk-item-ico"><OmniIcon Name="@cmd.Icon" Size="ComponentSize.Sm" /></span>
+                            }
+                            <span class="omni-cmdk-item-label">
+                                @foreach (var seg in HighlightSegments(cmd.Label))
+                                {
+                                    @if (seg.Hit)
+                                    {
+                                        <mark class="omni-cmdk-hit">@seg.Text</mark>
+                                    }
+                                    else
+                                    {
+                                        <text>@seg.Text</text>
+                                    }
+                                }
+                            </span>
+                            @if (!string.IsNullOrEmpty(cmd.Shortcut))
+                            {
+                                <kbd class="omni-cmdk-item-kbd">@cmd.Shortcut</kbd>
+                            }
+                            @if (hasKids)
+                            {
+                                <span class="omni-cmdk-item-more"><OmniIcon Name="chevron-right" Size="ComponentSize.Sm" /></span>
+                            }
+                        </button>
+                    }
+                }
+            }
+        </div>
+
+        @if (ShowFooter)
+        {
+            <div class="omni-cmdk-foot">
+                <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+                <span><kbd>↵</kbd> selecionar</span>
+                @if (_pageStack.Count > 0)
+                {
+                    <span><kbd>esc</kbd> voltar</span>
+                }
+                else
+                {
+                    <span><kbd>esc</kbd> fechar</span>
+                }
+            </div>
+        }
+    </div>
+</OmniOverlay>
+
+@code {
+    /// <summary>The commands to search/run. May carry <c>Children</c> for nested pages.</summary>
+    [Parameter] public IEnumerable<OmniCommand> Commands { get; set; } = Array.Empty<OmniCommand>();
+
+    /// <summary>Open state (two-way). Also toggled by the global hotkey.</summary>
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>Search box placeholder.</summary>
+    [Parameter] public string Placeholder { get; set; } = "Buscar comando...";
+
+    /// <summary>Bind the global open hotkey. Default true.</summary>
+    [Parameter] public bool EnableHotkey { get; set; } = true;
+
+    /// <summary>The open hotkey combo. Default Ctrl+K (Win/Linux) and Cmd+K (mac).</summary>
+    [Parameter] public string HotKey { get; set; } = "Ctrl+K|Meta+K";
+
+    /// <summary>Show the footer with key hints. Default true.</summary>
+    [Parameter] public bool ShowFooter { get; set; } = true;
+
+    /// <summary>Fires with the chosen command (after its own Action, if any, runs).</summary>
+    [Parameter] public EventCallback<OmniCommand> OnCommand { get; set; }
+
+    /// <summary>
+    /// Optional async source for server-side results. Called (debounced) with the
+    /// query; its results are merged with the local <see cref="Commands"/>. Only
+    /// queried at the root level (not inside a sub-page).
+    /// </summary>
+    [Parameter] public Func<string, Task<IEnumerable<OmniCommand>>>? CommandSource { get; set; }
+
+    /// <summary>Debounce (ms) before calling <see cref="CommandSource"/>. Default 200.</summary>
+    [Parameter] public int SearchDebounce { get; set; } = 200;
+
+    /// <summary>Track + surface recently used commands (persisted to localStorage). Default true.</summary>
+    [Parameter] public bool EnableHistory { get; set; } = true;
+
+    /// <summary>Namespace key for the recent-command history (lets multiple palettes keep separate history).</summary>
+    [Parameter] public string HistoryKey { get; set; } = "default";
+
+    /// <summary>How many recent commands to surface in the "Recentes" section.</summary>
+    [Parameter] public int RecentCount { get; set; } = 5;
+
+    /// <summary>Heading for the recent-commands section.</summary>
+    [Parameter] public string RecentLabel { get; set; } = "Recentes";
+
+    private readonly string _id = $"cmdk-{Guid.NewGuid():N}";
+    private string _query = "";
+    private string _qFolded = "";
+    private int _highlightedIndex;
+    private List<OmniCommand> _flat = new();
+    private List<KeyValuePair<string, List<OmniCommand>>> _grouped = new();
+    private IAsyncDisposable? _hotkeyHandle;
+    private bool _scrollPending;
+    private ElementReference _inputRef;
+    private bool _refocus;
+
+    // Sub-command pages.
+    private readonly List<OmniCommand> _pageStack = new();
+
+    // Async source.
+    private List<OmniCommand> _dynamic = new();
+    private HashSet<OmniCommand> _dynamicSet = new();
+    private bool _loading;
+    private CancellationTokenSource? _debounceCts;
+
+    // MRU history.
+    private IReadOnlyDictionary<string, long> _history = new Dictionary<string, long>();
+    private bool _historyLoaded;
+
+    protected override void OnParametersSet() => Recompute();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (EnableHotkey)
+            {
+                try { _hotkeyHandle = await Hotkeys.RegisterAsync(HotKey, OnHotkeyAsync, preventDefault: true); }
+                catch { /* SSR / JS gone */ }
+            }
+            if (EnableHistory && !_historyLoaded)
+            {
+                _historyLoaded = true;
+                try { _history = await History.LoadAsync(HistoryKey); Recompute(); StateHasChanged(); }
+                catch { /* best-effort */ }
+            }
+        }
+        if (_refocus)
+        {
+            _refocus = false;
+            try { await _inputRef.FocusAsync(); } catch { }
+        }
+        if (_scrollPending)
+        {
+            _scrollPending = false;
+            try { await JS.InvokeVoidAsync("omniBlazor.scrollIntoView", $"#{_id}-item-{_highlightedIndex}", "nearest"); }
+            catch { }
+        }
+    }
+
+    private Task OnHotkeyAsync(KeyboardEventArgs e) => SetOpenAsync(true);
+
+    // ---- Pages --------------------------------------------------------------
+
+    private bool AtRoot => _pageStack.Count == 0;
+    private static bool HasChildren(OmniCommand c) => c.Children is not null && c.Children.Any();
+
+    private List<OmniCommand> CurrentCommands()
+    {
+        IEnumerable<OmniCommand>? src = _pageStack.Count > 0 ? _pageStack[^1].Children : Commands;
+        return (src ?? Array.Empty<OmniCommand>()).Where(c => c is not null).ToList();
+    }
+
+    private void OpenPage(OmniCommand parent)
+    {
+        _pageStack.Add(parent);
+        ResetSearchState();
+        _refocus = true;          // keep keyboard nav alive after a mouse drill-in
+        Recompute();
+    }
+
+    private void PopPage()
+    {
+        if (_pageStack.Count == 0) return;
+        _pageStack.RemoveAt(_pageStack.Count - 1);
+        ResetSearchState();
+        _refocus = true;
+        Recompute();
+    }
+
+    private void ResetSearchState()
+    {
+        _debounceCts?.Cancel();   // abandon any in-flight async search so stale results can't land
+        _query = "";
+        _highlightedIndex = 0;
+        _dynamic.Clear();
+        _dynamicSet.Clear();
+        _loading = false;
+    }
+
+    // ---- Recompute (pool → score/group) -------------------------------------
+
+    private void Recompute()
+    {
+        _qFolded = Fold(_query.Trim());
+
+        // Candidate pool = current page's commands (+ async results at root).
+        var pool = CurrentCommands();
+        if (AtRoot && _dynamic.Count > 0)
+        {
+            var have = new HashSet<string>(pool.Select(c => Fold(c.Label)));
+            foreach (var d in _dynamic)
+                if (!have.Contains(Fold(d.Label))) pool.Add(d);
+        }
+
+        var groups = new List<KeyValuePair<string, List<OmniCommand>>>();
+
+        if (_qFolded.Length == 0)
+        {
+            // Browse: optional "Recentes" section (root only), then category groups.
+            var recentLabels = new HashSet<string>();
+            if (AtRoot && EnableHistory && _history.Count > 0)
+            {
+                // One representative per recorded label (history is label-keyed), most-recent first.
+                var recent = pool.Where(c => _history.ContainsKey(c.Label))
+                                 .GroupBy(c => c.Label)
+                                 .Select(g => g.First())
+                                 .OrderByDescending(c => _history[c.Label])
+                                 .Take(RecentCount)
+                                 .ToList();
+                if (recent.Count > 0)
+                {
+                    groups.Add(new(RecentLabel, recent));
+                    foreach (var c in recent) recentLabels.Add(c.Label);
+                }
+            }
+            // Category groups via a dictionary so they coalesce correctly even if a real
+            // category collides with RecentLabel; a label shown in Recentes isn't repeated.
+            var byCat = new Dictionary<string, List<OmniCommand>>();
+            var order = new List<string>();
+            foreach (var c in pool)
+            {
+                if (recentLabels.Contains(c.Label)) continue;
+                var cat = c.Category ?? "";
+                if (!byCat.TryGetValue(cat, out var list)) { list = new(); byCat[cat] = list; order.Add(cat); }
+                list.Add(c);
+            }
+            foreach (var cat in order) groups.Add(new(cat, byCat[cat]));
+        }
+        else
+        {
+            // Search: flat list ranked by relevance, recency breaks ties.
+            var matched = pool
+                .Select(c => (cmd: c, score: ScoreOf(c)))
+                .Where(x => x.score is not null)
+                .OrderByDescending(x => x.score!.Value)
+                .ThenByDescending(x => HistRank(x.cmd))
+                .Select(x => x.cmd)
+                .ToList();
+            groups.Add(new("", matched));
+        }
+
+        _grouped = groups;
+        _flat = groups.SelectMany(g => g.Value).ToList();   // exact render order — keeps ↑/↓ aligned
+
+        if (_highlightedIndex >= _flat.Count) _highlightedIndex = Math.Max(0, _flat.Count - 1);
+        if (_highlightedIndex < 0) _highlightedIndex = 0;
+    }
+
+    // Async results are pre-filtered by the server, so keep them even if local
+    // scoring finds no literal match (baseline score 1, below any real label hit).
+    private int? ScoreOf(OmniCommand c)
+    {
+        var s = ScoreCommand(_qFolded, c);
+        if (s is null && _dynamicSet.Contains(c)) return 1;
+        return s;
+    }
+
+    private long HistRank(OmniCommand c) => _history.TryGetValue(c.Label, out var v) ? v : 0;
+
+    // ---- Fuzzy, diacritic-insensitive matching ------------------------------
+
+    private static readonly HashSet<char> _seps = new() { ' ', '-', '_', '/', '.', ':', ',', '|', '(', ')', '[', ']' };
+    private static bool IsSep(char c) => _seps.Contains(c);
+
+    /// <summary>Lowercase + strip diacritics, char-for-char (keeps indices aligned with the source).</summary>
+    private static char FoldChar(char c)
+    {
+        if (c < 128) return char.ToLowerInvariant(c);   // fast path for ASCII
+        foreach (var d in c.ToString().Normalize(NormalizationForm.FormD))
+            if (CharUnicodeInfo.GetUnicodeCategory(d) != UnicodeCategory.NonSpacingMark)
+                return char.ToLowerInvariant(d);
+        return char.ToLowerInvariant(c);
+    }
+
+    // NOTE: folding is char-for-char (1:1 length), which keeps highlight indices aligned
+    // with the source. Consequence: ligatures / eszett that fold to >1 ASCII char
+    // (ß→ss, ﬁ→fi, œ→oe) are NOT expanded — typing "strasse" won't match "Straße".
+    // Accents (the PT use case) DO fold, since they decompose to base + combining mark.
+    private static string Fold(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return "";
+        var sb = new StringBuilder(s.Length);
+        foreach (var c in s) sb.Append(FoldChar(c));
+        return sb.ToString();
+    }
+
+    /// <summary>Best score of the query against a command (label, then keywords/category demoted). null = no match.</summary>
+    private static int? ScoreCommand(string q, OmniCommand c)
+    {
+        int? best = ScoreText(q, c.Label);
+        if (c.Keywords is not null)
+        {
+            foreach (var kw in c.Keywords)
+            {
+                var s = ScoreText(q, kw);
+                if (s is not null) best = Max(best, Math.Min(s.Value - 1500, 3999));   // keyword hits stay below the label floor (4000)
+            }
+        }
+        if (!string.IsNullOrEmpty(c.Category))
+        {
+            var s = ScoreText(q, c.Category);
+            if (s is not null) best = Max(best, Math.Min(s.Value - 2000, 3499));        // category is the weakest signal (below keywords)
+        }
+        return best;
+    }
+
+    private static int? Max(int? a, int b) => a is null ? b : Math.Max(a.Value, b);
+
+    /// <summary>
+    /// Layered relevance score (higher = better): exact &gt; prefix &gt; word-start substring
+    /// &gt; mid substring &gt; fuzzy subsequence (with word-start + contiguity bonuses, so
+    /// acronyms like "tu" → "Tabela de Usuários" rank well). null = not a match.
+    /// </summary>
+    private static int? ScoreText(string q, string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return null;
+        if (q.Length == 0) return 0;
+        var t = Fold(text);
+
+        if (t == q) return 10000;
+        int idx = t.IndexOf(q, StringComparison.Ordinal);
+        if (idx == 0) return 9000 - (t.Length - q.Length);
+        if (idx > 0) return (IsSep(t[idx - 1]) ? 8000 : 6000) - idx;
+
+        // Fuzzy subsequence: every query char must appear in order.
+        int qi = 0, score = 0, prev = -2, first = -1;
+        for (int i = 0; i < t.Length && qi < q.Length; i++)
+        {
+            if (t[i] != q[qi]) continue;
+            if (first < 0) first = i;
+            int cs = 1;
+            if (i == 0 || IsSep(t[i - 1])) cs += 8;   // matched at a word boundary
+            if (i == prev + 1) cs += 5;               // contiguous with previous match
+            score += cs; prev = i; qi++;
+        }
+        if (qi < q.Length) return null;               // not all query chars present
+        return 4000 + score * 10 - first;
+    }
+
+    /// <summary>Coalesced (text, isMatch) runs of the label for highlighting; whole label unmatched if it isn't a subsequence (e.g. matched via keyword).</summary>
+    private List<(string Text, bool Hit)> HighlightSegments(string label)
+    {
+        var segs = new List<(string, bool)>();
+        if (string.IsNullOrEmpty(label)) return segs;
+
+        if (_qFolded.Length == 0) { segs.Add((label, false)); return segs; }
+
+        var lf = Fold(label);                 // 1:1 with label (see Fold note) — indices align
+        var hit = new bool[label.Length];
+
+        // Mirror ScoreText's decision so the highlight lights up exactly what scored:
+        // a contiguous run for exact/prefix/substring, the greedy subsequence otherwise.
+        int idx = lf.IndexOf(_qFolded, StringComparison.Ordinal);
+        if (idx >= 0)
+        {
+            for (int i = idx; i < idx + _qFolded.Length; i++) hit[i] = true;
+        }
+        else
+        {
+            int qi = 0;
+            for (int i = 0; i < lf.Length && qi < _qFolded.Length; i++)
+                if (lf[i] == _qFolded[qi]) { hit[i] = true; qi++; }
+            if (qi < _qFolded.Length) { segs.Add((label, false)); return segs; }   // label itself didn't match (e.g. via keyword)
+        }
+
+        var sb = new StringBuilder();
+        bool cur = hit[0];
+        for (int i = 0; i < label.Length; i++)
+        {
+            if (hit[i] != cur) { segs.Add((sb.ToString(), cur)); sb.Clear(); cur = hit[i]; }
+            sb.Append(label[i]);
+        }
+        if (sb.Length > 0) segs.Add((sb.ToString(), cur));
+        return segs;
+    }
+
+    // ---- Input / keyboard ---------------------------------------------------
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? "";
+        _highlightedIndex = 0;
+        Recompute();
+        if (CommandSource is not null) _ = TriggerSearchAsync();
+    }
+
+    private async Task TriggerSearchAsync()
+    {
+        var previous = _debounceCts;
+        var cts = new CancellationTokenSource();
+        _debounceCts = cts;
+        if (previous is not null) { previous.Cancel(); previous.Dispose(); }
+        var token = cts.Token;
+        var q = _query;
+
+        // Empty query / sub-page / no source: drop dynamic results and clear the spinner.
+        if (CommandSource is null || !AtRoot || string.IsNullOrWhiteSpace(q))
+        {
+            if (_dynamic.Count > 0 || _loading)
+            {
+                _dynamic = new(); _dynamicSet = new(); _loading = false;
+                await InvokeAsync(() => { Recompute(); StateHasChanged(); });
+            }
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(SearchDebounce, token);
+            await InvokeAsync(() => { _loading = true; StateHasChanged(); });
+            var results = await CommandSource(q);
+            if (token.IsCancellationRequested) return;
+            _dynamic = (results ?? Enumerable.Empty<OmniCommand>()).Where(c => c is not null).ToList();
+            _dynamicSet = new HashSet<OmniCommand>(_dynamic);
+        }
+        catch (OperationCanceledException) { }
+        catch { _dynamic = new(); _dynamicSet = new(); }
+        finally
+        {
+            // Only the current (un-superseded) search owns the UI — so a cancelled
+            // search always clears its own spinner and never leaves it stuck.
+            if (ReferenceEquals(_debounceCts, cts))
+            {
+                try { await InvokeAsync(() => { _loading = false; Recompute(); StateHasChanged(); }); }
+                catch { /* component disposed mid-search */ }
+            }
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                if (_flat.Count == 0) break;
+                _highlightedIndex = (_highlightedIndex + 1) % _flat.Count; _scrollPending = true; break;
+            case "ArrowUp":
+                if (_flat.Count == 0) break;
+                _highlightedIndex = (_highlightedIndex - 1 + _flat.Count) % _flat.Count; _scrollPending = true; break;
+            case "Enter":
+                if (_highlightedIndex >= 0 && _highlightedIndex < _flat.Count)
+                    await ExecuteAsync(_flat[_highlightedIndex]);
+                break;
+            case "Backspace":
+                if (_query.Length == 0 && _pageStack.Count > 0) PopPage();
+                break;
+            case "Escape":
+                await OnEscapeProxy();
+                break;
+        }
+    }
+
+    // Esc: pop a sub-page if we're in one, otherwise close. Reached via the
+    // [data-omni-cancel] proxy in the browser, or directly from OnKeyDown in tests.
+    private async Task OnEscapeProxy()
+    {
+        if (_pageStack.Count > 0) PopPage();
+        else await SetOpenAsync(false);
+    }
+
+    private async Task ExecuteAsync(OmniCommand cmd)
+    {
+        if (HasChildren(cmd)) { OpenPage(cmd); return; }    // drill into sub-page
+
+        await SetOpenAsync(false);
+        if (EnableHistory) { try { await History.RecordAsync(HistoryKey, cmd.Label); } catch { } }
+        if (cmd.Action is not null) { try { await cmd.Action(); } catch { } }
+        if (OnCommand.HasDelegate) await OnCommand.InvokeAsync(cmd);
+    }
+
+    // ---- Open / close -------------------------------------------------------
+
+    private Task OnVisibleChanged(bool v) => SetOpenAsync(v);
+
+    private async Task SetOpenAsync(bool v)
+    {
+        if (Open == v) return;
+        Open = v;
+        if (v)
+        {
+            _pageStack.Clear();
+            ResetSearchState();
+            Recompute();
+        }
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(v);
+        StateHasChanged();
+    }
+
+    private void OnClosedReset()
+    {
+        _pageStack.Clear();
+        ResetSearchState();
+        Recompute();
+    }
+
+    private string ItemCss(bool active) => CssBuilder.Default("omni-cmdk-item").AddClass("omni-active", active).Build();
+    private string RootCss => CssBuilder.Default("omni-cmdk").AddClass(Class).Build();
+
+    public async ValueTask DisposeAsync()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        if (_hotkeyHandle is not null)
+        {
+            try { await _hotkeyHandle.DisposeAsync(); } catch { }
+            _hotkeyHandle = null;
+        }
+        GC.SuppressFinalize(this);
+    }
+}

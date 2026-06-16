@@ -1,0 +1,30 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Responsive KPI strip — lays out a set of OmniStat cards in an even grid that
+    collapses (Columns → 2 → 1) as the container narrows (container query, so it
+    reacts to its own width, not the viewport). The standard dashboard stat row.
+
+    Usage:
+        <OmniStatGroup Columns="4">
+            <OmniStat Card Label="Receita" Value="R$ 48.200" Delta="+12%" />
+            <OmniStat Card Label="Pedidos" Value="1.284" Delta="+8%" />
+        </OmniStatGroup>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="omni-stat-group-grid" style="@($"--omni-stat-cols:{Cols};")">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>Desired columns on wide containers. Collapses to 2 then 1 as it narrows. Default 4.</summary>
+    [Parameter] public int Columns { get; set; } = 4;
+
+    private int Cols => Columns < 1 ? 1 : Columns;
+
+    private string RootCss => CssBuilder.Default("omni-stat-group").AddClass(Class).Build();
+}

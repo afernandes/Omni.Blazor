@@ -1,0 +1,114 @@
+@page "/templates/dashboard"
+@layout TemplatesLayout
+
+<PageTitle>Dashboard — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Dashboard"
+                 Description="Visão geral com faixa de KPIs (OmniStatGroup), gráficos (OmniChart) e atividade recente (OmniTimeline)."
+                 Code="@_code">
+        <div class="tpl-dash">
+            <OmniPaneHeader Title="Dashboard" Subtitle="Visão geral de hoje · atualizado agora">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Exportar</button>
+                    <button class="omni-btn omni-btn-primary omni-btn-sm">Novo pedido</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniStatGroup Columns="4">
+                <OmniStat Card Label="Receita (hoje)" Value="R$ 48.200" Delta="+12,4%" DeltaCaption="vs ontem" Icon="dollar-sign" />
+                <OmniStat Card Label="Pedidos" Value="1.284" Delta="+8,1%" DeltaCaption="vs ontem" Icon="package" />
+                <OmniStat Card Label="Ticket médio" Value="R$ 37,50" Delta="+3,2%" DeltaCaption="vs ontem" Icon="trending-up" />
+                <OmniStat Card Label="Conversão" Value="4,8%" Delta="-0,6%" DeltaDown DeltaCaption="vs ontem" Icon="users" />
+            </OmniStatGroup>
+
+            <div class="tpl-dash-cols">
+                <OmniCard Title="Receita — últimos 7 dias">
+                    <OmniChart Series="@_revenue" Height="260px"
+                               ValueFormatter="@(v => $"R$ {v/1000:0}k")" />
+                </OmniCard>
+                <OmniCard Title="Vendas por canal">
+                    <OmniChart Series="@_channels" Height="260px"
+                               DonutCenterLabel="TOTAL" DonutCenterValue="R$ 89k" />
+                </OmniCard>
+            </div>
+
+            <OmniCard Title="Atividade recente">
+                <OmniTimeline LinePosition="TimelineLinePosition.Start">
+                    <OmniTimelineItem Label="19:42" Text="Pedido #4218 confirmado · R$ 89,80" />
+                    <OmniTimelineItem Label="19:41" Text="Pagamento PIX recebido — Marina Tavares" />
+                    <OmniTimelineItem Label="19:35" Text="Novo cliente cadastrado: Diego Antunes" />
+                    <OmniTimelineItem Label="19:20" Text="Estoque baixo: Mussarela (4 un.)" />
+                    <OmniTimelineItem Label="19:02" Text="Pedido #4217 saiu para entrega" />
+                </OmniTimeline>
+            </OmniCard>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private readonly List<ChartSeries> _revenue = new()
+    {
+        new ChartSeries
+        {
+            Title = "Receita",
+            Type = ChartSeriesType.Area,
+            AreaOpacity = 0.22,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Seg", Value = 32800 },
+                new ChartDataPoint { Category = "Ter", Value = 35100 },
+                new ChartDataPoint { Category = "Qua", Value = 34200 },
+                new ChartDataPoint { Category = "Qui", Value = 38900 },
+                new ChartDataPoint { Category = "Sex", Value = 45200 },
+                new ChartDataPoint { Category = "Sáb", Value = 52800 },
+                new ChartDataPoint { Category = "Dom", Value = 48200 },
+            }
+        }
+    };
+
+    private readonly List<ChartSeries> _channels = new()
+    {
+        new ChartSeries
+        {
+            Title = "Canal",
+            Type = ChartSeriesType.Donut,
+            Points = new[]
+            {
+                new ChartDataPoint { Category = "Delivery", Value = 46000 },
+                new ChartDataPoint { Category = "Balcão", Value = 28000 },
+                new ChartDataPoint { Category = "Salão", Value = 15000 },
+            }
+        }
+    };
+
+    private const string _code = @"<OmniPaneHeader Title=""Dashboard"" Subtitle=""Visão geral de hoje"">
+    <Actions>
+        <button class=""omni-btn omni-btn-sm"">Exportar</button>
+        <button class=""omni-btn omni-btn-primary omni-btn-sm"">Novo pedido</button>
+    </Actions>
+</OmniPaneHeader>
+
+<OmniStatGroup Columns=""4"">
+    <OmniStat Card Label=""Receita (hoje)"" Value=""R$ 48.200"" Delta=""+12,4%"" DeltaCaption=""vs ontem"" Icon=""dollar-sign"" />
+    <OmniStat Card Label=""Pedidos"" Value=""1.284"" Delta=""+8,1%"" Icon=""package"" />
+    <OmniStat Card Label=""Ticket médio"" Value=""R$ 37,50"" Delta=""+3,2%"" Icon=""trending-up"" />
+    <OmniStat Card Label=""Conversão"" Value=""4,8%"" Delta=""-0,6%"" DeltaDown Icon=""users"" />
+</OmniStatGroup>
+
+<div class=""dash-cols"">
+    <OmniCard Title=""Receita — últimos 7 dias"">
+        <OmniChart Series=""@revenue"" Height=""260px"" />
+    </OmniCard>
+    <OmniCard Title=""Vendas por canal"">
+        <OmniChart Series=""@channels"" Height=""260px"" DonutCenterLabel=""TOTAL"" DonutCenterValue=""R$ 89k"" />
+    </OmniCard>
+</div>
+
+<OmniCard Title=""Atividade recente"">
+    <OmniTimeline LinePosition=""TimelineLinePosition.Start"">
+        <OmniTimelineItem Label=""19:42"" Text=""Pedido #4218 confirmado · R$ 89,80"" />
+        <OmniTimelineItem Label=""19:41"" Text=""Pagamento PIX recebido"" />
+    </OmniTimeline>
+</OmniCard>";
+}

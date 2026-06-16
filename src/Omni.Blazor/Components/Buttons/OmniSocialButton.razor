@@ -1,0 +1,89 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    External-auth provider button (Google, Microsoft, Apple, GitHub, Facebook,
+    Passkey). Generic + product-agnostic. Full width shows "Continuar com X";
+    Compact renders icon-only for a provider row.
+
+    Usage:
+        <OmniSocialButton Provider="SocialProvider.Google" Block OnClick="SignInGoogle" />
+        <div class="omni-auth-providers-grid">
+            <OmniSocialButton Provider="SocialProvider.Apple" Compact />
+            <OmniSocialButton Provider="SocialProvider.GitHub" Compact />
+        </div>
+*@
+
+<button type="button" class="@RootCss" style="@Style"
+        disabled="@Disabled" aria-label="@(AriaLabel ?? EffectiveText)"
+        @onclick="OnClickAsync" @attributes="Attributes">
+    @((MarkupString)Mark)
+    @if (!Compact)
+    {
+        <span>@EffectiveText</span>
+    }
+</button>
+
+@code {
+    /// <summary>Which provider's brand mark + label to render.</summary>
+    [Parameter] public SocialProvider Provider { get; set; } = SocialProvider.Google;
+
+    /// <summary>Override the button label (default "Continuar com {provider}").</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Icon-only (no label) — for a compact provider row.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    /// <summary>Stretch to full width.</summary>
+    [Parameter] public bool Block { get; set; }
+
+    /// <summary>Disable the button.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Click handler.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Accessible label (defaults to the full text even when Compact).</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    private string Label => Provider switch
+    {
+        SocialProvider.Google    => "Google",
+        SocialProvider.Microsoft => "Microsoft",
+        SocialProvider.Apple     => "Apple",
+        SocialProvider.GitHub    => "GitHub",
+        SocialProvider.Facebook  => "Facebook",
+        SocialProvider.Passkey   => "Passkey",
+        _ => Provider.ToString()
+    };
+
+    private string EffectiveText => Text ?? (Provider == SocialProvider.Passkey
+        ? "Entrar com Passkey"
+        : $"Continuar com {Label}");
+
+    private string RootCss => CssBuilder.Default("omni-social-btn")
+        .AddClass($"omni-social-{Provider.ToString().ToLowerInvariant()}")
+        .AddClass("omni-social-btn-block", Block)
+        .AddClass("omni-social-btn-compact", Compact)
+        .AddClass(Class)
+        .Build();
+
+    private async Task OnClickAsync()
+    {
+        if (Disabled) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync();
+    }
+
+    private string Mark => Provider switch
+    {
+        SocialProvider.Google => """<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>""",
+        SocialProvider.Microsoft => """<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#F25022" d="M3 3h8.5v8.5H3z"/><path fill="#7FBA00" d="M12.5 3H21v8.5h-8.5z"/><path fill="#00A4EF" d="M3 12.5h8.5V21H3z"/><path fill="#FFB900" d="M12.5 12.5H21V21h-8.5z"/></svg>""",
+        SocialProvider.Apple => """<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M16.36 12.78c.02 2.5 2.19 3.33 2.21 3.34-.02.06-.35 1.2-1.15 2.37-.69 1.02-1.41 2.03-2.55 2.05-1.11.02-1.47-.66-2.74-.66-1.27 0-1.67.64-2.72.68-1.09.04-1.93-1.1-2.63-2.11-1.42-2.06-2.51-5.82-1.05-8.36.72-1.26 2.02-2.06 3.42-2.08 1.07-.02 2.09.72 2.74.72.66 0 1.89-.89 3.19-.76.54.02 2.07.22 3.05 1.65-.08.05-1.82 1.06-1.81 3.16M14.28 5.39c.58-.7.97-1.67.86-2.64-.83.03-1.84.55-2.44 1.25-.54.61-1.01 1.6-.88 2.55.93.07 1.88-.47 2.46-1.16"/></svg>""",
+        SocialProvider.GitHub => """<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.72 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.42.2 2.46.1 2.72.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9l-.01 2.81c0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>""",
+        SocialProvider.Facebook => """<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>""",
+        SocialProvider.Passkey => """<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M10.3 14H7a4 4 0 0 0-4 4v2"/><circle cx="18" cy="14" r="2.5"/><path d="M18 16.5V22l1.5-1.5L21 22v-5.5"/></svg>""",
+        _ => ""
+    };
+}

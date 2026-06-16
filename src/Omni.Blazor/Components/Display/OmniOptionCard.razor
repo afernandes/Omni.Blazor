@@ -1,0 +1,86 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Selectable option card (radio-style) — for choosing one option among several:
+    plans, payment methods, shipping options, account types. Product-agnostic.
+    The consumer owns which card is Selected (radio-group behaviour) via OnClick.
+
+    Usage:
+        @foreach (var p in plans)
+        {
+            <OmniOptionCard Title="@p.Name" Description="@p.Desc" Price="@p.Price" PricePeriod="/mês"
+                            Badge="@p.Badge" Selected="@(p == _selected)"
+                            OnClick="@(() => _selected = p)" />
+        }
+*@
+
+<button type="button" class="@RootCss" style="@Style" disabled="@Disabled"
+        role="radio" aria-checked="@(Selected ? "true" : "false")"
+        @onclick="OnClickAsync" @attributes="Attributes">
+    <span class="omni-option-radio"></span>
+    <span class="omni-option-main">
+        <span class="omni-option-top">
+            <span class="omni-option-title">
+                @Title
+                @if (!string.IsNullOrEmpty(Badge))
+                {
+                    <span class="omni-option-badge">@Badge</span>
+                }
+            </span>
+            @if (!string.IsNullOrEmpty(Price))
+            {
+                <span class="omni-option-price">
+                    @Price@if (!string.IsNullOrEmpty(PricePeriod)) {<small>&nbsp;@PricePeriod</small>}
+                </span>
+            }
+        </span>
+        @if (!string.IsNullOrEmpty(Description))
+        {
+            <span class="omni-option-desc">@Description</span>
+        }
+        @ChildContent
+    </span>
+</button>
+
+@code {
+    /// <summary>Option name.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Supporting description.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Small badge after the title (e.g. "POPULAR").</summary>
+    [Parameter] public string? Badge { get; set; }
+
+    /// <summary>Price (mono).</summary>
+    [Parameter] public string? Price { get; set; }
+
+    /// <summary>Price period suffix (e.g. "/mês").</summary>
+    [Parameter] public string? PricePeriod { get; set; }
+
+    /// <summary>Selected state (radio).</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    /// <summary>Disable the card.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Click handler — the consumer sets which card is selected.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Convenience: fires <c>true</c> when the card is clicked.</summary>
+    [Parameter] public EventCallback<bool> SelectedChanged { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-option-card")
+        .AddClass("omni-option-card-selected", Selected)
+        .AddClass(Class)
+        .Build();
+
+    private async Task OnClickAsync()
+    {
+        if (Disabled) return;
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync();
+        if (SelectedChanged.HasDelegate) await SelectedChanged.InvokeAsync(true);
+    }
+}

@@ -1,0 +1,106 @@
+@page "/templates/admin/permissions"
+@layout TemplatesLayout
+
+<PageTitle>Permissões — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Árvore de permissões"
+                 Description="Seleção em massa agrupada por módulo, com checkboxes tri-state (cascata pai↔filho). OmniTree + OmniCard. Marque parte de um grupo para ver o estado indeterminado."
+                 Code="@_code">
+        <div class="tpl-dash" style="max-width:720px; margin:0 auto;">
+            <OmniPaneHeader Title="Permissões" Subtitle="Papel: Gerente · 5 usuários afetados">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Cancelar</button>
+                    <button class="omni-btn omni-btn-primary omni-btn-sm">Salvar</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniCard>
+                <div class="tpl-perm-bar">
+                    <span class="tpl-perm-count"><b>@CheckedLeaves</b> de @TotalLeaves permissões selecionadas</span>
+                    <div style="display:flex; gap:8px">
+                        <button class="omni-btn omni-btn-sm" @onclick="MarkAll">Marcar todas</button>
+                        <button class="omni-btn omni-btn-sm" @onclick="ClearAll">Limpar</button>
+                    </div>
+                </div>
+
+                <OmniTree Data="@_perms" AllowCheckboxes @bind-CheckedValues="_checked">
+                    <OmniTreeLevel TextProperty="Name" ChildrenProperty="Children" IconProperty="Icon" Expanded="@(_ => true)" />
+                    <OmniTreeLevel HasChildren="@(_ => false)">
+                        <Template>
+                            <span><strong>@(((PermNode)context.Value!).Name)</strong></span>
+                            <span class="tpl-perm-key">@(((PermNode)context.Value!).Key)</span>
+                        </Template>
+                    </OmniTreeLevel>
+                </OmniTree>
+            </OmniCard>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    public record PermNode(string Name, string Icon, string? Key = null, List<PermNode>? Children = null);
+
+    private readonly List<PermNode> _perms = new()
+    {
+        new("Cadastros", "database", null, new()
+        {
+            new("Visualizar", "", "cadastros.view"),
+            new("Criar", "", "cadastros.create"),
+            new("Editar", "", "cadastros.edit"),
+            new("Excluir", "", "cadastros.delete"),
+        }),
+        new("Pedidos", "package", null, new()
+        {
+            new("Visualizar", "", "pedidos.view"),
+            new("Criar", "", "pedidos.create"),
+            new("Cancelar", "", "pedidos.cancel"),
+            new("Reembolsar", "", "pedidos.refund"),
+        }),
+        new("Relatórios", "bar-chart", null, new()
+        {
+            new("Visualizar", "", "reports.view"),
+            new("Exportar", "", "reports.export"),
+        }),
+        new("Configurações", "settings", null, new()
+        {
+            new("Visualizar", "", "settings.view"),
+            new("Editar", "", "settings.edit"),
+        }),
+    };
+
+    private IEnumerable<object> _checked = new List<object>();
+
+    protected override void OnInitialized()
+    {
+        // Pre-check a few leaves → their parent groups render indeterminate.
+        _checked = new List<object>
+        {
+            _perms[0].Children![0],   // cadastros.view
+            _perms[1].Children![0],   // pedidos.view
+            _perms[1].Children![1],   // pedidos.create
+        };
+    }
+
+    private int TotalLeaves => _perms.SelectMany(g => g.Children!).Count();
+    private int CheckedLeaves => _checked.OfType<PermNode>().Count(n => n.Children is null);
+
+    private void MarkAll() => _checked = _perms.SelectMany(g => g.Children!).Cast<object>().ToList();
+    private void ClearAll() => _checked = new List<object>();
+
+    private const string _code = @"<OmniTree Data=""@perms"" AllowCheckboxes @bind-CheckedValues=""checked"">
+    <OmniTreeLevel TextProperty=""Name"" ChildrenProperty=""Children"" IconProperty=""Icon"" Expanded=""@(_ => true)"" />
+    <OmniTreeLevel HasChildren=""@(_ => false)"">
+        <Template>
+            <span><strong>@(((PermNode)context.Value!).Name)</strong></span>
+            <span class=""perm-key"">@(((PermNode)context.Value!).Key)</span>
+        </Template>
+    </OmniTreeLevel>
+</OmniTree>
+
+@code {
+    public record PermNode(string Name, string Icon, string? Key = null, List<PermNode>? Children = null);
+    private IEnumerable<object> checked = new List<object>();
+    // ... grupos por módulo (Cadastros, Pedidos, Relatórios, Configurações)
+}";
+}

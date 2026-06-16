@@ -1,0 +1,92 @@
+@page "/templates/admin/users"
+@layout TemplatesLayout
+
+<PageTitle>Usuários — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Tabela de usuários (admin)"
+                 Description="Listagem com busca, paginação, badge de status e ações por linha. OmniPaneHeader + OmniDataGrid + OmniStatusBadge."
+                 Code="@_code">
+        <div class="tpl-dash">
+            <OmniPaneHeader Title="Usuários" Subtitle="@($"{_users.Count} usuários · 3 papéis")">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Exportar</button>
+                    <button class="omni-btn omni-btn-primary omni-btn-sm">Novo usuário</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniDataGrid TItem="UserRow" Data="_users" AllowSearch AllowPaging PageSize="6"
+                          SearchPlaceholder="Buscar por nome, papel...">
+                    <Columns>
+                        <OmniDataGridColumn TItem="UserRow" Title="Usuário" PropertyName="Name" TextSelector="@(u => u.Name)">
+                            <Template Context="u">
+                                <div style="display:flex; align-items:center; gap:10px">
+                                    <OmniAvatar Initials="@u.Initials" />
+                                    <div style="display:flex; flex-direction:column; line-height:1.3; min-width:0">
+                                        <span style="font-weight:600; font-size:13px">@u.Name</span>
+                                        <span style="font-size:11.5px; color:var(--omni-fg-muted); font-family:var(--omni-font-mono)">@u.Email</span>
+                                    </div>
+                                </div>
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="UserRow" Title="Papel" PropertyName="Role" Property="@(u => u.Role)" />
+                        <OmniDataGridColumn TItem="UserRow" Title="Status" PropertyName="Status" TextSelector="@(u => u.Status)">
+                            <Template Context="u">
+                                <OmniStatusBadge Label="@u.Status" Kind="@u.StatusKind" />
+                            </Template>
+                        </OmniDataGridColumn>
+                        <OmniDataGridColumn TItem="UserRow" Title="Último acesso" PropertyName="LastAccess" Property="@(u => u.LastAccess)" />
+                        <OmniDataGridColumn TItem="UserRow" Title="" Sortable="false" Width="56px">
+                            <Template Context="u">
+                                <button class="omni-btn omni-btn-icon" aria-label="Ações">
+                                    <OmniIcon Name="more-vertical" Size="ComponentSize.Sm" />
+                                </button>
+                            </Template>
+                        </OmniDataGridColumn>
+                    </Columns>
+                </OmniDataGrid>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private record UserRow(string Name, string Email, string Initials, string Role, string Status, StatusBadgeKind StatusKind, string LastAccess);
+
+    private readonly List<UserRow> _users = new()
+    {
+        new("Marina Tavares", "marina@forno.com.br", "MT", "Administrador", "Ativo", StatusBadgeKind.Good, "há 2 min"),
+        new("Diego Antunes", "diego@forno.com.br", "DA", "Gerente", "Ativo", StatusBadgeKind.Good, "há 1 h"),
+        new("Carla Menezes", "carla@forno.com.br", "CM", "Operador", "Bloqueado", StatusBadgeKind.Danger, "há 3 dias"),
+        new("Rafael Lima", "rafael@forno.com.br", "RL", "Operador", "Pendente", StatusBadgeKind.Warn, "—"),
+        new("Beatriz Souza", "bia@forno.com.br", "BS", "Gerente", "Ativo", StatusBadgeKind.Good, "ontem"),
+        new("Lucas Pereira", "lucas@forno.com.br", "LP", "Operador", "Convidado", StatusBadgeKind.Accent, "—"),
+        new("Ana Ribeiro", "ana@forno.com.br", "AR", "Operador", "Ativo", StatusBadgeKind.Good, "há 5 h"),
+        new("Pedro Gomes", "pedro@forno.com.br", "PG", "Financeiro", "Ativo", StatusBadgeKind.Good, "há 20 min"),
+    };
+
+    private const string _code = @"<OmniPaneHeader Title=""Usuários"" Subtitle=""8 usuários · 3 papéis"">
+    <Actions>
+        <button class=""omni-btn omni-btn-sm"">Exportar</button>
+        <button class=""omni-btn omni-btn-primary omni-btn-sm"">Novo usuário</button>
+    </Actions>
+</OmniPaneHeader>
+
+<OmniDataGrid TItem=""UserRow"" Data=""users"" AllowSearch AllowPaging PageSize=""6""
+              SearchPlaceholder=""Buscar por nome, papel..."">
+    <Columns>
+            <OmniDataGridColumn TItem=""UserRow"" Title=""Usuário"" PropertyName=""Name"" TextSelector=""@(u => u.Name)"">
+                <Template Context=""u"">
+                    <div class=""u-cell"">
+                        <OmniAvatar Initials=""@u.Initials"" />
+                        <div><b>@u.Name</b><span>@u.Email</span></div>
+                    </div>
+                </Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem=""UserRow"" Title=""Papel"" Property=""@(u => u.Role)"" />
+            <OmniDataGridColumn TItem=""UserRow"" Title=""Status"">
+                <Template Context=""u""><OmniStatusBadge Label=""@u.Status"" Kind=""@u.StatusKind"" /></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem=""UserRow"" Title=""Último acesso"" Property=""@(u => u.LastAccess)"" />
+        </Columns>
+    </OmniDataGrid>";
+}

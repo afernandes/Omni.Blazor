@@ -1,0 +1,64 @@
+@page "/showcase/avatar-group"
+@layout ShowcaseLayout
+
+<PageTitle>Avatar Group — Showcase</PageTitle>
+
+<ShowcasePage Title="Avatar Group"
+              Subtitle="Pilha sobreposta de avatares com chip “+N” opcional — membros, responsáveis, participantes.">
+
+    <Overview>
+        <p>
+            O <code>OmniAvatarGroup</code> empilha <code>OmniAvatar</code> com sobreposição e um anel
+            (box-shadow) para separá-los visualmente. Passe <code>More</code> para o excedente “+N” e
+            <code>Size</code> para casar o overlap/chip com o tamanho dos avatares.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="PADRÃO + OVERFLOW"
+                         Description="More renderiza o chip “+N” ao final."
+                         Code="@(@"<OmniAvatarGroup More=""3"">
+    <OmniAvatar Initials=""MT"" />
+    <OmniAvatar Initials=""DA"" />
+    <OmniAvatar Initials=""CM"" />
+</OmniAvatarGroup>")">
+            <OmniAvatarGroup More="3">
+                <OmniAvatar Initials="MT" />
+                <OmniAvatar Initials="DA" />
+                <OmniAvatar Initials="CM" />
+                <OmniAvatar Initials="RL" />
+            </OmniAvatarGroup>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Size casa o overlap e o chip com os avatares."
+                         Code="@(@"<OmniAvatarGroup Size=""AvatarSize.Sm"" More=""2"">...</OmniAvatarGroup>
+<OmniAvatarGroup Size=""AvatarSize.Lg"" More=""5"">...</OmniAvatarGroup>")">
+            <div style="display:flex; align-items:center; gap:24px; flex-wrap:wrap">
+                <OmniAvatarGroup Size="AvatarSize.Sm" More="2">
+                    <OmniAvatar Initials="MT" Size="AvatarSize.Sm" />
+                    <OmniAvatar Initials="DA" Size="AvatarSize.Sm" />
+                </OmniAvatarGroup>
+                <OmniAvatarGroup More="4">
+                    <OmniAvatar Initials="MT" />
+                    <OmniAvatar Initials="DA" />
+                    <OmniAvatar Initials="CM" />
+                </OmniAvatarGroup>
+                <OmniAvatarGroup Size="AvatarSize.Lg" More="5">
+                    <OmniAvatar Initials="MT" Size="AvatarSize.Lg" />
+                    <OmniAvatar Initials="DA" Size="AvatarSize.Lg" />
+                    <OmniAvatar Initials="CM" Size="AvatarSize.Lg" />
+                </OmniAvatarGroup>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniAvatarGroup">
+            <ShowcaseApiRow Name="More" Type="int?" Default="null" Description="Excedente exibido como chip “+N”." />
+            <ShowcaseApiRow Name="Size" Type="AvatarSize" Default="Md" Description="Casa overlap + chip com os avatares (Sm…XXl)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" Default="—" Description="Os OmniAvatar." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

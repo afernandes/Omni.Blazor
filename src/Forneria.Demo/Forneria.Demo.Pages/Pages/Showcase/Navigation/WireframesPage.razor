@@ -193,32 +193,32 @@
 <OmniDrawer Variant=""DrawerVariant.Responsive"" Breakpoint=""Breakpoint.Lg"" />")">
             <div class="wf-variants-grid">
                 <div>
-                    <WireframeSvg>
+                    <WireframeSvg ViewBox="0 0 150 100">
                         <rect x="0" y="0" width="35%" height="100%" class="wf-aside" />
                         <rect x="35%" y="0" width="65%" height="100%" class="wf-main" />
-                        <text x="17%" y="55%" text-anchor="middle" class="wf-lbl">Persistent</text>
+                        <text x="50%" y="55%" text-anchor="middle" class="wf-lbl">Persistent</text>
                     </WireframeSvg>
                 </div>
                 <div>
-                    <WireframeSvg>
+                    <WireframeSvg ViewBox="0 0 150 100">
                         <rect x="0" y="0" width="12%" height="100%" class="wf-aside" />
                         <rect x="12%" y="0" width="88%" height="100%" class="wf-main" />
                         <text x="50%" y="55%" text-anchor="middle" class="wf-lbl">Mini</text>
                     </WireframeSvg>
                 </div>
                 <div>
-                    <WireframeSvg>
+                    <WireframeSvg ViewBox="0 0 150 100">
                         <rect x="0" y="0" width="100%" height="100%" class="wf-main" />
                         <rect x="0" y="0" width="40%" height="100%" class="wf-aside" style="opacity:.85" />
-                        <text x="20%" y="55%" text-anchor="middle" class="wf-lbl">Temporary</text>
+                        <text x="50%" y="55%" text-anchor="middle" class="wf-lbl">Temporary</text>
                     </WireframeSvg>
                 </div>
                 <div>
-                    <WireframeSvg>
+                    <WireframeSvg ViewBox="0 0 150 100">
                         <rect x="0" y="0" width="35%" height="100%" class="wf-aside" />
                         <rect x="35%" y="0" width="65%" height="100%" class="wf-main" />
-                        <text x="17%" y="50%" text-anchor="middle" class="wf-lbl">Responsive</text>
-                        <text x="17%" y="65%" text-anchor="middle" class="wf-hint">(auto)</text>
+                        <text x="50%" y="50%" text-anchor="middle" class="wf-lbl">Responsive</text>
+                        <text x="50%" y="65%" text-anchor="middle" class="wf-hint">(auto)</text>
                     </WireframeSvg>
                 </div>
             </div>
@@ -412,7 +412,8 @@
         display: block;
         width: 100%;
         max-width: 640px;
-        height: 160px;
+        aspect-ratio: 4 / 1;   /* casa com o viewBox 400x100 → sem distorção/letterbox */
+        height: auto;
         border-radius: 12px;
         background: var(--omni-bg-sunken);
         border: 1px solid var(--omni-line);
@@ -424,8 +425,9 @@
     .wf-svg .wf-main { fill: var(--omni-bg); stroke: var(--omni-line); stroke-width: 1; }
     .wf-svg .wf-foot { fill: var(--omni-bg-sunken); stroke: var(--omni-line); stroke-width: 1; }
     .wf-svg .wf-card { fill: var(--omni-bg-elev); stroke: var(--omni-line); stroke-width: 1; }
-    .wf-svg .wf-lbl  { fill: var(--omni-fg-muted); font-size: 11px; font-family: var(--omni-font-mono, ui-monospace, monospace); }
-    .wf-svg .wf-hint { fill: var(--omni-fg-soft); font-size: 9px; font-family: var(--omni-font-mono, ui-monospace, monospace); }
+    /* font-size em unidades do viewBox (400 de largura → ~1.6× na tela cheia) */
+    .wf-svg .wf-lbl  { fill: var(--omni-fg-muted); font-size: 8px; font-weight: 500; font-family: var(--omni-font-mono, ui-monospace, monospace); }
+    .wf-svg .wf-hint { fill: var(--omni-fg-soft); font-size: 6px; font-family: var(--omni-font-mono, ui-monospace, monospace); }
 
     .wf-variants-grid {
         display: grid;
@@ -435,7 +437,10 @@
     @@media (min-width: 1024px) {
         .wf-variants-grid { grid-template-columns: repeat(4, 1fr); }
     }
-    .wf-variants-grid .wf-svg { height: 110px; }
+    .wf-variants-grid .wf-svg { aspect-ratio: 3 / 2; }
+    /* viewBox menor (150 de largura) nas variantes → fontes em unidades maiores */
+    .wf-variants-grid .wf-svg .wf-lbl  { font-size: 11px; }
+    .wf-variants-grid .wf-svg .wf-hint { font-size: 8px; }
 
     /* "Ver demo ao vivo →" — link abaixo do wireframe SVG */
     .wf-demo-link {

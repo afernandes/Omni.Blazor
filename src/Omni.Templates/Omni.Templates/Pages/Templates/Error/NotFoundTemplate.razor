@@ -1,0 +1,32 @@
+@page "/templates/error/404"
+@layout TemplatesLayout
+
+<PageTitle>404 — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Erro 404 — Não encontrado"
+                 Description="Página de rota inexistente. OmniResult com Status=NotFound e ações de retorno."
+                 Code="@_code">
+        <div class="tpl-preview-stretch tpl-preview-pad">
+            <OmniResult Status="ResultStatus.NotFound"
+                        Title="Página não encontrada"
+                        Description="A rota que você acessou não existe ou foi movida. Verifique o endereço ou volte ao início.">
+                <Actions>
+                    <a href="/" class="omni-btn omni-btn-primary">Voltar ao início</a>
+                    <a href="/" class="omni-btn">Falar com suporte</a>
+                </Actions>
+            </OmniResult>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private const string _code = @"<OmniResult Status=""ResultStatus.NotFound""
+            Title=""Página não encontrada""
+            Description=""A rota que você acessou não existe ou foi movida."">
+    <Actions>
+        <a href=""/"" class=""omni-btn omni-btn-primary"">Voltar ao início</a>
+        <a href=""/suporte"" class=""omni-btn"">Falar com suporte</a>
+    </Actions>
+</OmniResult>";
+}

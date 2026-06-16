@@ -601,6 +601,15 @@
     if (focusable) focusable.focus();
   };
 
+  // Scroll an element (by ElementReference or CSS selector) into view. Used by
+  // keyboard-navigated lists (e.g. OmniCommandPalette) to follow the active item.
+  ns.scrollIntoView = function (target, block) {
+    try {
+      const el = typeof target === "string" ? document.querySelector(target) : target;
+      if (el) el.scrollIntoView({ block: block || "nearest", inline: "nearest" });
+    } catch (e) { /* ignore */ }
+  };
+
   // Read element position (used by tooltip/context menu auto-flip — kept simple)
   ns.elementRect = function (el) {
     if (!el) return null;
@@ -967,6 +976,55 @@
   Object.defineProperty(ns, '_hotkeys', { get: () => hotkeys });
   let hkListenerAttached = false;
 
+  // Sequence ("g d") support: a rolling buffer of recent non-modifier keystrokes.
+  const SEQ_TIMEOUT = 1200;   // ms allowed between consecutive sequence keys
+  let seqBuffer = [];
+  let seqMaxLen = 0;          // longest registered sequence — the buffer is capped to it
+
+  function recomputeSeqMax() {
+    let m = 0;
+    for (const [, h] of hotkeys)
+      if (h.sequences) for (const s of h.sequences) if (s.length > m) m = s.length;
+    seqMaxLen = m;
+  }
+
+  function isModifierKey(k) {
+    return k === 'Shift' || k === 'Control' || k === 'Alt' || k === 'Meta' ||
+           k === 'CapsLock' || k === 'NumLock' || k === 'ScrollLock' ||
+           k === 'AltGraph' || k === 'OS';
+  }
+
+  function comboKeyMatch(b, c) {
+    if (b.ctrl  !== !!c.ctrl ) return false;
+    if (b.alt   !== !!c.alt  ) return false;
+    if (b.shift !== !!c.shift) return false;
+    if (b.meta  !== !!c.meta ) return false;
+    const k = (c.key || '').toLowerCase();
+    if (!k) return false;
+    return (b.key && b.key.toLowerCase() === k) || (b.code && b.code.toLowerCase() === k);
+  }
+
+  // Does the END of the buffer exactly equal this sequence (with in-time keystrokes)?
+  function seqMatchesTail(seq) {
+    if (seqBuffer.length < seq.length) return false;
+    const start = seqBuffer.length - seq.length;
+    for (let i = 0; i < seq.length; i++) {
+      const b = seqBuffer[start + i];
+      if (!comboKeyMatch(b, seq[i])) return false;
+      if (i > 0 && (b.t - seqBuffer[start + i - 1].t) > SEQ_TIMEOUT) return false;
+    }
+    return true;
+  }
+
+  // Invoke a hotkey's C# handler.
+  function invokeHotkey(h, e) {
+    try {
+      h.dotnet.invokeMethodAsync(h.method, h.id, e
+        ? { key: e.key, code: e.code, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, metaKey: e.metaKey }
+        : { key: '', code: '', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false });
+    } catch { /* dotnet ref may be disposed during teardown — ignore */ }
+  }
+
   function isInEditable(el) {
     if (!el) return false;
     const tag = el.tagName;
@@ -994,36 +1052,59 @@
     if (e.repeat) return;            // ignore key-hold; one fire per press
     if (hotkeys.size === 0) return;  // defensive — listener should have detached
     const inEditable = isInEditable(e.target);
-    // Iterate insertion-order; first match wins.
+
+    function fire(h) {
+      if (h.preventDefault) e.preventDefault();
+      if (h.stopPropagation) e.stopPropagation();
+      invokeHotkey(h, e);
+    }
+
+    // 1) Single combos — insertion order, first match wins.
     for (const [, h] of hotkeys) {
       if (h.disabled) continue;
       for (let i = 0; i < h.combos.length; i++) {
         if (hkMatches(e, h.combos[i], inEditable)) {
-          if (h.preventDefault) e.preventDefault();
-          if (h.stopPropagation) e.stopPropagation();
-          try {
-            h.dotnet.invokeMethodAsync(h.method, h.id, {
-              key: e.key, code: e.code,
-              ctrlKey: e.ctrlKey, altKey: e.altKey,
-              shiftKey: e.shiftKey, metaKey: e.metaKey
-            });
-          } catch { /* dotnet ref may be disposed during teardown — ignore */ }
+          seqBuffer = [];            // a real combo consumed this key
+          fire(h);
           return;
         }
       }
     }
+
+    // 2) Sequences ("g d") — global only, never while typing, never bare modifiers.
+    if (seqMaxLen === 0 || inEditable || isModifierKey(e.key)) return;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+    seqBuffer.push({ key: e.key, code: e.code, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey, t: now });
+    if (seqBuffer.length > seqMaxLen) seqBuffer.shift();
+
+    // Fire the longest matching tail as soon as it completes. A sequence that is a
+    // prefix of a longer one will win, so register distinct (non-overlapping) sequences.
+    let bestH = null, bestLen = 0;
+    for (const [, h] of hotkeys) {
+      if (h.disabled || !h.sequences) continue;
+      for (const seq of h.sequences) {
+        if (seq.length > bestLen && seqMatchesTail(seq)) { bestH = h; bestLen = seq.length; }
+      }
+    }
+    if (!bestH) return;               // no match yet — keep buffering
+    seqBuffer = [];
+    fire(bestH);
   }
 
-  ns.registerHotkey = function (id, dotnet, method, combos, preventDefault, stopPropagation) {
-    if (!id || !dotnet || !Array.isArray(combos) || combos.length === 0) return;
+  ns.registerHotkey = function (id, dotnet, method, combos, sequences, preventDefault, stopPropagation) {
+    if (!id || !dotnet || !Array.isArray(combos)) return;
+    const seqs = Array.isArray(sequences) ? sequences.filter(s => Array.isArray(s) && s.length) : [];
+    if (combos.length === 0 && seqs.length === 0) return;
     // Replace any prior entry for the same id (re-registration from a re-render).
     hotkeys.set(id, {
       id, dotnet, method,
       combos,
+      sequences: seqs,
       preventDefault: !!preventDefault,
       stopPropagation: !!stopPropagation,
       disabled: false
     });
+    recomputeSeqMax();
     if (!hkListenerAttached) {
       document.addEventListener('keydown', hkHandler, true);
       hkListenerAttached = true;
@@ -1032,9 +1113,11 @@
   ns.unregisterHotkey = function (id) {
     if (!id) return;
     hotkeys.delete(id);
+    recomputeSeqMax();
     if (hkListenerAttached && hotkeys.size === 0) {
       document.removeEventListener('keydown', hkHandler, true);
       hkListenerAttached = false;
+      seqBuffer = [];
     }
   };
   ns.setHotkeyDisabled = function (id, disabled) {

@@ -1,0 +1,277 @@
+/* ============================================================================
+   Omni.Templates — gallery shell + doc wrapper styling.
+   App-level styles use the `tpl-` prefix (the library owns `omni-`). All colors
+   come from the Omni design tokens (--omni-*) shipped by _content/Omni.Blazor.
+   ============================================================================ */
+
+/* ── Shell: topbar + sidebar nav + scrollable content ───────────────────── */
+.tpl-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  grid-template-rows: 56px 1fr;
+  grid-template-areas: "top top" "nav main";
+  height: 100vh;
+  background: var(--omni-bg);
+  color: var(--omni-fg);
+}
+
+.tpl-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--omni-line);
+  background: var(--omni-bg-elev);
+  z-index: 20;
+}
+.tpl-top-spacer { flex: 1; }
+.tpl-top-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--omni-fg-soft);
+}
+
+.tpl-nav {
+  grid-area: nav;
+  overflow-y: auto;
+  border-right: 1px solid var(--omni-line);
+  background: var(--omni-bg-elev);
+  padding: 12px 10px 32px;
+}
+.tpl-nav-label {
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--omni-fg-soft);
+  font-weight: 600;
+  padding: 14px 10px 5px;
+}
+
+.tpl-main {
+  grid-area: main;
+  overflow-y: auto;
+  background: var(--omni-bg);
+}
+
+@media (max-width: 900px) {
+  .tpl-shell { grid-template-columns: 1fr; grid-template-areas: "top" "main"; }
+  .tpl-nav { display: none; }
+}
+
+/* ── Page width inside content ──────────────────────────────────────────── */
+.tpl-page { max-width: 1100px; margin: 0 auto; padding: 26px 30px 64px; }
+
+/* ── Gallery home ───────────────────────────────────────────────────────── */
+.tpl-hero {
+  padding: 8px 0 26px;
+  border-bottom: 1px solid var(--omni-line);
+  margin-bottom: 26px;
+}
+.tpl-hero-eyebrow {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  color: var(--omni-accent);
+}
+.tpl-hero-title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin: 10px 0 0;
+  line-height: 1.1;
+}
+.tpl-hero-sub {
+  font-size: 15px;
+  color: var(--omni-fg-muted);
+  margin-top: 10px;
+  max-width: 64ch;
+  line-height: 1.55;
+}
+
+.tpl-group { margin-top: 30px; }
+.tpl-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.tpl-group-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.tpl-group-count {
+  font-family: var(--omni-font-mono);
+  font-size: 11px;
+  color: var(--omni-fg-soft);
+}
+
+.tpl-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 14px;
+}
+.tpl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  background: var(--omni-bg-elev);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 120ms, box-shadow 120ms, transform 120ms;
+}
+.tpl-card:hover {
+  border-color: var(--omni-accent);
+  box-shadow: var(--omni-shadow);
+  transform: translateY(-2px);
+}
+.tpl-card-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  margin-bottom: 8px;
+}
+.tpl-card-ico svg { width: 19px; height: 19px; }
+.tpl-card-title { font-size: 14px; font-weight: 600; }
+.tpl-card-desc { font-size: 12.5px; color: var(--omni-fg-muted); line-height: 1.45; }
+.tpl-card-soon {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-family: var(--omni-font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--omni-fg-soft);
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+.tpl-card.is-soon { pointer-events: none; opacity: 0.6; }
+
+/* ── TemplateDoc: per-template header + framed live preview + code panel ─── */
+.tpl-doc { display: flex; flex-direction: column; gap: 14px; }
+.tpl-doc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.tpl-doc-titles { min-width: 0; }
+.tpl-doc-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.tpl-doc-desc { font-size: 13.5px; color: var(--omni-fg-muted); margin-top: 4px; max-width: 70ch; line-height: 1.5; }
+.tpl-doc-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.tpl-doc-preview {
+  border-radius: var(--omni-radius);
+}
+.tpl-doc-framed {
+  border: 1px solid var(--omni-line);
+  background: var(--omni-bg);
+  overflow: hidden;
+  position: relative;
+}
+/* checkered/sunken backdrop hint that this is a preview surface */
+.tpl-doc-framed { background: var(--omni-bg-sunken); }
+.tpl-doc-framed > * { background: var(--omni-bg); }
+
+.tpl-doc-code {
+  position: relative;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  background: var(--omni-bg-sunken);
+  overflow: hidden;
+}
+.tpl-doc-code pre {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-family: var(--omni-font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--omni-fg);
+  tab-size: 4;
+}
+.tpl-doc-copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--omni-line);
+  border-radius: 7px;
+  background: var(--omni-bg-elev);
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+.tpl-doc-copy:hover { background: var(--omni-bg); color: var(--omni-fg); border-color: var(--omni-line-strong); }
+.tpl-doc-copy svg { width: 14px; height: 14px; }
+
+/* preview helper: center a card-ish template inside the framed area */
+.tpl-preview-pad { padding: 28px; display: grid; place-items: center; }
+.tpl-preview-stretch { min-height: 360px; display: grid; }
+
+/* ── Blazor error UI (hidden until the framework reveals it) ─────────────── */
+#blazor-error-ui {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1500;
+  padding: 10px 16px;
+  background: var(--omni-warn);
+  color: #1a1206;
+  box-shadow: var(--omni-shadow-lg);
+  font-size: 13px;
+}
+#blazor-error-ui .reload { color: inherit; text-decoration: underline; cursor: pointer; }
+#blazor-error-ui .dismiss { float: right; cursor: pointer; font-weight: 700; padding-left: 12px; }
+
+/* ── Dashboard template scaffolding ─────────────────────────────────────── */
+.tpl-dash { padding: 24px; background: var(--omni-bg); container-type: inline-size; }
+.tpl-dash > * + * { margin-top: 16px; }
+.tpl-dash-cols { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+@container (max-width: 860px) {
+  .tpl-dash-cols { grid-template-columns: 1fr; }
+}
+
+/* settings row: label/help on the left, control on the right */
+.tpl-set-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--omni-line);
+}
+.tpl-set-row:last-child { border-bottom: 0; }
+.tpl-set-label { font-size: 13.5px; font-weight: 500; }
+.tpl-set-help { font-size: 12px; color: var(--omni-fg-muted); margin-top: 3px; max-width: 56ch; line-height: 1.45; }
+
+/* permission tree counter bar */
+.tpl-perm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.tpl-perm-count { font-family: var(--omni-font-mono); font-size: 12px; color: var(--omni-fg-muted); }
+.tpl-perm-count b { color: var(--omni-accent); }
+.tpl-perm-key { font-family: var(--omni-font-mono); font-size: 10.5px; color: var(--omni-fg-soft); margin-left: 8px; }

@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ContextMenuService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<HotkeyService>();
+        services.AddScoped<CommandHistoryService>();
         services.AddScoped<ScrollManager>();
         services.AddScoped<BreakpointService>();
         services.AddScoped<KeyInterceptorService>();

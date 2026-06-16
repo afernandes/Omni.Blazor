@@ -1,0 +1,96 @@
+@page "/"
+@layout TemplatesLayout
+
+<PageTitle>Omni Templates — Galeria</PageTitle>
+
+<div class="tpl-page">
+    <header class="tpl-hero">
+        <div class="tpl-hero-eyebrow">OMNI.BLAZOR · TEMPLATES</div>
+        <h1 class="tpl-hero-title">Páginas prontas para começar rápido</h1>
+        <p class="tpl-hero-sub">
+            Telas montadas com os componentes da Omni.Blazor — copie o código, cole no seu projeto e
+            ajuste. Agnósticas de produto: servem para qualquer sistema. Use o seletor de tema no topo
+            para alternar claro/escuro e a cor de destaque.
+        </p>
+    </header>
+
+    @foreach (var group in _groups)
+    {
+        <section class="tpl-group" @key="group.Title">
+            <div class="tpl-group-head">
+                <span class="tpl-group-title">@group.Title</span>
+                <span class="tpl-group-count">@group.Items.Count(i => i.Ready) prontos</span>
+            </div>
+            <div class="tpl-cards">
+                @foreach (var item in group.Items)
+                {
+                    @if (item.Ready)
+                    {
+                        <a class="tpl-card" href="@item.Path" @key="item.Title">
+                            <span class="tpl-card-ico"><OmniIcon Name="@item.Icon" /></span>
+                            <span class="tpl-card-title">@item.Title</span>
+                            <span class="tpl-card-desc">@item.Desc</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="tpl-card is-soon" @key="item.Title">
+                            <span class="tpl-card-ico"><OmniIcon Name="@item.Icon" /></span>
+                            <span class="tpl-card-title">@item.Title</span>
+                            <span class="tpl-card-desc">@item.Desc</span>
+                            <span class="tpl-card-soon">Em breve</span>
+                        </div>
+                    }
+                }
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    private record Item(string Title, string Desc, string Icon, string? Path, bool Ready = true);
+    private record Group(string Title, Item[] Items);
+
+    private readonly Group[] _groups =
+    {
+        new("Erros & status", new[]
+        {
+            new Item("404 — Não encontrado", "Rota inexistente, com ações de retorno.", "search", "/templates/error/404"),
+            new Item("403 — Acesso negado", "Sem permissão para o recurso.", "lock", "/templates/error/403"),
+            new Item("500 — Erro interno", "Falha no servidor, com tentar de novo.", "alert-circle", "/templates/error/500"),
+            new Item("Manutenção", "Sistema temporariamente indisponível.", "settings", "/templates/error/maintenance"),
+        }),
+        new("Estados", new[]
+        {
+            new Item("Estado vazio", "Listas/coleções sem dados, com ação.", "inbox", "/templates/misc/empty"),
+            new Item("Banners & avisos", "Barras fixas: trial, impersonação, offline.", "alert-triangle", "/templates/misc/banners"),
+        }),
+        new("Marketing", new[]
+        {
+            new Item("Planos (pricing)", "Escolha de plano com cards selecionáveis.", "dollar-sign", "/templates/pricing"),
+        }),
+        new("Autenticação", new[]
+        {
+            new Item("Login", "Painel de marca + formulário, provedores sociais.", "lock", "/templates/auth/login"),
+            new Item("Cadastro", "Nome, e-mail, força de senha, termos.", "users", "/templates/auth/register"),
+            new Item("Recuperar senha", "Solicitar link, confirmação genérica.", "mail", "/templates/auth/forgot"),
+            new Item("Verificação 2FA", "Código segmentado (OTP) de 6 dígitos.", "shield", "/templates/auth/2fa"),
+            new Item("Conta bloqueada", "Lockout com contagem regressiva.", "lock", "/templates/auth/lockout"),
+            new Item("Redefinir senha", "Nova senha com força + conferência.", "lock", "/templates/auth/reset"),
+            new Item("Confirmar e-mail", "Aguardando confirmação, com reenvio.", "mail", "/templates/auth/email-confirm"),
+            new Item("Consentimento OAuth", "Autorização de app (escopos).", "shield", "/templates/auth/consent"),
+            new Item("Sessão expirada", "Desconectado por inatividade.", "clock", "/templates/auth/session-expired"),
+        }),
+        new("Dashboards & app", new[]
+        {
+            new Item("Dashboard", "KPIs, gráficos e atividade recente.", "bar-chart", "/templates/dashboard"),
+            new Item("Tabela de usuários", "Busca, status, paginação e ações.", "users", "/templates/admin/users"),
+            new Item("Papéis (roles)", "Lista com badges + membros (avatar group).", "shield", "/templates/admin/roles"),
+            new Item("Permissões", "Árvore tri-state agrupada por módulo.", "shield", "/templates/admin/permissions"),
+            new Item("Logs de auditoria", "Acessos: usuário, resultado, IP, data.", "clock", "/templates/admin/audit"),
+            new Item("Sessões ativas", "Dispositivos por usuário, com revogar.", "users", "/templates/admin/sessions"),
+            new Item("Configurações", "Resumo + linhas de settings com toggles.", "settings", "/templates/admin/settings"),
+            new Item("Perfil & conta", "Foto, dados pessoais e resumo de segurança.", "user", "/templates/account/profile"),
+        }),
+    };
+}

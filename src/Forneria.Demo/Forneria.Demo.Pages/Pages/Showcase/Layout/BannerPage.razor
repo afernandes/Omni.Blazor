@@ -1,0 +1,82 @@
+@page "/showcase/banner"
+@layout ShowcaseLayout
+
+<PageTitle>Banner — Showcase</PageTitle>
+
+<ShowcasePage Title="Banner"
+              Subtitle="Barra de aviso fixa no topo da aplicação — distinta do OmniAlert (inline) e dos toasts (auto-dismiss).">
+
+    <Overview>
+        <p>
+            O <code>OmniBanner</code> é a barra persistente que fica <em>acima</em> do conteúdo: avisos de
+            ambiente (staging), trial expirando, impersonação, modo offline, consentimento de cookies,
+            atualização disponível. Tinge pela <code>Severity</code>, aceita <code>Actions</code> inline,
+            é opcionalmente <code>Dismissible</code> e <code>Sticky</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Avisos de escopo global que devem persistir até resolvidos.</li>
+            <li>Impersonação, trial/cobrança, manutenção agendada, ambiente não-produção.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Aviso dentro do fluxo de uma página → use <code>OmniAlert</code>.</li>
+            <li>Confirmação efêmera de ação → use um toast (<code>NotificationService</code>).</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SEVERIDADES"
+                         Description="Info, Success, Warning, Error. Com ações e dismiss."
+                         Padded="false"
+                         Code="@(@"<OmniBanner Severity=""NotificationSeverity.Warning"" Dismissible>
+    Seu período de teste termina em 3 dias.
+    <Actions><button class=""omni-btn omni-btn-sm"">Assinar</button></Actions>
+</OmniBanner>")">
+            <div style="display:flex; flex-direction:column; gap:10px">
+                <OmniBanner Severity="NotificationSeverity.Info" Dismissible>
+                    Você está no ambiente de <b>homologação</b>.
+                </OmniBanner>
+                <OmniBanner Severity="NotificationSeverity.Warning" Dismissible>
+                    <ChildContent>Seu período de teste termina em <b>3 dias</b>.</ChildContent>
+                    <Actions><button class="omni-btn omni-btn-sm">Assinar agora</button></Actions>
+                </OmniBanner>
+                <OmniBanner Severity="NotificationSeverity.Success">
+                    Pagamento confirmado — seu plano foi ativado.
+                </OmniBanner>
+                <OmniBanner Severity="NotificationSeverity.Error" Dismissible>
+                    Conexão perdida. Tentando reconectar…
+                </OmniBanner>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="IMPERSONAÇÃO"
+                         Description="Caso clássico: banner persistente durante impersonação."
+                         Padded="false"
+                         Code="@(@"<OmniBanner Severity=""NotificationSeverity.Warning"" Sticky>
+    Você está operando como <b>Carla Menezes</b>.
+    <Actions><button class=""omni-btn omni-btn-sm"">Voltar à minha conta</button></Actions>
+</OmniBanner>")">
+            <OmniBanner Severity="NotificationSeverity.Warning">
+                <ChildContent>Você está operando como <b>Carla Menezes</b> — todas as ações são auditadas.</ChildContent>
+                <Actions><button class="omni-btn omni-btn-sm">Voltar à minha conta</button></Actions>
+            </OmniBanner>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniBanner">
+            <ShowcaseApiRow Name="Severity" Type="NotificationSeverity" Default="Info" Description="Info | Success | Warning | Error." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null" Description="Sobrescreve o ícone." />
+            <ShowcaseApiRow Name="Dismissible" Type="bool" Default="false" Description="Botão de fechar (×)." />
+            <ShowcaseApiRow Name="Sticky" Type="bool" Default="false" Description="Fixa no topo do container de rolagem." />
+            <ShowcaseApiRow Name="Actions" Type="RenderFragment?" Default="null" Description="Ações inline na borda direita." />
+            <ShowcaseApiRow Name="OnClosed" Type="EventCallback" Default="—" Description="Dispara ao dispensar." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

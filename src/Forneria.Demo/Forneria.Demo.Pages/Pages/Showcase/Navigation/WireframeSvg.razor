@@ -1,7 +1,7 @@
 @*  Helper local da página Wireframes — renderiza um SVG 100×100 viewBox que
     serve como "thumbnail" visual do layout. Quando <c>DemoHref</c> é
     informado, adiciona um link "Ver demo ao vivo →" logo abaixo. *@
-<svg class="wf-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+<svg class="wf-svg" viewBox="@ViewBox" preserveAspectRatio="xMidYMid meet">
     @ChildContent
 </svg>
 @if (!string.IsNullOrEmpty(DemoHref))
@@ -20,4 +20,8 @@
 
     /// <summary>Link opcional para a demo em tela cheia.</summary>
     [Parameter] public string? DemoHref { get; set; }
+
+    /// <summary>viewBox do SVG. Casa com o aspect-ratio do .wf-svg para não distorcer
+    /// (escala uniforme via preserveAspectRatio=meet). Padrão 4:1 (igual à caixa).</summary>
+    [Parameter] public string ViewBox { get; set; } = "0 0 400 100";
 }

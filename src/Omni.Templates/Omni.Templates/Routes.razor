@@ -1,0 +1,10 @@
+@* Router lives in the RCL so the Server host can mark it InteractiveServer
+   from App.razor. AppAssembly points at this RCL (which holds every routable
+   template page + the layout + NotFound). *@
+<Router AppAssembly="typeof(Omni.Templates._Imports).Assembly"
+        NotFoundPage="typeof(Omni.Templates.Pages.NotFound)">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Omni.Templates.Layout.TemplatesLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

@@ -1,0 +1,58 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Auth page scaffold — centered card by default; pass a Brand fragment to get
+    the split layout (dark brand panel + form panel). Product-agnostic: drop your
+    logo/headline into Brand and your form (e.g. an .omni-auth-card) into the body.
+    Decor adds the subtle grid + accent-glow background.
+
+    Usage (centered):
+        <OmniAuthLayout>
+            <div class="omni-auth-card"> ...form... </div>
+        </OmniAuthLayout>
+
+    Usage (split with brand panel):
+        <OmniAuthLayout>
+            <Brand>
+                <div class="omni-auth-brand-eyebrow">ACME</div>
+                <div class="omni-auth-brand-title">Bem-vindo de volta</div>
+            </Brand>
+            <ChildContent>
+                <div class="omni-auth-form"> ...form... </div>
+            </ChildContent>
+        </OmniAuthLayout>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (Brand is not null)
+    {
+        <aside class="omni-auth-brand">
+            <div class="omni-auth-brand-deco"></div>
+            <div class="omni-auth-brand-grid"></div>
+            @Brand
+        </aside>
+        <div class="omni-auth-panel @(Decor ? "omni-auth-decor" : null)">
+            @ChildContent
+        </div>
+    }
+    else
+    {
+        @ChildContent
+    }
+</div>
+
+@code {
+    /// <summary>When set, renders the dark brand side panel (split layout).</summary>
+    [Parameter] public RenderFragment? Brand { get; set; }
+
+    /// <summary>Subtle grid + accent-glow background on the form area. Default true.</summary>
+    [Parameter] public bool Decor { get; set; } = true;
+
+    private string RootCss => CssBuilder.Default("omni-auth")
+        .AddClass(Brand is not null ? "omni-auth-split" : "omni-auth-centered")
+        .AddClass("omni-auth-decor", Brand is null && Decor)
+        .AddClass(Class)
+        .Build();
+}

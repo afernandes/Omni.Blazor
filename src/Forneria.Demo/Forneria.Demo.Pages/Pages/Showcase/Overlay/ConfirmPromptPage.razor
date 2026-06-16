@@ -1,0 +1,67 @@
+@page "/showcase/confirm-prompt"
+@layout ShowcaseLayout
+
+<PageTitle>Confirm Prompt — Showcase</PageTitle>
+
+<ShowcasePage Title="Confirm Prompt"
+              Subtitle="Confirmação de ação destrutiva que exige digitar uma frase exata antes de habilitar o botão (padrão GitHub/Stripe/AWS).">
+
+    <Overview>
+        <p>
+            O <code>OmniConfirmPrompt</code> protege ações irreversíveis: o botão só habilita quando o
+            usuário digita exatamente <code>ConfirmationText</code>. É inline e agnóstico — coloque num
+            card de perigo ou dentro do corpo de um <code>OmniDialog</code>. <code>OnConfirm</code>
+            dispara apenas com a frase correta (Enter também confirma).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Excluir conta, projeto, loja, tenant — qualquer ação irreversível.</li>
+            <li>Operações em massa perigosas (apagar N registros).</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DIGITE PARA CONFIRMAR"
+                         Description="Digite minha-loja para habilitar o botão."
+                         Code="@(@"<OmniConfirmPrompt ConfirmationText=""minha-loja""
+                   Title=""Excluir loja""
+                   ButtonText=""Excluir permanentemente""
+                   OnConfirm=""DeleteAsync"">
+    Esta ação é irreversível — todos os dados serão apagados.
+</OmniConfirmPrompt>")">
+            <div class="omni-card" style="max-width:460px; border-color:color-mix(in oklab, var(--omni-danger) 30%, var(--omni-line))">
+                <div class="omni-card-body">
+                    <OmniConfirmPrompt ConfirmationText="minha-loja"
+                                       Title="Excluir loja"
+                                       ButtonText="Excluir permanentemente"
+                                       OnConfirm="@(() => _deleted = true)">
+                        Esta ação é <b>irreversível</b> — todos os dados da loja serão apagados.
+                    </OmniConfirmPrompt>
+                    @if (_deleted)
+                    {
+                        <p class="omni-small" style="color:var(--omni-good); margin-top:10px">✓ Confirmado! (OnConfirm disparou)</p>
+                    }
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniConfirmPrompt">
+            <ShowcaseApiRow Name="ConfirmationText" Type="string" Default="&quot;&quot;" Description="Frase exata a digitar (habilita o botão)." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null" Description="Título opcional." />
+            <ShowcaseApiRow Name="Label" Type="string?" Default="null" Description="Instrução acima do input (tem padrão)." />
+            <ShowcaseApiRow Name="ButtonText" Type="string" Default="&quot;Confirmar&quot;" Description="Texto do botão (perigo)." />
+            <ShowcaseApiRow Name="CaseSensitive" Type="bool" Default="true" Description="Comparação sensível a maiúsculas." />
+            <ShowcaseApiRow Name="OnConfirm" Type="EventCallback" Default="—" Description="Dispara só com a frase correta." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" Default="—" Description="Aviso/explicação." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool _deleted;
+}

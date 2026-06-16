@@ -1,0 +1,92 @@
+@page "/templates/admin/roles"
+@layout TemplatesLayout
+
+<PageTitle>Papéis — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Papéis (Roles)"
+                 Description="Lista de papéis com badges (padrão/público), contagem de permissões e membros (OmniAvatarGroup). OmniDataGrid + OmniStatusBadge."
+                 Code="@_code">
+        <div class="tpl-dash">
+            <OmniPaneHeader Title="Papéis" Subtitle="@($"{_roles.Count} papéis · 32 permissões disponíveis")">
+                <Actions>
+                    <button class="omni-btn omni-btn-primary omni-btn-sm">Novo papel</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniDataGrid TItem="RoleRow" Data="_roles" AllowSearch AllowPaging PageSize="6"
+                          SearchPlaceholder="Buscar papel...">
+                <Columns>
+                    <OmniDataGridColumn TItem="RoleRow" Title="Papel" PropertyName="Name" TextSelector="@(r => r.Name)">
+                        <Template Context="r">
+                            <div style="display:flex; align-items:flex-start; gap:10px">
+                                <span style="width:30px; height:30px; border-radius:8px; background:var(--omni-accent-soft); color:var(--omni-accent); display:grid; place-items:center; flex-shrink:0">
+                                    <OmniIcon Name="shield" Size="ComponentSize.Sm" />
+                                </span>
+                                <div style="min-width:0">
+                                    <div style="display:flex; align-items:center; gap:6px">
+                                        <span style="font-weight:600; font-size:13px">@r.Name</span>
+                                        @if (r.Default) { <OmniStatusBadge Label="Padrão" Kind="StatusBadgeKind.Accent" /> }
+                                        @if (r.Public) { <OmniStatusBadge Label="Público" Kind="StatusBadgeKind.Neutral" /> }
+                                    </div>
+                                    <div style="font-size:11.5px; color:var(--omni-fg-muted)">@r.Desc</div>
+                                </div>
+                            </div>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="RoleRow" Title="Permissões" PropertyName="Perms" Property="@(r => r.Perms)">
+                        <Template Context="r"><span class="omni-mono">@r.Perms de 32</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="RoleRow" Title="Usuários" PropertyName="Users" Property="@(r => r.Users)">
+                        <Template Context="r">
+                            <OmniAvatarGroup Size="AvatarSize.Sm" More="@(r.Users > r.Members.Length ? r.Users - r.Members.Length : null)">
+                                @foreach (var m in r.Members)
+                                {
+                                    <OmniAvatar Initials="@m" Size="AvatarSize.Sm" @key="m" />
+                                }
+                            </OmniAvatarGroup>
+                        </Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="RoleRow" Title="" Sortable="false" Width="56px">
+                        <Template Context="r">
+                            <button class="omni-btn omni-btn-icon" aria-label="Ações"><OmniIcon Name="more-vertical" Size="ComponentSize.Sm" /></button>
+                        </Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private record RoleRow(string Name, string Desc, bool Default, bool Public, int Perms, int Users, string[] Members);
+
+    private readonly List<RoleRow> _roles = new()
+    {
+        new("Administrador", "Acesso total ao sistema.", true, false, 32, 3, new[]{"MT","DA","BS"}),
+        new("Gerente", "Gestão de operação e relatórios.", false, false, 24, 5, new[]{"DA","BS","RL"}),
+        new("Operador", "Operação do PDV e pedidos.", false, true, 12, 14, new[]{"CM","LP","AR"}),
+        new("Financeiro", "Caixa, faturas e conciliação.", false, false, 9, 2, new[]{"PG","MT"}),
+        new("Somente leitura", "Visualização de dashboards.", false, true, 4, 8, new[]{"AR","LP"}),
+    };
+
+    private const string _code = @"<OmniDataGrid TItem=""RoleRow"" Data=""roles"" AllowSearch AllowPaging PageSize=""6"">
+    <Columns>
+        <OmniDataGridColumn TItem=""RoleRow"" Title=""Papel"">
+            <Template Context=""r"">
+                <span class=""role-ico""><OmniIcon Name=""shield"" Size=""ComponentSize.Sm"" /></span>
+                <b>@r.Name</b>
+                @if (r.Default) { <OmniStatusBadge Label=""Padrão"" Kind=""StatusBadgeKind.Accent"" /> }
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem=""RoleRow"" Title=""Permissões"" Property=""@(r => r.Perms)"" />
+        <OmniDataGridColumn TItem=""RoleRow"" Title=""Usuários"">
+            <Template Context=""r"">
+                <OmniAvatarGroup Size=""AvatarSize.Sm"" More=""@(r.Users - r.Members.Length)"">
+                    @foreach (var m in r.Members) { <OmniAvatar Initials=""@m"" Size=""AvatarSize.Sm"" /> }
+                </OmniAvatarGroup>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>";
+}

@@ -1,0 +1,60 @@
+@page "/showcase/stat-group"
+@layout ShowcaseLayout
+
+<PageTitle>Stat Group — Showcase</PageTitle>
+
+<ShowcasePage Title="Stat Group"
+              Subtitle="Faixa de KPIs responsiva: organiza vários OmniStat numa grade que colapsa conforme a própria largura.">
+
+    <Overview>
+        <p>
+            O <code>OmniStatGroup</code> é o contêiner da “faixa de métricas” no topo de dashboards.
+            Defina <code>Columns</code> (largura cheia) e ele colapsa para 2 e depois 1 coluna quando
+            o espaço aperta — via <em>container query</em>, então reage à largura do próprio grupo
+            (funciona em sidebar, dialog ou tela cheia).
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Faixa de KPIs no topo de dashboards.</li>
+            <li>Qualquer conjunto de <code>OmniStat</code> que deva ficar uniforme e responsivo.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="4 COLUNAS (PADRÃO)"
+                         Description="Estreite a janela para ver colapsar para 2 e 1 coluna."
+                         Code="@(@"<OmniStatGroup Columns=""4"">
+    <OmniStat Card Label=""Receita"" Value=""R$ 48.200"" Delta=""+12,4%"" DeltaCaption=""vs ontem"" Icon=""dollar-sign"" />
+    <OmniStat Card Label=""Pedidos"" Value=""1.284"" Delta=""+8,1%"" DeltaCaption=""vs ontem"" Icon=""package"" />
+    <OmniStat Card Label=""Ticket médio"" Value=""R$ 37,50"" Delta=""+3,2%"" Icon=""trending-up"" />
+    <OmniStat Card Label=""Conversão"" Value=""4,8%"" Delta=""-0,6%"" DeltaDown Icon=""users"" />
+</OmniStatGroup>")">
+            <OmniStatGroup Columns="4">
+                <OmniStat Card Label="Receita" Value="R$ 48.200" Delta="+12,4%" DeltaCaption="vs ontem" Icon="dollar-sign" />
+                <OmniStat Card Label="Pedidos" Value="1.284" Delta="+8,1%" DeltaCaption="vs ontem" Icon="package" />
+                <OmniStat Card Label="Ticket médio" Value="R$ 37,50" Delta="+3,2%" DeltaCaption="vs ontem" Icon="trending-up" />
+                <OmniStat Card Label="Conversão" Value="4,8%" Delta="-0,6%" DeltaDown DeltaCaption="vs ontem" Icon="users" />
+            </OmniStatGroup>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="3 COLUNAS"
+                         Description="Columns controla a contagem em telas largas."
+                         Code="@(@"<OmniStatGroup Columns=""3"">...</OmniStatGroup>")">
+            <OmniStatGroup Columns="3">
+                <OmniStat Card Label="Usuários ativos" Value="8.412" Delta="+5,4%" Icon="users" />
+                <OmniStat Card Label="MRR" Value="R$ 92k" Delta="+2,1%" Icon="dollar-sign" />
+                <OmniStat Card Label="Churn" Value="1,9%" Delta="-0,3%" DeltaDown Icon="trending-up" />
+            </OmniStatGroup>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniStatGroup">
+            <ShowcaseApiRow Name="Columns" Type="int" Default="4" Description="Colunas em telas largas; colapsa para 2 e 1." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" Default="—" Description="Os OmniStat (idealmente com Card)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

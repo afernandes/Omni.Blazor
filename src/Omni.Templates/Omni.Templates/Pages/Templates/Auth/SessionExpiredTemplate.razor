@@ -1,0 +1,31 @@
+@page "/templates/auth/session-expired"
+@layout TemplatesLayout
+
+<PageTitle>Sessão expirada — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Sessão expirada"
+                 Description="Sessão encerrada por inatividade. OmniResult com retorno ao login."
+                 Code="@_code">
+        <div class="tpl-preview-stretch tpl-preview-pad">
+            <OmniResult Status="ResultStatus.Warning" Icon="clock"
+                        Title="Sua sessão expirou"
+                        Description="Por segurança, você foi desconectado após um período de inatividade. Entre novamente para continuar.">
+                <Actions>
+                    <a href="/templates/auth/login" class="omni-btn omni-btn-primary">Entrar novamente</a>
+                    <a href="/" class="omni-btn">Voltar ao início</a>
+                </Actions>
+            </OmniResult>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private const string _code = @"<OmniResult Status=""ResultStatus.Warning"" Icon=""clock""
+            Title=""Sua sessão expirou""
+            Description=""Por segurança, você foi desconectado após inatividade."">
+    <Actions>
+        <a href=""/login"" class=""omni-btn omni-btn-primary"">Entrar novamente</a>
+    </Actions>
+</OmniResult>";
+}

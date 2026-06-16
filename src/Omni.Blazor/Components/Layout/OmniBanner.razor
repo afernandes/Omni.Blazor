@@ -1,0 +1,83 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    Persistent, app-wide message bar — sits above the layout chrome and stays
+    until dismissed (unlike OmniAlert which lives inline in page content, and
+    toasts which auto-dismiss). For environment/staging notices, trial-expiry,
+    impersonation, offline, cookie consent, update-available, etc.
+
+    Usage:
+        <OmniBanner Severity="NotificationSeverity.Warning" Sticky Dismissible>
+            Você está operando como <b>Carla Menezes</b>.
+            <Actions><button class="omni-btn omni-btn-sm">Voltar à minha conta</button></Actions>
+        </OmniBanner>
+*@
+
+@if (!_closed)
+{
+    <div class="@RootCss" style="@Style" role="status" @attributes="Attributes">
+        <span class="omni-banner-ico"><OmniIcon Name="@EffectiveIcon" Size="ComponentSize.Sm" /></span>
+        <div class="omni-banner-body">@ChildContent</div>
+        @if (Actions is not null)
+        {
+            <div class="omni-banner-actions">@Actions</div>
+        }
+        @if (Dismissible)
+        {
+            <button type="button" class="omni-banner-close" aria-label="Fechar" @onclick="CloseAsync">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Intent — drives icon + tint. Default <c>Info</c>.</summary>
+    [Parameter] public NotificationSeverity Severity { get; set; } = NotificationSeverity.Info;
+
+    /// <summary>Override the leading icon.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Show a dismiss (×) button.</summary>
+    [Parameter] public bool Dismissible { get; set; }
+
+    /// <summary>Stick to the top of the scroll container.</summary>
+    [Parameter] public bool Sticky { get; set; }
+
+    /// <summary>Inline actions on the trailing edge.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Fires after the banner is dismissed.</summary>
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    private bool _closed;
+
+    private string EffectiveIcon => Icon ?? Severity switch
+    {
+        NotificationSeverity.Success => "check-circle",
+        NotificationSeverity.Warning => "alert-triangle",
+        NotificationSeverity.Error   => "alert-circle",
+        _ => "info"
+    };
+
+    private string RootCss => CssBuilder.Default("omni-banner")
+        .AddClass(Severity switch
+        {
+            NotificationSeverity.Success => "omni-banner-success",
+            NotificationSeverity.Warning => "omni-banner-warn",
+            NotificationSeverity.Error   => "omni-banner-danger",
+            _ => "omni-banner-info"
+        })
+        .AddClass("omni-banner-sticky", Sticky)
+        .AddClass(Class)
+        .Build();
+
+    private async Task CloseAsync()
+    {
+        _closed = true;
+        if (OnClosed.HasDelegate) await OnClosed.InvokeAsync();
+    }
+}

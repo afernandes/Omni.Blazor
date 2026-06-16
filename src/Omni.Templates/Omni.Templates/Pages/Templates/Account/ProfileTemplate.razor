@@ -1,0 +1,85 @@
+@page "/templates/account/profile"
+@layout TemplatesLayout
+
+<PageTitle>Perfil — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Perfil / Conta"
+                 Description="Página de conta: foto, dados pessoais (OmniFormField) e resumo de segurança (OmniDescriptionList). OmniPaneHeader + OmniCard."
+                 Code="@_code">
+        <div class="tpl-dash" style="max-width:860px; margin:0 auto">
+            <OmniPaneHeader Title="Meu perfil" Subtitle="Gerencie seus dados e segurança">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Cancelar</button>
+                    <button class="omni-btn omni-btn-primary omni-btn-sm">Salvar alterações</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniCard Title="Foto">
+                <div style="display:flex; align-items:center; gap:18px">
+                    <OmniAvatar Initials="MT" Size="AvatarSize.Lg" />
+                    <div>
+                        <div style="display:flex; gap:8px">
+                            <button class="omni-btn omni-btn-sm">Alterar foto</button>
+                            <button class="omni-btn omni-btn-sm">Remover</button>
+                        </div>
+                        <div style="font-size:12px; color:var(--omni-fg-muted); margin-top:6px">JPG, PNG ou GIF. Máximo 2 MB.</div>
+                    </div>
+                </div>
+            </OmniCard>
+
+            <OmniCard Title="Dados pessoais">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 16px">
+                    <OmniFormField Label="Nome">
+                        <OmniTextBox @bind-Value="_name" Autocomplete="given-name" />
+                    </OmniFormField>
+                    <OmniFormField Label="Sobrenome">
+                        <OmniTextBox @bind-Value="_surname" Autocomplete="family-name" />
+                    </OmniFormField>
+                    <OmniFormField Label="E-mail" HintRight="Verificado">
+                        <OmniTextBox @bind-Value="_email" Type="email" LeadingIcon="mail" Autocomplete="email" />
+                    </OmniFormField>
+                    <OmniFormField Label="Telefone">
+                        <OmniTextBox @bind-Value="_phone" Placeholder="(11) 9 9999-9999" />
+                    </OmniFormField>
+                </div>
+            </OmniCard>
+
+            <OmniCard Title="Segurança">
+                <OmniDescriptionList Columns="2">
+                    <OmniDescriptionItem Term="Verificação em duas etapas">
+                        <OmniStatusBadge Label="Ativa" Kind="StatusBadgeKind.Good" />
+                    </OmniDescriptionItem>
+                    <OmniDescriptionItem Term="Passkeys">2 dispositivos</OmniDescriptionItem>
+                    <OmniDescriptionItem Term="Sessões ativas">3 dispositivos</OmniDescriptionItem>
+                    <OmniDescriptionItem Term="Último acesso"><span class="omni-mono">há 2 min · São Paulo</span></OmniDescriptionItem>
+                </OmniDescriptionList>
+            </OmniCard>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private string _name = "Marina";
+    private string _surname = "Tavares";
+    private string _email = "marina@forno.com.br";
+    private string _phone = "";
+
+    private const string _code = @"<OmniPaneHeader Title=""Meu perfil"" Subtitle=""Gerencie seus dados e segurança"">
+    <Actions><button class=""omni-btn omni-btn-primary omni-btn-sm"">Salvar alterações</button></Actions>
+</OmniPaneHeader>
+
+<OmniCard Title=""Dados pessoais"">
+    <div style=""display:grid; grid-template-columns:1fr 1fr; gap:14px 16px"">
+        <OmniFormField Label=""Nome""><OmniTextBox @bind-Value=""name"" /></OmniFormField>
+        <OmniFormField Label=""E-mail"" HintRight=""Verificado""><OmniTextBox @bind-Value=""email"" Type=""email"" LeadingIcon=""mail"" /></OmniFormField>
+    </div>
+</OmniCard>
+
+<OmniCard Title=""Segurança"">
+    <OmniDescriptionList Columns=""2"">
+        <OmniDescriptionItem Term=""2FA""><OmniStatusBadge Label=""Ativa"" Kind=""StatusBadgeKind.Good"" /></OmniDescriptionItem>
+        <OmniDescriptionItem Term=""Sessões ativas"">3 dispositivos</OmniDescriptionItem>
+    </OmniDescriptionList>
+</OmniCard>";
+}

@@ -1,0 +1,56 @@
+@page "/templates/auth/2fa"
+@layout TemplatesLayout
+
+<PageTitle>Verificação em duas etapas — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Verificação em duas etapas (2FA)"
+                 Description="Card central com código segmentado de 6 dígitos. OmniAuthLayout + OmniSecurityCode."
+                 Code="@_code">
+        <div style="min-height:520px">
+            <OmniAuthLayout>
+                <div class="omni-auth-card" style="text-align:center">
+                    <div class="omni-result-icon" style="margin:0 auto 14px">
+                        <OmniIcon Name="shield" />
+                    </div>
+                    <div class="omni-auth-head">Verifique sua identidade</div>
+                    <div class="omni-auth-lede">Digite o código de 6 dígitos do seu app autenticador.</div>
+
+                    <div style="display:flex; justify-content:center; margin:22px 0 6px">
+                        <OmniSecurityCode @bind-Value="_code2fa" Count="6" Type="SecurityCodeType.Numeric" />
+                    </div>
+
+                    <div style="display:flex; justify-content:center; margin:14px 0 18px">
+                        <OmniCheckBox @bind-Value="_trust" Label="Confiar neste dispositivo por 30 dias" />
+                    </div>
+
+                    <button class="omni-btn omni-btn-primary omni-btn-block omni-btn-lg">Verificar</button>
+
+                    <div style="margin-top:18px; font-size:13px; color:var(--omni-fg-muted)">
+                        <a href="/templates/auth/2fa" class="omni-link">Usar outro método</a>
+                    </div>
+                </div>
+            </OmniAuthLayout>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private string _code2fa = "";
+    private bool _trust;
+
+    private const string _code = @"<OmniAuthLayout>
+    <div class=""omni-auth-card"" style=""text-align:center"">
+        <div class=""omni-result-icon"" style=""margin:0 auto 14px""><OmniIcon Name=""shield"" /></div>
+        <div class=""omni-auth-head"">Verifique sua identidade</div>
+        <div class=""omni-auth-lede"">Digite o código de 6 dígitos do seu app autenticador.</div>
+
+        <OmniSecurityCode @bind-Value=""code"" Count=""6"" Type=""SecurityCodeType.Numeric"" />
+
+        <OmniCheckBox @bind-Value=""trust"" Label=""Confiar neste dispositivo por 30 dias"" />
+
+        <button class=""omni-btn omni-btn-primary omni-btn-block omni-btn-lg"" @onclick=""Verify"">Verificar</button>
+        <a href=""#"" class=""omni-link"">Usar outro método</a>
+    </div>
+</OmniAuthLayout>";
+}

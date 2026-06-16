@@ -1,0 +1,51 @@
+@page "/templates/pricing"
+@layout TemplatesLayout
+
+<PageTitle>Planos — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Planos (seleção)"
+                 Description="Escolha de plano com cards selecionáveis. OmniOptionCard (radio) — clique para selecionar."
+                 Code="@_code">
+        <div class="tpl-preview-stretch tpl-preview-pad">
+            <div style="width:100%; max-width:480px">
+                <div style="text-align:center; margin-bottom:18px">
+                    <div class="omni-auth-head" style="font-size:22px">Escolha seu plano</div>
+                    <div class="omni-auth-lede">14 dias grátis · sem cartão · cancele quando quiser.</div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px">
+                    @foreach (var p in _plans)
+                    {
+                        <OmniOptionCard @key="p.Name" Title="@p.Name" Description="@p.Desc"
+                                        Price="@p.Price" PricePeriod="/mês" Badge="@p.Badge"
+                                        Selected="@(p == _sel)" OnClick="@(() => _sel = p)" />
+                    }
+                </div>
+                <button class="omni-btn omni-btn-primary omni-btn-block omni-btn-lg" style="margin-top:16px">
+                    Continuar com @_sel?.Name
+                </button>
+            </div>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private record Plan(string Name, string Desc, string Price, string? Badge);
+    private readonly List<Plan> _plans = new()
+    {
+        new("Trial", "Todos os recursos por 14 dias.", "R$ 0", null),
+        new("Pro", "Para um negócio em crescimento.", "R$ 99", "POPULAR"),
+        new("Scale", "Múltiplas lojas e relatórios avançados.", "R$ 249", null),
+    };
+    private Plan? _sel;
+    protected override void OnInitialized() => _sel = _plans[1];
+
+    private const string _code = @"@foreach (var p in plans)
+{
+    <OmniOptionCard Title=""@p.Name"" Description=""@p.Desc"" Price=""@p.Price"" PricePeriod=""/mês""
+                    Badge=""@p.Badge"" Selected=""@(p == sel)"" OnClick=""@(() => sel = p)"" />
+}
+<button class=""omni-btn omni-btn-primary omni-btn-block omni-btn-lg"">
+    Continuar com @sel?.Name
+</button>";
+}

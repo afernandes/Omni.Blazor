@@ -1,0 +1,44 @@
+@page "/templates/misc/banners"
+@layout TemplatesLayout
+
+<PageTitle>Banners & avisos — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Banners & avisos"
+                 Description="Barras fixas de aviso em escopo global. OmniBanner por severidade, com ações e dismiss."
+                 Code="@_code">
+        <div style="display:flex; flex-direction:column">
+            <OmniBanner Severity="NotificationSeverity.Warning" Dismissible>
+                <ChildContent>Seu período de teste termina em <b>3 dias</b>.</ChildContent>
+                <Actions><button class="omni-btn omni-btn-sm">Assinar agora</button></Actions>
+            </OmniBanner>
+            <OmniBanner Severity="NotificationSeverity.Warning">
+                <ChildContent>Você está operando como <b>Carla Menezes</b> — ações são auditadas.</ChildContent>
+                <Actions><button class="omni-btn omni-btn-sm">Voltar à minha conta</button></Actions>
+            </OmniBanner>
+            <OmniBanner Severity="NotificationSeverity.Info" Dismissible>
+                Ambiente de <b>homologação</b> — dados não são reais.
+            </OmniBanner>
+            <OmniBanner Severity="NotificationSeverity.Error">
+                Sem conexão. Tentando reconectar…
+            </OmniBanner>
+            <OmniBanner Severity="NotificationSeverity.Success" Dismissible>
+                <ChildContent>Nova versão disponível.</ChildContent>
+                <Actions><button class="omni-btn omni-btn-sm">Recarregar</button></Actions>
+            </OmniBanner>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private const string _code = @"@* Coloque acima do shell da aplicação; use Sticky para fixar no topo. *@
+<OmniBanner Severity=""NotificationSeverity.Warning"" Sticky Dismissible>
+    Seu período de teste termina em <b>3 dias</b>.
+    <Actions><button class=""omni-btn omni-btn-sm"" @onclick=""Subscribe"">Assinar agora</button></Actions>
+</OmniBanner>
+
+<OmniBanner Severity=""NotificationSeverity.Warning"" Sticky>
+    Você está operando como <b>Carla Menezes</b>.
+    <Actions><button class=""omni-btn omni-btn-sm"" @onclick=""StopImpersonating"">Voltar à minha conta</button></Actions>
+</OmniBanner>";
+}

@@ -1,0 +1,60 @@
+@page "/showcase/social-button"
+@layout ShowcaseLayout
+
+<PageTitle>Social Button — Showcase</PageTitle>
+
+<ShowcasePage Title="Social Button"
+              Subtitle="Botão de provedor externo (Google, Microsoft, Apple, GitHub, Facebook, Passkey) com marca de cada provedor.">
+
+    <Overview>
+        <p>
+            O <code>OmniSocialButton</code> renderiza o botão de login de um provedor externo com a
+            marca correta. Em largura cheia mostra “Continuar com X”; em <code>Compact</code> fica
+            só com o ícone, para compor uma linha/grade de provedores. Agnóstico de produto.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="LARGURA CHEIA"
+                         Description="Block estica o botão; ideal abaixo do formulário de login."
+                         Code="@(@"<OmniSocialButton Provider=""SocialProvider.Google"" Block />
+<OmniSocialButton Provider=""SocialProvider.Microsoft"" Block />
+<OmniSocialButton Provider=""SocialProvider.Passkey"" Block />")">
+            <div class="omni-auth-providers" style="max-width:360px">
+                <OmniSocialButton Provider="SocialProvider.Google" Block />
+                <OmniSocialButton Provider="SocialProvider.Microsoft" Block />
+                <OmniSocialButton Provider="SocialProvider.Apple" Block />
+                <OmniSocialButton Provider="SocialProvider.GitHub" Block />
+                <OmniSocialButton Provider="SocialProvider.Facebook" Block />
+                <OmniSocialButton Provider="SocialProvider.Passkey" Block />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COMPACTO (GRADE 2×2)"
+                         Description="Compact = ícone só. Combine com omni-auth-providers-grid."
+                         Code="@(@"<div class=""omni-auth-providers-grid"">
+    <OmniSocialButton Provider=""SocialProvider.Google"" Compact />
+    <OmniSocialButton Provider=""SocialProvider.Apple"" Compact />
+</div>")">
+            <div class="omni-auth-providers-grid" style="max-width:280px">
+                <OmniSocialButton Provider="SocialProvider.Google" Compact />
+                <OmniSocialButton Provider="SocialProvider.Microsoft" Compact />
+                <OmniSocialButton Provider="SocialProvider.Apple" Compact />
+                <OmniSocialButton Provider="SocialProvider.GitHub" Compact />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSocialButton">
+            <ShowcaseApiRow Name="Provider" Type="SocialProvider" Default="Google"
+                            Description="Google | Microsoft | Apple | GitHub | Facebook | Passkey." />
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null" Description="Sobrescreve o rótulo." />
+            <ShowcaseApiRow Name="Compact" Type="bool" Default="false" Description="Só ícone (linha de provedores)." />
+            <ShowcaseApiRow Name="Block" Type="bool" Default="false" Description="Largura cheia." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desabilita o botão." />
+            <ShowcaseApiRow Name="OnClick" Type="EventCallback" Default="—" Description="Handler de clique." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

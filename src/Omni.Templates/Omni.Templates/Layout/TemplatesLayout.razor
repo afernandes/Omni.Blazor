@@ -1,0 +1,172 @@
+@namespace Omni.Templates.Layout
+@inherits LayoutComponentBase
+@implements IAsyncDisposable
+@inject NavigationManager Nav
+@inject ThemeService Theme
+@inject HotkeyService Hotkeys
+
+@* Self-contained gallery shell: topbar (brand + theme switch) + left nav of
+   template categories + scrollable content. No dependency on the demo app. *@
+
+<div class="tpl-shell">
+    <header class="tpl-top">
+        <OmniBrand Name="Omni" Tenant="Templates" />
+        <span class="tpl-top-spacer"></span>
+        <span class="tpl-top-hint">
+            <OmniIcon Name="grid" Size="ComponentSize.Sm" />
+            <span>Páginas prontas — copie &amp; cole</span>
+        </span>
+        <OmniThemePicker />
+    </header>
+
+    <nav class="tpl-nav">
+        <div class="tpl-nav-label">Início</div>
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="Galeria" Icon="grid" Path="/" Match="NavLinkMatch.All" />
+        </OmniPanelMenu>
+
+        <div class="tpl-nav-label">Autenticação</div>
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="Login"           Icon="lock"   Path="/templates/auth/login" />
+            <OmniPanelMenuItem Text="Cadastro"        Icon="users"  Path="/templates/auth/register" />
+            <OmniPanelMenuItem Text="Recuperar senha" Icon="mail"   Path="/templates/auth/forgot" />
+            <OmniPanelMenuItem Text="Verificação 2FA" Icon="shield" Path="/templates/auth/2fa" />
+            <OmniPanelMenuItem Text="Conta bloqueada" Icon="lock"   Path="/templates/auth/lockout" />
+            <OmniPanelMenuItem Text="Redefinir senha" Icon="lock"   Path="/templates/auth/reset" />
+            <OmniPanelMenuItem Text="Confirmar e-mail" Icon="mail"  Path="/templates/auth/email-confirm" />
+            <OmniPanelMenuItem Text="Consentimento OAuth" Icon="shield" Path="/templates/auth/consent" />
+            <OmniPanelMenuItem Text="Sessão expirada" Icon="clock"  Path="/templates/auth/session-expired" />
+        </OmniPanelMenu>
+
+        <div class="tpl-nav-label">Conta</div>
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="Perfil" Icon="user" Path="/templates/account/profile" />
+        </OmniPanelMenu>
+
+        <div class="tpl-nav-label">Dashboards &amp; app</div>
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="Dashboard"          Icon="bar-chart" Path="/templates/dashboard" />
+            <OmniPanelMenuItem Text="Tabela de usuários" Icon="users"     Path="/templates/admin/users" />
+            <OmniPanelMenuItem Text="Papéis (roles)"      Icon="shield"    Path="/templates/admin/roles" />
+            <OmniPanelMenuItem Text="Permissões"         Icon="shield"    Path="/templates/admin/permissions" />
+            <OmniPanelMenuItem Text="Logs de auditoria"  Icon="clock"     Path="/templates/admin/audit" />
+            <OmniPanelMenuItem Text="Sessões ativas"     Icon="users"     Path="/templates/admin/sessions" />
+            <OmniPanelMenuItem Text="Configurações"      Icon="settings"  Path="/templates/admin/settings" />
+        </OmniPanelMenu>
+
+        <div class="tpl-nav-label">Erros &amp; status</div>
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="404 — Não encontrado" Icon="search"         Path="/templates/error/404" />
+            <OmniPanelMenuItem Text="403 — Acesso negado"  Icon="lock"           Path="/templates/error/403" />
+            <OmniPanelMenuItem Text="500 — Erro interno"   Icon="alert-circle"   Path="/templates/error/500" />
+            <OmniPanelMenuItem Text="Manutenção"           Icon="settings"       Path="/templates/error/maintenance" />
+        </OmniPanelMenu>
+
+        <div class="tpl-nav-label">Estados</div>
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="Estado vazio"     Icon="inbox"          Path="/templates/misc/empty" />
+            <OmniPanelMenuItem Text="Banners & avisos" Icon="alert-triangle" Path="/templates/misc/banners" />
+        </OmniPanelMenu>
+
+        <div class="tpl-nav-label">Marketing</div>
+        <OmniPanelMenu>
+            <OmniPanelMenuItem Text="Planos (pricing)" Icon="dollar-sign" Path="/templates/pricing" />
+        </OmniPanelMenu>
+    </nav>
+
+    <main class="tpl-main">
+        @Body
+    </main>
+</div>
+
+<OmniOverlayHosts />
+
+@* ⌘K / Ctrl+K — jump to any template. *@
+<OmniCommandPalette Commands="_commands" />
+
+@code {
+    private readonly List<IAsyncDisposable> _hotkeys = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        if (!Theme.IsInitialized)
+        {
+            try { await Theme.InitializeAsync(); StateHasChanged(); }
+            catch { /* never block the shell on a theme-restore hiccup */ }
+        }
+
+        // Register every command that carries a Shortcut as a REAL global hotkey,
+        // so e.g. Ctrl+Shift+D jumps to the Dashboard from anywhere in the gallery.
+        foreach (var c in _commands)
+        {
+            if (string.IsNullOrEmpty(c.Shortcut) || c.Action is null) continue;
+            try { _hotkeys.Add(await Hotkeys.RegisterAsync(c.Shortcut, _ => c.Action!(), preventDefault: true)); }
+            catch { /* SSR / JS gone */ }
+        }
+    }
+
+    private Task Go(string route) { Nav.NavigateTo(route); return Task.CompletedTask; }
+
+    private OmniCommand Cmd(string label, string cat, string icon, string route, string? shortcut = null)
+        => new(label) { Category = cat, Icon = icon, Shortcut = shortcut, Action = () => Go(route) };
+
+    private static OmniCommand Act(string label, string icon, Func<Task> action)
+        => new(label) { Icon = icon, Action = action };
+
+    // A nested "page": choosing it drills in (Esc / ⌫ to go back).
+    private OmniCommand Appearance() => new("Aparência")
+    {
+        Category = "App",
+        Icon = "sun",
+        Children = new[]
+        {
+            Act("Alternar tema (claro / escuro)", "sun", () => Theme.ToggleDarkAsync()),
+            Act("Destaque: Índigo",   "check", () => Theme.SetAccentAsync("indigo")),
+            Act("Destaque: Esmeralda", "check", () => Theme.SetAccentAsync("emerald")),
+            Act("Destaque: Âmbar",     "check", () => Theme.SetAccentAsync("amber")),
+            Act("Destaque: Carmesim",  "check", () => Theme.SetAccentAsync("crimson")),
+            Act("Destaque: Violeta",   "check", () => Theme.SetAccentAsync("violet")),
+        },
+    };
+
+    private List<OmniCommand> _commands => new()
+    {
+        Cmd("Galeria", "Início", "grid", "/", "g h"),
+        Cmd("Login", "Autenticação", "lock", "/templates/auth/login"),
+        Cmd("Cadastro", "Autenticação", "users", "/templates/auth/register"),
+        Cmd("Recuperar senha", "Autenticação", "mail", "/templates/auth/forgot"),
+        Cmd("Redefinir senha", "Autenticação", "lock", "/templates/auth/reset"),
+        Cmd("Verificação 2FA", "Autenticação", "shield", "/templates/auth/2fa"),
+        Cmd("Conta bloqueada", "Autenticação", "lock", "/templates/auth/lockout"),
+        Cmd("Confirmar e-mail", "Autenticação", "mail", "/templates/auth/email-confirm"),
+        Cmd("Consentimento OAuth", "Autenticação", "shield", "/templates/auth/consent"),
+        Cmd("Sessão expirada", "Autenticação", "clock", "/templates/auth/session-expired"),
+        Cmd("Perfil", "Conta", "user", "/templates/account/profile"),
+        Cmd("Dashboard", "App", "bar-chart", "/templates/dashboard", "g d"),
+        Cmd("Tabela de usuários", "App", "users", "/templates/admin/users", "g u"),
+        Appearance(),
+        Cmd("Papéis", "App", "shield", "/templates/admin/roles"),
+        Cmd("Permissões", "App", "shield", "/templates/admin/permissions"),
+        Cmd("Logs de auditoria", "App", "clock", "/templates/admin/audit"),
+        Cmd("Sessões ativas", "App", "users", "/templates/admin/sessions"),
+        Cmd("Configurações", "App", "settings", "/templates/admin/settings"),
+        Cmd("Planos (pricing)", "Marketing", "dollar-sign", "/templates/pricing"),
+        Cmd("Estado vazio", "Estados", "inbox", "/templates/misc/empty"),
+        Cmd("Banners & avisos", "Estados", "alert-triangle", "/templates/misc/banners"),
+        Cmd("Erro 404", "Erros", "search", "/templates/error/404"),
+        Cmd("Erro 403", "Erros", "lock", "/templates/error/403"),
+        Cmd("Erro 500", "Erros", "alert-circle", "/templates/error/500"),
+        Cmd("Manutenção", "Erros", "settings", "/templates/error/maintenance"),
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var h in _hotkeys)
+        {
+            try { await h.DisposeAsync(); } catch { }
+        }
+        _hotkeys.Clear();
+    }
+}

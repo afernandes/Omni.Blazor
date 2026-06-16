@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Omni.Blazor\Omni.Blazor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SCSS sources stay out of static web assets / output -->
+    <Content Remove="Themes\**" />
+    <None Include="Themes\**" />
+    <!-- sasscompiler.json is build-time config; never ship it -->
+    <Content Remove="sasscompiler.json" />
+    <None Update="sasscompiler.json" Pack="false" />
+  </ItemGroup>
+
+</Project>

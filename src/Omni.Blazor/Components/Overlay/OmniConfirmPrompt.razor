@@ -1,0 +1,81 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+@using Microsoft.AspNetCore.Components.Web
+
+@*
+    Destructive-action confirmation that requires the user to TYPE a matching
+    phrase before the confirm button enables (GitHub/Stripe/AWS pattern). Generic:
+    the phrase is any string (resource name, "EXCLUIR", etc.). Inline — drop it in
+    a danger card or inside an OmniDialog body.
+
+    Usage:
+        <OmniConfirmPrompt ConfirmationText="minha-loja"
+                           Title="Excluir loja"
+                           ButtonText="Excluir permanentemente"
+                           OnConfirm="DeleteAsync">
+            Esta ação é irreversível. Todos os dados serão apagados.
+        </OmniConfirmPrompt>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <div class="omni-confirm-prompt-title">@Title</div>
+    }
+    @if (ChildContent is not null)
+    {
+        <div class="omni-confirm-prompt-body">@ChildContent</div>
+    }
+    <label class="omni-confirm-prompt-label" for="@($"{Id}-in")">
+        @(Label ?? $"Digite \"{ConfirmationText}\" para confirmar")
+    </label>
+    <input id="@($"{Id}-in")" class="omni-input omni-confirm-prompt-input"
+           value="@_typed" @oninput="OnInput" @onkeydown="OnKeyDown"
+           placeholder="@ConfirmationText" autocomplete="off" spellcheck="false" />
+    <button type="button" class="omni-btn omni-confirm-prompt-confirm"
+            disabled="@(!IsMatch)" @onclick="OnConfirmAsync">
+        @ButtonText
+    </button>
+</div>
+
+@code {
+    /// <summary>The phrase the user must type exactly to enable the confirm button.</summary>
+    [Parameter, EditorRequired] public string ConfirmationText { get; set; } = "";
+
+    /// <summary>Heading (optional).</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Instruction above the input. Defaults to "Digite \"{ConfirmationText}\" para confirmar".</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Confirm button text. Default "Confirmar".</summary>
+    [Parameter] public string ButtonText { get; set; } = "Confirmar";
+
+    /// <summary>Match case-sensitively. Default true.</summary>
+    [Parameter] public bool CaseSensitive { get; set; } = true;
+
+    /// <summary>Fires when the user confirms (button only enabled once the phrase matches).</summary>
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private string _typed = "";
+
+    private bool IsMatch => !string.IsNullOrEmpty(ConfirmationText) && string.Equals(
+        _typed.Trim(), ConfirmationText,
+        CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
+    private void OnInput(ChangeEventArgs e) => _typed = e.Value?.ToString() ?? "";
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && IsMatch) await OnConfirmAsync();
+    }
+
+    private async Task OnConfirmAsync()
+    {
+        if (!IsMatch) return;
+        if (OnConfirm.HasDelegate) await OnConfirm.InvokeAsync();
+    }
+
+    private string RootCss => CssBuilder.Default("omni-confirm-prompt").AddClass(Class).Build();
+}

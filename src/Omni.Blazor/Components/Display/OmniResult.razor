@@ -1,0 +1,105 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    Full-page / full-panel status outcome block — the generic primitive behind
+    404 / 403 / 500 / "access denied" / "payment complete" / maintenance pages.
+    Product-agnostic: pick a Status (drives icon + tone), give it a Title,
+    Description and Actions. Drop a custom illustration via Visual.
+
+    Usage:
+        <OmniResult Status="ResultStatus.NotFound"
+                    Title="Página não encontrada"
+                    Description="A rota que você acessou não existe ou foi movida.">
+            <Actions>
+                <a href="/" class="omni-btn omni-btn-primary">Voltar ao início</a>
+            </Actions>
+        </OmniResult>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="omni-result-figure">
+        @if (Visual is not null)
+        {
+            @Visual
+        }
+        else
+        {
+            <div class="omni-result-icon">
+                <OmniIcon Name="@EffectiveIcon" />
+            </div>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="omni-result-title">@Title</h1>
+    }
+    @if (DescriptionContent is not null || !string.IsNullOrEmpty(Description))
+    {
+        <div class="omni-result-desc">
+            @if (DescriptionContent is not null) { @DescriptionContent } else { @Description }
+        </div>
+    }
+    @if (ChildContent is not null)
+    {
+        <div class="omni-result-extra">@ChildContent</div>
+    }
+    @if (Actions is not null)
+    {
+        <div class="omni-result-actions">@Actions</div>
+    }
+</div>
+
+@code {
+    /// <summary>Outcome status — drives the icon and color tone. Default <c>Info</c>.</summary>
+    [Parameter] public ResultStatus Status { get; set; } = ResultStatus.Info;
+
+    /// <summary>Headline.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Supporting text (plain). Ignored when <see cref="DescriptionContent"/> is set.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Rich supporting content (overrides <see cref="Description"/>).</summary>
+    [Parameter] public RenderFragment? DescriptionContent { get; set; }
+
+    /// <summary>Override the status icon (any OmniIcon name).</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Custom figure/illustration replacing the default icon badge.</summary>
+    [Parameter] public RenderFragment? Visual { get; set; }
+
+    /// <summary>Action buttons row rendered under the text.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Render with reduced padding (inside a card/panel rather than full-page).</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    private string EffectiveIcon => Icon ?? Status switch
+    {
+        ResultStatus.Success     => "check-circle",
+        ResultStatus.Warning     => "alert-triangle",
+        ResultStatus.Error       => "alert-circle",
+        ResultStatus.Forbidden   => "lock",
+        ResultStatus.NotFound    => "search",
+        ResultStatus.Maintenance => "settings",
+        _                        => "info"
+    };
+
+    private string RootCss => CssBuilder.Default("omni-result")
+        .AddClass(Status switch
+        {
+            ResultStatus.Success     => "omni-result-good",
+            ResultStatus.Warning     => "omni-result-warn",
+            ResultStatus.Error       => "omni-result-danger",
+            ResultStatus.Forbidden   => "omni-result-danger",
+            ResultStatus.NotFound    => "omni-result-neutral",
+            ResultStatus.Maintenance => "omni-result-warn",
+            _                        => "omni-result-info"
+        })
+        .AddClass("omni-result-compact", Compact)
+        .AddClass(Class)
+        .Build();
+}

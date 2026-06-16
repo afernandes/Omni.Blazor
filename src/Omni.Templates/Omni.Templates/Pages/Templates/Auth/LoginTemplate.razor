@@ -1,0 +1,130 @@
+@page "/templates/auth/login"
+@layout TemplatesLayout
+
+<PageTitle>Login — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Login"
+                 Description="Layout dividido: painel de marca + formulário com provedores sociais e Passkey. OmniAuthLayout + OmniSocialButton + OmniFormField."
+                 Code="@_code">
+        <div style="min-height:600px">
+            <OmniAuthLayout>
+                <Brand>
+                    <div>
+                        <div class="omni-auth-brand-eyebrow">OMNI · PLATAFORMA</div>
+                        <div class="omni-auth-brand-title">Acesse sua plataforma com segurança.</div>
+                        <div class="omni-auth-brand-text">Identidade, papéis e permissões já resolvidos — você foca no produto.</div>
+                        <div class="omni-auth-brand-points">
+                            <div class="omni-auth-brand-point">
+                                <OmniIcon Name="check-circle" Size="ComponentSize.Sm" />
+                                <span>Login social, Passkey e 2FA prontos</span>
+                            </div>
+                            <div class="omni-auth-brand-point">
+                                <OmniIcon Name="check-circle" Size="ComponentSize.Sm" />
+                                <span>Multi-tenant e white-label</span>
+                            </div>
+                            <div class="omni-auth-brand-point">
+                                <OmniIcon Name="check-circle" Size="ComponentSize.Sm" />
+                                <span>Auditoria e sessões por dispositivo</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="omni-auth-brand-foot">
+                        <OmniIcon Name="shield" Size="ComponentSize.Sm" />
+                        <span>protegido por Omni.Platform</span>
+                    </div>
+                </Brand>
+                <ChildContent>
+                    <div class="omni-auth-form">
+                        <div class="omni-auth-head">Entrar</div>
+                        <div class="omni-auth-lede">Bem-vindo de volta. Acesse sua conta.</div>
+
+                        <div style="margin-top:20px">
+                            <OmniFormField Label="E-mail">
+                                <OmniTextBox @bind-Value="_email" Type="email" Autocomplete="email"
+                                             LeadingIcon="mail" Placeholder="voce@empresa.com" />
+                            </OmniFormField>
+                            <OmniFormField Label="Senha">
+                                <OmniPassword @bind-Value="_password" Autocomplete="current-password"
+                                              Placeholder="Sua senha" />
+                            </OmniFormField>
+
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin:2px 0 16px">
+                                <OmniCheckBox @bind-Value="_remember" Label="Lembrar de mim" />
+                                <a href="/templates/auth/login" class="omni-link">Esqueci minha senha</a>
+                            </div>
+
+                            <button class="omni-btn omni-btn-primary omni-btn-block omni-btn-lg">Entrar</button>
+                        </div>
+
+                        <div class="omni-auth-divider">ou continue com</div>
+
+                        <div class="omni-auth-providers">
+                            <OmniSocialButton Provider="SocialProvider.Passkey" Block />
+                            <div class="omni-auth-providers-grid">
+                                <OmniSocialButton Provider="SocialProvider.Google" Compact />
+                                <OmniSocialButton Provider="SocialProvider.Microsoft" Compact />
+                                <OmniSocialButton Provider="SocialProvider.Apple" Compact />
+                                <OmniSocialButton Provider="SocialProvider.GitHub" Compact />
+                            </div>
+                        </div>
+
+                        <div style="margin-top:20px; text-align:center; font-size:13px; color:var(--omni-fg-muted)">
+                            Não tem conta? <a href="/templates/auth/login" class="omni-link">Criar conta</a>
+                        </div>
+                    </div>
+                </ChildContent>
+            </OmniAuthLayout>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private bool _remember = true;
+
+    private const string _code = @"<OmniAuthLayout>
+    <Brand>
+        <div>
+            <div class=""omni-auth-brand-eyebrow"">OMNI · PLATAFORMA</div>
+            <div class=""omni-auth-brand-title"">Acesse sua plataforma com segurança.</div>
+            <div class=""omni-auth-brand-points"">
+                <div class=""omni-auth-brand-point""><OmniIcon Name=""check-circle"" Size=""ComponentSize.Sm"" /><span>Login social, Passkey e 2FA</span></div>
+            </div>
+        </div>
+        <div class=""omni-auth-brand-foot""><OmniIcon Name=""shield"" Size=""ComponentSize.Sm"" /><span>protegido por Omni.Platform</span></div>
+    </Brand>
+    <ChildContent>
+        <div class=""omni-auth-form"">
+            <div class=""omni-auth-head"">Entrar</div>
+            <div class=""omni-auth-lede"">Bem-vindo de volta.</div>
+
+            <OmniFormField Label=""E-mail"">
+                <OmniTextBox @bind-Value=""email"" Type=""email"" LeadingIcon=""mail"" Placeholder=""voce@empresa.com"" />
+            </OmniFormField>
+            <OmniFormField Label=""Senha"">
+                <OmniPassword @bind-Value=""password"" Placeholder=""Sua senha"" />
+            </OmniFormField>
+
+            <div style=""display:flex; align-items:center; justify-content:space-between"">
+                <OmniCheckBox @bind-Value=""remember"" Label=""Lembrar de mim"" />
+                <a href=""#"" class=""omni-link"">Esqueci minha senha</a>
+            </div>
+
+            <button class=""omni-btn omni-btn-primary omni-btn-block omni-btn-lg"" @onclick=""SignIn"">Entrar</button>
+
+            <div class=""omni-auth-divider"">ou continue com</div>
+            <div class=""omni-auth-providers"">
+                <OmniSocialButton Provider=""SocialProvider.Passkey"" Block OnClick=""SignInPasskey"" />
+                <div class=""omni-auth-providers-grid"">
+                    <OmniSocialButton Provider=""SocialProvider.Google"" Compact />
+                    <OmniSocialButton Provider=""SocialProvider.Microsoft"" Compact />
+                    <OmniSocialButton Provider=""SocialProvider.Apple"" Compact />
+                    <OmniSocialButton Provider=""SocialProvider.GitHub"" Compact />
+                </div>
+            </div>
+        </div>
+    </ChildContent>
+</OmniAuthLayout>";
+}

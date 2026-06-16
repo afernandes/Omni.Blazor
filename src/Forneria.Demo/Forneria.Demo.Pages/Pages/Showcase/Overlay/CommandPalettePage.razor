@@ -1,0 +1,237 @@
+@page "/showcase/command-palette"
+@layout ShowcaseLayout
+@implements IAsyncDisposable
+@using Omni.Blazor.Services
+@inject HotkeyService Hotkeys
+@inject NotificationService Toasts
+@inject ThemeService Theme
+
+<PageTitle>Command Palette — Showcase</PageTitle>
+
+<ShowcasePage Title="Command Palette (⌘K)"
+              Subtitle="Menu de ações global: busca fuzzy, atalhos reais, subpáginas, recentes e busca assíncrona.">
+
+    <Overview>
+        <p>
+            O <code>OmniCommandPalette</code> é o "spotlight" do seu app: <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd>
+            para abrir, digite para filtrar, <kbd>↑</kbd>/<kbd>↓</kbd> navega, <kbd>↵</kbd> executa,
+            <kbd>Esc</kbd> volta/fecha. Reusa o <code>OmniOverlay</code> e o <code>HotkeyService</code>.
+        </p>
+        <p>A busca é de nível de engine dedicada:</p>
+        <ul>
+            <li><strong>Insensível a acentos</strong> — <code>usuario</code> acha "Usuários" (e vice-versa).</li>
+            <li><strong>Fuzzy + acrônimo</strong> — <code>tu</code> acha "Tabela de Usuários"; o melhor match vem primeiro.</li>
+            <li><strong>Realce</strong> dos caracteres casados.</li>
+            <li><strong>Recentes (MRU)</strong> — comandos usados sobem ao topo (persistido em localStorage).</li>
+            <li><strong>Subpáginas</strong> — comandos com <code>Children</code> abrem um nível aninhado.</li>
+            <li><strong>Busca assíncrona</strong> — <code>CommandSource</code> traz resultados do servidor.</li>
+            <li><strong>Atalhos em sequência</strong> — registre <code>"g d"</code> no <code>HotkeyService</code> (estilo GitHub/Linear).</li>
+        </ul>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Acesso rápido a navegação e ações em apps densos (admin, IDE, dashboards).</li>
+            <li>Power-users que preferem teclado ao mouse.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="EXEMPLO COMPLETO"
+                         Description="Atalhos reais (combos + a sequência 'g d'), subpágina 'Aparência', busca assíncrona (digite 3+ letras) e Recentes. Teste pela paleta ou pelos atalhos."
+                         Code="@CodeSample">
+
+            <div style="display:flex; flex-direction:column; gap:16px">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                    <button class="omni-btn omni-btn-primary" @onclick="() => _open = true">
+                        <OmniIcon Name="search" Size="ComponentSize.Sm" /> Abrir paleta (⌘K)
+                    </button>
+                    <span class="omni-small" style="margin-left:6px">Atalhos reais:</span>
+                    <kbd>Ctrl+Shift+P</kbd><kbd>Ctrl+Shift+L</kbd><kbd>g&nbsp;d</kbd>
+                </div>
+
+                <div style="border:1px solid var(--omni-line); border-radius:10px; padding:14px 16px; background:var(--omni-bg-elev)">
+                    <div style="display:flex; flex-direction:column; gap:2px">
+                        <span class="omni-small">Último comando executado</span>
+                        <strong>@(_last ?? "— pressione um atalho, ou abra a paleta —")</strong>
+                    </div>
+                    @if (_log.Count > 0)
+                    {
+                        <ul style="margin:12px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px; font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--omni-fg-soft)">
+                            @foreach (var line in _log)
+                            {
+                                <li @key="line">@line</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+
+            <OmniCommandPalette @bind-Open="_open" Commands="_commands"
+                                CommandSource="SearchCatalogAsync" HistoryKey="showcase" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniCommandPalette">
+            <ShowcaseApiRow Name="Commands" Type="IEnumerable<OmniCommand>" Default="empty" Description="Comandos (com Children para subpáginas)." />
+            <ShowcaseApiRow Name="Open / OpenChanged" Type="bool" Default="false" Description="Estado aberto (two-way); o atalho também alterna." />
+            <ShowcaseApiRow Name="CommandSource" Type="Func<string,Task<IEnumerable<OmniCommand>>>?" Default="null" Description="Fonte assíncrona (servidor), com debounce; só no nível raiz." />
+            <ShowcaseApiRow Name="SearchDebounce" Type="int" Default="200" Description="ms antes de chamar CommandSource." />
+            <ShowcaseApiRow Name="EnableHistory" Type="bool" Default="true" Description="Rastreia e exibe Recentes (localStorage)." />
+            <ShowcaseApiRow Name="HistoryKey" Type="string" Default="&quot;default&quot;" Description="Namespace do histórico." />
+            <ShowcaseApiRow Name="RecentCount" Type="int" Default="5" Description="Quantos recentes exibir." />
+            <ShowcaseApiRow Name="RecentLabel" Type="string" Default="&quot;Recentes&quot;" Description="Título da seção de recentes." />
+            <ShowcaseApiRow Name="Placeholder" Type="string" Default="&quot;Buscar comando...&quot;" Description="Placeholder da busca." />
+            <ShowcaseApiRow Name="EnableHotkey / HotKey" Type="bool / string" Default="true / Ctrl+K|Meta+K" Description="Atalho que ABRE a paleta." />
+            <ShowcaseApiRow Name="ShowFooter" Type="bool" Default="true" Description="Rodapé com dicas de teclado." />
+            <ShowcaseApiRow Name="OnCommand" Type="EventCallback<OmniCommand>" Default="—" Description="Dispara com o comando escolhido." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniCommand">
+            <ShowcaseApiRow Name="Label" Type="string" Default="&quot;&quot;" Description="Texto principal (alvo da busca)." />
+            <ShowcaseApiRow Name="Category" Type="string?" Default="null" Description="Grupo do comando." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null" Description="Ícone à esquerda." />
+            <ShowcaseApiRow Name="Shortcut" Type="string?" Default="null" Description="Rótulo do atalho (registre no HotkeyService para funcionar)." />
+            <ShowcaseApiRow Name="Keywords" Type="string[]?" Default="null" Description="Termos extras de busca." />
+            <ShowcaseApiRow Name="Action" Type="Func<Task>?" Default="null" Description="Ação ao escolher (ignorada se houver Children)." />
+            <ShowcaseApiRow Name="Children" Type="IEnumerable<OmniCommand>?" Default="null" Description="Subcomandos — escolher abre uma subpágina." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private bool _open;
+    private string? _last;
+    private readonly List<string> _log = new();
+    private readonly List<IAsyncDisposable> _handles = new();
+
+    private OmniCommand[] _commands = Array.Empty<OmniCommand>();
+
+    // Pretend catalog for the async CommandSource demo.
+    private static readonly string[] _catalog =
+    {
+        "Relatório de vendas", "Relatório de estoque", "Fatura #1042", "Fatura #1043",
+        "Cliente: Maria Souza", "Cliente: João Lima", "Produto: Pizza Calabresa", "Produto: Refrigerante",
+    };
+
+    protected override void OnInitialized()
+    {
+        _commands = new[]
+        {
+            new OmniCommand("Ir para Dashboard") { Category = "Navegação", Icon = "bar-chart", Shortcut = "g d", Action = () => Exec("Ir para Dashboard") },
+            new OmniCommand("Novo pedido")       { Category = "Ações", Icon = "plus", Shortcut = "Ctrl+Shift+P", Keywords = new[] { "criar", "venda" }, Action = () => Exec("Novo pedido") },
+            new OmniCommand("Buscar cliente")    { Category = "Ações", Icon = "search", Keywords = new[] { "cliente" }, Action = () => Exec("Buscar cliente") },
+            new OmniCommand("Aparência")         { Category = "Conta", Icon = "sun", Children = new[]
+            {
+                new OmniCommand("Alternar tema (claro/escuro)") { Icon = "sun", Shortcut = "Ctrl+Shift+L", Action = ToggleThemeAsync },
+                new OmniCommand("Destaque: Índigo")   { Icon = "check", Action = () => SetAccent("indigo") },
+                new OmniCommand("Destaque: Esmeralda") { Icon = "check", Action = () => SetAccent("emerald") },
+                new OmniCommand("Destaque: Âmbar")     { Icon = "check", Action = () => SetAccent("amber") },
+            } },
+            new OmniCommand("Configurações")     { Category = "Conta", Icon = "settings", Action = () => Exec("Configurações") },
+        };
+    }
+
+    // Register the commands' shortcuts (combos AND the "g d" sequence) as REAL hotkeys.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        foreach (var cmd in Flatten(_commands))
+        {
+            if (string.IsNullOrEmpty(cmd.Shortcut) || cmd.Action is null) continue;
+            try { _handles.Add(await Hotkeys.RegisterAsync(cmd.Shortcut, _ => cmd.Action!(), preventDefault: true)); }
+            catch { /* SSR / JS gone */ }
+        }
+    }
+
+    private static IEnumerable<OmniCommand> Flatten(IEnumerable<OmniCommand> cmds)
+    {
+        foreach (var c in cmds)
+        {
+            yield return c;
+            if (c.Children is not null)
+                foreach (var k in Flatten(c.Children)) yield return k;
+        }
+    }
+
+    // Async source: simulates a server search (note the spinner while it runs).
+    private async Task<IEnumerable<OmniCommand>> SearchCatalogAsync(string query)
+    {
+        await Task.Delay(350);   // latency
+        return _catalog
+            .Where(x => x.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .Select(x => new OmniCommand(x) { Category = "Resultados", Icon = "search", Action = () => Exec(x) });
+    }
+
+    private Task Exec(string label)
+    {
+        _last = label;
+        _log.Insert(0, $"{DateTime.Now:HH:mm:ss} · {label}");
+        if (_log.Count > 6) _log.RemoveAt(_log.Count - 1);
+        Toasts.Info("Comando executado", label);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        await Theme.ToggleDarkAsync();
+        await Exec($"Tema → {(Theme.Dark ? "escuro" : "claro")}");
+    }
+
+    private async Task SetAccent(string accent)
+    {
+        await Theme.SetAccentAsync(accent);
+        await Exec($"Destaque → {accent}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var h in _handles)
+        {
+            try { await h.DisposeAsync(); } catch { }
+        }
+        _handles.Clear();
+    }
+
+    private const string CodeSample = @"@inject HotkeyService Hotkeys
+@implements IAsyncDisposable
+
+<OmniCommandPalette @bind-Open=""_open"" Commands=""_commands""
+                    CommandSource=""SearchAsync"" HistoryKey=""app"" />
+
+@code {
+    bool _open;
+    readonly List<IAsyncDisposable> _handles = new();
+
+    OmniCommand[] _commands =
+    {
+        // 'g d' é uma SEQUÊNCIA (aperte g, depois d). Combos normais também valem.
+        new(""Ir para Dashboard"") { Icon = ""bar-chart"", Shortcut = ""g d"", Action = GoDashboard },
+        // Subpágina: escolher abre os Children (Esc / Backspace volta).
+        new(""Aparência"") { Icon = ""sun"", Children = new[] {
+            new(""Tema claro/escuro"") { Action = ToggleTheme },
+            new(""Destaque: Índigo"")  { Action = () => SetAccent(""indigo"") },
+        } },
+    };
+
+    // Registra cada Shortcut (combo OU sequência) como atalho global real.
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        foreach (var c in _commands)
+            if (!string.IsNullOrEmpty(c.Shortcut) && c.Action is not null)
+                _handles.Add(await Hotkeys.RegisterAsync(c.Shortcut, _ => c.Action!()));
+    }
+
+    // Busca assíncrona (servidor) — mesclada à lista local, com debounce + spinner.
+    async Task<IEnumerable<OmniCommand>> SearchAsync(string q)
+        => await api.SearchCommandsAsync(q);
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var h in _handles) await h.DisposeAsync();
+    }
+}";
+}

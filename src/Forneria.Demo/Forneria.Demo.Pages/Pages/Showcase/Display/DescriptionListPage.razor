@@ -1,0 +1,69 @@
+@page "/showcase/description-list"
+@layout ShowcaseLayout
+
+<PageTitle>Description List — Showcase</PageTitle>
+
+<ShowcasePage Title="Description List"
+              Subtitle="Layout de chave/valor (termo + valor) para telas de detalhe, resumo e revisão.">
+
+    <Overview>
+        <p>
+            O <code>OmniDescriptionList</code> apresenta pares termo/valor em N colunas responsivas
+            (colapsam para 1 quando estreito). Componha com <code>OmniDescriptionItem</code> — o valor
+            aceita conteúdo rico (badges, links, números mono). <code>Bordered</code> envolve num card.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Páginas de detalhe de uma entidade (usuário, pedido, fatura).</li>
+            <li>Resumo de revisão antes de confirmar.</li>
+            <li>Bloco de metadados (criado em, autor, status).</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="2 COLUNAS, COM BORDA"
+                         Description="Columns define os pares por linha; Bordered envolve em card."
+                         Code="@(@"<OmniDescriptionList Columns=""2"" Bordered>
+    <OmniDescriptionItem Term=""Plano"">Pro</OmniDescriptionItem>
+    <OmniDescriptionItem Term=""Cobrança"">Mensal · R$ 99</OmniDescriptionItem>
+    <OmniDescriptionItem Term=""E-mail"">marina@forno.com.br</OmniDescriptionItem>
+    <OmniDescriptionItem Term=""Status""><OmniStatusBadge Label=""Ativo"" Kind=""StatusBadgeKind.Good"" /></OmniDescriptionItem>
+</OmniDescriptionList>")">
+            <OmniDescriptionList Columns="2" Bordered>
+                <OmniDescriptionItem Term="Plano">Pro</OmniDescriptionItem>
+                <OmniDescriptionItem Term="Cobrança"><span class="omni-mono">Mensal · R$ 99,00</span></OmniDescriptionItem>
+                <OmniDescriptionItem Term="E-mail"><span class="omni-mono">marina@forno.com.br</span></OmniDescriptionItem>
+                <OmniDescriptionItem Term="Status"><OmniStatusBadge Label="Ativo" Kind="StatusBadgeKind.Good" /></OmniDescriptionItem>
+                <OmniDescriptionItem Term="Criado em"><span class="omni-mono">12/03/2025</span></OmniDescriptionItem>
+                <OmniDescriptionItem Term="Função">Sócia · Forno do Bairro</OmniDescriptionItem>
+            </OmniDescriptionList>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="1 COLUNA (LISTA SIMPLES)"
+                         Description="Columns=1 empilha os pares."
+                         Code="@(@"<OmniDescriptionList Columns=""1"">
+    <OmniDescriptionItem Term=""Pedido"">#4218</OmniDescriptionItem>
+    <OmniDescriptionItem Term=""Total"">R$ 89,80</OmniDescriptionItem>
+</OmniDescriptionList>")">
+            <OmniDescriptionList Columns="1">
+                <OmniDescriptionItem Term="Pedido"><span class="omni-mono">#4218</span></OmniDescriptionItem>
+                <OmniDescriptionItem Term="Cliente">Diego Antunes</OmniDescriptionItem>
+                <OmniDescriptionItem Term="Total"><span class="omni-mono">R$ 89,80</span></OmniDescriptionItem>
+            </OmniDescriptionList>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniDescriptionList">
+            <ShowcaseApiRow Name="Columns" Type="int" Default="2" Description="Pares por linha; colapsa para 1 quando estreito." />
+            <ShowcaseApiRow Name="Bordered" Type="bool" Default="false" Description="Envolve num card com borda." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniDescriptionItem">
+            <ShowcaseApiRow Name="Term" Type="string?" Default="null" Description="O rótulo (termo)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" Default="—" Description="O valor (aceita conteúdo rico)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

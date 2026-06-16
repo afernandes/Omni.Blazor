@@ -257,6 +257,12 @@ public enum ChartSeriesType { Line, Area, Column, Bar, Pie, Donut, Waterfall }
 /// <summary>Posição da legenda do <c>OmniChart</c>.</summary>
 public enum ChartLegendPosition { Top, Right, Bottom, Left, None }
 
+/// <summary>Outcome status for <c>OmniResult</c> — drives icon + color tone.</summary>
+public enum ResultStatus { Info, Success, Warning, Error, Forbidden, NotFound, Maintenance }
+
+/// <summary>External authentication provider for <c>OmniSocialButton</c>.</summary>
+public enum SocialProvider { Google, Microsoft, Apple, GitHub, Facebook, Passkey }
+
 /// <summary>Esquema de cores das séries do <c>OmniChart</c>:
 /// <list type="bullet">
 ///   <item><term>Palette</term><description>12 cores Tailwind-harmonizadas (default).</description></item>

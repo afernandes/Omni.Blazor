@@ -1,0 +1,18 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@* A single term/value pair for OmniDescriptionList. Term is the label; the
+   child content is the value (can be rich — badges, links, mono numbers). *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <dt class="omni-desc-term">@Term</dt>
+    <dd class="omni-desc-value">@ChildContent</dd>
+</div>
+
+@code {
+    /// <summary>The label (term).</summary>
+    [Parameter] public string? Term { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-desc-item").AddClass(Class).Build();
+}

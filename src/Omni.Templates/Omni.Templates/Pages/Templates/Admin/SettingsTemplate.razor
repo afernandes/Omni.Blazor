@@ -1,0 +1,95 @@
+@page "/templates/admin/settings"
+@layout TemplatesLayout
+
+<PageTitle>Configurações — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Configurações"
+                 Description="Resumo (OmniDescriptionList) + linhas de configuração com OmniSwitch. OmniCard + OmniPaneHeader."
+                 Code="@_code">
+        <div class="tpl-dash" style="max-width:840px; margin:0 auto;">
+            <OmniPaneHeader Title="Configurações" Subtitle="Conta e segurança da organização">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Cancelar</button>
+                    <button class="omni-btn omni-btn-primary omni-btn-sm">Salvar</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniCard Title="Plano & cobrança">
+                <OmniDescriptionList Columns="2">
+                    <OmniDescriptionItem Term="Plano">Pro</OmniDescriptionItem>
+                    <OmniDescriptionItem Term="Cobrança"><span class="omni-mono">Mensal · R$ 99,00</span></OmniDescriptionItem>
+                    <OmniDescriptionItem Term="Próxima fatura"><span class="omni-mono">12/07/2026</span></OmniDescriptionItem>
+                    <OmniDescriptionItem Term="Status"><OmniStatusBadge Label="Ativo" Kind="StatusBadgeKind.Good" /></OmniDescriptionItem>
+                </OmniDescriptionList>
+            </OmniCard>
+
+            <OmniCard Title="Segurança">
+                <div class="tpl-set-row">
+                    <div>
+                        <div class="tpl-set-label">Exigir 2FA</div>
+                        <div class="tpl-set-help">Obriga todos os membros a configurar verificação em duas etapas.</div>
+                    </div>
+                    <OmniSwitch @bind-Value="_require2fa" />
+                </div>
+                <div class="tpl-set-row">
+                    <div>
+                        <div class="tpl-set-label">Bloquear após tentativas falhas</div>
+                        <div class="tpl-set-help">Bloqueia a conta temporariamente após 5 tentativas de login malsucedidas.</div>
+                    </div>
+                    <OmniSwitch @bind-Value="_lockout" />
+                </div>
+                <div class="tpl-set-row">
+                    <div>
+                        <div class="tpl-set-label">Permitir provedores externos</div>
+                        <div class="tpl-set-help">Habilita login com Google, Microsoft, Apple e GitHub.</div>
+                    </div>
+                    <OmniSwitch @bind-Value="_social" />
+                </div>
+            </OmniCard>
+
+            <OmniCard Title="Notificações">
+                <div class="tpl-set-row">
+                    <div>
+                        <div class="tpl-set-label">Novos pedidos por e-mail</div>
+                        <div class="tpl-set-help">Receba um e-mail a cada novo pedido recebido.</div>
+                    </div>
+                    <OmniSwitch @bind-Value="_emailOrders" />
+                </div>
+                <div class="tpl-set-row">
+                    <div>
+                        <div class="tpl-set-label">Resumo semanal</div>
+                        <div class="tpl-set-help">Um panorama de vendas e operação toda segunda-feira.</div>
+                    </div>
+                    <OmniSwitch @bind-Value="_weekly" />
+                </div>
+            </OmniCard>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private bool _require2fa = true;
+    private bool _lockout = true;
+    private bool _social;
+    private bool _emailOrders = true;
+    private bool _weekly;
+
+    private const string _code = @"<OmniCard Title=""Plano & cobrança"">
+    <OmniDescriptionList Columns=""2"">
+        <OmniDescriptionItem Term=""Plano"">Pro</OmniDescriptionItem>
+        <OmniDescriptionItem Term=""Cobrança"">Mensal · R$ 99,00</OmniDescriptionItem>
+        <OmniDescriptionItem Term=""Status""><OmniStatusBadge Label=""Ativo"" Kind=""StatusBadgeKind.Good"" /></OmniDescriptionItem>
+    </OmniDescriptionList>
+</OmniCard>
+
+<OmniCard Title=""Segurança"">
+    <div class=""set-row"">
+        <div>
+            <div class=""set-label"">Exigir 2FA</div>
+            <div class=""set-help"">Obriga todos a configurar verificação em duas etapas.</div>
+        </div>
+        <OmniSwitch @bind-Value=""require2fa"" />
+    </div>
+</OmniCard>";
+}

@@ -1,0 +1,77 @@
+@page "/showcase/empty-state"
+@layout ShowcaseLayout
+
+<PageTitle>Empty State — Showcase</PageTitle>
+
+<ShowcasePage Title="Empty State"
+              Subtitle="Placeholder neutro para listas/coleções vazias, busca sem resultados e estados de primeiro uso.">
+
+    <Overview>
+        <p>
+            O <code>OmniEmptyState</code> apresenta a <em>ausência de conteúdo</em> de forma amigável:
+            ícone, título, descrição e uma ação opcional para o usuário sair do estado vazio. É neutro
+            por design (sem cor de status) — para desfechos semânticos de página inteira use
+            <code>OmniResult</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Listas, tabelas, grids e caixas de entrada vazias.</li>
+            <li>Busca/filtro sem resultados.</li>
+            <li>Primeiro uso ("crie seu primeiro item").</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Página de erro/desfecho → use <code>OmniResult</code>.</li>
+            <li>Carregando → use <code>OmniSkeleton</code> / <code>OmniSpinner</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="PADRÃO"
+                         Description="Ícone + título + descrição + ação."
+                         Code="@(@"<OmniEmptyState Icon=""inbox"" Title=""Nenhum pedido ainda""
+                Description=""Quando chegarem pedidos, eles aparecem aqui."">
+    <Actions>
+        <a href=""#"" class=""omni-btn omni-btn-primary"">Novo pedido</a>
+    </Actions>
+</OmniEmptyState>")">
+            <OmniEmptyState Icon="inbox" Title="Nenhum pedido ainda"
+                            Description="Quando chegarem pedidos, eles aparecem aqui.">
+                <Actions>
+                    <a href="/showcase/empty-state" class="omni-btn omni-btn-primary">Novo pedido</a>
+                </Actions>
+            </OmniEmptyState>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="BUSCA SEM RESULTADOS / COMPACTO"
+                         Description="Compact reduz o padding para painéis e dropdowns."
+                         Code="@(@"<OmniEmptyState Icon=""search"" Compact
+                Title=""Nada encontrado""
+                Description=""Tente outro termo ou limpe os filtros."" />")">
+            <OmniEmptyState Icon="search" Compact
+                            Title="Nada encontrado para “pizza vegana”"
+                            Description="Tente outro termo de busca ou limpe os filtros aplicados.">
+                <Actions>
+                    <a href="/showcase/empty-state" class="omni-btn">Limpar filtros</a>
+                </Actions>
+            </OmniEmptyState>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniEmptyState">
+            <ShowcaseApiRow Name="Icon" Type="string" Default="&quot;inbox&quot;" Description="Nome do ícone (qualquer OmniIcon)." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null" Description="Título curto." />
+            <ShowcaseApiRow Name="Description" Type="string?" Default="null" Description="Texto de apoio." />
+            <ShowcaseApiRow Name="DescriptionContent" Type="RenderFragment?" Default="null" Description="Conteúdo rico (sobrepõe Description)." />
+            <ShowcaseApiRow Name="Visual" Type="RenderFragment?" Default="null" Description="Ilustração própria no lugar do ícone." />
+            <ShowcaseApiRow Name="Actions" Type="RenderFragment?" Default="null" Description="Linha de ações." />
+            <ShowcaseApiRow Name="Compact" Type="bool" Default="false" Description="Padding reduzido." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

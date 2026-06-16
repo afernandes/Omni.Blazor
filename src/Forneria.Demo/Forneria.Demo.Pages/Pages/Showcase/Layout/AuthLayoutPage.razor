@@ -1,0 +1,92 @@
+@page "/showcase/auth-layout"
+@layout ShowcaseLayout
+
+<PageTitle>Auth Layout — Showcase</PageTitle>
+
+<ShowcasePage Title="Auth Layout"
+              Subtitle="Scaffold de páginas públicas: card central (padrão) ou layout dividido com painel de marca.">
+
+    <Overview>
+        <p>
+            O <code>OmniAuthLayout</code> centraliza um card de autenticação. Passe o slot
+            <code>Brand</code> para virar o layout dividido (painel escuro de marca + painel do
+            formulário). <code>Decor</code> adiciona o grid sutil e o brilho de destaque ao fundo.
+            Classes auxiliares (<code>omni-auth-card</code>, <code>omni-auth-brand-title</code>,
+            <code>omni-auth-divider</code>…) montam o conteúdo.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="CARD CENTRAL"
+                         Description="Sem Brand → card centrado com fundo decorativo."
+                         Padded="false"
+                         Code="@(@"<OmniAuthLayout>
+    <div class=""omni-auth-card"">
+        <div class=""omni-auth-head"">Entrar</div>
+        <div class=""omni-auth-lede"">Bem-vindo de volta.</div>
+        ...
+    </div>
+</OmniAuthLayout>")">
+            <div style="height:520px; border:1px solid var(--omni-line); border-radius:var(--omni-radius); overflow:hidden">
+                <OmniAuthLayout>
+                    <div class="omni-auth-card">
+                        <div class="omni-auth-head">Entrar</div>
+                        <div class="omni-auth-lede">Bem-vindo de volta. Acesse sua conta.</div>
+                        <div style="margin-top:18px">
+                            <OmniSocialButton Provider="SocialProvider.Google" Block />
+                        </div>
+                        <div class="omni-auth-divider">ou</div>
+                        <button class="omni-btn omni-btn-primary omni-btn-block">Continuar</button>
+                    </div>
+                </OmniAuthLayout>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DIVIDIDO COM PAINEL DE MARCA"
+                         Description="Com Brand → painel escuro à esquerda + formulário à direita (empilha no mobile)."
+                         Padded="false"
+                         Code="@(@"<OmniAuthLayout>
+    <Brand>
+        <div class=""omni-auth-brand-eyebrow"">ACME</div>
+        <div class=""omni-auth-brand-title"">Sua plataforma, segura.</div>
+    </Brand>
+    <ChildContent>
+        <div class=""omni-auth-form""> ...form... </div>
+    </ChildContent>
+</OmniAuthLayout>")">
+            <div style="height:560px; border:1px solid var(--omni-line); border-radius:var(--omni-radius); overflow:hidden">
+                <OmniAuthLayout>
+                    <Brand>
+                        <div>
+                            <div class="omni-auth-brand-eyebrow">OMNI · PLATAFORMA</div>
+                            <div class="omni-auth-brand-title">Sua plataforma, segura por padrão.</div>
+                            <div class="omni-auth-brand-text">Autenticação, papéis e permissões prontos — foque no seu produto.</div>
+                        </div>
+                        <div class="omni-auth-brand-foot">
+                            <OmniIcon Name="shield" Size="ComponentSize.Sm" />
+                            <span>protegido por Omni.Platform</span>
+                        </div>
+                    </Brand>
+                    <ChildContent>
+                        <div class="omni-auth-form">
+                            <div class="omni-auth-head">Entrar</div>
+                            <div class="omni-auth-lede">Use seu e-mail corporativo.</div>
+                            <div style="margin-top:18px">
+                                <button class="omni-btn omni-btn-primary omni-btn-block">Continuar</button>
+                            </div>
+                        </div>
+                    </ChildContent>
+                </OmniAuthLayout>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniAuthLayout">
+            <ShowcaseApiRow Name="Brand" Type="RenderFragment?" Default="null" Description="Conteúdo do painel de marca (presença ativa o split)." />
+            <ShowcaseApiRow Name="Decor" Type="bool" Default="true" Description="Grid + brilho de destaque no fundo." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment" Default="—" Description="O formulário (ex.: omni-auth-card / omni-auth-form)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

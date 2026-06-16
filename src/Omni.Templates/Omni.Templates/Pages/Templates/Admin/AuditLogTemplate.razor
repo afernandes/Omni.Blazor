@@ -1,0 +1,63 @@
+@page "/templates/admin/audit"
+@layout TemplatesLayout
+
+<PageTitle>Auditoria — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Logs de auditoria"
+                 Description="Tentativas de acesso da organização: usuário, resultado (badge), IP, dispositivo e data. OmniDataGrid + OmniStatusBadge."
+                 Code="@_code">
+        <div class="tpl-dash">
+            <OmniPaneHeader Title="Auditoria de acesso" Subtitle="Tentativas de login e ações sensíveis">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Exportar CSV</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniDataGrid TItem="AuditRow" Data="_rows" AllowSearch AllowPaging PageSize="7"
+                          SearchPlaceholder="Buscar por usuário ou IP...">
+                <Columns>
+                    <OmniDataGridColumn TItem="AuditRow" Title="Usuário" PropertyName="User" Property="@(r => r.User)" />
+                    <OmniDataGridColumn TItem="AuditRow" Title="Resultado" PropertyName="Result" TextSelector="@(r => r.Result)">
+                        <Template Context="r"><OmniStatusBadge Label="@r.Result" Kind="@r.Kind" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="AuditRow" Title="IP" PropertyName="Ip" Property="@(r => r.Ip)">
+                        <Template Context="r"><span class="omni-mono">@r.Ip</span></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="AuditRow" Title="Dispositivo" PropertyName="Device" Property="@(r => r.Device)" />
+                    <OmniDataGridColumn TItem="AuditRow" Title="Quando" PropertyName="When" Property="@(r => r.When)">
+                        <Template Context="r"><span class="omni-mono">@r.When</span></Template>
+                    </OmniDataGridColumn>
+                </Columns>
+            </OmniDataGrid>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private record AuditRow(string User, string Result, StatusBadgeKind Kind, string Ip, string Device, string When);
+
+    private readonly List<AuditRow> _rows = new()
+    {
+        new("marina@forno.com.br", "Sucesso", StatusBadgeKind.Good, "189.45.12.7", "Chrome · Windows", "14/06 19:42"),
+        new("diego@forno.com.br", "Sucesso", StatusBadgeKind.Good, "200.158.4.91", "Safari · macOS", "14/06 18:10"),
+        new("desconhecido", "Falha", StatusBadgeKind.Danger, "45.231.90.2", "Firefox · Linux", "14/06 17:58"),
+        new("carla@forno.com.br", "Bloqueado", StatusBadgeKind.Warn, "189.45.12.7", "Chrome · Android", "14/06 17:55"),
+        new("rafael@forno.com.br", "Sucesso", StatusBadgeKind.Good, "177.92.18.40", "Edge · Windows", "14/06 16:22"),
+        new("desconhecido", "Falha", StatusBadgeKind.Danger, "45.231.90.2", "curl", "14/06 16:21"),
+        new("bia@forno.com.br", "Sucesso", StatusBadgeKind.Good, "200.158.4.91", "Chrome · macOS", "14/06 15:03"),
+        new("pedro@forno.com.br", "Sucesso", StatusBadgeKind.Good, "189.45.12.7", "Chrome · Windows", "14/06 14:40"),
+    };
+
+    private const string _code = @"<OmniDataGrid TItem=""AuditRow"" Data=""rows"" AllowSearch AllowPaging PageSize=""7"">
+    <Columns>
+        <OmniDataGridColumn TItem=""AuditRow"" Title=""Usuário"" Property=""@(r => r.User)"" />
+        <OmniDataGridColumn TItem=""AuditRow"" Title=""Resultado"">
+            <Template Context=""r""><OmniStatusBadge Label=""@r.Result"" Kind=""@r.Kind"" /></Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem=""AuditRow"" Title=""IP""><Template Context=""r""><span class=""mono"">@r.Ip</span></Template></OmniDataGridColumn>
+        <OmniDataGridColumn TItem=""AuditRow"" Title=""Dispositivo"" Property=""@(r => r.Device)"" />
+        <OmniDataGridColumn TItem=""AuditRow"" Title=""Quando"" Property=""@(r => r.When)"" />
+    </Columns>
+</OmniDataGrid>";
+}

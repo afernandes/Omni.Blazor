@@ -1,0 +1,37 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*
+    Read-only key/value detail layout (term + value pairs) — the standard
+    "detail / review / summary" primitive for entity pages, settings summaries
+    and review-before-submit. Lay pairs in N responsive columns; Bordered wraps
+    them in a card surface. Compose with OmniDescriptionItem.
+
+    Usage:
+        <OmniDescriptionList Columns="2" Bordered>
+            <OmniDescriptionItem Term="Plano">Pro</OmniDescriptionItem>
+            <OmniDescriptionItem Term="E-mail">marina@forno.com.br</OmniDescriptionItem>
+        </OmniDescriptionList>
+*@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <dl class="omni-desc-grid" style="@($"--omni-desc-cols:{Cols};")">
+        @ChildContent
+    </dl>
+</div>
+
+@code {
+    /// <summary>Term/value pairs per row on wide containers. Collapses to 1 when narrow. Default 2.</summary>
+    [Parameter] public int Columns { get; set; } = 2;
+
+    /// <summary>Wrap the list in a bordered card surface.</summary>
+    [Parameter] public bool Bordered { get; set; }
+
+    private int Cols => Columns < 1 ? 1 : Columns;
+
+    private string RootCss => CssBuilder.Default("omni-desc")
+        .AddClass("omni-desc-bordered", Bordered)
+        .AddClass(Class)
+        .Build();
+}

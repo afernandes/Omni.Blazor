@@ -1,0 +1,89 @@
+@page "/showcase/result"
+@layout ShowcaseLayout
+
+<PageTitle>Result — Showcase</PageTitle>
+
+<ShowcasePage Title="Result"
+              Subtitle="Bloco de status de página inteira: sucesso, erro, 403, 404, manutenção. A primitiva por trás de páginas de erro e telas de conclusão.">
+
+    <Overview>
+        <p>
+            O <code>OmniResult</code> centraliza um <em>desfecho</em>: um ícone tonalizado pelo
+            <code>Status</code>, título, descrição e ações. É agnóstico de produto — uma página 404,
+            403, 500, "pagamento concluído" ou "em manutenção" são apenas instâncias configuradas.
+            Troque o ícone com <code>Icon</code> ou use <code>Visual</code> para uma ilustração própria.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Páginas de erro (404 / 403 / 500) e manutenção.</li>
+            <li>Telas de conclusão (pagamento, cadastro, exportação pronta).</li>
+            <li>Estados de página inteira: sessão expirada, conta bloqueada.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Lista/coleção vazia dentro de um painel → use <code>OmniEmptyState</code>.</li>
+            <li>Aviso inline no fluxo da página → use <code>OmniAlert</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="STATUS"
+                         Description="O Status define ícone e cor. Info (padrão), Success, Warning, Error, Forbidden, NotFound, Maintenance."
+                         Code="@(@"<OmniResult Status=""ResultStatus.NotFound""
+            Title=""Página não encontrada""
+            Description=""A rota não existe ou foi movida."">
+    <Actions>
+        <a href=""/"" class=""omni-btn omni-btn-primary"">Voltar ao início</a>
+    </Actions>
+</OmniResult>")">
+            <div class="omni-grid-2">
+                <OmniResult Status="ResultStatus.Success" Compact Title="Tudo certo!"
+                            Description="Sua operação foi concluída com sucesso." />
+                <OmniResult Status="ResultStatus.NotFound" Compact Title="Página não encontrada"
+                            Description="A rota que você acessou não existe ou foi movida." />
+                <OmniResult Status="ResultStatus.Forbidden" Compact Title="Acesso negado"
+                            Description="Você não tem permissão para ver esta página." />
+                <OmniResult Status="ResultStatus.Error" Compact Title="Algo deu errado"
+                            Description="Tivemos um problema ao processar sua solicitação." />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM AÇÕES"
+                         Description="O slot Actions renderiza os botões abaixo do texto."
+                         Code="@(@"<OmniResult Status=""ResultStatus.Maintenance""
+            Title=""Em manutenção"" Description=""Voltamos já. Obrigado pela paciência."">
+    <Actions>
+        <a href=""/"" class=""omni-btn omni-btn-primary"">Atualizar</a>
+        <a href=""/status"" class=""omni-btn"">Ver status</a>
+    </Actions>
+</OmniResult>")">
+            <OmniResult Status="ResultStatus.Maintenance"
+                        Title="Em manutenção"
+                        Description="Estamos fazendo melhorias. Voltamos em instantes — obrigado pela paciência.">
+                <Actions>
+                    <a href="/showcase/result" class="omni-btn omni-btn-primary">Atualizar</a>
+                    <a href="/showcase" class="omni-btn">Ver status</a>
+                </Actions>
+            </OmniResult>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniResult">
+            <ShowcaseApiRow Name="Status" Type="ResultStatus" Default="Info"
+                            Description="Info | Success | Warning | Error | Forbidden | NotFound | Maintenance." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null" Description="Headline." />
+            <ShowcaseApiRow Name="Description" Type="string?" Default="null" Description="Texto de apoio." />
+            <ShowcaseApiRow Name="DescriptionContent" Type="RenderFragment?" Default="null" Description="Conteúdo de apoio rico (sobrepõe Description)." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null" Description="Sobrescreve o ícone do status." />
+            <ShowcaseApiRow Name="Visual" Type="RenderFragment?" Default="null" Description="Ilustração própria no lugar do ícone." />
+            <ShowcaseApiRow Name="Actions" Type="RenderFragment?" Default="null" Description="Linha de botões abaixo do texto." />
+            <ShowcaseApiRow Name="Compact" Type="bool" Default="false" Description="Padding reduzido (dentro de card/painel)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

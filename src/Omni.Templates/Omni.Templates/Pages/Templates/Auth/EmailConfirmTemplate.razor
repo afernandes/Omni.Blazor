@@ -1,0 +1,55 @@
+@page "/templates/auth/email-confirm"
+@layout TemplatesLayout
+
+<PageTitle>Confirmação de e-mail — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="Confirmação de e-mail"
+                 Description="Aguardando confirmação, com reenvio. OmniAuthLayout + OmniResult. Clique em ‘Simular confirmação’ para ver o estado de sucesso."
+                 Code="@_code">
+        <div style="min-height:440px">
+            <OmniAuthLayout>
+                <div class="omni-auth-card">
+                    @if (!_confirmed)
+                    {
+                        <OmniResult Status="ResultStatus.Info" Compact Icon="mail"
+                                    Title="Confirme seu e-mail"
+                                    Description="Enviamos um link de confirmação para voce@empresa.com. Abra o e-mail para ativar sua conta.">
+                            <Actions>
+                                <button class="omni-btn omni-btn-primary" @onclick="() => _confirmed = true">Simular confirmação</button>
+                                <a href="/templates/auth/login" class="omni-btn">Trocar e-mail</a>
+                            </Actions>
+                        </OmniResult>
+                    }
+                    else
+                    {
+                        <OmniResult Status="ResultStatus.Success" Compact
+                                    Title="E-mail confirmado!"
+                                    Description="Sua conta está ativa. Você já pode entrar.">
+                            <Actions>
+                                <a href="/templates/auth/login" class="omni-btn omni-btn-primary">Entrar agora</a>
+                            </Actions>
+                        </OmniResult>
+                    }
+                </div>
+            </OmniAuthLayout>
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private bool _confirmed;
+
+    private const string _code = @"<OmniAuthLayout>
+    <div class=""omni-auth-card"">
+        <OmniResult Status=""ResultStatus.Info"" Compact Icon=""mail""
+                    Title=""Confirme seu e-mail""
+                    Description=""Enviamos um link de confirmação para voce@empresa.com."">
+            <Actions>
+                <button class=""omni-btn omni-btn-primary"" @onclick=""Resend"">Reenviar e-mail</button>
+                <a href=""#"" class=""omni-btn"">Trocar e-mail</a>
+            </Actions>
+        </OmniResult>
+    </div>
+</OmniAuthLayout>";
+}

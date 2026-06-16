@@ -1,0 +1,90 @@
+@namespace Omni.Templates.Shared
+@inject IJSRuntime JS
+
+@* Per-template wrapper: header (title + actions), a framed live preview, and a
+   collapsible source panel with a copy button. The Code string is the artifact
+   the user copies. Copy uses omniBlazor.copyText (ships in _content/Omni.Blazor). *@
+
+<div class="tpl-doc">
+    <header class="tpl-doc-head">
+        <div class="tpl-doc-titles">
+            <h1 class="tpl-doc-title">@Title</h1>
+            @if (!string.IsNullOrEmpty(Description))
+            {
+                <div class="tpl-doc-desc">@Description</div>
+            }
+        </div>
+        <div class="tpl-doc-actions">
+            @if (!string.IsNullOrEmpty(FullScreenPath))
+            {
+                <a href="@FullScreenPath" target="_blank" class="omni-btn omni-btn-sm">
+                    <OmniIcon Name="external-link" Size="ComponentSize.Sm" />
+                    <span>Tela cheia</span>
+                </a>
+            }
+            @if (!string.IsNullOrEmpty(Code))
+            {
+                <button type="button" class="omni-btn omni-btn-sm" @onclick="ToggleCode">
+                    <OmniIcon Name="code" Size="ComponentSize.Sm" />
+                    <span>@(_show ? "Ocultar código" : "Ver código")</span>
+                </button>
+            }
+        </div>
+    </header>
+
+    <div class="tpl-doc-preview @(Framed ? "tpl-doc-framed" : null)">
+        @ChildContent
+    </div>
+
+    @if (!string.IsNullOrEmpty(Code) && _show)
+    {
+        <div class="tpl-doc-code">
+            <button type="button" class="tpl-doc-copy" @onclick="CopyAsync" title="Copiar código">
+                <OmniIcon Name="@(_copied ? "check" : "copy")" Size="ComponentSize.Sm" />
+                <span>@(_copied ? "Copiado!" : "Copiar")</span>
+            </button>
+            <pre><code>@Code</code></pre>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Template name (page H1).</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    /// <summary>One-line description under the title.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Razor source the user copies. When set, a "Ver código" toggle appears.</summary>
+    [Parameter] public string? Code { get; set; }
+
+    /// <summary>Optional route to view this template full-screen (no gallery chrome).</summary>
+    [Parameter] public string? FullScreenPath { get; set; }
+
+    /// <summary>Wrap the preview in a bordered surface. Default true.</summary>
+    [Parameter] public bool Framed { get; set; } = true;
+
+    /// <summary>The live template markup.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _show;
+    private bool _copied;
+
+    private void ToggleCode() { _show = !_show; _copied = false; }
+
+    private async Task CopyAsync()
+    {
+        try
+        {
+            var ok = await JS.InvokeAsync<bool>("omniBlazor.copyText", Code);
+            if (ok)
+            {
+                _copied = true;
+                StateHasChanged();
+                await Task.Delay(1800);
+                _copied = false;
+            }
+        }
+        catch { /* ignore */ }
+    }
+}
