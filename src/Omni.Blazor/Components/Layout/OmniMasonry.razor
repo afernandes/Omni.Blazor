@@ -1,0 +1,70 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@*  OmniMasonry — layout em cascata (Pinterest): colunas de largura igual onde cada
+    item mantém a altura natural e empilha na coluna mais curta, sem alinhar linhas.
+    Pure-CSS via multicolumn (column-count / column-width + break-inside: avoid) —
+    sem JS e sem grid-template-rows:masonry (ainda não interoperável entre browsers).
+
+    Para grade 2D ALINHADA com tiles de tamanho controlado (span), use <OmniBento>.
+
+    Responsividade:
+      • Columns (+Sm/Md/Lg)  — contagem fixa de colunas (breakpoints de viewport).
+      • MinColumnWidth       — usa column-width: o browser escolhe a contagem pela
+                               largura do PRÓPRIO container (intrínseco, sem breakpoints).
+
+    Caveat do multicolumn: a ordem é por COLUNA (itens 1,2,3… descem a 1ª coluna,
+    depois a 2ª) — não esquerda→direita. Ideal para galerias; se a ordem de leitura
+    importa, prefira <OmniBento>.
+*@
+<div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Número de colunas. Default 3. Ignorado quando <see cref="MinColumnWidth"/> é definido.</summary>
+    [Parameter] public int Columns { get; set; } = 3;
+
+    /// <summary>Override de <see cref="Columns"/> em ≥640px. Default null.</summary>
+    [Parameter] public int? ColumnsSm { get; set; }
+
+    /// <summary>Override de <see cref="Columns"/> em ≥1024px. Default null.</summary>
+    [Parameter] public int? ColumnsMd { get; set; }
+
+    /// <summary>Override de <see cref="Columns"/> em ≥1440px. Default null.</summary>
+    [Parameter] public int? ColumnsLg { get; set; }
+
+    /// <summary>Largura mínima da coluna em px. Quando definido, usa <c>column-width</c> — a
+    /// contagem de colunas reage à largura do container, sem breakpoints — e <see cref="Columns"/> é ignorado.</summary>
+    [Parameter] public int? MinColumnWidth { get; set; }
+
+    /// <summary>Espaçamento entre colunas e entre itens (px). Default 16.</summary>
+    [Parameter] public int Gap { get; set; } = 16;
+
+    private string RootCss => CssBuilder.Default("omni-masonry")
+        .AddClass("omni-masonry-autocol", MinColumnWidth is not null)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle
+    {
+        get
+        {
+            var parts = new List<string>(6) { $"--omni-masonry-gap: {Gap}px" };
+            if (MinColumnWidth is int w)
+            {
+                parts.Add($"--omni-masonry-min: {w}px");
+            }
+            else
+            {
+                parts.Add($"--omni-masonry-cols: {Columns}");
+                if (ColumnsSm is int s) parts.Add($"--omni-masonry-cols-sm: {s}");
+                if (ColumnsMd is int m) parts.Add($"--omni-masonry-cols-md: {m}");
+                if (ColumnsLg is int l) parts.Add($"--omni-masonry-cols-lg: {l}");
+            }
+            if (!string.IsNullOrWhiteSpace(Style)) parts.Add(Style!);
+            return string.Join("; ", parts);
+        }
+    }
+}

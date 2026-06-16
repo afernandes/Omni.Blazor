@@ -1,0 +1,117 @@
+@page "/showcase/masonry"
+@attribute [ShowcaseInfo(Title = "Masonry", Category = Cat.Layout, Icon = "columns")]
+@layout ShowcaseLayout
+
+<PageTitle>Masonry — Showcase</PageTitle>
+
+<ShowcasePage Title="Masonry (OmniMasonry)"
+              Subtitle="Cascata estilo Pinterest — colunas de largura igual, cada item com a altura natural. Pure-CSS (multicolumn), sem JS.">
+
+    <Overview>
+        <p>
+            O <code>OmniMasonry</code> distribui os itens em <strong>colunas de largura igual</strong>
+            onde cada item mantém a <strong>altura natural</strong> e empilha na coluna — o layout
+            "cascata" do Pinterest. É puro CSS (<code>column-count</code> / <code>column-width</code> +
+            <code>break-inside: avoid</code>): <strong>sem JavaScript</strong> e sem depender de
+            <code>grid-template-rows: masonry</code> (que ainda não é interoperável entre browsers).
+        </p>
+        <p>
+            <strong>Masonry ≠ Bento.</strong> No masonry só as <em>colunas</em> alinham — as linhas não,
+            porque cada item tem altura própria. Para uma grade 2D <em>alinhada</em>, com tiles de tamanho
+            controlado (span de coluna/linha), use o <code>OmniBento</code>.
+        </p>
+        <p>
+            <strong>Responsividade</strong>: <code>Columns</code> (+ <code>ColumnsSm/Md/Lg</code>) para
+            contagem fixa por breakpoint, ou <code>MinColumnWidth</code> para a contagem reagir à largura
+            do próprio container (intrínseco, sem breakpoints). O <code>Gap</code> controla o espaçamento.
+        </p>
+        <p>
+            <strong>Caveat do multicolumn</strong>: a ordem é por <em>coluna</em> (itens 1, 2, 3… descem a
+            1ª coluna, depois a 2ª) — não da esquerda para a direita. Ideal para galerias; se a ordem de
+            leitura importa, prefira o <code>OmniBento</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Galerias de imagens/cards de alturas variadas (fotos, depoimentos, posts, moodboards).</li>
+            <li>Feeds onde o empacotamento compacto importa mais que o alinhamento de linhas.</li>
+            <li>Quando você quer cascata sem trazer uma lib JS de masonry.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Quando a ordem de leitura precisa ser esquerda→direita → use <code>OmniBento</code> ou <code>OmniRow</code>/<code>OmniCol</code>.</li>
+            <li>Grade 2D alinhada com tiles de tamanho controlado (hero 2×2 etc.) → <code>OmniBento</code>.</li>
+            <li>Faixa 1D de cards grudados → <code>OmniCardGroup</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="COLUNAS RESPONSIVAS"
+                         Description="Columns define a contagem base (mobile-first); ColumnsSm/Md/Lg sobrescrevem em ≥640 / ≥1024 / ≥1440 px. Os cards têm alturas diferentes — a cascata aparece naturalmente."
+                         Code="@(@"<OmniMasonry Columns=""1"" ColumnsSm=""2"" ColumnsMd=""3"">
+    <OmniCard Title=""…"">…</OmniCard>
+    <OmniCard Title=""…"">…</OmniCard>
+    …
+</OmniMasonry>")">
+            <OmniMasonry Columns="1" ColumnsSm="2" ColumnsMd="3">
+                @foreach (var t in _tiles)
+                {
+                    <OmniCard Title="@t.Title" @key="t.Title">
+                        <p style="margin:0;">@t.Body</p>
+                    </OmniCard>
+                }
+            </OmniMasonry>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="AUTO (MinColumnWidth)"
+                         Description="Com MinColumnWidth o grid usa column-width: a contagem de colunas reage à largura do PRÓPRIO container (intrínseco, sem breakpoints). Redimensione para ver."
+                         Code="@(@"<OmniMasonry MinColumnWidth=""220"">
+    <OmniCard Title=""…"">…</OmniCard>
+    …
+</OmniMasonry>")">
+            <OmniMasonry MinColumnWidth="220">
+                @foreach (var t in _tiles)
+                {
+                    <OmniCard Title="@t.Title" @key="@($"a-{t.Title}")">
+                        <p style="margin:0;">@t.Body</p>
+                    </OmniCard>
+                }
+            </OmniMasonry>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniMasonry — parâmetros">
+            <ShowcaseApiRow Name="Columns" Type="int" Default="3"
+                            Description="Número de colunas (mobile-first). Ignorado quando MinColumnWidth é definido." />
+            <ShowcaseApiRow Name="ColumnsSm / Md / Lg" Type="int?" Default="null"
+                            Description="Override de Columns em ≥640 / ≥1024 / ≥1440 px." />
+            <ShowcaseApiRow Name="MinColumnWidth" Type="int?" Default="null"
+                            Description="Largura mínima da coluna (px). Usa column-width — a contagem reage à largura do container, sem breakpoints." />
+            <ShowcaseApiRow Name="Gap" Type="int" Default="16"
+                            Description="Espaçamento entre colunas e entre itens (px)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private record Tile(string Title, string Body);
+
+    private static readonly Tile[] _tiles =
+    {
+        new("Resumo do dia", "142 pedidos · R$ 11.266 em receita."),
+        new("Avaliação", "“Melhor pizza da região, entrega rápida e atendimento impecável — virei cliente fiel.” — Marina T."),
+        new("Top item", "Pizza Grande Calabresa lidera as vendas pela 3ª semana seguida, com 38 unidades só hoje."),
+        new("Canais ativos", "iFood · Uber Eats · WhatsApp · Balcão"),
+        new("Cozinha", "12 pedidos em preparo · tempo médio 24'18."),
+        new("Promoção", "Combo família com 15% OFF até domingo."),
+        new("Nota fiscal", "Emissão automática habilitada."),
+        new("Estoque baixo", "3 insumos abaixo do mínimo: mussarela, catupiry e refrigerante 2L. Reposição sugerida para amanhã de manhã."),
+        new("Entregadores", "5 em rota · 3 disponíveis."),
+        new("Ticket médio", "R$ 79,34 — alta de 8,4% vs. ontem."),
+    };
+}

@@ -2528,6 +2528,41 @@ progress {
   grid-row: span 6;
 }
 
+.omni-masonry {
+  column-count: var(--omni-masonry-cols, 3);
+  column-gap: var(--omni-masonry-gap, 16px);
+}
+
+.omni-masonry.omni-masonry-autocol {
+  column-count: auto;
+  column-width: var(--omni-masonry-min, 240px);
+}
+
+.omni-masonry > * {
+  break-inside: avoid;
+  margin-bottom: var(--omni-masonry-gap, 16px);
+}
+
+.omni-masonry > img {
+  display: block;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .omni-masonry:not(.omni-masonry-autocol) {
+    column-count: var(--omni-masonry-cols-sm, var(--omni-masonry-cols, 3));
+  }
+}
+@media (min-width: 1024px) {
+  .omni-masonry:not(.omni-masonry-autocol) {
+    column-count: var(--omni-masonry-cols-md, var(--omni-masonry-cols-sm, var(--omni-masonry-cols, 3)));
+  }
+}
+@media (min-width: 1440px) {
+  .omni-masonry:not(.omni-masonry-autocol) {
+    column-count: var(--omni-masonry-cols-lg, var(--omni-masonry-cols-md, var(--omni-masonry-cols-sm, var(--omni-masonry-cols, 3))));
+  }
+}
 .omni-card {
   display: flex;
   flex-direction: column;
