@@ -91,8 +91,15 @@ jobs:
     needs: pack
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # mint the GitHub OIDC token for NuGet trusted publishing
+      contents: read    # checkout (global.json)
+      actions: read     # download-artifact
 
     steps:
+      - name: Checkout            # provides global.json for setup-dotnet (push jobs don't otherwise check out)
+        uses: actions/checkout@v4
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -104,16 +111,16 @@ jobs:
           name: nupkg-${{ needs.pack.outputs.version }}
           path: ./artifacts
 
+      - name: NuGet login (OIDC → short-lived API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: AndersonN   # nuget.org profile name (the package owner), NOT the e-mail
+
       - name: Push to NuGet
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::NUGET_API_KEY secret is not set"
-            exit 1
-          fi
           dotnet nuget push "./artifacts/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
@@ -124,6 +131,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout            # provides global.json for setup-dotnet (push jobs don't otherwise check out)
+        uses: actions/checkout@v4
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
