@@ -1,0 +1,334 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@implements IDisposable
+@inject IJSRuntime JS
+@using System.Globalization
+@using Omni.Blazor.Models
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*  OmniColorPicker — seletor de cor com área saturação/valor (drag), slider de
+    matiz (hue), slider de transparência opcional (alpha), campo hex e paleta de
+    presets. Bind two-way para uma string hex (<c>#rrggbb</c> ou, com
+    <see cref="ShowAlpha"/>, <c>#rrggbbaa</c>).
+
+    Estrutura espelha o OmniSelect (FormComponent + trigger + painel inline +
+    fecha no click-outside). A matemática de cor vive em ColorConvert; a captura
+    de ponteiro na área SV reusa o helper do OmniSlider (splitterCapture).
+
+    Usage:
+        <OmniColorPicker @bind-Value="cor" />
+        <OmniColorPicker @bind-Value="cor" ShowAlpha Palette="@minhasCores" /> *@
+
+<div class="@RootCss" style="@Style" data-omni-cpid="@_id" @attributes="Attributes">
+    <button type="button" class="omni-input omni-colorpicker-trigger"
+            disabled="@Disabled"
+            aria-haspopup="dialog" aria-expanded="@(_open ? "true" : "false")"
+            @onclick="ToggleAsync">
+        <span class="omni-colorpicker-swatch">
+            <span class="omni-colorpicker-swatch-fill" style="background:@CurrentRgba"></span>
+        </span>
+        <span class="omni-colorpicker-text">@CurrentHex</span>
+    </button>
+    <span class="omni-input-group-ico omni-input-group-ico-right omni-select-caret">
+        <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" />
+    </span>
+
+    @if (_open)
+    {
+        <div class="omni-colorpicker-panel" role="dialog" @onclick:stopPropagation>
+            <div class="omni-colorpicker-sv"
+                 id="@($"{_id}-sv")"
+                 style="background-color:@HueCss"
+                 @onpointerdown="SvDown"
+                 @onpointermove="SvMove"
+                 @onpointerup="SvUp"
+                 @onpointercancel="SvUp">
+                <div class="omni-colorpicker-sv-sat"></div>
+                <div class="omni-colorpicker-sv-val"></div>
+                <div class="omni-colorpicker-sv-thumb"
+                     style="left:@(Pct(_s));top:@(Pct(1 - _v));background:@CurrentHexOpaque"></div>
+            </div>
+
+            <div class="omni-colorpicker-body">
+                <span class="omni-colorpicker-preview">
+                    <span class="omni-colorpicker-preview-fill" style="background:@CurrentRgba"></span>
+                </span>
+                <div class="omni-colorpicker-sliders">
+                    <input type="range" class="omni-colorpicker-hue"
+                           min="0" max="360" step="1" value="@HueInt"
+                           disabled="@(Disabled || ReadOnly)"
+                           aria-label="Matiz"
+                           @oninput="OnHue" />
+                    @if (ShowAlpha)
+                    {
+                        <input type="range" class="omni-colorpicker-alpha"
+                               min="0" max="100" step="1" value="@AlphaInt"
+                               style="--omni-cp-alpha-color:@CurrentHexOpaque"
+                               disabled="@(Disabled || ReadOnly)"
+                               aria-label="Transparência"
+                               @oninput="OnAlpha" />
+                    }
+                </div>
+            </div>
+
+            @if (ShowInput)
+            {
+                <div class="omni-colorpicker-hexrow">
+                    <input class="omni-input omni-colorpicker-hexfield"
+                           value="@CurrentHex"
+                           spellcheck="false"
+                           autocomplete="off"
+                           disabled="@(Disabled || ReadOnly)"
+                           aria-label="Valor hexadecimal"
+                           @onchange="OnHexInput" />
+                </div>
+            }
+
+            @if (ShowPresets && Palette is not null && Palette.Any())
+            {
+                <div class="omni-colorpicker-presets">
+                    @foreach (var preset in Palette)
+                    {
+                        <button type="button" class="omni-colorpicker-preset"
+                                @key="preset"
+                                style="background:@preset"
+                                title="@preset"
+                                aria-label="@preset"
+                                disabled="@(Disabled || ReadOnly)"
+                                @onclick="@(() => SelectPresetAsync(preset))"></button>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    // Value / ValueChanged / ValueExpression / Disabled / ReadOnly / Required /
+    // Validation herdados de FormComponent<string>. Value é uma string hex.
+
+    /// <summary>Tamanho do trigger. Default Md (igual aos demais inputs).</summary>
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Habilita o slider de transparência e emite <c>#rrggbbaa</c>. Default false.</summary>
+    [Parameter] public bool ShowAlpha { get; set; }
+
+    /// <summary>Mostra o campo de entrada hexadecimal. Default true.</summary>
+    [Parameter] public bool ShowInput { get; set; } = true;
+
+    /// <summary>Mostra a paleta de presets. Default true.</summary>
+    [Parameter] public bool ShowPresets { get; set; } = true;
+
+    /// <summary>Cores de preset exibidas abaixo do seletor. Default = paleta do design system.</summary>
+    [Parameter] public IEnumerable<string>? Palette { get; set; } = DefaultPalette;
+
+    /// <summary>Cor usada quando <c>Value</c> é nulo/ inválido. Default <c>#d97706</c> (amber).</summary>
+    [Parameter] public string DefaultColor { get; set; } = "#d97706";
+
+    private static readonly string[] DefaultPalette =
+    {
+        "#f59e0b", "#f97316", "#dc2626", "#f43f5e", "#d946ef", "#8b5cf6",
+        "#6366f1", "#3b82f6", "#06b6d4", "#14b8a6", "#10b981", "#84cc16",
+        "#000000", "#6b7280", "#d1d5db", "#ffffff",
+    };
+
+    private readonly string _id = $"cp-{Guid.NewGuid():N}";
+    private DotNetObjectReference<OmniColorPicker>? _dotnetRef;
+    private bool _open;
+    private bool _svDragging;
+
+    // Fonte de verdade durante a interação (evita perda de matiz quando v/s = 0).
+    private double _h;          // 0-360
+    private double _s;          // 0-1
+    private double _v;          // 0-1
+    private double _a = 1;      // 0-1
+
+    // Dimensões fixas da área SV (espelhadas no SCSS) p/ converter OffsetX/Y → ratio.
+    private const double SvW = 216;
+    private const double SvH = 160;
+
+    private byte? AlphaByte => ShowAlpha ? (byte)Math.Round(Math.Clamp(_a, 0, 1) * 255) : (byte?)null;
+
+    private string CurrentHex
+    {
+        get
+        {
+            var (r, g, b) = ColorConvert.HsvToRgb(_h, _s, _v);
+            return ColorConvert.ToHex(r, g, b, AlphaByte);
+        }
+    }
+
+    private string CurrentHexOpaque
+    {
+        get { var (r, g, b) = ColorConvert.HsvToRgb(_h, _s, _v); return ColorConvert.ToHex(r, g, b); }
+    }
+
+    private string CurrentRgba
+    {
+        get
+        {
+            var (r, g, b) = ColorConvert.HsvToRgb(_h, _s, _v);
+            var alpha = (ShowAlpha ? _a : 1).ToString("0.###", CultureInfo.InvariantCulture);
+            return $"rgba({r},{g},{b},{alpha})";
+        }
+    }
+
+    private string HueCss => $"hsl({_h.ToString("0.#", CultureInfo.InvariantCulture)}, 100%, 50%)";
+    private int HueInt => (int)Math.Round(_h);
+    private int AlphaInt => (int)Math.Round(_a * 100);
+    private static string Pct(double ratio) => (Math.Clamp(ratio, 0, 1) * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+
+    private string RootCss => CssBuilder.Default("omni-input-group")
+        .AddClass("omni-input-group-right")
+        .AddClass("omni-colorpicker")
+        .AddClass("omni-input-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-input-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-colorpicker-open", _open)
+        .AddClass("omni-invalid", IsInvalid)
+        .AddClass(Class)
+        .Build();
+
+    // ─── Sync a partir do Value (somente em mudança do consumidor) ─────────
+    private ParameterState<string?> _valueState = null!;
+    internal int RecomputeCount { get; private set; }
+
+    protected override void OnInitialized()
+    {
+        _dotnetRef = DotNetObjectReference.Create(this);
+        _valueState = RegisterParameter<string?>(nameof(Value))
+            .WithParameter(() => Value)
+            .WithChangeHandler(SyncFromValue)
+            .Attach();
+    }
+
+    private void SyncFromValue()
+    {
+        // Ignora o "eco" dos nossos próprios commits — re-parsear hex perde matiz
+        // quando s/v = 0 (preto), fazendo o thumb pular.
+        if (string.Equals(Value, CurrentHex, StringComparison.OrdinalIgnoreCase)) return;
+        RecomputeCount++;
+
+        if (!ColorConvert.TryParseHex(Value, out var r, out var g, out var b, out var a) &&
+            !ColorConvert.TryParseHex(DefaultColor, out r, out g, out b, out a))
+        {
+            r = 0; g = 0; b = 0; a = 255;
+        }
+
+        (_h, _s, _v) = ColorConvert.RgbToHsv(r, g, b);
+        _a = a / 255.0;
+    }
+
+    // ─── Área Saturação/Valor (drag via pointer) ───────────────────────────
+    private async Task SvDown(PointerEventArgs e)
+    {
+        if (Disabled || ReadOnly) return;
+        _svDragging = true;
+        try { await JS.InvokeVoidAsync("omniBlazor.splitterCapture", $"{_id}-sv", e.PointerId); } catch { }
+        await ApplySvAsync(e.OffsetX, e.OffsetY);
+    }
+
+    private Task SvMove(PointerEventArgs e)
+        => _svDragging && !Disabled && !ReadOnly ? ApplySvAsync(e.OffsetX, e.OffsetY) : Task.CompletedTask;
+
+    private async Task SvUp(PointerEventArgs e)
+    {
+        if (!_svDragging) return;
+        _svDragging = false;
+        try { await JS.InvokeVoidAsync("omniBlazor.splitterRelease", $"{_id}-sv", e.PointerId); } catch { }
+    }
+
+    private Task ApplySvAsync(double offsetX, double offsetY)
+    {
+        _s = Math.Clamp(offsetX / SvW, 0, 1);
+        _v = Math.Clamp(1 - offsetY / SvH, 0, 1);
+        return CommitAsync();
+    }
+
+    // ─── Sliders matiz / alpha ─────────────────────────────────────────────
+    private Task OnHue(ChangeEventArgs e)
+    {
+        if (Disabled || ReadOnly) return Task.CompletedTask;
+        if (double.TryParse(e.Value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var h))
+            _h = Math.Clamp(h, 0, 360);
+        return CommitAsync();
+    }
+
+    private Task OnAlpha(ChangeEventArgs e)
+    {
+        if (Disabled || ReadOnly) return Task.CompletedTask;
+        if (double.TryParse(e.Value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var a))
+            _a = Math.Clamp(a / 100.0, 0, 1);
+        return CommitAsync();
+    }
+
+    // ─── Campo hex ─────────────────────────────────────────────────────────
+    private async Task OnHexInput(ChangeEventArgs e)
+    {
+        if (Disabled || ReadOnly) return;
+        var text = e.Value?.ToString() ?? "";
+        if (ColorConvert.TryParseHex(text, out var r, out var g, out var b, out var a))
+        {
+            (_h, _s, _v) = ColorConvert.RgbToHsv(r, g, b);
+            if (ShowAlpha) _a = a / 255.0;
+            await CommitAsync();
+        }
+        else
+        {
+            StateHasChanged(); // descarta a entrada inválida (campo volta ao valor atual)
+        }
+    }
+
+    // ─── Presets ───────────────────────────────────────────────────────────
+    private async Task SelectPresetAsync(string preset)
+    {
+        if (Disabled || ReadOnly) return;
+        if (ColorConvert.TryParseHex(preset, out var r, out var g, out var b, out var a))
+        {
+            (_h, _s, _v) = ColorConvert.RgbToHsv(r, g, b);
+            if (ShowAlpha) _a = a / 255.0;
+            await CommitAsync();
+        }
+    }
+
+    private async Task CommitAsync()
+    {
+        await SetValueAsync(CurrentHex);
+        StateHasChanged();
+    }
+
+    // ─── Abrir / fechar (igual OmniSelect) ─────────────────────────────────
+    private Task ToggleAsync() => _open ? CloseAsync() : OpenAsync();
+
+    private async Task OpenAsync()
+    {
+        if (Disabled || _open) return;
+        _open = true;
+        StateHasChanged();
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+                _id, $"[data-omni-cpid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public Task OnClickOutsideAsync() => CloseAsync();
+
+    private async Task CloseAsync()
+    {
+        if (!_open) return;
+        _open = false;
+        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
+        catch { }
+        StateHasChanged();
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _ = CloseAsync();
+        _dotnetRef?.Dispose();
+    }
+}

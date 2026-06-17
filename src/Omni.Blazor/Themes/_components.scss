@@ -6051,6 +6051,156 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   &.omni-active { background: var(--omni-bg-sunken); }
 }
 
+// ─── OmniColorPicker — área SV + matiz + alpha + hex + presets ─────────────
+// Trigger no formato de input (reusa .omni-input + .omni-input-group-right do
+// select p/ o caret). Painel absoluto. A área SV tem dimensões FIXAS (216×160)
+// espelhadas no C# (SvW/SvH) p/ converter OffsetX/Y → ratio sem medir via JS.
+.omni-colorpicker { position: relative; }
+.omni-colorpicker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.omni-colorpicker-swatch,
+.omni-colorpicker-preview {
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--omni-line);
+  // xadrez de transparência (atrás do fill semitransparente)
+  background-image:
+    linear-gradient(45deg, var(--omni-line) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--omni-line) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--omni-line) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--omni-line) 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
+.omni-colorpicker-swatch { width: 20px; height: 20px; }
+.omni-colorpicker-swatch-fill,
+.omni-colorpicker-preview-fill { position: absolute; inset: 0; }
+.omni-colorpicker-text {
+  font-family: var(--omni-font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  text-transform: lowercase;
+  color: var(--omni-fg);
+}
+
+.omni-colorpicker-panel {
+  position: absolute;
+  z-index: 1100;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 240px;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.omni-colorpicker-sv {
+  position: relative;
+  width: 216px;
+  height: 160px;
+  border-radius: var(--omni-radius-sm);
+  cursor: crosshair;
+  touch-action: none;
+  overflow: hidden;
+}
+.omni-colorpicker-sv-sat,
+.omni-colorpicker-sv-val { position: absolute; inset: 0; pointer-events: none; }
+.omni-colorpicker-sv-sat { background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0)); }
+.omni-colorpicker-sv-val { background: linear-gradient(to top, #000, rgba(0, 0, 0, 0)); }
+.omni-colorpicker-sv-thumb {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.omni-colorpicker-body { display: flex; align-items: center; gap: 10px; }
+.omni-colorpicker-preview { width: 32px; height: 32px; }
+.omni-colorpicker-sliders { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.omni-colorpicker-hue,
+.omni-colorpicker-alpha {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  border: 1px solid var(--omni-line);
+}
+.omni-colorpicker-hue {
+  background-image: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+}
+.omni-colorpicker-alpha {
+  background-image:
+    linear-gradient(to right, transparent, var(--omni-cp-alpha-color, #000)),
+    linear-gradient(45deg, var(--omni-line) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--omni-line) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--omni-line) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--omni-line) 75%);
+  background-size: auto, 10px 10px, 10px 10px, 10px 10px, 10px 10px;
+  background-position: 0 0, 0 0, 0 5px, 5px -5px, -5px 0;
+}
+.omni-colorpicker-hue::-webkit-slider-thumb,
+.omni-colorpicker-alpha::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--omni-line-strong);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.omni-colorpicker-hue::-moz-range-thumb,
+.omni-colorpicker-alpha::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--omni-line-strong);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.omni-colorpicker-hue::-moz-range-track,
+.omni-colorpicker-alpha::-moz-range-track { background: transparent; height: 12px; border-radius: 6px; }
+
+.omni-colorpicker-hexfield {
+  width: 100%;
+  font-family: var(--omni-font-mono, ui-monospace, monospace);
+  text-transform: lowercase;
+}
+
+.omni-colorpicker-presets { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.omni-colorpicker-preset {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1px solid var(--omni-line);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 100ms;
+  &:hover { transform: scale(1.12); }
+  &:disabled { cursor: not-allowed; opacity: 0.5; }
+}
+
 // ─── OmniSpeechToTextButton — state machine visuals ────────────────────────
 // 4 estados com feedback visual distinto. Cada estado define background +
 // border + cor de texto pra ser INDEPENDENTE da Variant escolhida — sem

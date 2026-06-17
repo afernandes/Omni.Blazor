@@ -102,7 +102,7 @@ OmniCard, OmniStat, OmniBadge, OmniChip, OmniAvatar, OmniIcon, OmniKbd, OmniProg
 <details>
 <summary><strong>Inputs</strong></summary>
 
-OmniTextBox, OmniPassword, OmniTextArea, OmniCheckBox, OmniSwitch, OmniSelect, OmniMultiSelect, OmniTagInput, OmniDatePicker, OmniDateRangePicker, OmniTimePicker, OmniCalendar, OmniFormField, OmniUpload
+OmniTextBox, OmniPassword, OmniTextArea, OmniCheckBox, OmniSwitch, OmniSelect, OmniMultiSelect, OmniTagInput, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniTimePicker, OmniCalendar, OmniFormField, OmniUpload
 </details>
 
 <details>

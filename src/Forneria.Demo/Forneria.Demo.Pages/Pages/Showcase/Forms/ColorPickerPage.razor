@@ -1,0 +1,139 @@
+@page "/showcase/colorpicker"
+@attribute [ShowcaseInfo(Title = "Color Picker", Category = Cat.Inputs, Icon = "palette", New = true, Aliases = "color,cor,hex,rgb,hsv,hsl,palette,paleta,swatch,picker,alpha")]
+@layout ShowcaseLayout
+
+<PageTitle>Color Picker — Showcase</PageTitle>
+
+<ShowcasePage Title="Color Picker"
+              Subtitle="Seletor de cor completo: área saturação/valor (arraste), slider de matiz, transparência opcional, campo hexadecimal e paleta de presets. Bind two-way para uma string hex.">
+
+    <Overview>
+        <p>
+            <code>OmniColorPicker</code> faz two-way para uma <code>string</code> hex via
+            <code>@@bind-Value</code> (ex.: <code>#d97706</code>). Com <code>ShowAlpha</code>,
+            emite <code>#rrggbbaa</code> e exibe o slider de transparência sobre um xadrez.
+            É um <code>FormComponent</code>, então integra com <code>OmniForm</code>/validators.
+        </p>
+        <p>
+            A área 2D ajusta saturação (eixo X) e brilho (eixo Y) arrastando; o slider de matiz
+            percorre o círculo de cores; o campo hex aceita <code>#rgb</code>, <code>#rrggbb</code>
+            e <code>#rrggbbaa</code>. Toda a conversão (hex ⇄ RGB ⇄ HSV) é interna, sem dependências.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO"
+                         Description="Clique no trigger pra abrir o seletor. Arraste na área, ajuste a matiz ou digite o hex."
+                         Code="@(@"<OmniColorPicker @bind-Value=""cor"" />")">
+            <div style="max-width:280px;">
+                <OmniLabel Text="Cor da marca" Size="ComponentSize.Sm" />
+                <OmniColorPicker @bind-Value="_cor" />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">Valor: @_cor</p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COM TRANSPARÊNCIA (alpha)"
+                         Description="ShowAlpha habilita o slider de opacidade e emite #rrggbbaa. O xadrez indica a transparência."
+                         Code="@(@"<OmniColorPicker @bind-Value=""cor"" ShowAlpha />")">
+            <div style="max-width:280px;">
+                <OmniLabel Text="Cor com opacidade" Size="ComponentSize.Sm" />
+                <OmniColorPicker @bind-Value="_corAlpha" ShowAlpha />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">Valor: @_corAlpha</p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PALETA CUSTOMIZADA"
+                         Description="Palette troca os presets exibidos. Passe as cores da sua marca/tenant."
+                         Code="@(@"<OmniColorPicker @bind-Value=""cor""
+                Palette=""@(new[] { ""#0f172a"", ""#334155"", ""#d97706"", ""#16a34a"", ""#2563eb"" })"" />")">
+            <div style="max-width:280px;">
+                <OmniLabel Text="Cores da marca" Size="ComponentSize.Sm" />
+                <OmniColorPicker @bind-Value="_corMarca" Palette="@_paletaMarca" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="MINIMALISTA — sem campo / sem presets"
+                         Description="ShowInput=false e ShowPresets=false deixam só a área + matiz."
+                         Code="@(@"<OmniColorPicker @bind-Value=""cor"" ShowInput=""false"" ShowPresets=""false"" />")">
+            <div style="max-width:280px;">
+                <OmniColorPicker @bind-Value="_corMin" ShowInput="false" ShowPresets="false" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Size = Sm | Md (default) | Lg — afeta a altura do trigger."
+                         Code="@(@"<OmniColorPicker Size=""ComponentSize.Sm"" ... />
+<OmniColorPicker Size=""ComponentSize.Lg"" ... />")">
+            <OmniStack Gap="12" Style="max-width:280px;">
+                <OmniColorPicker @bind-Value="_corSm" Size="ComponentSize.Sm" />
+                <OmniColorPicker @bind-Value="_corMd" Size="ComponentSize.Md" />
+                <OmniColorPicker @bind-Value="_corLg" Size="ComponentSize.Lg" />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESTADOS — Disabled / ReadOnly"
+                         Description="Disabled bloqueia a abertura; ReadOnly abre mas trava os controles."
+                         Code="@(@"<OmniColorPicker @bind-Value=""cor"" Disabled />
+<OmniColorPicker @bind-Value=""cor"" ReadOnly />")">
+            <OmniStack Gap="12" Style="max-width:280px;">
+                <div>
+                    <OmniLabel Text="Disabled" Size="ComponentSize.Sm" />
+                    <OmniColorPicker @bind-Value="_corEstado" Disabled />
+                </div>
+                <div>
+                    <OmniLabel Text="ReadOnly" Size="ComponentSize.Sm" />
+                    <OmniColorPicker @bind-Value="_corEstado" ReadOnly />
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PRÉVIA AO VIVO"
+                         Description="A cor selecionada aplicada num cartão — caso típico de tema/branding.">
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+                <div style="max-width:240px;">
+                    <OmniColorPicker @bind-Value="_corPreview" />
+                </div>
+                <div style="@($"width:160px;height:90px;border-radius:12px;background:{_corPreview};border:1px solid var(--omni-line);")"></div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniColorPicker">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="string?" Default="null"
+                            Description='@("Two-way: @bind-Value. String hex (#rrggbb ou #rrggbbaa).")' />
+            <ShowcaseApiRow Name="ValueExpression" Type="Expression&lt;Func&lt;string?&gt;&gt;?" Default="null"
+                            Description="Integração com EditContext/validators." />
+            <ShowcaseApiRow Name="ShowAlpha" Type="bool" Default="false"
+                            Description="Habilita o slider de transparência; emite #rrggbbaa." />
+            <ShowcaseApiRow Name="ShowInput" Type="bool" Default="true"
+                            Description="Mostra o campo de entrada hexadecimal." />
+            <ShowcaseApiRow Name="ShowPresets" Type="bool" Default="true"
+                            Description="Mostra a paleta de presets." />
+            <ShowcaseApiRow Name="Palette" Type="IEnumerable&lt;string&gt;?" Default="paleta do DS"
+                            Description="Cores de preset exibidas (hex)." />
+            <ShowcaseApiRow Name="DefaultColor" Type="string" Default="&quot;#d97706&quot;"
+                            Description="Cor usada quando Value é nulo/inválido." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Sm | Md | Lg." />
+            <ShowcaseApiRow Name="Disabled / ReadOnly" Type="bool" Default="false"
+                            Description="Bloqueia a abertura / trava os controles." />
+            <ShowcaseApiRow Name="Required / Validation" Type="—" Default="—"
+                            Description="Herdados de FormComponent (validação per-input)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? _cor = "#d97706";
+    private string? _corAlpha = "#3b82f680";
+    private string? _corMarca = "#16a34a";
+    private readonly string[] _paletaMarca = { "#0f172a", "#334155", "#d97706", "#16a34a", "#2563eb", "#dc2626" };
+    private string? _corMin = "#8b5cf6";
+    private string? _corSm = "#f59e0b";
+    private string? _corMd = "#06b6d4";
+    private string? _corLg = "#dc2626";
+    private string? _corEstado = "#3b82f6";
+    private string? _corPreview = "#d97706";
+}
