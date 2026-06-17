@@ -38,6 +38,11 @@ public enum MenuTrigger { Hover, Click }
 /// <summary>Cor da pílula de metadados de um item de dropdown do <c>OmniMenuBar</c>.</summary>
 public enum MenuMetaKind { Neutral, Accent, Good, Warn, Danger }
 
+/// <summary>Eixo da translação de parallax de uma <c>OmniParallaxLayer</c>.
+/// Vertical = move no Y (default), Horizontal = no X, Both = nos dois (diagonal),
+/// todos dirigidos pelo progresso de scroll da cena.</summary>
+public enum ParallaxAxis { Vertical, Horizontal, Both }
+
 /// <summary>Cor/intent semântico de um <c>OmniStatusBadge</c>.
 /// As cinco variantes mapeiam para as variáveis CSS <c>--omni-good</c>,
 /// <c>--omni-warn</c>, <c>--omni-danger</c>, <c>--omni-accent</c> ou

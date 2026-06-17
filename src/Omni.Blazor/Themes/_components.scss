@@ -1293,6 +1293,61 @@
 @media (min-width: 1024px) { .omni-masonry:not(.omni-masonry-autocol) { column-count: var(--omni-masonry-cols-md, var(--omni-masonry-cols-sm, var(--omni-masonry-cols, 3))); } }
 @media (min-width: 1440px) { .omni-masonry:not(.omni-masonry-autocol) { column-count: var(--omni-masonry-cols-lg, var(--omni-masonry-cols-md, var(--omni-masonry-cols-sm, var(--omni-masonry-cols, 3)))); } }
 
+// ——— OmniParallax — cenas com camadas de profundidade (scroll + mouse) ———
+// Contrato único: o progresso 0..1 vive em --omni-parallax-progress (centrado em
+// 0.5 → translação simétrica). Caminho NATIVO = scroll-driven (animation-timeline:
+// view(), thread do compositor) quando suportado; FALLBACK = JS escreve o progresso.
+// O mouse (opt-in) escreve --omni-parallax-mx/my (sempre via JS, desktop fine-pointer).
+// @property é obrigatório p/ a custom property ser interpolável no @keyframes.
+@property --omni-parallax-progress { syntax: "<number>"; inherits: true; initial-value: 0.5; }
+
+.omni-parallax {
+  position: relative;
+  overflow: clip;             // recorta camadas oversized; melhor que hidden p/ scroll-seek
+  isolation: isolate;
+}
+
+.omni-parallax-layer {
+  position: absolute;
+  inset: calc(var(--omni-px-overscan, 40) * -1px);   // oversize → não revela gaps ao transladar
+  will-change: transform;
+  backface-visibility: hidden;
+  // (0.5 - progress): Speed > 0 sobe ao rolar pra baixo (primeiro plano, "mais rápido");
+  // Speed < 0 desce (fundo, recua). Speed 0 = preso ao scroll.
+  transform: translate3d(
+    calc(((0.5 - var(--omni-parallax-progress, 0.5)) * var(--omni-px-speed, 0.3) * var(--omni-px-range, 300) * var(--omni-px-x, 0)
+         + var(--omni-parallax-mx, 0) * var(--omni-px-speed, 0.3) * var(--omni-px-mr, 0)) * 1px),
+    calc(((0.5 - var(--omni-parallax-progress, 0.5)) * var(--omni-px-speed, 0.3) * var(--omni-px-range, 300) * var(--omni-px-y, 1)
+         + var(--omni-parallax-my, 0) * var(--omni-px-speed, 0.3) * var(--omni-px-mr, 0)) * 1px),
+    0
+  );
+}
+.omni-parallax-layer > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+// Motor nativo (scroll-driven) — só no modo 'native' e onde o browser suporta.
+@supports (animation-timeline: view()) {
+  .omni-parallax[data-omni-parallax-mode="native"] .omni-parallax-layer {
+    animation: omni-parallax-progress linear both;
+    animation-timeline: view();
+  }
+}
+@keyframes omni-parallax-progress {
+  from { --omni-parallax-progress: 0; }
+  to   { --omni-parallax-progress: 1; }
+}
+
+// Desligado (Disabled / mobile) — solta a camada GPU e zera o transform.
+.omni-parallax[data-omni-parallax-mode="off"] .omni-parallax-layer {
+  will-change: auto;
+  transform: none;
+}
+
+// a11y — prefers-reduced-motion DESLIGA totalmente (o reset global só zera durations,
+// não o transform escrito por JS). Hard off em ambos os motores.
+@media (prefers-reduced-motion: reduce) {
+  .omni-parallax-layer { animation: none !important; transform: none !important; }
+}
+
 .omni-card {
   display: flex;
   flex-direction: column;

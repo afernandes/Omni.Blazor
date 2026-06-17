@@ -108,7 +108,7 @@ OmniTextBox, OmniPassword, OmniTextArea, OmniCheckBox, OmniSwitch, OmniSelect, O
 <details>
 <summary><strong>Layout</strong></summary>
 
-OmniLayout, OmniHeader, OmniSidebar, OmniMain, OmniContainer, OmniBrand, OmniAppBar, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniPaneHeader, OmniBento, OmniBentoItem, OmniMasonry, OmniRow, OmniCol, OmniStack
+OmniLayout, OmniHeader, OmniSidebar, OmniMain, OmniContainer, OmniBrand, OmniAppBar, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniPaneHeader, OmniBento, OmniBentoItem, OmniMasonry, OmniParallax, OmniParallaxLayer, OmniRow, OmniCol, OmniStack
 </details>
 
 <details>

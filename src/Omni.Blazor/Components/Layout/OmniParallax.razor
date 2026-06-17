@@ -1,0 +1,113 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@implements IAsyncDisposable
+@inject Omni.Blazor.Services.ParallaxService Px
+@inject Omni.Blazor.Services.BreakpointService Breakpoints
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Omni.Blazor.Utilities
+@using System.Globalization
+
+@*  OmniParallax — cena de parallax com camadas de profundidade. Escala do simples
+    (um fundo movendo mais devagar) ao complexo (várias <OmniParallaxLayer> em
+    velocidades diferentes — hero em camadas / scrollytelling) com a MESMA API.
+
+      <OmniParallax Class="hero" MouseParallax>
+        <OmniParallaxLayer Speed="0.2"><img src="ceu.jpg" /></OmniParallaxLayer>
+        <OmniParallaxLayer Speed="0.5"><img src="montanhas.png" /></OmniParallaxLayer>
+        <OmniParallaxLayer Speed="0"><h1>Título</h1></OmniParallaxLayer>
+      </OmniParallax>
+
+    Mecanismo: scroll-driven nativo (animation-timeline: view(), thread do compositor)
+    quando o browser suporta; fallback JS (window.omniBlazor.parallax) onde não suporta;
+    o parallax de mouse sempre via JS (desktop fine-pointer). Tudo é DESLIGADO em
+    prefers-reduced-motion e (por padrão) no mobile. SSR-safe (o caminho nativo é puro
+    CSS; o JS só inicia em OnAfterRender). As camadas leem um único --omni-parallax-progress.
+*@
+<CascadingValue Value="this" IsFixed="true">
+    <div class="@RootCss" style="@RootStyle" @attributes="Attributes"
+         @ref="_sceneRef" data-omni-parallax-mode="@_mode">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    private ElementReference _sceneRef;
+    private string _mode = "native";   // server-side default → caminho CSS nativo já vale no prerender
+    private bool _native = true;
+    private IAsyncDisposable? _handle;
+    private IAsyncDisposable? _bpSub;
+
+    /// <summary>Eixo da translação das camadas (cascata; a camada pode sobrescrever). Default Vertical.</summary>
+    [Parameter] public ParallaxAxis Axis { get; set; } = ParallaxAxis.Vertical;
+
+    /// <summary>Habilita parallax por ponteiro do mouse (desktop fine-pointer). Default false.</summary>
+    [Parameter] public bool MouseParallax { get; set; }
+
+    /// <summary>Intensidade do parallax de mouse (px ≈ 24 × valor por camada na velocidade 1). Default 1.</summary>
+    [Parameter] public double MouseStrength { get; set; } = 1;
+
+    /// <summary>Desliga o parallax (camadas em repouso). Default false.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Desliga em telas pequenas (mobile sofre com jank/CLS de barra de endereço). Default true.</summary>
+    [Parameter] public bool DisableOnMobile { get; set; } = true;
+
+    /// <summary>Breakpoint até o qual (inclusive) o parallax fica desligado quando <see cref="DisableOnMobile"/>. Default Sm.</summary>
+    [Parameter] public Breakpoint DisableBelow { get; set; } = Breakpoint.Sm;
+
+    private string RootCss => CssBuilder.Default("omni-parallax")
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle
+    {
+        get
+        {
+            var parts = new List<string>(2);
+            if (MouseParallax)
+                parts.Add($"--omni-px-mr: {(MouseStrength * 24).ToString(CultureInfo.InvariantCulture)}");
+            if (!string.IsNullOrWhiteSpace(Style)) parts.Add(Style!);
+            return parts.Count == 0 ? "" : string.Join("; ", parts);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        Element = _sceneRef;
+        _native = await Px.SupportsNativeAsync();
+        await ApplyModeAsync();
+        _bpSub = await Breakpoints.SubscribeAsync(_ => ApplyModeAsync());
+    }
+
+    private async Task ApplyModeAsync()
+    {
+        var off = Disabled || (DisableOnMobile && Breakpoints.Current.AtMost(DisableBelow));
+        var mode = off ? "off" : (_native ? "native" : "js");
+        var needJs = !off && (!_native || MouseParallax);
+
+        if (mode != _mode)
+        {
+            _mode = mode;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        if (needJs && _handle is null)
+        {
+            _handle = await Px.CreateAsync(_sceneRef, new ParallaxOptions(_native, MouseParallax));
+        }
+        else if (!needJs && _handle is not null)
+        {
+            var h = _handle;
+            _handle = null;
+            try { await h.DisposeAsync(); } catch { }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_handle is not null) { try { await _handle.DisposeAsync(); } catch { } _handle = null; }
+        if (_bpSub is not null) { try { await _bpSub.DisposeAsync(); } catch { } _bpSub = null; }
+    }
+}

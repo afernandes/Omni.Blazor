@@ -1,0 +1,212 @@
+@page "/showcase/parallax"
+@attribute [ShowcaseInfo(Title = "Parallax", Category = Cat.Layout, Icon = "layers")]
+@layout ShowcaseLayout
+
+<PageTitle>Parallax — Showcase</PageTitle>
+
+<ShowcasePage Title="Parallax (OmniParallax)"
+              Subtitle="Cenas com camadas de profundidade dirigidas pelo scroll (e mouse). Do fundo lento ao hero multi-camadas. Scroll-driven nativo + fallback JS; a11y e mobile cuidados.">
+
+    <Overview>
+        <p>
+            O <code>OmniParallax</code> é uma <strong>cena</strong> que contém
+            <code>OmniParallaxLayer</code>s. Cada camada carrega um <code>Speed</code>: fundos com
+            <code>Speed</code> menor recuam (movem devagar), o primeiro plano com <code>Speed</code>
+            maior avança. Quanto maior a diferença de velocidade entre camadas, mais forte a
+            sensação 3D. A mesma API vai do parallax simples (um fundo) ao hero multi-camadas.
+        </p>
+        <p>
+            <strong>Mecanismo (melhores práticas)</strong>: usa <em>CSS scroll-driven animations</em>
+            nativas (<code>animation-timeline: view()</code>) quando o browser suporta — roda na thread
+            do compositor, custo zero na main thread; cai para um motor <strong>JS</strong>
+            (<code>IntersectionObserver</code> + um único <code>requestAnimationFrame</code>) onde não há
+            suporte. O parallax de <strong>mouse</strong> (opt-in) é sempre via JS, só em desktop
+            (<code>hover + fine pointer</code>). Nada de <code>background-attachment: fixed</code> (quebrado no iOS).
+        </p>
+        <p>
+            <strong>Acessibilidade & mobile</strong>: <code>prefers-reduced-motion</code> DESLIGA o efeito
+            (vestibular safety, WCAG 2.3.3) e, por padrão, ele também é desligado no mobile
+            (<code>DisableOnMobile</code>) — onde a barra de endereço dinâmica causa jank/CLS.
+            <strong>SSR-safe</strong>: o caminho nativo é puro CSS (vale no prerender); o JS só inicia após a hidratação.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Heros e seções de marketing com profundidade (fundo + primeiro plano em velocidades diferentes).</li>
+            <li>Storytelling visual em landing pages (camadas que se descolam ao rolar).</li>
+            <li>Um fundo que rola mais devagar que o conteúdo (o parallax "clássico").</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Conteúdo onde precisão de leitura/posição importa (formulários, tabelas) — parallax distrai.</li>
+            <li>Telas operacionais densas — prefira layout estático (<code>OmniBento</code>).</li>
+            <li>Quando a maioria do público está no mobile — o efeito é desligado lá por padrão.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="SIMPLES (um fundo lento)"
+                         Description="Uma camada de fundo com Speed baixo + o conteúdo em primeiro plano (Speed 0, fica parado e legível). Role a página para ver."
+                         Code="@(@"<OmniParallax Style=""min-height:320px"">
+    <OmniParallaxLayer Speed=""0.35"" Style=""background:linear-gradient(...)"" />
+    <OmniParallaxLayer Speed=""0"">
+        <div class=""center""><h2>Conteúdo</h2></div>
+    </OmniParallaxLayer>
+</OmniParallax>")">
+            <OmniParallax Style="min-height:320px; border-radius:var(--omni-radius); color:#fff;">
+                <OmniParallaxLayer Speed="-0.2" Style="background:linear-gradient(180deg,#0b1026,#3b1d54 55%,#7a2d63);" />
+                <OmniParallaxLayer Speed="-0.35" Style="background:linear-gradient(180deg, transparent 0 58%, #4a2d6b 66%, #341e4d 100%);" />
+                <OmniParallaxLayer Speed="0">
+                    <div style="display:grid; place-items:center; height:100%; text-align:center;">
+                        <div>
+                            <div style="font-size:13px; letter-spacing:.12em; text-transform:uppercase; opacity:.8;">Omni.Blazor</div>
+                            <h2 style="margin:.25rem 0 0; font-size:28px;">Parallax simples</h2>
+                        </div>
+                    </div>
+                </OmniParallaxLayer>
+            </OmniParallax>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="HERO MULTI-CAMADAS (profundidade)"
+                         Description="Cinco camadas em velocidades distintas (céu 0.12 · sol 0.3 · colinas 0.55 · silhueta 0.85 · título 0) — o descolamento entre elas cria a profundidade. Role para ver."
+                         Code="@(@"<OmniParallax Style=""min-height:420px"">
+    <OmniParallaxLayer Speed=""0.12"" Style=""background:/*céu*/"" />
+    <OmniParallaxLayer Speed=""0.3""  Style=""background:/*sol*/"" />
+    <OmniParallaxLayer Speed=""0.55"" Style=""background:/*colinas*/"" />
+    <OmniParallaxLayer Speed=""0.85"" Style=""background:/*silhueta*/"" />
+    <OmniParallaxLayer Speed=""0""><h1>Título</h1></OmniParallaxLayer>
+</OmniParallax>")">
+            <OmniParallax Style="min-height:420px; border-radius:var(--omni-radius); color:#fff;">
+                <OmniParallaxLayer Speed="-0.35" Style="background:linear-gradient(180deg,#0b1026 0%,#3b1d54 50%,#c2476e 100%);" />
+                <OmniParallaxLayer Speed="-0.15" Style="background:radial-gradient(circle 72px at 50% 50%, #ffe08a, #ff9e57 60%, transparent 62%);" />
+                <OmniParallaxLayer Speed="0.25" Style="background:linear-gradient(180deg, transparent 0 55%, #5a2f78 63%, #43215c 100%);" />
+                <OmniParallaxLayer Speed="0.6" Style="background:linear-gradient(180deg, transparent 0 73%, #160b27 80%, #0c0717 100%);" />
+                <OmniParallaxLayer Speed="0">
+                    <div style="display:grid; place-items:center; height:100%; text-align:center;">
+                        <div>
+                            <h1 style="margin:0; font-size:40px; letter-spacing:-.02em;">Profundidade</h1>
+                            <p style="margin:.5rem 0 0; opacity:.85;">5 camadas, 5 velocidades</p>
+                        </div>
+                    </div>
+                </OmniParallaxLayer>
+            </OmniParallax>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CENA ILUSTRADA (estilo Firewatch)"
+                         Description="Profundidade NÍTIDA (divergente): ao rolar pra baixo, o primeiro plano (penhasco/pinheiros, Speed +1.0) SOBE rápido e o fundo (céu/sol/montanhas, Speed negativo) DESCE. O sol começa alto e afunda em direção às montanhas. Silhuetas SVG com viewBox = cena+buffer (sem distorcer a posição) ancoradas na base (bottom:-170px). Role a página.">
+            <OmniParallax Style="min-height:380px; border-radius:var(--omni-radius); overflow:clip;">
+                <OmniParallaxLayer Speed="-0.55" Range="300" Style="background:linear-gradient(180deg,#f2982c 0%,#f4ad38 42%,#f7c659 80%,#f9d57f 100%);" />
+                <OmniParallaxLayer Speed="-0.5" Range="300" Style="background:radial-gradient(circle 86px at 50% 26%, #fff6dd 0%, #ffe9a8 46%, rgba(255,221,140,.32) 64%, transparent 74%);" />
+
+                @* Montanhas distantes (grandes, claras) *@
+                <OmniParallaxLayer Speed="-0.3" Range="300" Style="inset:0; bottom:-170px;">
+                    <svg viewBox="0 0 1200 550" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;display:block;">
+                        <path d="M0,550 L0,235 L210,95 L440,225 L660,120 L880,210 L1080,100 L1200,200 L1200,550 Z" fill="#e7993f" />
+                    </svg>
+                </OmniParallaxLayer>
+
+                @* Montanha média + torre de vigia *@
+                <OmniParallaxLayer Speed="0.05" Range="300" Style="inset:0; bottom:-170px;">
+                    <svg viewBox="0 0 1200 550" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;display:block;">
+                        <g fill="#cd742c">
+                            <path d="M0,550 L0,300 L185,185 L380,290 L560,165 L760,275 L965,190 L1140,270 L1200,235 L1200,550 Z" />
+                            <path d="M553,165 l-7,-15 l28,0 l-7,15 Z" />
+                            <rect x="556" y="165" width="14" height="22" />
+                            <path d="M558,187 l-4,16 M568,187 l4,16" stroke="#cd742c" stroke-width="3" />
+                        </g>
+                    </svg>
+                </OmniParallaxLayer>
+
+                @* Linha de pinheiros *@
+                <OmniParallaxLayer Speed="0.5" Range="300" Style="inset:0; bottom:-170px;">
+                    <svg viewBox="0 0 1200 550" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;display:block;">
+                        <g fill="#9c4a1f">
+                            <path d="M0,550 L0,335 L1200,320 L1200,550 Z" />
+                            <polygon points="80,238 54,335 106,335" />
+                            <polygon points="235,248 209,335 261,335" />
+                            <polygon points="400,232 372,335 428,335" />
+                            <polygon points="560,250 534,335 586,335" />
+                            <polygon points="720,236 692,335 748,335" />
+                            <polygon points="880,248 854,335 906,335" />
+                            <polygon points="1035,240 1009,335 1061,335" />
+                            <polygon points="1160,250 1134,335 1186,335" />
+                        </g>
+                    </svg>
+                </OmniParallaxLayer>
+
+                @* Primeiro plano: penhasco esquerdo + base escura + grandes pinheiros (sobe rápido) *@
+                <OmniParallaxLayer Speed="1.0" Range="300" Style="inset:0; bottom:-170px;">
+                    <svg viewBox="0 0 1200 550" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;display:block;">
+                        <g fill="#2d160b">
+                            <path d="M0,550 L0,372 L1200,356 L1200,550 Z" />
+                            <path d="M0,550 L0,0 L74,30 L132,190 L88,330 L150,498 L64,550 Z" />
+                            <polygon points="530,282 492,372 568,372" />
+                            <polygon points="612,300 580,372 644,372" />
+                            <polygon points="1095,286 1057,372 1133,372" />
+                        </g>
+                    </svg>
+                </OmniParallaxLayer>
+
+                @* Título (parado) *@
+                <OmniParallaxLayer Speed="0">
+                    <div style="display:grid; place-items:center; height:100%; text-align:center;">
+                        <div>
+                            <div style="font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:#5a2a10;">Omni.Blazor</div>
+                            <h2 style="margin:.1rem 0 0; font-size:36px; color:#3a1c0c; letter-spacing:.03em;">Parallax</h2>
+                        </div>
+                    </div>
+                </OmniParallaxLayer>
+            </OmniParallax>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PARALLAX DE MOUSE (desktop)"
+                         Description="MouseParallax desloca as camadas conforme o ponteiro (só desktop fine-pointer; desligado em touch e reduced-motion). Mova o mouse sobre a cena."
+                         Code="@(@"<OmniParallax MouseParallax MouseStrength=""1.4"" Style=""min-height:300px"">
+    <OmniParallaxLayer Speed=""0.2"" Style=""background:/*…*/"" />
+    <OmniParallaxLayer Speed=""0.6"" Style=""background:/*…*/"" />
+    <OmniParallaxLayer Speed=""0""><h2>Mova o mouse</h2></OmniParallaxLayer>
+</OmniParallax>")">
+            <OmniParallax MouseParallax MouseStrength="1.4" Style="min-height:300px; border-radius:var(--omni-radius); color:#fff;">
+                <OmniParallaxLayer Speed="-0.4" Style="background:linear-gradient(160deg,#0f3d3e,#0b1026);" />
+                <OmniParallaxLayer Speed="0.3" Style="background:radial-gradient(circle 120px at 35% 40%, rgba(93,202,165,.65), transparent 60%);" />
+                <OmniParallaxLayer Speed="0.8" Style="background:radial-gradient(circle 90px at 70% 65%, rgba(127,119,221,.6), transparent 60%);" />
+                <OmniParallaxLayer Speed="0">
+                    <div style="display:grid; place-items:center; height:100%; text-align:center;">
+                        <h2 style="margin:0;">Mova o mouse 🖱️</h2>
+                    </div>
+                </OmniParallaxLayer>
+            </OmniParallax>
+        </ShowcaseSection>
+
+        <p class="omni-muted" style="margin-top:1rem; font-size:13px;">
+            ℹ️ O parallax é desligado automaticamente em <code>prefers-reduced-motion</code> e no mobile
+            (<code>DisableOnMobile</code>, default true). Em browsers sem CSS scroll-driven (ex.: Firefox
+            estável) cai no motor JS — o efeito é o mesmo.
+        </p>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniParallax (cena) — parâmetros">
+            <ShowcaseApiRow Name="Axis" Type="ParallaxAxis" Default="Vertical"
+                            Description="Eixo da translação das camadas (cascata; a camada sobrescreve): Vertical, Horizontal, Both." />
+            <ShowcaseApiRow Name="MouseParallax" Type="bool" Default="false"
+                            Description="Habilita parallax por mouse (desktop fine-pointer; via JS)." />
+            <ShowcaseApiRow Name="MouseStrength" Type="double" Default="1"
+                            Description="Intensidade do parallax de mouse." />
+            <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desliga o efeito (camadas em repouso)." />
+            <ShowcaseApiRow Name="DisableOnMobile" Type="bool" Default="true" Description="Desliga em telas pequenas (jank/CLS no mobile)." />
+            <ShowcaseApiRow Name="DisableBelow" Type="Breakpoint" Default="Sm" Description="Breakpoint até o qual fica desligado quando DisableOnMobile." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniParallaxLayer (camada) — parâmetros">
+            <ShowcaseApiRow Name="Speed" Type="double" Default="0.3"
+                            Description="Fator de parallax. 0 = preso ao scroll; &lt;1 recua; &gt;1 avança; negativo inverte." />
+            <ShowcaseApiRow Name="Axis" Type="ParallaxAxis?" Default="null" Description="Eixo da translação (null = herda da cena)." />
+            <ShowcaseApiRow Name="Range" Type="double" Default="300" Description="Amplitude total da translação em px (na velocidade 1)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>

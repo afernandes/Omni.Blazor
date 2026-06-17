@@ -2563,6 +2563,57 @@ progress {
     column-count: var(--omni-masonry-cols-lg, var(--omni-masonry-cols-md, var(--omni-masonry-cols-sm, var(--omni-masonry-cols, 3))));
   }
 }
+@property --omni-parallax-progress {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.5;
+}
+.omni-parallax {
+  position: relative;
+  overflow: clip;
+  isolation: isolate;
+}
+
+.omni-parallax-layer {
+  position: absolute;
+  inset: calc(var(--omni-px-overscan, 40) * -1px);
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translate3d(calc(((0.5 - var(--omni-parallax-progress, 0.5)) * var(--omni-px-speed, 0.3) * var(--omni-px-range, 300) * var(--omni-px-x, 0) + var(--omni-parallax-mx, 0) * var(--omni-px-speed, 0.3) * var(--omni-px-mr, 0)) * 1px), calc(((0.5 - var(--omni-parallax-progress, 0.5)) * var(--omni-px-speed, 0.3) * var(--omni-px-range, 300) * var(--omni-px-y, 1) + var(--omni-parallax-my, 0) * var(--omni-px-speed, 0.3) * var(--omni-px-mr, 0)) * 1px), 0);
+}
+
+.omni-parallax-layer > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@supports (animation-timeline: view()) {
+  .omni-parallax[data-omni-parallax-mode=native] .omni-parallax-layer {
+    animation: omni-parallax-progress linear both;
+    animation-timeline: view();
+  }
+}
+@keyframes omni-parallax-progress {
+  from {
+    --omni-parallax-progress: 0;
+  }
+  to {
+    --omni-parallax-progress: 1;
+  }
+}
+.omni-parallax[data-omni-parallax-mode=off] .omni-parallax-layer {
+  will-change: auto;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omni-parallax-layer {
+    animation: none !important;
+    transform: none !important;
+  }
+}
 .omni-card {
   display: flex;
   flex-direction: column;

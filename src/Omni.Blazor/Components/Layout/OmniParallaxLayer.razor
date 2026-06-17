@@ -1,0 +1,64 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+@using System.Globalization
+
+@*  OmniParallaxLayer — uma camada de profundidade de um <OmniParallax>. Posiciona-se
+    sobre a cena (absolute, oversized para não revelar bordas ao transladar) e move-se
+    conforme o progresso de scroll da cena, na proporção de <see cref="Speed"/>:
+
+      • Speed = 0  → presa ao scroll (sem parallax; ideal p/ conteúdo/texto).
+      • Speed > 0  → SOBE ao rolar pra baixo ("mais rápido" que a página) — PRIMEIRO PLANO.
+      • Speed < 0  → DESCE ao rolar pra baixo ("mais devagar") — FUNDO (recua).
+
+    Use fundos com Speed negativo e primeiros planos positivos (divergente) p/ profundidade
+    forte — é o padrão do efeito "Firewatch". Quanto maior a diferença de Speed, mais 3D.
+    A matemática vive no SCSS; aqui só emitimos custom properties.
+*@
+<div class="@RootCss" style="@LayerStyle" @attributes="Attributes">
+    @ChildContent
+</div>
+
+@code {
+    [CascadingParameter] internal OmniParallax? Parent { get; set; }
+
+    /// <summary>Fator de parallax. 0 = preso ao scroll; &gt;0 = primeiro plano (sobe ao rolar pra baixo);
+    /// &lt;0 = fundo (desce/recua). Quanto maior |Speed|, mais movimento. Default 0.3.</summary>
+    [Parameter] public double Speed { get; set; } = 0.3;
+
+    /// <summary>Eixo da translação. <c>null</c> = herda da cena (<c>OmniParallax.Axis</c>). Default null.</summary>
+    [Parameter] public ParallaxAxis? Axis { get; set; }
+
+    /// <summary>Amplitude total da translação em px (na velocidade 1). Default 300.</summary>
+    [Parameter] public double Range { get; set; } = 300;
+
+    private ParallaxAxis EffectiveAxis => Axis ?? Parent?.Axis ?? ParallaxAxis.Vertical;
+
+    private string RootCss => CssBuilder.Default("omni-parallax-layer")
+        .AddClass(Class)
+        .Build();
+
+    private string LayerStyle
+    {
+        get
+        {
+            var inv = CultureInfo.InvariantCulture;
+            var x = EffectiveAxis is ParallaxAxis.Horizontal or ParallaxAxis.Both ? 1 : 0;
+            var y = EffectiveAxis is ParallaxAxis.Vertical or ParallaxAxis.Both ? 1 : 0;
+            // overscan = maior |translação| (0.5·|speed|·range) + folga p/ mouse.
+            var overscan = (Math.Abs(Speed) * Range * 0.5) + 20;
+
+            var parts = new List<string>(6)
+            {
+                $"--omni-px-speed: {Speed.ToString(inv)}",
+                $"--omni-px-range: {Range.ToString(inv)}",
+                $"--omni-px-overscan: {overscan.ToString(inv)}",
+                $"--omni-px-x: {x.ToString(inv)}",
+                $"--omni-px-y: {y.ToString(inv)}",
+            };
+            if (!string.IsNullOrWhiteSpace(Style)) parts.Add(Style!);
+            return string.Join("; ", parts);
+        }
+    }
+}

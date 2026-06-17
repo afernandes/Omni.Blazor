@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CommandHistoryService>();
         services.AddScoped<ScrollManager>();
         services.AddScoped<BreakpointService>();
+        services.AddScoped<ParallaxService>();
         services.AddScoped<KeyInterceptorService>();
         return services;
     }

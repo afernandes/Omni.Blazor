@@ -28,6 +28,7 @@ public abstract class TestContextBase : BunitTestContext
         // gets a real (test-scoped) instance, not a mock.
         Services.AddSingleton<BreakpointService>();
         Services.AddSingleton<ScrollManager>();
+        Services.AddSingleton<ParallaxService>();
         Services.AddSingleton<DialogService>();
         Services.AddSingleton<HotkeyService>();
         Services.AddSingleton<CommandHistoryService>();

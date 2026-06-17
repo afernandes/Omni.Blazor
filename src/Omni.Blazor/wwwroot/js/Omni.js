@@ -2679,4 +2679,126 @@
       dispose: function () { listenEl.removeEventListener('scroll', handler); if (t) clearTimeout(t); }
     };
   };
+
+  // ——— Parallax ————————————————————————————————————————————————————————————
+  // Fallback p/ browsers sem CSS scroll-driven animations + parallax de mouse.
+  // Escreve UMA custom property por cena por frame (--omni-parallax-progress 0..1)
+  // que as camadas consomem via calc()+translate3d no CSS. Um único rAF
+  // compartilhado + IntersectionObserver — cenas fora da viewport não "tickam".
+  ns.parallax = (function () {
+    function supportsNative() {
+      try { return !!(window.CSS && CSS.supports && CSS.supports('animation-timeline', 'view()')); }
+      catch (e) { return false; }
+    }
+
+    var scenes = new Set();    // cenas que precisam de progresso via JS
+    var visible = new Set();   // subconjunto atualmente na viewport
+    var io = null;
+    var scheduled = false;
+    var rafId = 0;
+    var sharedAttached = false;
+
+    function ensureIO() {
+      if (io) return;
+      io = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) visible.add(entries[i].target);
+          else visible.delete(entries[i].target);
+        }
+        requestTick();
+      }, { rootMargin: '0px' });
+    }
+
+    function requestTick() {
+      if (scheduled) return;
+      scheduled = true;
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function tick() {
+      scheduled = false;
+      var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      visible.forEach(function (scene) {
+        var r = scene.getBoundingClientRect();
+        var denom = vh + r.height;
+        var p = denom > 0 ? (vh - r.top) / denom : 0.5;
+        p = p < 0 ? 0 : (p > 1 ? 1 : p);
+        scene.style.setProperty('--omni-parallax-progress', p.toFixed(4));
+      });
+    }
+
+    var onScrollResize = function () { requestTick(); };
+    function attachShared() {
+      if (sharedAttached) return;
+      sharedAttached = true;
+      window.addEventListener('scroll', onScrollResize, { passive: true });
+      window.addEventListener('resize', onScrollResize, { passive: true });
+    }
+    function detachShared() {
+      if (!sharedAttached) return;
+      sharedAttached = false;
+      window.removeEventListener('scroll', onScrollResize, { passive: true });
+      window.removeEventListener('resize', onScrollResize, { passive: true });
+      if (rafId) cancelAnimationFrame(rafId);
+      scheduled = false;
+    }
+
+    function create(scene, opts) {
+      opts = opts || {};
+      if (!scene) return { dispose: function () {} };
+
+      // a11y: prefers-reduced-motion → no-op (o CSS também força transform:none).
+      try {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          return { dispose: function () {} };
+        }
+      } catch (e) {}
+
+      var needScroll = !opts.native;   // JS dirige o progresso só quando o CSS não dirige
+      var wantMouse = !!opts.mouse;
+      var fine = false;
+      try { fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) {}
+
+      var onMove = null, onLeave = null;
+
+      if (needScroll) {
+        ensureIO();
+        scenes.add(scene);
+        io.observe(scene);
+        attachShared();
+        requestTick();
+      }
+
+      if (wantMouse && fine) {
+        onMove = function (ev) {
+          var r = scene.getBoundingClientRect();
+          var mx = r.width ? ((ev.clientX - r.left) / r.width - 0.5) * 2 : 0;
+          var my = r.height ? ((ev.clientY - r.top) / r.height - 0.5) * 2 : 0;
+          scene.style.setProperty('--omni-parallax-mx', mx.toFixed(4));
+          scene.style.setProperty('--omni-parallax-my', my.toFixed(4));
+        };
+        onLeave = function () {
+          scene.style.setProperty('--omni-parallax-mx', '0');
+          scene.style.setProperty('--omni-parallax-my', '0');
+        };
+        scene.addEventListener('pointermove', onMove, { passive: true });
+        scene.addEventListener('pointerleave', onLeave, { passive: true });
+      }
+
+      return {
+        dispose: function () {
+          if (needScroll) {
+            scenes.delete(scene);
+            visible.delete(scene);
+            if (io) io.unobserve(scene);
+            if (scenes.size === 0) detachShared();
+          }
+          if (onMove) scene.removeEventListener('pointermove', onMove, { passive: true });
+          if (onLeave) scene.removeEventListener('pointerleave', onLeave, { passive: true });
+        }
+      };
+    }
+
+    return { supportsNative: supportsNative, create: create };
+  })();
 })();
