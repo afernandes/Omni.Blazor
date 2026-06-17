@@ -1,0 +1,46 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+@using Omni.Blazor.Models
+
+@*  Passo declarativo de um <OmniTour>. Não renderiza nada — registra-se no pai e
+    expõe seus dados como TourStep. O corpo (ChildContent) vira o conteúdo do
+    coachmark, permitindo conteúdo rico (listas, imagens, links).
+
+    Usage:
+        <OmniTour TourId="onboarding" AutoStart>
+            <OmniTourStep Target="#salvar" Title="Salvar">
+                Clique aqui para <strong>salvar</strong> suas alterações.
+            </OmniTourStep>
+            <OmniTourStep Target="#exportar" Title="Exportar" Position="TourPosition.Left">
+                Exporte o relatório em PDF ou CSV.
+            </OmniTourStep>
+        </OmniTour> *@
+
+@code {
+    [CascadingParameter] internal OmniTour? Parent { get; set; }
+
+    /// <summary>Seletor CSS do alvo (ex.: <c>"#salvar"</c>). <c>null</c> = passo sem spotlight.</summary>
+    [Parameter] public string? Target { get; set; }
+
+    /// <summary>Título do passo.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Lado preferido do coachmark. Default <see cref="TourPosition.Auto"/>.</summary>
+    [Parameter] public TourPosition Position { get; set; } = TourPosition.Auto;
+
+    /// <summary>Corpo do coachmark.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized() => Parent?.Register(this);
+
+    internal TourStep ToStep() => new()
+    {
+        Target = Target,
+        Title = Title,
+        Position = Position,
+        Body = ChildContent,
+    };
+
+    public void Dispose() => Parent?.Unregister(this);
+}

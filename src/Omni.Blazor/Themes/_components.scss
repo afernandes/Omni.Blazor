@@ -6329,6 +6329,91 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 .omni-kanban-col-dragging { opacity: 0.5; }
 .omni-kanban-col-droptarget { box-shadow: inset 3px 0 0 0 var(--omni-accent); }
 
+// ─── OmniTour — spotlight (recorte) + coachmark ────────────────────────────
+// O scrim captura cliques (bloqueia interação com a página); o cutout pinta o
+// escurecimento com um "furo" no alvo via box-shadow gigante (border-radius de
+// graça). Coachmark é position:fixed, posicionado pelo JS omniBlazor.tourPosition.
+.omni-tour-scrim { position: fixed; inset: 0; z-index: 1300; pointer-events: auto; }
+.omni-tour-cutout {
+  position: fixed;
+  z-index: 1300;
+  pointer-events: none;
+  left: var(--omni-tour-x, 50%);
+  top: var(--omni-tour-y, 50%);
+  width: var(--omni-tour-w, 0);
+  height: var(--omni-tour-h, 0);
+  border-radius: var(--omni-radius);
+  box-shadow: 0 0 0 9999px var(--omni-tour-scrim-color, rgba(15, 23, 42, 0.55));
+  transition: all 0.2s ease;
+}
+.omni-tour-coachmark {
+  position: fixed;
+  z-index: 1301;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: left 0.2s ease, top 0.2s ease;
+  &:focus { outline: none; }
+}
+.omni-tour-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--omni-fg-muted);
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--omni-radius-sm);
+  cursor: pointer;
+  &:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
+}
+.omni-tour-title { font: 600 15px/1.3 var(--omni-font-ui); color: var(--omni-fg); padding-right: 20px; }
+.omni-tour-body { font: 13px/1.5 var(--omni-font-ui); color: var(--omni-fg-muted); }
+.omni-tour-body > :first-child { margin-top: 0; }
+.omni-tour-body > :last-child { margin-bottom: 0; }
+.omni-tour-foot { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.omni-tour-counter { font: 600 12px/1 var(--omni-font-ui); color: var(--omni-fg-soft); }
+.omni-tour-spacer { flex: 1; }
+.omni-tour-btn {
+  appearance: none;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  color: var(--omni-fg);
+  font: 500 13px/1 var(--omni-font-ui);
+  padding: 7px 14px;
+  cursor: pointer;
+  &:hover { border-color: var(--omni-line-strong); background: var(--omni-bg-sunken); }
+}
+.omni-tour-btn-primary {
+  background: var(--omni-accent);
+  border-color: var(--omni-accent);
+  color: #fff;
+  &:hover { background: var(--omni-accent-hover); border-color: var(--omni-accent-hover); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .omni-tour-cutout,
+  .omni-tour-coachmark { transition: none; }
+}
+@media (max-width: 540px) {
+  .omni-tour-coachmark {
+    left: 12px !important;
+    right: 12px;
+    top: auto !important;
+    bottom: 12px;
+    width: auto;
+  }
+}
+
 .omni-kanban-col-head {
   display: flex;
   align-items: center;

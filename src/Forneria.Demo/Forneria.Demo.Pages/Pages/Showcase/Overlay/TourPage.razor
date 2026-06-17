@@ -1,0 +1,138 @@
+@page "/showcase/tour"
+@attribute [ShowcaseInfo(Title = "Tour / Coachmarks", Category = Cat.Feedback, Icon = "flag", New = true, Aliases = "tour,onboarding,coachmark,guia,walkthrough,spotlight,passos,steps")]
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+@inject Omni.Blazor.Services.TourService Tour
+
+<PageTitle>Tour / Coachmarks — Showcase</PageTitle>
+
+<ShowcasePage Title="Tour / Coachmarks"
+              Subtitle="Onboarding guiado: spotlight (recorte escurecido sobre o alvo) + coachmark ancorado, passo a passo, com teclado e 'não mostrar de novo'. API programática (TourService) e declarativa.">
+
+    <Overview>
+        <p>
+            O <code>OmniTour</code> renderiza num portal único (<code>OmniTourHost</code>, já incluso no
+            <code>&lt;OmniOverlayHosts/&gt;</code>) — escapando o overflow de qualquer container. O alvo é
+            um seletor CSS; o coachmark se posiciona no lado de maior folga (ou no pedido) e segue o alvo
+            em scroll/resize. Reusa o <code>OverlayLifecycle</code> (scroll-lock, Esc, focus-trap, retorno
+            de foco) e a infra de posicionamento do popover.
+        </p>
+        <p>
+            <strong>Teclado:</strong> → / Enter avança, ← volta, Esc pula. Com <code>Persist</code> + um
+            <code>TourId</code>, concluir/pular grava "não mostrar de novo" no localStorage.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="ALVOS DA DEMONSTRAÇÃO"
+                         Description="Uma 'barra de ferramentas' fake com ids — os tours abaixo apontam para estes elementos.">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px;border:1px solid var(--omni-line);border-radius:10px;">
+                <div id="tour-busca" class="tour-chip">🔍 Busca</div>
+                <div id="tour-salvar" class="tour-chip tour-chip-accent">💾 Salvar</div>
+                <div id="tour-exportar" class="tour-chip">📤 Exportar</div>
+                <span style="flex:1"></span>
+                <div id="tour-config" class="tour-chip">⚙️ Configurações</div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="API PROGRAMÁTICA — TourService.StartAsync"
+                         Description="Monte os passos em código e dispare. StartAsync devolve Task<bool> (true=concluído, false=pulado)."
+                         Code="@_codeProg">
+            <OmniButton Text="▶ Iniciar tour (programático)" OnClick="StartProgramatico" Variant="ButtonVariant.Primary" />
+            <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">@_status</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="API DECLARATIVA — OmniTour / OmniTourStep"
+                         Description="Declare os passos no markup (corpo rico). Dispare por StartTrigger (two-way), AutoStart ou StartAsync()."
+                         Code="@_codeDecl">
+            <OmniTour TourId="demo-decl"
+                      @bind-StartTrigger="_iniciarDecl"
+                      Persist="_persist"
+                      OnCompleted="OnDeclCompleted"
+                      OnSkipped="OnDeclSkipped">
+                <OmniTourStep Target="#tour-busca" Title="Busca" Position="TourPosition.Bottom">
+                    Encontre qualquer coisa rapidamente. Conteúdo <strong>rico</strong> é permitido aqui.
+                </OmniTourStep>
+                <OmniTourStep Target="#tour-salvar" Title="Salvar">
+                    Salve suas alterações. Este é o passo 2.
+                </OmniTourStep>
+                <OmniTourStep Target="#tour-config" Title="Configurações" Position="TourPosition.Left">
+                    Ajuste suas preferências por aqui.
+                </OmniTourStep>
+            </OmniTour>
+
+            <OmniStack Direction="StackDirection.Row" Gap="12" Wrap="true" Style="align-items:center;">
+                <OmniButton Text="▶ Iniciar tour (declarativo)" OnClick="@(() => _iniciarDecl = true)" Variant="ButtonVariant.Primary" />
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+                    <OmniSwitch @bind-Value="_persist" />
+                    "Não mostrar de novo" (persiste por TourId)
+                </label>
+                <OmniButton Text="Resetar dispensa" OnClick="ResetarDispensa" Variant="ButtonVariant.Ghost" />
+            </OmniStack>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="TourService (programático)">
+            <ShowcaseApiRow Name="StartAsync(steps, options?)" Type="Task&lt;bool&gt;" Default="—"
+                            Description="Inicia; resolve true (concluído) / false (pulado ou dispensado)." />
+            <ShowcaseApiRow Name="Next / Prev / GoTo / SkipAsync / CompleteAsync" Type="—" Default="—"
+                            Description="Navegação e término. IsActive / CurrentStepIndex / StepCount / CurrentStep." />
+            <ShowcaseApiRow Name="ClearDismissalAsync(tourId)" Type="Task" Default="—"
+                            Description="Remove a dispensa salva (faz o tour reaparecer)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniTour / OmniTourStep (declarativo)">
+            <ShowcaseApiRow Name="OmniTour.TourId / Persist / ShowBackdrop" Type="string? / bool" Default="— / false / true"
+                            Description="Id (chave de persistência), 'não mostrar de novo', fundo escurecido." />
+            <ShowcaseApiRow Name="AutoStart / StartTrigger" Type="bool" Default="false"
+                            Description="Inicia no 1º render / dispara ao virar true (two-way, reseta ao fim)." />
+            <ShowcaseApiRow Name="OnCompleted / OnSkipped" Type="EventCallback" Default="—"
+                            Description="Disparados ao concluir / pular." />
+            <ShowcaseApiRow Name="OmniTourStep.Target / Title / Position / ChildContent" Type="string? / string? / TourPosition" Default="— / — / Auto"
+                            Description="Seletor CSS do alvo, título, lado preferido e corpo (rich)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Teclado">
+            <ShowcaseApiRow Name="→ / Enter" Type="—" Default="—" Description="Próximo (Enter aciona o botão default)." />
+            <ShowcaseApiRow Name="←" Type="—" Default="—" Description="Anterior." />
+            <ShowcaseApiRow Name="Esc" Type="—" Default="—" Description="Pular o tour." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+<style>
+    .tour-chip { padding: 8px 14px; border: 1px solid var(--omni-line); border-radius: 8px; background: var(--omni-bg-elev); font-size: 13px; }
+    .tour-chip-accent { border-color: var(--omni-accent); color: var(--omni-accent); }
+</style>
+
+@code {
+    private bool _iniciarDecl;
+    private bool _persist;
+    private string _status = "Clique num botão para iniciar um tour.";
+
+    private const string _codeProg = "await Tour.StartAsync(new[]\n{\n    new TourStep { Target = \"#busca\", Title = \"Busca\", Position = TourPosition.Bottom },\n    new TourStep { Target = \"#exportar\", Title = \"Exportar\", Position = TourPosition.Left },\n});";
+    private const string _codeDecl = "<OmniTour TourId=\"demo\" @bind-StartTrigger=\"iniciar\" Persist=\"naoMostrar\">\n    <OmniTourStep Target=\"#a\" Title=\"Salvar\">Clique para <strong>salvar</strong>.</OmniTourStep>\n    <OmniTourStep Target=\"#b\" Title=\"Config\" Position=\"TourPosition.Top\">Ajuste preferências.</OmniTourStep>\n</OmniTour>";
+
+    private async Task StartProgramatico()
+    {
+        var ok = await Tour.StartAsync(new[]
+        {
+            new TourStep { Target = "#tour-busca",    Title = "Busca",         Description = "Encontre qualquer coisa rapidamente.", Position = TourPosition.Bottom },
+            new TourStep { Target = "#tour-salvar",   Title = "Salvar",        Description = "Salve suas alterações aqui." },
+            new TourStep { Target = "#tour-exportar", Title = "Exportar",      Description = "Exporte o relatório em PDF ou CSV.",   Position = TourPosition.Left },
+            new TourStep { Target = "#tour-config",   Title = "Configurações", Description = "Ajuste suas preferências." },
+        });
+        _status = ok ? "Tour programático: concluído ✓" : "Tour programático: pulado";
+    }
+
+    private void OnDeclCompleted() => _status = "Tour declarativo: concluído ✓";
+    private void OnDeclSkipped() => _status = "Tour declarativo: pulado";
+
+    private async Task ResetarDispensa()
+    {
+        await Tour.ClearDismissalAsync("demo-decl");
+        _status = "Dispensa resetada — o tour declarativo volta a aparecer.";
+    }
+}

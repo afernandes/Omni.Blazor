@@ -36,5 +36,6 @@ public abstract class TestContextBase : BunitTestContext
         Services.AddSingleton<NotificationService>();
         Services.AddSingleton<TooltipService>();
         Services.AddSingleton<ContextMenuService>();
+        Services.AddSingleton<TourService>();
     }
 }

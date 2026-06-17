@@ -1,0 +1,145 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject TourService Tour
+@inject IJSRuntime JS
+@inject Omni.Blazor.Services.ScrollManager Scroll
+@using Microsoft.AspNetCore.Components.Web
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+
+@*  Host único do OmniTour (portal). Monte uma vez no layout raiz (já incluso em
+    <OmniOverlayHosts/>). Renderiza o spotlight (scrim + recorte) e o coachmark do
+    passo atual; reusa OverlayLifecycle (scroll-lock + Esc + focus-trap + retorno
+    de foco) e o helper JS omniBlazor.tourPosition. *@
+
+@if (Tour.IsActive && Tour.CurrentStep is { } step)
+{
+    @if (Tour.Options.ShowBackdrop)
+    {
+        <div class="omni-tour-scrim"></div>
+        <div class="omni-tour-cutout"></div>
+    }
+    <div @ref="_coach" id="@_id" class="omni-tour-coachmark" style="visibility:hidden"
+         role="dialog" aria-modal="true"
+         aria-labelledby="@($"{_id}-t")" aria-describedby="@($"{_id}-b")"
+         tabindex="-1" data-omni-focus-trap="true"
+         @onkeydown="OnKeyDown">
+        <button type="button" class="omni-tour-close" aria-label="Pular tour" @onclick="Tour.SkipAsync">
+            <OmniIcon Name="x" Size="ComponentSize.Sm" />
+        </button>
+
+        @if (!string.IsNullOrEmpty(step.Title))
+        {
+            <div id="@($"{_id}-t")" class="omni-tour-title">@step.Title</div>
+        }
+
+        <div id="@($"{_id}-b")" class="omni-tour-body">
+            @if (step.Body is not null) { @step.Body }
+            else { @step.Description }
+        </div>
+
+        <div class="omni-tour-foot">
+            <span class="omni-tour-counter" aria-live="polite">@(Tour.CurrentStepIndex + 1) / @Tour.StepCount</span>
+            <span class="omni-tour-spacer"></span>
+            @if (Tour.CurrentStepIndex > 0)
+            {
+                <button type="button" class="omni-tour-btn" @onclick="Tour.Prev">Anterior</button>
+            }
+            @if (Tour.CurrentStepIndex < Tour.StepCount - 1)
+            {
+                <button type="button" class="omni-tour-btn omni-tour-btn-primary omni-autofocus"
+                        data-omni-default @onclick="Tour.Next">Próximo</button>
+            }
+            else
+            {
+                <button type="button" class="omni-tour-btn omni-tour-btn-primary omni-autofocus"
+                        data-omni-default @onclick="Tour.CompleteAsync">Concluir</button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private readonly string _id = $"omni-tour-{Guid.NewGuid():N}";
+    private ElementReference _coach;
+    private OverlayLifecycle? _overlay;
+    private DotNetObjectReference<OmniTourHost>? _self;
+    private bool _wasActive;
+    private int _lastStep = -1;
+
+    protected override void OnInitialized()
+    {
+        Tour.OnChange += Refresh;
+        _self = DotNetObjectReference.Create(this);
+        _overlay = new OverlayLifecycle(JS, Scroll, _id, $"#{_id}");
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Tour.IsActive)
+        {
+            if (!_wasActive)
+            {
+                _wasActive = true;
+                _lastStep = Tour.CurrentStepIndex;
+                // Posiciona + mostra o coachmark ANTES de ativar o overlay, p/ o
+                // autofocus do setupOverlay cair num elemento já visível/posicionado.
+                await PositionAsync();
+                await _overlay!.ActivateAsync(_self!, nameof(OnEscape));
+                try { await JS.InvokeVoidAsync("omniBlazor.tourRegister"); } catch { }
+            }
+            else if (_lastStep != Tour.CurrentStepIndex)
+            {
+                _lastStep = Tour.CurrentStepIndex;
+                await PositionAsync();
+            }
+        }
+        else if (_wasActive)
+        {
+            _wasActive = false;
+            _lastStep = -1;
+            try { await JS.InvokeVoidAsync("omniBlazor.tourUnregister"); } catch { }
+            await _overlay!.DeactivateAsync();
+        }
+    }
+
+    private async Task PositionAsync()
+    {
+        var step = Tour.CurrentStep;
+        if (step is null) return;
+        try { await JS.InvokeVoidAsync("omniBlazor.tourPosition", step.Target, Side(step.Position), 6, true); }
+        catch { /* SSR / JS gone */ }
+    }
+
+    private static string Side(TourPosition p) => p switch
+    {
+        TourPosition.Top    => "top",
+        TourPosition.Bottom => "bottom",
+        TourPosition.Left   => "left",
+        TourPosition.Right  => "right",
+        _                   => "auto",
+    };
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        // Esc e Enter (botão default) já vêm do setupOverlay; aqui só as setas.
+        if (e.Key == "ArrowRight") Tour.Next();
+        else if (e.Key == "ArrowLeft") Tour.Prev();
+    }
+
+    [JSInvokable] public Task OnEscape() => Tour.SkipAsync();
+
+    public async ValueTask DisposeAsync()
+    {
+        Tour.OnChange -= Refresh;
+        if (_wasActive)
+        {
+            try { await JS.InvokeVoidAsync("omniBlazor.tourUnregister"); } catch { }
+        }
+        if (_overlay is not null) await _overlay.DisposeAsync();
+        _self?.Dispose();
+    }
+}

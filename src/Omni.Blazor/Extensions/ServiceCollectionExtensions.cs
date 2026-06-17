@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<BreakpointService>();
         services.AddScoped<ParallaxService>();
         services.AddScoped<KeyInterceptorService>();
+        services.AddScoped<TourService>();
         return services;
     }
 }

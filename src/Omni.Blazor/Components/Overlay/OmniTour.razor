@@ -1,0 +1,85 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@inject TourService Tour
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Omni.Blazor.State
+
+@*  Container declarativo de um tour. Coleta os <OmniTourStep> filhos e inicia o
+    tour (via TourService) por AutoStart, por StartTrigger (two-way) ou chamando
+    StartAsync(). Não renderiza UI própria — o spotlight/coachmark vivem no
+    OmniTourHost. *@
+
+<CascadingValue Value="this" IsFixed="true">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>Id do tour (chave de persistência quando <see cref="Persist"/> = true).</summary>
+    [Parameter] public string? TourId { get; set; }
+
+    /// <summary>Inicia automaticamente na primeira renderização.</summary>
+    [Parameter] public bool AutoStart { get; set; }
+
+    /// <summary>Dispara o tour ao virar <c>true</c> (two-way — é resetado para <c>false</c> ao fim).</summary>
+    [Parameter] public bool StartTrigger { get; set; }
+    [Parameter] public EventCallback<bool> StartTriggerChanged { get; set; }
+
+    /// <summary>Persiste "não mostrar de novo" por <see cref="TourId"/>.</summary>
+    [Parameter] public bool Persist { get; set; }
+
+    /// <summary>Mostra o fundo escurecido com recorte. Default true.</summary>
+    [Parameter] public bool ShowBackdrop { get; set; } = true;
+
+    /// <summary>Disparado quando o tour é concluído (chegou ao fim).</summary>
+    [Parameter] public EventCallback OnCompleted { get; set; }
+
+    /// <summary>Disparado quando o tour é pulado/dispensado.</summary>
+    [Parameter] public EventCallback OnSkipped { get; set; }
+
+    private readonly List<OmniTourStep> _steps = new();
+    private ParameterState<bool> _triggerState = null!;
+
+    /// <summary>Quantidade de passos registrados (test-only / introspecção).</summary>
+    internal int StepCount => _steps.Count;
+
+    internal void Register(OmniTourStep step) { if (!_steps.Contains(step)) _steps.Add(step); }
+    internal void Unregister(OmniTourStep step) => _steps.Remove(step);
+
+    protected override void OnInitialized()
+    {
+        // ParameterState (convenção 5): handler dispara só quando StartTrigger muda
+        // de fato — não em re-renders que reenviam o mesmo valor.
+        _triggerState = RegisterParameter<bool>(nameof(StartTrigger))
+            .WithParameter(() => StartTrigger)
+            .WithEventCallback(() => StartTriggerChanged)
+            .WithChangeHandler(args => { if (args.Value) _ = StartAsync(); })
+            .Attach();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoStart) await StartAsync();
+    }
+
+    /// <summary>Inicia o tour com os passos declarados (na ordem do markup).</summary>
+    public async Task StartAsync()
+    {
+        var steps = _steps.Select(s => s.ToStep()).ToList();
+        if (steps.Count == 0) return;
+
+        var triggerWasSet = StartTrigger; // captura o valor que disparou (o tour pode demorar)
+        var completed = await Tour.StartAsync(steps, new TourOptions
+        {
+            TourId = TourId,
+            Persist = Persist,
+            ShowBackdrop = ShowBackdrop,
+        });
+
+        // Reseta o gatilho two-way, se houver.
+        if (triggerWasSet && StartTriggerChanged.HasDelegate) await StartTriggerChanged.InvokeAsync(false);
+
+        if (completed) { if (OnCompleted.HasDelegate) await OnCompleted.InvokeAsync(); }
+        else { if (OnSkipped.HasDelegate) await OnSkipped.InvokeAsync(); }
+    }
+}

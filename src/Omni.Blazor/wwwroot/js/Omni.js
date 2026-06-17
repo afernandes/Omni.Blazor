@@ -815,6 +815,96 @@
     if (tx || ty) pop.style.transform = `translate(${tx}px, ${ty}px)`;
   };
 
+  // ——— OmniTour — spotlight (recorte via box-shadow) + posicao do coachmark ———
+  // Mede o alvo, escreve as CSS vars do recorte (--omni-tour-x/y/w/h) no .omni-tour-cutout,
+  // e posiciona o .omni-tour-coachmark (position:fixed) no lado pedido (ou o de maior folga),
+  // com clamp a viewport. `scroll`=true traz o alvo a tela antes de medir. tourRegister liga
+  // listeners debounced de resize/scroll que re-medem (sem re-scrollar) seguindo o alvo.
+  let _tourArgs = null;
+  let _tourTimer = null;
+  let _tourListening = false;
+
+  function _tourReflow() { if (_tourArgs) ns.tourPosition(_tourArgs[0], _tourArgs[1], _tourArgs[2], false); }
+  function _tourOnScrollResize() {
+    if (_tourTimer) clearTimeout(_tourTimer);
+    _tourTimer = setTimeout(_tourReflow, 40);
+  }
+
+  ns.tourPosition = function (target, position, pad, scroll) {
+    const coach = document.querySelector('.omni-tour-coachmark');
+    const cutout = document.querySelector('.omni-tour-cutout');
+    const el = typeof target === 'string' ? (target ? document.querySelector(target) : null) : target;
+    _tourArgs = [target, position, pad];
+    pad = (pad == null) ? 6 : pad;
+    const vw = window.innerWidth, vh = window.innerHeight, M = 8, GAP = 12;
+
+    if (!el) {
+      // Sem alvo: escurece tudo (recorte 0 no centro) e centraliza o coachmark.
+      if (cutout) {
+        cutout.style.setProperty('--omni-tour-x', (vw / 2) + 'px');
+        cutout.style.setProperty('--omni-tour-y', (vh / 2) + 'px');
+        cutout.style.setProperty('--omni-tour-w', '0px');
+        cutout.style.setProperty('--omni-tour-h', '0px');
+      }
+      if (coach) {
+        const cr = coach.getBoundingClientRect();
+        coach.style.left = Math.max(M, vw / 2 - cr.width / 2) + 'px';
+        coach.style.top = Math.max(M, vh / 2 - cr.height / 2) + 'px';
+        coach.style.visibility = 'visible';
+        coach.setAttribute('data-omni-tour-side', 'center');
+      }
+      return 'center';
+    }
+
+    if (scroll) { try { el.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) { /* ignore */ } }
+    const r = el.getBoundingClientRect();
+
+    if (cutout) {
+      cutout.style.setProperty('--omni-tour-x', (r.left - pad) + 'px');
+      cutout.style.setProperty('--omni-tour-y', (r.top - pad) + 'px');
+      cutout.style.setProperty('--omni-tour-w', (r.width + pad * 2) + 'px');
+      cutout.style.setProperty('--omni-tour-h', (r.height + pad * 2) + 'px');
+    }
+
+    if (!coach) return 'bottom';
+    const cr = coach.getBoundingClientRect();
+
+    let side = position || 'auto';
+    if (side === 'auto') {
+      const room = { top: r.top, bottom: vh - r.bottom, left: r.left, right: vw - r.right };
+      side = Object.keys(room).reduce((a, b) => (room[a] >= room[b] ? a : b));
+    }
+
+    let left, top;
+    if (side === 'bottom') { top = r.bottom + GAP; left = r.left + r.width / 2 - cr.width / 2; }
+    else if (side === 'top') { top = r.top - GAP - cr.height; left = r.left + r.width / 2 - cr.width / 2; }
+    else if (side === 'right') { left = r.right + GAP; top = r.top + r.height / 2 - cr.height / 2; }
+    else { left = r.left - GAP - cr.width; top = r.top + r.height / 2 - cr.height / 2; }
+
+    left = Math.max(M, Math.min(left, vw - cr.width - M));
+    top = Math.max(M, Math.min(top, vh - cr.height - M));
+    coach.style.left = left + 'px';
+    coach.style.top = top + 'px';
+    coach.style.visibility = 'visible';
+    coach.setAttribute('data-omni-tour-side', side);
+    return side;
+  };
+
+  ns.tourRegister = function () {
+    if (_tourListening) return;
+    window.addEventListener('resize', _tourOnScrollResize, { passive: true });
+    window.addEventListener('scroll', _tourOnScrollResize, { passive: true, capture: true });
+    _tourListening = true;
+  };
+  ns.tourUnregister = function () {
+    if (!_tourListening) return;
+    window.removeEventListener('resize', _tourOnScrollResize);
+    window.removeEventListener('scroll', _tourOnScrollResize, { capture: true });
+    _tourListening = false;
+    _tourArgs = null;
+    if (_tourTimer) { clearTimeout(_tourTimer); _tourTimer = null; }
+  };
+
   // Mask helper — ported in spirit from Radzen.mask. Mask chars:
   //   9 = digit, A = letter, * = alphanumeric. Anything else is a literal.
   // Filters el.value to keep only chars that could fit any slot, then walks the

@@ -126,7 +126,7 @@ OmniEyebrow, OmniHero, OmniMosaic, OmniMosaicCard
 <details>
 <summary><strong>Overlays & feedback</strong></summary>
 
-OmniDialogHost, OmniNotificationHost, OmniTooltipHost, OmniContextMenuHost, OmniConfirmDialog, OmniAlertDialog, OmniOverlays, OmniPopover, OmniBottomSheet
+OmniDialogHost, OmniNotificationHost, OmniTooltipHost, OmniContextMenuHost, OmniConfirmDialog, OmniAlertDialog, OmniOverlays, OmniPopover, OmniBottomSheet, OmniTour, OmniTourStep, OmniTourHost
 </details>
 
 <details>
