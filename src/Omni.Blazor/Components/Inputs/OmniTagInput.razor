@@ -1,0 +1,366 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IOmniFormComponent
+@implements IAsyncDisposable
+@inject KeyInterceptorService KeyInterceptor
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using System.Linq.Expressions
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*  OmniTagInput — entrada de múltiplos valores de texto livre (tags, e-mails,
+    escopos, rótulos). Cada valor confirmado vira um chip removível dentro do
+    próprio campo; o usuário digita e confirma com Enter ou vírgula, e apaga o
+    último chip com Backspace no campo vazio. Opcionalmente exibe um painel de
+    sugestões (autocomplete) a partir de <see cref="Suggestions"/>.
+
+    Difere do OmniMultiSelect: lá os valores vêm de uma lista FIXA de opções;
+    aqui o usuário CRIA valores arbitrários (texto livre). A API de bind é
+    simétrica ao MultiSelect (Values / ValuesChanged / ValuesExpression).
+
+    Teclado via KeyInterceptorService (preventDefault condicional por tecla):
+      • Enter / vírgula → confirma o texto digitado como tag (não submete o form).
+      • Backspace (campo vazio) → remove a última tag.
+      • Setas ↑/↓ + Enter → navega/escolhe sugestões; Esc fecha o painel.
+    Vírgulas/quebras coladas (paste) são divididas em várias tags via oninput.
+
+    Usage:
+        <OmniTagInput @bind-Values="tags" Placeholder="Adicionar tag..." />
+        <OmniTagInput @bind-Values="emails" Suggestions="@contatos"
+                      AllowCustom="true" Placeholder="Convidar por e-mail..." /> *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="@FieldCss" @onclick="FocusInputAsync">
+        @if (Values is not null)
+        {
+            @foreach (var item in Values.Select((t, i) => (Tag: t, Index: i)))
+            {
+                <span class="omni-taginput-chip" @key="@($"{item.Tag}{item.Index}")">
+                    <span class="omni-taginput-chip-label">@item.Tag</span>
+                    @if (!Disabled && !ReadOnly)
+                    {
+                        <button type="button" class="omni-taginput-chip-x"
+                                tabindex="-1"
+                                @onclick="@(() => RemoveAtAsync(item.Index))"
+                                @onclick:stopPropagation="true"
+                                aria-label="@($"Remover {item.Tag}")">
+                            <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                        </button>
+                    }
+                </span>
+            }
+        }
+        <input @ref="_inputRef"
+               class="omni-taginput-entry"
+               type="text"
+               value="@_buffer"
+               placeholder="@PlaceholderText"
+               disabled="@Disabled"
+               readonly="@ReadOnly"
+               name="@Name"
+               autocomplete="off"
+               role="combobox"
+               aria-expanded="@(_open ? "true" : "false")"
+               aria-controls="@($"{Id}-panel")"
+               aria-autocomplete="list"
+               @oninput="OnInputAsync"
+               @onfocus="OnFocus"
+               @onblur="OnBlur" />
+    </div>
+
+    @if (_open && _filtered.Count > 0)
+    {
+        <div class="omni-taginput-panel" id="@($"{Id}-panel")" role="listbox" @onclick:stopPropagation>
+            @foreach (var opt in _filtered.Select((s, i) => (Text: s, Index: i)))
+            {
+                var active = opt.Index == _highlighted;
+                <button type="button"
+                        class="@OptionCss(active)"
+                        role="option"
+                        aria-selected="@(active ? "true" : "false")"
+                        @key="@($"{opt.Text}-{opt.Index}")"
+                        @onmousedown:preventDefault="true"
+                        @onclick="@(() => AddTagAsync(opt.Text))">
+                    @opt.Text
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    // ── Bind (simétrico ao OmniMultiSelect) ───────────────────────────────
+    [Parameter] public IEnumerable<string>? Values { get; set; }
+    [Parameter] public EventCallback<IEnumerable<string>> ValuesChanged { get; set; }
+
+    /// <summary>Expression pra integração com EditContext (validators irmãos).</summary>
+    [Parameter] public Expression<Func<IEnumerable<string>?>>? ValuesExpression { get; set; }
+
+    /// <summary>Nome lógico — registra com OmniForm para validators irmãos
+    /// (<c>&lt;OmniRequiredValidator Component="..." /&gt;</c>).</summary>
+    [Parameter] public string? Name { get; set; }
+
+    [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
+
+    // ── Aparência / estado ────────────────────────────────────────────────
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    // ── Sugestões opcionais (autocomplete) ────────────────────────────────
+    /// <summary>Conjunto opcional de sugestões exibidas num painel ao digitar.</summary>
+    [Parameter] public IEnumerable<string>? Suggestions { get; set; }
+
+    /// <summary>Máximo de sugestões exibidas no painel. Default 8.</summary>
+    [Parameter] public int MaxSuggestions { get; set; } = 8;
+
+    // ── Regras de entrada ─────────────────────────────────────────────────
+    /// <summary>Permite criar valores livres (fora das <see cref="Suggestions"/>). Default true.
+    /// Quando false, só valores presentes em <see cref="Suggestions"/> são aceitos.</summary>
+    [Parameter] public bool AllowCustom { get; set; } = true;
+
+    /// <summary>Permite tags repetidas. Default false (ignora duplicatas).</summary>
+    [Parameter] public bool AllowDuplicates { get; set; }
+
+    /// <summary>Comparação sensível a maiúsculas (duplicatas/sugestões). Default false.</summary>
+    [Parameter] public bool CaseSensitive { get; set; }
+
+    /// <summary>Número máximo de tags. <c>null</c> = ilimitado.</summary>
+    [Parameter] public int? Max { get; set; }
+
+    // ── Eventos ───────────────────────────────────────────────────────────
+    [Parameter] public EventCallback<string> OnTagAdded { get; set; }
+    [Parameter] public EventCallback<string> OnTagRemoved { get; set; }
+
+    // ── IOmniFormComponent — descoberta por validators irmãos ──
+    private FieldIdentifier _fieldId;
+    string IOmniFormComponent.ResolvedName => Name ?? _fieldId.FieldName ?? string.Empty;
+    FieldIdentifier IOmniFormComponent.FieldIdentifier => _fieldId;
+    object? IOmniFormComponent.GetValue() => Values;
+    bool IOmniFormComponent.HasValue => Values is not null && Values.Any();
+
+    // ── Internos ──────────────────────────────────────────────────────────
+    private string _buffer = "";
+    private bool _open;
+    private int _highlighted;
+    private ElementReference _inputRef;
+    private IAsyncDisposable? _keyHandle;
+    private List<string> _filtered = new();
+    private static readonly char[] Delimiters = { ',', '\n', '\r' };
+
+    private StringComparison Comparison => CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+    private StringComparer Comparer => CaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+
+    private string? PlaceholderText => (Values is null || !Values.Any()) ? Placeholder : null;
+
+    private string RootCss => CssBuilder.Default("omni-taginput")
+        .AddClass("omni-taginput-sm", Size == ComponentSize.Sm)
+        .AddClass("omni-taginput-lg", Size == ComponentSize.Lg)
+        .AddClass("omni-taginput-open", _open)
+        .AddClass("omni-taginput-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+
+    private string FieldCss => CssBuilder.Default("omni-taginput-field")
+        .AddClass("omni-taginput-field-disabled", Disabled || ReadOnly)
+        .Build();
+
+    private string OptionCss(bool active) => CssBuilder.Default("omni-taginput-option")
+        .AddClass("omni-active", active)
+        .Build();
+
+    // ── Entrada de texto (também a rede de segurança p/ colagens) ──────────
+    private async Task OnInputAsync(ChangeEventArgs e)
+    {
+        if (Disabled || ReadOnly) return;
+        var text = e.Value?.ToString() ?? "";
+
+        // Colagens / vírgulas que escaparam do interceptor: divide em várias tags.
+        if (text.IndexOfAny(Delimiters) >= 0)
+        {
+            var parts = text.Split(Delimiters, StringSplitOptions.None);
+            for (var i = 0; i < parts.Length - 1; i++)
+                await AddTagAsync(parts[i]);
+            _buffer = parts[^1];
+        }
+        else
+        {
+            _buffer = text;
+        }
+
+        _highlighted = 0;
+        if (Suggestions is not null) _open = true;
+        RefreshSuggestions();
+    }
+
+    private void OnFocus()
+    {
+        if (Disabled || ReadOnly) return;
+        if (Suggestions is not null) _open = true;
+        RefreshSuggestions();
+    }
+
+    private void OnBlur() => _open = false;
+
+    private async Task FocusInputAsync()
+    {
+        if (Disabled || ReadOnly) return;
+        try { await _inputRef.FocusAsync(); } catch { /* SSR / pre-render */ }
+    }
+
+    // ── Teclado (KeyInterceptorService — preventDefault condicional) ───────
+    private async Task OnKeyAsync(string key, KeyboardEventArgs args)
+    {
+        if (Disabled || ReadOnly) return;
+        switch (key)
+        {
+            case "Enter":
+            case ",":
+                await CommitFromKeyboardAsync();
+                break;
+            case "Backspace":
+                if (string.IsNullOrEmpty(_buffer)) await RemoveLastAsync();
+                break;
+            case "ArrowDown": MoveHighlight(1); break;
+            case "ArrowUp":   MoveHighlight(-1); break;
+            case "Escape":    _open = false; break;
+        }
+        StateHasChanged();
+    }
+
+    private Task CommitFromKeyboardAsync()
+    {
+        // Sugestão em destaque tem prioridade sobre o texto bruto.
+        if (_open && _highlighted >= 0 && _highlighted < _filtered.Count)
+            return AddTagAsync(_filtered[_highlighted]);
+        return AddTagAsync(_buffer);
+    }
+
+    private void MoveHighlight(int delta)
+    {
+        if (_filtered.Count == 0) return;
+        _open = true;
+        _highlighted = Math.Clamp(_highlighted + delta, 0, _filtered.Count - 1);
+    }
+
+    // ── Mutação da coleção ────────────────────────────────────────────────
+    private async Task AddTagAsync(string raw)
+    {
+        var tag = raw.Trim();
+        if (tag.Length == 0) return;
+
+        if (!AllowCustom && !(Suggestions?.Any(s => string.Equals(s, tag, Comparison)) ?? false))
+            return; // restrito ao pool de sugestões
+
+        var current = Values?.ToList() ?? new List<string>();
+
+        if (!AllowDuplicates && current.Any(t => string.Equals(t, tag, Comparison)))
+        {
+            _buffer = "";          // já existe — consome o texto e segue
+            _highlighted = 0;
+            RefreshSuggestions();
+            return;
+        }
+
+        if (Max is int max && current.Count >= max) return; // mantém o buffer p/ o usuário ajustar
+
+        current.Add(tag);
+        _buffer = "";
+        _highlighted = 0;
+        await UpdateValuesAsync(current);
+        if (OnTagAdded.HasDelegate) await OnTagAdded.InvokeAsync(tag);
+        RefreshSuggestions();
+    }
+
+    private async Task RemoveAtAsync(int index)
+    {
+        var current = Values?.ToList() ?? new List<string>();
+        if (index < 0 || index >= current.Count) return;
+        var removed = current[index];
+        current.RemoveAt(index);
+        await UpdateValuesAsync(current);
+        if (OnTagRemoved.HasDelegate) await OnTagRemoved.InvokeAsync(removed);
+        RefreshSuggestions();
+    }
+
+    private Task RemoveLastAsync()
+    {
+        var list = Values?.ToList();
+        return list is { Count: > 0 } ? RemoveAtAsync(list.Count - 1) : Task.CompletedTask;
+    }
+
+    private async Task UpdateValuesAsync(IEnumerable<string> next)
+    {
+        Values = next;
+        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(next);
+    }
+
+    private void RefreshSuggestions()
+    {
+        if (Suggestions is null) { _filtered = new(); _open = false; return; }
+        var added = new HashSet<string>(Values ?? Enumerable.Empty<string>(), Comparer);
+        var q = _buffer.Trim();
+        _filtered = Suggestions
+            .Where(s => !string.IsNullOrWhiteSpace(s) && !added.Contains(s))
+            .Where(s => q.Length == 0 || s.Contains(q, Comparison))
+            .Take(MaxSuggestions)
+            .ToList();
+        if (_highlighted >= _filtered.Count) _highlighted = 0;
+    }
+
+    // ── ParameterState: reconstrói o FieldIdentifier só quando a expression muda ──
+    private readonly ParameterState<Expression<Func<IEnumerable<string>?>>?> _valuesExprState;
+
+    // Test-only: incrementa a cada recompute disparado pela expression.
+    internal int RecomputeCount { get; private set; }
+
+    public OmniTagInput()
+    {
+        _valuesExprState = RegisterParameter<Expression<Func<IEnumerable<string>?>>?>(nameof(ValuesExpression))
+            .WithParameter(() => ValuesExpression)
+            .WithChangeHandler(RecomputeFieldId)
+            .Attach();
+    }
+
+    private void RecomputeFieldId()
+    {
+        if (ValuesExpression is not null)
+            _fieldId = FieldIdentifier.Create(ValuesExpression);
+        RecomputeCount++;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        if (!string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
+            FormRegistry?.RegisterComponent(this);
+
+        try
+        {
+            _keyHandle = await KeyInterceptor.AttachAsync(_inputRef, new[]
+            {
+                new KeyInterceptorOption("Enter",     PreventDefault: true),
+                new KeyInterceptorOption(",",         PreventDefault: true),
+                new KeyInterceptorOption("Backspace"),
+                new KeyInterceptorOption("ArrowDown", PreventDefault: true),
+                new KeyInterceptorOption("ArrowUp",   PreventDefault: true),
+                new KeyInterceptorOption("Escape"),
+            }, OnKeyAsync);
+        }
+        catch { /* SSR / pre-render: re-attaches on next firstRender */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        FormRegistry?.UnregisterComponent(this);
+        if (_keyHandle is not null)
+        {
+            try { await _keyHandle.DisposeAsync(); } catch { }
+        }
+    }
+}

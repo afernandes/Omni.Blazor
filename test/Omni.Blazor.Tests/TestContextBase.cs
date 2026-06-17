@@ -31,6 +31,7 @@ public abstract class TestContextBase : BunitTestContext
         Services.AddSingleton<ParallaxService>();
         Services.AddSingleton<DialogService>();
         Services.AddSingleton<HotkeyService>();
+        Services.AddSingleton<KeyInterceptorService>();
         Services.AddSingleton<CommandHistoryService>();
         Services.AddSingleton<NotificationService>();
         Services.AddSingleton<TooltipService>();

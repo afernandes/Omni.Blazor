@@ -1,0 +1,215 @@
+@page "/showcase/taginput"
+@attribute [ShowcaseInfo(Title = "Tag Input", Category = Cat.Selection, Icon = "tag", New = true, Aliases = "tags,chips,emails,escopos,scopes,rotulos,labels,token,keywords")]
+@layout ShowcaseLayout
+
+<PageTitle>Tag Input — Showcase</PageTitle>
+
+<ShowcasePage Title="Tag Input"
+              Subtitle="Entrada de múltiplos valores de texto livre: o usuário digita e confirma com Enter ou vírgula, cada valor vira um chip removível. Diferente do MultiSelect (lista fixa), aqui os valores são CRIADOS pelo usuário — ideal p/ tags, e-mails, escopos e rótulos.">
+
+    <Overview>
+        <p>
+            <code>OmniTagInput</code> faz two-way para <code>IEnumerable&lt;string&gt;</code> via
+            <code>@@bind-Values</code> (API simétrica ao <code>OmniMultiSelect</code>). Confirma com
+            <strong>Enter</strong> ou <strong>vírgula</strong>, remove a última tag com
+            <strong>Backspace</strong> no campo vazio, e cola listas (separadas por vírgula/quebra)
+            dividindo automaticamente em várias tags.
+        </p>
+        <p>
+            O teclado é tratado pelo <code>KeyInterceptorService</code> — Enter <em>não</em> submete o
+            formulário (preventDefault condicional por tecla). Com <code>Suggestions</code>, exibe um
+            painel de autocomplete navegável por ↑/↓ e escolhido com Enter; <code>AllowCustom="false"</code>
+            restringe a entrada ao conjunto de sugestões.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="BÁSICO — texto livre"
+                         Description="Digite e tecle Enter ou vírgula. Backspace no campo vazio remove a última tag."
+                         Code="@(@"<OmniTagInput @bind-Values=""tags"" Placeholder=""Adicionar tag..."" />")">
+            <div style="max-width:480px;">
+                <OmniLabel Text="Tags do produto" Size="ComponentSize.Sm" />
+                <OmniTagInput @bind-Values="_tags" Placeholder="Adicionar tag..." />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                    @(_tags?.Count() ?? 0) tag(s): @string.Join(" · ", _tags ?? Array.Empty<string>())
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SUGESTÕES — autocomplete (texto livre + pool)"
+                         Description="Suggestions exibe um painel filtrado conforme você digita. Navegue com ↑/↓, escolha com Enter ou clique. Ainda aceita valores fora da lista."
+                         Code="@(@"<OmniTagInput @bind-Values=""ingredientes""
+              Suggestions=""@todosIngredientes""
+              Placeholder=""Adicionar ingrediente..."" />")">
+            <div style="max-width:480px;">
+                <OmniLabel Text="Ingredientes" Size="ComponentSize.Sm" />
+                <OmniTagInput @bind-Values="_ingredientes"
+                              Suggestions="@_ingredientesPool"
+                              Placeholder="Adicionar ingrediente..." />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                    @string.Join(" · ", _ingredientes ?? Array.Empty<string>())
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RESTRITO AO POOL — AllowCustom=false"
+                         Description="Só aceita valores presentes em Suggestions (sem criar valores novos). Útil p/ escopos/permissões fixas."
+                         Code="@(@"<OmniTagInput @bind-Values=""escopos""
+              Suggestions=""@escoposDisponiveis""
+              AllowCustom=""false""
+              Placeholder=""Adicionar escopo..."" />")">
+            <div style="max-width:480px;">
+                <OmniLabel Text="Escopos OAuth (só da lista)" Size="ComponentSize.Sm" />
+                <OmniTagInput @bind-Values="_escopos"
+                              Suggestions="@_escoposPool"
+                              AllowCustom="false"
+                              Placeholder="Adicionar escopo..." />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                    Disponíveis: @string.Join(", ", _escoposPool)
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LIMITES — Max, duplicatas, case"
+                         Description="Max limita a quantidade; AllowDuplicates permite repetir; CaseSensitive diferencia maiúsculas ao detectar duplicatas."
+                         Code="@(@"<OmniTagInput @bind-Values=""tags"" Max=""3"" />
+<OmniTagInput @bind-Values=""tags"" AllowDuplicates=""true"" />
+<OmniTagInput @bind-Values=""tags"" CaseSensitive=""true"" />")">
+            <div class="omni-grid-3">
+                <div>
+                    <OmniLabel Text="Máximo 3" Size="ComponentSize.Sm" />
+                    <OmniTagInput @bind-Values="_maxTags" Max="3" Placeholder="Até 3 tags..." />
+                </div>
+                <div>
+                    <OmniLabel Text="Permite duplicatas" Size="ComponentSize.Sm" />
+                    <OmniTagInput @bind-Values="_dupTags" AllowDuplicates="true" Placeholder="Repetir ok..." />
+                </div>
+                <div>
+                    <OmniLabel Text="Case-sensitive" Size="ComponentSize.Sm" />
+                    <OmniTagInput @bind-Values="_caseTags" CaseSensitive="true" Placeholder="API ≠ api..." />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="TAMANHOS"
+                         Description="Size = Sm | Md (default) | Lg."
+                         Code="@(@"<OmniTagInput Size=""ComponentSize.Sm"" ... />
+<OmniTagInput Size=""ComponentSize.Lg"" ... />")">
+            <OmniStack Gap="14">
+                <OmniTagInput @bind-Values="_sizeSm" Size="ComponentSize.Sm" Placeholder="Small..." />
+                <OmniTagInput @bind-Values="_sizeMd" Size="ComponentSize.Md" Placeholder="Medium (default)..." />
+                <OmniTagInput @bind-Values="_sizeLg" Size="ComponentSize.Lg" Placeholder="Large..." />
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESTADOS — Disabled / ReadOnly"
+                         Description="Disabled bloqueia tudo; ReadOnly mostra as tags sem permitir editar (chips sem botão de remover)."
+                         Code="@(@"<OmniTagInput @bind-Values=""tags"" Disabled />
+<OmniTagInput @bind-Values=""tags"" ReadOnly />")">
+            <OmniStack Gap="14">
+                <div>
+                    <OmniLabel Text="Disabled" Size="ComponentSize.Sm" />
+                    <OmniTagInput @bind-Values="_estadoTags" Disabled />
+                </div>
+                <div>
+                    <OmniLabel Text="ReadOnly" Size="ComponentSize.Sm" />
+                    <OmniTagInput @bind-Values="_estadoTags" ReadOnly />
+                </div>
+            </OmniStack>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="CASO DE USO — convidar por e-mail"
+                         Description="Cole vários e-mails de uma vez (separados por vírgula) — cada um vira um chip. Padrão de telas de convite (GitHub/Slack)."
+                         Code="@(@"<OmniTagInput @bind-Values=""emails""
+              Placeholder=""nome@empresa.com, outro@empresa.com...""
+              OnTagAdded=""e => Console.WriteLine(e)"" />")">
+            <div style="max-width:560px;">
+                <OmniLabel Text="Convidar membros" Size="ComponentSize.Sm" />
+                <OmniTagInput @bind-Values="_emails"
+                              Placeholder="nome@empresa.com, outro@empresa.com..."
+                              OnTagAdded="OnEmailAdded" />
+                <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                    @(_emails?.Count() ?? 0) convidado(s). @_ultimoEmail
+                </p>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniTagInput">
+            <ShowcaseApiRow Name="Values / ValuesChanged" Type="IEnumerable&lt;string&gt;?" Default="null"
+                            Description='@("Two-way: @bind-Values. A coleção de tags.")' />
+            <ShowcaseApiRow Name="ValuesExpression" Type="Expression&lt;Func&lt;...&gt;&gt;?" Default="null"
+                            Description="Para validators irmãos (OmniRequiredValidator Component=...)." />
+            <ShowcaseApiRow Name="Name" Type="string?" Default="null"
+                            Description="Nome lógico do campo (registro no OmniForm)." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
+                            Description="Texto do campo enquanto não há tags." />
+            <ShowcaseApiRow Name="Suggestions" Type="IEnumerable&lt;string&gt;?" Default="null"
+                            Description="Pool opcional de autocomplete exibido ao digitar." />
+            <ShowcaseApiRow Name="MaxSuggestions" Type="int" Default="8"
+                            Description="Quantas sugestões exibir no painel." />
+            <ShowcaseApiRow Name="AllowCustom" Type="bool" Default="true"
+                            Description="false = só aceita valores de Suggestions." />
+            <ShowcaseApiRow Name="AllowDuplicates" Type="bool" Default="false"
+                            Description="Permite tags repetidas." />
+            <ShowcaseApiRow Name="CaseSensitive" Type="bool" Default="false"
+                            Description="Diferencia maiúsculas em duplicatas/sugestões." />
+            <ShowcaseApiRow Name="Max" Type="int?" Default="null"
+                            Description="Número máximo de tags (null = ilimitado)." />
+            <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
+                            Description="Sm | Md | Lg." />
+            <ShowcaseApiRow Name="Disabled / ReadOnly" Type="bool" Default="false"
+                            Description="Bloqueia edição (ReadOnly mantém os chips visíveis sem remover)." />
+            <ShowcaseApiRow Name="OnTagAdded" Type="EventCallback&lt;string&gt;" Default="—"
+                            Description="Disparado quando uma tag é adicionada." />
+            <ShowcaseApiRow Name="OnTagRemoved" Type="EventCallback&lt;string&gt;" Default="—"
+                            Description="Disparado quando uma tag é removida." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Teclado">
+            <ShowcaseApiRow Name="Enter / vírgula" Type="—" Default="—"
+                            Description="Confirma o texto digitado como tag (não submete o form)." />
+            <ShowcaseApiRow Name="Backspace (vazio)" Type="—" Default="—"
+                            Description="Remove a última tag quando o campo está vazio." />
+            <ShowcaseApiRow Name="↑ / ↓ + Enter" Type="—" Default="—"
+                            Description="Navega e escolhe uma sugestão do painel." />
+            <ShowcaseApiRow Name="Esc" Type="—" Default="—"
+                            Description="Fecha o painel de sugestões." />
+            <ShowcaseApiRow Name="Colar (paste)" Type="—" Default="—"
+                            Description="Texto com vírgulas/quebras vira várias tags de uma vez." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private IEnumerable<string>? _tags = new[] { "destaque", "novo" };
+
+    private readonly string[] _ingredientesPool =
+    {
+        "Mussarela", "Calabresa", "Catupiry", "Cheddar", "Bacon", "Cebola",
+        "Tomate", "Manjericão", "Azeitona", "Champignon", "Frango", "Milho",
+    };
+    private IEnumerable<string>? _ingredientes = new[] { "Mussarela", "Calabresa" };
+
+    private readonly string[] _escoposPool =
+    {
+        "read:orders", "write:orders", "read:menu", "write:menu", "read:users", "admin:all",
+    };
+    private IEnumerable<string>? _escopos = new[] { "read:orders" };
+
+    private IEnumerable<string>? _maxTags;
+    private IEnumerable<string>? _dupTags;
+    private IEnumerable<string>? _caseTags;
+
+    private IEnumerable<string>? _sizeSm = new[] { "sm" };
+    private IEnumerable<string>? _sizeMd = new[] { "md" };
+    private IEnumerable<string>? _sizeLg = new[] { "lg" };
+
+    private IEnumerable<string>? _estadoTags = new[] { "fixo", "somente-leitura" };
+
+    private IEnumerable<string>? _emails = new[] { "ana@forneria.com" };
+    private string _ultimoEmail = "";
+    private void OnEmailAdded(string email) => _ultimoEmail = $"Último: {email}";
+}

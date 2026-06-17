@@ -5948,6 +5948,109 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   &:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
 }
 
+// ─── OmniTagInput — chips editáveis com digitação livre ────────────────────
+// Campo que parece um input de texto, mas cada valor confirmado vira um chip
+// removível inline. O <input> real flui junto aos chips (flex-wrap) e fica
+// transparente — a borda/foco vivem no wrapper .omni-taginput-field via
+// :focus-within. Painel de sugestões é posicionado em relação à raiz.
+.omni-taginput { position: relative; display: block; width: 100%; }
+.omni-taginput-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 4px 8px;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  cursor: text;
+  transition: border-color 120ms, box-shadow 120ms;
+  &:hover { border-color: var(--omni-line-strong); }
+  &:focus-within {
+    border-color: var(--omni-accent);
+    box-shadow: 0 0 0 2px var(--omni-accent-softer);
+  }
+}
+.omni-taginput-field-disabled {
+  background: var(--omni-bg-sunken);
+  cursor: not-allowed;
+  opacity: 0.6;
+  &:focus-within { border-color: var(--omni-line); box-shadow: none; }
+}
+.omni-taginput-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+  border-radius: 999px;
+  font: 12px/1 var(--omni-font-ui);
+  font-weight: 500;
+  max-width: 100%;
+}
+.omni-taginput-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.omni-taginput-chip-x {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 2px;
+  border-radius: 50%;
+  display: inline-flex;
+  cursor: pointer;
+  opacity: 0.7;
+  &:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+}
+.omni-taginput-entry {
+  flex: 1 1 80px;
+  min-width: 80px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--omni-fg);
+  font: 13px/1.4 var(--omni-font-ui);
+  padding: 4px 2px;
+  &::placeholder { color: var(--omni-fg-soft); }
+  &:disabled { cursor: not-allowed; }
+}
+.omni-taginput-sm .omni-taginput-field { min-height: 30px; padding: 2px 6px; }
+.omni-taginput-sm .omni-taginput-entry { font-size: 12px; padding: 2px; }
+.omni-taginput-lg .omni-taginput-field { min-height: 44px; padding: 6px 10px; }
+.omni-taginput-lg .omni-taginput-entry { font-size: 15px; }
+
+.omni-taginput-panel {
+  position: absolute;
+  z-index: 1100;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.omni-taginput-option {
+  appearance: none;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--omni-radius-sm);
+  padding: 7px 10px;
+  font: 13px/1.4 var(--omni-font-ui);
+  color: var(--omni-fg);
+  cursor: pointer;
+  &:hover,
+  &.omni-active { background: var(--omni-bg-sunken); }
+}
+
 // ─── OmniSpeechToTextButton — state machine visuals ────────────────────────
 // 4 estados com feedback visual distinto. Cada estado define background +
 // border + cor de texto pra ser INDEPENDENTE da Variant escolhida — sem
