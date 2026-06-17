@@ -62,10 +62,12 @@
     private bool _flipPending;
     private ElementReference _wrapRef;
     private string _id = $"pp-{Guid.NewGuid():N}";
+    private DotNetObjectReference<OmniPopover>? _dotnetRef;
     private readonly ParameterState<bool> _openState;
 
     public OmniPopover()
     {
+        _dotnetRef = DotNetObjectReference.Create(this);
         // ParameterState fires its handler only when the *consumer* mutates
         // the Open parameter — never when a re-render re-passes the same value.
         // That eliminates the bug where typing into a sibling input would
@@ -118,10 +120,9 @@
         StateHasChanged();
         try
         {
-            var dotnet = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
-                _id, $"[data-omni-ppid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
-            await JS.InvokeVoidAsync("omniBlazor.registerEsc", _id, dotnet, "OnEscAsync");
+                _id, $"[data-omni-ppid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
+            await JS.InvokeVoidAsync("omniBlazor.registerEsc", _id, _dotnetRef, "OnEscAsync");
         }
         catch { }
     }
@@ -163,5 +164,9 @@
         StateHasChanged();
     }
 
-    public void Dispose() => _ = CloseAsync();
+    public void Dispose()
+    {
+        _ = CloseAsync();
+        _dotnetRef?.Dispose();
+    }
 }

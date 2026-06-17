@@ -162,6 +162,7 @@ else
     private TimeOnly _time = TimeOnly.MinValue;
     private string _textValue = "";
     private string _id = $"dp-{Guid.NewGuid():N}";
+    private DotNetObjectReference<OmniDatePicker<TValue>>? _dotnetRef;
 
     // ParameterState fires only on consumer-driven Value changes. User edits
     // go through SetValueAsync, which mutates Value before the next detect
@@ -174,6 +175,7 @@ else
 
     public OmniDatePicker()
     {
+        _dotnetRef = DotNetObjectReference.Create(this);
         _valueState = RegisterParameter<TValue?>(nameof(Value))
             .WithParameter(() => Value)
             .WithChangeHandler(RecomputeFromValue)
@@ -394,9 +396,8 @@ else
         StateHasChanged();
         try
         {
-            var dotnet = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
-                _id, $"[data-omni-dpid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+                _id, $"[data-omni-dpid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
         }
         catch { /* prerender */ }
     }
@@ -422,6 +423,7 @@ else
     {
         base.Dispose();
         _ = UnregisterOutsideAsync();
+        _dotnetRef?.Dispose();
     }
 
     /// <summary>Smart placeholder default: time-only mode shows "HH:mm", time+date shows "dd/MM/yyyy HH:mm", just date shows DateFormat.</summary>

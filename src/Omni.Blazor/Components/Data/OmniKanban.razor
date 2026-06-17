@@ -1,0 +1,889 @@
+@namespace Omni.Blazor.Components
+@typeparam TCard
+@inherits OmniComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject KeyInterceptorService KeyInterceptor
+@inject ContextMenuService ContextMenu
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Web
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Omni.Blazor.Utilities
+
+@*  OmniKanban — quadro de colunas com cards arrastáveis. Camada opinativa sobre
+    o mesmo HTML5 drag-and-drop do OmniDropZone, com modelo de coluna/card pronto:
+    reordenar dentro e entre colunas (mouse OU teclado), raias (swimlanes), limite
+    de WIP, recolher, adicionar card, filtros rápidos + busca, envelhecimento de
+    card ("dias na coluna"), cor por card e templates.
+
+    Controlado: a coluna de cada card vem de ColumnSelector e a ordem vem da ordem
+    de Items (@bind-Items). Ao mover, chama ColumnSetter (e SwimlaneSetter, se houver
+    raias), reordena Items e emite CardMoved. A inserção é por REFERÊNCIA ao card-alvo
+    (não índice), o que mantém a reordenação correta mesmo com filtros ativos.
+
+    Usage:
+        <OmniKanban TCard="Tarefa" @bind-Items="tarefas" Columns="@colunas"
+                    ColumnSelector="t => t.Status" ColumnSetter="(t,s) => t.Status = s"
+                    CardId="t => t.Id" CardTitle="t => t.Titulo" /> *@
+
+<div class="@RootCss" style="@RootStyle" @attributes="Attributes">
+    @if (HasToolbar)
+    {
+        <div class="omni-kanban-toolbar">
+            @if (ShowSearch)
+            {
+                <div class="omni-kanban-search">
+                    <OmniIcon Name="search" Size="ComponentSize.Sm" />
+                    <input class="omni-kanban-search-input" type="text" value="@_search"
+                           placeholder="@SearchPlaceholder" aria-label="Buscar cards" @oninput="OnSearchInput" />
+                </div>
+            }
+            @if (QuickFilters is not null)
+            {
+                @foreach (var qf in QuickFilters)
+                {
+                    <button type="button" class="@QuickChipCss(qf)" @key="qf" @onclick="@(() => ToggleFilter(qf))">
+                        @if (!string.IsNullOrEmpty(qf.Icon)) { <OmniIcon Name="@qf.Icon" Size="ComponentSize.Sm" /> }
+                        <span>@qf.Label</span>
+                    </button>
+                }
+            }
+        </div>
+    }
+
+    <div @ref="_boardRef" class="@BoardCss">
+        @if (HasSwimlanes)
+        {
+            <div class="omni-kanban-headrow">
+                @foreach (var col in Cols)
+                {
+                    <div class="@HeadCellCss(col)" @key="col.Id"
+                         draggable="@ColumnDraggableAttr"
+                         @ondragstart="@(() => OnColumnDragStart(col))" @ondragstart:stopPropagation="true"
+                         @ondragend="OnColumnDragEnd"
+                         @ondragover="@(() => OnColumnReorderOver(col))" @ondragover:preventDefault="@ColumnReorderActive"
+                         @ondrop="OnColumnDropAsync" @ondrop:preventDefault="true">
+                        @if (AllowColumnReorder)
+                        {
+                            <OmniIcon Name="grip" Size="ComponentSize.Sm" Class="omni-kanban-col-grip" />
+                        }
+                        @RenderColumnHeaderInner(col)
+                    </div>
+                }
+            </div>
+            @foreach (var lane in Lanes)
+            {
+                var laneCollapsed = _collapsedLanes.Contains(lane.Id);
+                <div class="omni-kanban-lane" @key="lane.Id">
+                    <div class="omni-kanban-lane-head">
+                        @if (SwimlanesCollapsible)
+                        {
+                            <button type="button" class="omni-kanban-col-collapse"
+                                    aria-label="@(laneCollapsed ? "Expandir" : "Recolher")"
+                                    @onclick="@(() => ToggleLane(lane))">
+                                <OmniIcon Name="@(laneCollapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                            </button>
+                        }
+                        @if (!string.IsNullOrEmpty(lane.Icon)) { <OmniIcon Name="@lane.Icon" Size="ComponentSize.Sm" /> }
+                        <span class="omni-kanban-lane-title">@(lane.Title ?? lane.Id)</span>
+                        <span class="omni-kanban-col-count">@LaneCount(lane)</span>
+                    </div>
+                    @if (!laneCollapsed)
+                    {
+                        <div class="omni-kanban-lane-row">
+                            @foreach (var col in Cols)
+                            {
+                                <div class="omni-kanban-laneslot" @key="col.Id">@RenderCell(col, lane.Id)</div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            @foreach (var col in Cols)
+            {
+                var collapsed = _collapsed.Contains(col.Id);
+                <section class="@ColumnCss(col, collapsed)" @key="col.Id">
+                    <header class="omni-kanban-col-head"
+                            draggable="@ColumnDraggableAttr"
+                            @ondragstart="@(() => OnColumnDragStart(col))" @ondragstart:stopPropagation="true"
+                            @ondragend="OnColumnDragEnd"
+                            @ondragover="@(() => OnColumnReorderOver(col))" @ondragover:preventDefault="@ColumnReorderActive"
+                            @ondrop="OnColumnDropAsync" @ondrop:preventDefault="true">
+                        @if (AllowColumnReorder)
+                        {
+                            <OmniIcon Name="grip" Size="ComponentSize.Sm" Class="omni-kanban-col-grip" />
+                        }
+                        @if (Collapsible)
+                        {
+                            <button type="button" class="omni-kanban-col-collapse"
+                                    draggable="false"
+                                    aria-label="@(collapsed ? "Expandir" : "Recolher")"
+                                    aria-expanded="@(collapsed ? "false" : "true")"
+                                    @onmousedown:stopPropagation="true" @ondragstart:stopPropagation="true"
+                                    @onclick="@(() => ToggleCollapse(col))">
+                                <OmniIcon Name="@(collapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
+                            </button>
+                        }
+                        @RenderColumnHeaderInner(col)
+                    </header>
+                    @if (!collapsed)
+                    {
+                        @RenderCell(col, null)
+                        @if (ColumnFooterTemplate is not null)
+                        {
+                            <footer class="omni-kanban-col-foot">@ColumnFooterTemplate(col)</footer>
+                        }
+                        else if (AllowAddCard)
+                        {
+                            <footer class="omni-kanban-col-foot">
+                                <button type="button" class="omni-kanban-add" @onclick="@(() => OnAddCard.InvokeAsync(col))">
+                                    <OmniIcon Name="plus" Size="ComponentSize.Sm" />
+                                    <span>@AddCardText</span>
+                                </button>
+                            </footer>
+                        }
+                    }
+                </section>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    // ── Dados / bind ───────────────────────────────────────────────────────
+    /// <summary>Lista plana de cards. Two-way (<c>@bind-Items</c>) — reordenada ao mover.</summary>
+    [Parameter] public IEnumerable<TCard>? Items { get; set; }
+    [Parameter] public EventCallback<IEnumerable<TCard>> ItemsChanged { get; set; }
+
+    /// <summary>Definição das colunas (ordem = ordem de exibição).</summary>
+    [Parameter, EditorRequired] public IEnumerable<KanbanColumn>? Columns { get; set; }
+
+    /// <summary>Card → Id da coluna (obrigatório).</summary>
+    [Parameter, EditorRequired] public Func<TCard, string>? ColumnSelector { get; set; }
+
+    /// <summary>Grava a nova coluna no card ao mover entre colunas.</summary>
+    [Parameter] public Action<TCard, string>? ColumnSetter { get; set; }
+
+    /// <summary>Chave estável do card (recomendado): <c>@@key</c>, foco por teclado, igualdade.</summary>
+    [Parameter] public Func<TCard, object>? CardId { get; set; }
+
+    // ── Reordenar colunas (arrastar pelo cabeçalho) ────────────────────────
+    /// <summary>Permite arrastar o cabeçalho da coluna para reordená-las. Default false.</summary>
+    [Parameter] public bool AllowColumnReorder { get; set; }
+
+    /// <summary>Two-way: <c>@@bind-Columns</c> — recebe a nova ordem ao reordenar.</summary>
+    [Parameter] public EventCallback<IEnumerable<KanbanColumn>> ColumnsChanged { get; set; }
+
+    /// <summary>Disparado após reordenar colunas (coluna + índices).</summary>
+    [Parameter] public EventCallback<KanbanColumnMovedEventArgs> ColumnMoved { get; set; }
+
+    // ── Swimlanes (raias) ──────────────────────────────────────────────────
+    /// <summary>Definição das raias. Quando presente (+ <see cref="SwimlaneSelector"/>), o board agrupa em linhas.</summary>
+    [Parameter] public IEnumerable<KanbanSwimlane>? Swimlanes { get; set; }
+
+    /// <summary>Card → Id da raia.</summary>
+    [Parameter] public Func<TCard, string>? SwimlaneSelector { get; set; }
+
+    /// <summary>Grava a nova raia no card ao mover entre raias.</summary>
+    [Parameter] public Action<TCard, string>? SwimlaneSetter { get; set; }
+
+    /// <summary>Permite recolher raias. Default true.</summary>
+    [Parameter] public bool SwimlanesCollapsible { get; set; } = true;
+
+    // ── Filtros rápidos + busca ────────────────────────────────────────────
+    /// <summary>Exibe uma barra de busca textual.</summary>
+    [Parameter] public bool ShowSearch { get; set; }
+
+    /// <summary>Texto a pesquisar por card. Default = título do card.</summary>
+    [Parameter] public Func<TCard, string>? SearchSelector { get; set; }
+
+    /// <summary>Placeholder da busca.</summary>
+    [Parameter] public string SearchPlaceholder { get; set; } = "Buscar...";
+
+    /// <summary>Chips de filtro rápido (combinam em E). Cards que falham num filtro ativo são ocultados.</summary>
+    [Parameter] public IEnumerable<KanbanQuickFilter<TCard>>? QuickFilters { get; set; }
+
+    // ── Envelhecimento (dias na coluna) ────────────────────────────────────
+    /// <summary>Exibe o indicador de envelhecimento (pontos).</summary>
+    [Parameter] public bool ShowCardAge { get; set; }
+
+    /// <summary>Dias que o card está na coluna (o consumidor calcula). <c>null</c> = oculto.</summary>
+    [Parameter] public Func<TCard, int?>? CardAge { get; set; }
+
+    /// <summary>A partir de quantos dias o card fica "amarelo". Default 3.</summary>
+    [Parameter] public int AgeWarnDays { get; set; } = 3;
+
+    /// <summary>A partir de quantos dias o card fica "vermelho". Default 5.</summary>
+    [Parameter] public int AgeStaleDays { get; set; } = 5;
+
+    // ── Cor por card ───────────────────────────────────────────────────────
+    /// <summary>Cor (CSS) da faixa lateral do card — por tipo, prioridade, etc. <c>null</c> = sem faixa.</summary>
+    [Parameter] public Func<TCard, string?>? CardColor { get; set; }
+
+    // ── Card padrão: layout estruturado (avatar, prazo, prioridade, etc.) ──
+    // Cada seletor é opcional; quando <c>null</c> o respectivo campo não aparece.
+    // Ignorados se <see cref="CardTemplate"/> for fornecido (ele sobrescreve tudo).
+    /// <summary>Nome do responsável — vira avatar (iniciais) no rodapé do card.</summary>
+    [Parameter] public Func<TCard, string?>? CardAssignee { get; set; }
+
+    /// <summary>URL da imagem do avatar do responsável (senão usa as iniciais).</summary>
+    [Parameter] public Func<TCard, string?>? CardAvatar { get; set; }
+
+    /// <summary>Prazo do card — badge de data (fica vermelho se vencido).</summary>
+    [Parameter] public Func<TCard, DateTime?>? CardDueDate { get; set; }
+
+    /// <summary>Formato do prazo. Default <c>"dd MMM"</c>.</summary>
+    [Parameter] public string DueDateFormat { get; set; } = "dd MMM";
+
+    /// <summary>Prioridade do card — ícone/cor no topo.</summary>
+    [Parameter] public Func<TCard, KanbanPriority>? CardPriority { get; set; }
+
+    /// <summary>Progresso de subtarefas (concluídas, total) — badge <c>✓ d/t</c>.</summary>
+    [Parameter] public Func<TCard, (int Done, int Total)?>? CardSubtasks { get; set; }
+
+    /// <summary>Estimativa (texto livre: "5", "3h", "8pts") — badge.</summary>
+    [Parameter] public Func<TCard, string?>? CardEstimate { get; set; }
+
+    /// <summary>Campos extras (rótulo + valor) exibidos no card — no máx. 3.</summary>
+    [Parameter] public Func<TCard, IEnumerable<KanbanField>?>? CardFields { get; set; }
+
+    // ── Menu de ações do card ("…") ────────────────────────────────────────
+    /// <summary>Ações do menu "…" do card (atribuir, mover, sinalizar, etc.). Quando definido,
+    /// mostra o botão "…"; o menu é renderizado num portal (escapa o overflow da coluna).</summary>
+    [Parameter] public Func<TCard, IEnumerable<KanbanCardAction>>? CardActions { get; set; }
+
+    /// <summary>Disparado quando uma ação do menu "…" é selecionada.</summary>
+    [Parameter] public EventCallback<KanbanCardActionEventArgs<TCard>> CardAction { get; set; }
+
+    // ── Templates / conteúdo ───────────────────────────────────────────────
+    [Parameter] public Func<TCard, string>? CardTitle { get; set; }
+    [Parameter] public RenderFragment<TCard>? CardTemplate { get; set; }
+    [Parameter] public RenderFragment<KanbanColumn>? ColumnHeaderTemplate { get; set; }
+    [Parameter] public RenderFragment<KanbanColumn>? ColumnFooterTemplate { get; set; }
+    [Parameter] public RenderFragment? EmptyColumnTemplate { get; set; }
+
+    // ── Comportamento ──────────────────────────────────────────────────────
+    [Parameter] public bool ShowCount { get; set; } = true;
+    [Parameter] public bool Collapsible { get; set; } = true;
+    [Parameter] public bool AllowAddCard { get; set; }
+    [Parameter] public string AddCardText { get; set; } = "Adicionar card";
+    [Parameter] public bool DragDisabled { get; set; }
+    [Parameter] public WipLimitMode WipLimitMode { get; set; } = WipLimitMode.Warn;
+    [Parameter] public string? ColumnWidth { get; set; }
+
+    // ── Eventos ────────────────────────────────────────────────────────────
+    [Parameter] public EventCallback<KanbanCardMovedEventArgs<TCard>> CardMoved { get; set; }
+    [Parameter] public EventCallback<TCard> CardClick { get; set; }
+    [Parameter] public EventCallback<KanbanColumn> OnAddCard { get; set; }
+
+    // ── Estado interno ─────────────────────────────────────────────────────
+    private ElementReference _boardRef;
+    private TCard? _dragCard;
+    private TCard? _focused;
+    private TCard? _overCard;          // card-alvo da inserção (null = anexar ao fim)
+    private string? _overCol;
+    private string? _overLane;
+    private KanbanColumn? _dragColumn; // coluna em arraste (reordenação)
+    private string? _overColumn;       // coluna-alvo da reordenação
+    private string _search = "";
+    private readonly HashSet<string> _collapsed = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _collapsedLanes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _seenCols = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _seenLanes = new(StringComparer.Ordinal);
+    private readonly HashSet<KanbanQuickFilter<TCard>> _activeFilters = new();
+    private string? _pendingFocusId;
+    private IAsyncDisposable? _keyHandle;
+
+    private IReadOnlyList<KanbanColumn> Cols =>
+        Columns is null ? Array.Empty<KanbanColumn>() : Columns as IReadOnlyList<KanbanColumn> ?? Columns.ToList();
+    private IReadOnlyList<KanbanSwimlane> Lanes =>
+        Swimlanes is null ? Array.Empty<KanbanSwimlane>() : Swimlanes as IReadOnlyList<KanbanSwimlane> ?? Swimlanes.ToList();
+
+    private bool HasSwimlanes => SwimlaneSelector is not null && Lanes.Count > 0;
+    private bool HasToolbar => ShowSearch || (QuickFilters?.Any() ?? false);
+    private string DraggableAttr => DragDisabled ? "false" : "true";
+
+    private string RootCss => CssBuilder.Default("omni-kanban")
+        .AddClass("omni-kanban-dragging", _dragCard is not null)
+        .AddClass(Class)
+        .Build();
+
+    private string RootStyle =>
+        (string.IsNullOrEmpty(ColumnWidth) ? "" : $"--omni-kanban-col-w:{ColumnWidth};") + (Style ?? "");
+
+    private string BoardCss => CssBuilder.Default("omni-kanban-board")
+        .AddClass("omni-kanban-board-lanes", HasSwimlanes)
+        .Build();
+
+    private string ColumnCss(KanbanColumn col, bool collapsed) => CssBuilder.Default("omni-kanban-col")
+        .AddClass($"omni-kanban-col-{col.Tone.ToString().ToLowerInvariant()}", col.Tone != CardTone.None)
+        .AddClass("omni-kanban-col-collapsed", collapsed)
+        .AddClass("omni-kanban-col-reorderable", AllowColumnReorder)
+        .AddClass("omni-kanban-col-dragging", _dragColumn is not null && string.Equals(_dragColumn.Id, col.Id, StringComparison.Ordinal))
+        .AddClass("omni-kanban-col-droptarget", ColumnDropTarget(col))
+        .Build();
+
+    private string HeadCellCss(KanbanColumn col) => CssBuilder.Default("omni-kanban-headcell")
+        .AddClass($"omni-kanban-col-{col.Tone.ToString().ToLowerInvariant()}", col.Tone != CardTone.None)
+        .AddClass("omni-kanban-col-reorderable", AllowColumnReorder)
+        .AddClass("omni-kanban-col-dragging", _dragColumn is not null && string.Equals(_dragColumn.Id, col.Id, StringComparison.Ordinal))
+        .AddClass("omni-kanban-col-droptarget", ColumnDropTarget(col))
+        .Build();
+
+    private bool ColumnReorderActive => AllowColumnReorder && !DragDisabled;
+    private string ColumnDraggableAttr => ColumnReorderActive ? "true" : "false";
+    private bool ColumnDropTarget(KanbanColumn col) =>
+        _dragColumn is not null && string.Equals(_overColumn, col.Id, StringComparison.Ordinal)
+        && !string.Equals(_dragColumn.Id, col.Id, StringComparison.Ordinal);
+
+    private string CardCss(TCard card) => CssBuilder.Default("omni-kanban-card")
+        .AddClass("omni-kanban-card-accented", CardColor?.Invoke(card) is { Length: > 0 })
+        .AddClass("omni-kanban-card-dragging", _dragCard is not null && CardEquals(_dragCard, card))
+        .Build();
+
+    private string? CardStyle(TCard card)
+    {
+        var c = CardColor?.Invoke(card);
+        return string.IsNullOrEmpty(c) ? null : $"--omni-kanban-card-color:{c}";
+    }
+
+    private string AgeCss(int age) => CssBuilder.Default("omni-kanban-card-age")
+        .AddClass("omni-kanban-card-age-stale", age >= AgeStaleDays)
+        .AddClass("omni-kanban-card-age-warn", age >= AgeWarnDays && age < AgeStaleDays)
+        .Build();
+
+    private static string CountCss(bool over) => CssBuilder.Default("omni-kanban-col-count")
+        .AddClass("omni-kanban-col-count-over", over)
+        .Build();
+
+    private string QuickChipCss(KanbanQuickFilter<TCard> f) => CssBuilder.Default("omni-kanban-chip")
+        .AddClass("omni-kanban-chip-active", _activeFilters.Contains(f))
+        .Build();
+
+    // ── Templates internos (DRY entre modo normal e swimlanes) ─────────────
+    private RenderFragment RenderColumnHeaderInner(KanbanColumn col) =>@<text>
+        @if (ColumnHeaderTemplate is not null)
+        {
+            @ColumnHeaderTemplate(col)
+        }
+        else
+        {
+            @if (!string.IsNullOrEmpty(col.Icon)) { <OmniIcon Name="@col.Icon" Size="ComponentSize.Sm" /> }
+            <span class="omni-kanban-col-title">@(col.Title ?? col.Id)</span>
+            @if (ShowCount)
+            {
+                var count = ColumnCards(col.Id).Count;
+                <span class="@CountCss(WipOver(col, count))">@CountLabel(col, count)</span>
+            }
+        }
+    </text>;
+
+    private RenderFragment RenderCell(KanbanColumn col, string? lane) =>@<div class="omni-kanban-col-body"
+             @ondragover="@(() => OnColumnDragOver(col, lane))" @ondragover:preventDefault="true"
+             @ondrop="OnDropAsync" @ondrop:preventDefault="true">
+        @{ var cards = CellCards(col.Id, lane); var anyVisible = false; }
+        @foreach (var card in cards)
+        {
+            if (!Visible(card)) { continue; }
+            anyVisible = true;
+            if (DragHere(col, lane) && CardEquals(_overCard, card))
+            {
+                <div class="omni-kanban-drop-line"></div>
+            }
+            @RenderCard(col, lane, card)
+        }
+        @if (DragHere(col, lane) && _overCard is null)
+        {
+            <div class="omni-kanban-drop-line"></div>
+        }
+        @if (!anyVisible && !DragHere(col, lane))
+        {
+            <div class="omni-kanban-empty">
+                @if (EmptyColumnTemplate is not null) { @EmptyColumnTemplate }
+                else { <span>Sem cards</span> }
+            </div>
+        }
+    </div>;
+
+    private RenderFragment RenderCard(KanbanColumn col, string? lane, TCard card) =>@<div class="@CardCss(card)"
+             @key="CardKey(card)"
+             id="@CardDomId(card)"
+             style="@CardStyle(card)"
+             draggable="@DraggableAttr"
+             tabindex="0"
+             role="button"
+             aria-roledescription="Card arrastável"
+             @onfocus="@(() => _focused = card)"
+             @onclick="@(() => OnCardClickAsync(card))"
+             @ondragstart="@(() => OnCardDragStart(card))" @ondragstart:stopPropagation="true"
+             @ondragend="OnCardDragEnd"
+             @ondragover="@(() => OnCardDragOver(col, lane, card))" @ondragover:preventDefault="true" @ondragover:stopPropagation="true">
+        @if (CardActions is not null)
+        {
+            <button type="button" class="omni-kanban-card-menu" title="Ações" aria-label="Ações do card"
+                    draggable="false"
+                    @onclick="@(e => OpenMenu(e, card))" @onclick:stopPropagation="true"
+                    @onmousedown:stopPropagation="true" @ondragstart:stopPropagation="true">
+                <OmniIcon Name="more-horizontal" Size="ComponentSize.Sm" />
+            </button>
+        }
+        @if (CardTemplate is not null)
+        {
+            @CardTemplate(card)
+        }
+        else
+        {
+            @RenderDefaultCard(card)
+        }
+        @{ var age = ShowCardAge ? CardAge?.Invoke(card) : null; }
+        @if (age is int a && a > 0)
+        {
+            <div class="@AgeCss(a)" title="@($"{a} dia(s) na coluna")">
+                @for (var d = 0; d < Math.Min(a, Math.Max(1, AgeStaleDays)); d++)
+                {
+                    <span class="omni-kanban-age-dot"></span>
+                }
+            </div>
+        }
+    </div>;
+
+    // Card padrão com layout estruturado (avatar, prazo, prioridade, subtarefas,
+    // estimativa, até 3 campos). Cada parte só aparece se seu seletor estiver definido.
+    private RenderFragment RenderDefaultCard(TCard card) =>@<text>
+        <div class="omni-kanban-card-head">
+            @if (CardPriority is not null)
+            {
+                var pr = CardPriority(card);
+                if (pr != KanbanPriority.None)
+                {
+                    <span class="@PriorityCss(pr)" title="@($"Prioridade: {pr}")">
+                        <OmniIcon Name="@PriorityIcon(pr)" Size="ComponentSize.Sm" />
+                    </span>
+                }
+            }
+            <span class="omni-kanban-card-title">@CardTitleOf(card)</span>
+        </div>
+
+        @if (CardFields is not null)
+        {
+            var fields = CardFields(card);
+            if (fields is not null)
+            {
+                <div class="omni-kanban-card-fields">
+                    @foreach (var (f, i) in fields.Take(3).Select((f, i) => (f, i)))
+                    {
+                        <div class="omni-kanban-card-field" @key="i">
+                            @if (!string.IsNullOrEmpty(f.Icon)) { <OmniIcon Name="@f.Icon" Size="ComponentSize.Sm" /> }
+                            <span class="omni-kanban-card-field-label">@f.Label</span>
+                            <span class="omni-kanban-card-field-value">@f.Value</span>
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        @{
+            var est = CardEstimate?.Invoke(card);
+            var st = CardSubtasks?.Invoke(card);
+            var due = CardDueDate?.Invoke(card);
+            var assignee = CardAssignee?.Invoke(card);
+            var hasMeta = !string.IsNullOrEmpty(est) || st.HasValue || due.HasValue || !string.IsNullOrEmpty(assignee);
+        }
+        @if (hasMeta)
+        {
+            <div class="omni-kanban-card-meta">
+                @if (!string.IsNullOrEmpty(est))
+                {
+                    <span class="omni-kanban-card-chip" title="Estimativa">
+                        <OmniIcon Name="clock" Size="ComponentSize.Sm" /><span>@est</span>
+                    </span>
+                }
+                @if (st.HasValue)
+                {
+                    var (done, total) = st.Value;
+                    <span class="omni-kanban-card-chip" title="Subtarefas">
+                        <OmniIcon Name="check" Size="ComponentSize.Sm" /><span>@done/@total</span>
+                    </span>
+                }
+                @if (due.HasValue)
+                {
+                    <span class="@DueCss(due.Value)" title="Prazo">
+                        <OmniIcon Name="calendar" Size="ComponentSize.Sm" /><span>@due.Value.ToString(DueDateFormat, CultureInfo.CurrentCulture)</span>
+                    </span>
+                }
+                <span class="omni-kanban-card-meta-spacer"></span>
+                @if (!string.IsNullOrEmpty(assignee))
+                {
+                    <OmniAvatar Size="AvatarSize.Sm" Initials="@Initials(assignee)"
+                                ImageUrl="@CardAvatar?.Invoke(card)" Class="omni-kanban-card-avatar" />
+                }
+            </div>
+        }
+    </text>;
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        var s = parts[0][0].ToString();
+        if (parts.Length > 1) s += parts[^1][0];
+        return s.ToUpperInvariant();
+    }
+
+    private static string PriorityIcon(KanbanPriority p) => p switch
+    {
+        KanbanPriority.Urgent => "chevrons-up",
+        KanbanPriority.High   => "chevron-up",
+        KanbanPriority.Medium => "equal",
+        KanbanPriority.Low    => "chevron-down",
+        _                     => "minus",
+    };
+
+    private static string PriorityCss(KanbanPriority p) => CssBuilder.Default("omni-kanban-card-prio")
+        .AddClass($"omni-kanban-card-prio-{p.ToString().ToLowerInvariant()}")
+        .Build();
+
+    private string DueCss(DateTime due) => CssBuilder.Default("omni-kanban-card-chip")
+        .AddClass("omni-kanban-card-chip-danger", due.Date < DateTime.Today)
+        .Build();
+
+    // ── Derivação coluna/raia/card ─────────────────────────────────────────
+    private bool InCell(TCard card, string colId, string? lane)
+    {
+        if (ColumnSelector is null || !string.Equals(ColumnSelector(card), colId, StringComparison.Ordinal)) return false;
+        if (lane is null) return true;
+        return SwimlaneSelector is not null && string.Equals(SwimlaneSelector(card), lane, StringComparison.Ordinal);
+    }
+
+    private List<TCard> CellCards(string colId, string? lane)
+    {
+        var r = new List<TCard>();
+        if (Items is null) return r;
+        foreach (var c in Items) if (InCell(c, colId, lane)) r.Add(c);
+        return r;
+    }
+
+    private List<TCard> ColumnCards(string colId)
+    {
+        var r = new List<TCard>();
+        if (Items is null || ColumnSelector is null) return r;
+        foreach (var c in Items) if (string.Equals(ColumnSelector(c), colId, StringComparison.Ordinal)) r.Add(c);
+        return r;
+    }
+
+    private int LaneCount(KanbanSwimlane lane)
+    {
+        if (Items is null || SwimlaneSelector is null) return 0;
+        var n = 0;
+        foreach (var c in Items) if (string.Equals(SwimlaneSelector(c), lane.Id, StringComparison.Ordinal)) n++;
+        return n;
+    }
+
+    private bool Visible(TCard card)
+    {
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var text = SearchSelector is not null ? SearchSelector(card) : CardTitleOf(card);
+            if (text is null || !text.Contains(_search, StringComparison.OrdinalIgnoreCase)) return false;
+        }
+        foreach (var f in _activeFilters) if (!f.Predicate(card)) return false;
+        return true;
+    }
+
+    private bool DragHere(KanbanColumn col, string? lane) =>
+        _dragCard is not null
+        && string.Equals(_overCol, col.Id, StringComparison.Ordinal)
+        && string.Equals(_overLane, lane, StringComparison.Ordinal);
+
+    private KanbanColumn? ColumnById(string id) => Cols.FirstOrDefault(c => string.Equals(c.Id, id, StringComparison.Ordinal));
+
+    private bool CardEquals(TCard? a, TCard? b)
+    {
+        if (a is null || b is null) return ReferenceEquals(a, b);
+        if (CardId is not null) return Equals(CardId(a), CardId(b));
+        return EqualityComparer<TCard>.Default.Equals(a, b);
+    }
+
+    private object CardKey(TCard card) => CardId is not null ? CardId(card) : card!;
+
+    private string CardDomId(TCard card) => card is null
+        ? ""
+        : $"{Id}-c-{(CardId is not null ? CardId(card) : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(card))}";
+
+    private string CardTitleOf(TCard card) => (CardTitle is not null ? CardTitle(card) : card?.ToString()) ?? "";
+
+    private static bool WipOver(KanbanColumn col, int count) => col.WipLimit is int lim && count > lim;
+    private static string CountLabel(KanbanColumn col, int count) => col.WipLimit is int lim ? $"{count}/{lim}" : count.ToString();
+
+    // ── Recolher ───────────────────────────────────────────────────────────
+    private void ToggleCollapse(KanbanColumn col) { if (!_collapsed.Remove(col.Id)) _collapsed.Add(col.Id); }
+    private void ToggleLane(KanbanSwimlane lane) { if (!_collapsedLanes.Remove(lane.Id)) _collapsedLanes.Add(lane.Id); }
+
+    protected override void OnParametersSet()
+    {
+        foreach (var col in Cols) if (_seenCols.Add(col.Id) && col.Collapsed) _collapsed.Add(col.Id);
+        foreach (var lane in Lanes) if (_seenLanes.Add(lane.Id) && lane.Collapsed) _collapsedLanes.Add(lane.Id);
+    }
+
+    // ── Filtros ────────────────────────────────────────────────────────────
+    private void OnSearchInput(ChangeEventArgs e) => _search = e.Value?.ToString() ?? "";
+    private void ToggleFilter(KanbanQuickFilter<TCard> f) { if (!_activeFilters.Remove(f)) _activeFilters.Add(f); }
+
+    // ── Drag & drop ────────────────────────────────────────────────────────
+    private void OnCardDragStart(TCard card) { if (DragDisabled) return; _dragCard = card; }
+
+    private void OnCardDragEnd()
+    {
+        _dragCard = default;
+        _overCard = default;
+        _overCol = null;
+        _overLane = null;
+    }
+
+    private void OnCardDragOver(KanbanColumn col, string? lane, TCard card)
+    {
+        if (_dragCard is null) return;
+        _overCol = col.Id; _overLane = lane; _overCard = card;
+    }
+
+    private void OnColumnDragOver(KanbanColumn col, string? lane)
+    {
+        if (_dragCard is null) return;
+        _overCol = col.Id; _overLane = lane; _overCard = default; // anexa ao fim
+    }
+
+    private async Task OnDropAsync()
+    {
+        var card = _dragCard;
+        var toCol = _overCol;
+        var toLane = _overLane;
+        var before = _overCard;
+        _dragCard = default; _overCard = default; _overCol = null; _overLane = null;
+        if (card is not null && toCol is not null) await MoveCardAsync(card, toCol, toLane, before);
+    }
+
+    // ── Reordenar colunas (drag do cabeçalho) ──────────────────────────────
+    private void OnColumnDragStart(KanbanColumn col)
+    {
+        if (!AllowColumnReorder || DragDisabled) return;
+        _dragColumn = col;
+    }
+
+    private void OnColumnDragEnd()
+    {
+        _dragColumn = null;
+        _overColumn = null;
+    }
+
+    private void OnColumnReorderOver(KanbanColumn col)
+    {
+        if (_dragColumn is null) return;
+        _overColumn = col.Id;
+    }
+
+    private async Task OnColumnDropAsync()
+    {
+        var dragged = _dragColumn;
+        var before = _overColumn;
+        _dragColumn = null;
+        _overColumn = null;
+        if (dragged is not null && before is not null) await ReorderColumnsAsync(dragged, before);
+    }
+
+    private async Task ReorderColumnsAsync(KanbanColumn dragged, string beforeId)
+    {
+        var working = Cols.ToList();
+        var oldIndex = working.FindIndex(c => string.Equals(c.Id, dragged.Id, StringComparison.Ordinal));
+        var targetIndex = working.FindIndex(c => string.Equals(c.Id, beforeId, StringComparison.Ordinal));
+        if (oldIndex < 0 || targetIndex < 0 || oldIndex == targetIndex) return;
+
+        working.RemoveAt(oldIndex);
+        var t = working.FindIndex(c => string.Equals(c.Id, beforeId, StringComparison.Ordinal));
+        // Arrastando p/ a direita: cai DEPOIS do alvo; p/ a esquerda: ANTES (o drop assume o slot do alvo).
+        var insert = Math.Clamp(oldIndex < targetIndex ? t + 1 : t, 0, working.Count);
+        working.Insert(insert, dragged);
+
+        Columns = working;
+        if (ColumnsChanged.HasDelegate) await ColumnsChanged.InvokeAsync(working);
+        var newIndex = working.FindIndex(c => string.Equals(c.Id, dragged.Id, StringComparison.Ordinal));
+        if (ColumnMoved.HasDelegate)
+            await ColumnMoved.InvokeAsync(new KanbanColumnMovedEventArgs { Column = dragged, OldIndex = oldIndex, NewIndex = newIndex });
+        StateHasChanged();
+    }
+
+    // ── Teclado (acessibilidade) ───────────────────────────────────────────
+    private async Task OnKeyAsync(string key, KeyboardEventArgs args)
+    {
+        if (DragDisabled || _focused is null || ColumnSelector is null) return;
+
+        var card = _focused;
+        var col = ColumnSelector(card);
+        var lane = SwimlaneSelector is not null ? SwimlaneSelector(card) : null;
+        // Navega entre os cards VISÍVEIS (respeita filtro/busca); a inserção em
+        // MoveCardAsync é por referência ao card-alvo, então opera na lista completa.
+        var list = CellCards(col, lane).Where(Visible).ToList();
+        var idx = list.FindIndex(c => CardEquals(c, card));
+        if (idx < 0) return;
+
+        switch (key)
+        {
+            case "ArrowUp":
+                if (idx > 0) await MoveFocusedAsync(card, col, lane, list[idx - 1]);
+                break;
+            case "ArrowDown":
+                if (idx < list.Count - 1) await MoveFocusedAsync(card, col, lane, idx + 2 < list.Count ? list[idx + 2] : default);
+                break;
+            case "ArrowLeft":
+            {
+                var ci = IndexOfColumn(col);
+                if (ci > 0) await MoveFocusedAsync(card, Cols[ci - 1].Id, lane, default);
+                break;
+            }
+            case "ArrowRight":
+            {
+                var ci = IndexOfColumn(col);
+                if (ci >= 0 && ci < Cols.Count - 1) await MoveFocusedAsync(card, Cols[ci + 1].Id, lane, default);
+                break;
+            }
+        }
+    }
+
+    private int IndexOfColumn(string id)
+    {
+        for (var i = 0; i < Cols.Count; i++)
+            if (string.Equals(Cols[i].Id, id, StringComparison.Ordinal)) return i;
+        return -1;
+    }
+
+    private async Task MoveFocusedAsync(TCard card, string toCol, string? toLane, TCard? beforeCard)
+    {
+        _pendingFocusId = CardDomId(card);
+        await MoveCardAsync(card, toCol, toLane, beforeCard);
+    }
+
+    // ── Lógica de mover (drag e teclado convergem aqui) ────────────────────
+    private async Task MoveCardAsync(TCard card, string toCol, string? toLane, TCard? beforeCard)
+    {
+        if (Items is null || ColumnSelector is null) return;
+
+        var fromCol = ColumnSelector(card);
+        var fromLane = SwimlaneSelector is not null ? SwimlaneSelector(card) : null;
+        var crossColumn = !string.Equals(fromCol, toCol, StringComparison.Ordinal);
+        var crossLane = toLane is not null && !string.Equals(fromLane, toLane, StringComparison.Ordinal);
+
+        // WIP Enforce — bloqueia só a ENTRADA em outra coluna.
+        if (crossColumn && WipLimitMode == WipLimitMode.Enforce
+            && ColumnById(toCol)?.WipLimit is int lim && ColumnCards(toCol).Count >= lim)
+            return;
+
+        var oldIndex = CellCards(fromCol, fromLane).FindIndex(c => CardEquals(c, card));
+
+        // Sem ColumnSetter não há como persistir a troca de coluna — só notifica.
+        // (A raia, se houver setter, ainda é persistida.)
+        if (crossColumn && ColumnSetter is null)
+        {
+            if (crossLane && SwimlaneSetter is not null) SwimlaneSetter(card, toLane!);
+            await RaiseMovedAsync(card, fromCol, toCol, fromLane, toLane, oldIndex, -1);
+            StateHasChanged();
+            return;
+        }
+
+        if (crossColumn) ColumnSetter!(card, toCol);
+        if (crossLane && SwimlaneSetter is not null) SwimlaneSetter(card, toLane!);
+
+        // Inserção por REFERÊNCIA ao card-alvo (robusto a filtros e sem off-by-one).
+        var working = Items.ToList();
+        working.RemoveAll(c => CardEquals(c, card));
+
+        var insert = beforeCard is not null ? working.FindIndex(c => CardEquals(c, beforeCard)) : -1;
+        if (insert < 0)
+        {
+            var lastInCell = -1;
+            for (var i = 0; i < working.Count; i++) if (InCell(working[i], toCol, toLane)) lastInCell = i;
+            insert = lastInCell >= 0 ? lastInCell + 1 : working.Count;
+        }
+        working.Insert(insert, card);
+
+        Items = working;
+        if (ItemsChanged.HasDelegate) await ItemsChanged.InvokeAsync(working);
+
+        var newIndex = CellCards(toCol, toLane).FindIndex(c => CardEquals(c, card));
+        await RaiseMovedAsync(card, fromCol, toCol, fromLane, toLane, oldIndex, newIndex);
+        StateHasChanged();
+    }
+
+    private Task RaiseMovedAsync(TCard card, string from, string to, string? fromLane, string? toLane, int oldIndex, int newIndex)
+        => CardMoved.HasDelegate
+            ? CardMoved.InvokeAsync(new KanbanCardMovedEventArgs<TCard>
+              {
+                  Card = card, FromColumn = from, ToColumn = to,
+                  FromSwimlane = fromLane, ToSwimlane = toLane,
+                  OldIndex = oldIndex, NewIndex = newIndex,
+              })
+            : Task.CompletedTask;
+
+    private Task OnCardClickAsync(TCard card) => CardClick.HasDelegate ? CardClick.InvokeAsync(card) : Task.CompletedTask;
+
+    // ── Menu de ações ("…") via ContextMenuService (portal — escapa o overflow) ──
+    private void OpenMenu(MouseEventArgs e, TCard card)
+    {
+        var actions = CardActions?.Invoke(card)?.ToList();
+        if (actions is null || actions.Count == 0) return;
+        ContextMenu.Open(e, actions.Select(a => a.Divider
+            ? ContextMenuItem.Separator()
+            : new ContextMenuItem
+              {
+                  Text = a.Label,
+                  Icon = a.Icon,
+                  Shortcut = a.Shortcut,
+                  IsDanger = a.Danger,
+                  OnClick = () => RaiseActionAsync(card, a),
+              }));
+    }
+
+    private Task RaiseActionAsync(TCard card, KanbanCardAction action)
+        => CardAction.HasDelegate
+            ? CardAction.InvokeAsync(new KanbanCardActionEventArgs<TCard> { Card = card, Action = action })
+            : Task.CompletedTask;
+
+    // ── Ciclo de vida ──────────────────────────────────────────────────────
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("omniBlazor.prepareDrag", _boardRef);
+                await JS.InvokeVoidAsync("omniBlazor.kanbanAutoScroll", _boardRef);
+                _keyHandle = await KeyInterceptor.AttachAsync(_boardRef, new[]
+                {
+                    new KeyInterceptorOption("ArrowUp", PreventDefault: true),
+                    new KeyInterceptorOption("ArrowDown", PreventDefault: true),
+                    new KeyInterceptorOption("ArrowLeft", PreventDefault: true),
+                    new KeyInterceptorOption("ArrowRight", PreventDefault: true),
+                }, OnKeyAsync);
+            }
+            catch { /* SSR / JS indisponível */ }
+        }
+
+        if (_pendingFocusId is not null)
+        {
+            var id = _pendingFocusId;
+            _pendingFocusId = null;
+            try { await JS.InvokeVoidAsync("omniBlazor.focusElement", id); } catch { }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_keyHandle is not null)
+        {
+            try { await _keyHandle.DisposeAsync(); } catch { }
+        }
+    }
+}

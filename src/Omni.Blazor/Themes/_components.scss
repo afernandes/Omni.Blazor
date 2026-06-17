@@ -6201,6 +6201,294 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   &:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 
+// ─── OmniKanban — quadro de colunas com cards arrastáveis ──────────────────
+// Board com scroll horizontal; cada coluna é flex-column com corpo rolável. A
+// largura da coluna vem de --omni-kanban-col-w (param ColumnWidth). Tom da
+// coluna pinta a faixa superior. Linha de inserção (drop-line) e card em arraste
+// dão feedback visual; foco visível nos cards p/ a navegação por teclado.
+.omni-kanban {
+  --omni-kanban-col-w: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.omni-kanban-board {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px;
+  scroll-behavior: smooth;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+// Modo swimlanes: empilha (header de colunas + raias) e rola junto na horizontal.
+.omni-kanban-board-lanes { flex-direction: column; align-items: stretch; }
+
+// ── Toolbar: busca + chips de filtro rápido ──
+.omni-kanban-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 4px; }
+.omni-kanban-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  color: var(--omni-fg-muted);
+  &:focus-within { border-color: var(--omni-accent); box-shadow: 0 0 0 2px var(--omni-accent-softer); }
+}
+.omni-kanban-search-input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--omni-fg);
+  font: 13px/1.4 var(--omni-font-ui);
+  min-width: 160px;
+  &::placeholder { color: var(--omni-fg-soft); }
+}
+.omni-kanban-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  color: var(--omni-fg-muted);
+  font: 500 12px/1 var(--omni-font-ui);
+  cursor: pointer;
+  &:hover { border-color: var(--omni-line-strong); color: var(--omni-fg); }
+}
+.omni-kanban-chip-active { background: var(--omni-accent-soft); border-color: var(--omni-accent); color: var(--omni-accent); }
+
+// ── Modo swimlanes: header de colunas + raias ──
+.omni-kanban-headrow,
+.omni-kanban-lane-row { display: flex; gap: 12px; align-items: stretch; width: max-content; }
+.omni-kanban-headcell {
+  flex: 0 0 var(--omni-kanban-col-w);
+  width: var(--omni-kanban-col-w);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-top: 3px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  font: 600 13px/1.2 var(--omni-font-ui);
+}
+.omni-kanban-lane { display: flex; flex-direction: column; gap: 6px; width: max-content; }
+.omni-kanban-lane-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  position: sticky;
+  left: 0;
+  font: 600 12px/1.2 var(--omni-font-ui);
+  color: var(--omni-fg);
+}
+.omni-kanban-lane-title { flex: 1; }
+.omni-kanban-laneslot {
+  flex: 0 0 var(--omni-kanban-col-w);
+  width: var(--omni-kanban-col-w);
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  overflow: hidden;
+}
+.omni-kanban-laneslot .omni-kanban-col-body { min-height: 48px; }
+
+.omni-kanban-col {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--omni-kanban-col-w);
+  width: var(--omni-kanban-col-w);
+  max-height: 100%;
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-top: 3px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  overflow: hidden;
+}
+.omni-kanban-col-accent  { border-top-color: var(--omni-accent); }
+.omni-kanban-col-neutral { border-top-color: var(--omni-fg-muted); }
+.omni-kanban-col-info    { border-top-color: var(--omni-info); }
+.omni-kanban-col-success { border-top-color: var(--omni-good); }
+.omni-kanban-col-warning { border-top-color: var(--omni-warn); }
+.omni-kanban-col-danger  { border-top-color: var(--omni-danger); }
+
+// Reordenar colunas (arrastar pelo cabeçalho)
+.omni-kanban-col-reorderable .omni-kanban-col-head { cursor: grab; }
+.omni-kanban-headcell.omni-kanban-col-reorderable { cursor: grab; }
+.omni-kanban-col-grip { color: var(--omni-fg-soft); flex: 0 0 auto; }
+.omni-kanban-col-dragging { opacity: 0.5; }
+.omni-kanban-col-droptarget { box-shadow: inset 3px 0 0 0 var(--omni-accent); }
+
+.omni-kanban-col-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  font: 600 13px/1.2 var(--omni-font-ui);
+  color: var(--omni-fg);
+}
+.omni-kanban-col-collapse {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--omni-fg-muted);
+  display: inline-flex;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--omni-radius-sm);
+  &:hover { background: var(--omni-bg-elev); color: var(--omni-fg); }
+}
+.omni-kanban-col-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-kanban-col-count {
+  flex: 0 0 auto;
+  font: 600 11px/1 var(--omni-font-ui);
+  color: var(--omni-fg-muted);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+.omni-kanban-col-count-over {
+  color: #fff;
+  background: var(--omni-danger);
+  border-color: var(--omni-danger);
+}
+
+.omni-kanban-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 12px 12px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 60px; // garante área vazia "soltável" abaixo dos cards
+}
+
+.omni-kanban-card {
+  position: relative;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  padding: 10px 12px;
+  cursor: grab;
+  font: 13px/1.4 var(--omni-font-ui);
+  color: var(--omni-fg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 120ms, border-color 120ms;
+  &:hover { border-color: var(--omni-line-strong); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+  &:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 1px; }
+}
+.omni-kanban-card-dragging { opacity: 0.45; cursor: grabbing; }
+.omni-kanban-card-title { font-weight: 500; }
+
+// Card padrão estruturado: prioridade + título, campos extras, rodapé de meta.
+.omni-kanban-card-head { display: flex; align-items: flex-start; gap: 6px; }
+.omni-kanban-card-head .omni-kanban-card-title { flex: 1; min-width: 0; }
+.omni-kanban-card-prio { display: inline-flex; flex: 0 0 auto; line-height: 1; }
+.omni-kanban-card-prio-urgent { color: var(--omni-danger); }
+.omni-kanban-card-prio-high   { color: var(--omni-warn); }
+.omni-kanban-card-prio-medium { color: var(--omni-fg-muted); }
+.omni-kanban-card-prio-low    { color: var(--omni-info); }
+
+.omni-kanban-card-fields { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.omni-kanban-card-field { display: flex; align-items: center; gap: 5px; font: 12px/1.3 var(--omni-font-ui); }
+.omni-kanban-card-field-label { color: var(--omni-fg-soft); }
+.omni-kanban-card-field-value { color: var(--omni-fg); font-weight: 500; }
+
+.omni-kanban-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.omni-kanban-card-meta-spacer { flex: 1; }
+.omni-kanban-card-chip { display: inline-flex; align-items: center; gap: 3px; font: 11px/1 var(--omni-font-ui); color: var(--omni-fg-muted); }
+.omni-kanban-card-chip-danger { color: var(--omni-danger); font-weight: 600; }
+.omni-kanban-card-avatar { flex: 0 0 auto; }
+
+// Botão "…" de ações — aparece no hover/foco; menu abre via portal.
+.omni-kanban-card-menu {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  appearance: none;
+  display: inline-flex;
+  padding: 2px;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-sm);
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms, color 120ms, border-color 120ms;
+  &:hover { color: var(--omni-fg); border-color: var(--omni-line-strong); }
+  &:focus-visible { opacity: 1; outline: 2px solid var(--omni-accent); outline-offset: 1px; }
+}
+.omni-kanban-card:hover .omni-kanban-card-menu,
+.omni-kanban-card:focus-within .omni-kanban-card-menu { opacity: 1; }
+
+.omni-kanban-drop-line {
+  height: 0;
+  border-top: 2px solid var(--omni-accent);
+  border-radius: 2px;
+  margin: -1px 0;
+}
+
+.omni-kanban-empty {
+  border: 1px dashed var(--omni-line-strong);
+  border-radius: var(--omni-radius-sm);
+  padding: 16px;
+  text-align: center;
+  color: var(--omni-fg-soft);
+  font: 12px/1.4 var(--omni-font-ui);
+}
+
+.omni-kanban-col-foot { padding: 0 12px 12px; }
+.omni-kanban-add {
+  appearance: none;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px dashed var(--omni-line-strong);
+  border-radius: var(--omni-radius-sm);
+  color: var(--omni-fg-muted);
+  font: 13px/1 var(--omni-font-ui);
+  padding: 8px;
+  cursor: pointer;
+  &:hover { background: var(--omni-bg-elev); color: var(--omni-fg); border-color: var(--omni-accent); }
+}
+
+// Coluna recolhida — barra vertical estreita com o título girado.
+.omni-kanban-col-collapsed {
+  flex-basis: 48px;
+  width: 48px;
+}
+.omni-kanban-col-collapsed .omni-kanban-col-head { flex-direction: column; gap: 8px; padding: 10px 4px; }
+.omni-kanban-col-collapsed .omni-kanban-col-title { writing-mode: vertical-rl; text-align: left; }
+
+// Cor por card — faixa lateral (por tipo/prioridade/etc, via CardColor).
+.omni-kanban-card-accented { border-left: 3px solid var(--omni-kanban-card-color, var(--omni-accent)); }
+
+// Envelhecimento — "dias na coluna": pontos cinza → amarelo → vermelho.
+.omni-kanban-card-age { display: flex; gap: 3px; margin-top: 8px; }
+.omni-kanban-age-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--omni-fg-muted); opacity: 0.45; }
+.omni-kanban-card-age-warn .omni-kanban-age-dot { background: var(--omni-warn); opacity: 1; }
+.omni-kanban-card-age-stale .omni-kanban-age-dot { background: var(--omni-danger); opacity: 1; }
+
 // ─── OmniSpeechToTextButton — state machine visuals ────────────────────────
 // 4 estados com feedback visual distinto. Cada estado define background +
 // border + cor de texto pra ser INDEPENDENTE da Variant escolhida — sem

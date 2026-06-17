@@ -90,7 +90,7 @@ OmniButton, OmniIconButton, OmniSplitButton, OmniToggleButton, OmniFab, OmniFabM
 <details>
 <summary><strong>Data</strong></summary>
 
-OmniDataGrid, OmniDataGridColumn, OmniVirtualize, OmniDropZone, OmniChart, OmniSparkline
+OmniDataGrid, OmniDataGridColumn, OmniVirtualize, OmniDropZone, OmniKanban, OmniChart, OmniSparkline
 </details>
 
 <details>

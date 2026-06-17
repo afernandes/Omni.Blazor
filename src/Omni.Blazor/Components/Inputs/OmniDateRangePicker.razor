@@ -185,6 +185,7 @@
     // expression above keeps the door open for a future "minimal" mode.
 
     private readonly string _id = $"rp-{Guid.NewGuid():N}";
+    private DotNetObjectReference<OmniDateRangePicker>? _dotnetRef;
     private bool _open;
     private DateOnly? _pendingFrom;
     private DateOnly? _pendingTo;
@@ -224,6 +225,7 @@
 
     public OmniDateRangePicker()
     {
+        _dotnetRef = DotNetObjectReference.Create(this);
         _fromState = RegisterParameter<DateOnly?>(nameof(From))
             .WithParameter(() => From)
             .WithChangeHandler(SyncPendingFromProps)
@@ -367,9 +369,8 @@
         StateHasChanged();
         try
         {
-            var dotnet = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
-                _id, $"[data-omni-rpid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+                _id, $"[data-omni-rpid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
         }
         catch { }
     }
@@ -396,6 +397,7 @@
     {
         FormRegistry?.UnregisterComponent(this);
         _ = CloseAsync();
+        _dotnetRef?.Dispose();
     }
 
     /// <summary>Quick-select shortcut: label + resolver returning the range.</summary>

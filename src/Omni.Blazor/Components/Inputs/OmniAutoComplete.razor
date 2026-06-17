@@ -110,6 +110,7 @@
     [Parameter] public int DebounceMs { get; set; } = 220;
 
     private string _id = $"ac-{Guid.NewGuid():N}";
+    private DotNetObjectReference<OmniAutoComplete<TItem>>? _dotnetRef;
     private bool _open;
     private bool _loading;
     private string _searchText = "";
@@ -128,6 +129,7 @@
 
     public OmniAutoComplete()
     {
+        _dotnetRef = DotNetObjectReference.Create(this);
         _valueState = RegisterParameter<TItem?>(nameof(Value))
             .WithParameter(() => Value)
             .WithChangeHandler(SyncSearchTextFromValue)
@@ -241,9 +243,8 @@
         StateHasChanged();
         try
         {
-            var dotnet = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
-                _id, $"[data-omni-acid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+                _id, $"[data-omni-acid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
         }
         catch { }
     }
@@ -265,5 +266,6 @@
         base.Dispose();
         _debounceCts?.Cancel();
         _ = CloseAsync();
+        _dotnetRef?.Dispose();
     }
 }

@@ -1,0 +1,386 @@
+@page "/showcase/kanban"
+@attribute [ShowcaseInfo(Title = "Kanban", Category = Cat.Data, Icon = "trello", New = true, Aliases = "board,quadro,kanban,pipeline,drag,arrastar,colunas,wip,crm")]
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+
+<PageTitle>Kanban — Showcase</PageTitle>
+
+<ShowcasePage Title="Kanban"
+              Subtitle="Quadro de colunas com cards arrastáveis. Reordena dentro e entre colunas (mouse OU teclado), limite de WIP, recolher colunas, adicionar card, templates e auto-scroll — camada opinativa sobre o mesmo drag-and-drop do OmniDropZone.">
+
+    <Overview>
+        <p>
+            <code>OmniKanban</code> é controlado: a coluna de cada card vem de
+            <code>ColumnSelector</code> e a ordem vem da ordem de <code>Items</code>
+            (<code>@@bind-Items</code>). Ao mover, ele chama <code>ColumnSetter</code>
+            (grava a nova coluna no card), reordena <code>Items</code> e emite
+            <code>CardMoved</code>. Diferente do <code>OmniDropZone</code> (motor genérico),
+            o Kanban já traz modelo de coluna/card, WIP, recolher e acessibilidade.
+        </p>
+        <p>
+            <strong>Teclado:</strong> dê foco a um card (Tab) e use as <strong>setas</strong>
+            — ↑/↓ reordena na coluna, ←/→ move entre colunas. É o que o drag nativo HTML5 não
+            oferece. Cards devem ser tipos de referência mutáveis (ex.: uma entidade com
+            <code>Status</code> gravável).
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="QUADRO COMPLETO"
+                         Description="Tudo junto: busca + filtros rápidos, cor por card (tom), envelhecimento (pontos cinza→amarelo→vermelho conforme os dias na coluna), WIP, '+ Adicionar', drag e teclado (Tab + setas)."
+                         Code="@(@"<OmniKanban TCard=""Pedido"" @bind-Items=""pedidos"" Columns=""@colunas""
+            ColumnSelector=""p => p.Status"" ColumnSetter=""(p, s) => p.Status = s"" CardId=""p => p.Id""
+            ShowSearch SearchSelector=""p => p.Cliente"" QuickFilters=""@filtros""
+            ShowCardAge CardAge=""p => p.Dias"" CardColor=""p => TomCor(p.Tone)""
+            AllowAddCard OnAddCard=""AddPedido"" CardMoved=""OnMoved"" />")">
+            <OmniKanban TCard="Pedido"
+                        @bind-Items="_pedidos"
+                        Columns="@_colunas"
+                        ColumnSelector="p => p.Status"
+                        ColumnSetter="(p, s) => p.Status = s"
+                        CardId="p => p.Id"
+                        ShowSearch
+                        SearchSelector="p => p.Cliente"
+                        QuickFilters="_filtros"
+                        ShowCardAge
+                        CardAge="p => p.Dias"
+                        CardColor="p => TomCor(p.Tone)"
+                        AllowAddCard
+                        OnAddCard="AddPedido"
+                        CardMoved="OnMoved"
+                        CardClick="OnCardClick"
+                        Style="height: 520px;">
+                <CardTemplate>
+                    <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
+                        <strong style="font-size:13px;">@context.Cliente</strong>
+                        <OmniBadge Text="@($"#{context.Id}")" Variant="@ToneVariant(context.Tone)" />
+                    </div>
+                    <div class="omni-muted" style="font-size:12px;margin-top:4px;">@context.Itens itens · R$ @context.Total.ToString("0.00")</div>
+                </CardTemplate>
+            </OmniKanban>
+            <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">@_ultimo</p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LAYOUT DE CARD + MENU DE AÇÕES"
+                         Description="Sem CardTemplate, o card padrão monta — via seletores — prioridade, até 3 campos, e um rodapé com estimativa, subtarefas, prazo (vermelho se vencido) e avatar. Passe o mouse no card → botão '…' (atribuir, sinalizar, mover, excluir) num menu que escapa o overflow da coluna."
+                         Code="@(@"<OmniKanban ... CardTitle=""p => p.Cliente""
+            CardPriority=""p => p.Prioridade"" CardAssignee=""p => p.Responsavel""
+            CardDueDate=""p => p.Prazo"" CardEstimate=""p => p.Estimativa""
+            CardSubtasks=""SubsDoPedido"" CardFields=""CamposDoPedido"" />")">
+            <OmniKanban TCard="Pedido"
+                        @bind-Items="_pedidosLayout"
+                        Columns="@_colunas2"
+                        ColumnSelector="p => p.Status"
+                        ColumnSetter="(p, s) => p.Status = s"
+                        CardId="p => p.Id"
+                        CardTitle="p => p.Cliente"
+                        CardPriority="p => p.Prioridade"
+                        CardAssignee="p => p.Responsavel"
+                        CardDueDate="p => p.Prazo"
+                        CardEstimate="p => p.Estimativa"
+                        CardSubtasks="SubsDoPedido"
+                        CardColor="p => TomCor(p.Tone)"
+                        CardFields="CamposDoPedido"
+                        CardActions="AcoesDoPedido"
+                        CardAction="OnAcao"
+                        Style="height: 440px;" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SWIMLANES (raias por responsável)"
+                         Description="Swimlanes + SwimlaneSelector agrupam os cards em linhas colapsáveis (aqui por responsável). Arraste entre raias e colunas; SwimlaneSetter grava a raia no card."
+                         Code="@(@"<OmniKanban ... Swimlanes=""@raias"" SwimlaneSelector=""p => p.Responsavel""
+            SwimlaneSetter=""(p, r) => p.Responsavel = r"" />")">
+            <OmniKanban TCard="Pedido"
+                        @bind-Items="_pedidosRaia"
+                        Columns="@_colunas2"
+                        ColumnSelector="p => p.Status"
+                        ColumnSetter="(p, s) => p.Status = s"
+                        Swimlanes="@_raias"
+                        SwimlaneSelector="p => p.Responsavel"
+                        SwimlaneSetter="(p, r) => p.Responsavel = r"
+                        CardId="p => p.Id"
+                        CardTitle="p => p.Cliente"
+                        CardColor="p => TomCor(p.Tone)"
+                        Style="height: 440px;" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="REORDENAR COLUNAS (arrastar o cabeçalho)"
+                         Description="AllowColumnReorder + two-way Columns: arraste o cabeçalho (alça à esquerda) para reposicionar a coluna. Cards continuam arrastáveis normalmente; os dois drags não conflitam."
+                         Code="@(@"<OmniKanban ... AllowColumnReorder @bind-Columns=""colunas"" ColumnMoved=""OnColMoved"" />")">
+            <OmniKanban TCard="Pedido"
+                        @bind-Items="_pedidos3"
+                        @bind-Columns="_colunasReorder"
+                        ColumnSelector="p => p.Status"
+                        ColumnSetter="(p, s) => p.Status = s"
+                        CardId="p => p.Id"
+                        CardTitle="p => p.Cliente"
+                        AllowColumnReorder
+                        Style="height: 320px;" />
+            <p class="omni-muted omni-mono" style="font-size:11px;margin-top:8px;">
+                Ordem: @string.Join(" → ", _colunasReorder.Select(c => c.Title))
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="WIP RÍGIDO (Enforce)"
+                         Description="WipLimitMode=Enforce bloqueia o drop que estouraria o limite (em vez de só avisar)."
+                         Code="@(@"<OmniKanban ... WipLimitMode=""WipLimitMode.Enforce"" />")">
+            <OmniKanban TCard="Pedido"
+                        @bind-Items="_pedidos2"
+                        Columns="@_colunas2"
+                        ColumnSelector="p => p.Status"
+                        ColumnSetter="(p, s) => p.Status = s"
+                        CardId="p => p.Id"
+                        CardTitle="p => p.Cliente"
+                        WipLimitMode="WipLimitMode.Enforce"
+                        Style="height: 360px;" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SOMENTE LEITURA"
+                         Description="DragDisabled deixa o quadro estático (sem drag nem teclado) — bom para dashboards."
+                         Code="@(@"<OmniKanban ... DragDisabled Collapsible=""false"" />")">
+            <OmniKanban TCard="Pedido"
+                        Items="_pedidos3"
+                        Columns="@_colunas2"
+                        ColumnSelector="p => p.Status"
+                        CardId="p => p.Id"
+                        CardTitle="p => p.Cliente"
+                        DragDisabled
+                        Collapsible="false"
+                        Style="height: 320px;" />
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniKanban<TCard>">
+            <ShowcaseApiRow Name="Items / ItemsChanged" Type="IEnumerable&lt;TCard&gt;?" Default="null"
+                            Description='@("Lista plana de cards. Two-way: @bind-Items (reordenada ao mover).")' />
+            <ShowcaseApiRow Name="Columns" Type="IEnumerable&lt;KanbanColumn&gt;" Default="—"
+                            Description="Definição das colunas (Id, Title, Tone, WipLimit, Collapsed, Icon)." />
+            <ShowcaseApiRow Name="ColumnSelector" Type="Func&lt;TCard, string&gt;" Default="—"
+                            Description="Card → Id da coluna (obrigatório)." />
+            <ShowcaseApiRow Name="ColumnSetter" Type="Action&lt;TCard, string&gt;?" Default="null"
+                            Description="Grava a nova coluna no card ao mover entre colunas." />
+            <ShowcaseApiRow Name="CardId" Type="Func&lt;TCard, object&gt;?" Default="null"
+                            Description="Chave estável (recomendado — usada na key, no foco por teclado e na igualdade)." />
+            <ShowcaseApiRow Name="CardTemplate" Type="RenderFragment&lt;TCard&gt;?" Default="null"
+                            Description="Template do card (senão usa CardTitle/ToString)." />
+            <ShowcaseApiRow Name="CardTitle" Type="Func&lt;TCard, string&gt;?" Default="null"
+                            Description="Título no card padrão." />
+            <ShowcaseApiRow Name="ColumnHeaderTemplate / ColumnFooterTemplate / EmptyColumnTemplate" Type="RenderFragment?" Default="null"
+                            Description="Personalizam cabeçalho, rodapé e coluna vazia." />
+            <ShowcaseApiRow Name="ShowCount" Type="bool" Default="true"
+                            Description="Mostra contagem (ou n/limite) no cabeçalho." />
+            <ShowcaseApiRow Name="Collapsible" Type="bool" Default="true"
+                            Description="Permite recolher colunas." />
+            <ShowcaseApiRow Name="AllowAddCard / AddCardText / OnAddCard" Type="bool / string / EventCallback&lt;KanbanColumn&gt;" Default="false"
+                            Description="Rodapé '+ adicionar card' por coluna." />
+            <ShowcaseApiRow Name="WipLimitMode" Type="WipLimitMode" Default="Warn"
+                            Description="Warn (só avisa) ou Enforce (bloqueia o drop)." />
+            <ShowcaseApiRow Name="DragDisabled" Type="bool" Default="false"
+                            Description="Quadro estático (sem drag nem teclado)." />
+            <ShowcaseApiRow Name="ColumnWidth" Type="string?" Default="&quot;280px&quot;"
+                            Description="Largura de cada coluna." />
+            <ShowcaseApiRow Name="AllowColumnReorder / ColumnsChanged / ColumnMoved" Type="bool / EventCallback" Default="false"
+                            Description='@("Arrasta o cabeçalho para reordenar colunas (@bind-Columns + evento ColumnMoved).")' />
+            <ShowcaseApiRow Name="CardMoved / CardClick" Type="EventCallback" Default="—"
+                            Description="CardMoved(card, deCol, paraCol, índices); CardClick(card)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Swimlanes · filtros · aging · cor">
+            <ShowcaseApiRow Name="Swimlanes" Type="IEnumerable&lt;KanbanSwimlane&gt;?" Default="null"
+                            Description="Raias (linhas). Com SwimlaneSelector, agrupa em 2D." />
+            <ShowcaseApiRow Name="SwimlaneSelector / SwimlaneSetter" Type="Func / Action" Default="null"
+                            Description="Card → Id da raia / grava a raia ao mover entre raias." />
+            <ShowcaseApiRow Name="ShowSearch / SearchSelector" Type="bool / Func&lt;TCard,string&gt;?" Default="false"
+                            Description="Barra de busca; texto pesquisado (default = título)." />
+            <ShowcaseApiRow Name="QuickFilters" Type="IEnumerable&lt;KanbanQuickFilter&lt;TCard&gt;&gt;?" Default="null"
+                            Description="Chips de filtro (combinam em E); ocultam cards." />
+            <ShowcaseApiRow Name="ShowCardAge / CardAge" Type="bool / Func&lt;TCard,int?&gt;?" Default="false"
+                            Description="Indicador 'dias na coluna' (pontos por thresholds)." />
+            <ShowcaseApiRow Name="AgeWarnDays / AgeStaleDays" Type="int" Default="3 / 5"
+                            Description="Limiares amarelo / vermelho do envelhecimento." />
+            <ShowcaseApiRow Name="CardColor" Type="Func&lt;TCard, string?&gt;?" Default="null"
+                            Description="Cor (CSS) da faixa lateral do card." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Layout do card padrão (sem CardTemplate)">
+            <ShowcaseApiRow Name="CardAssignee / CardAvatar" Type="Func&lt;TCard, string?&gt;?" Default="null"
+                            Description="Responsável → avatar (iniciais) + imagem opcional." />
+            <ShowcaseApiRow Name="CardPriority" Type="Func&lt;TCard, KanbanPriority&gt;?" Default="null"
+                            Description="None | Low | Medium | High | Urgent → ícone/cor no topo." />
+            <ShowcaseApiRow Name="CardDueDate / DueDateFormat" Type="Func / string" Default="null / dd MMM"
+                            Description="Prazo (badge; vermelho se vencido)." />
+            <ShowcaseApiRow Name="CardSubtasks" Type="Func&lt;TCard, (int,int)?&gt;?" Default="null"
+                            Description="(concluídas, total) → badge ✓ d/t." />
+            <ShowcaseApiRow Name="CardEstimate" Type="Func&lt;TCard, string?&gt;?" Default="null"
+                            Description="Estimativa (texto livre) → badge." />
+            <ShowcaseApiRow Name="CardFields" Type="Func&lt;TCard, IEnumerable&lt;KanbanField&gt;?&gt;?" Default="null"
+                            Description="Campos extras (rótulo/valor) — exibe até 3." />
+            <ShowcaseApiRow Name="CardActions / CardAction" Type="Func / EventCallback" Default="null"
+                            Description="Menu '…' (KanbanCardAction: Id/Label/Icon/Danger/Divider); CardAction dispara ao selecionar." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="Teclado (card focado)">
+            <ShowcaseApiRow Name="↑ / ↓" Type="—" Default="—" Description="Reordena o card dentro da coluna/raia." />
+            <ShowcaseApiRow Name="← / →" Type="—" Default="—" Description="Move o card para a coluna anterior/seguinte." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    public sealed class Pedido
+    {
+        public int Id { get; set; }
+        public string Cliente { get; set; } = "";
+        public string Status { get; set; } = "todo";
+        public string Responsavel { get; set; } = "Ana";
+        public int Dias { get; set; }
+        public int Itens { get; set; }
+        public decimal Total { get; set; }
+        public CardTone Tone { get; set; } = CardTone.None;
+        public KanbanPriority Prioridade { get; set; }
+        public DateTime? Prazo { get; set; }
+        public int SubFeitas { get; set; }
+        public int SubTotal { get; set; }
+        public string? Estimativa { get; set; }
+    }
+
+    private (int, int)? SubsDoPedido(Pedido p) => p.SubTotal > 0 ? (p.SubFeitas, p.SubTotal) : null;
+    private IEnumerable<KanbanField>? CamposDoPedido(Pedido p) => new[]
+    {
+        new KanbanField { Label = "Total", Value = p.Total.ToString("C"), Icon = "dollar-sign" },
+    };
+
+    private readonly KanbanSwimlane[] _raias =
+    {
+        new() { Id = "Ana",   Title = "Ana Souza",   Icon = "user" },
+        new() { Id = "Bruno", Title = "Bruno Lima",  Icon = "user" },
+    };
+
+    private List<KanbanQuickFilter<Pedido>> _filtros = new()
+    {
+        new() { Label = "Urgentes", Icon = "flame", Predicate = p => p.Tone is CardTone.Danger or CardTone.Warning },
+        new() { Label = "Só da Ana", Icon = "user", Predicate = p => p.Responsavel == "Ana" },
+    };
+
+    private static string? TomCor(CardTone tone) => tone switch
+    {
+        CardTone.Accent  => "var(--omni-accent)",
+        CardTone.Info    => "var(--omni-info)",
+        CardTone.Success => "var(--omni-good)",
+        CardTone.Warning => "var(--omni-warn)",
+        CardTone.Danger  => "var(--omni-danger)",
+        _                => null,
+    };
+
+    private readonly KanbanColumn[] _colunas =
+    {
+        new() { Id = "todo",  Title = "A fazer",    Tone = CardTone.Neutral },
+        new() { Id = "prep",  Title = "Em preparo", Tone = CardTone.Warning, WipLimit = 3 },
+        new() { Id = "ready", Title = "Pronto",     Tone = CardTone.Info },
+        new() { Id = "done",  Title = "Entregue",   Tone = CardTone.Success },
+    };
+    private readonly KanbanColumn[] _colunas2 =
+    {
+        new() { Id = "todo",  Title = "A fazer" },
+        new() { Id = "prep",  Title = "Em preparo", WipLimit = 2 },
+        new() { Id = "done",  Title = "Entregue" },
+    };
+    private IEnumerable<KanbanColumn> _colunasReorder = new List<KanbanColumn>
+    {
+        new() { Id = "todo", Title = "A fazer",    Tone = CardTone.Neutral },
+        new() { Id = "prep", Title = "Em preparo", Tone = CardTone.Warning },
+        new() { Id = "done", Title = "Entregue",   Tone = CardTone.Success },
+    };
+
+    private IEnumerable<Pedido> _pedidos = new List<Pedido>
+    {
+        new() { Id = 101, Cliente = "Ana Souza",    Status = "todo",  Responsavel = "Ana",   Dias = 1, Itens = 2, Total = 64.90m,  Tone = CardTone.Accent },
+        new() { Id = 102, Cliente = "Bruno Lima",   Status = "todo",  Responsavel = "Bruno", Dias = 4, Itens = 1, Total = 32.00m },
+        new() { Id = 103, Cliente = "Carla Dias",   Status = "prep",  Responsavel = "Ana",   Dias = 6, Itens = 4, Total = 128.50m, Tone = CardTone.Warning },
+        new() { Id = 104, Cliente = "Diego Alves",  Status = "prep",  Responsavel = "Bruno", Dias = 2, Itens = 3, Total = 96.00m,  Tone = CardTone.Danger },
+        new() { Id = 105, Cliente = "Eva Martins",  Status = "ready", Responsavel = "Ana",   Dias = 0, Itens = 2, Total = 58.00m,  Tone = CardTone.Info },
+        new() { Id = 106, Cliente = "Felipe Rocha", Status = "done",  Responsavel = "Bruno", Dias = 0, Itens = 5, Total = 210.00m, Tone = CardTone.Success },
+    };
+    private IEnumerable<Pedido> _pedidos2 = new List<Pedido>
+    {
+        new() { Id = 201, Cliente = "G. Pereira", Status = "todo" },
+        new() { Id = 202, Cliente = "H. Castro",  Status = "prep" },
+        new() { Id = 203, Cliente = "I. Nunes",   Status = "prep" },
+        new() { Id = 204, Cliente = "J. Ramos",   Status = "done" },
+    };
+    private IEnumerable<Pedido> _pedidos3 = new List<Pedido>
+    {
+        new() { Id = 301, Cliente = "K. Teixeira", Status = "todo" },
+        new() { Id = 302, Cliente = "L. Barros",   Status = "prep" },
+        new() { Id = 303, Cliente = "M. Faria",    Status = "done" },
+    };
+    private IEnumerable<Pedido> _pedidosRaia = new List<Pedido>
+    {
+        new() { Id = 401, Cliente = "Ped. 401", Status = "todo", Responsavel = "Ana",   Tone = CardTone.Accent },
+        new() { Id = 402, Cliente = "Ped. 402", Status = "prep", Responsavel = "Ana",   Tone = CardTone.Warning },
+        new() { Id = 403, Cliente = "Ped. 403", Status = "todo", Responsavel = "Bruno", Tone = CardTone.Info },
+        new() { Id = 404, Cliente = "Ped. 404", Status = "done", Responsavel = "Bruno" },
+        new() { Id = 405, Cliente = "Ped. 405", Status = "prep", Responsavel = "Bruno", Tone = CardTone.Danger },
+    };
+    private IEnumerable<Pedido> _pedidosLayout = new List<Pedido>
+    {
+        new() { Id = 501, Cliente = "Mesa 12 — Combo",    Status = "todo", Responsavel = "Ana Souza",   Prioridade = KanbanPriority.Urgent, Prazo = DateTime.Today.AddDays(-1), SubFeitas = 1, SubTotal = 3, Estimativa = "8", Total = 142.00m, Tone = CardTone.Danger },
+        new() { Id = 502, Cliente = "Delivery — Pizza G", Status = "prep", Responsavel = "Bruno Lima",  Prioridade = KanbanPriority.High,   Prazo = DateTime.Today.AddDays(2),  SubFeitas = 2, SubTotal = 4, Estimativa = "5", Total = 89.90m,  Tone = CardTone.Warning },
+        new() { Id = 503, Cliente = "Balcão — Esfihas",   Status = "todo", Responsavel = "Carla Dias",  Prioridade = KanbanPriority.Medium, SubFeitas = 0, SubTotal = 2, Estimativa = "3", Total = 36.00m },
+        new() { Id = 504, Cliente = "Mesa 03 — Doces",    Status = "done", Responsavel = "Diego Alves", Prioridade = KanbanPriority.Low,    Prazo = DateTime.Today.AddDays(5),  Total = 58.50m, Tone = CardTone.Success },
+    };
+
+    private int _nextId = 900;
+    private string _ultimo = "Arraste um card ou use Tab + setas.";
+
+    private void AddPedido(KanbanColumn col)
+    {
+        var list = _pedidos.ToList();
+        list.Add(new Pedido { Id = ++_nextId, Cliente = $"Novo #{_nextId}", Status = col.Id, Itens = 1, Total = 0m });
+        _pedidos = list;
+        _ultimo = $"Adicionado em {col.Title}";
+    }
+
+    private void OnMoved(KanbanCardMovedEventArgs<Pedido> e)
+        => _ultimo = $"#{e.Card.Id}: {e.FromColumn} → {e.ToColumn} (pos {e.NewIndex})";
+
+    private void OnCardClick(Pedido p) => _ultimo = $"Clique: #{p.Id}";
+
+    private IEnumerable<KanbanCardAction> AcoesDoPedido(Pedido p) => new[]
+    {
+        new KanbanCardAction { Id = "assign", Label = "Atribuir...", Icon = "user" },
+        new KanbanCardAction { Id = "flag",   Label = p.Tone == CardTone.Danger ? "Remover sinalização" : "Sinalizar", Icon = "flag" },
+        KanbanCardAction.Separator(),
+        new KanbanCardAction { Id = "move:done", Label = "Mover para Entregue", Icon = "check" },
+        KanbanCardAction.Separator(),
+        new KanbanCardAction { Id = "delete", Label = "Excluir", Icon = "trash", Danger = true },
+    };
+
+    private void OnAcao(KanbanCardActionEventArgs<Pedido> e)
+    {
+        switch (e.Action.Id)
+        {
+            case "flag":
+                e.Card.Tone = e.Card.Tone == CardTone.Danger ? CardTone.None : CardTone.Danger;
+                break;
+            case "move:done":
+                e.Card.Status = "done";
+                break;
+            case "delete":
+                _pedidosLayout = _pedidosLayout.Where(x => x.Id != e.Card.Id).ToList();
+                break;
+        }
+    }
+
+    private static BadgeVariant ToneVariant(CardTone tone) => tone switch
+    {
+        CardTone.Accent  => BadgeVariant.Accent,
+        CardTone.Info    => BadgeVariant.Info,
+        CardTone.Success => BadgeVariant.Good,
+        CardTone.Warning => BadgeVariant.Warn,
+        CardTone.Danger  => BadgeVariant.Danger,
+        _                => BadgeVariant.Default,
+    };
+}

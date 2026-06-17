@@ -92,12 +92,15 @@
     [Parameter] public string EmptyText { get; set; } = "Sem opções";
 
     private readonly string _id = $"sel-{Guid.NewGuid():N}";
+    private DotNetObjectReference<OmniSelect<TValue>>? _dotnetRef;
     private bool _open;
     private int _highlightedIndex;
     private string _typeBuffer = "";
     private DateTime _lastTypeUtc = DateTime.MinValue;
 
     private List<TValue> _items = new();
+
+    protected override void OnInitialized() => _dotnetRef = DotNetObjectReference.Create(this);
 
     protected override void OnParametersSet() => _items = Items?.ToList() ?? new();
 
@@ -146,9 +149,8 @@
         StateHasChanged();
         try
         {
-            var dotnet = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
-                _id, $"[data-omni-scid=\"{_id}\"]", dotnet, "OnClickOutsideAsync");
+                _id, $"[data-omni-scid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
         }
         catch { }
     }
@@ -232,5 +234,6 @@
     {
         base.Dispose();
         _ = CloseAsync();
+        _dotnetRef?.Dispose();
     }
 }

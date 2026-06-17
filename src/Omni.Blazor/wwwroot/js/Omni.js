@@ -1140,6 +1140,31 @@
     });
   };
 
+  // Focus an element by id — used by OmniKanban to keep focus on a card after a
+  // keyboard move re-renders the board. No-op if the element is gone.
+  ns.focusElement = function (id) {
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el) { try { el.focus(); } catch {} }
+  };
+
+  // OmniKanban — horizontal auto-scroll while dragging a card near the board
+  // edges. `dragover` only fires during an active drag, so the listener is inert
+  // otherwise. Attached once per board (guarded); the listener is GC'd when the
+  // board element leaves the DOM on component dispose.
+  ns.kanbanAutoScroll = function (board) {
+    if (!board || board._omniAutoScroll) return;
+    const EDGE = 64;   // px from the edge that triggers scrolling
+    const SPEED = 18;  // px per dragover tick
+    const handler = function (e) {
+      const r = board.getBoundingClientRect();
+      if (e.clientX < r.left + EDGE) board.scrollLeft -= SPEED;
+      else if (e.clientX > r.right - EDGE) board.scrollLeft += SPEED;
+    };
+    board.addEventListener('dragover', handler);
+    board._omniAutoScroll = handler;
+  };
+
   // ——— Element-scoped key interceptor ————————————————————————————————
   // Counterpart to the global hotkey service: listens on a specific element
   // (and its descendants) rather than the document. Useful when you want
