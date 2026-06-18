@@ -1,0 +1,42 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@* Inline source citation badge ([n]) for AI answers — links to the reference and exposes the title/snippet on hover and to screen readers. *@
+
+@if (!string.IsNullOrEmpty(Url))
+{
+    <a class="@RootCss" style="@Style" href="@Url" target="_blank" rel="noopener noreferrer"
+       title="@Tooltip" aria-label="@AccessibleName" @attributes="Attributes">@Label</a>
+}
+else
+{
+    <span class="@RootCss" style="@Style" title="@Tooltip" aria-label="@AccessibleName" @attributes="Attributes">@Label</span>
+}
+
+@code {
+    /// <summary>Reference number rendered as <c>[n]</c> unless <see cref="Text"/> overrides it.</summary>
+    [Parameter] public int Index { get; set; }
+
+    /// <summary>Overrides the displayed label (default is <c>[Index]</c>).</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Source title, shown in the tooltip and the accessible name.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Source URL. When set the badge becomes a link opening in a new tab.</summary>
+    [Parameter] public string? Url { get; set; }
+
+    /// <summary>Optional excerpt appended to the tooltip.</summary>
+    [Parameter] public string? Snippet { get; set; }
+
+    private string Label => Text ?? $"[{Index}]";
+
+    private string? Tooltip =>
+        string.IsNullOrEmpty(Snippet) ? Title : string.IsNullOrEmpty(Title) ? Snippet : $"{Title} — {Snippet}";
+
+    private string AccessibleName =>
+        string.IsNullOrEmpty(Title) ? $"Source {Index}" : $"Source {Index}: {Title}";
+
+    private string RootCss => CssBuilder.Default("omni-citation").AddClass(Class).Build();
+}

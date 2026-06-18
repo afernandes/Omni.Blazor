@@ -1,0 +1,37 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Utilities
+
+@* A row of clickable suggestion chips (follow-up questions / quick replies) for an AI conversation. *@
+
+<div class="@RootCss" style="@Style" role="group" aria-label="@AriaLabel" @attributes="Attributes">
+    @if (Suggestions is not null)
+    {
+        @foreach (var s in Suggestions)
+        {
+            <OmniChip @key="s" Text="@s" Icon="@Icon" OnClick="@(_ => SelectAsync(s))" />
+        }
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The suggestion labels to render as chips. Each fires <see cref="OnSelect"/> with its text.</summary>
+    [Parameter] public IEnumerable<string>? Suggestions { get; set; }
+
+    /// <summary>Optional icon name shown on every suggestion chip.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Fired with the chosen suggestion's text when a chip is clicked.</summary>
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>Accessible label for the chip group. Default "Suggestions".</summary>
+    [Parameter] public string AriaLabel { get; set; } = "Suggestions";
+
+    private string RootCss => CssBuilder.Default("omni-suggestion-chips").AddClass(Class).Build();
+
+    private async Task SelectAsync(string suggestion)
+    {
+        if (OnSelect.HasDelegate) await OnSelect.InvokeAsync(suggestion);
+    }
+}

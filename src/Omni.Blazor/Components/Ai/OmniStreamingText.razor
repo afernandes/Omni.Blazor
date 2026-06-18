@@ -1,0 +1,49 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Utilities
+
+@* Renders an assistant response as it streams in — accumulating Markdown (or plain text) with a blinking caret while Streaming is true. Feed it tokens by updating Text as they arrive from the model. *@
+
+<div class="@RootCss" style="@Style" aria-live="polite" aria-busy="@(Streaming ? "true" : "false")" @attributes="Attributes">
+    @if (string.IsNullOrEmpty(Text))
+    {
+        @if (Streaming && !string.IsNullOrEmpty(Placeholder))
+        {
+            <span class="omni-streaming-text-placeholder">@Placeholder</span>
+        }
+    }
+    else if (Markdown)
+    {
+        <OmniMarkdown Text="@Text" />
+    }
+    else
+    {
+        <span class="omni-streaming-text-content">@Text</span>
+    }
+    @if (Streaming && Caret)
+    {
+        <span class="omni-streaming-caret" aria-hidden="true"></span>
+    }
+</div>
+
+@code {
+    /// <summary>The accumulated response text. Update it as tokens arrive to stream the answer in.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>When true, shows the blinking caret and marks the region <c>aria-busy</c> for screen readers.</summary>
+    [Parameter] public bool Streaming { get; set; }
+
+    /// <summary>Render <see cref="Text"/> as Markdown (default) or as plain text.</summary>
+    [Parameter] public bool Markdown { get; set; } = true;
+
+    /// <summary>Show the blinking caret while streaming. Default true.</summary>
+    [Parameter] public bool Caret { get; set; } = true;
+
+    /// <summary>Optional text shown while streaming before any content has arrived (e.g. "Thinking…").</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-streaming-text")
+        .AddClass("omni-streaming-text-on", Streaming)
+        .AddClass(Class)
+        .Build();
+}

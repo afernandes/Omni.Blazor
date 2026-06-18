@@ -1,6 +1,51 @@
 # Omni.Blazor — full API reference
 
-> 167 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 171 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+
+## Ai
+
+### OmniCitation
+Inline source citation badge ([n]) for AI answers — links to the reference and exposes the title/snippet on hover and to screen readers.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Ai/OmniCitation.razor_
+
+Parameters:
+- `Index`: int = 0 — Reference number rendered as [n] unless Text overrides it.
+- `Snippet`: string — Optional excerpt appended to the tooltip.
+- `Text`: string — Overrides the displayed label (default is [Index]).
+- `Title`: string — Source title, shown in the tooltip and the accessible name.
+- `Url`: string — Source URL. When set the badge becomes a link opening in a new tab.
+
+### OmniStreamingText
+Renders an assistant response as it streams in — accumulating Markdown (or plain text) with a blinking caret while Streaming is true.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Ai/OmniStreamingText.razor_
+
+Parameters:
+- `Caret`: bool = true — Show the blinking caret while streaming. Default true.
+- `Markdown`: bool = true — Render Text as Markdown (default) or as plain text.
+- `Placeholder`: string — Optional text shown while streaming before any content has arrived (e.g. "Thinking…").
+- `Streaming`: bool = false — When true, shows the blinking caret and marks the region aria-busy for screen readers.
+- `Text`: string — The accumulated response text. Update it as tokens arrive to stream the answer in.
+
+### OmniSuggestionChips
+A row of clickable suggestion chips (follow-up questions / quick replies) for an AI conversation.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Ai/OmniSuggestionChips.razor_
+
+Parameters:
+- `AriaLabel`: string = Suggestions — Accessible label for the chip group. Default "Suggestions".
+- `Icon`: string — Optional icon name shown on every suggestion chip.
+- `Suggestions`: IEnumerable<string> — The suggestion labels to render as chips. Each fires OnSelect with its text.
+Events:
+- `OnSelect`: EventCallback<string> — Fired with the chosen suggestion's text when a chip is clicked.
+
+### OmniThinkingBlock
+Collapsible reasoning / "thinking" block for AI answers — collapsed by default; expand to reveal the model's chain of thought or tool steps.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Ai/OmniThinkingBlock.razor_
+
+Parameters:
+- `Expanded`: bool = false — Expanded state; supports two-way binding via ExpandedChanged. Default collapsed.
+- `Title`: string = Reasoning — Toggle label. Default "Reasoning".
+Events:
+- `ExpandedChanged`: EventCallback<bool> — Fired when the block expands or collapses, carrying the new state.
 
 ## Buttons
 
