@@ -2,6 +2,8 @@
 @inherits FormComponent<bool>
 @using Omni.Blazor.Utilities
 
+@* Checkbox bound to a bool value, with an optional inline label. *@
+
 <label class="@RootCss" style="@Style" @attributes="Attributes">
     <input type="checkbox"
            class="omni-check-input"
@@ -14,7 +16,9 @@
 </label>
 
 @code {
+    /// <summary>Text label shown next to the checkbox when no <c>ChildContent</c> is provided.</summary>
     [Parameter] public string? Label { get; set; }
+    /// <summary>Custom label content; rendered instead of <see cref="Label"/> when provided.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-check")

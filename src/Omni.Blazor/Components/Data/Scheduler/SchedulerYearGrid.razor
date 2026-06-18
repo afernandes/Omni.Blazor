@@ -97,8 +97,13 @@
 </div>
 
 @code {
+    /// <summary>Parent scheduler this grid renders for. Required.</summary>
     [Parameter, EditorRequired] public IOmniScheduler Scheduler { get; set; } = default!;
+
+    /// <summary>The owning year view, used for slot/month callbacks. Required.</summary>
     [Parameter, EditorRequired] public IOmniSchedulerView View { get; set; } = default!;
+
+    /// <summary>The twelve month-start dates to render as rows. Required.</summary>
     [Parameter, EditorRequired] public IReadOnlyList<DateTime> Months { get; set; } = Array.Empty<DateTime>();
 
     /// <summary>Timeline (linear day-of-month, wide) vs planner (week-aligned, compact).</summary>

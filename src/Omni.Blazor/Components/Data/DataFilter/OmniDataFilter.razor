@@ -120,10 +120,14 @@
 
     /// <summary>Root list of rules. Two-way bindable.</summary>
     [Parameter] public List<OmniFilterRule>? Rules { get; set; }
+
+    /// <summary>Fired when the rule tree changes (paired with <see cref="Rules"/> for two-way binding).</summary>
     [Parameter] public EventCallback<List<OmniFilterRule>> RulesChanged { get; set; }
 
     /// <summary>Logic combining the root rules. Two-way bindable.</summary>
     [Parameter] public FilterLogic Logic { get; set; } = FilterLogic.And;
+
+    /// <summary>Fired when the root logic changes (paired with <see cref="Logic"/> for two-way binding).</summary>
     [Parameter] public EventCallback<FilterLogic> LogicChanged { get; set; }
 
     /// <summary>Raised with the filtered items (Auto mode, or when ApplyFilterAsync runs).</summary>
@@ -143,13 +147,28 @@
     /// <summary>Disable the whole builder.</summary>
     [Parameter] public bool Disabled { get; set; }
 
+    /// <summary>Label of the "add condition" button. Default <c>"Adicionar condição"</c>.</summary>
     [Parameter] public string AddFilterText { get; set; } = "Adicionar condição";
+
+    /// <summary>Label of the "add group" button. Default <c>"Adicionar grupo"</c>.</summary>
     [Parameter] public string AddGroupText { get; set; } = "Adicionar grupo";
+
+    /// <summary>Title/aria-label of the remove-condition button. Default <c>"Remover"</c>.</summary>
     [Parameter] public string RemoveFilterText { get; set; } = "Remover";
+
+    /// <summary>Label of the "clear all" button. Default <c>"Limpar tudo"</c>.</summary>
     [Parameter] public string ClearFilterText { get; set; } = "Limpar tudo";
+
+    /// <summary>Label of the apply button (shown when <see cref="Auto"/> is false). Default <c>"Aplicar"</c>.</summary>
     [Parameter] public string ApplyFilterText { get; set; } = "Aplicar";
+
+    /// <summary>Label of the AND logic toggle. Default <c>"E"</c>.</summary>
     [Parameter] public string AndOperatorText { get; set; } = "E";
+
+    /// <summary>Label of the OR logic toggle. Default <c>"OU"</c>.</summary>
     [Parameter] public string OrOperatorText { get; set; } = "OU";
+
+    /// <summary>Placeholder of the condition value inputs. Default <c>"valor"</c>.</summary>
     [Parameter] public string ValuePlaceholder { get; set; } = "valor";
 
     // ─── SQL mode ──────────────────────────────────────────────────────────────
@@ -160,13 +179,28 @@
     /// <summary>Show a read-only "generated SQL" disclosure under the visual builder. Default false.</summary>
     [Parameter] public bool ShowSqlPreview { get; set; }
 
+    /// <summary>Label of the visual-mode toggle. Default <c>"Visual"</c>.</summary>
     [Parameter] public string VisualModeText { get; set; } = "Visual";
+
+    /// <summary>Label of the SQL-mode toggle. Default <c>"SQL"</c>.</summary>
     [Parameter] public string SqlModeText { get; set; } = "SQL";
+
+    /// <summary>Label of the "apply SQL to filter" button. Default <c>"Aplicar ao filtro"</c>.</summary>
     [Parameter] public string ApplySqlText { get; set; } = "Aplicar ao filtro";
+
+    /// <summary>Status text shown when the typed SQL is valid. Default <c>"SQL válido"</c>.</summary>
     [Parameter] public string SqlValidText { get; set; } = "SQL válido";
+
+    /// <summary>Summary label of the generated-SQL disclosure. Default <c>"SQL gerado"</c>.</summary>
     [Parameter] public string SqlPreviewLabel { get; set; } = "SQL gerado";
+
+    /// <summary>Label of the copy button. Default <c>"Copiar"</c>.</summary>
     [Parameter] public string CopyText { get; set; } = "Copiar";
+
+    /// <summary>Label preceding the available-fields chips in SQL mode. Default <c>"Campos"</c>.</summary>
     [Parameter] public string FieldsLabel { get; set; } = "Campos";
+
+    /// <summary>Placeholder of the SQL textarea. Default an example expression.</summary>
     [Parameter] public string SqlPlaceholder { get; set; } = "ex.: Nome LIKE '%texto%' AND Idade >= 18";
 
     // ─── State ─────────────────────────────────────────────────────────────────

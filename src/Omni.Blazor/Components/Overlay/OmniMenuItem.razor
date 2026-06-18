@@ -2,6 +2,8 @@
 @inherits OmniComponentWithChildren
 @using Omni.Blazor.Utilities
 
+@* A single clickable row inside an <OmniMenu>: optional icon, label, and keyboard-shortcut hint. *@
+
 <button type="button"
         class="@RootCss"
         style="@Style"
@@ -23,11 +25,17 @@
 </button>
 
 @code {
+    /// <summary>Label text (ignored when <see cref="ChildContent"/> is supplied).</summary>
     [Parameter] public string? Text { get; set; }
+    /// <summary>Optional leading icon name.</summary>
     [Parameter] public string? Icon { get; set; }
+    /// <summary>Optional keyboard-shortcut hint shown trailing (e.g. <c>"⌘D"</c>), rendered as a kbd.</summary>
     [Parameter] public string? Shortcut { get; set; }
+    /// <summary>Styles the item as a destructive action (danger color). Default <c>false</c>.</summary>
     [Parameter] public bool IsDanger { get; set; }
+    /// <summary>Disables the item (no click, dimmed). Default <c>false</c>.</summary>
     [Parameter] public bool Disabled { get; set; }
+    /// <summary>Raised when the item is clicked (suppressed while <see cref="Disabled"/>).</summary>
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-menu-item")

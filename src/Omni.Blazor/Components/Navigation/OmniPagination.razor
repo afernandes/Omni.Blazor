@@ -55,9 +55,13 @@
 </div>
 
 @code {
+    /// <summary>Current zero-based page index (clamped to the valid range). Two-way bindable via @bind-CurrentPage.</summary>
     [Parameter] public int CurrentPage { get; set; }
+    /// <summary>Raised when the page changes, carrying the new zero-based page index.</summary>
     [Parameter] public EventCallback<int> CurrentPageChanged { get; set; }
+    /// <summary>Total number of items across all pages; used with PageSize to compute the page count and summary.</summary>
     [Parameter] public int TotalCount { get; set; }
+    /// <summary>Number of items per page. Default 10.</summary>
     [Parameter] public int PageSize { get; set; } = 10;
 
     /// <summary>Maximum number of numeric page buttons to show (excluding ellipsis). Default 7.</summary>

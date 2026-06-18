@@ -95,10 +95,12 @@
 @code {
     /// <summary>Currently selected single date. (Range mode handled by parent.)</summary>
     [Parameter] public DateOnly? Selected { get; set; }
+    /// <summary>Fires when the user picks a day (click or keyboard Enter/Space) that passes the disabled checks.</summary>
     [Parameter] public EventCallback<DateOnly> OnDateSelected { get; set; }
 
     /// <summary>Optional range — used by the date-range variant for hover/selection visuals.</summary>
     [Parameter] public DateOnly? RangeStart { get; set; }
+    /// <summary>End of the committed range; when both endpoints are set the band between them is painted solid.</summary>
     [Parameter] public DateOnly? RangeEnd { get; set; }
 
     /// <summary>
@@ -112,9 +114,13 @@
     /// <summary>Fires as the mouse moves over (or leaves) day cells. Receives null on leave.</summary>
     [Parameter] public EventCallback<DateOnly?> OnDayHover { get; set; }
 
+    /// <summary>Earliest selectable day; days before it are disabled.</summary>
     [Parameter] public DateOnly? MinDate { get; set; }
+    /// <summary>Latest selectable day; days after it are disabled.</summary>
     [Parameter] public DateOnly? MaxDate { get; set; }
+    /// <summary>When true, Saturdays and Sundays are disabled. Default false.</summary>
     [Parameter] public bool DisableWeekends { get; set; }
+    /// <summary>Predicate returning true to disable a specific day. Default null (none disabled).</summary>
     [Parameter] public Func<DateOnly, bool>? DisabledDates { get; set; }
 
     /// <summary>
@@ -127,6 +133,7 @@
 
     /// <summary>Month being displayed. Defaults to today's month (or Selected's month).</summary>
     [Parameter] public DateOnly? ViewMonth { get; set; }
+    /// <summary>Fires when the displayed month changes (navigation, year pick, or keyboard paging).</summary>
     [Parameter] public EventCallback<DateOnly> ViewMonthChanged { get; set; }
 
     /// <summary>
@@ -159,6 +166,7 @@
     /// <summary>Fires when the user presses Escape on the grid.</summary>
     [Parameter] public EventCallback OnEscape { get; set; }
 
+    /// <summary>Show the prev/next month navigation chevrons. Default true.</summary>
     [Parameter] public bool ShowNavButtons { get; set; } = true;
     /// <summary>Show the "previous month" chevron. Useful to hide one side in a two-month layout.</summary>
     [Parameter] public bool ShowPrevButton { get; set; } = true;

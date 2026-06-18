@@ -3,6 +3,8 @@
 @inherits OmniComponentWithChildren
 @using Omni.Blazor.Utilities
 
+@* Single radio button; registers with the enclosing OmniRadioGroup via cascading parameter. *@
+
 <label class="@RootCss" style="@Style" @attributes="Attributes">
     <input type="radio"
            class="omni-radio-input"
@@ -18,8 +20,11 @@
 @code {
     [CascadingParameter] internal OmniRadioGroup<TValue>? Group { get; set; }
 
+    /// <summary>Value this radio represents; the group is selected when it equals the group's bound value. Required.</summary>
     [Parameter, EditorRequired] public TValue Value { get; set; } = default!;
+    /// <summary>Text label shown next to the radio when no <c>ChildContent</c> is provided.</summary>
     [Parameter] public string? Label { get; set; }
+    /// <summary>Disables this radio (also disabled when the group is disabled). Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
 
     private bool IsSelected => Group?.IsSelected(Value) == true;

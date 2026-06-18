@@ -2,14 +2,21 @@
 @inherits OmniComponent
 @implements IDisposable
 
+@* A single step inside an OmniStepper; renders no markup itself and registers with the parent stepper, which draws its header and body. *@
 @code {
     [CascadingParameter] internal OmniStepper? Parent { get; set; }
 
+    /// <summary>Step title shown in the header label. Required.</summary>
     [Parameter, EditorRequired] public string Title { get; set; } = "";
+    /// <summary>Optional secondary line shown under the title in the header.</summary>
     [Parameter] public string? Description { get; set; }
+    /// <summary>Optional icon name shown in the step bubble (replaces the number when the step isn't done).</summary>
     [Parameter] public string? Icon { get; set; }
+    /// <summary>When true, the step's bubble/dot cannot be clicked. Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
+    /// <summary>When true, appends an "(opcional)" marker after the title. Default false.</summary>
     [Parameter] public bool Optional { get; set; }
+    /// <summary>The step's body content, rendered by the parent stepper only while this step is active.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     protected override void OnInitialized() => Parent?.Register(this);

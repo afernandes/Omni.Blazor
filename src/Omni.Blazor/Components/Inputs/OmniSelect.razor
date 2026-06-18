@@ -74,9 +74,13 @@
 </div>
 
 @code {
+    /// <summary>Text shown in the trigger when nothing is selected.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>Options to choose from.</summary>
     [Parameter] public IEnumerable<TValue>? Items { get; set; }
+    /// <summary>Extracts the bound value from an item. Default = the item itself.</summary>
     [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
+    /// <summary>Maps an item to its display text. Default = <c>item.ToString()</c>.</summary>
     [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
 
     /// <summary>Kept for API compatibility. Prefer <see cref="Items"/> + selectors.</summary>

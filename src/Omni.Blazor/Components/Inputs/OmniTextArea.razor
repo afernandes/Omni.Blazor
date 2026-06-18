@@ -2,6 +2,8 @@
 @inherits FormComponent<string>
 @using Omni.Blazor.Utilities
 
+@* Multi-line text input (<textarea>) bound to a string value. *@
+
 <textarea class="@RootCss"
           style="@Style"
           rows="@Rows"
@@ -14,8 +16,11 @@
           @attributes="Attributes">@Value</textarea>
 
 @code {
+    /// <summary>Placeholder text shown when the textarea is empty.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>Visible number of text rows. Default 4.</summary>
     [Parameter] public int Rows { get; set; } = 4;
+    /// <summary>Maximum number of characters allowed (via <c>maxlength</c>). Default null (no limit).</summary>
     [Parameter] public int? MaxLength { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-input")

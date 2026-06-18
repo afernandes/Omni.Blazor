@@ -93,7 +93,9 @@
 
 @code {
     // ── Bind (simétrico ao OmniMultiSelect) ───────────────────────────────
+    /// <summary>Tags atuais (two-way via <c>@bind-Values</c>).</summary>
     [Parameter] public IEnumerable<string>? Values { get; set; }
+    /// <summary>Disparado quando a coleção de tags muda.</summary>
     [Parameter] public EventCallback<IEnumerable<string>> ValuesChanged { get; set; }
 
     /// <summary>Expression pra integração com EditContext (validators irmãos).</summary>
@@ -106,9 +108,13 @@
     [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
 
     // ── Aparência / estado ────────────────────────────────────────────────
+    /// <summary>Texto exibido no campo quando não há tags.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>Desabilita o campo (sem adicionar/remover tags). Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
+    /// <summary>Somente leitura — exibe as tags mas bloqueia edição. Default false.</summary>
     [Parameter] public bool ReadOnly { get; set; }
+    /// <summary>Tamanho visual do campo. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
 
     // ── Sugestões opcionais (autocomplete) ────────────────────────────────
@@ -133,7 +139,9 @@
     [Parameter] public int? Max { get; set; }
 
     // ── Eventos ───────────────────────────────────────────────────────────
+    /// <summary>Disparado após uma tag ser adicionada, com o texto da tag.</summary>
     [Parameter] public EventCallback<string> OnTagAdded { get; set; }
+    /// <summary>Disparado após uma tag ser removida, com o texto da tag.</summary>
     [Parameter] public EventCallback<string> OnTagRemoved { get; set; }
 
     // ── IOmniFormComponent — descoberta por validators irmãos ──

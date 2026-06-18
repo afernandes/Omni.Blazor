@@ -52,14 +52,23 @@
 
 @code {
     // ─── Pass-through para o OmniSpeechToText interno ───────────────────
+    /// <summary>Código de idioma BCP-47 ("pt-BR", "en-US"...). Null = padrão do browser.</summary>
     [Parameter] public string? Language { get; set; }
+    /// <summary>Continua reconhecendo até o user parar. Default true.</summary>
     [Parameter] public bool Continuous { get; set; } = true;
+    /// <summary>Dispara <c>OnResult</c> com resultados parciais enquanto o user fala. Default false.</summary>
     [Parameter] public bool InterimResults { get; set; }
+    /// <summary>Quantas alternativas pedir ao motor por trecho. Default 1.</summary>
     [Parameter] public int MaxAlternatives { get; set; } = 1;
+    /// <summary>Disparado a cada resultado do reconhecimento (transcript + IsFinal + confidence).</summary>
     [Parameter] public EventCallback<SpeechRecognitionResult> OnResult { get; set; }
+    /// <summary>Disparado quando o reconhecimento começa.</summary>
     [Parameter] public EventCallback OnStart { get; set; }
+    /// <summary>Disparado quando o reconhecimento termina.</summary>
     [Parameter] public EventCallback OnEnd { get; set; }
+    /// <summary>Disparado em erro, com o código cru do browser.</summary>
     [Parameter] public EventCallback<string> OnError { get; set; }
+    /// <summary>Disparado a cada transição da state machine de reconhecimento.</summary>
     [Parameter] public EventCallback<SpeechRecognitionState> OnStateChange { get; set; }
 
     // ─── Visuais ─────────────────────────────────────────────────────────
@@ -111,8 +120,11 @@
     /// passam pro JS (que já tem debounce de 250ms).</summary>
     [Parameter] public bool AllowInterrupt { get; set; }
 
+    /// <summary>Variante visual do botão. Default <c>Default</c>.</summary>
     [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+    /// <summary>Tamanho do botão. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    /// <summary>Desabilita o botão manualmente (além de desabilitar quando o browser não suporta). Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
 
     private OmniSpeechToText? _stt;

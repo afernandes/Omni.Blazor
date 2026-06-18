@@ -241,29 +241,60 @@
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     // ─── Data binding ─────────────────────────────────────────────────────
+    /// <summary>The task source.</summary>
     [Parameter] public IEnumerable<TItem>? Data { get; set; }
+
+    /// <summary>Name of each task's unique id property (enables the hierarchy + dependencies).</summary>
     [Parameter] public string? IdProperty { get; set; }
+
+    /// <summary>Name of the parent-id property used to build the task tree. Null = flat list.</summary>
     [Parameter] public string? ParentIdProperty { get; set; }
+
+    /// <summary>Name of the task display-text property (shown on the bar label).</summary>
     [Parameter] public string? TextProperty { get; set; }
+
+    /// <summary>Name of the task start <c>DateTime</c> property.</summary>
     [Parameter] public string? StartProperty { get; set; }
+
+    /// <summary>Name of the task end <c>DateTime</c> property. Equal to start = milestone.</summary>
     [Parameter] public string? EndProperty { get; set; }
+
+    /// <summary>Name of the progress property (0–100), drawn as a fill inside the bar.</summary>
     [Parameter] public string? ProgressProperty { get; set; }
+
+    /// <summary>Name of the baseline-start property — draws a baseline bar under the task.</summary>
     [Parameter] public string? BaselineStartProperty { get; set; }
+
+    /// <summary>Name of the baseline-end property (used with <see cref="BaselineStartProperty"/>).</summary>
     [Parameter] public string? BaselineEndProperty { get; set; }
 
     /// <summary>Left-pane column definitions (<c>OmniGanttColumn</c>) — pass them as child content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     // ─── Dependencies ─────────────────────────────────────────────────────
+    /// <summary>Typed task dependencies (rendered as arrows). Alternative to <see cref="DependencyData"/>.</summary>
     [Parameter] public IEnumerable<GanttDependency<TItem>>? Dependencies { get; set; }
+
+    /// <summary>Raw dependency objects, resolved via the <c>Dependency*Property</c> names.</summary>
     [Parameter] public IEnumerable<object>? DependencyData { get; set; }
+
+    /// <summary>On <see cref="DependencyData"/>, the property holding the predecessor task id.</summary>
     [Parameter] public string? DependencyFromProperty { get; set; }
+
+    /// <summary>On <see cref="DependencyData"/>, the property holding the successor task id.</summary>
     [Parameter] public string? DependencyToProperty { get; set; }
+
+    /// <summary>On <see cref="DependencyData"/>, the property holding the dependency type. Default Finish-to-Start.</summary>
     [Parameter] public string? DependencyTypeProperty { get; set; }
 
     // ─── Layout / timeline ────────────────────────────────────────────────
+    /// <summary>Timeline granularity (Day/Week/Month/Year). Default Week.</summary>
     [Parameter] public GanttZoomLevel ZoomLevel { get; set; } = GanttZoomLevel.Week;
+
+    /// <summary>Forces the timeline start date. Null = auto from the earliest task.</summary>
     [Parameter] public DateTime? ViewStart { get; set; }
+
+    /// <summary>Forces the timeline end date. Null = auto from the latest task.</summary>
     [Parameter] public DateTime? ViewEnd { get; set; }
     /// <summary>
     /// Fallback width for the left task pane when no columns are declared. When
@@ -271,6 +302,7 @@
     /// so a column never overflows into the timeline.
     /// </summary>
     [Parameter] public string LeftPaneWidth { get; set; } = "360px";
+    /// <summary>Height (px) of each task row. Default 34.</summary>
     [Parameter] public int RowHeightPx { get; set; } = 34;
 
     /// <summary>Lets the user resize left-pane columns by dragging the right edge of a header cell. Default true.</summary>
@@ -278,11 +310,22 @@
 
     /// <summary>Fired after a left-pane column is resized (drag of the header handle finished).</summary>
     [Parameter] public EventCallback<GanttColumnResizedEventArgs> ColumnResized { get; set; }
+    /// <summary>Shows the top navigation bar (title + zoom controls). Default true.</summary>
     [Parameter] public bool ShowNavigation { get; set; } = true;
+
+    /// <summary>Draws a vertical line at the current date/time. Default true.</summary>
     [Parameter] public bool ShowTodayLine { get; set; } = true;
+
+    /// <summary>Shades non-working days (see <see cref="NonWorkingDays"/>) on the timeline. Default true.</summary>
     [Parameter] public bool ShowWeekends { get; set; } = true;
+
+    /// <summary>Which days count as non-working (shaded). Default Saturday + Sunday.</summary>
     [Parameter] public IEnumerable<DayOfWeek> NonWorkingDays { get; set; } = new[] { DayOfWeek.Saturday, DayOfWeek.Sunday };
+
+    /// <summary>Optional vertical date markers (e.g. deadlines) drawn on the timeline.</summary>
     [Parameter] public IEnumerable<GanttMarker>? Markers { get; set; }
+
+    /// <summary>Computes and highlights the critical path (CPM). Requires dependencies. Default false.</summary>
     [Parameter] public bool ShowCriticalPath { get; set; }
 
     /// <summary>Per-bar render hook (CSS class / inline style).</summary>
@@ -290,14 +333,26 @@
     /// <summary>Custom content inside each task bar (replaces progress + label).</summary>
     [Parameter] public RenderFragment<TItem>? TaskTemplate { get; set; }
 
+    /// <summary>Tooltip for the zoom-to-fit button. Default <c>"Ajustar à tela"</c>.</summary>
     [Parameter] public string ZoomToFitText { get; set; } = "Ajustar à tela";
 
     // ─── Callbacks ────────────────────────────────────────────────────────
+    /// <summary>Fired when a task bar is clicked.</summary>
     [Parameter] public EventCallback<TItem> TaskClick { get; set; }
+
+    /// <summary>Fired when a left-pane row is clicked.</summary>
     [Parameter] public EventCallback<TItem> RowClick { get; set; }
+
+    /// <summary>Fired when the pointer enters a task bar.</summary>
     [Parameter] public EventCallback<GanttTaskMouseEventArgs<TItem>> TaskMouseEnter { get; set; }
+
+    /// <summary>Fired when the pointer leaves a task bar.</summary>
     [Parameter] public EventCallback<GanttTaskMouseEventArgs<TItem>> TaskMouseLeave { get; set; }
+
+    /// <summary>Fired when a task is dragged to a new date range. Wiring it enables drag-to-move.</summary>
     [Parameter] public EventCallback<GanttTaskMovedEventArgs<TItem>> TaskMove { get; set; }
+
+    /// <summary>Fired when a task is resized via its edge handles. Wiring it enables resizing.</summary>
     [Parameter] public EventCallback<GanttTaskMovedEventArgs<TItem>> TaskResize { get; set; }
 
     // ─── Internal state ───────────────────────────────────────────────────

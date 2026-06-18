@@ -2,6 +2,8 @@
 @inherits OmniComponent
 @using Omni.Blazor.Utilities
 
+@* Horizontal progress bar, or a segmented variant (e.g. password strength) when Segments > 0. *@
+
 @if (Segments > 0)
 {
     <div class="@SegCss" style="@Style" @attributes="Attributes">
@@ -19,9 +21,13 @@ else
 }
 
 @code {
+    /// <summary>Current progress value (relative to <see cref="Max"/>); clamped to 0-100% of the bar width.</summary>
     [Parameter] public double Value { get; set; }
+    /// <summary>Value that represents 100% fill. Default 100.</summary>
     [Parameter] public double Max { get; set; } = 100;
+    /// <summary>Bar thickness (Md default): Sm, Md, or Lg.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    /// <summary>Color variant of the bar fill (Accent default); Good/Warn/Danger map to semantic colors.</summary>
     [Parameter] public BadgeVariant Variant { get; set; } = BadgeVariant.Accent;
 
     /// <summary>Optional arbitrary CSS colour for the bar (overrides <see cref="Variant"/>).</summary>
@@ -29,6 +35,7 @@ else
 
     /// <summary>If > 0, render as segmented progress (used for password strength).</summary>
     [Parameter] public int Segments { get; set; }
+    /// <summary>Number of filled segments (segmented mode); also drives the strength color via omni-s1..s4.</summary>
     [Parameter] public int Active { get; set; }
 
     private double Clamped => Math.Max(0, Math.Min(100, Max == 0 ? 0 : (Value / Max) * 100.0));

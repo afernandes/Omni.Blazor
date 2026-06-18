@@ -59,7 +59,9 @@
 </div>
 
 @code {
+    /// <summary>Allow selecting/dropping more than one file. Default false (single file replaces the previous).</summary>
     [Parameter] public bool Multiple { get; set; }
+    /// <summary>HTML <c>accept</c> filter passed to the file input (e.g. <c>"image/*"</c>, <c>".pdf"</c>).</summary>
     [Parameter] public string? Accept { get; set; }
 
     /// <summary>Maximum size per file, in bytes. 0 = no limit. Default 10 MB.</summary>
@@ -68,10 +70,14 @@
     /// <summary>Maximum number of files (Multiple only). 0 = no limit.</summary>
     [Parameter] public int MaxFileCount { get; set; }
 
+    /// <summary>Main text shown inside the drop-zone. Default "Arraste arquivos aqui ou clique para selecionar".</summary>
     [Parameter] public string LabelText { get; set; } = "Arraste arquivos aqui ou clique para selecionar";
+    /// <summary>Secondary hint under the label. When null, an auto hint listing Accept + max size is shown.</summary>
     [Parameter] public string? HintText { get; set; }
 
+    /// <summary>Fires after files are added (validated), with the current accepted file list.</summary>
     [Parameter] public EventCallback<IReadOnlyList<IBrowserFile>> OnFilesSelected { get; set; }
+    /// <summary>Fires when a file is removed from the list, with the removed file.</summary>
     [Parameter] public EventCallback<IBrowserFile> OnFileRemoved { get; set; }
 
     // ── Integração com EditContext / validators irmãos ──

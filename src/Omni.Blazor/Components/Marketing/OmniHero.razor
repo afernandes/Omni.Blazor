@@ -2,6 +2,8 @@
 @inherits OmniComponentWithChildren
 @using Omni.Blazor.Utilities
 
+@* Marketing hero section composing an eyebrow, title, subtitle and a CTA row above arbitrary child content. *@
+
 <section class="@RootCss" style="@Style" @attributes="Attributes">
     @if (EyebrowContent is not null) { @EyebrowContent }
     else if (!string.IsNullOrEmpty(Eyebrow))
@@ -29,11 +31,17 @@
 </section>
 
 @code {
+    /// <summary>Eyebrow text rendered in an <see cref="OmniEyebrow"/>; ignored when <see cref="EyebrowContent"/> is set.</summary>
     [Parameter] public string? Eyebrow { get; set; }
+    /// <summary>Custom eyebrow markup; when set it replaces the <see cref="Eyebrow"/> text.</summary>
     [Parameter] public RenderFragment? EyebrowContent { get; set; }
+    /// <summary>Hero title rendered as an <c>h1</c>; the value is treated as raw HTML (MarkupString). Ignored when <see cref="TitleContent"/> is set.</summary>
     [Parameter] public string? Title { get; set; }
+    /// <summary>Custom title markup; when set it replaces the <see cref="Title"/> heading.</summary>
     [Parameter] public RenderFragment? TitleContent { get; set; }
+    /// <summary>Subtitle paragraph rendered below the title; omitted when empty.</summary>
     [Parameter] public string? Subtitle { get; set; }
+    /// <summary>Call-to-action markup rendered in a dedicated row below the subtitle.</summary>
     [Parameter] public RenderFragment? CtaContent { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-hero")

@@ -35,10 +35,15 @@
        @attributes="Attributes" />
 
 @code {
+    /// <summary>Mask pattern: <c>9</c> = digit, <c>A</c> = letter, <c>*</c> = alphanumeric; any other char is a literal separator. Required.</summary>
     [Parameter, EditorRequired] public string Mask { get; set; } = "";
+    /// <summary>Placeholder text shown when the input is empty.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>When true, the bound Value keeps the mask separators; default false binds only the meaningful characters.</summary>
     [Parameter] public bool KeepMask { get; set; }
+    /// <summary>Visual size of the input. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    /// <summary>HTML <c>autocomplete</c> attribute for the input.</summary>
     [Parameter] public string? Autocomplete { get; set; }
 
     private ElementReference _input;

@@ -90,13 +90,25 @@
 </div>
 
 @code {
+    /// <summary>Parent scheduler this view renders for. Required.</summary>
     [Parameter, EditorRequired] public IOmniScheduler Scheduler { get; set; } = default!;
+
+    /// <summary>The owning view (day/week/multi-day), used for slot/day callbacks. Required.</summary>
     [Parameter, EditorRequired] public IOmniSchedulerView View { get; set; } = default!;
+
+    /// <summary>The days to render as columns. Required.</summary>
     [Parameter, EditorRequired] public IReadOnlyList<DateTime> Days { get; set; } = Array.Empty<DateTime>();
 
+    /// <summary>First time slot of the day. Default 08:00.</summary>
     [Parameter] public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
+
+    /// <summary>Last time slot of the day (exclusive). Default 24:00.</summary>
     [Parameter] public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>Minutes per slot row. Default 30.</summary>
     [Parameter] public int MinutesPerSlot { get; set; } = 30;
+
+    /// <summary>Time format for slot labels. Default <c>"HH:mm"</c>.</summary>
     [Parameter] public string TimeFormat { get; set; } = "HH:mm";
 
     /// <summary>Format for the day-of-week header label. Default <c>"ddd"</c>.</summary>

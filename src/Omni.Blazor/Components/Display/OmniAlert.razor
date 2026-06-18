@@ -43,11 +43,17 @@
 }
 
 @code {
+    /// <summary>Severity level (Info default) driving the color scheme and default icon.</summary>
     [Parameter] public NotificationSeverity Severity { get; set; } = NotificationSeverity.Info;
+    /// <summary>Optional bold heading shown above the message.</summary>
     [Parameter] public string? Title { get; set; }
+    /// <summary>When true, renders a close button that hides the alert.</summary>
     [Parameter] public bool Dismissible { get; set; }
+    /// <summary>Overrides the default severity-based leading icon.</summary>
     [Parameter] public string? Icon { get; set; }
+    /// <summary>Optional action buttons/links rendered below the message.</summary>
     [Parameter] public RenderFragment? Actions { get; set; }
+    /// <summary>Fired after the alert is dismissed via the close button.</summary>
     [Parameter] public EventCallback OnClosed { get; set; }
 
     private bool _closed;

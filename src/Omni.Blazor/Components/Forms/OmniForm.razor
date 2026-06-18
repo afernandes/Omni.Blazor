@@ -43,9 +43,13 @@
 </EditForm>
 
 @code {
+    /// <summary>The model instance the form edits; backs the inner EditContext. Required.</summary>
     [Parameter, EditorRequired] public TModel Model { get; set; } = default!;
+    /// <summary>Form content — inputs, validators, and submit controls.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Invoked when the form is submitted and passes validation.</summary>
     [Parameter] public EventCallback<EditContext> OnValidSubmit { get; set; }
+    /// <summary>Invoked when the form is submitted but validation fails.</summary>
     [Parameter] public EventCallback<EditContext> OnInvalidSubmit { get; set; }
 
     /// <summary>Auto-attach a DataAnnotationsValidator inside the form. Default true.</summary>
@@ -78,6 +82,7 @@
     /// Bound parameter — write a backing field with <c>@bind-IsTouched</c>.
     /// </summary>
     [Parameter] public bool IsTouched { get; set; }
+    /// <summary>Callback for two-way binding of <see cref="IsTouched"/>.</summary>
     [Parameter] public EventCallback<bool> IsTouchedChanged { get; set; }
 
     private EditForm? _editForm;

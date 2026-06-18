@@ -2,6 +2,8 @@
 @inherits OmniComponentWithChildren
 @using Omni.Blazor.Utilities
 
+@* The library's base button: leading/trailing icons, variants, sizes, block, icon-only and loading states. *@
+
 <button @ref="_el"
         type="@TypeAttr"
         class="@RootCss"
@@ -48,15 +50,34 @@
 </button>
 
 @code {
+    /// <summary>Label text, rendered when no <c>ChildContent</c> is provided.</summary>
     [Parameter] public string? Text { get; set; }
+
+    /// <summary>Name of the leading <c>OmniIcon</c> shown before the label.</summary>
     [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Name of the trailing <c>OmniIcon</c> shown after the label.</summary>
     [Parameter] public string? TrailingIcon { get; set; }
+
+    /// <summary>Visual variant (Primary/Ghost/Danger/Link). Default <c>Default</c>.</summary>
     [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Default;
+
+    /// <summary>Button size (Sm/Md/Lg/Xl). Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+
+    /// <summary>Renders a square icon-only button (no label spacing). Default <c>false</c>.</summary>
     [Parameter] public bool IconOnly { get; set; }
+
+    /// <summary>Stretches the button to full container width. Default <c>false</c>.</summary>
     [Parameter] public bool Block { get; set; }
+
+    /// <summary>Disables the button (also disabled while <c>Loading</c>). Default <c>false</c>.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>The native <c>type</c> attribute (button/submit/reset). Default <c>"button"</c>.</summary>
     [Parameter] public string Type { get; set; } = "button";
+
+    /// <summary>Click handler; not invoked while <c>Disabled</c> or <c>Loading</c>.</summary>
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     /// <summary>

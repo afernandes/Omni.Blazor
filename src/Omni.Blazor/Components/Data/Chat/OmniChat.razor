@@ -142,19 +142,46 @@
     /// <summary>Fired with the new list whenever messages change (consumer assigns it back).</summary>
     [Parameter] public EventCallback<IEnumerable<OmniChatMessage>> MessagesChanged { get; set; }
 
+    /// <summary>Header title text. Empty hides the title.</summary>
     [Parameter] public string? Title { get; set; }
+
+    /// <summary>Shows the participant roster (avatars) in the header. Default true.</summary>
     [Parameter] public bool ShowUsers { get; set; } = true;
+
+    /// <summary>Shows each (other) user's name above their bubble. Default true.</summary>
     [Parameter] public bool ShowUserNames { get; set; } = true;
+
+    /// <summary>Max roster avatars shown before a "+N" overflow badge. Default 5.</summary>
     [Parameter] public int MaxVisibleUsers { get; set; } = 5;
+
+    /// <summary>Shows the "clear chat" button in the header. Default true.</summary>
     [Parameter] public bool ShowClearButton { get; set; } = true;
+
+    /// <summary>Label for the clear button. Default <c>"Limpar"</c>.</summary>
     [Parameter] public string ClearButtonText { get; set; } = "Limpar";
+
+    /// <summary>Inserts a date separator between messages from different days. Default true.</summary>
     [Parameter] public bool ShowDateSeparator { get; set; } = true;
+
+    /// <summary>Date format for the day separators. Default <c>"D"</c>.</summary>
     [Parameter] public string DateSeparatorFormat { get; set; } = "D";
+
+    /// <summary>Time format for each message's timestamp. Default <c>"HH:mm"</c>.</summary>
     [Parameter] public string TimestampFormat { get; set; } = "HH:mm";
+
+    /// <summary>Compose-box placeholder. Default <c>"Digite uma mensagem..."</c>.</summary>
     [Parameter] public string Placeholder { get; set; } = "Digite uma mensagem...";
+
+    /// <summary>Text shown when there are no messages. Default <c>"Nenhuma mensagem ainda. Comece a conversa!"</c>.</summary>
     [Parameter] public string EmptyMessage { get; set; } = "Nenhuma mensagem ainda. Comece a conversa!";
+
+    /// <summary>Disables the whole chat (compose box, send, clear). Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Read-only mode — messages render but the compose box is disabled. Default false.</summary>
     [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Max messages kept; older ones are trimmed once exceeded. Default 200.</summary>
     [Parameter] public int MaxMessages { get; set; } = 200;
 
     /// <summary>Render bubble content as Markdown (default) or plain text.</summary>
@@ -163,15 +190,28 @@
     /// <summary>Height of the chat (CSS). Default 480px.</summary>
     [Parameter] public string Height { get; set; } = "480px";
 
+    /// <summary>Custom render template for a message bubble. Receives the <c>OmniChatMessage</c>.</summary>
     [Parameter] public RenderFragment<OmniChatMessage>? MessageTemplate { get; set; }
+
+    /// <summary>Custom empty-state content. Overrides <see cref="EmptyMessage"/> when set.</summary>
     [Parameter] public RenderFragment? EmptyTemplate { get; set; }
 
+    /// <summary>Shows a typing indicator when remote users are typing (see <see cref="SetUserTypingAsync"/>). Default false.</summary>
     [Parameter] public bool ShowTypingIndicator { get; set; }
+
+    /// <summary>Idle time (ms) after the last keystroke before the local "typing" state clears. Default 1500.</summary>
     [Parameter] public int TypingTimeout { get; set; } = 1500;
 
+    /// <summary>Fired when the local user sends a message.</summary>
     [Parameter] public EventCallback<OmniChatMessage> MessageSent { get; set; }
+
+    /// <summary>Fired whenever a message is appended to the list.</summary>
     [Parameter] public EventCallback<OmniChatMessage> MessageAdded { get; set; }
+
+    /// <summary>Fired when the chat is cleared.</summary>
     [Parameter] public EventCallback ChatCleared { get; set; }
+
+    /// <summary>Fired when the local user starts/stops typing — relay to remote peers.</summary>
     [Parameter] public EventCallback<OmniChatTypingEventArgs> TypingChanged { get; set; }
 
     private List<OmniChatUser> _users = new();
