@@ -104,6 +104,20 @@ public class OmniPopoverTests : TestContextBase
     }
 
     [Fact]
+    public void Open_panel_is_an_aria_modal_dialog()
+    {
+        var cut = RenderComponent<OmniPopover>(p => p
+            .Add(c => c.Trigger, Probe())
+            .AddChildContent("x"));
+
+        cut.Find(".omni-popover-trigger").Click();
+
+        var panel = cut.Find(".omni-popover");
+        Assert.Equal("dialog", panel.GetAttribute("role"));
+        Assert.Equal("true", panel.GetAttribute("aria-modal"));
+    }
+
+    [Fact]
     public void Appends_consumer_Class_to_root()
     {
         var cut = RenderComponent<OmniPopover>(p => p

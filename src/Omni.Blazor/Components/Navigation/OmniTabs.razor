@@ -5,7 +5,7 @@
 @* Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body; the first registered tab is active by default. *@
 <CascadingValue Value="this" IsFixed="true">
     <div class="@RootCss" style="@Style" @attributes="Attributes">
-        <div class="omni-tabs-bar">
+        <div class="omni-tabs-bar" role="tablist">
             @foreach (var tab in _tabs)
             {
                 var current = tab;
@@ -13,13 +13,20 @@
                 <button @key="current"
                         type="button"
                         class="@TabCss(active)"
+                        id="@TabId(current)"
+                        role="tab"
+                        aria-selected="@(active ? "true" : "false")"
+                        aria-controls="@PanelId(current)"
                         @onclick="@(() => Activate(current))">
                     @if (!string.IsNullOrEmpty(current.Icon)) { <OmniIcon Name="@current.Icon" Size="ComponentSize.Sm" /> }
                     <span>@current.Title</span>
                 </button>
             }
         </div>
-        <div class="omni-tabs-body">
+        <div class="omni-tabs-body"
+             role="tabpanel"
+             id="@(_active is null ? null : PanelId(_active))"
+             aria-labelledby="@(_active is null ? null : TabId(_active))">
             @ChildContent
             @_active?.ChildContent
         </div>
@@ -37,6 +44,10 @@
     private static string TabCss(bool active) => CssBuilder.Default("omni-tab")
         .AddClass("omni-active", active)
         .Build();
+
+    private static string TabId(OmniTabItem tab) => $"{tab.Id}-tab";
+
+    private static string PanelId(OmniTabItem tab) => $"{tab.Id}-panel";
 
     internal void Register(OmniTabItem tab)
     {

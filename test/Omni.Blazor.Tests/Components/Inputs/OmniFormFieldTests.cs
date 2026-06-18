@@ -59,6 +59,39 @@ public class OmniFormFieldTests : TestContextBase
     }
 
     [Fact]
+    public void Hint_has_stable_id_for_aria_describedby()
+    {
+        var cut = RenderComponent<OmniFormField>(p => p
+            .Add(c => c.Hint, "Helpful tip")
+            .AddChildContent("x"));
+
+        var hint = cut.Find("span.omni-field-hint");
+        var id = hint.GetAttribute("id");
+
+        Assert.False(string.IsNullOrEmpty(id));
+        // Id is derived from the component Id so a consumer input can target it.
+        Assert.Equal(cut.Instance.HintId, id);
+        Assert.EndsWith("-hint", id);
+    }
+
+    [Fact]
+    public void Hint_id_is_stable_across_rerenders()
+    {
+        var cut = RenderComponent<OmniFormField>(p => p
+            .Add(c => c.Hint, "Helpful tip")
+            .AddChildContent("x"));
+
+        var first = cut.Find("span.omni-field-hint").GetAttribute("id");
+
+        cut.SetParametersAndRender(p => p
+            .Add(c => c.Hint, "Helpful tip")
+            .Add(c => c.Class, "newcls"));
+
+        var second = cut.Find("span.omni-field-hint").GetAttribute("id");
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public void Error_hides_hint()
     {
         var cut = RenderComponent<OmniFormField>(p => p
