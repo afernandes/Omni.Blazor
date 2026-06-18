@@ -9,10 +9,9 @@ on:
       - 'assets/**'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'assets/**'
+    # Sem paths-ignore aqui: com "required status checks" no ruleset da main, um PR
+    # que não dispara o CI ficaria travado esperando um check que nunca roda. Assim
+    # todo PR roda o Build e os checks obrigatórios sempre reportam.
   workflow_dispatch:
 
 concurrency:
