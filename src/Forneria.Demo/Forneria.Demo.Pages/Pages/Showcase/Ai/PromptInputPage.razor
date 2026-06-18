@@ -1,0 +1,56 @@
+@page "/showcase/prompt-input"
+@attribute [ShowcaseInfo(Title = "Prompt Input", Category = Cat.Ai, Icon = "edit", Aliases = "ai,chat,composer,textarea,send,ctrl enter,voice")]
+@layout ShowcaseLayout
+
+<PageTitle>Prompt Input — Showcase</PageTitle>
+
+<ShowcasePage Title="Prompt Input"
+              Subtitle="Composer de prompt — textarea ligada ao Value, contador, Ctrl+Enter pra enviar e slot de ações (voz, etc.).">
+
+    <Overview>
+        <p>
+            O <code>OmniPromptInput</code> liga ao <code>Value</code> (<code>@@bind-Value</code>), mostra um contador
+            de caracteres, envia com <strong>Ctrl/Cmd+Enter</strong> (Enter normal quebra linha) ou pelo botão, e
+            expõe um slot <code>Actions</code> para extras como ditado por voz (<code>OmniSpeechToTextButton</code>).
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="EXEMPLO" Description="Digite e envie (Ctrl+Enter ou o botão de enviar)." Code="@Code">
+            <OmniPromptInput @bind-Value="_draft" Placeholder="Pergunte algo…" MaxLength="500" OnSend="Send" />
+            @if (_sent.Count > 0)
+            {
+                <ul style="margin-top:12px;color:var(--omni-fg-soft);padding-left:18px;">
+                    @for (int i = 0; i < _sent.Count; i++)
+                    {
+                        <li @key="i">@_sent[i]</li>
+                    }
+                </ul>
+            }
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniPromptInput">
+            <ShowcaseApiRow Name="Value" Type="string?" Default="null" Description="Texto do prompt (two-way binding)." />
+            <ShowcaseApiRow Name="OnSend" Type="EventCallback&lt;string&gt;" Default="—" Description="Disparado no Ctrl/Cmd+Enter ou no botão enviar." />
+            <ShowcaseApiRow Name="Rows" Type="int" Default="3" Description="Linhas visíveis iniciais da textarea." />
+            <ShowcaseApiRow Name="MaxLength" Type="int?" Default="null" Description="Limite de caracteres; o contador vira count/max." />
+            <ShowcaseApiRow Name="Actions" Type="RenderFragment?" Default="null" Description="Controles extras à esquerda do enviar (ex.: voz)." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string? _draft;
+    private readonly List<string> _sent = new();
+
+    private void Send(string text)
+    {
+        _sent.Insert(0, text);
+        _draft = "";
+    }
+
+    private const string Code = @"<OmniPromptInput @bind-Value=""_draft"" Placeholder=""Pergunte algo…"" MaxLength=""500"" OnSend=""Send"" />";
+}

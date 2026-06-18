@@ -1,0 +1,58 @@
+@page "/showcase/message"
+@attribute [ShowcaseInfo(Title = "Message", Category = Cat.Ai, Icon = "message-square", Aliases = "ai,chat,bubble,assistant,user,conversation")]
+@layout ShowcaseLayout
+@using Omni.Blazor.Models
+
+<PageTitle>Message — Showcase</PageTitle>
+
+<ShowcasePage Title="Message"
+              Subtitle="Mensagem de chat (user / assistant / system) — avatar, autor, conteúdo (Markdown/streaming) e rodapé para citations e raciocínio.">
+
+    <Overview>
+        <p>
+            O <code>OmniMessage</code> <strong>compõe</strong> a família de IA: o conteúdo é renderizado via
+            <code>OmniStreamingText</code> (Markdown + caret quando <code>Streaming</code>), e o slot
+            <code>Footer</code> recebe <code>OmniCitation</code>, <code>OmniThinkingBlock</code> ou ações.
+            O <code>Role</code> (User/Assistant/System) dirige o layout.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="CONVERSA" Description="Mensagens compondo citation + raciocínio no rodapé." Code="@Code">
+            <div style="max-width:640px;">
+                <OmniMessage Role="MessageRole.User" Author="Você" AvatarInitials="VC"
+                             Content="Qual a capital da França?" />
+                <OmniMessage Role="MessageRole.Assistant" Author="Assistente" AvatarInitials="AI"
+                             Content="A capital da França é **Paris**, com cerca de 2,1 milhões de habitantes.">
+                    <Footer>
+                        <OmniCitation Index="1" Title="Wikipédia — Paris" Url="https://pt.wikipedia.org/wiki/Paris" Snippet="Capital e maior cidade da França." />
+                        <OmniThinkingBlock Title="Mostrar raciocínio">
+                            <OmniMarkdown>Identifiquei a entidade **França** e recuperei sua capital da base.</OmniMarkdown>
+                        </OmniThinkingBlock>
+                    </Footer>
+                </OmniMessage>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniMessage">
+            <ShowcaseApiRow Name="Role" Type="MessageRole" Default="Assistant" Description="User / Assistant / System — dirige o layout/estilo." />
+            <ShowcaseApiRow Name="Author" Type="string?" Default="null" Description="Nome exibido acima do conteúdo." />
+            <ShowcaseApiRow Name="Content" Type="string?" Default="null" Description="Texto, renderizado via OmniStreamingText (Markdown)." />
+            <ShowcaseApiRow Name="Streaming" Type="bool" Default="false" Description="Mostra o caret (assistente ainda digitando)." />
+            <ShowcaseApiRow Name="AvatarInitials" Type="string?" Default="null" Description="Iniciais do avatar (ou AvatarUrl / AvatarContent)." />
+            <ShowcaseApiRow Name="Footer" Type="RenderFragment?" Default="null" Description="Citations, raciocínio ou ações." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private const string Code = @"<OmniMessage Role=""MessageRole.Assistant"" Author=""Assistente"" Content=""…"">
+    <Footer>
+        <OmniCitation Index=""1"" Title=""…"" Url=""…"" />
+        <OmniThinkingBlock Title=""Mostrar raciocínio"">…</OmniThinkingBlock>
+    </Footer>
+</OmniMessage>";
+}
