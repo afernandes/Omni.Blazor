@@ -29,6 +29,28 @@ public class OmniCitationTests : TestContextBase
         Assert.Equal("noopener noreferrer", a.GetAttribute("rel"));
     }
 
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("vbscript:msgbox(1)")]
+    [InlineData("data:text/html,<script>alert(1)</script>")]
+    public void Falls_back_to_span_for_unsafe_url(string url)
+    {
+        var cut = RenderComponent<OmniCitation>(p => p.Add(c => c.Index, 1).Add(c => c.Url, url));
+
+        var el = cut.Find(".omni-citation");
+        Assert.Equal("SPAN", el.TagName);
+        Assert.False(el.HasAttribute("href"));
+    }
+
+    [Fact]
+    public void Renders_link_for_safe_relative_url()
+    {
+        var cut = RenderComponent<OmniCitation>(p => p.Add(c => c.Index, 1).Add(c => c.Url, "/docs/page"));
+
+        var a = cut.Find("a.omni-citation");
+        Assert.Equal("/docs/page", a.GetAttribute("href"));
+    }
+
     [Fact]
     public void Tooltip_combines_title_and_snippet()
     {

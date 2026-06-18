@@ -4,9 +4,9 @@
 
 @* Inline source citation badge ([n]) for AI answers — links to the reference and exposes the title/snippet on hover and to screen readers. *@
 
-@if (!string.IsNullOrEmpty(Url))
+@if (SafeUrl is not null)
 {
-    <a class="@RootCss" style="@Style" href="@Url" target="_blank" rel="noopener noreferrer"
+    <a class="@RootCss" style="@Style" href="@SafeUrl" target="_blank" rel="noopener noreferrer"
        title="@Tooltip" aria-label="@AccessibleName" @attributes="Attributes">@Label</a>
 }
 else
@@ -31,6 +31,11 @@ else
     [Parameter] public string? Snippet { get; set; }
 
     private string Label => Text ?? $"[{Index}]";
+
+    /// <summary>The citation link target, or <c>null</c> when no URL is set or its
+    /// scheme is unsafe (e.g. <c>javascript:</c>) — in which case the badge renders
+    /// as a plain span. Untrusted URLs are common in AI/RAG answers.</summary>
+    private string? SafeUrl => UrlSafety.Sanitize(Url);
 
     private string? Tooltip =>
         string.IsNullOrEmpty(Snippet) ? Title : string.IsNullOrEmpty(Title) ? Snippet : $"{Title} — {Snippet}";

@@ -359,20 +359,7 @@ internal static class MarkdownRenderer
     }
 
     /// <summary>Allow-lists URL schemes (http/https/mailto/tel) + relative/anchor URLs; rejects the rest.</summary>
-    private static string? SanitizeUrl(string url)
-    {
-        var u = url.Trim();
-        if (u.Length == 0) return null;
-        // Strip control chars that can split a scheme (e.g. "java\tscript:").
-        u = new string(u.Where(c => !char.IsControl(c)).ToArray());
-        var m = Regex.Match(u, @"^([a-zA-Z][a-zA-Z0-9+.\-]*):");
-        if (m.Success)
-        {
-            var scheme = m.Groups[1].Value.ToLowerInvariant();
-            if (scheme is not ("http" or "https" or "mailto" or "tel")) return null;
-        }
-        return u;
-    }
+    private static string? SanitizeUrl(string url) => UrlSafety.Sanitize(url);
 
     /// <summary>Best-effort HTML sanitizer for <c>AllowHtml</c>: strips scripts, event handlers and dangerous URLs.</summary>
     private static string SanitizeHtml(string html)
