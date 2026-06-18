@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MCP (Model Context Protocol) server for Omni.Blazor. A thin stdio server
+       over the generated component manifest (docs/components.json): it gives
+       agents (Cursor, Claude Code, Copilot) live tools to list/search/inspect
+       components without a ProjectReference to the library. The manifest is
+       embedded so the server is self-contained; override it with the manifest
+       path option or OMNI_COMPONENTS_JSON for local dev against a fresh file.
+
+       Decoupled from Omni.Blazor on purpose: it reads JSON, never reflects over
+       the dll, so it builds and tests independently of the component library. -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Omni.Blazor.Mcp</RootNamespace>
+    <AssemblyName>Omni.Blazor.Mcp</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Bake the manifest in so the published server needs no external files. -->
+    <EmbeddedResource Include="..\..\docs\components.json" LogicalName="components.json" />
+  </ItemGroup>
+
+</Project>

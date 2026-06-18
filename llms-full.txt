@@ -1,0 +1,2478 @@
+# Omni.Blazor — full API reference
+
+> 167 components. NuGet `AndersonN.Omni.Blazor` v0.2.1-alpha.0.1, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+
+## Buttons
+
+### OmniButton
+The library's base button: leading/trailing icons, variants, sizes, block, icon-only and loading states.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Buttons/OmniButton.razor_
+
+Parameters:
+- `Block`: bool = false — Stretches the button to full container width. Default false.
+- `Disabled`: bool = false — Disables the button (also disabled while Loading). Default false.
+- `Icon`: string — Name of the leading OmniIcon shown before the label.
+- `IconOnly`: bool = false — Renders a square icon-only button (no label spacing). Default false.
+- `Loading`: bool = false — When true, renders an inline OmniSpinner in place of the leading icon, disables click and sets aria-busy="true". Width is preserved so the surrounding layout doesn't shift.
+- `LoadingText`: string — Optional alternate label shown while Loading is true.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Button size (Sm/Md/Lg/Xl). Default Md.
+- `Text`: string — Label text, rendered when no ChildContent is provided.
+- `TrailingIcon`: string — Name of the trailing OmniIcon shown after the label.
+- `Type`: string = button — The native type attribute (button/submit/reset). Default "button".
+- `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Visual variant (Primary/Ghost/Danger/Link). Default Default.
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Click handler; not invoked while Disabled or Loading.
+
+### OmniFab
+Floating Action Button (FAB) — botão circular ancorado num canto da viewport pra ação primária de uma tela.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Buttons/OmniFab.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label custom. Fallback: Title → Text.
+- `Disabled`: bool = false
+- `Icon`: string = plus — Ícone do FAB. Default "plus" (ação "criar novo").
+- `Position`: FabPosition {BottomRight | BottomLeft | TopRight | TopLeft | BottomCenter | Static} = BottomRight — Canto da viewport onde o FAB ancora. Default BottomRight.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Lg — Tamanho. Default Lg — FAB é proeminente por convenção.
+- `Text`: string — Texto opcional. Se setado, renderiza Extended FAB (pill alongado). Vazio = FAB circular icon-only (clássico Material).
+- `Title`: string — Tooltip. Use sempre — FAB icon-only sem tooltip é a11y ruim.
+- `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Primary — Variant do botão. Default Primary (cor accent — chama atenção).
+Events:
+- `OnClick`: EventCallback<MouseEventArgs>
+
+### OmniFabMenu
+FAB com menu expansível — clique no botão principal pra mostrar/esconder itens (OmniFabMenuItem).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Buttons/OmniFabMenu.razor_
+
+Parameters:
+- `Animation`: FabMenuAnimation {Stagger | Linear | None} = Stagger — Modo de animação de abertura. Default Stagger (pop-in cascading, padrão Material). Linear = fade simples estilo Radzen. None = sem animação.
+- `AriaLabel`: string — aria-label do grupo. Use pra nomear semanticamente o speed dial.
+- `CloseOnEsc`: bool = true — Fecha o menu quando o user pressiona Escape. Default true.
+- `CloseOnItemClick`: bool = true — Fecha o menu quando um OmniFabMenuItem filho é clicado. Default true — comportamento usual de speed dial.
+- `CloseOnOutsideClick`: bool = true — Fecha o menu quando o user clica fora dele. Default true.
+- `Direction`: FabMenuDirection {Up | Down | Left | Right} = Up — Direção em que os items se expandem. Default Up (combina com posições Bottom*).
+- `Disabled`: bool = false
+- `Icon`: string = plus — Ícone do FAB quando o menu está fechado. Default "plus".
+- `IsOpen`: bool = false — Two-way bound. Pode ser controlado externamente.
+- `OpenIcon`: string = x — Ícone do FAB quando o menu está aberto. Default "x" (padrão Material — close icon indica "agora fecha").
+- `OpenTitle`: string = Fechar menu — Tooltip quando aberto. Default "Fechar menu".
+- `Position`: FabPosition {BottomRight | BottomLeft | TopRight | TopLeft | BottomCenter | Static} = BottomRight — Canto da viewport onde o FAB ancora. Default BottomRight.
+- `ShowBackdrop`: bool = false — Mostra um backdrop semi-transparente que cobre a tela quando o menu está aberto. Default false — speed dial clássico não usa, mas em mobile pode focar a atenção.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Lg — Tamanho. Default Lg.
+- `Title`: string = Abrir menu — Tooltip quando fechado. Default "Abrir menu".
+- `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Primary — Variant do FAB. Default Primary.
+Events:
+- `IsOpenChanged`: EventCallback<bool>
+Slots:
+- `ChildContent`: RenderFragment
+
+### OmniFabMenuItem
+Item dentro de um OmniFabMenu — botão circular menor com label opcional ao lado (padrão Material: tooltip-style label flutuante).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Buttons/OmniFabMenuItem.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label. Fallback: Title → Label.
+- `Disabled`: bool = false
+- `Icon`: string *required* = circle — Ícone do item. Obrigatório (FAB items são icon-first).
+- `Label`: string — Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto.
+- `LabelPosition`: FabMenuItemLabelPosition {Auto | Left | Right | None} = Auto — Posição do label em relação ao botão. Default Auto — segue a direção do menu (Left/Right) ou esconde (Up/Down).
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho. Default Md — items são menores que o FAB principal.
+- `Title`: string — Tooltip nativo. Fallback: Label.
+- `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Variant do botão interno. Default Default — neutro, contrasta com o FAB principal (Primary).
+Events:
+- `OnClick`: EventCallback<MouseEventArgs>
+
+### OmniScrollToTopButton
+Botão "Voltar ao topo" auto-show/hide baseado em scroll position.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Buttons/OmniScrollToTopButton.razor_
+
+Parameters:
+- `Hidden`: bool = false — Force-hide externo (override do auto). Default false.
+- `Icon`: string = arrow-up — Ícone do botão. Default "arrow-up".
+- `Position`: FabPosition {BottomRight | BottomLeft | TopRight | TopLeft | BottomCenter | Static} = BottomRight — Canto da viewport. Default BottomRight.
+- `ScrollBehavior`: ScrollBehavior {Auto | Smooth | Instant} = Smooth — Comportamento de scroll ao clicar. Smooth (default) anima; Auto/Instant salta direto.
+- `ScrollContainerSelector`: string — Selector CSS do container scrollável. null (default) auto-detecta (o mesmo "scroll root" usado por ScrollToTopAsync).
+- `ShowAfterPercent`: double — Fração (0.0–1.0) de scroll percorrido pra mostrar. Quando setado, sobrescreve ShowAfterPx. Ex: 0.15 = mostra após 15%.
+- `ShowAfterPx`: double = 200 — Quantos pixels scrollados pra começar a mostrar. Default 200. Ignorado se ShowAfterPercent for setado.
+- `ShowProgress`: bool = false — Mostra anel de progresso (SVG) ao redor do ícone indicando quanto da página foi scrollada (0% no topo → 100% no final). Default false.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Lg — Tamanho. Default Lg.
+- `Title`: string = Voltar ao topo — Tooltip + aria-label. Default "Voltar ao topo".
+- `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Primary — Variant do botão. Default Primary.
+
+### OmniSocialButton
+External-auth provider button (Google, Microsoft, Apple, GitHub, Facebook, Passkey).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Buttons/OmniSocialButton.razor_
+
+Parameters:
+- `AriaLabel`: string — Accessible label (defaults to the full text even when Compact).
+- `Block`: bool = false — Stretch to full width.
+- `Compact`: bool = false — Icon-only (no label) — for a compact provider row.
+- `Disabled`: bool = false — Disable the button.
+- `Provider`: SocialProvider {Google | Microsoft | Apple | GitHub | Facebook | Passkey} = Google — Which provider's brand mark + label to render.
+- `Text`: string — Override the button label (default "Continuar com {provider}").
+Events:
+- `OnClick`: EventCallback — Click handler.
+
+### OmniSplitButton
+Split button: ação primária à esquerda + chevron de dropdown à direita.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Buttons/OmniSplitButton.razor_
+
+Parameters:
+- `Disabled`: bool = false — Desabilita ambos os botões.
+- `Icon`: string — Ícone do botão primário.
+- `Loading`: bool = false — Loading state — desabilita ambos e mostra spinner no primário.
+- `LoadingText`: string — Texto alternativo do botão primário enquanto Loading.
+- `MenuAlignEnd`: bool = false — Alinha o popover ao FIM (direita) do chevron — extende para a esquerda embaixo do conjunto (primário + chevron). Útil quando o SplitButton está perto da borda direita da tela e o menu padrão (alinhado à esquerda do chevron) sairia da viewport. Default false.
+- `MenuAriaLabel`: string — aria-label do chevron. Default "Mais opções".
+- `MenuPosition`: PopoverPosition {Top | Bottom | Left | Right} = Bottom — Posição do popover. Default Bottom.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho (compartilhado).
+- `Text`: string — Texto do botão primário.
+- `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Variante visual (compartilhada por ambos os botões).
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Click no botão primário (ação default).
+
+### OmniToggleButton
+Botão com estado liga/desliga (pressed/unpressed).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Buttons/OmniToggleButton.razor_
+
+Parameters:
+- `Active`: bool = false — Estado pressed (true) / unpressed (false). Two-way: @bind-Active.
+- `Disabled`: bool = false — Desabilita interação.
+- `Icon`: string — Ícone antes do texto.
+- `IconOnly`: bool = false — Renderiza só o ícone (sem texto). Bom para toolbars.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho.
+- `Text`: string — Texto do botão.
+- `TrailingIcon`: string — Ícone após o texto.
+- `Variant`: ToggleVariant {Default | Primary | Accent | Ghost} = Default — Variante visual quando ativo. Default = accent suave.
+Events:
+- `ActiveChanged`: EventCallback<bool>
+- `OnClick`: EventCallback<MouseEventArgs> — Callback de click adicional (além do toggle automático).
+
+## Data
+
+### OmniChat
+OmniChat — self-contained chat UI (RadzenChat port): header (title + roster + clear), a scrollable message list (avatar + bubble, aligned by author), and a compose box (Enter sends, Shift+Enter newline).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Chat/OmniChat.razor_
+
+Parameters:
+- `ClearButtonText`: string = Limpar — Label for the clear button. Default "Limpar".
+- `CurrentUserId`: string =  — The id of the current user — their messages align right; others' align left.
+- `DateSeparatorFormat`: string = D — Date format for the day separators. Default "D".
+- `Disabled`: bool = false — Disables the whole chat (compose box, send, clear). Default false.
+- `EmptyMessage`: string = Nenhuma mensagem ainda. Comece a conversa! — Text shown when there are no messages. Default "Nenhuma mensagem ainda. Comece a conversa!".
+- `Height`: string = 480px — Height of the chat (CSS). Default 480px.
+- `MaxMessages`: int = 200 — Max messages kept; older ones are trimmed once exceeded. Default 200.
+- `MaxVisibleUsers`: int = 5 — Max roster avatars shown before a "+N" overflow badge. Default 5.
+- `Messages`: IEnumerable<OmniChatMessage> — The messages to render (two-way via MessagesChanged).
+- `Placeholder`: string = Digite uma mensagem... — Compose-box placeholder. Default "Digite uma mensagem...".
+- `ReadOnly`: bool = false — Read-only mode — messages render but the compose box is disabled. Default false.
+- `RenderMarkdown`: bool = true — Render bubble content as Markdown (default) or plain text.
+- `ShowClearButton`: bool = true — Shows the "clear chat" button in the header. Default true.
+- `ShowDateSeparator`: bool = true — Inserts a date separator between messages from different days. Default true.
+- `ShowTypingIndicator`: bool = false — Shows a typing indicator when remote users are typing (see SetUserTypingAsync). Default false.
+- `ShowUserNames`: bool = true — Shows each (other) user's name above their bubble. Default true.
+- `ShowUsers`: bool = true — Shows the participant roster (avatars) in the header. Default true.
+- `TimestampFormat`: string = HH:mm — Time format for each message's timestamp. Default "HH:mm".
+- `Title`: string — Header title text. Empty hides the title.
+- `TypingTimeout`: int = 1500 — Idle time (ms) after the last keystroke before the local "typing" state clears. Default 1500.
+- `Users`: IEnumerable<OmniChatUser> — The chat participants (avatars/names/colors).
+Events:
+- `ChatCleared`: EventCallback — Fired when the chat is cleared.
+- `MessageAdded`: EventCallback<OmniChatMessage> — Fired whenever a message is appended to the list.
+- `MessageSent`: EventCallback<OmniChatMessage> — Fired when the local user sends a message.
+- `MessagesChanged`: EventCallback<IEnumerable<OmniChatMessage>> — Fired with the new list whenever messages change (consumer assigns it back).
+- `TypingChanged`: EventCallback<OmniChatTypingEventArgs> — Fired when the local user starts/stops typing — relay to remote peers.
+Slots:
+- `EmptyTemplate`: RenderFragment — Custom empty-state content. Overrides EmptyMessage when set.
+- `MessageTemplate`: RenderFragment<OmniChatMessage> (context: OmniChatMessage) — Custom render template for a message bubble. Receives the OmniChatMessage.
+
+### OmniDataFilter
+OmniDataFilter — a visual query builder (RadzenDataFilter port).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilter.razor_
+
+Parameters:
+- `AddFilterText`: string — Label of the "add condition" button. Default "Adicionar condição".
+- `AddGroupText`: string — Label of the "add group" button. Default "Adicionar grupo".
+- `AllowGroups`: bool — Allow nested groups (the "add group" button). Default true.
+- `AllowSqlMode`: bool — Show the Visual/SQL toggle, enabling an editable SQL view of the filter. Default false.
+- `AndOperatorText`: string — Label of the AND logic toggle. Default "E".
+- `ApplyFilterText`: string — Label of the apply button (shown when Auto is false). Default "Aplicar".
+- `ApplySqlText`: string — Label of the "apply SQL to filter" button. Default "Aplicar ao filtro".
+- `Auto`: bool — Re-filter and raise Filter on every change. Default true.
+- `ClearFilterText`: string — Label of the "clear all" button. Default "Limpar tudo".
+- `CopyText`: string — Label of the copy button. Default "Copiar".
+- `Data`: IEnumerable<TItem> — The items to filter.
+- `Disabled`: bool — Disable the whole builder.
+- `FieldsLabel`: string — Label preceding the available-fields chips in SQL mode. Default "Campos".
+- `Logic`: FilterLogic {And | Or} — Logic combining the root rules. Two-way bindable.
+- `OrOperatorText`: string — Label of the OR logic toggle. Default "OU".
+- `RemoveFilterText`: string — Title/aria-label of the remove-condition button. Default "Remover".
+- `Rules`: List<OmniFilterRule> — Root list of rules. Two-way bindable.
+- `ShowSqlPreview`: bool — Show a read-only "generated SQL" disclosure under the visual builder. Default false.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Height/typography of every field (selects, inputs, date & list editors). Default Sm.
+- `SqlModeText`: string — Label of the SQL-mode toggle. Default "SQL".
+- `SqlPlaceholder`: string — Placeholder of the SQL textarea. Default an example expression.
+- `SqlPreviewLabel`: string — Summary label of the generated-SQL disclosure. Default "SQL gerado".
+- `SqlValidText`: string — Status text shown when the typed SQL is valid. Default "SQL válido".
+- `ValuePlaceholder`: string — Placeholder of the condition value inputs. Default "valor".
+- `VisualModeText`: string — Label of the visual-mode toggle. Default "Visual".
+Events:
+- `Filter`: EventCallback<IEnumerable<TItem>> — Raised with the filtered items (Auto mode, or when ApplyFilterAsync runs).
+- `LogicChanged`: EventCallback<FilterLogic> — Fired when the root logic changes (paired with Logic for two-way binding).
+- `RulesChanged`: EventCallback<List<OmniFilterRule>> — Fired when the rule tree changes (paired with Rules for two-way binding).
+- `ViewChanged`: EventCallback<IEnumerable<TItem>> — Raised with the filtered items alongside Filter (binding-friendly).
+
+### OmniDataFilterItem
+OmniDataFilterItem — one node of an <OmniDataFilter> tree.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilterItem.razor_
+
+Parameters:
+- `IsRoot`: bool = false — True for the top-level group (hides the remove button, no group border).
+- `ParentRules`: List<OmniFilterRule> — The list that contains Rule (so it can remove itself). Null at the root.
+- `Rule`: OmniFilterRule *required* — The rule this item renders (condition or group).
+
+### OmniDataFilterProperty
+OmniDataFilterProperty — declares one filterable field inside an
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilterProperty.razor_
+
+Parameters:
+- `Operators`: IEnumerable<FilterOperator> — Override the available operators (otherwise derived from Type).
+- `OptionText`: Func<object, string> — Renders an option's label (Select). Defaults to ToString().
+- `Options`: IEnumerable<object> — Selectable values when Type is Select.
+- `Property`: string *required* =  — Member name on the item type (used for reflection).
+- `Title`: string — Label shown in the property dropdown. Defaults to Property.
+- `Type`: ColumnFilterType {Text | Number | Date | Boolean | Select} = Text — UI/operator family. Default Text.
+
+### OmniDataGrid
+Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via LoadData.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniDataGrid.razor_
+
+Parameters:
+- `AllowColumnFilter`: bool — Habilita uma linha de filtros por coluna abaixo do header. Só colunas com Filterable exibem o input.
+- `AllowColumnResize`: bool — Lets the user resize columns by dragging the right edge of a header cell.
+- `AllowColumnVisibility`: bool — Shows the column visibility menu in the toolbar.
+- `AllowExport`: bool — Shows a "Exportar" button in the toolbar that downloads visible rows as CSV.
+- `AllowGrouping`: bool — Enables row grouping. Shows a drop panel above the grid; drag a column's grip there (column must be Groupable) — or call GroupByAsync — to group rows by that column. Multiple columns nest.
+- `AllowMultiSelection`: bool — Habilita uma coluna de checkbox à esquerda para seleção múltipla.
+- `AllowPaging`: bool — Liga a paginação no rodapé. Default true. Ignorado quando Virtualize está ativo.
+- `AllowSearch`: bool — Mostra o campo de busca textual na toolbar. Default false.
+- `AllowSorting`: bool — Permite ordenar clicando no header das colunas Sortable. Default true.
+- `ChildrenSelector`: Func<TItem, IEnumerable<TItem>> — Função síncrona que retorna os filhos de um item. Quando setada, o grid vira tree-grid: cada linha pode expandir mostrando filhos com indentação. Multi-nível recursivo.
+- `Count`: int — Override do total quando server-side (caso o consumidor não preencha TotalCount no resultado).
+- `Data`: IEnumerable<TItem> — Fonte de dados in-memory. Ignorado se LoadData for setado.
+- `DebounceMs`: int — Debounce (ms) entre keystrokes na busca antes de chamar LoadData.
+- `EditMode`: DataGridEditMode {None | Cell | Row} — Enables inline editing. Each column needs an EditTemplate to be editable.
+- `Embed`: bool — When true, renders without outer border/radius and stretches to fill its parent (flex:1 + min-height:0). Internal toolbar is hidden — render your own OmniPaneHeader/OmniPaneToolbar above.
+- `EmptyText`: string — Texto exibido quando não há registros. Default "Nenhum registro encontrado.".
+- `ExpandMode`: ExpandMode {Single | Multi} — Single = apenas uma linha expandida por vez; Multi = quantas o usuário quiser.
+- `ExportFilename`: string — Nome do arquivo gerado pelo export CSV. Default "export.csv".
+- `GroupPanelText`: string — Placeholder text shown in the (empty) group panel.
+- `HasChildren`: Func<TItem, bool> — Predicado opcional que decide se uma linha tem filhos (mostra o chevron). Útil em modo LoadChildren onde a contagem só é conhecida após o load. Default: assume true quando LoadChildren está setado.
+- `Height`: string — Altura do scroller. Obrigatória quando virtualize ativo (default 520px é aplicado automaticamente se não setado).
+- `HideGroupedColumn`: bool — Hides a column from the table once it is used as a grouping key (its value shows in the group header instead).
+- `IndentSize`: int — Pixels de indentação por nível. Default 20.
+- `InitiallyExpanded`: bool — Quando true, expande todos os nós no primeiro render. Default false.
+- `LoadChildren`: Func<TItem, Task<IEnumerable<TItem>>> — Callback assíncrono que carrega os filhos sob demanda. Disparado na primeira expansão de cada nó. Resultado é cacheado. Mutuamente exclusivo com ChildrenSelector; se ambos estiverem setados, ChildrenSelector tem prioridade.
+- `LoadData`: Func<GridState<TItem>, Task<GridLoadResult<TItem>>> — Callback server-side. Quando setado, o DataGrid delega filter/sort/page ao consumidor. O retorno é a janela de items a renderizar + total count.
+- `LoadingSkeleton`: bool — Quando true e LoadingTemplate não está setado, renderiza linhas de OmniSkeleton em vez do spinner — mais elegante para listas longas.
+- `OverscanCount`: int — Linhas extras renderizadas fora do viewport. Default 4.
+- `PageSize`: int — Quantidade de linhas por página. Default 10.
+- `RowClass`: Func<TItem, string> — Função opcional que retorna classes CSS extras por linha — útil para destacar linhas específicas (ex: "linha atual", "registro com pendência"). Aplicado em conjunto com as classes internas (selecionado, edição, etc.).
+- `RowHeight`: float — Altura fixa (px) por linha quando virtualize ativo. Default 44.
+- `SearchPlaceholder`: string — Placeholder do campo de busca. Default "Buscar...".
+- `SelectedItems`: HashSet<TItem> — Itens selecionados. Quando setado pelo consumidor (via @bind-SelectedItems), o DataGrid usa essa referência diretamente.
+- `ShowAggregateRow`: bool — Renderiza uma linha de agregação (<tfoot>) somando/contando/etc. colunas que definam Aggregate. Em modo server-side, valores vêm de Aggregates; client-side, calculados sobre o dataset filtrado completo (não só a página atual).
+- `ShowGroupFooters`: bool — Renders a per-group aggregate footer row (reuses each column's Aggregate). Requires aggregated columns.
+- `Virtualize`: bool — Liga a virtualização do <tbody>: somente as linhas visíveis (e um overscan pequeno) são montadas no DOM. **Ignora AllowPaging** — paging e virtualize são mutuamente exclusivos. Requer Height definido (default 520px). Implementação via OmniVirtualize com SpacerElement="tr".
+Events:
+- `ColumnResized`: EventCallback<DataGridColumnResizedEventArgs> — Fired after a column is resized (drag of the header handle finished).
+- `Grouped`: EventCallback<IReadOnlyList<string>> — Fired whenever the grouping changes; carries the ordered grouped property names.
+- `OnRowClick`: EventCallback<TItem> — Emitido quando uma linha é clicada (fora do modo edição).
+- `OnRowCollapse`: EventCallback<TItem> — Emitido quando uma linha é colapsada.
+- `OnRowExpand`: EventCallback<TItem> — Emitido quando uma linha é expandida.
+- `RowUpdated`: EventCallback<TItem> — Fired when the user confirms an inline edit (clicks check). Use to persist changes.
+- `SelectedItemsChanged`: EventCallback<HashSet<TItem>> — Emitido quando a seleção muda. O argumento é o set atual.
+Slots:
+- `Columns`: RenderFragment — Definição das colunas (<OmniDataGridColumn>). Registradas via cascading.
+- `DetailTemplate`: RenderFragment<TItem> (context: TItem) — Template renderizado abaixo da linha quando ela está expandida.
+- `EmptyTemplate`: RenderFragment — Slot custom para o estado vazio. Substitui o EmptyText quando setado. Permite ícone + título + CTA ricos.
+- `LoadingTemplate`: RenderFragment — Slot custom para o overlay de loading. Substitui o spinner default quando setado.
+- `ToolbarContent`: RenderFragment — Conteúdo extra na toolbar (entre a busca e os botões à direita).
+
+### OmniDataGridColumn
+Column definition for an <OmniDataGrid> — declares title, value selector, templates, sorting/filtering/aggregation/grouping/freezing behavior.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniDataGridColumn.razor_
+
+Parameters:
+- `Aggregate`: AggregateFunction {Sum | Average | Count | Min | Max} — Função agregadora aplicada nesta coluna no footer (e em group footers).
+- `AggregateFormat`: Func<object, string> — Formatador opcional do valor agregado (ex: v => $"R$ {v:N2}").
+- `AggregateProperty`: Func<TItem, decimal> — Selector específico p/ agregação (default: usa Property).
+- `CanHide`: bool — Whether the user can hide this column via the visibility menu. Default true.
+- `FilterOperators`: FilterOperator[] — Override dos operadores oferecidos (default depende de FilterType).
+- `FilterSelectOptions`: IEnumerable<object> — Opções para FilterType=Select.
+- `FilterType`: ColumnFilterType {Text | Number | Date | Boolean | Select} — Tipo de UI/operadores oferecidos. Default: Text.
+- `Filterable`: bool — Liga o filtro por coluna nesta coluna. Requer AllowColumnFilter no DataGrid.
+- `Frozen`: FrozenPosition {Left | Right} — Congela esta coluna no scroll horizontal. null = não congelada.
+- `Groupable`: bool — Permite arrastar esta coluna para a group zone do DataGrid.
+- `IsHierarchyAnchor`: bool — Marca esta coluna como o "âncora" da hierarquia — receberá o chevron de expand/collapse + indentação por nível. Quando nenhuma coluna marca, o grid usa a primeira coluna visível.
+- `Property`: Func<TItem, object> — Selector for the column's raw value — used for cell text, sorting, and filtering.
+- `PropertyName`: string — Nome canônico da propriedade (usado para serializar em SortDescriptor, FilterDescriptor e GroupBy). Quando ausente, cai no Title. Em modo server-side é altamente recomendado definir explicitamente.
+- `Resizable`: bool — Whether this column can be resized when the grid has AllowColumnResize. Default true.
+- `Sortable`: bool — Whether clicking the header sorts by this column (requires the grid's AllowSorting). Default true.
+- `TextSelector`: Func<TItem, string> — Selector for the displayed cell text. Overrides Property's ToString() when set.
+- `Title`: string — Header text for this column.
+- `Visible`: bool — Initial visibility. Toggled via the grid's column-visibility menu when AllowColumnVisibility is enabled.
+- `Width`: string — CSS width of the column (e.g. "120px"). Null = auto.
+Slots:
+- `EditTemplate`: RenderFragment<TItem> (context: TItem) — Editor render fragment used when the row/cell is in edit mode. If null, the column is treated as read-only even when EditMode is active.
+- `Template`: RenderFragment<TItem> (context: TItem) — Custom cell render template. Receives the row item as @context. Falls back to the cell text.
+
+### OmniDayView
+Single-day view with time slots.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniDayView.razor_
+
+Parameters:
+- `EndTime`: TimeSpan — Last time slot of the day (exclusive). Default 24:00.
+- `Icon`: string = clock — Icon name shown on this view's switch tab. Default "clock".
+- `MinutesPerSlot`: int = 30 — Minutes per slot row. Default 30.
+- `StartTime`: TimeSpan — First time slot of the day. Default 08:00.
+- `Text`: string = Dia — Label shown on this view's switch tab. Default "Dia".
+- `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
+
+### OmniDiagramCanvas
+OmniDiagramCanvas — generic infinite graph editor: pan/zoom, dotted grid, nodes with named ports, bezier edges, drag-to-connect, marquee selection, minimap, zoom controls and auto-layout.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Diagram/OmniDiagramCanvas.razor_
+
+Parameters:
+- `AutoLayoutText`: string = Auto-layout (organizar) — Tooltip text for the auto-layout button.
+- `DropPayloadFormat`: string = application/x-omni-diagram — HTML5 drag payload format accepted by OnExternalDrop.
+- `Edges`: IReadOnlyList<DiagramEdge> — Graph edges.
+- `FitOnMount`: bool = false — Fits the graph into view once, on first render with nodes.
+- `FitText`: string = Ajustar à tela — Tooltip text for the fit button.
+- `Nodes`: IReadOnlyList<DiagramNode> — Graph nodes (world coordinates).
+- `ReadOnly`: bool = false — Disables editing gestures (drag, connect, marquee, delete, drop). Pan/zoom stay enabled.
+- `RunState`: DiagramRunState — Optional execution overlay (current/done/faulted/taken edges...).
+- `Selection`: DiagramSelection — Current selection. Two-way bindable.
+- `ShowAutoLayout`: bool = true — Shows the auto-layout button inside the controls.
+- `ShowControls`: bool = true — Shows the zoom control group (bottom-left).
+- `ShowMinimap`: bool = true — Shows the minimap (bottom-right).
+- `Viewport`: DiagramViewport — Viewport (offset + zoom). Two-way bindable; committed after gestures.
+- `ZoomInText`: string = Aumentar zoom — Tooltip text for the zoom-in button.
+- `ZoomOutText`: string = Diminuir zoom — Tooltip text for the zoom-out button.
+Events:
+- `NodesMoved`: EventCallback<IReadOnlyList<DiagramNodeMove>> — Raised when a node drag (possibly multi-node) or auto-layout commits.
+- `OnConnect`: EventCallback<DiagramConnectEventArgs> — Raised when the user finishes a drag-to-connect between two ports.
+- `OnDeleteRequested`: EventCallback<DiagramSelection> — Raised when Delete/Backspace is pressed with the canvas focused.
+- `OnExternalDrop`: EventCallback<DiagramExternalDropEventArgs> — Raised when an external item is dropped on the canvas (world coords).
+- `SelectionChanged`: EventCallback<DiagramSelection> — Raised when the user changes the selection (click, marquee).
+- `ViewportChanged`: EventCallback<DiagramViewport> — Raised when a gesture commits a new viewport.
+Slots:
+- `ChildContent`: RenderFragment — Extra overlay content (hints, run bars...) rendered inside the canvas.
+- `EmptyContent`: RenderFragment — Rendered centered when the graph has no nodes.
+- `NodeTemplate`: RenderFragment<DiagramNode> (context: DiagramNode) — Replaces the default node card content. Ports are always rendered by the canvas.
+
+### OmniDropZone
+A single drop bucket.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Data/OmniDropZone.razor_
+
+Parameters:
+- `Value`: object — Opaque value the container's ItemSelector uses to bucket items into this zone (e.g. a status enum).
+Slots:
+- `Footer`: RenderFragment — Optional footer rendered below the items (e.g. an "+ Add" button).
+
+### OmniDropZoneContainer
+Kanban-style drag-and-drop container.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Data/OmniDropZoneContainer.razor_
+
+Parameters:
+- `CanDrop`: Func<DropZoneItemEventArgs<TItem>, bool> — Returns whether the current drag is allowed to drop on the target zone/item.
+- `Data`: IEnumerable<TItem> — Backing data list. Each OmniDropZone`1 filters this via ItemSelector.
+- `ItemRender`: Action<DropZoneItemRenderEventArgs<TItem>> — Per-item render hook — set attributes or hide individual items.
+- `ItemSelector`: Func<TItem, OmniDropZone<TItem>, bool> — Returns true when an item belongs in the given zone.
+Events:
+- `DragEnd`: EventCallback<DropZoneItemEventArgs<TItem>> — Fires when the drag ends (with or without a drop).
+- `DragStart`: EventCallback<DropZoneItemEventArgs<TItem>> — Fires when the user starts dragging an item.
+- `Drop`: EventCallback<DropZoneItemEventArgs<TItem>> — Fires when an item is dropped on a zone (or another item).
+Slots:
+- `Template`: RenderFragment<TItem> (context: TItem) — Render template for each item. Receives the item as @context.
+
+### OmniDropZoneItem
+Internal draggable item rendered by <OmniDropZone>.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniDropZoneItem.razor_
+
+Parameters:
+- `ItemAttributes`: IReadOnlyDictionary<string, object> — ItemAttributes contributed by the container's ItemRender hook.
+
+### OmniGantt
+OmniGantt — project timeline inspired by RadzenGantt.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Gantt/OmniGantt.razor_
+
+Parameters:
+- `AllowColumnResize`: bool — Lets the user resize left-pane columns by dragging the right edge of a header cell. Default true.
+- `BaselineEndProperty`: string — Name of the baseline-end property (used with BaselineStartProperty).
+- `BaselineStartProperty`: string — Name of the baseline-start property — draws a baseline bar under the task.
+- `Data`: IEnumerable<TItem> — The task source.
+- `Dependencies`: IEnumerable<GanttDependency<TItem>> — Typed task dependencies (rendered as arrows). Alternative to DependencyData.
+- `DependencyData`: IEnumerable<object> — Raw dependency objects, resolved via the Dependency*Property names.
+- `DependencyFromProperty`: string — On DependencyData, the property holding the predecessor task id.
+- `DependencyToProperty`: string — On DependencyData, the property holding the successor task id.
+- `DependencyTypeProperty`: string — On DependencyData, the property holding the dependency type. Default Finish-to-Start.
+- `EndProperty`: string — Name of the task end DateTime property. Equal to start = milestone.
+- `IdProperty`: string — Name of each task's unique id property (enables the hierarchy + dependencies).
+- `LeftPaneWidth`: string — Fallback width for the left task pane when no columns are declared. When columns exist the pane auto-sizes to the sum of their (effective) widths, so a column never overflows into the timeline.
+- `Markers`: IEnumerable<GanttMarker> — Optional vertical date markers (e.g. deadlines) drawn on the timeline.
+- `NonWorkingDays`: IEnumerable<DayOfWeek> — Which days count as non-working (shaded). Default Saturday + Sunday.
+- `ParentIdProperty`: string — Name of the parent-id property used to build the task tree. Null = flat list.
+- `ProgressProperty`: string — Name of the progress property (0–100), drawn as a fill inside the bar.
+- `RowHeightPx`: int — Height (px) of each task row. Default 34.
+- `ShowCriticalPath`: bool — Computes and highlights the critical path (CPM). Requires dependencies. Default false.
+- `ShowNavigation`: bool — Shows the top navigation bar (title + zoom controls). Default true.
+- `ShowTodayLine`: bool — Draws a vertical line at the current date/time. Default true.
+- `ShowWeekends`: bool — Shades non-working days (see NonWorkingDays) on the timeline. Default true.
+- `StartProperty`: string — Name of the task start DateTime property.
+- `TaskRender`: Action<GanttBarRenderEventArgs<TItem>> — Per-bar render hook (CSS class / inline style).
+- `TextProperty`: string — Name of the task display-text property (shown on the bar label).
+- `ViewEnd`: DateTime — Forces the timeline end date. Null = auto from the latest task.
+- `ViewStart`: DateTime — Forces the timeline start date. Null = auto from the earliest task.
+- `ZoomLevel`: GanttZoomLevel {Day | Week | Month | Year} — Timeline granularity (Day/Week/Month/Year). Default Week.
+- `ZoomToFitText`: string — Tooltip for the zoom-to-fit button. Default "Ajustar à tela".
+Events:
+- `ColumnResized`: EventCallback<GanttColumnResizedEventArgs> — Fired after a left-pane column is resized (drag of the header handle finished).
+- `RowClick`: EventCallback<TItem> — Fired when a left-pane row is clicked.
+- `TaskClick`: EventCallback<TItem> — Fired when a task bar is clicked.
+- `TaskMouseEnter`: EventCallback<GanttTaskMouseEventArgs<TItem>> — Fired when the pointer enters a task bar.
+- `TaskMouseLeave`: EventCallback<GanttTaskMouseEventArgs<TItem>> — Fired when the pointer leaves a task bar.
+- `TaskMove`: EventCallback<GanttTaskMovedEventArgs<TItem>> — Fired when a task is dragged to a new date range. Wiring it enables drag-to-move.
+- `TaskResize`: EventCallback<GanttTaskMovedEventArgs<TItem>> — Fired when a task is resized via its edge handles. Wiring it enables resizing.
+Slots:
+- `ChildContent`: RenderFragment — Left-pane column definitions (OmniGanttColumn) — pass them as child content.
+- `TaskTemplate`: RenderFragment<TItem> (context: TItem) — Custom content inside each task bar (replaces progress + label).
+
+### OmniGanttColumn
+Left-pane column for an OmniGantt.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Gantt/OmniGanttColumn.razor_
+
+Parameters:
+- `FormatString`: string — Optional composite format string (e.g. "{0:d}", "{0:P0}").
+- `MinWidth`: string — Minimum width (e.g. "60px") the user can drag this column down to. Default 60px.
+- `Property`: Func<TItem, object> — Value selector for the cell content.
+- `Resizable`: bool — Whether this column can be resized when the gantt has AllowColumnResize. Default true.
+- `Title`: string — Header text.
+- `Width`: string — CSS width of the column (e.g. "200px"). Default "140px".
+Slots:
+- `Template`: RenderFragment<TItem> (context: TItem) — Optional custom cell template (overrides Property).
+
+### OmniHtmlEditor
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditor.razor_
+
+Parameters:
+- `Height`: string = 320px — Height of the editor surface (CSS). Default 320px.
+- `Mode`: HtmlEditorMode {Design | Source} = Design — Design (WYSIWYG) or Source (raw HTML) view. Default Design.
+- `ShowToolbar`: bool = true — Shows the formatting toolbar. Default true.
+Events:
+- `Execute`: EventCallback<string> — Fired whenever a command runs (carries the execCommand name).
+- `Input`: EventCallback<string> — Fired on every content change in design mode (per keystroke).
+Slots:
+- `ChildContent`: RenderFragment — Custom toolbar content (OmniHtmlEditorButton tools). When null, a default toolbar renders.
+
+### OmniKanban
+OmniKanban — quadro de colunas com cards arrastáveis.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniKanban.razor_
+
+Parameters:
+- `AddCardText`: string — Label do botão de adicionar card. Default "Adicionar card".
+- `AgeStaleDays`: int — A partir de quantos dias o card fica "vermelho". Default 5.
+- `AgeWarnDays`: int — A partir de quantos dias o card fica "amarelo". Default 3.
+- `AllowAddCard`: bool — Mostra o botão "adicionar card" no rodapé das colunas. Default false.
+- `AllowColumnReorder`: bool — Permite arrastar o cabeçalho da coluna para reordená-las. Default false.
+- `CardActions`: Func<TCard, IEnumerable<KanbanCardAction>> — Ações do menu "…" do card (atribuir, mover, sinalizar, etc.). Quando definido, mostra o botão "…"; o menu é renderizado num portal (escapa o overflow da coluna).
+- `CardAge`: Func<TCard, int> — Dias que o card está na coluna (o consumidor calcula). null = oculto.
+- `CardAssignee`: Func<TCard, string> — Nome do responsável — vira avatar (iniciais) no rodapé do card.
+- `CardAvatar`: Func<TCard, string> — URL da imagem do avatar do responsável (senão usa as iniciais).
+- `CardColor`: Func<TCard, string> — Cor (CSS) da faixa lateral do card — por tipo, prioridade, etc. null = sem faixa.
+- `CardDueDate`: Func<TCard, DateTime> — Prazo do card — badge de data (fica vermelho se vencido).
+- `CardEstimate`: Func<TCard, string> — Estimativa (texto livre: "5", "3h", "8pts") — badge.
+- `CardFields`: Func<TCard, IEnumerable<KanbanField>> — Campos extras (rótulo + valor) exibidos no card — no máx. 3.
+- `CardId`: Func<TCard, object> — Chave estável do card (recomendado): @@key, foco por teclado, igualdade.
+- `CardPriority`: Func<TCard, KanbanPriority> — Prioridade do card — ícone/cor no topo.
+- `CardSubtasks`: Func<TCard, ValueTuple<int, int>> — Progresso de subtarefas (concluídas, total) — badge ✓ d/t.
+- `CardTitle`: Func<TCard, string> — Card → título exibido no card padrão. Default: ToString() do card.
+- `Collapsible`: bool — Permite recolher colunas. Default true.
+- `ColumnSelector`: Func<TCard, string> *required* — Card → Id da coluna (obrigatório).
+- `ColumnSetter`: Action<TCard, string> — Grava a nova coluna no card ao mover entre colunas.
+- `ColumnWidth`: string — Largura CSS de cada coluna (define --omni-kanban-col-w). Null = largura padrão.
+- `Columns`: IEnumerable<KanbanColumn> *required* — Definição das colunas (ordem = ordem de exibição).
+- `DragDisabled`: bool — Desabilita o drag-and-drop (mouse e teclado). Default false.
+- `DueDateFormat`: string — Formato do prazo. Default "dd MMM".
+- `Items`: IEnumerable<TCard> — Lista plana de cards. Two-way (@bind-Items) — reordenada ao mover.
+- `QuickFilters`: IEnumerable<KanbanQuickFilter<TCard>> — Chips de filtro rápido (combinam em E). Cards que falham num filtro ativo são ocultados.
+- `SearchPlaceholder`: string — Placeholder da busca.
+- `SearchSelector`: Func<TCard, string> — Texto a pesquisar por card. Default = título do card.
+- `ShowCardAge`: bool — Exibe o indicador de envelhecimento (pontos).
+- `ShowCount`: bool — Mostra a contagem de cards (ou n/limite com WIP) no cabeçalho. Default true.
+- `ShowSearch`: bool — Exibe uma barra de busca textual.
+- `SwimlaneSelector`: Func<TCard, string> — Card → Id da raia.
+- `SwimlaneSetter`: Action<TCard, string> — Grava a nova raia no card ao mover entre raias.
+- `Swimlanes`: IEnumerable<KanbanSwimlane> — Definição das raias. Quando presente (+ SwimlaneSelector), o board agrupa em linhas.
+- `SwimlanesCollapsible`: bool — Permite recolher raias. Default true.
+- `WipLimitMode`: WipLimitMode {Warn | Enforce} — Comportamento do limite de WIP: avisa (Warn) ou bloqueia a entrada (Enforce). Default Warn.
+Events:
+- `CardAction`: EventCallback<KanbanCardActionEventArgs<TCard>> — Disparado quando uma ação do menu "…" é selecionada.
+- `CardClick`: EventCallback<TCard> — Disparado ao clicar num card.
+- `CardMoved`: EventCallback<KanbanCardMovedEventArgs<TCard>> — Disparado após mover um card (coluna/raia de origem e destino + índices).
+- `ColumnMoved`: EventCallback<KanbanColumnMovedEventArgs> — Disparado após reordenar colunas (coluna + índices).
+- `ColumnsChanged`: EventCallback<IEnumerable<KanbanColumn>> — Two-way: @@bind-Columns — recebe a nova ordem ao reordenar.
+- `ItemsChanged`: EventCallback<IEnumerable<TCard>> — Disparado com a nova lista ao mover/reordenar cards (par de @bind-Items).
+- `OnAddCard`: EventCallback<KanbanColumn> — Disparado ao clicar no botão "adicionar card" de uma coluna.
+Slots:
+- `CardTemplate`: RenderFragment<TCard> (context: TCard) — Template completo do card — substitui o card padrão (e todos os seletores Card*).
+- `ColumnFooterTemplate`: RenderFragment<KanbanColumn> (context: KanbanColumn) — Template do rodapé da coluna (substitui o botão "adicionar card"). Recebe a KanbanColumn.
+- `ColumnHeaderTemplate`: RenderFragment<KanbanColumn> (context: KanbanColumn) — Template do cabeçalho da coluna. Recebe a KanbanColumn.
+- `EmptyColumnTemplate`: RenderFragment — Conteúdo exibido numa coluna sem cards. Default: "Sem cards".
+
+### OmniMonthView
+Month grid (6 weeks × 7 days).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniMonthView.razor_
+
+Parameters:
+- `Icon`: string = grid — Icon name shown on this view's switch tab. Default "grid".
+- `MaxAppointmentsInSlot`: int = 3 — Max appointments rendered per day before a "+N more" link appears. Null = unlimited.
+- `MoreText`: string = + {0} mais — Overflow link text. {0} is replaced with the hidden count. Default "+ {0} mais".
+- `Text`: string = Mês — Label shown on this view's switch tab. Default "Mês".
+
+### OmniMultiDayView
+N consecutive days side-by-side with time slots (mirrors RadzenMultiDayView).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniMultiDayView.razor_
+
+Parameters:
+- `AdvanceDays`: int = 1 — How many days the next/prev buttons advance. Default 1.
+- `EndTime`: TimeSpan — Last time slot of the day (exclusive). Default 24:00.
+- `HeaderFormat`: string = ddd — Format for the day-of-week header. Default "ddd".
+- `Icon`: string = columns — Icon name shown on this view's switch tab. Default "columns".
+- `MinutesPerSlot`: int = 30 — Minutes per slot row. Default 30.
+- `NumberOfDays`: int = 2 — How many days to render side-by-side. Default 2.
+- `StartTime`: TimeSpan — First time slot of the day. Default 08:00.
+- `Text`: string = Multi-dias — Label shown on this view's switch tab. Default "Multi-dias".
+- `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
+
+### OmniPivotGrid
+OmniPivotGrid — pivot table (RadzenPivotDataGrid port).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Pivot/OmniPivotGrid.razor_
+
+Parameters:
+- `AllowDrillDown`: bool — Lets the user expand/collapse row and column groups. Default true.
+- `Data`: IReadOnlyList<TItem> — Flat data source to pivot.
+- `EmptyText`: string — Text shown when there's nothing to pivot.
+- `GrandTotalText`: string — Label of the grand-total footer cell.
+- `ShowColumnTotals`: bool — Shows a bottom totals row (per measure, per column group) + grand total.
+- `ShowRowTotals`: bool — Shows a right-hand totals column (per measure, per row group).
+- `TotalsText`: string — Label of the totals column/row headers.
+Slots:
+- `Columns`: RenderFragment — Column dimension declarations (OmniPivotColumn).
+- `Rows`: RenderFragment — Row dimension declarations (OmniPivotRow).
+- `Values`: RenderFragment — Value/measure declarations (OmniPivotValue).
+
+### OmniScheduler
+OmniScheduler — calendar/agenda component inspired by RadzenScheduler.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniScheduler.razor_
+
+Parameters:
+- `AppointmentRender`: Action<SchedulerAppointmentRenderEventArgs<TItem>> — Sync per-appointment render hook (add CSS classes / styles / data-* attributes).
+- `Culture`: CultureInfo — Culture for date formatting and first-day-of-week. Default CurrentCulture.
+- `Data`: IEnumerable<TItem> — The appointment source. Use together with StartProperty/EndProperty.
+- `Date`: DateTime — Initial date shown. Two-way bindable via DateChanged. Default today.
+- `EndProperty`: string — Name of the DateTime property holding each item's end.
+- `Height`: string — CSS height of the scheduler. Default "600px".
+- `NextText`: string — Title/aria-label for the next-range arrow. Default "Próximo".
+- `PrevText`: string — Title/aria-label for the previous-range arrow. Default "Anterior".
+- `SelectedIndex`: int — Index of the initially selected view. Default 0.
+- `ShowDateTitle`: bool — Shows the current-range title in the header. Default true.
+- `ShowHeader`: bool — Shows the navigation/view-switch header bar. Default true.
+- `ShowNavigationButtons`: bool — Shows the prev/next arrow buttons in the header. Default true.
+- `ShowTodayButton`: bool — Shows the "today" button in the header. Default true.
+- `SlotRender`: Action<SchedulerSlotRenderEventArgs> — Sync per-slot render hook.
+- `StartProperty`: string — Name of the DateTime property holding each item's start.
+- `TextProperty`: string — Name of the property holding each item's display text.
+- `TodayText`: string — Label for the "today" button. Default "Hoje".
+Events:
+- `AppointmentMouseEnter`: EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> — Fires when the pointer enters an appointment. Wiring it enables hover handling.
+- `AppointmentMouseLeave`: EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> — Fires when the pointer leaves an appointment.
+- `AppointmentMove`: EventCallback<SchedulerAppointmentMoveEventArgs> — Fires when an appointment is dropped on a slot. Wiring it enables drag-and-drop.
+- `AppointmentSelect`: EventCallback<SchedulerAppointmentSelectEventArgs<TItem>> — Fires when an appointment is clicked.
+- `DateChanged`: EventCallback<DateTime> — Fires when the displayed date changes (navigation / today).
+- `DaySelect`: EventCallback<SchedulerDaySelectEventArgs> — Fires when a day header / day number is clicked.
+- `LoadData`: EventCallback<SchedulerLoadDataEventArgs> — Fires when the visible range changes — hook for server-side appointment loading.
+- `MonthSelect`: EventCallback<SchedulerMonthSelectEventArgs> — Fires when a month header is clicked (year-style views).
+- `MoreSelect`: EventCallback<SchedulerMoreSelectEventArgs> — Fires when the "+N more" overflow link is clicked.
+- `SlotSelect`: EventCallback<SchedulerSlotSelectEventArgs> — Fires when an empty time slot is clicked.
+- `TodaySelect`: EventCallback<SchedulerTodaySelectEventArgs> — Fires when the "today" button is clicked (before the date moves).
+Slots:
+- `ChildContent`: RenderFragment — The views (e.g. <OmniDayView/> <OmniWeekView/> <OmniMonthView/>).
+- `NavigationTemplate`: RenderFragment — Replaces the entire built-in navigation bar.
+- `Template`: RenderFragment<TItem> (context: TItem) — Custom appointment content. Receives the original TItem. Falls back to the projected text.
+
+### OmniTree
+OmniTree — hierarchical tree view (RadzenTree port).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Tree/OmniTree.razor_
+
+Parameters:
+- `AllowCheckChildren`: bool = true — When checking a node also checks all its descendants. Default true.
+- `AllowCheckParents`: bool = true — When all children of a node are checked, the parent auto-checks. Default true.
+- `AllowCheckboxes`: bool = false — Shows a tri-state checkbox on every node.
+- `CheckedValues`: IEnumerable<object> — The set of checked values (two-way bindable).
+- `Data`: IEnumerable — Data source for a data-bound tree (used with OmniTreeLevel).
+- `Value`: object — The currently selected node's value (two-way bindable).
+Events:
+- `CheckedValuesChanged`: EventCallback<IEnumerable<object>> — Fired when the checked set changes (paired with CheckedValues for two-way binding).
+- `Collapsed`: EventCallback<TreeEventArgs> — Fired after a node collapses.
+- `Expand`: EventCallback<TreeExpandEventArgs> — Fired when a node is expanded — set args.Children here to lazy-load.
+- `Expanded`: EventCallback<TreeEventArgs> — Fired after a node expands (post-load).
+- `SelectionChanged`: EventCallback<TreeEventArgs> — Fired when the selection changes (carries value + text).
+- `ValueChanged`: EventCallback<object> — Fired when the selected value changes (paired with Value for two-way binding).
+Slots:
+- `ChildContent`: RenderFragment — Inline content: OmniTreeItem and/or OmniTreeLevel.
+
+### OmniTreeItem
+A single node of an OmniTree.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Tree/OmniTreeItem.razor_
+
+Parameters:
+- `Checkable`: bool = true — Whether this node's checkbox is enabled. Default true.
+- `Expanded`: bool = false — Whether this node starts expanded.
+- `HasChildren`: bool = false — Whether this node has children — shows the chevron even before children load (lazy).
+- `Icon`: string — Optional leading icon name (Omni icon library).
+- `Selected`: bool = false — Whether this node starts selected.
+- `Text`: string — The node's text (used when no Template).
+- `Value`: object — The value bound to this node (passed to events / selection / checks).
+Slots:
+- `ChildContent`: RenderFragment — Nested child nodes (inline) or data-bound children render fragment.
+- `Template`: RenderFragment<OmniTreeItem> (context: OmniTreeItem) — Custom template (receives this item — use context.Value/context.Text).
+
+### OmniVirtualize
+Thin wrapper over Blazor's built-in <Virtualize TItem="...">.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniVirtualize.razor_
+
+Parameters:
+- `DefaultEmptyText`: string — Text shown when Items is empty and EmptyContent isn't set.
+- `Height`: string — Fixed height for the scrolling viewport (default 400px). Pass null to let the parent size the container — useful when the virtualize lives inside a flex/grid pane that already constrains height. Virtualize`1 requires a bounded height to virtualize correctly; without one it will render every item.
+- `ItemSize`: float — Estimated height of each row, in pixels. Default 50. Drives overscan + placeholder height.
+- `Items`: ICollection<TItem> — Synchronous data source. Mutually exclusive with ItemsProvider.
+- `ItemsProvider`: ItemsProviderDelegate<TItem> — Async/server-side data source. Mutually exclusive with Items.
+- `OverscanCount`: int — Number of extra items to render outside the viewport. Default 3 (Blazor default).
+- `SpacerElement`: string — HTML tag usada para os placeholders/spacers do Virtualize`1. Default "div". Use "tr" quando virtualizar dentro de um <tbody> (mantém semântica de tabela).
+Slots:
+- `EmptyContent`: RenderFragment — Custom empty state. If null, shows DefaultEmptyText.
+- `ItemContent`: RenderFragment<TItem> (context: TItem) *required* — Template for each rendered item.
+- `Placeholder`: RenderFragment<PlaceholderContext> (context: PlaceholderContext) — Template shown for items still being fetched (ItemsProvider mode).
+
+### OmniWeekView
+Seven-day week view with time slots.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniWeekView.razor_
+
+Parameters:
+- `EndTime`: TimeSpan — Last time slot of the day (exclusive). Default 24:00.
+- `HeaderFormat`: string = ddd — Format for the day-of-week header. Default "ddd".
+- `Icon`: string = calendar — Icon name shown on this view's switch tab. Default "calendar".
+- `MinutesPerSlot`: int = 30 — Minutes per slot row. Default 30.
+- `StartTime`: TimeSpan — First time slot of the day. Default 08:00.
+- `Text`: string = Semana — Label shown on this view's switch tab. Default "Semana".
+- `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
+
+### OmniYearPlannerView
+Year planner: 12 month rows × day columns with appointment bars (mirrors RadzenYearPlannerView).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniYearPlannerView.razor_
+
+Parameters:
+- `Icon`: string = grid — Icon name shown on this view's switch tab. Default "grid".
+- `Text`: string = Planner — Label shown on this view's switch tab. Default "Planner".
+
+### OmniYearTimelineView
+Year timeline: 12 month rows × day columns, connected timeline styling (mirrors RadzenYearTimelineView).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniYearTimelineView.razor_
+
+Parameters:
+- `Icon`: string = trending-up — Icon name shown on this view's switch tab. Default "trending-up".
+- `Text`: string = Timeline — Label shown on this view's switch tab. Default "Timeline".
+
+### OmniYearView
+Twelve mini-month calendars (mirrors RadzenYearView).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniYearView.razor_
+
+Parameters:
+- `Icon`: string = calendar — Icon name shown on this view's switch tab. Default "calendar".
+- `Text`: string = Ano — Label shown on this view's switch tab. Default "Ano".
+
+## Display
+
+### OmniAccordion
+Group of collapsible panels.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniAccordion.razor_
+
+Parameters:
+- `Mode`: AccordionMode {Single | Multi} = Single — Expansion behavior: Single (default) keeps only one item open at a time; Multi lets items expand independently.
+
+### OmniAccordionItem
+A single collapsible panel within an OmniAccordion, with a clickable header (icon + title) and an expandable body.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniAccordionItem.razor_
+
+Parameters:
+- `Disabled`: bool = false — When true, the header is disabled and the item cannot be toggled.
+- `Expanded`: bool = false — Initial/bound expanded state; supports two-way binding via ExpandedChanged.
+- `Icon`: string — Optional icon name rendered before the title in the header.
+- `Title`: string — Plain-text header label, shown when TitleContent is not provided.
+Events:
+- `ExpandedChanged`: EventCallback<bool> — Fired when the item expands or collapses, carrying the new expanded state.
+Slots:
+- `TitleContent`: RenderFragment — Custom header markup; takes precedence over Title when set.
+
+### OmniAlert
+Inline banner — persists on the page (unlike Toast which auto-dismisses).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniAlert.razor_
+
+Parameters:
+- `Dismissible`: bool = false — When true, renders a close button that hides the alert.
+- `Icon`: string — Overrides the default severity-based leading icon.
+- `Severity`: NotificationSeverity {Info | Success | Warning | Error} = Info — Severity level (Info default) driving the color scheme and default icon.
+- `Title`: string — Optional bold heading shown above the message.
+Events:
+- `OnClosed`: EventCallback — Fired after the alert is dismissed via the close button.
+Slots:
+- `Actions`: RenderFragment — Optional action buttons/links rendered below the message.
+
+### OmniAvatar
+Circular (or square) user avatar showing an image when available, otherwise fallback initials.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniAvatar.razor_
+
+Parameters:
+- `ImageUrl`: string — URL of the avatar image; when set, the image replaces the initials.
+- `Initials`: string — Fallback text (typically 1-2 letters) shown when no image is provided; also used as the image alt text.
+- `Size`: AvatarSize {Sm | Md | Lg | Xl | XXl} = Md — Avatar size (Md default): Sm, Md, Lg, Xl, or XXl.
+- `Square`: bool = false — When true, renders a rounded-square avatar instead of a circle.
+
+### OmniAvatarGroup
+Overlapping stack of avatars with an optional "+N" overflow chip — for member lists, assignees, participants.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniAvatarGroup.razor_
+
+Parameters:
+- `More`: int — Overflow count rendered as a trailing "+N" chip.
+- `Size`: AvatarSize {Sm | Md | Lg | Xl | XXl} = Md — Sizes the overlap + "+N" chip to match the avatars. Default Md.
+
+### OmniBadge
+Dual-mode badge:
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniBadge.razor_
+
+Parameters:
+- `AriaLabel`: string — Override aria-label of the badge bubble.
+- `Bordered`: bool = false — Adds a contrast ring around the badge so it visually separates from the child.
+- `Content`: object — Badge content — supports string or int. When int and value > Max, renders as "Max+" (e.g. "99+").
+- `Dot`: bool = false — Render as a small dot (no text/icon). Use for "new notification" indicators.
+- `Icon`: string — Optional icon at the start of the badge (or inside the overlay bubble).
+- `Max`: int = 99 — Numeric cap. When Content is an int > Max, renders "Max+". Default 99.
+- `Origin`: BadgeOrigin {TopEnd | TopStart | BottomEnd | BottomStart} = TopEnd — Anchor corner. TopEnd (default) puts the badge in the top-right corner.
+- `Overlap`: bool = false — Inset the badge over the wrapped child (recommended for round targets — avatars, icon buttons).
+- `Text`: string — Badge label (standalone mode). Ignored in overlay mode if Content is set.
+- `Variant`: BadgeVariant {Default | Good | Warn | Danger | Info | Accent | Plain | Solid} = Default — Visual color variant.
+- `Visible`: bool = true — Toggle badge visibility (the wrapped child still renders). Default true.
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Fires on click of the badge bubble (NOT the wrapped child).
+
+### OmniBarcode
+Renders a 1D barcode (Code128 / Code39 / EAN-13 / EAN-8 / UPC-A) as inline SVG.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniBarcode.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label customizado. Default = Value.
+- `Background`: string =  — Cor de fundo. Default vazio (transparente — herda o container).
+- `BarHeight`: double = 60 — Altura das barras em unidades de viewBox. Default 60.
+- `FontSize`: double = 10 — Tamanho da fonte do texto inferior em unidades de viewBox. Default 10.
+- `Foreground`: string = var(--omni-fg) — Cor das barras (qualquer CSS color). Default --omni-fg.
+- `Height`: string — CSS height inline. Ex: "80px".
+- `QuietZoneModules`: int = 10 — Margem em torno do código (em módulos). Default 10 (recomendação ISO).
+- `ShowValue`: bool = true — Exibir o valor decifrado embaixo do código. Default true.
+- `Stretch`: bool = true — Esticar o SVG para preencher o container (preserveAspectRatio=none). Default true — permite controle exclusivo via CSS width/height.
+- `Type`: BarcodeType {Code128 | Code39 | Ean13 | Ean8 | UpcA} = Code128 — Símbologia. Default Code128.
+- `Value`: string *required* =  — Conteúdo a codificar. Vazio renderiza placeholder vazio.
+- `Width`: string — CSS width inline (atalho para style). Ex: "240px".
+
+### OmniCard
+Structural card container — a flex column whose direct children carry roles (header / body / media / footer), mirroring Bootstrap's `.card`.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniCard.razor_
+
+Parameters:
+- `Clickable`: bool = false — Applies pointer cursor + hover lift (card-as-link).
+- `Elevated`: bool = false — Adds a shadow to lift the card.
+- `Flat`: bool = false — Removes the border — variant for secondary regions.
+- `Horizontal`: bool = false — Lays the card out horizontally (media beside body).
+- `MaxBodyHeight`: string — When set, the body scrolls internally at this max height (scrollable card).
+- `NoPadding`: bool = false — Escape-hatch: forces the body flush (no padding) even for mixed content.
+- `Subtitle`: string — Subtitle shown below the title.
+- `Title`: string — Title shown in the card header.
+- `Tone`: CardTone {None | Accent | Neutral | Info | Success | Warning | Danger} = None — Thematic colour. Filled on the Default variant; border-only on Outline.
+- `Variant`: CardVariant {Default | Accent | Outline} = Default — Visual variant: Default surface, Accent muted frame, or Outline.
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Raised when the card is clicked (also enables the clickable style).
+Slots:
+- `FooterContent`: RenderFragment — Footer content (CTAs, metadata).
+- `HeaderActions`: RenderFragment — Actions rendered on the right side of the header.
+- `HeaderContent`: RenderFragment — Custom header content (overrides Title/Subtitle).
+
+### OmniCardBody
+Structural card part — an explicit padded body section.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniCardBody.razor_
+
+Parameters:
+- `Divided`: bool = false — Draws a divider line above this section (Metronic-style grouped card).
+- `NoPadding`: bool = false — Removes the section padding (flush content).
+
+### OmniCardGroup
+OmniCardGroup — connects several <OmniCard> into one segmented set (RadzenCardGroup port): no gaps, squared inner corners, rounded outer ends, shared 1px dividers.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniCardGroup.razor_
+
+Parameters:
+- `Orientation`: Orientation {Horizontal | Vertical} = Horizontal — Layout direction. Horizontal (default) connects side by side; Vertical stacks.
+- `Responsive`: bool = true — When Horizontal, stack the cards once the group gets narrow. Default true.
+
+### OmniCardMedia
+Structural card part — a flush image / media block.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniCardMedia.razor_
+
+Parameters:
+- `Alt`: string — Alternative text for the image.
+- `Height`: string — Optional fixed height (e.g. "160px").
+- `Position`: CardMediaPosition {Top | Bottom | Overlay | Start | End} = Top — Where the media sits in the card. Default Top.
+- `Src`: string — Image URL. When set, renders an <img>.
+
+### OmniCarousel
+OmniCarousel — a slideshow that cycles through <OmniCarouselItem> slides (RadzenCarousel port).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniCarousel.razor_
+
+Parameters:
+- `AllowNavigation`: bool = true — Whether the prev/next buttons are shown. Default true.
+- `AllowPaging`: bool = true — Whether the pager dots are shown. Default true.
+- `AllowScroll`: bool = true — Whether the user can scroll/swipe between slides. Default true.
+- `AnimationDuration`: double — Slide transition duration (ms). null = default smooth (~400ms), 0 = instant.
+- `Auto`: bool = true — Whether the carousel auto-cycles. Default true.
+- `ButtonSize`: ComponentSize {Sm | Md | Lg | Xl} = Lg — Size of the prev/next buttons. Default Lg.
+- `ButtonVariant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Ghost — Variant of the prev/next buttons. Default Ghost.
+- `Interval`: double = 4000 — Auto-cycle interval in milliseconds. Default 4000.
+- `ItemsPerPage`: int = 1 — Number of slides visible at once. Default 1.
+- `NextAriaLabel`: string = Próximo slide — Accessible label for the next button. Default "Próximo slide".
+- `NextIcon`: string = chevron-right — Next-button icon name. Default "chevron-right".
+- `NextText`: string =  — Optional next-button text.
+- `PagerButtonAriaLabelFormat`: string = Ir para o slide {0} — Format string for each pager dot's aria-label ({0} = 1-based page). Default "Ir para o slide {0}".
+- `PagerOverlay`: bool = true — Whether the pager overlays the slides (vs. sitting outside). Default true.
+- `PagerPosition`: CarouselPagerPosition {Top | Bottom | TopAndBottom} = Bottom — Pager (dots) position. Default Bottom.
+- `PrevAriaLabel`: string = Slide anterior — Accessible label for the previous button. Default "Slide anterior".
+- `PrevIcon`: string = chevron-left — Previous-button icon name. Default "chevron-left".
+- `PrevText`: string =  — Optional previous-button text (shown alongside / instead of the icon).
+- `SelectedIndex`: int = 0 — Index of the active slide. Two-way bindable via @bind-SelectedIndex.
+Events:
+- `Change`: EventCallback<int> — Raised when the active slide changes (general-purpose event).
+- `SelectedIndexChanged`: EventCallback<int> — Raised when the active slide changes (binding callback).
+
+### OmniCarouselItem
+OmniCarouselItem — a single slide inside an <OmniCarousel>.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniCarouselItem.razor_
+
+Slots:
+- `ChildContent`: RenderFragment — The slide content.
+
+### OmniChart
+SVG chart supporting Line, Area, Column, Bar, Pie and Donut series.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniChart.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label customizado.
+- `ColorScheme`: ChartColorScheme {Palette | Accent | Pastel | Semantic} = Palette — Esquema de cores das séries. Default Palette.
+- `DonutCenterLabel`: string — Rótulo central de um chart Donut (linha superior, pequena).
+- `DonutCenterValue`: string — Valor central de um chart Donut (linha inferior, grande).
+- `Height`: string = 260px — Altura CSS do chart. Default "260px".
+- `LegendPosition`: ChartLegendPosition {Top | Right | Bottom | Left | None} = Bottom — Posição da legenda. Default Bottom.
+- `Series`: IEnumerable<ChartSeries> *required* — As séries do chart. Para Pie/Donut, apenas a primeira é usada.
+- `ShowGrid`: bool = true — Mostra as linhas horizontais de grid. Default true.
+- `Title`: string — Título reservado para futuro header (atualmente não renderizado).
+- `ValueFormatter`: Func<double, string> — Formatador customizado para o eixo de valores. Default v.ToString("0.##").
+- `ValueTicks`: int = 5 — Número desejado de ticks no eixo de valores. Default 5.
+- `Width`: string = 100% — Largura CSS do chart. Default "100%".
+
+### OmniChip
+Compact pill/tag button — optional dot and icon, with active/accent/static visual states.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniChip.razor_
+
+Parameters:
+- `Accent`: bool = false — When true, applies the accent color styling.
+- `Active`: bool = false — When true, applies the active/selected visual state.
+- `Icon`: string — Optional icon name rendered before the text.
+- `ShowDot`: bool = false — When true, shows a small leading status dot.
+- `Static`: bool = false — When true, renders as a non-interactive (display-only) chip.
+- `Text`: string — Chip label text, used when no ChildContent is supplied.
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Fired when the chip is clicked.
+
+### OmniDescriptionItem
+A single term/value pair for OmniDescriptionList.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniDescriptionItem.razor_
+
+Parameters:
+- `Term`: string — The label (term).
+
+### OmniDescriptionList
+Read-only key/value detail layout (term + value pairs) — the standard "detail / review / summary" primitive for entity pages, settings summaries and review-before-submit.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniDescriptionList.razor_
+
+Parameters:
+- `Bordered`: bool = false — Wrap the list in a bordered card surface.
+- `Columns`: int = 2 — Term/value pairs per row on wide containers. Collapses to 1 when narrow. Default 2.
+
+### OmniEmptyState
+Empty / zero-data placeholder — for empty lists, no search results, first-run states, empty inboxes, cleared filters.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniEmptyState.razor_
+
+Parameters:
+- `Compact`: bool = false — Reduced padding for tight panels / dropdowns.
+- `Description`: string — Supporting text (plain). Ignored when DescriptionContent is set.
+- `Icon`: string = inbox — Icon name (any OmniIcon). Default inbox.
+- `Title`: string — Short headline (e.g. "Nenhum resultado").
+Slots:
+- `Actions`: RenderFragment — Action buttons row (e.g. "Criar primeiro item").
+- `DescriptionContent`: RenderFragment — Rich supporting content (overrides Description).
+- `Visual`: RenderFragment — Custom figure/illustration replacing the default icon.
+
+### OmniIcon
+Render nothing when the icon name is unknown — emitting an empty wrapper span would (1) reserve layout space for a glyph that won't paint and (2) defeat CSS-only `:empty`/`:has()` consumers (e.g.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniIcon.razor_
+
+Parameters:
+- `Name`: string *required* =  — Required icon name looked up in OmniIconLibrary; an unknown name renders nothing.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Icon size (Md default): Sm, Md, Lg, or Xl.
+
+### OmniImage
+OmniImage — a thin, consistent <img> wrapper (RadzenImage port).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniImage.razor_
+
+Parameters:
+- `Alt`: string =  — Alt text — describe the image, or leave empty for purely decorative images.
+- `Fit`: ObjectFit {Fill | Contain | Cover | None | ScaleDown} = Fill — How the image fills its box (CSS object-fit). Needs a sized box (width/height).
+- `Lazy`: bool = true — Native lazy loading (loading="lazy"). Default true.
+- `Src`: string — Image source (URL, app path, or a data: URI).
+Events:
+- `Click`: EventCallback<MouseEventArgs> — Makes the image interactive (renders as a button, Enter/Space activate).
+
+### OmniKbd
+Renders a keyboard key/shortcut as a styled <kbd> element.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniKbd.razor_
+
+Parameters:
+- `Text`: string — Key text to display, used when no ChildContent is supplied.
+
+### OmniLabel
+Standalone <label> element for cases where OmniFormField is overkill (custom controls, plain text + value pairs, group of segmented buttons, etc.).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniLabel.razor_
+
+Parameters:
+- `Disabled`: bool = false — Estado desabilitado — só altera a aparência (label não é interativa).
+- `For`: string — ID do elemento associado (atributo for). Quando vazio, renderiza como <span> sem associação semântica.
+- `Helper`: string — Texto auxiliar exibido em linha separada abaixo (cor muted, fonte menor).
+- `Required`: bool = false — Exibe asterisco * em cor de erro depois do texto.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho do texto. Sm = 11px caixa alta (compacto, próximo de inputs). Md = 14px (default). Lg = 16px (destacado).
+- `Text`: string — Texto da label. Ignorado quando ChildContent é definido.
+
+### OmniLink
+Styled <a> tag for navigation/text links.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniLink.razor_
+
+Parameters:
+- `Disabled`: bool = false — Estado desabilitado — renderiza como span sem href.
+- `Href`: string — URL/path de destino. Para click handler puro sem navegação, use OnClick.
+- `Icon`: string — Ícone antes do texto.
+- `ShowExternalIcon`: bool = true — Mostra ícone de "external-link" automaticamente quando Target="_blank". Default true.
+- `Target`: string — Atributo target da tag a. _blank ativa rel="noopener noreferrer" automaticamente.
+- `Text`: string — Texto do link. Ignorado quando ChildContent é definido.
+- `TrailingIcon`: string — Ícone após o texto.
+- `Underline`: bool = false — Sublinha o texto. Default false (sublinha só no hover).
+- `Variant`: LinkVariant {Default | Muted | Danger} = Default — Variante visual: Default (accent), Muted (fg-soft), Danger.
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Callback opcional. Quando definido, previne navegação default (href é só para fallback de a11y).
+
+### OmniMarkdown
+OmniMarkdown — renders CommonMark-ish Markdown as HTML (RadzenMarkdown port).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniMarkdown.razor_
+
+Parameters:
+- `AllowHtml`: bool = false — When true, embedded raw HTML is sanitized and rendered; when false (default) it is escaped and shown literally. Only enable for trusted content — the sanitizer is best-effort.
+- `Text`: string — The markdown source. Takes precedence over ChildContent.
+Slots:
+- `ChildContent`: RenderFragment — Markdown written raw between the tags (text frames are concatenated).
+
+### OmniOptionCard
+Selectable option card (radio-style) — for choosing one option among several: plans, payment methods, shipping options, account types.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniOptionCard.razor_
+
+Parameters:
+- `Badge`: string — Small badge after the title (e.g. "POPULAR").
+- `Description`: string — Supporting description.
+- `Disabled`: bool = false — Disable the card.
+- `Price`: string — Price (mono).
+- `PricePeriod`: string — Price period suffix (e.g. "/mês").
+- `Selected`: bool = false — Selected state (radio).
+- `Title`: string — Option name.
+Events:
+- `OnClick`: EventCallback — Click handler — the consumer sets which card is selected.
+- `SelectedChanged`: EventCallback<bool> — Convenience: fires true when the card is clicked.
+
+### OmniProgress
+Horizontal progress bar, or a segmented variant (e.g.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniProgress.razor_
+
+Parameters:
+- `Active`: int = 0 — Number of filled segments (segmented mode); also drives the strength color via omni-s1..s4.
+- `Color`: string — Optional arbitrary CSS colour for the bar (overrides Variant).
+- `Max`: double = 100 — Value that represents 100% fill. Default 100.
+- `Segments`: int = 0 — If > 0, render as segmented progress (used for password strength).
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Bar thickness (Md default): Sm, Md, or Lg.
+- `Value`: double = 0 — Current progress value (relative to Max); clamped to 0-100% of the bar width.
+- `Variant`: BadgeVariant {Default | Good | Warn | Danger | Info | Accent | Plain | Solid} = Accent — Color variant of the bar fill (Accent default); Good/Warn/Danger map to semantic colors.
+
+### OmniProgressCircular
+OmniProgressCircular — an SVG ring progress indicator (RadzenProgressBarCircular port).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniProgressCircular.razor_
+
+Parameters:
+- `AriaLabel`: string — Accessible label for the progressbar.
+- `Color`: string — Optional arbitrary CSS colour for the arc (overrides Variant).
+- `Indeterminate`: bool = false — Continuous indeterminate spinner (ignores Value). Default false.
+- `Max`: double = 100 — Maximum value. Default 100.
+- `Min`: double = 0 — Minimum value. Default 0.
+- `ShowValue`: bool = true — Whether to show the centred value/label. Default true.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Ring size. Default Md.
+- `Unit`: string = % — Unit suffix appended after the value in the centre label. Default "%".
+- `Value`: double = 0 — Current progress value (between Min and Max).
+- `Variant`: BadgeVariant {Default | Good | Warn | Danger | Info | Accent | Plain | Solid} = Accent — Semantic colour of the progress arc. Default Accent.
+
+### OmniQRCode
+Renders a QR code as inline SVG.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniQRCode.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label customizado (default = Value).
+- `Background`: string =  — Cor de fundo (vazio = transparente).
+- `Ecc`: QRCodeEcc {Low | Medium | Quartile | High} = Medium — Nível de correção de erro. Default Medium (~15% de tolerância).
+- `EyeColor`: string — Cor opcional dos olhos (override do Foreground).
+- `EyeShape`: QRCodeEyeShape {Square | Rounded | Framed} = Square — Forma dos três "olhos" (finder patterns). Default Square.
+- `Foreground`: string = var(--omni-fg) — Cor dos módulos. Default --omni-fg.
+- `Image`: string — Imagem central (data URL ou caminho). Opcional.
+- `ImageBackground`: string = var(--omni-bg-elev) — Cor de fundo do recorte ao redor da imagem. Default --omni-bg-elev.
+- `ImagePadding`: double = 1 — Padding em módulos ao redor da imagem. Default 1.
+- `ImageSizePercent`: double = 20 — % do tamanho total ocupado pela imagem (5..50). Default 20.
+- `ModuleShape`: QRCodeModuleShape {Square | Rounded | Circle} = Square — Forma dos módulos. Default Square.
+- `QuietZone`: int = 4 — Quiet zone em módulos. ISO recomenda 4. Default 4.
+- `Size`: string = 200px — CSS size — aplicado como width=height. Default "200px".
+- `Value`: string *required* =  — Conteúdo a codificar. UTF-8 / Byte mode (suporta acentos e qualquer Unicode).
+
+### OmniResult
+Full-page / full-panel status outcome block — the generic primitive behind 404 / 403 / 500 / "access denied" / "payment complete" / maintenance pages.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniResult.razor_
+
+Parameters:
+- `Compact`: bool = false — Render with reduced padding (inside a card/panel rather than full-page).
+- `Description`: string — Supporting text (plain). Ignored when DescriptionContent is set.
+- `Icon`: string — Override the status icon (any OmniIcon name).
+- `Status`: ResultStatus {Info | Success | Warning | Error | Forbidden | NotFound | Maintenance} = Info — Outcome status — drives the icon and color tone. Default Info.
+- `Title`: string — Headline.
+Slots:
+- `Actions`: RenderFragment — Action buttons row rendered under the text.
+- `DescriptionContent`: RenderFragment — Rich supporting content (overrides Description).
+- `Visual`: RenderFragment — Custom figure/illustration replacing the default icon badge.
+
+### OmniSkeleton
+Animated placeholder for loading content.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniSkeleton.razor_
+
+Parameters:
+- `Height`: string — Inline CSS height — only used by Rect/Circle variants. Optional.
+- `Lines`: int = 1 — Number of text lines (Text variant only). Default 1.
+- `Variant`: SkeletonVariant {Text | Rect | Circle} = Text — Placeholder shape (Text default): Text (line/paragraph), Rect (block), or Circle.
+- `Width`: string — Inline CSS width — e.g. "100%", "240px", "12rem". Optional.
+
+### OmniSparkline
+Mini chart inline em SVG — pra trends rápidos em Stat cards, células de tabela, headers de listas, parágrafos de texto.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniSparkline.razor_
+
+Parameters:
+- `AreaOpacity`: double = 0.18 — Fill opacity for Area variant. 0–1, default 0.18.
+- `AriaLabel`: string — aria-label override. Defaults to "Sparkline".
+- `BarGap`: double = 2 — Spacing between bars/columns in PIXELS. Default 2.
+- `Color`: string — Stroke/fill color (any CSS color). Defaults to --omni-accent.
+- `Data`: IEnumerable<double> — Sequence of numbers to chart. Empty/null = nothing rendered.
+- `PieInnerRadius`: double = 0 — Raio interno do donut em Pie (0–0.9 do raio externo). 0 = pie sólido, 0.5 = donut médio. Default 0 (pie).
+- `PiePalette`: IReadOnlyList<string> — Paleta de cores pro variant Pie. Se vazia, usa accent com variação de opacidade pra distinguir slices. Cores são repetidas ciclicamente se houver mais valores que cores.
+- `ShowAllMarkers`: bool = false — Show dots at ALL data points (Line/Area only). Sobrescreve ShowMarker — se true, marca todos.
+- `ShowMarker`: bool = false — Show a dot at the LAST data point (Line/Area only).
+- `Smooth`: bool = false — Suaviza a curva (Line/Area) usando monotone cubic Bezier — preserva monotonicidade dos dados (não inventa picos/vales). Mesmo algoritmo que RadzenLineSeries Smooth="true" usa. Não tem efeito em Column/Bar/Pie. Default false.
+- `StrokeWidth`: double = 1.8 — Stroke width em PIXELS. Default 1.8.
+- `Variant`: SparklineVariant {Line | Area | Column | Bar | Pie} = Line — Visual variant — Line, Area, Column, Bar, Pie.
+
+### OmniSpinner
+Pure-CSS circular spinner.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniSpinner.razor_
+
+Parameters:
+- `Label`: string — Accessible label for screen readers (aria-label). Defaults to "Carregando".
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Spinner size (Md default): Sm, Md, Lg, or Xl.
+
+### OmniStat
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniStat.razor_
+
+Parameters:
+- `Card`: bool = false — Wraps the stat in a bordered card surface.
+- `Delta`: string — Trend delta (e.g. "+18,4%"). Colour follows DeltaDown.
+- `DeltaCaption`: string — Neutral caption after the delta (e.g. "vs ontem").
+- `DeltaDown`: bool = false — Renders the delta in the "down" colour.
+- `Icon`: string — Optional icon shown in a chip next to the label.
+- `Label`: string — Uppercase label above the value.
+- `Value`: string *required* =  — The metric value (large).
+Slots:
+- `Visual`: RenderFragment — Decorative visual (e.g. a sparkline) anchored to the bottom-right.
+
+### OmniStatGroup
+Responsive KPI strip — lays out a set of OmniStat cards in an even grid that collapses (Columns → 2 → 1) as the container narrows (container query, so it reacts to its own width, not the viewport).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniStatGroup.razor_
+
+Parameters:
+- `Columns`: int = 4 — Desired columns on wide containers. Collapses to 2 then 1 as it narrows. Default 4.
+
+### OmniStatusBadge
+Pílula compacta de status — primitivo do design system para indicar estado operacional (caixa aberto, API online, sincronizando, fila vazia, etc.).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniStatusBadge.razor_
+
+Parameters:
+- `AriaLabel`: string — Sinaliza ao screen-reader o significado do estado.
+- `Kind`: StatusBadgeKind {Neutral | Accent | Good | Warn | Danger} = Neutral — Intent semântico do estado.
+- `Label`: string — Rótulo principal — destacado na cor do Kind.
+- `Meta`: string — Texto secundário (relógio, contador, percentual) — renderizado em monoespaçada apagada, separado do label por "·".
+- `Pulse`: bool = false — Anel pulsante no dot — use para indicar "ao vivo".
+Slots:
+- `ChildContent`: RenderFragment — Conteúdo livre — alternativa ao parâmetro Label.
+
+### OmniTimeline
+OmniTimeline — vertical/horizontal sequence of events along a connecting line, inspired by RadzenTimeline.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniTimeline.razor_
+
+Parameters:
+- `LinePosition`: TimelineLinePosition {Center | Start | End | Alternate} = Center — Where the line sits relative to content (Center/Start/End/Alternate).
+- `Orientation`: Orientation {Horizontal | Vertical} = Vertical — Vertical (column, default) or Horizontal (row) flow.
+- `Reverse`: bool = false — Reverses the visual side of content (swaps opposite/main).
+
+### OmniTimelineItem
+A single event on an <OmniTimeline>.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniTimelineItem.razor_
+
+Parameters:
+- `Label`: string — Opposite-side text shorthand (rendered after LabelContent).
+- `PointSize`: ComponentSize {Sm | Md | Lg | Xl} = Md — Point size. Default Md.
+- `PointStyle`: TimelinePointStyle {Base | Accent | Good | Warn | Danger | Info} = Base — Color/intent of the point. Default Base.
+- `PointVariant`: TimelinePointVariant {Filled | Outlined | Text} = Filled — Fill variant of the point. Default Filled.
+- `Text`: string — Main content text shorthand (rendered after ChildContent).
+Slots:
+- `ChildContent`: RenderFragment — Main content. Rendered before Text.
+- `LabelContent`: RenderFragment — Opposite-side content (date/label). Rendered before Label.
+- `PointContent`: RenderFragment — Content rendered inside the dot (icon, letter, avatar…).
+
+## Forms
+
+### OmniValidationMessage
+Per-field error display.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/OmniValidationMessage.razor_
+
+Parameters:
+- `For`: Expression<Func<TValue>> *required* — Lambda pointing at the field, e.g. () => model.Email.
+- `ShowAll`: bool — Render all messages (default) or just the first.
+
+### OmniValidationSummary
+Styled validation summary — like Blazor's <ValidationSummary> but uses the `omni-alert omni-alert-danger` look.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/OmniValidationSummary.razor_
+
+Parameters:
+- `Title`: string = Corrija os erros abaixo: — Heading shown above the error list; null/empty hides it. Default "Corrija os erros abaixo:".
+
+## Inputs
+
+### OmniAutoComplete
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniAutoComplete.razor_
+
+Parameters:
+- `Clearable`: bool — Show a clear (×) button when a value is selected. Default true.
+- `DebounceMs`: int — Debounce window for async LoadData calls. Default 220ms.
+- `EmptyText`: string — Text shown in the dropdown when no results match. Default "Nenhum resultado.".
+- `Items`: IEnumerable<TItem> — Synchronous item source. Use this OR LoadData, not both.
+- `LoadData`: Func<string, Task<IEnumerable<TItem>>> — Async item source — called whenever the search text changes (debounced).
+- `MinSearchLength`: int — Minimum characters before searching. Default 0 (show all on focus).
+- `Placeholder`: string — Placeholder text shown in the search input. Default "Buscar...".
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Visual size of the input. Default Md.
+- `TextSelector`: Func<TItem, string> *required* — Required: how to extract the display text from an item.
+Slots:
+- `ItemTemplate`: RenderFragment<TItem> (context: TItem) — Optional template rendered for each option in the dropdown.
+
+### OmniCalendar
+Calendar grid.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniCalendar.razor_
+
+Parameters:
+- `AutoFocus`: bool = false — Auto-focus the grid on first render so keyboard nav works without a click. Set to false when the calendar is rendered statically on the page (Inline mode without an opening trigger).
+- `DateRender`: Action<DateRenderEventArgs> — Per-day render hook. Lets the consumer add a CSS class, set HTML attributes, or mark a date disabled — without touching the bound model. Mirrors Radzen's DateRender callback. Use it for holiday highlights, tooltips, anniversary markers, etc.
+- `DisableWeekends`: bool = false — When true, Saturdays and Sundays are disabled. Default false.
+- `DisabledDates`: Func<DateOnly, bool> — Predicate returning true to disable a specific day. Default null (none disabled).
+- `FirstDayOfWeek`: DayOfWeek {Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday} — Which day starts the week. null respects the current culture (default for pt-BR is Sunday). Set explicitly for Monday-start in EU formats.
+- `InitialViewDate`: DateOnly — Initial month/year to show when the calendar first mounts. Wins over Selected on the first render but does not override later navigation by the user.
+- `MaxDate`: DateOnly — Latest selectable day; days after it are disabled.
+- `MinDate`: DateOnly — Earliest selectable day; days before it are disabled.
+- `RangeEnd`: DateOnly — End of the committed range; when both endpoints are set the band between them is painted solid.
+- `RangeHoverEnd`: DateOnly — Tentative end of range under the mouse pointer. When set together with RangeStart (and RangeEnd is null), the calendar paints a preview band between start and this day so the user can see the candidate range before committing.
+- `RangeStart`: DateOnly — Optional range — used by the date-range variant for hover/selection visuals.
+- `Selected`: DateOnly — Currently selected single date. (Range mode handled by parent.)
+- `ShowNavButtons`: bool = true — Show the prev/next month navigation chevrons. Default true.
+- `ShowNextButton`: bool = true — Show the "next month" chevron. Useful to hide one side in a two-month layout.
+- `ShowPrevButton`: bool = true — Show the "previous month" chevron. Useful to hide one side in a two-month layout.
+- `ShowWeekNumbers`: bool = false — Show the ISO 8601 week number column on the left of the grid.
+- `ViewMonth`: DateOnly — Month being displayed. Defaults to today's month (or Selected's month).
+Events:
+- `OnDateSelected`: EventCallback<DateOnly> — Fires when the user picks a day (click or keyboard Enter/Space) that passes the disabled checks.
+- `OnDayHover`: EventCallback<DateOnly> — Fires as the mouse moves over (or leaves) day cells. Receives null on leave.
+- `OnEscape`: EventCallback — Fires when the user presses Escape on the grid.
+- `ViewMonthChanged`: EventCallback<DateOnly> — Fires when the displayed month changes (navigation, year pick, or keyboard paging).
+Slots:
+- `Footer`: RenderFragment — Slot rendered below the day grid (e.g. a "Today" button).
+
+### OmniCheckBox
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniCheckBox.razor_
+
+Parameters:
+- `Label`: string — Text label shown next to the checkbox when no ChildContent is provided.
+Slots:
+- `ChildContent`: RenderFragment — Custom label content; rendered instead of Label when provided.
+
+### OmniCheckBoxList
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniCheckBoxList.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label do grupo.
+- `DescriptionSelector`: Func<TValue, string> — Texto auxiliar opcional abaixo do label.
+- `DisabledSelector`: Func<TValue, bool> — Item-by-item: retorne true para desabilitar este item específico.
+- `Items`: IEnumerable<TValue> — Conjunto de itens a renderizar.
+- `Orientation`: Orientation {Horizontal | Vertical} — Orientação do layout. Default Vertical.
+- `TextSelector`: Func<TValue, string> — Texto principal de cada item. Default = item.ToString().
+- `ValueSelector`: Func<TValue, TValue> — Extrai o valor a usar no bind. Default = o próprio item.
+Slots:
+- `ChildContent`: RenderFragment — Conteúdo customizado adicional (renderizado APÓS os itens).
+
+### OmniColorPicker
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniColorPicker.razor_
+
+Parameters:
+- `DefaultColor`: string = #d97706 — Cor usada quando Value é nulo/ inválido. Default #d97706 (amber).
+- `Palette`: IEnumerable<string> — Cores de preset exibidas abaixo do seletor. Default = paleta do design system.
+- `ShowAlpha`: bool = false — Habilita o slider de transparência e emite #rrggbbaa. Default false.
+- `ShowInput`: bool = true — Mostra o campo de entrada hexadecimal. Default true.
+- `ShowPresets`: bool = true — Mostra a paleta de presets. Default true.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho do trigger. Default Md (igual aos demais inputs).
+
+### OmniDatePicker
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniDatePicker.razor_
+
+Parameters:
+- `Clearable`: bool — Show a clear (×) button when a value is set. Default true.
+- `DateFormat`: string — Date/time format used for display and parsing. Default "dd/MM/yyyy" (adapts when ShowTime is on).
+- `DateRender`: Action<DateRenderEventArgs> — Per-day render hook (holidays, special markers, tooltips, ad-hoc disabling).
+- `DisableWeekends`: bool — Disable Saturdays and Sundays. Default false.
+- `DisabledDates`: Func<DateOnly, bool> — Predicate returning true to disable a specific day. Default null (none disabled).
+- `FirstDayOfWeek`: DayOfWeek {Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday} — Override the first day of the week. Default = current culture.
+- `HourFormat`: string — "24" (default) or "12" with AM/PM toggle.
+- `InitialViewDate`: DateOnly — Month/year shown the first time the popover opens.
+- `Inline`: bool — Render the calendar in place (no input/popover). Useful for filter panels or sidebars.
+- `MaxDate`: DateOnly — Latest selectable date; later days are disabled.
+- `MinDate`: DateOnly — Earliest selectable date; earlier days are disabled.
+- `MinutesStep`: int — Step for minutes spinner. Default 1.
+- `ParseInput`: Func<string, DateTime> — Custom string-to-DateTime parser. When set, replaces the default DateOnly.TryParseExact(DateFormat). Return null for invalid inputs. Useful for accepting multiple formats or natural-language dates.
+- `Placeholder`: string — Placeholder text for the input; falls back to a smart format-based default when null.
+- `SecondsStep`: int — Step for seconds spinner. Default 1.
+- `ShowSeconds`: bool — Show the seconds field next to hour/minute.
+- `ShowTime`: bool — Show hour/minute selector below the calendar (or alone when ShowTimeOnly).
+- `ShowTimeOnly`: bool — Hide the calendar — picker shows time only. Auto-true when TValue is TimeOnly.
+- `ShowWeekNumbers`: bool — Show the ISO 8601 week number column.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Visual size of the input. Default Md.
+Slots:
+- `Footer`: RenderFragment — Slot rendered below the day grid (e.g. a "Hoje" button).
+
+### OmniDateRangePicker
+Date range picker with a single combined input.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniDateRangePicker.razor_
+
+Parameters:
+- `ApplyText`: string = Aplicar — Label for the apply button (shown when AutoApply is off). Default "Aplicar".
+- `AutoApply`: bool = true — When true (default), the second click on a day commits and closes the picker immediately. When false, the popover stays open and Apply / Cancel buttons are shown so the user can preview before committing.
+- `CancelText`: string = Cancelar — Label for the cancel button (shown when AutoApply is off). Default "Cancelar".
+- `ClearText`: string = Limpar — Label for the clear button. Default "Limpar".
+- `DateFormat`: string = dd/MM/yyyy — Format used to display the From/To dates in the input. Default "dd/MM/yyyy".
+- `DateRender`: Action<DateRenderEventArgs> — Per-day render hook applied to both calendars (holidays, markers, tooltips).
+- `DisableWeekends`: bool = false — Disable Saturdays and Sundays on both calendars. Default false.
+- `Disabled`: bool = false — Disables the whole control. Default false.
+- `DisabledDates`: Func<DateOnly, bool> — Predicate returning true to disable a specific day on both calendars. Default null.
+- `FirstDayOfWeek`: DayOfWeek {Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday} — Override the first day of the week on both calendars.
+- `From`: DateOnly — Start of the selected range. Bind via @bind-From.
+- `FromExpression`: Expression<Func<DateOnly>> — Expression para integração com EditContext (registra com OmniForm). Aponte pro campo From do model; o validator vai receber o tuple (From, To).
+- `MaxDate`: DateOnly — Latest selectable date on both calendars; later days are disabled.
+- `MinDate`: DateOnly — Earliest selectable date on both calendars; earlier days are disabled.
+- `Name`: string — Nome lógico — registra com OmniForm para validators irmãos. (<OmniRequiredValidator Component="periodo" />)
+- `Placeholder`: string = Selecionar período — Text shown in the input when no range is selected. Default "Selecionar período".
+- `Presets`: IReadOnlyList<DateRangePreset> — Quick-select shortcuts shown in the popover sidebar. Each preset is a label plus a function returning the (from, to) tuple at the moment it's clicked. Default set covers the most common business reporting periods.
+- `ShowClearButton`: bool = true — Show the "Limpar" button in the popover footer.
+- `ShowWeekNumbers`: bool = false — Show the ISO 8601 week number column on both calendars.
+- `To`: DateOnly — End of the selected range. Bind via @bind-To.
+Events:
+- `FromChanged`: EventCallback<DateOnly> — Fires when the range start changes. Two-way via @bind-From.
+- `ToChanged`: EventCallback<DateOnly> — Fires when the range end changes. Two-way via @bind-To.
+
+### OmniFileUpload
+Drag-and-drop file uploader.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniFileUpload.razor_
+
+Parameters:
+- `Accept`: string — HTML accept filter passed to the file input (e.g. "image/*", ".pdf").
+- `FilesExpression`: Expression<Func<IReadOnlyList<IBrowserFile>>> — Expression apontando pra coleção de files no model — habilita validators irmãos. Ex: FilesExpression="@(() => model.Anexos)".
+- `HintText`: string — Secondary hint under the label. When null, an auto hint listing Accept + max size is shown.
+- `LabelText`: string = Arraste arquivos aqui ou clique para selecionar — Main text shown inside the drop-zone. Default "Arraste arquivos aqui ou clique para selecionar".
+- `MaxFileCount`: int = 0 — Maximum number of files (Multiple only). 0 = no limit.
+- `MaxFileSize`: long = 10485760 — Maximum size per file, in bytes. 0 = no limit. Default 10 MB.
+- `Multiple`: bool = false — Allow selecting/dropping more than one file. Default false (single file replaces the previous).
+- `Name`: string — Nome lógico — registra com OmniForm para validators irmãos.
+Events:
+- `OnFileRemoved`: EventCallback<IBrowserFile> — Fires when a file is removed from the list, with the removed file.
+- `OnFilesSelected`: EventCallback<IReadOnlyList<IBrowserFile>> — Fires after files are added (validated), with the current accepted file list.
+
+### OmniFormField
+Field wrapper around an input.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Inputs/OmniFormField.razor_
+
+Parameters:
+- `Error`: string — Explicit error to display (wins over EditContext messages).
+- `For`: string — HTML `for` attribute on the label.
+- `Hint`: string — Helper text shown below the input (hidden while an error is displayed).
+- `HintRight`: string — Optional hint aligned to the right of the label row (e.g. a char counter).
+- `Label`: string — Label text shown above the input.
+- `Required`: bool = false — When true, marks the field as required (adds the required indicator on the label). Default false.
+- `ValidationFor`: Expression<Func<object>> — Lambda pointing at the bound model field (e.g. () => model.Email). When provided AND an EditContext is in scope, the first validation message for the field is shown automatically.
+Slots:
+- `LabelContent`: RenderFragment — Custom label markup; rendered instead of Label when provided.
+
+### OmniListBox
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniListBox.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label do listbox.
+- `DescriptionSelector`: Func<TValue, string> — Texto auxiliar opcional abaixo do label de cada item.
+- `DisabledSelector`: Func<TValue, bool> — Item-by-item: retorne true para desabilitar este item específico.
+- `IconSelector`: Func<TValue, string> — Nome do ícone exibido à esquerda de cada item. Default = sem ícone.
+- `Items`: IEnumerable<TValue> — Itens a renderizar.
+- `MaxHeight`: string — Altura máxima (CSS). Default 240px. Quando excede, scroll vertical.
+- `Multiple`: bool — Quando true, permite selecionar múltiplos itens.
+- `TextSelector`: Func<TValue, string> — Texto principal de cada item. Default = item.ToString().
+- `ValueSelector`: Func<TValue, TValue> — Extrai o valor de bind de cada item. Default = o próprio item (identidade).
+- `Values`: IEnumerable<TValue> — Multi-select bind. Use com Multiple=true.
+Events:
+- `ValuesChanged`: EventCallback<IEnumerable<TValue>> — Disparado quando a seleção múltipla muda (modo Multiple).
+
+### OmniMaskedTextBox
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniMaskedTextBox.razor_
+
+Parameters:
+- `Autocomplete`: string — HTML autocomplete attribute for the input.
+- `KeepMask`: bool = false — When true, the bound Value keeps the mask separators; default false binds only the meaningful characters.
+- `Mask`: string *required* =  — Mask pattern: 9 = digit, A = letter, * = alphanumeric; any other char is a literal separator. Required.
+- `Placeholder`: string — Placeholder text shown when the input is empty.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Visual size of the input. Default Md.
+
+### OmniMultiSelect
+Select múltiplo no estilo de chips dentro de um campo + popup com a lista de opções.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniMultiSelect.razor_
+
+Parameters:
+- `DescriptionSelector`: Func<TValue, string> — Texto auxiliar opcional de cada item na lista.
+- `Disabled`: bool — Desabilita o campo (sem abrir popover nem remover chips). Default false.
+- `DisabledSelector`: Func<TValue, bool> — Item-by-item: retorne true para desabilitar este item específico.
+- `IconSelector`: Func<TValue, string> — Nome do ícone exibido à esquerda de cada item na lista.
+- `Items`: IEnumerable<TValue> — Itens disponíveis para seleção.
+- `Name`: string — Nome lógico — registra com OmniForm para validators irmãos (<OmniRequiredValidator Component="..." />).
+- `Placeholder`: string — Texto exibido no campo quando nada está selecionado.
+- `PopoverMaxHeight`: string — Altura máxima da lista dentro do popover.
+- `PopoverWidth`: string — Largura do popover. Default vazio = mesma do trigger.
+- `SearchPlaceholder`: string — Placeholder do campo de busca. Default "Buscar...".
+- `Searchable`: bool — Habilita campo de busca dentro do popover.
+- `ShowClearAll`: bool — Mostra botão "Limpar seleção (N)" no rodapé do popover.
+- `TextSelector`: Func<TValue, string> — Texto principal de cada item. Default = item.ToString().
+- `ValueSelector`: Func<TValue, TValue> — Extrai o valor de bind de cada item. Default = o próprio item (identidade).
+- `Values`: IEnumerable<TValue> — Coleção selecionada (two-way via @bind-Values).
+- `ValuesExpression`: Expression<Func<IEnumerable<TValue>>> — Expression pra integração com EditContext (validators irmãos).
+Events:
+- `ValuesChanged`: EventCallback<IEnumerable<TValue>> — Disparado quando a seleção muda.
+
+### OmniNumeric
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniNumeric.razor_
+
+Parameters:
+- `Decimals`: int — Number of decimal places shown when the input loses focus. Default = inferred from TValue.
+- `Format`: string — Custom ToString format for the display value (e.g. "00" for 2-digit zero-padded, "0,000" for thousands grouping). When set, wins over the default "N{Decimals}".
+- `Max`: decimal — Maximum allowed value; entries above it are clamped. Default null (no maximum).
+- `Min`: decimal — Minimum allowed value; entries below it are clamped. Default null (no minimum).
+- `Placeholder`: string — Placeholder text shown when the input is empty.
+- `Prefix`: string — Text rendered before the input (e.g. "R$"). Default none.
+- `ShowSpinButtons`: bool — Show the up/down stepper buttons. Default true (hidden when ReadOnly).
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Visual size of the input. Default Md.
+- `Step`: decimal — Increment applied by the spin buttons and ArrowUp/ArrowDown. Default 1.
+- `Suffix`: string — Text rendered after the input (e.g. "%", "kg"). Default none.
+- `Wrap`: bool — When true, stepping past Max wraps to Min and vice versa. Useful for cyclical inputs (hours, minutes, day of week). Requires both Min and Max to be set.
+
+### OmniPassword
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniPassword.razor_
+
+Parameters:
+- `Autocomplete`: string = current-password — HTML autocomplete attribute. Default "current-password".
+- `MinLength`: int — Minimum length enforced via the input's minlength attribute. Default null (none).
+- `Placeholder`: string — Placeholder text shown when the input is empty.
+- `ShowToggle`: bool = true — Show the eye button that toggles between masked and plain text. Default true.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Visual size of the input. Default Md.
+
+### OmniPasswordStrength
+Password strength meter + configurable requirement checklist.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniPasswordStrength.razor_
+
+Parameters:
+- `LabelText`: string = Força da senha — Caption text on the label line. Default "Força da senha".
+- `MinLength`: int = 8 — Minimum length rule. Set to 0 to drop the length rule. Default 8.
+- `Password`: string — The password to evaluate (read-only; this component never owns the value).
+- `RequireDigit`: bool = true — Require a digit (default rule). Default true.
+- `RequireLowercase`: bool = true — Require a lowercase letter (default rule). Default true.
+- `RequireSymbol`: bool = true — Require a non-alphanumeric symbol (default rule). Default true.
+- `RequireUppercase`: bool = true — Require an uppercase letter (default rule). Default true.
+- `RequiredUniqueChars`: int = 0 — Require at least N distinct characters (default rule). 0 disables it.
+- `Rules`: IEnumerable<OmniPasswordRule> — Fully custom rule set. When provided, the built-in toggles above are ignored.
+- `ShowLabel`: bool = true — Show the strength word + caption line. Default true.
+- `ShowRules`: bool = true — Show the per-rule checklist. Default true.
+
+### OmniPickList
+OmniPickList — a dual-list "transfer" picker (RadzenPickList port).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniPickList.razor_
+
+Parameters:
+- `AllowFiltering`: bool — Show a search box above each list. Default false.
+- `AllowMoveAll`: bool — Show the "move all" (double-arrow) buttons. Default true.
+- `ButtonSize`: ComponentSize {Sm | Md | Lg | Xl} — Size of the transfer buttons. Default Sm.
+- `ButtonVariant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} — Variant of the transfer buttons. Default Default.
+- `Disabled`: bool — Disable the whole control.
+- `DisabledSelector`: Func<TItem, bool> — Maps an item to whether it is disabled (non-selectable).
+- `FilterPlaceholder`: string — Placeholder for the filter boxes.
+- `IconSelector`: Func<TItem, string> — Maps an item to an optional leading icon name.
+- `ListHeight`: string — Max height of each list (CSS length). Default "260px".
+- `Orientation`: Orientation {Horizontal | Vertical} — Layout: Horizontal (lists side by side) or Vertical (stacked).
+- `ShowHeader`: bool — Show pane headers. Default true.
+- `Source`: IEnumerable<TItem> — Items in the left (source) list. Two-way bindable.
+- `SourceEmptyText`: string — Text shown when the source list is empty.
+- `SourceTitle`: string — Title text for the source pane header.
+- `Target`: IEnumerable<TItem> — Items in the right (target) list. Two-way bindable.
+- `TargetEmptyText`: string — Text shown when the target list is empty.
+- `TargetTitle`: string — Title text for the target pane header.
+- `TextSelector`: Func<TItem, string> — Maps an item to its display text. Defaults to ToString().
+Events:
+- `Moved`: EventCallback<PickListMoveEventArgs<TItem>> — Raised after a move, once Source/Target already reflect it.
+- `SourceChanged`: EventCallback<IEnumerable<TItem>> — Fires when the source list changes after a move. Two-way via @bind-Source.
+- `TargetChanged`: EventCallback<IEnumerable<TItem>> — Fires when the target list changes after a move. Two-way via @bind-Target.
+Slots:
+- `SourceHeader`: RenderFragment — Custom markup for the source pane header; overrides SourceTitle.
+- `TargetHeader`: RenderFragment — Custom markup for the target pane header; overrides TargetTitle.
+
+### OmniQtyStepper
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniQtyStepper.razor_
+
+Parameters:
+- `Max`: int — Limite superior (inclusivo). Opcional; quando definido, o botão + desabilita ao atingir.
+- `Min`: int = 1 — Limite inferior (inclusivo). Default 1 — o botão − desabilita ao atingir.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho visual. Sm (24×24), Md (28×28, default), Lg (36×36).
+
+### OmniRadio
+Single radio button; registers with the enclosing OmniRadioGroup via cascading parameter.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Inputs/OmniRadio.razor_
+
+Parameters:
+- `Disabled`: bool — Disables this radio (also disabled when the group is disabled). Default false.
+- `Label`: string — Text label shown next to the radio when no ChildContent is provided.
+- `Value`: TValue *required* — Value this radio represents; the group is selected when it equals the group's bound value. Required.
+
+### OmniRadioGroup
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniRadioGroup.razor_
+
+Parameters:
+- `Orientation`: Orientation {Horizontal | Vertical} — Layout direction of the radios. Default Vertical.
+Slots:
+- `ChildContent`: RenderFragment — The OmniRadio children that make up the group.
+
+### OmniRating
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniRating.razor_
+
+Parameters:
+- `AllowClear`: bool = false — Clique na estrela já selecionada limpa o valor (volta a 0). Default false.
+- `AriaLabel`: string — aria-label customizado.
+- `Color`: string — Cor accent override (qualquer CSS color). Default --omni-warn (dourado).
+- `EmptyIconName`: string = star — Nome do ícone para estado vazio. Default star.
+- `FullIconName`: string = star — Nome do ícone para estado preenchido. Default star (mesmo ícone, cor diferente).
+- `HalfStep`: bool = false — Permite valores fracionados (X.5). Hover na metade esquerda da estrela.
+- `Max`: int = 5 — Quantidade total de estrelas. Default 5.
+- `ShowValue`: bool = false — Mostra o valor numérico ao lado das estrelas.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho do ícone das estrelas.
+- `ValueFormatter`: Func<double, string> — Formatador customizado do label numérico. Default v.ToString("0.#").
+
+### OmniSecurityCode
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSecurityCode.razor_
+
+Parameters:
+- `AriaLabel`: string = Dígito — Accessible label prefix for each cell (e.g. "Dígito 1"). Default "Dígito".
+- `Count`: int = 4 — Number of code cells. Default 4.
+- `Gap`: string = 8px — Gap between cells (CSS length). Default 8px.
+- `Type`: SecurityCodeType {Text | Numeric | Password} = Text — Input type: Text (any char), Numeric (digits only) or Password (masked).
+
+### OmniSelect
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSelect.razor_
+
+Parameters:
+- `Clearable`: bool — Show a clear (×) button when a value is selected. Default false.
+- `EmptyText`: string — Text shown when there are no items.
+- `Items`: IEnumerable<TValue> — Options to choose from.
+- `Placeholder`: string — Text shown in the trigger when nothing is selected.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Control height/typography. Default Md (matches the other inputs).
+- `TextSelector`: Func<TValue, string> — Maps an item to its display text. Default = item.ToString().
+- `ValueSelector`: Func<TValue, TValue> — Extracts the bound value from an item. Default = the item itself.
+Slots:
+- `ChildContent`: RenderFragment — Kept for API compatibility. Prefer Items + selectors.
+
+### OmniSlider
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSlider.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label do thumb (modo single).
+- `Color`: string — Cor accent custom para a track ativa e thumbs. Default --omni-accent.
+- `Marks`: IEnumerable<SliderMark> — Marcas customizadas (ex: 0%, 25%, 50%...) renderizadas abaixo da track.
+- `Max`: double = 100 — Valor máximo. Default 100.
+- `Min`: double = 0 — Valor mínimo. Default 0.
+- `Range`: bool = false — Quando true, renderiza 2 thumbs (range).
+- `ShowTicks`: bool = false — Mostra ticks (pontos pequenos) em cada Step. Auto-desliga se houver mais de 50 ticks para evitar poluição visual.
+- `ShowValueLabel`: bool = true — Mostra balão com o valor sobre o thumb.
+- `Step`: double = 1 — Incremento mínimo. Default 1.
+- `ValueEnd`: double = 0 — Range end (thumb direito). Use com Range=true.
+- `ValueFormatter`: Func<double, string> — Formatador customizado para o balão do thumb. Default: v.ToString("0.##").
+- `ValueStart`: double = 0 — Range start (thumb esquerdo). Use com Range=true.
+Events:
+- `ValueEndChanged`: EventCallback<double> — Disparado quando o thumb final (end) muda. Two-way via @bind-ValueEnd.
+- `ValueStartChanged`: EventCallback<double> — Disparado quando o thumb inicial (start) muda. Two-way via @bind-ValueStart.
+
+### OmniSpeechToTextButton
+Botão pronto pra falar — wrapper visual de conveniência por cima do headless OmniSpeechToText.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniSpeechToTextButton.razor_
+
+Parameters:
+- `AllowInterrupt`: bool = false — Permite clicar o botão mesmo em estado Busy (Starting/Stopping). Default false — espera transição completar. true = cliques rápidos passam pro JS (que já tem debounce de 250ms).
+- `BusyIcon`: string = loader — Ícone em transição (Connecting/Stopping). Default "loader".
+- `BusyText`: string — (Obsoleto — use ConnectingText.) Texto genérico de transição, mantido por compatibilidade. Se setado, sobrescreve ConnectingText e StoppingText.
+- `BusyTitle`: string = Aguarde… — Tooltip durante transição (Connecting/Stopping).
+- `ConnectingText`: string = Conectando… — Texto durante Connecting (aguardando mic ficar pronto). Default "Conectando…". Crítico no Edge — mostra que ainda NÃO está ouvindo enquanto Microsoft Speech estabelece conexão.
+- `Continuous`: bool = true — Continua reconhecendo até o user parar. Default true.
+- `Disabled`: bool = false — Desabilita o botão manualmente (além de desabilitar quando o browser não suporta). Default false.
+- `ErrorIcon`: string = alert-circle — Ícone em erro. Default "alert-circle".
+- `Icon`: string = mic — Ícone idle (não gravando). Default "mic".
+- `InterimResults`: bool = false — Dispara OnResult com resultados parciais enquanto o user fala. Default false.
+- `Language`: string — Código de idioma BCP-47 ("pt-BR", "en-US"...). Null = padrão do browser.
+- `MaxAlternatives`: int = 1 — Quantas alternativas pedir ao motor por trecho. Default 1.
+- `RecordingText`: string — Texto durante gravação (mic capturando). Default = Text.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho do botão. Default Md.
+- `StopIcon`: string = stop-circle — Ícone gravando. Default "stop-circle".
+- `StopTitle`: string = Pressione para parar — Tooltip + aria-label gravando.
+- `StoppingText`: string = Parando… — Texto durante Stopping. Default "Parando…".
+- `Text`: string — Texto idle. Vazio + RecordingText vazio = botão icon-only.
+- `Title`: string = Pressione para falar — Tooltip + aria-label idle.
+- `UnsupportedTitle`: string = Reconhecimento de voz não disponível neste navegador — Tooltip quando browser não suporta Web Speech API.
+- `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Variante visual do botão. Default Default.
+Events:
+- `OnEnd`: EventCallback — Disparado quando o reconhecimento termina.
+- `OnError`: EventCallback<string> — Disparado em erro, com o código cru do browser.
+- `OnResult`: EventCallback<SpeechRecognitionResult> — Disparado a cada resultado do reconhecimento (transcript + IsFinal + confidence).
+- `OnStart`: EventCallback — Disparado quando o reconhecimento começa.
+- `OnStateChange`: EventCallback<SpeechRecognitionState> — Disparado a cada transição da state machine de reconhecimento.
+
+### OmniSwitch
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSwitch.razor_
+
+Parameters:
+- `Label`: string — Text label shown next to the switch when no ChildContent is provided.
+Slots:
+- `ChildContent`: RenderFragment — Custom label content; rendered instead of Label when provided.
+
+### OmniTagInput
+OmniTagInput — entrada de múltiplos valores de texto livre (tags, e-mails, escopos, rótulos).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniTagInput.razor_
+
+Parameters:
+- `AllowCustom`: bool = true — Permite criar valores livres (fora das Suggestions). Default true. Quando false, só valores presentes em Suggestions são aceitos.
+- `AllowDuplicates`: bool = false — Permite tags repetidas. Default false (ignora duplicatas).
+- `CaseSensitive`: bool = false — Comparação sensível a maiúsculas (duplicatas/sugestões). Default false.
+- `Disabled`: bool = false — Desabilita o campo (sem adicionar/remover tags). Default false.
+- `Max`: int — Número máximo de tags. null = ilimitado.
+- `MaxSuggestions`: int = 8 — Máximo de sugestões exibidas no painel. Default 8.
+- `Name`: string — Nome lógico — registra com OmniForm para validators irmãos (<OmniRequiredValidator Component="..." />).
+- `Placeholder`: string — Texto exibido no campo quando não há tags.
+- `ReadOnly`: bool = false — Somente leitura — exibe as tags mas bloqueia edição. Default false.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho visual do campo. Default Md.
+- `Suggestions`: IEnumerable<string> — Conjunto opcional de sugestões exibidas num painel ao digitar.
+- `Values`: IEnumerable<string> — Tags atuais (two-way via @bind-Values).
+- `ValuesExpression`: Expression<Func<IEnumerable<string>>> — Expression pra integração com EditContext (validators irmãos).
+Events:
+- `OnTagAdded`: EventCallback<string> — Disparado após uma tag ser adicionada, com o texto da tag.
+- `OnTagRemoved`: EventCallback<string> — Disparado após uma tag ser removida, com o texto da tag.
+- `ValuesChanged`: EventCallback<IEnumerable<string>> — Disparado quando a coleção de tags muda.
+
+### OmniTextArea
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniTextArea.razor_
+
+Parameters:
+- `MaxLength`: int — Maximum number of characters allowed (via maxlength). Default null (no limit).
+- `Placeholder`: string — Placeholder text shown when the textarea is empty.
+- `Rows`: int = 4 — Visible number of text rows. Default 4.
+
+### OmniTextBox
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniTextBox.razor_
+
+Parameters:
+- `Autocomplete`: string — HTML autocomplete attribute for the input.
+- `Clearable`: bool = false — When true, shows an "x" button to clear the value whenever it's non-empty.
+- `LeadingIcon`: string — Icon name rendered inside the input on the left. Default none.
+- `MaxLength`: int — Maximum length enforced via the input's maxlength attribute. Default null (none).
+- `MinLength`: int — Minimum length enforced via the input's minlength attribute. Default null (none).
+- `Placeholder`: string — Placeholder text shown when the input is empty.
+- `ShowCharCount`: bool = false — When true (and MaxLength is set), shows a character counter below the field.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Visual size of the input. Default Md.
+- `TrailingIcon`: string — Icon name rendered inside the input on the right (suppressed when the clear button is shown). Default none.
+- `Type`: string = text — HTML input type (e.g. "text", "email", "tel"). Default "text".
+Events:
+- `OnBlur`: EventCallback<FocusEventArgs> — Fires when the input loses focus.
+- `OnKeyDown`: EventCallback<KeyboardEventArgs> — Fires on keydown in the input (e.g. to handle Enter).
+
+### OmniTimePicker
+Time picker.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniTimePicker.razor_
+
+Parameters:
+- `HourFormat`: string = 24 — "24" (default) or "12" — adds AM/PM toggle inline with the hour.
+- `MinutesStep`: int = 1 — Increment for the minutes field. Default 1.
+- `Name`: string — Nome lógico — registra com OmniForm para validators irmãos.
+- `SecondsStep`: int = 1 — Increment for the seconds field. Default 1.
+- `ShowSeconds`: bool = false — Show a seconds field in addition to hours and minutes. Default false.
+- `Time`: TimeOnly — The selected time of day. Bind via @bind-Time.
+- `TimeExpression`: Expression<Func<TimeOnly>> — Expression pra integração com EditContext + validators irmãos.
+Events:
+- `TimeChanged`: EventCallback<TimeOnly> — Fires when the time changes. Two-way via @bind-Time.
+
+## Layout
+
+### OmniAppBar
+Barra superior/inferior do <c>OmniLayout</c>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniAppBar.razor_
+
+Parameters:
+- `Bordered`: bool = true — Borda inferior. Default true.
+- `ElevateOnScroll`: bool = false — Quando true, a sombra só aparece após o user rolar além do AppBar. Útil para AppBars transparentes em landing pages. Default false.
+- `Elevated`: bool = true — Sombra fina abaixo. Default true. Quando ElevateOnScroll é true, a sombra só aparece após scroll.
+- `Fixed`: bool = true — Não rola junto com o main. Default true.
+- `HideOnScroll`: bool = false — Esconde a AppBar quando o user rola down no main; reaparece ao rolar up. UX padrão mobile (Twitter, Instagram). Default false.
+- `Position`: BarPosition {Top | Bottom} = Top — Posição no layout. Default Top.
+
+### OmniAppearanceToggle
+Theme mode switcher — Light / Dark / System.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniAppearanceToggle.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label do grupo. Default "Modo de aparência".
+- `ButtonVariant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Variant do OmniButton interno (Dropdown/Cycle). Default Default.
+- `DarkIcon`: string = moon — Ícone do modo Dark. Default "moon".
+- `DarkLabel`: string = Escuro — Texto/label do modo Dark. Default "Escuro".
+- `LightIcon`: string = sun — Ícone do modo Light. Default "sun".
+- `LightLabel`: string = Claro — Texto/label do modo Light. Default "Claro".
+- `ShowLabels`: bool = false — Mostra label de texto junto do ícone. Default false (icon-only).
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho do botão. Default Md.
+- `SystemIcon`: string = monitor — Ícone do modo System. Default "monitor".
+- `SystemLabel`: string = Sistema — Texto/label do modo System. Default "Sistema".
+- `Variant`: AppearanceToggleVariant {Dropdown | Segmented | Cycle} = Dropdown — Visual do toggle. Default Dropdown.
+Events:
+- `OnModeChanged`: EventCallback<ThemeMode> — Disparado quando o modo muda.
+
+### OmniAuthLayout
+Auth page scaffold — centered card by default; pass a Brand fragment to get the split layout (dark brand panel + form panel).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniAuthLayout.razor_
+
+Parameters:
+- `Decor`: bool = true — Subtle grid + accent-glow background on the form area. Default true.
+Slots:
+- `Brand`: RenderFragment — When set, renders the dark brand side panel (split layout).
+
+### OmniBanner
+Persistent, app-wide message bar — sits above the layout chrome and stays until dismissed (unlike OmniAlert which lives inline in page content, and toasts which auto-dismiss).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniBanner.razor_
+
+Parameters:
+- `Dismissible`: bool = false — Show a dismiss (×) button.
+- `Icon`: string — Override the leading icon.
+- `Severity`: NotificationSeverity {Info | Success | Warning | Error} = Info — Intent — drives icon + tint. Default Info.
+- `Sticky`: bool = false — Stick to the top of the scroll container.
+Events:
+- `OnClosed`: EventCallback — Fires after the banner is dismissed.
+Slots:
+- `Actions`: RenderFragment — Inline actions on the trailing edge.
+
+### OmniBento
+OmniBento — grade 2D densa (Bento).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniBento.razor_
+
+Parameters:
+- `AlignItems`: StackAlign {Start | Center | End | Stretch | Baseline} = Stretch — Alinhamento vertical dos tiles na célula (align-items do grid). Default Stretch.
+- `Columns`: int = 12 — Número de colunas (mobile-first). Default 12. Ignorado quando MinTileWidth é definido.
+- `ColumnsLg`: int — Override de Columns em ≥1440px. Default null.
+- `ColumnsMd`: int — Override de Columns em ≥1024px. Default null.
+- `ColumnsSm`: int — Override de Columns em ≥640px. Default null.
+- `Connected`: bool = false — Visual "grudado" de 1px (tiles achatados, sem gap) — para telas operacionais densas. Default false.
+- `Container`: bool = false — Responsividade por container query: colunas/spans reagem à largura do PRÓPRIO Bento (não do viewport), via um wrapper. Use para Bentos dentro de painéis/sidebars. Default false. (Alternativa ao MinTileWidth, que já é container-relativo.)
+- `Dense`: bool = true — Empacotamento denso (grid-auto-flow: row dense). Default true. Defina false para preservar a ordem do DOM = ordem visual (foco/leitura quando os tiles são interativos).
+- `EqualRows`: bool = false — Linhas de altura igual (grid-auto-rows: 1fr) — visual Apple alinhado. Vence RowHeight. Default false.
+- `Gap`: int = 16 — Espaçamento entre tiles em px. Default 16 (estilo Apple). Ignorado quando Connected.
+- `MinTileWidth`: int — Largura mínima do tile em px. Quando definido, usa auto-fit (repeat(auto-fit, minmax(MinTileWidth, 1fr))) — os tiles refluem pela largura do container sem breakpoints, e Columns é ignorado.
+- `RowHeight`: int — Altura-base de cada linha do grid em px (grid-auto-rows minmax). Default null (altura por conteúdo).
+- `Square`: bool = false — Remove o arredondamento dos tiles (cantos retos). Default false.
+
+### OmniBentoItem
+OmniBentoItem — tile tipado de um <c>OmniBento</c>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniBentoItem.razor_
+
+Parameters:
+- `AlignContent`: StackAlign {Start | Center | End | Stretch | Baseline} — Alinhamento (cross-axis) do conteúdo dentro do tile — torna o tile um flex column.
+- `AspectRatio`: string — CSS aspect-ratio do tile (ex.: "1/1", "16/9"). Não combine com RowSpan/RowHeight.
+- `ColSpan`: int = 1 — Quantas colunas o tile ocupa (base, mobile-first). Default 1.
+- `ColSpanLg`: int — Override de ColSpan em ≥1440px. Default null.
+- `ColSpanMd`: int — Override de ColSpan em ≥1024px. Default null.
+- `ColSpanSm`: int — Override de ColSpan em ≥640px. Default null.
+- `Disabled`: bool = false — Desabilita o tile interativo.
+- `Href`: string — Torna o tile um link (renderiza <a>). Mutuamente exclusivo com OnClick.
+- `JustifyContent`: StackAlign {Start | Center | End | Stretch | Baseline} — Distribuição (main-axis) do conteúdo dentro do tile — torna o tile um flex column.
+- `NoPadding`: bool = false — Remove o padding interno do tile. Default false.
+- `RowSpan`: int = 1 — Quantas linhas o tile ocupa (base). Default 1.
+- `RowSpanLg`: int — Override de RowSpan em ≥1440px. Default null.
+- `RowSpanMd`: int — Override de RowSpan em ≥1024px. Default null.
+- `RowSpanSm`: int — Override de RowSpan em ≥640px. Default null.
+- `Scrim`: bool = false — Adiciona um scrim (gradiente inferior) p/ texto sobre imagem full-bleed. Use com NoPadding.
+- `Target`: string — Alvo do link quando Href é definido (ex.: "_blank").
+- `Tone`: CardTone {None | Accent | Neutral | Info | Success | Warning | Danger} = None — Tom do tile — hero/accent + semânticos (tinta suave + borda). Default None.
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Torna o tile um botão (renderiza <button>) quando definido e Href é nulo.
+
+### OmniBrand
+Logo/marca do app: quadrado com inicial + nome (e tenant opcional); vira link quando Href é definido.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniBrand.razor_
+
+Parameters:
+- `Href`: string — Quando definido, renderiza a marca como link (<a href>); senão como <div>. Default null.
+- `Initial`: string = F — Inicial exibida no quadrado da marca. Default "F".
+- `Large`: bool = false — Usa o quadrado da marca em tamanho maior. Default false.
+- `Name`: string = Forneria — Nome do app/marca exibido ao lado do quadrado. Default "Forneria".
+- `Tenant`: string — Tenant/workspace opcional — renderiza " / Tenant" após o nome. Default null (oculto).
+
+### OmniBreakpointProvider
+Cascades the current <see cref="Breakpoint"/> to descendants so they can branch their markup on viewport size from C# (no CSS-only conditionals).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniBreakpointProvider.razor_
+
+Parameters:
+- `Breakpoint`: Breakpoint {Xs | Sm | Md | Lg | Xl | Xxl} = Xs — Current breakpoint, cascaded to descendants. Two-way bindable via @bind-Breakpoint; updated on every viewport change. Default Md.
+Events:
+- `BreakpointChanged`: EventCallback<Breakpoint> — Fires whenever the active breakpoint changes. Enables @bind-Breakpoint.
+
+### OmniCol
+Coluna do grid 12-colunas.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniCol.razor_
+
+Parameters:
+- `Size`: int = 12 — Span padrão (mobile-first, sempre aplicado). 1–12. Default 12.
+- `SizeLg`: int — Override em ≥1440 px.
+- `SizeMd`: int — Override em ≥1024 px.
+- `SizeSm`: int — Override em ≥640 px.
+
+### OmniContainer
+Wrapper centralizado com largura máxima responsiva.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniContainer.razor_
+
+Parameters:
+- `Fluid`: bool = false — Atalho para Full (sem limite). Default false.
+- `Gutters`: bool = true — Padding lateral nas bordas. Default true.
+- `MaxWidth`: ContainerMaxWidth {Sm | Md | Lg | Xl | Xxl | Full} = Lg — Largura máxima do container. Default Lg (1280px).
+
+### OmniDrawer
+Drawer / sidebar genérico — equivalente ao <c>MudDrawer</c> (MudBlazor),
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniDrawer.razor_
+
+Parameters:
+- `Anchor`: DrawerAnchor {Left | Right} = Left — Ancoragem do drawer no layout. Default Left.
+- `AutoCloseOnNavigate`: bool = true — Se true (default), o drawer fecha automaticamente em modo overlay quando o usuário navega para outra rota. Útil em mobile — elimina boilerplate no AppShell consumidor.
+- `Breakpoint`: Breakpoint {Xs | Sm | Md | Lg | Xl | Xxl} = Md — Breakpoint a partir do qual o Responsive vira overlay. Default Md (~1024px).
+- `Collapsed`: bool — Força modo collapsed (icon-only) independente da variante. Útil para Mini estático.
+- `ExpandOnHover`: bool = false — Quando true, o drawer Mini expande on-hover (ficando full-width) e retorna ao icon-only quando o mouse sai. Útil para combinar densidade visual com acesso rápido aos labels. Default false.
+- `MiniWidth`: string — Largura quando em modo Mini (icon-only). Default usa --omni-drawer-w-mini (72px).
+- `Open`: bool = true — Estado aberto/fechado. Two-way binding com @bind-Open. Persistent: ignora (sempre visível); demais variantes: alterna visibilidade.
+- `Persist`: bool = false — Quando true, persiste o estado Open em localStorage (chave omni.drawer.{Id} ou PersistKey). Sobrevive a F5 e navegação. Default false. Padrão shadcn/ui.
+- `PersistKey`: string — Chave custom para persistência. Útil quando há múltiplos drawers e o Id auto-gerado mudaria entre sessões. Default null — usa o Id.
+- `Variant`: DrawerVariant {Persistent | Mini | Temporary | Responsive} = Responsive — Variante de comportamento. Default Responsive.
+- `Width`: string — Largura quando aberto. Default usa CSS var --omni-drawer-w (232px).
+Events:
+- `OpenChanged`: EventCallback<bool> — Notifica mudança do estado Open.
+Slots:
+- `Footer`: RenderFragment — Slot opcional renderizado no rodapé do drawer — após o ChildContent. Útil para card de plano/upgrade, link de logout, versão do app. Padrão Slack/Discord/shadcn.
+- `Header`: RenderFragment — Slot opcional renderizado no topo do drawer — antes do ChildContent. Útil para logo do app, info do usuário, busca rápida. Inspirado em MudDrawerHeader.
+
+### OmniDrawerToggle
+Botão hamburger que alterna o estado de um <c>OmniDrawer</c>.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniDrawerToggle.razor_
+
+Parameters:
+- `Anchor`: DrawerAnchor {Left | Right} — Filtra drawers por âncora quando há mais de um no layout. Default null.
+- `Icon`: string = menu — Ícone Lucide do botão. Default menu.
+- `Target`: OmniDrawer — Referência manual ao drawer alvo. Default: usa resolução automática.
+- `Title`: string = Abrir menu — Texto acessível (aria-label + title). Default "Abrir menu".
+
+### OmniFooter
+Footer slot do <c>OmniLayout</c>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniFooter.razor_
+
+Parameters:
+- `Bordered`: bool = true — Borda superior fina. Default true.
+- `Fixed`: bool = false — Fixa o footer ao rodapé da viewport (sticky). Default false (rola junto).
+
+### OmniHidden
+Renderiza condicionalmente subárvore baseado no breakpoint atual da viewport.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniHidden.razor_
+
+Parameters:
+- `Breakpoint`: Breakpoint {Xs | Sm | Md | Lg | Xl | Xxl} = Md — Breakpoint que serve de pivô para a regra de visibilidade. Default Md.
+- `Invert`: bool = false — Inverte a lógica de visibilidade. Útil para renderizar SOMENTE quando a regra de hide seria true.
+- `Mode`: HiddenMode {Down | Up | Only} = Down — Modo de comparação: Down (default — esconde abaixo/igual ao breakpoint), Up (esconde acima/igual), Only (esconde apenas no breakpoint exato).
+
+### OmniLayout
+Container raiz do shell.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniLayout.razor_
+
+Parameters:
+- `SkipLabel`: string = Pular para o conteúdo — Texto do link de skip. Default "Pular para o conteúdo".
+- `SkipTarget`: string = #main — Âncora do skip link. Default #main (o OmniMain renderiza um elemento <main> que pode receber esse id no consumidor via Class ou attributes).
+- `SkipToContent`: bool = true — Renderiza um "skip to content" link visível apenas com foco por teclado (Tab no início da página). WCAG 2.4.1. Default true.
+
+### OmniMain
+Área principal de conteúdo do <c>OmniLayout</c>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniMain.razor_
+
+Parameters:
+- `Container`: ContainerMaxWidth {Sm | Md | Lg | Xl | Xxl | Full} — Envelopa em OmniContainer com o max-width indicado. Default null (sem container).
+- `NoPadding`: bool = false — Remove o padding interno padrão. Default false.
+
+### OmniMasonry
+OmniMasonry — layout em cascata (Pinterest): colunas de largura igual onde cada item mantém a altura natural e empilha na coluna mais curta, sem alinhar linhas.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniMasonry.razor_
+
+Parameters:
+- `Columns`: int = 3 — Número de colunas. Default 3. Ignorado quando MinColumnWidth é definido.
+- `ColumnsLg`: int — Override de Columns em ≥1440px. Default null.
+- `ColumnsMd`: int — Override de Columns em ≥1024px. Default null.
+- `ColumnsSm`: int — Override de Columns em ≥640px. Default null.
+- `Gap`: int = 16 — Espaçamento entre colunas e entre itens (px). Default 16.
+- `MinColumnWidth`: int — Largura mínima da coluna em px. Quando definido, usa column-width — a contagem de colunas reage à largura do container, sem breakpoints — e Columns é ignorado.
+
+### OmniPaneHeader
+Fixed (non-scrolling) header band at the top of a pane — typically a
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniPaneHeader.razor_
+
+Parameters:
+- `Subtitle`: string — Subtítulo — renderizado como p com classe .omni-view-sub.
+- `Title`: string — Título principal — renderizado como h1 com classe .omni-view-title.
+Slots:
+- `Actions`: RenderFragment — Ações à direita (ex.: OmniButton). Quando presente, ativa layout em 2 colunas.
+- `Breadcrumb`: RenderFragment — Trilha de navegação contextual (ex.: OmniBreadcrumb) — renderizada acima do título.
+- `Subtabs`: RenderFragment — Sub-tabs / período / segmento contextual (ex.: OmniSegmentedControl, OmniTabs) — renderizado abaixo do par título/ações, com margem dedicada.
+- `TitleContent`: RenderFragment — Alternativa ao Title quando precisa de markup customizado no lugar do h1.
+
+### OmniPaneToolbar
+Fixed (non-scrolling) toolbar band — typically below <OmniPaneHeader>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniPaneToolbar.razor_
+
+
+### OmniParallax
+OmniParallax — cena de parallax com camadas de profundidade.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniParallax.razor_
+
+Parameters:
+- `Axis`: ParallaxAxis {Vertical | Horizontal | Both} = Vertical — Eixo da translação das camadas (cascata; a camada pode sobrescrever). Default Vertical.
+- `DisableBelow`: Breakpoint {Xs | Sm | Md | Lg | Xl | Xxl} = Sm — Breakpoint até o qual (inclusive) o parallax fica desligado quando DisableOnMobile. Default Sm.
+- `DisableOnMobile`: bool = true — Desliga em telas pequenas (mobile sofre com jank/CLS de barra de endereço). Default true.
+- `Disabled`: bool = false — Desliga o parallax (camadas em repouso). Default false.
+- `MouseParallax`: bool = false — Habilita parallax por ponteiro do mouse (desktop fine-pointer). Default false.
+- `MouseStrength`: double = 1 — Intensidade do parallax de mouse (px ≈ 24 × valor por camada na velocidade 1). Default 1.
+
+### OmniParallaxLayer
+OmniParallaxLayer — uma camada de profundidade de um <OmniParallax>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniParallaxLayer.razor_
+
+Parameters:
+- `Axis`: ParallaxAxis {Vertical | Horizontal | Both} — Eixo da translação. null = herda da cena (OmniParallax.Axis). Default null.
+- `Range`: double = 300 — Amplitude total da translação em px (na velocidade 1). Default 300.
+- `Speed`: double = 0.3 — Fator de parallax. 0 = preso ao scroll; >0 = primeiro plano (sobe ao rolar pra baixo); <0 = fundo (desce/recua). Quanto maior |Speed|, mais movimento. Default 0.3.
+
+### OmniRow
+Container grid 12-colunas responsivo.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniRow.razor_
+
+Parameters:
+- `Gap`: int = 16 — Espaçamento entre colunas e linhas (px). Default 16.
+
+### OmniSplitAsideLabel
+Small uppercase label used to group sections inside a <OmniSplitView> aside.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniSplitAsideLabel.razor_
+
+Parameters:
+- `Text`: string — Label text. Used when no ChildContent is supplied. Default null.
+
+### OmniSplitView
+Generic master/detail layout primitive: an aside (sub-navigation) + main content column inside a positioned parent (usually a <OmniMain>).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniSplitView.razor_
+
+Parameters:
+- `AsideRight`: bool = false — Place the aside on the right instead of the default left.
+- `AsideSize`: ComponentSize {Sm | Md | Lg | Xl} = Md — Aside width preset (Sm=200px, Md=228px, Lg=280px). Default = Md. Ignorado quando AsideWidth está setado.
+- `AsideWidth`: string — Largura arbitrária do aside (ex: "380px", "25%", "20rem"). Quando setado, sobrescreve AsideSize. Útil para layouts POS, master/detail com proporções específicas, ou aside dimensionado por conteúdo. Pode ser sobrescrito via CSS pelo consumidor manipulando a custom property --omni-aside-w em media queries.
+- `AutoCloseOnNavigate`: bool = true — Se true (default), fecha o overlay automaticamente em mobile quando o usuário navega — elimina overlay travado sobre a nova rota.
+- `MobileBreakpoint`: Breakpoint {Xs | Sm | Md | Lg | Xl | Xxl} = Lg — Breakpoint a partir do qual o aside vira overlay (drawer mobile). Default Lg (~992px) — em telas menores que isso, mostra hamburger.
+- `ShowMobileToggle`: bool = true — Quando true (default), renderiza o hamburger no canto top-left em mobile. Defina false se você tem AppBar com DrawerToggle próprio.
+Slots:
+- `AsideContent`: RenderFragment — Aside (sub-navigation) column content. Becomes an overlay drawer below MobileBreakpoint.
+- `ChildContent`: RenderFragment — Main column content (scrollable). Typically a pane header/toolbar plus a body.
+
+### OmniSplitter
+N-pane resizable splitter.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniSplitter.razor_
+
+Parameters:
+- `Height`: string = 100% — Altura CSS do container. Default "100%".
+- `Orientation`: Orientation {Horizontal | Vertical} = Horizontal — Direção do split. Horizontal = panes lado-a-lado (drag horizontal). Vertical = empilhados (drag vertical).
+- `ResetOnDoubleClick`: bool = true — Quando true, double-click na barra reseta os tamanhos dos panes para os valores iniciais (de Size). Quando o pane adjacente é Collapsible, double-click colapsa/expande (prioridade maior). Default true — espelha o comportamento do MudSplitPanel.
+- `UseAsOverlay`: bool = false — Posiciona o splitter como overlay position: absolute preenchendo o pai. O elemento pai precisa ter position: relative. Equivalente ao UseAsOverlay do MudSplitPanel. Default false.
+- `Variant`: SplitterVariant {Solid | Line | Gap} = Solid — Estilo visual da barra. Solid (default) = barra visível com grip dots — ideal para PDV, dashboards e telas de gestão. Line = hairline minimalista que vira accent no hover — ideal para IDE, editor de relatórios. Gap = espaçamento invisível — ideal para landing pages.
+- `Width`: string = 100% — Largura CSS do container. Default "100%".
+Events:
+- `OnResize`: EventCallback<SplitterResizeEventArgs> — Disparado a cada tick do drag (use com moderação — pode disparar muito).
+- `OnResizeEnd`: EventCallback<SplitterResizeEventArgs> — Disparado UMA vez ao soltar a barra. Use isso para persistir layout.
+
+### OmniSplitterPane
+Pane child of <OmniSplitter>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniSplitterPane.razor_
+
+Parameters:
+- `Collapsed`: bool = false — Two-way: is the pane currently collapsed?
+- `Collapsible`: bool = false — Whether the pane can be collapsed via the bar's chevron buttons. Default false.
+- `Max`: string — Maximum size ("%" or "px"). User can't drag the bar above this.
+- `Min`: string — Minimum size ("%" or "px"). User can't drag the bar below this.
+- `Resizable`: bool = true — Whether the pane can be resized via the adjacent bar. Default true.
+- `Size`: string — Initial size — accepts "30%" or "200px". Null/empty = "auto" (the pane shares the remaining space equally with other auto panes).
+Events:
+- `CollapsedChanged`: EventCallback<bool> — Fires when Collapsed flips. Enables @bind-Collapsed.
+
+### OmniStack
+Container flex declarativo — equivalente a <c>MudStack</c> (MudBlazor) e
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniStack.razor_
+
+Parameters:
+- `AlignItems`: StackAlign {Start | Center | End | Stretch | Baseline} = Stretch — Alinhamento dos filhos no eixo cross (mapeia para align-items). Default Stretch.
+- `Direction`: StackDirection {Column | Row} = Column — Direção do flex container. Default Column.
+- `DirectionLg`: StackDirection {Column | Row} — Override em ≥1440px. Default null.
+- `DirectionMd`: StackDirection {Column | Row} — Override em ≥1024px. Default null.
+- `DirectionSm`: StackDirection {Column | Row} — Override em ≥640px. Default null (segue Direction).
+- `Gap`: int = 8 — Espaçamento entre filhos em pixels. Default 8.
+- `Justify`: StackJustify {Start | Center | End | Between | Around | Evenly} = Start — Distribuição dos filhos no eixo main (mapeia para justify-content). Default Start.
+- `Wrap`: bool = false — Quebra de linha (flex-wrap). Default false.
+
+### OmniSwipeArea
+Detecta gestos de swipe (deslize) e dispara eventos com a direção e a distância.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniSwipeArea.razor_
+
+Parameters:
+- `LiveTransform`: SwipeAreaLiveTransform {None | X | Y | Both} = None — Live drag direto pelo JS (60fps, bypassa Blazor SignalR). Quando setado (≠ None), o JS atualiza transform: translate(...) no elemento via CSS variable a cada pointermove. OnSwipeEnd continua disparando normalmente — você decide se faz snap, dismiss ou volta pra origem. Em None (default), só os eventos C# disparam (que ainda permitem live drag, mas via SignalR roundtrip).
+- `PreventDefault`: bool = false — Quando true, anexa listeners JS não-passivos que chamam preventDefault(). Necessário para impedir o scroll da página durante swipes verticais em mobile. Default false.
+- `Sensitivity`: int = 100 — Distância mínima (pixels) para disparar OnSwipeEnd. Swipes menores que isso são silenciosamente ignorados. Default 100.
+Events:
+- `OnSwipeCancel`: EventCallback<PointerEventArgs> — Disparado quando o pointer é cancelado (multitouch, etc.).
+- `OnSwipeEnd`: EventCallback<SwipeEventArgs> — Disparado UMA vez no pointerup, se a distância arrastada (no eixo dominante) ultrapassou Sensitivity.
+- `OnSwipeLeave`: EventCallback<PointerEventArgs> — Disparado quando o ponteiro SAI da área durante o arraste. Não reseta o estado automaticamente — o consumidor pode chamar Cancel se quiser abortar o gesto em curso.
+- `OnSwipeMove`: EventCallback<MultiDimensionSwipeEventArgs> — Disparado A CADA pointermove durante o arraste. Inclui delta + direção em AMBOS os eixos (x e y). Ignora Sensitivity.
+
+### OmniThemePicker
+Dropdown pronto para trocar accent + dark/light/system.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniThemePicker.razor_
+
+Parameters:
+- `Accents`: IReadOnlyList<string> — Cores de accent oferecidas. Default: as 5 já suportadas (amber/emerald/blue/violet/crimson).
+- `ShowDensity`: bool = true — Mostra a seção de densidade (Compacto/Padrão/Espaçoso) no dropdown. Default true. P3.3 — Layout density toggle.
+- `Title`: string = Tema — Texto acessível do botão (aria-label / tooltip). Default "Tema".
+
+### OmniToolBar
+Faixa horizontal abaixo do <c>OmniAppBar</c>.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniToolBar.razor_
+
+Parameters:
+- `Bordered`: bool = true — Borda inferior. Default true.
+
+## Marketing
+
+### OmniEyebrow
+Small uppercase kicker/label rendered above a heading, optionally preceded by an accent dot.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Marketing/OmniEyebrow.razor_
+
+Parameters:
+- `ShowDot`: bool = true — Renders the leading accent dot before the text. Defaults to true.
+- `Text`: string — Text shown inside the eyebrow; ignored when ChildContent is provided.
+
+### OmniHero
+Marketing hero section composing an eyebrow, title, subtitle and a CTA row above arbitrary child content.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Marketing/OmniHero.razor_
+
+Parameters:
+- `Eyebrow`: string — Eyebrow text rendered in an OmniEyebrow; ignored when EyebrowContent is set.
+- `Subtitle`: string — Subtitle paragraph rendered below the title; omitted when empty.
+- `Title`: string — Hero title rendered as an h1; the value is treated as raw HTML (MarkupString). Ignored when TitleContent is set.
+Slots:
+- `CtaContent`: RenderFragment — Call-to-action markup rendered in a dedicated row below the subtitle.
+- `EyebrowContent`: RenderFragment — Custom eyebrow markup; when set it replaces the Eyebrow text.
+- `TitleContent`: RenderFragment — Custom title markup; when set it replaces the Title heading.
+
+### OmniMosaic
+Grid container that lays out OmniMosaicCard children into a responsive mosaic.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Marketing/OmniMosaic.razor_
+
+
+### OmniMosaicCard
+Single mosaic tile showing an optional icon plus a name and meta line, for use inside an OmniMosaic.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Marketing/OmniMosaicCard.razor_
+
+Parameters:
+- `Featured`: bool = false — When true, renders the card with inverted (filled accent) styling for emphasis. Defaults to false.
+- `Icon`: string — Name of the OmniIcon rendered at the start of the card; omitted when empty.
+- `Meta`: string — Secondary meta line shown below the name; omitted when empty.
+- `Name`: string *required* =  — Primary label shown on the card. Required.
+- `Wide`: bool = false — When true, the card spans two grid columns in the mosaic. Defaults to false.
+
+## Navigation
+
+### OmniBreadcrumb
+Breadcrumb trail (`<nav>`): renders Items as "/"-separated links, with the last (or path-less) item shown as the current page.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniBreadcrumb.razor_
+
+Parameters:
+- `Items`: IEnumerable<Item> — Ordered trail of crumbs; each Item is a Text plus an optional Path (link). The last item renders as the current page.
+
+### OmniExitPrompt
+Intercepts navigation attempts when `When` returns true and asks the user to confirm.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniExitPrompt.razor_
+
+Parameters:
+- `CancelText`: string = Continuar editando — Label of the cancel (stay) button in the dialog.
+- `ConfirmText`: string = Sair sem salvar — Label of the confirm (leave) button in the dialog.
+- `Text`: string = Você tem alterações não salvas. Deseja sair mesmo assim? — Body message of the confirmation prompt (used by both the dialog and the native window.confirm).
+- `Title`: string = Sair sem salvar? — Title of the confirmation dialog (DialogService path only).
+- `UseNativePrompt`: bool = false — When true, uses the browser's native window.confirm instead of the Omni DialogService for in-app navigation. Default false.
+- `When`: Func<bool> — Predicate that gates the prompt: navigation is intercepted only while it returns true. When null, the prompt is always active.
+
+### OmniHotkey
+Drop-in keyboard shortcut.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniHotkey.razor_
+
+Parameters:
+- `Combo`: string — Full combo spec string (e.g. "Ctrl+K", or "Ctrl+K|Meta+K" for alternatives). Takes precedence over Key/Modifiers when set.
+- `Disabled`: bool = false — When true, the registration stays but the shortcut is inert; toggling this enables/disables in place without re-registering. Default false.
+- `Key`: string — The base key (e.g. "K", "Escape") when not using Combo; combined with Modifiers to build the binding.
+- `Modifiers`: Modifier {None | Ctrl | Alt | Shift | Meta} = None — Modifier flags (Ctrl/Alt/Shift/Meta) applied to Key. Default Modifier.None.
+- `PreventDefault`: bool = true — When true, calls preventDefault on the key event so the browser default is suppressed. Default true.
+- `StopPropagation`: bool = false — When true, stops the key event from propagating further. Default false.
+Events:
+- `OnPressed`: EventCallback<KeyboardEventArgs> — Invoked when the shortcut fires, with the originating KeyboardEventArgs.
+
+### OmniMenuBar
+Horizontal navigation bar — tab-style root items with rich dropdowns.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniMenuBar.razor_
+
+Parameters:
+- `AriaLabel`: string = Menu — Accessible label for the navigation landmark.
+- `Trigger`: MenuTrigger {Hover | Click} = Click — How a dropdown first opens — Click (default) or Hover.
+Slots:
+- `Aux`: RenderFragment — Optional content pinned to the right edge of the bar (status, etc.).
+
+### OmniMenuBarItem
+One node of a OmniMenuBar.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniMenuBarItem.razor_
+
+Parameters:
+- `ChildrenLabel`: string — Optional section label rendered at the top of this item's flyout (when it has children).
+- `Count`: int — Numeric badge shown on a root tab.
+- `Description`: string — Secondary description line (dropdown row).
+- `Disabled`: bool = false — Disables the item.
+- `FooterKbd`: string — Footer keyboard hint.
+- `FooterPath`: string — Footer link URL. If unset, the footer raises OnFooter.
+- `FooterText`: string — Footer link text for a list dropdown.
+- `GroupLabel`: string — Uppercase section label rendered above this dropdown row.
+- `Icon`: string — Optional icon name.
+- `Match`: NavLinkMatch {Prefix | All} = Prefix — Active-route match mode for Path.
+- `Meta`: string — Metadata pill text (dropdown row).
+- `MetaKind`: MenuMetaKind {Neutral | Accent | Good | Warn | Danger} = Neutral — Colour of the metadata pill.
+- `Path`: string — Navigation URL. Ignored when the item has a dropdown.
+- `Text`: string =  — Label text.
+Events:
+- `OnClick`: EventCallback — Click handler for items without a Path or dropdown.
+- `OnFooter`: EventCallback — Footer click handler when FooterPath is unset.
+Slots:
+- `DropdownContent`: RenderFragment — Custom dropdown panel (mega-menu) — replaces nested items.
+
+### OmniPagination
+Standalone pager — use anywhere outside of DataGrid (cards, timelines, custom lists).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniPagination.razor_
+
+Parameters:
+- `Compact`: bool = false — If true, hides numeric buttons and shows just "N / Total" between the arrows.
+- `CurrentPage`: int = 0 — Current zero-based page index (clamped to the valid range). Two-way bindable via @bind-CurrentPage.
+- `MaxVisible`: int = 7 — Maximum number of numeric page buttons to show (excluding ellipsis). Default 7.
+- `PageSize`: int = 10 — Number of items per page. Default 10.
+- `ShowSummary`: bool = false — If true, shows the "1–10 de 200" summary to the left.
+- `TotalCount`: int = 0 — Total number of items across all pages; used with PageSize to compute the page count and summary.
+Events:
+- `CurrentPageChanged`: EventCallback<int> — Raised when the page changes, carrying the new zero-based page index.
+
+### OmniPanelMenu
+Vertical navigation list (`<nav>`).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniPanelMenu.razor_
+
+Parameters:
+- `SectionLabel`: string — Optional section label rendered above the menu (e.g. "WORKSPACE").
+
+### OmniPanelMenuItem
+One node of a OmniPanelMenu.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniPanelMenuItem.razor_
+
+Parameters:
+- `Count`: int — Numeric count pill (e.g. unread, items in queue).
+- `CountKind`: MenuMetaKind {Neutral | Accent | Good | Warn | Danger} = Neutral — Color of the count pill.
+- `CountText`: string — String count pill (e.g. "!", "74%", "NEW") — alternative to Count.
+- `Disabled`: bool = false — Disables the item.
+- `Expanded`: bool = false — Inline-accordion state for items with children (expanded sidebar mode).
+- `Icon`: string — Optional icon name.
+- `Match`: NavLinkMatch {Prefix | All} = Prefix — Match mode for the active-route highlight.
+- `Path`: string — Navigation URL (leaf items only).
+- `Text`: string =  — Label.
+Events:
+- `ExpandedChanged`: EventCallback<bool> — Raised when the inline-accordion expanded state toggles, carrying the new value.
+- `OnClick`: EventCallback — Click handler for leaf items without a Path.
+Slots:
+- `TextContent`: RenderFragment — Optional rich label (e.g. with highlighted matches). Falls back to Text.
+
+### OmniPanelMenuSection
+Groups panel-menu items under an optional section heading.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniPanelMenuSection.razor_
+
+Parameters:
+- `Label`: string — Optional uppercase section heading rendered above the grouped items; when empty, no heading is shown.
+
+### OmniSegmentedControl
+Single-select segmented button group: renders Items as toggle buttons, highlighting the one matching Value.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniSegmentedControl.razor_
+
+Parameters:
+- `Items`: IEnumerable<Item<TValue>> — The selectable segments; each Item pairs a Value with its display Label.
+- `Value`: TValue — Currently selected value; the matching segment renders as active. Two-way bindable via @bind-Value.
+Events:
+- `ValueChanged`: EventCallback<TValue> — Raised when a segment is selected, carrying the newly selected value.
+
+### OmniStep
+A single step inside an OmniStepper; renders no markup itself and registers with the parent stepper, which draws its header and body.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniStep.razor_
+
+Parameters:
+- `Description`: string — Optional secondary line shown under the title in the header.
+- `Disabled`: bool = false — When true, the step's bubble/dot cannot be clicked. Default false.
+- `Icon`: string — Optional icon name shown in the step bubble (replaces the number when the step isn't done).
+- `Optional`: bool = false — When true, appends an "(opcional)" marker after the title. Default false.
+- `Title`: string *required* =  — Step title shown in the header label. Required.
+Slots:
+- `ChildContent`: RenderFragment — The step's body content, rendered by the parent stepper only while this step is active.
+
+### OmniStepper
+Multi-step container.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniStepper.razor_
+
+Parameters:
+- `ActiveStep`: int = 0 — Zero-based index of the active step. Two-way bindable via @bind-ActiveStep.
+- `CompleteText`: string = Concluir — Label of the final "complete" button shown on the last step. Default "Concluir".
+- `Linear`: bool = true — When true, steps must be completed in order: you cannot jump forward past the next step or click a pending step. Default true.
+- `NextText`: string = Próximo — Label of the "next step" button. Default "Próximo".
+- `PrevText`: string = Voltar — Label of the "previous step" button. Default "Voltar".
+Events:
+- `ActiveStepChanged`: EventCallback<int> — Raised when the active step changes, carrying the new zero-based index.
+- `OnComplete`: EventCallback — Raised when the complete button on the last step is clicked.
+
+### OmniTabItem
+A single tab inside an OmniTabs; renders no markup itself and registers with the parent, which draws the tab button and shows its body when active.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniTabItem.razor_
+
+Parameters:
+- `Icon`: string — Optional icon name shown before the title on the tab button.
+- `Title`: string *required* =  — Tab label shown on the tab button. Required.
+Slots:
+- `ChildContent`: RenderFragment — The tab's panel content, rendered by the parent only while this tab is active.
+
+### OmniTabs
+Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body; the first registered tab is active by default.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniTabs.razor_
+
+
+## Overlay
+
+### AlertDialog
+Conteúdo interno do dialog de alerta (mensagem + ícone opcional + botão OK) aberto via DialogService.AlertAsync.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/AlertDialog.razor_
+
+Parameters:
+- `Message`: string *required* =  — Texto da mensagem exibida no corpo do alerta.
+- `Options`: AlertOptions — Opções do alerta (texto do botão OK, ícone). Default new AlertOptions().
+
+### ConfirmDialog
+Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via DialogService.ConfirmAsync; retorna true/false.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/ConfirmDialog.razor_
+
+Parameters:
+- `Message`: string *required* =  — Texto da mensagem exibida no corpo da confirmação.
+- `Options`: ConfirmOptions — Opções da confirmação (textos dos botões OK/Cancelar, ícone). Default new ConfirmOptions().
+
+### OmniBottomSheet
+Material 3 Bottom Sheet — surface slides up from the bottom edge with optional drag handle + snap points.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniBottomSheet.razor_
+
+Parameters:
+- `Adaptive`: BottomSheetAdaptive {Always | DrawerOnDesktop | DialogOnDesktop} = Always — Comportamento em desktop. Default Always (sempre bottom). DrawerOnDesktop/DialogOnDesktop = adapta em telas largas (M3 desaconselha bottom sheet em desktop).
+- `CloseOnEsc`: bool = true — Esc fecha. Default true.
+- `CloseOnOverlayClick`: bool = true — Click no backdrop fecha (só Modal). Default true.
+- `DesktopBreakpoint`: Breakpoint {Xs | Sm | Md | Lg | Xl | Xxl} = Md — Breakpoint que define "desktop" pra Adaptive. Default Md (≥ 768px).
+- `DismissThresholdPx`: double = 100 — Pixels que o user precisa arrastar pra baixo (além do menor snap) pra fechar quando DragToDismiss=true. Default 100.
+- `DragToDismiss`: bool = true — Drag pra baixo além do menor snap fecha. Default true.
+- `InitialSnapIndex`: int = 0 — Índice inicial em SnapPoints. Default 0 (menor).
+- `Open`: bool = false — Estado aberto/fechado. Two-way bind via @@bind-Open.
+- `ShowCloseButton`: bool = true — Mostra botão X no header pra fechar. Default true se Title ou Header.
+- `ShowDragHandle`: bool = true — Mostra drag handle (pill no topo). Default true.
+- `SnapPoints`: double[] — Snap points como fração viewport (0–1). Ex: [0.3, 0.6, 0.92] = peek 30%, half 60%, full 92%. Sem snap points, sheet abre em 60% por default.
+- `Title`: string — Título mostrado no header. Se Header for setado, ignorado.
+- `Variant`: BottomSheetVariant {Modal | Standard} = Modal — Modal (com backdrop) ou Standard (sem). Default Modal.
+Events:
+- `OpenChanged`: EventCallback<bool>
+Slots:
+- `ChildContent`: RenderFragment — Conteúdo principal scrollável.
+- `Footer`: RenderFragment — Footer sticky (não scrolla com conteúdo).
+- `Header`: RenderFragment — Custom header (sobrescreve Title).
+
+### OmniCommandPalette
+⌘K command palette — a global, searchable, keyboard-driven action menu.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniCommandPalette.razor_
+
+Parameters:
+- `CommandSource`: Func<string, Task<IEnumerable<OmniCommand>>> — Optional async source for server-side results. Called (debounced) with the query; its results are merged with the local Commands. Only queried at the root level (not inside a sub-page).
+- `Commands`: IEnumerable<OmniCommand> — The commands to search/run. May carry Children for nested pages.
+- `EnableHistory`: bool = true — Track + surface recently used commands (persisted to localStorage). Default true.
+- `EnableHotkey`: bool = true — Bind the global open hotkey. Default true.
+- `HistoryKey`: string = default — Namespace key for the recent-command history (lets multiple palettes keep separate history).
+- `HotKey`: string = Ctrl+K|Meta+K — The open hotkey combo. Default Ctrl+K (Win/Linux) and Cmd+K (mac).
+- `Open`: bool = false — Open state (two-way). Also toggled by the global hotkey.
+- `Placeholder`: string = Buscar comando... — Search box placeholder.
+- `RecentCount`: int = 5 — How many recent commands to surface in the "Recentes" section.
+- `RecentLabel`: string = Recentes — Heading for the recent-commands section.
+- `SearchDebounce`: int = 200 — Debounce (ms) before calling CommandSource. Default 200.
+- `ShowFooter`: bool = true — Show the footer with key hints. Default true.
+Events:
+- `OnCommand`: EventCallback<OmniCommand> — Fires with the chosen command (after its own Action, if any, runs).
+- `OpenChanged`: EventCallback<bool>
+
+### OmniConfirmPrompt
+Destructive-action confirmation that requires the user to TYPE a matching phrase before the confirm button enables (GitHub/Stripe/AWS pattern).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniConfirmPrompt.razor_
+
+Parameters:
+- `ButtonText`: string = Confirmar — Confirm button text. Default "Confirmar".
+- `CaseSensitive`: bool = true — Match case-sensitively. Default true.
+- `ConfirmationText`: string *required* =  — The phrase the user must type exactly to enable the confirm button.
+- `Label`: string — Instruction above the input. Defaults to "Digite \"{ConfirmationText}\" para confirmar".
+- `Title`: string — Heading (optional).
+Events:
+- `OnConfirm`: EventCallback — Fires when the user confirms (button only enabled once the phrase matches).
+
+### OmniContextMenuHost
+Portal host that renders the right-click/programmatic context menu driven by ContextMenuService; place once in the root layout.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniContextMenuHost.razor_
+
+
+### OmniDialogHost
+Portal host that renders modal and side dialogs opened via DialogService (stacked, with backdrop, focus trap, scroll lock and Esc); place once in the root layout.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniDialogHost.razor_
+
+
+### OmniMenu
+Reusable menu list — a panel of <OmniMenuItem>s (and optional separators).
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniMenu.razor_
+
+
+### OmniMenuItem
+A single clickable row inside an <OmniMenu>: optional icon, label, and keyboard-shortcut hint.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniMenuItem.razor_
+
+Parameters:
+- `Disabled`: bool = false — Disables the item (no click, dimmed). Default false.
+- `Icon`: string — Optional leading icon name.
+- `IsDanger`: bool = false — Styles the item as a destructive action (danger color). Default false.
+- `Shortcut`: string — Optional keyboard-shortcut hint shown trailing (e.g. "⌘D"), rendered as a kbd.
+- `Text`: string — Label text (ignored when ChildContent is supplied).
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Raised when the item is clicked (suppressed while Disabled).
+
+### OmniMenuSeparator
+Horizontal divider between groups of <OmniMenuItem>s.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniMenuSeparator.razor_
+
+
+### OmniNotificationHost
+Portal host that renders the stack of toast notifications pushed via NotificationService (positioned, auto-dismissing); place once in the root layout.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniNotificationHost.razor_
+
+
+### OmniOverlay
+Componente standalone de overlay/backdrop reutilizável.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniOverlay.razor_
+
+Parameters:
+- `Absolute`: bool = false — Position absolute em vez de fixed. Use quando o overlay deve preencher um container específico (não a viewport). O container precisa ter position: relative. Quando true, LockScroll é ignorado (não faz sentido bloquear scroll do body num overlay local).
+- `AutoClose`: bool = false — Quando true, clicar no backdrop fecha (seta Visible=false). Default false. Conteúdo (ChildContent) não dispara — o overlay usa @@onclick:stopPropagation no wrapper interno.
+- `CloseOnEsc`: bool = true — Quando true (default), Esc fecha o overlay. false ignora Esc.
+- `LockScroll`: bool = true — Bloqueia scroll do <body> enquanto visível. Default true. Refcount-safe — múltiplos overlays não desbloqueiam até todos fecharem.
+- `Modal`: bool = true — Quando true (default), o overlay BLOQUEIA cliques no que está atrás. Quando false, pointer-events: none deixa o user clicar através (modo "decoração" — overlay decorativo sem capturar input).
+- `Visible`: bool = false — Controla a visibilidade. Two-way via @@bind-Visible.
+- `ZIndex`: int — Z-index inline. Quando null (default), herda o stack natural (500).
+Events:
+- `OnClick`: EventCallback<MouseEventArgs> — Callback adicional quando o user clica no backdrop. Recebe o MouseEventArgs. Dispara independente de AutoClose (AutoClose só decide se fecha).
+- `OnClosed`: EventCallback — Disparado quando o overlay fecha (via AutoClose, Esc ou bind setando false).
+- `VisibleChanged`: EventCallback<bool>
+Slots:
+- `ChildContent`: RenderFragment — Conteúdo opcional renderizado centrado dentro do overlay. Quando null, o overlay é puro scrim (sem nada visível além do backdrop).
+
+### OmniPopover
+Interactive popover — like Tooltip but with arbitrary content (links, forms, menus).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniPopover.razor_
+
+Parameters:
+- `AlignEnd`: bool = false — Alinha o popover ao FIM (direita) do trigger ao invés do começo (esquerda). Útil para split buttons cujo trigger fica à direita: AlignEnd=true faz o popover crescer para a esquerda, evitando overflow no canto direito da tela.
+- `CloseOnContentClick`: bool = false — Se um clique no conteúdo deve fechar o popover. Default false (atualmente não consumido pela lógica — o conteúdo usa stopPropagation).
+- `Offset`: int = 8 — Distância (px) entre o trigger e o popover. Default 8 (tooltip-like). Para dropdown menus, use 2-4 para parecer "grudado" no botão.
+- `Open`: bool = false — Estado aberto/fechado. Two-way via @@bind-Open.
+- `Position`: PopoverPosition {Top | Bottom | Left | Right} = Bottom — Lado preferido do popover em relação ao trigger. Default Bottom (auto-flip se faltar espaço).
+- `ShowArrow`: bool = true — Mostra setinha (estilo tooltip/balão). Default true. Para menus dropdown, defina false — visual mais limpo, sem o "balão".
+- `Width`: string — Largura CSS fixa do popover (ex.: "240px"). Quando null, ajusta ao conteúdo.
+Events:
+- `OpenChanged`: EventCallback<bool> — Disparado quando o estado aberto/fechado muda.
+Slots:
+- `ChildContent`: RenderFragment — Conteúdo do popover (links, formulário, menu).
+- `Trigger`: RenderFragment *required* — Elemento gatilho que abre/fecha o popover ao clicar (slot obrigatório).
+
+### OmniTooltipHost
+Portal host that renders the single active tooltip positioned by TooltipService; place once in the root layout.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniTooltipHost.razor_
+
+
+### OmniTour
+Container declarativo de um tour.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniTour.razor_
+
+Parameters:
+- `AutoStart`: bool = false — Inicia automaticamente na primeira renderização.
+- `Persist`: bool = false — Persiste "não mostrar de novo" por TourId.
+- `ShowBackdrop`: bool = true — Mostra o fundo escurecido com recorte. Default true.
+- `StartTrigger`: bool = false — Dispara o tour ao virar true (two-way — é resetado para false ao fim).
+- `TourId`: string — Id do tour (chave de persistência quando Persist = true).
+Events:
+- `OnCompleted`: EventCallback — Disparado quando o tour é concluído (chegou ao fim).
+- `OnSkipped`: EventCallback — Disparado quando o tour é pulado/dispensado.
+- `StartTriggerChanged`: EventCallback<bool>
+
+### OmniTourHost
+Host único do OmniTour (portal).
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniTourHost.razor_
+
+
+### OmniTourStep
+Passo declarativo de um <OmniTour>.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniTourStep.razor_
+
+Parameters:
+- `Position`: TourPosition {Auto | Top | Bottom | Left | Right} = Auto — Lado preferido do coachmark. Default Auto.
+- `Target`: string — Seletor CSS do alvo (ex.: "#salvar"). null = passo sem spotlight.
+- `Title`: string — Título do passo.
+Slots:
+- `ChildContent`: RenderFragment — Corpo do coachmark.
+
+## Theme tokens
+
+CSS custom properties (set on `:root`, override anywhere). Full list:
+
+- `--omni-bg`
+- `--omni-bg-elev`
+- `--omni-bg-sunken`
+- `--omni-line`
+- `--omni-line-strong`
+- `--omni-fg`
+- `--omni-fg-muted`
+- `--omni-fg-soft`
+- `--omni-accent`
+- `--omni-accent-hover`
+- `--omni-accent-soft`
+- `--omni-accent-softer`
+- `--omni-accent-fg`
+- `--omni-good`
+- `--omni-warn`
+- `--omni-danger`
+- `--omni-info`
+- `--omni-radius-sm`
+- `--omni-radius`
+- `--omni-radius-lg`
+- `--omni-card-padding`
+- `--omni-shadow-sm`
+- `--omni-shadow`
+- `--omni-shadow-lg`
+- `--omni-font-ui`
+- `--omni-font-mono`
+- `--omni-topbar-h`
+- `--omni-sidebar-w`
+- `--omni-sidebar-w-collapsed`
+- `--omni-z-overlay`
+- `--omni-z-toast`
+- `--omni-z-tooltip`
+- `--omni-z-context-menu`
+- `--omni-backdrop-blur`
+- `--omni-backdrop-color`
+- `--omni-backdrop-saturate`
+- `--omni-density-scale`
+- `--omni-density-row-gap`
+- `--omni-density-card-pad`
+- `--omni-density-input-pad`
+- `--omni-density-font-size`

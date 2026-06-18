@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Build-time tool that reflects over Omni.Blazor.dll + its XML docs and emits
+       the machine-readable AI-ready artifacts (components.json, llms.txt,
+       llms-full.txt). It is the single source of truth that feeds the llms files,
+       the MCP server and a future component registry — run it whenever the public
+       component surface changes.
+
+       Not packable (Directory.Build.props default). Needs the ASP.NET Core shared
+       framework so the component base types (ComponentBase, EventCallback, ...)
+       resolve during reflection. The ProjectReference also drops Omni.Blazor.xml
+       next to the dll in this tool's output, so doc summaries are available. -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Omni.Blazor.ManifestGen</RootNamespace>
+    <AssemblyName>Omni.Blazor.ManifestGen</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\..\src\Omni.Blazor\Omni.Blazor.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -7,12 +7,30 @@ namespace Omni.Blazor.Services;
 /// Behavior hint for scroll operations — mirrors <c>ScrollBehavior</c> in the
 /// browser's Scroll API.
 /// </summary>
-public enum ScrollBehavior { Auto, Smooth, Instant }
+public enum ScrollBehavior
+{
+    /// <summary>Comportamento padrão do navegador.</summary>
+    Auto,
+    /// <summary>Scroll animado/suave.</summary>
+    Smooth,
+    /// <summary>Salto instantâneo, sem animação.</summary>
+    Instant
+}
 
 /// <summary>
 /// Block alignment for <see cref="ScrollManager.ScrollIntoViewAsync"/>.
 /// </summary>
-public enum ScrollBlock { Start, Center, End, Nearest }
+public enum ScrollBlock
+{
+    /// <summary>Alinha o elemento ao início da viewport.</summary>
+    Start,
+    /// <summary>Centraliza o elemento na viewport.</summary>
+    Center,
+    /// <summary>Alinha o elemento ao fim da viewport.</summary>
+    End,
+    /// <summary>Move o mínimo necessário para tornar o elemento visível.</summary>
+    Nearest
+}
 
 /// <summary>
 /// Central façade for all scroll operations. Inspired by MudBlazor's
