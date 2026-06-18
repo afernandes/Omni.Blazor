@@ -72,12 +72,12 @@ jobs:
       - name: Verify package contents (static web assets present)
         run: |
           set -e
-          NUPKG=$(ls ${{ env.ARTIFACTS }}/Omni.Blazor.*.nupkg | grep -v symbols | head -n1)
+          NUPKG=$(ls ${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.*.nupkg | grep -v symbols | head -n1)
           echo "Inspecting $NUPKG"
           # Guarda: a versão empacotada (MinVer) DEVE bater com a tag. Se o MinVer
           # ignorar a tag (ex.: MinVerTagPrefix não aplicado) ele gera 0.0.0-alpha.0.x
           # e o push silenciaria via --skip-duplicate. Falhar aqui, ruidosamente.
-          EXPECTED="${{ env.ARTIFACTS }}/Omni.Blazor.${{ steps.minver.outputs.version }}.nupkg"
+          EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.${{ steps.minver.outputs.version }}.nupkg"
           test -f "$EXPECTED" || { echo "::error::Versão empacotada != tag — esperado $EXPECTED, gerado $NUPKG (MinVer provavelmente ignorou a tag)"; exit 1; }
           unzip -l "$NUPKG" | tee /tmp/contents.txt
           grep -q "staticwebassets/css/omni.css" /tmp/contents.txt || (echo "::error::omni.css not packed" && exit 1)

@@ -1,7 +1,7 @@
 # Omni.Blazor
 
-[![NuGet](https://img.shields.io/nuget/v/Omni.Blazor.svg?logo=nuget&color=004880)](https://www.nuget.org/packages/Omni.Blazor)
-[![Downloads](https://img.shields.io/nuget/dt/Omni.Blazor.svg?logo=nuget&color=004880)](https://www.nuget.org/packages/Omni.Blazor)
+[![NuGet](https://img.shields.io/nuget/v/AndersonN.Omni.Blazor.svg?logo=nuget&color=004880)](https://www.nuget.org/packages/AndersonN.Omni.Blazor)
+[![Downloads](https://img.shields.io/nuget/dt/AndersonN.Omni.Blazor.svg?logo=nuget&color=004880)](https://www.nuget.org/packages/AndersonN.Omni.Blazor)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![CI](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml/badge.svg)](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml)
@@ -9,7 +9,7 @@
 > Modern Blazor component library for .NET 10 — **80+ components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
 
 ```xml
-<PackageReference Include="Omni.Blazor" Version="*" />
+<PackageReference Include="AndersonN.Omni.Blazor" Version="*" />
 ```
 
 ---
@@ -29,7 +29,7 @@
 ## Installation
 
 ```bash
-dotnet add package Omni.Blazor
+dotnet add package AndersonN.Omni.Blazor
 ```
 
 Or via NuGet UI in Visual Studio / Rider.
