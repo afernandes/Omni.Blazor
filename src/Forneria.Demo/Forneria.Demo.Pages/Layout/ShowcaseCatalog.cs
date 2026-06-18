@@ -18,7 +18,7 @@ public enum Cat
 {
     Auto,
     Overview, Layout, Navigation, Buttons, Inputs, Selection,
-    Forms, Display, Utilities, Feedback, Data, DataViz, Marketing,
+    Forms, Display, Utilities, Feedback, Data, DataViz, Marketing, Ai,
 }
 
 /// <summary>
@@ -90,6 +90,7 @@ public static class ShowcaseCatalog
         (Cat.Data,       "Data",                 "list"),
         (Cat.DataViz,    "Data viz",             "bar-chart"),
         (Cat.Marketing,  "Marketing",            "star"),
+        (Cat.Ai,         "IA & chat",            "sparkles"),
     };
 
     // Cat -> (display order, name, icon), derived once from the table above.
@@ -114,6 +115,7 @@ public static class ShowcaseCatalog
         ["Overlays"]    = Cat.Feedback,
         ["Data"]        = Cat.Data,
         ["Marketing"]   = Cat.Marketing,
+        ["Ai"]          = Cat.Ai,
     };
 
     // camelCase / PascalCase word boundary, shared by DeriveTitle.
