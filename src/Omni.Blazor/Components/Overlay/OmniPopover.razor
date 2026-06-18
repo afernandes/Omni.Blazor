@@ -37,12 +37,19 @@
 </span>
 
 @code {
+    /// <summary>Elemento gatilho que abre/fecha o popover ao clicar (slot obrigatório).</summary>
     [Parameter, EditorRequired] public RenderFragment? Trigger { get; set; }
+    /// <summary>Conteúdo do popover (links, formulário, menu).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Lado preferido do popover em relação ao trigger. Default <c>Bottom</c> (auto-flip se faltar espaço).</summary>
     [Parameter] public PopoverPosition Position { get; set; } = PopoverPosition.Bottom;
+    /// <summary>Estado aberto/fechado. Two-way via <c>@@bind-Open</c>.</summary>
     [Parameter] public bool Open { get; set; }
+    /// <summary>Disparado quando o estado aberto/fechado muda.</summary>
     [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+    /// <summary>Largura CSS fixa do popover (ex.: <c>"240px"</c>). Quando null, ajusta ao conteúdo.</summary>
     [Parameter] public string? Width { get; set; }
+    /// <summary>Se um clique no conteúdo deve fechar o popover. Default <c>false</c> (atualmente não consumido pela lógica — o conteúdo usa <c>stopPropagation</c>).</summary>
     [Parameter] public bool CloseOnContentClick { get; set; }
 
     /// <summary>Mostra setinha (estilo tooltip/balão). Default <c>true</c>.

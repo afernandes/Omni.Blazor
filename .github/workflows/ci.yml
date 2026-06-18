@@ -59,6 +59,11 @@ jobs:
       - name: Build
         run: dotnet build Omni.Blazor.slnx --configuration Release --no-restore
 
+      - name: Test
+        run: |
+          dotnet test test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj --configuration Release --no-build
+          dotnet test test/Omni.Blazor.Mcp.Tests/Omni.Blazor.Mcp.Tests.csproj --configuration Release --no-build
+
       - name: Pack (Omni.Blazor, dry-run)
         if: matrix.os == 'ubuntu-latest'
         run: |

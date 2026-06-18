@@ -2,6 +2,8 @@
 @inherits OmniComponent
 @inject DialogService Dialog
 
+@* Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via DialogService.ConfirmAsync; retorna true/false. *@
+
 <div class="omni-stack omni-stack-16">
     <div class="omni-row omni-row-gap-12">
         @if (!string.IsNullOrEmpty(Options.Icon))
@@ -19,7 +21,9 @@
 </div>
 
 @code {
+    /// <summary>Texto da mensagem exibida no corpo da confirmação.</summary>
     [Parameter, EditorRequired] public string Message { get; set; } = "";
+    /// <summary>Opções da confirmação (textos dos botões OK/Cancelar, ícone). Default <c>new ConfirmOptions()</c>.</summary>
     [Parameter] public ConfirmOptions Options { get; set; } = new();
 
     private void OnOk(MouseEventArgs _)     => Dialog.Close((object)true);

@@ -2,6 +2,7 @@
 @inherits OmniComponent
 @using Omni.Blazor.Utilities
 
+@* Logo/marca do app: quadrado com inicial + nome (e tenant opcional); vira link quando Href é definido. *@
 @if (!string.IsNullOrEmpty(Href))
 {
     <a class="@RootCss" style="@Style" href="@Href" @attributes="Attributes">
@@ -28,10 +29,19 @@ else
 }
 
 @code {
+    /// <summary>Inicial exibida no quadrado da marca. Default "F".</summary>
     [Parameter] public string Initial { get; set; } = "F";
+
+    /// <summary>Nome do app/marca exibido ao lado do quadrado. Default "Forneria".</summary>
     [Parameter] public string Name { get; set; } = "Forneria";
+
+    /// <summary>Tenant/workspace opcional — renderiza " / Tenant" após o nome. Default null (oculto).</summary>
     [Parameter] public string? Tenant { get; set; }
+
+    /// <summary>Quando definido, renderiza a marca como link (&lt;a href&gt;); senão como &lt;div&gt;. Default null.</summary>
     [Parameter] public string? Href { get; set; }
+
+    /// <summary>Usa o quadrado da marca em tamanho maior. Default false.</summary>
     [Parameter] public bool Large { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-brand")

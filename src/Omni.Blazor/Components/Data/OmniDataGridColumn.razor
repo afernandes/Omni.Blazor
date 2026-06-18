@@ -3,17 +3,29 @@
 @inherits OmniComponent
 @implements IDisposable
 
+@* Column definition for an <OmniDataGrid> — declares title, value selector, templates, sorting/filtering/aggregation/grouping/freezing behavior. Renders no markup; registers itself with the parent grid. *@
+
 @code {
     [CascadingParameter] internal OmniDataGrid<TItem>? Parent { get; set; }
 
+    /// <summary>Header text for this column.</summary>
     [Parameter] public string? Title { get; set; }
+
+    /// <summary>CSS width of the column (e.g. <c>"120px"</c>). Null = auto.</summary>
     [Parameter] public string? Width { get; set; }
+
+    /// <summary>Whether clicking the header sorts by this column (requires the grid's <c>AllowSorting</c>). Default true.</summary>
     [Parameter] public bool Sortable { get; set; } = true;
 
     /// <summary>Whether this column can be resized when the grid has <c>AllowColumnResize</c>. Default true.</summary>
     [Parameter] public bool Resizable { get; set; } = true;
+    /// <summary>Selector for the column's raw value — used for cell text, sorting, and filtering.</summary>
     [Parameter] public Func<TItem, object?>? Property { get; set; }
+
+    /// <summary>Selector for the displayed cell text. Overrides <see cref="Property"/>'s <c>ToString()</c> when set.</summary>
     [Parameter] public Func<TItem, string?>? TextSelector { get; set; }
+
+    /// <summary>Custom cell render template. Receives the row item as <c>@context</c>. Falls back to the cell text.</summary>
     [Parameter] public RenderFragment<TItem>? Template { get; set; }
 
     /// <summary>

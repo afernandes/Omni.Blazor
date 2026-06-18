@@ -77,15 +77,21 @@
 
     /// <summary>Multi-select bind. Use com <c>Multiple=true</c>.</summary>
     [Parameter] public IEnumerable<TValue>? Values { get; set; }
+    /// <summary>Disparado quando a seleção múltipla muda (modo <c>Multiple</c>).</summary>
     [Parameter] public EventCallback<IEnumerable<TValue>> ValuesChanged { get; set; }
 
     /// <summary>Quando true, permite selecionar múltiplos itens.</summary>
     [Parameter] public bool Multiple { get; set; }
 
+    /// <summary>Extrai o valor de bind de cada item. Default = o próprio item (identidade).</summary>
     [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
+    /// <summary>Texto principal de cada item. Default = <c>item.ToString()</c>.</summary>
     [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
+    /// <summary>Texto auxiliar opcional abaixo do label de cada item.</summary>
     [Parameter] public Func<TValue?, string?>? DescriptionSelector { get; set; }
+    /// <summary>Nome do ícone exibido à esquerda de cada item. Default = sem ícone.</summary>
     [Parameter] public Func<TValue?, string?>? IconSelector { get; set; }
+    /// <summary>Item-by-item: retorne true para desabilitar este item específico.</summary>
     [Parameter] public Func<TValue?, bool>? DisabledSelector { get; set; }
 
     /// <summary>Altura máxima (CSS). Default <c>240px</c>. Quando excede, scroll vertical.</summary>
@@ -93,6 +99,7 @@
 
     // Disabled herdado de FormComponent<TValue>.
 
+    /// <summary>aria-label do listbox.</summary>
     [Parameter] public string? AriaLabel { get; set; }
 
     private int _focusedIndex = -1;

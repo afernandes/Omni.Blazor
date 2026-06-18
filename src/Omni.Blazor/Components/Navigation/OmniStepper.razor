@@ -94,12 +94,19 @@
 </CascadingValue>
 
 @code {
+    /// <summary>Zero-based index of the active step. Two-way bindable via @bind-ActiveStep.</summary>
     [Parameter] public int ActiveStep { get; set; }
+    /// <summary>Raised when the active step changes, carrying the new zero-based index.</summary>
     [Parameter] public EventCallback<int> ActiveStepChanged { get; set; }
+    /// <summary>When true, steps must be completed in order: you cannot jump forward past the next step or click a pending step. Default true.</summary>
     [Parameter] public bool Linear { get; set; } = true;
+    /// <summary>Raised when the complete button on the last step is clicked.</summary>
     [Parameter] public EventCallback OnComplete { get; set; }
+    /// <summary>Label of the "next step" button. Default "Próximo".</summary>
     [Parameter] public string NextText { get; set; } = "Próximo";
+    /// <summary>Label of the "previous step" button. Default "Voltar".</summary>
     [Parameter] public string PrevText { get; set; } = "Voltar";
+    /// <summary>Label of the final "complete" button shown on the last step. Default "Concluir".</summary>
     [Parameter] public string CompleteText { get; set; } = "Concluir";
 
     internal enum StepStatus { Done, Active, Pending }

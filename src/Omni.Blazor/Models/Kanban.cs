@@ -72,10 +72,15 @@ public sealed class KanbanQuickFilter<TCard>
 /// <summary>Prioridade de um card — controla o indicador no card padrão do <c>OmniKanban</c>.</summary>
 public enum KanbanPriority
 {
+    /// <summary>Sem prioridade definida.</summary>
     None,
+    /// <summary>Prioridade baixa.</summary>
     Low,
+    /// <summary>Prioridade média.</summary>
     Medium,
+    /// <summary>Prioridade alta.</summary>
     High,
+    /// <summary>Urgente — máxima prioridade.</summary>
     Urgent,
 }
 

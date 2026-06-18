@@ -2,6 +2,8 @@
 @inherits OmniComponent
 @using Omni.Blazor.Utilities
 
+@* Circular (or square) user avatar showing an image when available, otherwise fallback initials. *@
+
 <span class="@RootCss" style="@Style" @attributes="Attributes">
     @if (!string.IsNullOrEmpty(ImageUrl))
     {
@@ -14,9 +16,13 @@
 </span>
 
 @code {
+    /// <summary>Fallback text (typically 1-2 letters) shown when no image is provided; also used as the image alt text.</summary>
     [Parameter] public string? Initials { get; set; }
+    /// <summary>URL of the avatar image; when set, the image replaces the initials.</summary>
     [Parameter] public string? ImageUrl { get; set; }
+    /// <summary>Avatar size (Md default): Sm, Md, Lg, Xl, or XXl.</summary>
     [Parameter] public AvatarSize Size { get; set; } = AvatarSize.Md;
+    /// <summary>When true, renders a rounded-square avatar instead of a circle.</summary>
     [Parameter] public bool Square { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-avatar")

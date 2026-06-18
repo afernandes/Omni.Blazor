@@ -1,0 +1,30 @@
+---
+description: Omni.Blazor — conventions for contributing components and the AI-readable component manifest
+alwaysApply: true
+---
+
+# Omni.Blazor
+
+Full guidance: [AGENTS.md](../../AGENTS.md). Architecture: [CLAUDE.md](../../CLAUDE.md).
+
+## Before writing component usage
+Read the generated manifest — **do not invent parameters**:
+- `llms.txt` — index of all components (name, category, one-line description).
+- `llms-full.txt` / `docs/components.json` — full params, events, slots, enum values, defaults.
+
+If a parameter isn't in `docs/components.json`, it does not exist. Regenerate after
+public-surface changes: `dotnet run --project tools/Omni.Blazor.ManifestGen`.
+
+## When authoring a component (hard rules)
+- Single-file `.razor` under `src/Omni.Blazor/Components/<Category>/Omni<Name>.razor` — **no `.razor.cs` code-behinds**.
+- Inherit `OmniComponent` / `OmniComponentWithChildren` / `FormComponent<TValue>`.
+- Root element **must** splat: `class="@RootCss" style="@Style" @attributes="Attributes"`.
+- Compose classes **only** with `CssBuilder`; append the consumer's `Class` **last**.
+- `@key` on every `foreach`. Inputs write via `SetValueAsync`. Reactive recompute via `ParameterState<T>` in `OnInitialized`.
+- JS only through DI services (`ScrollManager`, `HotkeyService`, `OverlayLifecycle`, …) — never inject `IJSRuntime`.
+- Styles → append to the single bundle `Themes/_components.scss`. JS → append to `wwwroot/js/Omni.js` (`window.omniBlazor`).
+- Document every public `[Parameter]` with `/// <summary>` and give the component a leading `@* one-sentence description *@`.
+- Every component needs a bUnit test (`test/Omni.Blazor.Tests/Components/<Category>/`) and a showcase page (`src/Forneria.Demo/Forneria.Demo.Pages/Pages/Showcase/<Category>/`).
+
+## Naming
+CSS class prefix `omni-`, design tokens `--omni-`, JS namespace `window.omniBlazor`.

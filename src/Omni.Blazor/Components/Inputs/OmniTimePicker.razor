@@ -80,13 +80,18 @@
 </div>
 
 @code {
+    /// <summary>The selected time of day. Bind via <c>@bind-Time</c>.</summary>
     [Parameter] public TimeOnly Time { get; set; }
+    /// <summary>Fires when the time changes. Two-way via <c>@bind-Time</c>.</summary>
     [Parameter] public EventCallback<TimeOnly> TimeChanged { get; set; }
 
     /// <summary>"24" (default) or "12" — adds AM/PM toggle inline with the hour.</summary>
     [Parameter] public string HourFormat { get; set; } = "24";
+    /// <summary>Show a seconds field in addition to hours and minutes. Default false.</summary>
     [Parameter] public bool ShowSeconds { get; set; }
+    /// <summary>Increment for the minutes field. Default 1.</summary>
     [Parameter] public int MinutesStep { get; set; } = 1;
+    /// <summary>Increment for the seconds field. Default 1.</summary>
     [Parameter] public int SecondsStep { get; set; } = 1;
 
     private string RootCss => CssBuilder.Default("omni-time-picker")

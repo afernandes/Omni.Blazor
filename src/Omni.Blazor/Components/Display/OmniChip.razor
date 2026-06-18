@@ -2,6 +2,8 @@
 @inherits OmniComponentWithChildren
 @using Omni.Blazor.Utilities
 
+@* Compact pill/tag button — optional dot and icon, with active/accent/static visual states. *@
+
 <button type="button" class="@RootCss" style="@Style" @onclick="HandleClickAsync" @attributes="Attributes">
     @if (ShowDot)
     {
@@ -16,12 +18,19 @@
 </button>
 
 @code {
+    /// <summary>Chip label text, used when no <see cref="OmniComponentWithChildren.ChildContent"/> is supplied.</summary>
     [Parameter] public string? Text { get; set; }
+    /// <summary>Optional icon name rendered before the text.</summary>
     [Parameter] public string? Icon { get; set; }
+    /// <summary>When true, applies the active/selected visual state.</summary>
     [Parameter] public bool Active { get; set; }
+    /// <summary>When true, shows a small leading status dot.</summary>
     [Parameter] public bool ShowDot { get; set; }
+    /// <summary>When true, applies the accent color styling.</summary>
     [Parameter] public bool Accent { get; set; }
+    /// <summary>When true, renders as a non-interactive (display-only) chip.</summary>
     [Parameter] public bool Static { get; set; }
+    /// <summary>Fired when the chip is clicked.</summary>
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-chip")

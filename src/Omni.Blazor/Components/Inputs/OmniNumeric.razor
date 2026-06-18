@@ -58,12 +58,18 @@
 </div>
 
 @code {
+    /// <summary>Placeholder text shown when the input is empty.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>Text rendered before the input (e.g. "R$"). Default none.</summary>
     [Parameter] public string? Prefix { get; set; }
+    /// <summary>Text rendered after the input (e.g. "%", "kg"). Default none.</summary>
     [Parameter] public string? Suffix { get; set; }
 
+    /// <summary>Minimum allowed value; entries below it are clamped. Default null (no minimum).</summary>
     [Parameter] public decimal? Min { get; set; }
+    /// <summary>Maximum allowed value; entries above it are clamped. Default null (no maximum).</summary>
     [Parameter] public decimal? Max { get; set; }
+    /// <summary>Increment applied by the spin buttons and ArrowUp/ArrowDown. Default 1.</summary>
     [Parameter] public decimal Step { get; set; } = 1;
 
     /// <summary>Number of decimal places shown when the input loses focus. Default = inferred from TValue.</summary>
@@ -83,7 +89,9 @@
     /// </summary>
     [Parameter] public bool Wrap { get; set; }
 
+    /// <summary>Show the up/down stepper buttons. Default true (hidden when ReadOnly).</summary>
     [Parameter] public bool ShowSpinButtons { get; set; } = true;
+    /// <summary>Visual size of the input. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
 
     private ElementReference _input;

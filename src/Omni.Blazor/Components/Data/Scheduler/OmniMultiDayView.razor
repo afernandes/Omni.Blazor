@@ -14,7 +14,10 @@
 }
 
 @code {
+    /// <summary>Label shown on this view's switch tab. Default <c>"Multi-dias"</c>.</summary>
     [Parameter] public override string Text { get; set; } = "Multi-dias";
+
+    /// <summary>Icon name shown on this view's switch tab. Default <c>"columns"</c>.</summary>
     [Parameter] public override string Icon { get; set; } = "columns";
 
     /// <summary>How many days to render side-by-side. Default 2.</summary>
@@ -23,9 +26,16 @@
     /// <summary>How many days the next/prev buttons advance. Default 1.</summary>
     [Parameter] public int AdvanceDays { get; set; } = 1;
 
+    /// <summary>First time slot of the day. Default 08:00.</summary>
     [Parameter] public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
+
+    /// <summary>Last time slot of the day (exclusive). Default 24:00.</summary>
     [Parameter] public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>Minutes per slot row. Default 30.</summary>
     [Parameter] public int MinutesPerSlot { get; set; } = 30;
+
+    /// <summary>Time format for slot labels. Default <c>"HH:mm"</c>.</summary>
     [Parameter] public string TimeFormat { get; set; } = "HH:mm";
 
     /// <summary>Format for the day-of-week header. Default <c>"ddd"</c>.</summary>

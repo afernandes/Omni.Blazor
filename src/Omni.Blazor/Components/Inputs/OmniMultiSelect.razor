@@ -95,9 +95,12 @@
 </div>
 
 @code {
+    /// <summary>Itens disponíveis para seleção.</summary>
     [Parameter] public IEnumerable<TValue>? Items { get; set; }
 
+    /// <summary>Coleção selecionada (two-way via <c>@bind-Values</c>).</summary>
     [Parameter] public IEnumerable<TValue>? Values { get; set; }
+    /// <summary>Disparado quando a seleção muda.</summary>
     [Parameter] public EventCallback<IEnumerable<TValue>> ValuesChanged { get; set; }
 
     /// <summary>Expression pra integração com EditContext (validators irmãos).</summary>
@@ -116,18 +119,26 @@
     object? IOmniFormComponent.GetValue() => Values;
     bool IOmniFormComponent.HasValue => Values is not null && Values.Any();
 
+    /// <summary>Extrai o valor de bind de cada item. Default = o próprio item (identidade).</summary>
     [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
+    /// <summary>Texto principal de cada item. Default = <c>item.ToString()</c>.</summary>
     [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
+    /// <summary>Texto auxiliar opcional de cada item na lista.</summary>
     [Parameter] public Func<TValue?, string?>? DescriptionSelector { get; set; }
+    /// <summary>Nome do ícone exibido à esquerda de cada item na lista.</summary>
     [Parameter] public Func<TValue?, string?>? IconSelector { get; set; }
+    /// <summary>Item-by-item: retorne true para desabilitar este item específico.</summary>
     [Parameter] public Func<TValue?, bool>? DisabledSelector { get; set; }
 
+    /// <summary>Texto exibido no campo quando nada está selecionado.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>Desabilita o campo (sem abrir popover nem remover chips). Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Habilita campo de busca dentro do popover.</summary>
     [Parameter] public bool Searchable { get; set; }
 
+    /// <summary>Placeholder do campo de busca. Default "Buscar...".</summary>
     [Parameter] public string? SearchPlaceholder { get; set; }
 
     /// <summary>Mostra botão "Limpar seleção (N)" no rodapé do popover.</summary>

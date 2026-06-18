@@ -157,6 +157,8 @@
     // ── Dados / bind ───────────────────────────────────────────────────────
     /// <summary>Lista plana de cards. Two-way (<c>@bind-Items</c>) — reordenada ao mover.</summary>
     [Parameter] public IEnumerable<TCard>? Items { get; set; }
+
+    /// <summary>Disparado com a nova lista ao mover/reordenar cards (par de <c>@bind-Items</c>).</summary>
     [Parameter] public EventCallback<IEnumerable<TCard>> ItemsChanged { get; set; }
 
     /// <summary>Definição das colunas (ordem = ordem de exibição).</summary>
@@ -260,24 +262,51 @@
     [Parameter] public EventCallback<KanbanCardActionEventArgs<TCard>> CardAction { get; set; }
 
     // ── Templates / conteúdo ───────────────────────────────────────────────
+    /// <summary>Card → título exibido no card padrão. Default: <c>ToString()</c> do card.</summary>
     [Parameter] public Func<TCard, string>? CardTitle { get; set; }
+
+    /// <summary>Template completo do card — substitui o card padrão (e todos os seletores <c>Card*</c>).</summary>
     [Parameter] public RenderFragment<TCard>? CardTemplate { get; set; }
+
+    /// <summary>Template do cabeçalho da coluna. Recebe a <c>KanbanColumn</c>.</summary>
     [Parameter] public RenderFragment<KanbanColumn>? ColumnHeaderTemplate { get; set; }
+
+    /// <summary>Template do rodapé da coluna (substitui o botão "adicionar card"). Recebe a <c>KanbanColumn</c>.</summary>
     [Parameter] public RenderFragment<KanbanColumn>? ColumnFooterTemplate { get; set; }
+
+    /// <summary>Conteúdo exibido numa coluna sem cards. Default: "Sem cards".</summary>
     [Parameter] public RenderFragment? EmptyColumnTemplate { get; set; }
 
     // ── Comportamento ──────────────────────────────────────────────────────
+    /// <summary>Mostra a contagem de cards (ou <c>n/limite</c> com WIP) no cabeçalho. Default true.</summary>
     [Parameter] public bool ShowCount { get; set; } = true;
+
+    /// <summary>Permite recolher colunas. Default true.</summary>
     [Parameter] public bool Collapsible { get; set; } = true;
+
+    /// <summary>Mostra o botão "adicionar card" no rodapé das colunas. Default false.</summary>
     [Parameter] public bool AllowAddCard { get; set; }
+
+    /// <summary>Label do botão de adicionar card. Default <c>"Adicionar card"</c>.</summary>
     [Parameter] public string AddCardText { get; set; } = "Adicionar card";
+
+    /// <summary>Desabilita o drag-and-drop (mouse e teclado). Default false.</summary>
     [Parameter] public bool DragDisabled { get; set; }
+
+    /// <summary>Comportamento do limite de WIP: avisa (Warn) ou bloqueia a entrada (Enforce). Default Warn.</summary>
     [Parameter] public WipLimitMode WipLimitMode { get; set; } = WipLimitMode.Warn;
+
+    /// <summary>Largura CSS de cada coluna (define <c>--omni-kanban-col-w</c>). Null = largura padrão.</summary>
     [Parameter] public string? ColumnWidth { get; set; }
 
     // ── Eventos ────────────────────────────────────────────────────────────
+    /// <summary>Disparado após mover um card (coluna/raia de origem e destino + índices).</summary>
     [Parameter] public EventCallback<KanbanCardMovedEventArgs<TCard>> CardMoved { get; set; }
+
+    /// <summary>Disparado ao clicar num card.</summary>
     [Parameter] public EventCallback<TCard> CardClick { get; set; }
+
+    /// <summary>Disparado ao clicar no botão "adicionar card" de uma coluna.</summary>
     [Parameter] public EventCallback<KanbanColumn> OnAddCard { get; set; }
 
     // ── Estado interno ─────────────────────────────────────────────────────

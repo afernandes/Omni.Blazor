@@ -2,6 +2,7 @@
 @inherits OmniComponent
 @using Omni.Blazor.Utilities
 
+@* Breadcrumb trail (`<nav>`): renders Items as "/"-separated links, with the last (or path-less) item shown as the current page. *@
 <nav class="@RootCss" style="@Style" @attributes="Attributes">
     @if (Items is not null)
     {
@@ -20,6 +21,7 @@
 @code {
     public record Item(string Text, string? Path = null);
 
+    /// <summary>Ordered trail of crumbs; each Item is a Text plus an optional Path (link). The last item renders as the current page.</summary>
     [Parameter] public IEnumerable<Item>? Items { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-breadcrumb")

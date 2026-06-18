@@ -117,26 +117,57 @@
     /// <summary>CSS height of the scheduler. Default <c>"600px"</c>.</summary>
     [Parameter] public string Height { get; set; } = "600px";
 
+    /// <summary>Shows the navigation/view-switch header bar. Default true.</summary>
     [Parameter] public bool ShowHeader { get; set; } = true;
+
+    /// <summary>Shows the prev/next arrow buttons in the header. Default true.</summary>
     [Parameter] public bool ShowNavigationButtons { get; set; } = true;
+
+    /// <summary>Shows the "today" button in the header. Default true.</summary>
     [Parameter] public bool ShowTodayButton { get; set; } = true;
+
+    /// <summary>Shows the current-range title in the header. Default true.</summary>
     [Parameter] public bool ShowDateTitle { get; set; } = true;
 
+    /// <summary>Label for the "today" button. Default <c>"Hoje"</c>.</summary>
     [Parameter] public string TodayText { get; set; } = "Hoje";
+
+    /// <summary>Title/aria-label for the next-range arrow. Default <c>"Próximo"</c>.</summary>
     [Parameter] public string NextText { get; set; } = "Próximo";
+
+    /// <summary>Title/aria-label for the previous-range arrow. Default <c>"Anterior"</c>.</summary>
     [Parameter] public string PrevText { get; set; } = "Anterior";
 
     // ─── Event callbacks ──────────────────────────────────────────────────
 
+    /// <summary>Fires when an empty time slot is clicked.</summary>
     [Parameter] public EventCallback<SchedulerSlotSelectEventArgs> SlotSelect { get; set; }
+
+    /// <summary>Fires when an appointment is clicked.</summary>
     [Parameter] public EventCallback<SchedulerAppointmentSelectEventArgs<TItem>> AppointmentSelect { get; set; }
+
+    /// <summary>Fires when the "today" button is clicked (before the date moves).</summary>
     [Parameter] public EventCallback<SchedulerTodaySelectEventArgs> TodaySelect { get; set; }
+
+    /// <summary>Fires when a day header / day number is clicked.</summary>
     [Parameter] public EventCallback<SchedulerDaySelectEventArgs> DaySelect { get; set; }
+
+    /// <summary>Fires when a month header is clicked (year-style views).</summary>
     [Parameter] public EventCallback<SchedulerMonthSelectEventArgs> MonthSelect { get; set; }
+
+    /// <summary>Fires when the "+N more" overflow link is clicked.</summary>
     [Parameter] public EventCallback<SchedulerMoreSelectEventArgs> MoreSelect { get; set; }
+
+    /// <summary>Fires when the visible range changes — hook for server-side appointment loading.</summary>
     [Parameter] public EventCallback<SchedulerLoadDataEventArgs> LoadData { get; set; }
+
+    /// <summary>Fires when an appointment is dropped on a slot. Wiring it enables drag-and-drop.</summary>
     [Parameter] public EventCallback<SchedulerAppointmentMoveEventArgs> AppointmentMove { get; set; }
+
+    /// <summary>Fires when the pointer enters an appointment. Wiring it enables hover handling.</summary>
     [Parameter] public EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> AppointmentMouseEnter { get; set; }
+
+    /// <summary>Fires when the pointer leaves an appointment.</summary>
     [Parameter] public EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> AppointmentMouseLeave { get; set; }
 
     /// <summary>Sync per-appointment render hook (add CSS classes / styles / data-* attributes).</summary>

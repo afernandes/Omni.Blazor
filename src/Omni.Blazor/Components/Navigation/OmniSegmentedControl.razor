@@ -3,6 +3,7 @@
 @inherits OmniComponent
 @using Omni.Blazor.Utilities
 
+@* Single-select segmented button group: renders Items as toggle buttons, highlighting the one matching Value. *@
 <div class="@RootCss" style="@Style" @attributes="Attributes">
     @if (Items is not null)
     {
@@ -23,8 +24,11 @@
 @code {
     public record Item(TValue Value, string Label);
 
+    /// <summary>Currently selected value; the matching segment renders as active. Two-way bindable via @bind-Value.</summary>
     [Parameter] public TValue? Value { get; set; }
+    /// <summary>Raised when a segment is selected, carrying the newly selected value.</summary>
     [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    /// <summary>The selectable segments; each Item pairs a Value with its display Label.</summary>
     [Parameter] public IEnumerable<Item>? Items { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-segmented")

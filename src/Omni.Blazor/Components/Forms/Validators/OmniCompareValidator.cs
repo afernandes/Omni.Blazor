@@ -20,7 +20,21 @@ namespace Omni.Blazor.Components;
 public class OmniCompareValidator : OmniValidatorBase
 {
     /// <summary>Operadores de comparação suportados.</summary>
-    public enum CompareOperator { Equal, NotEqual, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual }
+    public enum CompareOperator
+    {
+        /// <summary>Igual ao valor de referência.</summary>
+        Equal,
+        /// <summary>Diferente do valor de referência.</summary>
+        NotEqual,
+        /// <summary>Menor que o valor de referência.</summary>
+        LessThan,
+        /// <summary>Menor ou igual ao valor de referência.</summary>
+        LessThanEqual,
+        /// <summary>Maior que o valor de referência.</summary>
+        GreaterThan,
+        /// <summary>Maior ou igual ao valor de referência.</summary>
+        GreaterThanEqual
+    }
 
     /// <summary>Valor literal a comparar. Use <see cref="Value"/> OU <see cref="OtherComponent"/>, não ambos.</summary>
     [Parameter] public object? Value { get; set; }

@@ -2,6 +2,8 @@
 @inherits OmniComponent
 @using Omni.Blazor.Utilities
 
+@* Single mosaic tile showing an optional icon plus a name and meta line, for use inside an OmniMosaic. *@
+
 <div class="@RootCss" style="@Style" @attributes="Attributes">
     @if (!string.IsNullOrEmpty(Icon))
     {
@@ -17,10 +19,15 @@
 </div>
 
 @code {
+    /// <summary>Primary label shown on the card. Required.</summary>
     [Parameter, EditorRequired] public string Name { get; set; } = "";
+    /// <summary>Secondary meta line shown below the name; omitted when empty.</summary>
     [Parameter] public string? Meta { get; set; }
+    /// <summary>Name of the <see cref="OmniIcon"/> rendered at the start of the card; omitted when empty.</summary>
     [Parameter] public string? Icon { get; set; }
+    /// <summary>When <c>true</c>, the card spans two grid columns in the mosaic. Defaults to <c>false</c>.</summary>
     [Parameter] public bool Wide { get; set; }
+    /// <summary>When <c>true</c>, renders the card with inverted (filled accent) styling for emphasis. Defaults to <c>false</c>.</summary>
     [Parameter] public bool Featured { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-mosaic-card")

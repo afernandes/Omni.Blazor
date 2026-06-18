@@ -3,7 +3,19 @@ using Microsoft.AspNetCore.Components;
 namespace Omni.Blazor.Models;
 
 /// <summary>Lado preferido do coachmark em relação ao alvo. <see cref="Auto"/> escolhe o de maior folga.</summary>
-public enum TourPosition { Auto, Top, Bottom, Left, Right }
+public enum TourPosition
+{
+    /// <summary>Escolhe automaticamente o lado de maior folga.</summary>
+    Auto,
+    /// <summary>Acima do alvo.</summary>
+    Top,
+    /// <summary>Abaixo do alvo.</summary>
+    Bottom,
+    /// <summary>À esquerda do alvo.</summary>
+    Left,
+    /// <summary>À direita do alvo.</summary>
+    Right
+}
 
 /// <summary>
 /// Um passo de um tour do <c>OmniTour</c>: ALVO (seletor CSS) + CONTEÚDO (título + corpo) + POSIÇÃO.

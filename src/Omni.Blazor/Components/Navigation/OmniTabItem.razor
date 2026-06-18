@@ -2,11 +2,15 @@
 @inherits OmniComponent
 @implements IDisposable
 
+@* A single tab inside an OmniTabs; renders no markup itself and registers with the parent, which draws the tab button and shows its body when active. *@
 @code {
     [CascadingParameter] internal OmniTabs? Parent { get; set; }
 
+    /// <summary>Tab label shown on the tab button. Required.</summary>
     [Parameter, EditorRequired] public string Title { get; set; } = "";
+    /// <summary>Optional icon name shown before the title on the tab button.</summary>
     [Parameter] public string? Icon { get; set; }
+    /// <summary>The tab's panel content, rendered by the parent only while this tab is active.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     protected override void OnInitialized() => Parent?.Register(this);

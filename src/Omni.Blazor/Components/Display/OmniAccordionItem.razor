@@ -4,6 +4,8 @@
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
 
+@* A single collapsible panel within an OmniAccordion, with a clickable header (icon + title) and an expandable body. *@
+
 <div class="@WrapCss" style="@Style" @attributes="Attributes">
     <button type="button" class="omni-accordion-header" disabled="@Disabled" @onclick="ToggleAsync" aria-expanded="@(IsExpanded ? "true" : "false")">
         @if (!string.IsNullOrEmpty(Icon))
@@ -25,11 +27,17 @@
 @code {
     [CascadingParameter] internal OmniAccordion? Parent { get; set; }
 
+    /// <summary>Plain-text header label, shown when <see cref="TitleContent"/> is not provided.</summary>
     [Parameter] public string? Title { get; set; }
+    /// <summary>Custom header markup; takes precedence over <see cref="Title"/> when set.</summary>
     [Parameter] public RenderFragment? TitleContent { get; set; }
+    /// <summary>Optional icon name rendered before the title in the header.</summary>
     [Parameter] public string? Icon { get; set; }
+    /// <summary>Initial/bound expanded state; supports two-way binding via <see cref="ExpandedChanged"/>.</summary>
     [Parameter] public bool Expanded { get; set; }
+    /// <summary>Fired when the item expands or collapses, carrying the new expanded state.</summary>
     [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+    /// <summary>When true, the header is disabled and the item cannot be toggled.</summary>
     [Parameter] public bool Disabled { get; set; }
 
     internal bool IsExpanded => _expanded;

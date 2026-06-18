@@ -17,13 +17,20 @@
 *@
 
 @code {
+    /// <summary>Full combo spec string (e.g. "Ctrl+K", or "Ctrl+K|Meta+K" for alternatives). Takes precedence over Key/Modifiers when set.</summary>
     [Parameter] public string? Combo { get; set; }
+    /// <summary>The base key (e.g. "K", "Escape") when not using Combo; combined with Modifiers to build the binding.</summary>
     [Parameter] public string? Key { get; set; }
+    /// <summary>Modifier flags (Ctrl/Alt/Shift/Meta) applied to Key. Default Modifier.None.</summary>
     [Parameter] public Modifier Modifiers { get; set; } = Modifier.None;
 
+    /// <summary>Invoked when the shortcut fires, with the originating KeyboardEventArgs.</summary>
     [Parameter] public EventCallback<KeyboardEventArgs> OnPressed { get; set; }
+    /// <summary>When true, calls preventDefault on the key event so the browser default is suppressed. Default true.</summary>
     [Parameter] public bool PreventDefault { get; set; } = true;
+    /// <summary>When true, stops the key event from propagating further. Default false.</summary>
     [Parameter] public bool StopPropagation { get; set; }
+    /// <summary>When true, the registration stays but the shortcut is inert; toggling this enables/disables in place without re-registering. Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
 
     private IAsyncDisposable? _handle;

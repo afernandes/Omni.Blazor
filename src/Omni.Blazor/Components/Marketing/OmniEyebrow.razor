@@ -2,6 +2,8 @@
 @inherits OmniComponentWithChildren
 @using Omni.Blazor.Utilities
 
+@* Small uppercase kicker/label rendered above a heading, optionally preceded by an accent dot. *@
+
 <span class="@RootCss" style="@Style" @attributes="Attributes">
     @if (ShowDot)
     {
@@ -11,7 +13,9 @@
 </span>
 
 @code {
+    /// <summary>Text shown inside the eyebrow; ignored when <see cref="ChildContent"/> is provided.</summary>
     [Parameter] public string? Text { get; set; }
+    /// <summary>Renders the leading accent dot before the text. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowDot { get; set; } = true;
 
     private string RootCss => CssBuilder.Default("omni-eyebrow")

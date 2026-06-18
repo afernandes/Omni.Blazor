@@ -24,11 +24,17 @@
 *@
 
 @code {
+    /// <summary>Predicate that gates the prompt: navigation is intercepted only while it returns true. When null, the prompt is always active.</summary>
     [Parameter] public Func<bool>? When { get; set; }
+    /// <summary>Title of the confirmation dialog (DialogService path only).</summary>
     [Parameter] public string Title { get; set; } = "Sair sem salvar?";
+    /// <summary>Body message of the confirmation prompt (used by both the dialog and the native window.confirm).</summary>
     [Parameter] public string Text { get; set; } = "Você tem alterações não salvas. Deseja sair mesmo assim?";
+    /// <summary>Label of the confirm (leave) button in the dialog.</summary>
     [Parameter] public string ConfirmText { get; set; } = "Sair sem salvar";
+    /// <summary>Label of the cancel (stay) button in the dialog.</summary>
     [Parameter] public string CancelText { get; set; } = "Continuar editando";
+    /// <summary>When true, uses the browser's native window.confirm instead of the Omni DialogService for in-app navigation. Default false.</summary>
     [Parameter] public bool UseNativePrompt { get; set; }
 
     private readonly string _id = $"ep-{Guid.NewGuid():N}";

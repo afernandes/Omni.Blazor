@@ -2,6 +2,8 @@
 @inherits FormComponent<string>
 @using Omni.Blazor.Utilities
 
+@* Single-line text input with optional leading/trailing icons, clear button, and character counter. *@
+
 @if (HasGroupAffix)
 {
     <div class="@GroupCss" style="@Style" @attributes="Attributes">
@@ -40,15 +42,25 @@ else
 }
 
 @code {
+    /// <summary>Placeholder text shown when the input is empty.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>HTML input <c>type</c> (e.g. "text", "email", "tel"). Default "text".</summary>
     [Parameter] public string Type { get; set; } = "text";
+    /// <summary>HTML <c>autocomplete</c> attribute for the input.</summary>
     [Parameter] public string? Autocomplete { get; set; }
+    /// <summary>Icon name rendered inside the input on the left. Default none.</summary>
     [Parameter] public string? LeadingIcon { get; set; }
+    /// <summary>Icon name rendered inside the input on the right (suppressed when the clear button is shown). Default none.</summary>
     [Parameter] public string? TrailingIcon { get; set; }
+    /// <summary>Visual size of the input. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    /// <summary>Minimum length enforced via the input's <c>minlength</c> attribute. Default null (none).</summary>
     [Parameter] public int? MinLength { get; set; }
+    /// <summary>Maximum length enforced via the input's <c>maxlength</c> attribute. Default null (none).</summary>
     [Parameter] public int? MaxLength { get; set; }
+    /// <summary>Fires on keydown in the input (e.g. to handle Enter).</summary>
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+    /// <summary>Fires when the input loses focus.</summary>
     [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
 
     /// <summary>When true, shows an "x" button to clear the value whenever it's non-empty.</summary>

@@ -5,6 +5,8 @@
 @inject IJSRuntime JS
 @using Omni.Blazor.Utilities
 
+@* Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via LoadData. *@
+
 <CascadingValue Value="this" IsFixed="true">
     <div class="@RootCss" style="@RootInlineStyle" @attributes="Attributes">
         @if (!Embed && (ToolbarContent is not null || AllowSearch || AllowExport || AllowColumnVisibility))
@@ -310,14 +312,31 @@
     /// <summary>Debounce (ms) entre keystrokes na busca antes de chamar <c>LoadData</c>.</summary>
     [Parameter] public int DebounceMs { get; set; } = 300;
 
+    /// <summary>Definição das colunas (<c>&lt;OmniDataGridColumn&gt;</c>). Registradas via cascading.</summary>
     [Parameter] public RenderFragment? Columns { get; set; }
+
+    /// <summary>Conteúdo extra na toolbar (entre a busca e os botões à direita).</summary>
     [Parameter] public RenderFragment? ToolbarContent { get; set; }
+
+    /// <summary>Mostra o campo de busca textual na toolbar. Default false.</summary>
     [Parameter] public bool AllowSearch { get; set; }
+
+    /// <summary>Permite ordenar clicando no header das colunas <c>Sortable</c>. Default true.</summary>
     [Parameter] public bool AllowSorting { get; set; } = true;
+
+    /// <summary>Liga a paginação no rodapé. Default true. Ignorado quando <see cref="Virtualize"/> está ativo.</summary>
     [Parameter] public bool AllowPaging { get; set; } = true;
+
+    /// <summary>Quantidade de linhas por página. Default 10.</summary>
     [Parameter] public int PageSize { get; set; } = 10;
+
+    /// <summary>Placeholder do campo de busca. Default <c>"Buscar..."</c>.</summary>
     [Parameter] public string SearchPlaceholder { get; set; } = "Buscar...";
+
+    /// <summary>Texto exibido quando não há registros. Default <c>"Nenhum registro encontrado."</c>.</summary>
     [Parameter] public string EmptyText { get; set; } = "Nenhum registro encontrado.";
+
+    /// <summary>Emitido quando uma linha é clicada (fora do modo edição).</summary>
     [Parameter] public EventCallback<TItem> OnRowClick { get; set; }
 
     /// <summary>
@@ -335,6 +354,8 @@
 
     /// <summary>Shows a "Exportar" button in the toolbar that downloads visible rows as CSV.</summary>
     [Parameter] public bool AllowExport { get; set; }
+
+    /// <summary>Nome do arquivo gerado pelo export CSV. Default <c>"export.csv"</c>.</summary>
     [Parameter] public string ExportFilename { get; set; } = "export.csv";
 
     /// <summary>Shows the column visibility menu in the toolbar.</summary>

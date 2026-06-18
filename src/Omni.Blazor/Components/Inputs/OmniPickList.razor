@@ -99,10 +99,12 @@
 
     /// <summary>Items in the left (source) list. Two-way bindable.</summary>
     [Parameter] public IEnumerable<TItem>? Source { get; set; }
+    /// <summary>Fires when the source list changes after a move. Two-way via <c>@bind-Source</c>.</summary>
     [Parameter] public EventCallback<IEnumerable<TItem>> SourceChanged { get; set; }
 
     /// <summary>Items in the right (target) list. Two-way bindable.</summary>
     [Parameter] public IEnumerable<TItem>? Target { get; set; }
+    /// <summary>Fires when the target list changes after a move. Two-way via <c>@bind-Target</c>.</summary>
     [Parameter] public EventCallback<IEnumerable<TItem>> TargetChanged { get; set; }
 
     /// <summary>Raised after a move, once Source/Target already reflect it.</summary>
@@ -144,9 +146,13 @@
 
     /// <summary>Show pane headers. Default true.</summary>
     [Parameter] public bool ShowHeader { get; set; } = true;
+    /// <summary>Title text for the source pane header.</summary>
     [Parameter] public string? SourceTitle { get; set; }
+    /// <summary>Title text for the target pane header.</summary>
     [Parameter] public string? TargetTitle { get; set; }
+    /// <summary>Custom markup for the source pane header; overrides <see cref="SourceTitle"/>.</summary>
     [Parameter] public RenderFragment? SourceHeader { get; set; }
+    /// <summary>Custom markup for the target pane header; overrides <see cref="TargetTitle"/>.</summary>
     [Parameter] public RenderFragment? TargetHeader { get; set; }
 
     /// <summary>Text shown when the source list is empty.</summary>

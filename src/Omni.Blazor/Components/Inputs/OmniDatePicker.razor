@@ -113,14 +113,22 @@ else
 }
 
 @code {
+    /// <summary>Placeholder text for the input; falls back to a smart format-based default when null.</summary>
     [Parameter] public string? Placeholder { get; set; }
+    /// <summary>Visual size of the input. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
+    /// <summary>Show a clear (×) button when a value is set. Default true.</summary>
     [Parameter] public bool Clearable { get; set; } = true;
+    /// <summary>Date/time format used for display and parsing. Default "dd/MM/yyyy" (adapts when ShowTime is on).</summary>
     [Parameter] public string DateFormat { get; set; } = "dd/MM/yyyy";
 
+    /// <summary>Earliest selectable date; earlier days are disabled.</summary>
     [Parameter] public DateOnly? MinDate { get; set; }
+    /// <summary>Latest selectable date; later days are disabled.</summary>
     [Parameter] public DateOnly? MaxDate { get; set; }
+    /// <summary>Disable Saturdays and Sundays. Default false.</summary>
     [Parameter] public bool DisableWeekends { get; set; }
+    /// <summary>Predicate returning true to disable a specific day. Default null (none disabled).</summary>
     [Parameter] public Func<DateOnly, bool>? DisabledDates { get; set; }
 
     /// <summary>Per-day render hook (holidays, special markers, tooltips, ad-hoc disabling).</summary>
