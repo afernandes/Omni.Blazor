@@ -83,7 +83,9 @@ static (Dictionary<string, string> category, Dictionary<string, string> source, 
     {
         string name = Path.GetFileNameWithoutExtension(f);
         string rel = Path.GetRelativePath(dir, f).Replace('\\', '/');
-        category[name] = rel.Split('/')[0];
+        string[] parts = rel.Split('/');
+        // first folder under Components/, or "Other" for a file directly under it
+        category[name] = parts.Length > 1 ? parts[0] : "Other";
         source[name] = Path.GetRelativePath(repoRoot, f).Replace('\\', '/');
         try
         {

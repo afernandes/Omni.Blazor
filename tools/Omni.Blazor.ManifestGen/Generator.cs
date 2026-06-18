@@ -73,8 +73,17 @@ public static class TypeNames
         _ => Convert.ToString(v, CultureInfo.InvariantCulture),
     };
 
-    /// <summary>XML doc id for a type: <c>namespace.Name`arity</c>, nested <c>+</c> → <c>.</c>.</summary>
-    public static string XmlId(Type t) => (t.FullName ?? t.Name).Replace('+', '.');
+    /// <summary>
+    /// XML doc id for a type: <c>namespace.Name`arity</c>, nested <c>+</c> → <c>.</c>.
+    /// Closed generics (e.g. <c>FormComponent&lt;string&gt;</c>, the declaring type of
+    /// inherited params) are reduced to their open definition so the id matches the
+    /// XML doc file (<c>FormComponent`1</c>, not the assembly-qualified closed form).
+    /// </summary>
+    public static string XmlId(Type t)
+    {
+        if (t.IsGenericType && !t.IsGenericTypeDefinition) t = t.GetGenericTypeDefinition();
+        return (t.FullName ?? t.Name).Replace('+', '.');
+    }
 
     /// <summary>True if the type derives from <c>FormComponent&lt;T&gt;</c> (i.e. a form input).</summary>
     public static bool IsFormInput(Type t)

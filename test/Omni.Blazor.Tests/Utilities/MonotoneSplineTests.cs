@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Omni.Blazor.Utilities;
 using Xunit;
@@ -86,10 +87,17 @@ public class MonotoneSplineTests
     [Fact]
     public void Numbers_are_invariant_and_trimmed()
     {
-        // F = "0.###": trailing zeros trimmed, '.' decimal separator regardless of culture
-        (double X, double Y)[] pts = [(1.5, 2.25), (3.0, 4.0)];
-        string d = MonotoneSpline.Path(pts);
-        Assert.StartsWith("M 1.5 2.25", d);
-        Assert.EndsWith("3 4", d);
+        // F = "0.###" with InvariantCulture: even under a ',' decimal-separator culture
+        // the output must use '.' (and trim trailing zeros).
+        CultureInfo prev = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+        try
+        {
+            (double X, double Y)[] pts = [(1.5, 2.25), (3.0, 4.0)];
+            string d = MonotoneSpline.Path(pts);
+            Assert.StartsWith("M 1.5 2.25", d);
+            Assert.EndsWith("3 4", d);
+        }
+        finally { CultureInfo.CurrentCulture = prev; }
     }
 }

@@ -69,4 +69,18 @@ public class ManifestBuilderTests
     [Fact]
     public void Build_empty_when_no_sources()
         => Assert.Empty(ManifestBuilder.Build(Lib, [], new Dictionary<string, string>(), new Dictionary<string, string>(), new Dictionary<string, string>()));
+
+    [Fact]
+    public void Build_resolves_summary_for_param_inherited_from_generic_base()
+    {
+        // `Value` is declared on FormComponent<string> (a closed generic). Its XML
+        // summary must still resolve via the open-generic id — this regressed before
+        // the XmlId generic fix (closed-generic FullName != XML doc id).
+        var docs = XmlDocText.Load(System.IO.Path.ChangeExtension(Lib.Location, ".xml"));
+        Assert.NotEmpty(docs); // guard: XML doc file present next to the assembly
+        ComponentInfo tb = Build(docs).Single(c => c.Name == "OmniTextBox");
+        ParamInfo value = Assert.Single(tb.Parameters, p => p.Name == "Value");
+        Assert.Equal("FormComponent", value.InheritedFrom);
+        Assert.False(string.IsNullOrWhiteSpace(value.Summary));
+    }
 }

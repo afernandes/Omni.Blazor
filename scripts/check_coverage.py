@@ -15,6 +15,9 @@ import xml.etree.ElementTree as ET
 
 
 def main() -> int:
+    if len(sys.argv) < 4:
+        print("Usage: check_coverage.py <min_percent> <coverage_dir> <assembly> [<assembly> ...]", file=sys.stderr)
+        return 1
     threshold = float(sys.argv[1])
     cov_dir = sys.argv[2]
     targets = sys.argv[3:]
@@ -31,7 +34,7 @@ def main() -> int:
             name = pkg.get("name")
             if name not in targets:
                 continue
-            lines = [ln for cls in pkg.iter("class") for ln in cls.findall(".//line")]
+            lines = pkg.findall(".//line")
             total = len(lines)
             covered = sum(1 for ln in lines if int(ln.get("hits", "0")) > 0)
             if name not in best or covered > best[name][0]:

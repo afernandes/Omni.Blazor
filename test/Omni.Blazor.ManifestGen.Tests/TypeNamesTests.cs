@@ -70,6 +70,12 @@ public class TypeNamesTests
     public void XmlId_uses_full_name() => Assert.Equal("Omni.Blazor.Models.ButtonVariant", TypeNames.XmlId(typeof(ButtonVariant)));
 
     [Fact]
+    public void XmlId_reduces_closed_generic_to_open_definition()
+        // closed generics (e.g. a param's declaring type FormComponent<string>) must
+        // map to the open-generic id used in the XML doc file
+        => Assert.Equal("System.Collections.Generic.List`1", TypeNames.XmlId(typeof(List<int>)));
+
+    [Fact]
     public void IsFormInput_true_for_input_false_otherwise()
     {
         Assert.True(TypeNames.IsFormInput(typeof(OmniTextBox)));
