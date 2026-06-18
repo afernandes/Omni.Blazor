@@ -59,6 +59,46 @@ public class OmniDataGridTests : TestContextBase
     }
 
     [Fact]
+    public void Column_headers_have_scope_col()
+    {
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        // Every column-header <th> in the header row must carry scope="col"
+        // so screen readers announce the column for each data cell.
+        var headers = cut.FindAll("table.omni-grid-table thead tr:first-child th");
+        Assert.NotEmpty(headers);
+        Assert.All(headers, th => Assert.Equal("col", th.GetAttribute("scope")));
+
+        // The labelled data columns specifically are scoped.
+        var nameHeader = headers.Single(h => h.TextContent.Contains("Name"));
+        var ageHeader = headers.Single(h => h.TextContent.Contains("Age"));
+        Assert.Equal("col", nameHeader.GetAttribute("scope"));
+        Assert.Equal("col", ageHeader.GetAttribute("scope"));
+    }
+
+    [Fact]
+    public void Utility_column_headers_have_scope_col_and_aria_label()
+    {
+        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowMultiSelection, true)
+            .Add(c => c.EditMode, DataGridEditMode.Row)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        // The unlabelled selection column header is still a scoped column header,
+        // and carries an aria-label so it is not announced as blank.
+        var selectHeader = cut.Find("table.omni-grid-table thead th.omni-grid-th-select");
+        Assert.Equal("col", selectHeader.GetAttribute("scope"));
+        Assert.False(string.IsNullOrEmpty(selectHeader.GetAttribute("aria-label")));
+
+        // Same for the trailing edit-actions column header.
+        var headers = cut.FindAll("table.omni-grid-table thead tr:first-child th");
+        Assert.All(headers, th => Assert.Equal("col", th.GetAttribute("scope")));
+    }
+
+    [Fact]
     public void Renders_data_rows()
     {
         var cut = RenderComponent<OmniDataGrid<Person>>(p => p

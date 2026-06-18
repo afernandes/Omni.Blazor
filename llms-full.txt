@@ -1,6 +1,6 @@
 # Omni.Blazor — full API reference
 
-> 171 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 173 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
 
@@ -14,6 +14,35 @@ Parameters:
 - `Text`: string — Overrides the displayed label (default is [Index]).
 - `Title`: string — Source title, shown in the tooltip and the accessible name.
 - `Url`: string — Source URL. When set the badge becomes a link opening in a new tab.
+
+### OmniMessage
+A single chat message (user / assistant / system) with avatar, author and content (Markdown or streaming via OmniStreamingText), plus a footer slot for citations, reasoning or actions.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Ai/OmniMessage.razor_
+
+Parameters:
+- `Author`: string — Display name shown above the content.
+- `AvatarInitials`: string — Avatar initials when no image is set.
+- `AvatarUrl`: string — Avatar image URL (falls back to AvatarInitials).
+- `Content`: string — Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given.
+- `Role`: MessageRole {User | Assistant | System} = Assistant — Who sent the message — drives the layout/styling. Default Assistant.
+- `Streaming`: bool = false — When true, the content shows the streaming caret (assistant still typing).
+Slots:
+- `AvatarContent`: RenderFragment — Custom avatar markup; overrides the default OmniAvatar.
+- `Footer`: RenderFragment — Footer slot for citations (OmniCitation), reasoning (OmniThinkingBlock) or actions.
+
+### OmniPromptInput
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Ai/OmniPromptInput.razor_
+
+Parameters:
+- `AriaLabel`: string — Accessible label for the textarea (falls back to Placeholder).
+- `MaxLength`: int — Optional maximum length; when set the counter shows count/max.
+- `Placeholder`: string — Placeholder shown in the empty composer.
+- `Rows`: int = 3 — Initial visible rows of the textarea. Default 3.
+- `SendLabel`: string = Send — Accessible label for the send button. Default "Send".
+Events:
+- `OnSend`: EventCallback<string> — Fired with the prompt text when the user sends (Ctrl/Cmd+Enter or the send button).
+Slots:
+- `Actions`: RenderFragment — Extra action controls rendered left of the send button (e.g. a voice button).
 
 ### OmniStreamingText
 Renders an assistant response as it streams in — accumulating Markdown (or plain text) with a blinking caret while Streaming is true.

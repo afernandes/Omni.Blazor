@@ -1,0 +1,75 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* A single chat message (user / assistant / system) with avatar, author and content (Markdown or streaming via OmniStreamingText), plus a footer slot for citations, reasoning or actions. *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <div class="omni-message-avatar">
+        @if (AvatarContent is not null)
+        {
+            @AvatarContent
+        }
+        else
+        {
+            <OmniAvatar Initials="@AvatarInitials" ImageUrl="@AvatarUrl" Size="AvatarSize.Md" />
+        }
+    </div>
+    <div class="omni-message-main">
+        @if (!string.IsNullOrEmpty(Author))
+        {
+            <div class="omni-message-author">@Author</div>
+        }
+        <div class="omni-message-content">
+            @if (ChildContent is not null)
+            {
+                @ChildContent
+            }
+            else if (!string.IsNullOrEmpty(Content))
+            {
+                <OmniStreamingText Text="@Content" Streaming="Streaming" />
+            }
+        </div>
+        @if (Footer is not null)
+        {
+            <div class="omni-message-footer">@Footer</div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Who sent the message — drives the layout/styling. Default Assistant.</summary>
+    [Parameter] public MessageRole Role { get; set; } = MessageRole.Assistant;
+
+    /// <summary>Display name shown above the content.</summary>
+    [Parameter] public string? Author { get; set; }
+
+    /// <summary>Avatar image URL (falls back to <see cref="AvatarInitials"/>).</summary>
+    [Parameter] public string? AvatarUrl { get; set; }
+
+    /// <summary>Avatar initials when no image is set.</summary>
+    [Parameter] public string? AvatarInitials { get; set; }
+
+    /// <summary>Custom avatar markup; overrides the default <c>OmniAvatar</c>.</summary>
+    [Parameter] public RenderFragment? AvatarContent { get; set; }
+
+    /// <summary>Message text, rendered as Markdown via <c>OmniStreamingText</c> when no <see cref="OmniComponentWithChildren.ChildContent"/> is given.</summary>
+    [Parameter] public string? Content { get; set; }
+
+    /// <summary>When true, the content shows the streaming caret (assistant still typing).</summary>
+    [Parameter] public bool Streaming { get; set; }
+
+    /// <summary>Footer slot for citations (<c>OmniCitation</c>), reasoning (<c>OmniThinkingBlock</c>) or actions.</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    private string RootCss => CssBuilder.Default("omni-message")
+        .AddClass(Role switch
+        {
+            MessageRole.User => "omni-message-user",
+            MessageRole.System => "omni-message-system",
+            _ => "omni-message-assistant",
+        })
+        .AddClass(Class)
+        .Build();
+}

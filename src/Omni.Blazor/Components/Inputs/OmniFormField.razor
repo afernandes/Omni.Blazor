@@ -41,7 +41,7 @@
     }
     else if (!string.IsNullOrEmpty(Hint))
     {
-        <span class="omni-field-hint">@Hint</span>
+        <span id="@HintId" class="omni-field-hint">@Hint</span>
     }
 </div>
 
@@ -120,6 +120,14 @@
 
     private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
         => InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    /// Stable id for the helper/hint text, derived from the component <c>Id</c>.
+    /// Exposed so a consumer's input can reference it via
+    /// <c>aria-describedby</c> (the input arrives as arbitrary
+    /// <c>ChildContent</c>, so the field cannot inject the attribute itself).
+    /// </summary>
+    public string HintId => $"{Id}-hint";
 
     private string? EffectiveError
     {

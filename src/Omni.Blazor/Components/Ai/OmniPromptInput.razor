@@ -1,0 +1,74 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@using Omni.Blazor.Utilities
+
+@* AI prompt composer — multiline input bound to Value, with a character counter, Ctrl/Cmd+Enter to send (plain Enter inserts a newline), a send button, and an Actions slot for extras like voice dictation. *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <textarea class="omni-prompt-input-field"
+              rows="@Rows"
+              placeholder="@Placeholder"
+              maxlength="@(MaxLength?.ToString())"
+              disabled="@Disabled"
+              readonly="@ReadOnly"
+              aria-label="@(AriaLabel ?? Placeholder)"
+              value="@Value"
+              @oninput="OnInputAsync"
+              @onkeydown="OnKeyDownAsync"></textarea>
+
+    <div class="omni-prompt-input-bar">
+        <span class="omni-prompt-input-count" aria-hidden="true">@CountLabel</span>
+        <div class="omni-prompt-input-actions">
+            @Actions
+            <OmniButton Variant="ButtonVariant.Primary" Icon="send" IconOnly="true"
+                        Disabled="@(Disabled || ReadOnly || !CanSend)" OnClick="SendAsync" aria-label="@SendLabel" />
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>Placeholder shown in the empty composer.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Initial visible rows of the textarea. Default 3.</summary>
+    [Parameter] public int Rows { get; set; } = 3;
+
+    /// <summary>Optional maximum length; when set the counter shows <c>count/max</c>.</summary>
+    [Parameter] public int? MaxLength { get; set; }
+
+    /// <summary>Accessible label for the textarea (falls back to <see cref="Placeholder"/>).</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>Accessible label for the send button. Default "Send".</summary>
+    [Parameter] public string SendLabel { get; set; } = "Send";
+
+    /// <summary>Fired with the prompt text when the user sends (Ctrl/Cmd+Enter or the send button).</summary>
+    [Parameter] public EventCallback<string> OnSend { get; set; }
+
+    /// <summary>Extra action controls rendered left of the send button (e.g. a voice button).</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    private int CharCount => Value?.Length ?? 0;
+    private string CountLabel => MaxLength is int max ? $"{CharCount}/{max}" : CharCount.ToString();
+    private bool CanSend => !string.IsNullOrWhiteSpace(Value);
+
+    private async Task OnInputAsync(ChangeEventArgs e) => await SetValueAsync(e.Value?.ToString());
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        // Ctrl/Cmd+Enter sends; plain Enter / Shift+Enter keep the textarea's newline.
+        if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey) && !e.ShiftKey)
+            await SendAsync();
+    }
+
+    private async Task SendAsync()
+    {
+        if (!CanSend || Disabled || ReadOnly) return;
+        if (OnSend.HasDelegate) await OnSend.InvokeAsync(Value!);
+    }
+
+    private string RootCss => CssBuilder.Default("omni-prompt-input")
+        .AddClass("omni-disabled", Disabled)
+        .AddClass(Class)
+        .Build();
+}

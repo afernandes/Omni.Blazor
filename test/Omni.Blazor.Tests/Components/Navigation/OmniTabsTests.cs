@@ -72,4 +72,75 @@ public class OmniTabsTests : TestContextBase
         Assert.DoesNotContain("omni-active", cut.FindAll(".omni-tab")[0].ClassName);
         Assert.Contains("omni-active", cut.FindAll(".omni-tab")[1].ClassName);
     }
+
+    [Fact]
+    public void Tab_bar_has_tablist_role()
+    {
+        var cut = RenderComponent<OmniTabs>(p => p
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One")));
+
+        Assert.Equal("tablist", cut.Find(".omni-tabs-bar").GetAttribute("role"));
+    }
+
+    [Fact]
+    public void Each_tab_button_has_tab_role()
+    {
+        var cut = RenderComponent<OmniTabs>(p => p
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
+
+        var buttons = cut.FindAll(".omni-tab");
+        Assert.All(buttons, b => Assert.Equal("tab", b.GetAttribute("role")));
+    }
+
+    [Fact]
+    public void Active_body_has_tabpanel_role()
+    {
+        var cut = RenderComponent<OmniTabs>(p => p
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One")));
+
+        Assert.Equal("tabpanel", cut.Find(".omni-tabs-body").GetAttribute("role"));
+    }
+
+    [Fact]
+    public void Aria_selected_is_true_only_on_active_tab()
+    {
+        var cut = RenderComponent<OmniTabs>(p => p
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
+
+        var buttons = cut.FindAll(".omni-tab");
+        Assert.Equal("true", buttons[0].GetAttribute("aria-selected"));
+        Assert.Equal("false", buttons[1].GetAttribute("aria-selected"));
+    }
+
+    [Fact]
+    public void Aria_selected_follows_active_tab_after_click()
+    {
+        var cut = RenderComponent<OmniTabs>(p => p
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
+
+        cut.FindAll(".omni-tab")[1].Click();
+
+        var buttons = cut.FindAll(".omni-tab");
+        Assert.Equal("false", buttons[0].GetAttribute("aria-selected"));
+        Assert.Equal("true", buttons[1].GetAttribute("aria-selected"));
+    }
+
+    [Fact]
+    public void Active_panel_is_labelled_by_active_tab()
+    {
+        var cut = RenderComponent<OmniTabs>(p => p
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
+
+        var activeTab = cut.FindAll(".omni-tab")[0];
+        var panel = cut.Find(".omni-tabs-body");
+
+        var tabId = activeTab.GetAttribute("id");
+        Assert.False(string.IsNullOrEmpty(tabId));
+        Assert.Equal(tabId, panel.GetAttribute("aria-labelledby"));
+        Assert.Equal(activeTab.GetAttribute("aria-controls"), panel.GetAttribute("id"));
+    }
 }

@@ -109,19 +109,19 @@
                     <tr>
                         @if (AllowMultiSelection)
                         {
-                            <th class="omni-grid-th-select" style="width: 36px;" @onclick:stopPropagation>
+                            <th scope="col" aria-label="Selecionar" class="omni-grid-th-select" style="width: 36px;" @onclick:stopPropagation>
                                 <OmniCheckBox Value="@AllSelectedOnPage" ValueChanged="OnHeaderSelectChangedAsync" />
                             </th>
                         }
                         @if (DetailTemplate is not null)
                         {
-                            <th class="omni-grid-th-expand" style="width: 36px;"></th>
+                            <th scope="col" aria-label="Detalhes" class="omni-grid-th-expand" style="width: 36px;"></th>
                         }
                         @{ var _hi = 0; }
                         @foreach (var c in VisibleColumns)
                         {
                             var hi = _hi;
-                            <th class="@($"{HeaderCss(c)} {CellCss(c)}")" style="@CellStyle(c)"
+                            <th scope="col" class="@($"{HeaderCss(c)} {CellCss(c)}")" style="@CellStyle(c)"
                                 @onclick="@(e => OnHeaderClickAsync(c, e))">
                                 @if (AllowGrouping && c.Groupable)
                                 {
@@ -153,7 +153,7 @@
                         }
                         @if (EditMode != DataGridEditMode.None)
                         {
-                            <th style="width: 110px;"></th>
+                            <th scope="col" aria-label="Ações" style="width: 110px;"></th>
                         }
                         @if (HasFillerColumn)
                         {
