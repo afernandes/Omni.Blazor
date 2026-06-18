@@ -68,11 +68,17 @@
   </ItemGroup>
 
   <!-- =====================================================================
-       MinVer defaults — derive version from git tags (vX.Y.Z).
-       When no tag is reachable (e.g. fresh clone, no history), MinVer falls
-       back to <MinVerDefaultPreReleaseIdentifiers> and emits 0.0.0-alpha.0.
+       MinVer config — derive version from git tags (vX.Y.Z).
+       MUST be unconditional: a Condition on $(IsPackable) would be evaluated
+       during the property pass of Directory.Build.props — BEFORE the consuming
+       .csproj sets <IsPackable>true</IsPackable> later in that same pass — so the
+       settings (notably MinVerTagPrefix=v) would never apply and MinVer would
+       ignore the `v`-prefixed tags, falling back to 0.0.0-alpha.0.{height}.
+       (The MinVer PackageReference above IS safely conditional: ItemGroups are
+       evaluated in a later pass, after IsPackable has been set.) These props are
+       inert on non-packable projects since MinVer isn't referenced there.
        ===================================================================== -->
-  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+  <PropertyGroup>
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
     <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
