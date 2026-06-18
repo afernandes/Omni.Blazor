@@ -63,6 +63,7 @@
     private async Task StreamAsync()
     {
         _cts?.Cancel();
+        _cts?.Dispose();
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
         _text = "";
@@ -88,5 +89,9 @@
         }
     }
 
-    public void Dispose() => _cts?.Cancel();
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
 }
