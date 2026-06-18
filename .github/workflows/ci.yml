@@ -59,10 +59,28 @@ jobs:
       - name: Build
         run: dotnet build Omni.Blazor.slnx --configuration Release --no-restore
 
-      - name: Test
+      - name: Test (+ coverage)
         run: |
-          dotnet test test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj --configuration Release --no-build
-          dotnet test test/Omni.Blazor.Mcp.Tests/Omni.Blazor.Mcp.Tests.csproj --configuration Release --no-build
+          for proj in \
+            test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj \
+            test/Omni.Blazor.ManifestGen.Tests/Omni.Blazor.ManifestGen.Tests.csproj \
+            test/Omni.Blazor.Mcp.Tests/Omni.Blazor.Mcp.Tests.csproj; do
+            dotnet test "$proj" --configuration Release --no-build \
+              --settings coverlet.runsettings \
+              --collect:"XPlat Code Coverage" \
+              --results-directory "${{ github.workspace }}/coverage"
+          done
+
+      - name: Coverage gate (>= 80% line)
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 scripts/check_coverage.py 80 coverage Omni.Blazor Omni.Blazor.ManifestGen Omni.Blazor.Mcp
+
+      - name: Manifest is up to date
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet run --project tools/Omni.Blazor.ManifestGen --configuration Release --no-build
+          git diff --exit-code -- docs/components.json llms.txt llms-full.txt \
+            || { echo "::error::Manifest artifacts are stale — run 'dotnet run --project tools/Omni.Blazor.ManifestGen' and commit docs/components.json + llms.txt + llms-full.txt"; exit 1; }
 
       - name: Pack (Omni.Blazor, dry-run)
         if: matrix.os == 'ubuntu-latest'
