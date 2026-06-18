@@ -1,0 +1,61 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponentWithChildren
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@* Collapsible reasoning / "thinking" block for AI answers — collapsed by default; expand to reveal the model's chain of thought or tool steps. *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <button type="button" class="omni-thinking-toggle" @onclick="ToggleAsync" aria-expanded="@(_expanded ? "true" : "false")">
+        <span class="omni-thinking-chevron"><OmniIcon Name="chevron-right" Size="ComponentSize.Sm" /></span>
+        <span class="omni-thinking-title">@Title</span>
+    </button>
+    @if (_expanded)
+    {
+        <div class="omni-thinking-body">@ChildContent</div>
+    }
+</div>
+
+@code {
+    /// <summary>Toggle label. Default "Reasoning".</summary>
+    [Parameter] public string Title { get; set; } = "Reasoning";
+
+    /// <summary>Expanded state; supports two-way binding via <see cref="ExpandedChanged"/>. Default collapsed.</summary>
+    [Parameter] public bool Expanded { get; set; }
+
+    /// <summary>Fired when the block expands or collapses, carrying the new state.</summary>
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+
+    private bool _expanded;
+    private readonly ParameterState<bool> _expandedState;
+
+    // Test hook: counts Expanded-driven recomputes (must not fire on Class/Style change).
+    internal int RecomputeCount { get; private set; }
+
+    public OmniThinkingBlock()
+    {
+        _expandedState = RegisterParameter<bool>(nameof(Expanded))
+            .WithParameter(() => Expanded)
+            .WithChangeHandler(SyncExpanded)
+            .Attach();
+    }
+
+    protected override void OnInitialized() => _expanded = Expanded;
+
+    private void SyncExpanded()
+    {
+        _expanded = Expanded;
+        RecomputeCount++;
+    }
+
+    private async Task ToggleAsync()
+    {
+        _expanded = !_expanded;
+        if (ExpandedChanged.HasDelegate) await ExpandedChanged.InvokeAsync(_expanded);
+    }
+
+    private string RootCss => CssBuilder.Default("omni-thinking")
+        .AddClass("omni-expanded", _expanded)
+        .AddClass(Class)
+        .Build();
+}

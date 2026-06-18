@@ -1,0 +1,42 @@
+@page "/showcase/thinking-block"
+@attribute [ShowcaseInfo(Title = "Thinking Block", Category = Cat.Ai, Icon = "chevron-right", Aliases = "ai,reasoning,chain of thought,o1,tool calls,thinking")]
+@layout ShowcaseLayout
+
+<PageTitle>Thinking Block — Showcase</PageTitle>
+
+<ShowcasePage Title="Thinking Block"
+              Subtitle="Bloco colapsável de raciocínio / 'thinking' para respostas de IA — recolhido por padrão.">
+
+    <Overview>
+        <p>
+            O <code>OmniThinkingBlock</code> esconde o raciocínio do modelo (cadeia de pensamento, passos de
+            ferramentas) atrás de um disclosure colapsável, com <code>aria-expanded</code>. Suporta
+            <code>@@bind-Expanded</code> para controle externo.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="EXEMPLO" Description="Clique para revelar o raciocínio." Code="@Code">
+            <OmniThinkingBlock Title="Mostrar raciocínio">
+                <OmniMarkdown>
+1. Identifiquei a intenção: cálculo de gorjeta.
+2. Apliquei 15% sobre `R$ 80,00` = R$ 12,00.
+3. Total: **R$ 92,00**.
+                </OmniMarkdown>
+            </OmniThinkingBlock>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniThinkingBlock">
+            <ShowcaseApiRow Name="Title" Type="string" Default="Reasoning" Description="Rótulo do toggle." />
+            <ShowcaseApiRow Name="Expanded" Type="bool" Default="false" Description="Estado expandido (two-way via ExpandedChanged)." />
+            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null" Description="Conteúdo do raciocínio, revelado ao expandir." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private const string Code = @"<OmniThinkingBlock Title=""Mostrar raciocínio"">…</OmniThinkingBlock>";
+}

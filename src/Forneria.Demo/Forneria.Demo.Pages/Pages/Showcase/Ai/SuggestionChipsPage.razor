@@ -1,0 +1,40 @@
+@page "/showcase/suggestion-chips"
+@attribute [ShowcaseInfo(Title = "Suggestion Chips", Category = Cat.Ai, Icon = "list", Aliases = "ai,chat,quick replies,follow-up,prompt")]
+@layout ShowcaseLayout
+
+<PageTitle>Suggestion Chips — Showcase</PageTitle>
+
+<ShowcasePage Title="Suggestion Chips"
+              Subtitle="Linha de chips de sugestão (follow-ups / respostas rápidas) para conversas com IA.">
+
+    <Overview>
+        <p>
+            O <code>OmniSuggestionChips</code> renderiza uma lista de <code>OmniChip</code> a partir de
+            <code>Suggestions</code>; clicar dispara <code>OnSelect</code> com o texto escolhido. O grupo
+            é <code>role="group"</code> com <code>aria-label</code>.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="EXEMPLO" Description="Clique numa sugestão." Code="@Code">
+            <OmniSuggestionChips Suggestions="_suggestions" Icon="zap" OnSelect="s => _picked = s" />
+            <p style="margin-top:12px;color:var(--omni-fg-soft);">Escolhido: <strong>@(_picked ?? "—")</strong></p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniSuggestionChips">
+            <ShowcaseApiRow Name="Suggestions" Type="IEnumerable&lt;string&gt;?" Default="null" Description="Rótulos renderizados como chips." />
+            <ShowcaseApiRow Name="OnSelect" Type="EventCallback&lt;string&gt;" Default="—" Description="Disparado com o texto do chip clicado." />
+            <ShowcaseApiRow Name="Icon" Type="string?" Default="null" Description="Ícone opcional em cada chip." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string" Default="Suggestions" Description="Rótulo acessível do grupo." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private readonly string[] _suggestions = ["Resumir", "Explicar melhor", "Traduzir", "Dar um exemplo"];
+    private string? _picked;
+    private const string Code = @"<OmniSuggestionChips Suggestions=""_suggestions"" OnSelect=""s => _picked = s"" />";
+}

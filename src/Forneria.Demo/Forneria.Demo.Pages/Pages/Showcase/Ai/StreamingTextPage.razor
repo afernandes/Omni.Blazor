@@ -1,0 +1,97 @@
+@page "/showcase/streaming-text"
+@attribute [ShowcaseInfo(Title = "Streaming Text", Category = Cat.Ai, Icon = "type", Featured = true, Aliases = "ai,llm,stream,typewriter,markdown,chat")]
+@layout ShowcaseLayout
+@implements IDisposable
+
+<PageTitle>Streaming Text — Showcase</PageTitle>
+
+<ShowcasePage Title="Streaming Text"
+              Subtitle="Renderiza a resposta de um modelo enquanto ela chega — Markdown acumulado com caret piscando. Alimente o Text com os tokens.">
+
+    <Overview>
+        <p>
+            O <code>OmniStreamingText</code> mostra a resposta de um LLM <strong>token a token</strong>:
+            atualize <code>Text</code> conforme os tokens chegam e ele re-renderiza o Markdown acumulado
+            com um <strong>caret piscando</strong> enquanto <code>Streaming</code> é <code>true</code>.
+            A região é <code>aria-live="polite"</code> + <code>aria-busy</code> para leitores de tela, e o
+            caret respeita <code>prefers-reduced-motion</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Respostas de chat/assistente em streaming (SSE / token stream do modelo).</li>
+            <li>Saída de LLM em Markdown com efeito "digitando".</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DEMO AO VIVO"
+                         Description="Clique para (re)transmitir uma resposta de exemplo, palavra a palavra."
+                         Code="@Code">
+            <OmniButton Variant="ButtonVariant.Primary" Icon="play" OnClick="StreamAsync" Disabled="_streaming">
+                @(_streaming ? "Transmitindo…" : "Transmitir resposta")
+            </OmniButton>
+            <div style="margin-top:16px;border:1px solid var(--omni-line);border-radius:10px;background:var(--omni-bg-elev);padding:16px;min-height:96px;">
+                <OmniStreamingText Text="@_text" Streaming="_streaming" Placeholder="Pensando…" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniStreamingText">
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null" Description="Texto acumulado da resposta. Atualize conforme os tokens chegam." />
+            <ShowcaseApiRow Name="Streaming" Type="bool" Default="false" Description="Mostra o caret e marca a região aria-busy." />
+            <ShowcaseApiRow Name="Markdown" Type="bool" Default="true" Description="Renderiza como Markdown (via OmniMarkdown) ou texto puro." />
+            <ShowcaseApiRow Name="Caret" Type="bool" Default="true" Description="Mostra o caret piscando enquanto transmite." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null" Description="Texto exibido enquanto transmite, antes do primeiro token." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private string _text = "";
+    private bool _streaming;
+    private CancellationTokenSource? _cts;
+
+    private const string Code = @"<OmniStreamingText Text=""@_text"" Streaming=""_streaming"" Placeholder=""Pensando…"" />";
+
+    private const string Sample =
+        "## Resposta\n\nClaro! O **OmniStreamingText** renderiza Markdown enquanto a resposta chega:\n\n- listas\n- `código` inline\n- e *ênfase*\n\nTudo com um caret piscando no fim.";
+
+    private async Task StreamAsync()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+        _text = "";
+        _streaming = true;
+
+        try
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var word in Sample.Split(' '))
+            {
+                ct.ThrowIfCancellationRequested();
+                sb.Append(word).Append(' ');
+                _text = sb.ToString();
+                StateHasChanged();
+                await Task.Delay(55, ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            _streaming = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

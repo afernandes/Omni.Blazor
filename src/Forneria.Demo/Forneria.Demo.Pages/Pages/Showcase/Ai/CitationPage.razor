@@ -1,0 +1,41 @@
+@page "/showcase/citation"
+@attribute [ShowcaseInfo(Title = "Citation", Category = Cat.Ai, Icon = "link", Aliases = "ai,source,reference,footnote,rag,grounding")]
+@layout ShowcaseLayout
+
+<PageTitle>Citation — Showcase</PageTitle>
+
+<ShowcasePage Title="Citation"
+              Subtitle="Badge de fonte inline ([n]) para respostas de IA com referências (RAG / grounding).">
+
+    <Overview>
+        <p>
+            O <code>OmniCitation</code> renderiza um badge <code>[n]</code>. Com <code>Url</code> vira link
+            (nova aba, <code>rel="noopener noreferrer"</code>) e expõe <code>Title</code>/<code>Snippet</code>
+            no tooltip e no <code>aria-label</code> (ex.: "Source 1: …").
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="EXEMPLO" Description="Passe o mouse sobre os números." Code="@Code">
+            <p style="line-height:1.8;max-width:60ch;">
+                A capital da França é Paris<OmniCitation Index="1" Title="Wikipédia — Paris" Url="https://pt.wikipedia.org/wiki/Paris" Snippet="Capital e cidade mais populosa da França." />,
+                com cerca de 2,1 milhões de habitantes no município<OmniCitation Index="2" Title="INSEE (2023)" Snippet="População municipal estimada." />.
+            </p>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniCitation">
+            <ShowcaseApiRow Name="Index" Type="int" Default="0" Description="Número da referência, renderizado como [n]." />
+            <ShowcaseApiRow Name="Url" Type="string?" Default="null" Description="Quando setado, o badge vira link em nova aba." />
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null" Description="Título da fonte (tooltip + aria-label)." />
+            <ShowcaseApiRow Name="Snippet" Type="string?" Default="null" Description="Trecho opcional anexado ao tooltip." />
+            <ShowcaseApiRow Name="Text" Type="string?" Default="null" Description="Sobrescreve o rótulo [n]." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private const string Code = @"A capital é Paris<OmniCitation Index=""1"" Title=""…"" Url=""…"" Snippet=""…"" />.";
+}
