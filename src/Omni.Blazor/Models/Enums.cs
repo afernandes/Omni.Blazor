@@ -1058,3 +1058,14 @@ public enum CarouselPagerPosition
     /// <summary>Dots nas duas extremidades.</summary>
     TopAndBottom
 }
+
+/// <summary>Author role of an <c>OmniMessage</c> in an AI conversation.</summary>
+public enum MessageRole
+{
+    /// <summary>Message from the end user.</summary>
+    User,
+    /// <summary>Message from the AI assistant (default).</summary>
+    Assistant,
+    /// <summary>System / instruction message.</summary>
+    System
+}

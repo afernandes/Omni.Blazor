@@ -1,7 +1,7 @@
 {
   "package": "AndersonN.Omni.Blazor",
   "repository": "https://github.com/afernandes/Omni.Blazor",
-  "count": 171,
+  "count": 173,
   "components": [
     {
       "name": "OmniCitation",
@@ -71,6 +71,286 @@
           "required": false,
           "summary": "Inline style appended to the component root.",
           "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniMessage",
+      "category": "Ai",
+      "baseType": "OmniComponentWithChildren",
+      "isInput": false,
+      "hasChildContent": true,
+      "summary": "A single chat message (user / assistant / system) with avatar, author and content (Markdown or streaming via OmniStreamingText), plus a footer slot for citations, reasoning or actions.",
+      "source": "src/Omni.Blazor/Components/Ai/OmniMessage.razor",
+      "parameters": [
+        {
+          "name": "Author",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Display name shown above the content."
+        },
+        {
+          "name": "AvatarContent",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Custom avatar markup; overrides the default OmniAvatar."
+        },
+        {
+          "name": "AvatarInitials",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Avatar initials when no image is set."
+        },
+        {
+          "name": "AvatarUrl",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Avatar image URL (falls back to AvatarInitials)."
+        },
+        {
+          "name": "Content",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given."
+        },
+        {
+          "name": "Footer",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Footer slot for citations (OmniCitation), reasoning (OmniThinkingBlock) or actions."
+        },
+        {
+          "name": "Role",
+          "kind": "parameter",
+          "type": "MessageRole",
+          "enumValues": [
+            {
+              "name": "User",
+              "summary": "Message from the end user."
+            },
+            {
+              "name": "Assistant",
+              "summary": "Message from the AI assistant (default)."
+            },
+            {
+              "name": "System",
+              "summary": "System / instruction message."
+            }
+          ],
+          "default": "Assistant",
+          "required": false,
+          "summary": "Who sent the message — drives the layout/styling. Default Assistant."
+        },
+        {
+          "name": "Streaming",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "When true, the content shows the streaming caret (assistant still typing)."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "ChildContent",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "inheritedFrom": "OmniComponentWithChildren"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniPromptInput",
+      "category": "Ai",
+      "baseType": "FormComponent<T>",
+      "isInput": true,
+      "hasChildContent": false,
+      "source": "src/Omni.Blazor/Components/Ai/OmniPromptInput.razor",
+      "parameters": [
+        {
+          "name": "Actions",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Extra action controls rendered left of the send button (e.g. a voice button)."
+        },
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible label for the textarea (falls back to Placeholder)."
+        },
+        {
+          "name": "MaxLength",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Optional maximum length; when set the counter shows count/max."
+        },
+        {
+          "name": "OnSend",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "summary": "Fired with the prompt text when the user sends (Ctrl/Cmd+Enter or the send button)."
+        },
+        {
+          "name": "Placeholder",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Placeholder shown in the empty composer."
+        },
+        {
+          "name": "Rows",
+          "kind": "parameter",
+          "type": "int",
+          "default": "3",
+          "required": false,
+          "summary": "Initial visible rows of the textarea. Default 3."
+        },
+        {
+          "name": "SendLabel",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Send",
+          "required": false,
+          "summary": "Accessible label for the send button. Default \"Send\"."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Name",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Nome lógico do campo. Use com validators irmãos (<OmniRequiredValidator Component=\"email\" />). Default = nome da propriedade extraído do ValueExpression.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "OnlyValidateIfDirty",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Quando true, valida apenas após o user mexer no campo (touched). Evita erros vermelhos na primeira render do formulário. Default true.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ReadOnly",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Required",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Marca o campo como obrigatório — valor default/vazio dispara RequiredError.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "RequiredError",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Campo obrigatório.",
+          "required": false,
+          "summary": "Mensagem exibida quando Required = true e o valor é default/empty.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Valor atual.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueChanged",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueExpression",
+          "kind": "parameter",
+          "type": "Expression<Func<string>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
         }
       ]
     },
