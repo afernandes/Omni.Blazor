@@ -27,7 +27,7 @@ public class OmniBreakpointProviderTests : TestContextBase
     [Fact]
     public void Renders_children_and_cascades_default_breakpoint()
     {
-        var cut = RenderComponent<OmniBreakpointProvider>(p => p
+        var cut = Render<OmniBreakpointProvider>(p => p
             .AddChildContent<BreakpointConsumer>());
 
         var consumer = cut.Find("[data-testid='consumer']");
@@ -38,7 +38,7 @@ public class OmniBreakpointProviderTests : TestContextBase
     [Fact]
     public void Renders_arbitrary_child_content()
     {
-        var cut = RenderComponent<OmniBreakpointProvider>(p => p
+        var cut = Render<OmniBreakpointProvider>(p => p
             .AddChildContent("<span data-testid='raw'>hello</span>"));
 
         Assert.NotNull(cut.Find("[data-testid='raw']"));

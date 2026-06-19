@@ -11,7 +11,7 @@ public class OmniOverlayHostsTests : TestContextBase
     [Fact]
     public void Renders_without_throwing_when_no_services_active()
     {
-        var cut = RenderComponent<OmniOverlayHosts>();
+        var cut = Render<OmniOverlayHosts>();
 
         // All four child hosts render empty when their services are idle —
         // markup is therefore empty, but the call itself must succeed.

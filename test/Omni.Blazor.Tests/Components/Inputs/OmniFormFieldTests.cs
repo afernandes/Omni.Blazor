@@ -12,14 +12,14 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Renders_field_wrapper_with_base_class()
     {
-        var cut = RenderComponent<OmniFormField>(p => p.AddChildContent("body"));
+        var cut = Render<OmniFormField>(p => p.AddChildContent("body"));
         Assert.NotNull(cut.Find("div.omni-field"));
     }
 
     [Fact]
     public void Renders_label_when_provided()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Label, "Email")
             .AddChildContent("x"));
 
@@ -29,7 +29,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Required_label_adds_required_modifier()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Label, "Email")
             .Add(c => c.Required, true)
             .AddChildContent("x"));
@@ -40,7 +40,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Renders_explicit_error_and_marks_field_invalid()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Error, "Boom!")
             .AddChildContent("x"));
 
@@ -51,7 +51,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Hint_shows_when_no_error()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Hint, "Helpful tip")
             .AddChildContent("x"));
 
@@ -61,7 +61,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Hint_has_stable_id_for_aria_describedby()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Hint, "Helpful tip")
             .AddChildContent("x"));
 
@@ -77,13 +77,13 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Hint_id_is_stable_across_rerenders()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Hint, "Helpful tip")
             .AddChildContent("x"));
 
         var first = cut.Find("span.omni-field-hint").GetAttribute("id");
 
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Hint, "Helpful tip")
             .Add(c => c.Class, "newcls"));
 
@@ -94,7 +94,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Error_hides_hint()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Hint, "Helpful tip")
             .Add(c => c.Error, "Boom!")
             .AddChildContent("x"));
@@ -105,7 +105,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("x"));
 
@@ -115,7 +115,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Style, "margin: 4px")
             .AddChildContent("x"));
 
@@ -125,7 +125,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .AddUnmatched("data-testid", "ff")
             .AddChildContent("x"));
 
@@ -143,7 +143,7 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Initial_recompute_fires_on_first_render()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Label, "Email")
             .AddChildContent("x"));
 
@@ -154,12 +154,12 @@ public class OmniFormFieldTests : TestContextBase
     [Fact]
     public void Recompute_does_not_fire_when_unrelated_params_change()
     {
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.Label, "L")
             .AddChildContent("x"));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Label, "Other")
             .Add(c => c.Hint, "tip")
             .Add(c => c.HintRight, "right")
@@ -179,12 +179,12 @@ public class OmniFormFieldTests : TestContextBase
         System.Linq.Expressions.Expression<Func<object?>> first  = () => model.A;
         System.Linq.Expressions.Expression<Func<object?>> second = () => model.B;
 
-        var cut = RenderComponent<OmniFormField>(p => p
+        var cut = Render<OmniFormField>(p => p
             .Add(c => c.ValidationFor, first)
             .AddChildContent("x"));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.ValidationFor, second));
+        cut.Render(p => p.Add(c => c.ValidationFor, second));
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
     }

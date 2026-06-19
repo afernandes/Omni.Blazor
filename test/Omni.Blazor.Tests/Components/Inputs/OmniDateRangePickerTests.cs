@@ -14,7 +14,7 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Renders_root_with_base_class_and_trigger()
     {
-        var cut = RenderComponent<OmniDateRangePicker>();
+        var cut = Render<OmniDateRangePicker>();
         Assert.NotNull(cut.Find("div.omni-daterange"));
         Assert.NotNull(cut.Find("button.omni-daterange-input"));
     }
@@ -22,7 +22,7 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Shows_placeholder_when_no_range_set()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p
+        var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.Placeholder, "Período"));
 
         Assert.Contains("Período", cut.Find("span.omni-daterange-placeholder").TextContent);
@@ -31,7 +31,7 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Shows_values_when_From_and_To_set()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p
+        var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
             .Add(c => c.To,   new DateOnly(2025, 1, 31)));
 
@@ -41,7 +41,7 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Disabled_disables_trigger_and_applies_modifier()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p.Add(c => c.Disabled, true));
+        var cut = Render<OmniDateRangePicker>(p => p.Add(c => c.Disabled, true));
 
         Assert.True(cut.Find("button.omni-daterange-input").HasAttribute("disabled"));
         Assert.Contains("omni-daterange-disabled", cut.Find("div.omni-daterange").ClassName);
@@ -50,21 +50,21 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p.Add(c => c.Class, "custom-cls"));
+        var cut = Render<OmniDateRangePicker>(p => p.Add(c => c.Class, "custom-cls"));
         Assert.Contains("custom-cls", cut.Find("div.omni-daterange").ClassName);
     }
 
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p.Add(c => c.Style, "min-width: 320px"));
+        var cut = Render<OmniDateRangePicker>(p => p.Add(c => c.Style, "min-width: 320px"));
         Assert.Equal("min-width: 320px", cut.Find("div.omni-daterange").GetAttribute("style"));
     }
 
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p
+        var cut = Render<OmniDateRangePicker>(p => p
             .AddUnmatched("data-testid", "drp"));
 
         Assert.Equal("drp", cut.Find("div.omni-daterange").GetAttribute("data-testid"));
@@ -75,7 +75,7 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Initial_From_To_populate_pending_on_first_render()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p
+        var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
             .Add(c => c.To,   new DateOnly(2025, 1, 31)));
 
@@ -88,12 +88,12 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Recompute_does_not_fire_when_unrelated_params_change()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p
+        var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
             .Add(c => c.To,   new DateOnly(2025, 1, 31)));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Class, "newcls")
             .Add(c => c.Style, "color: red")
             .AddUnmatched("data-foo", "bar"));
@@ -104,12 +104,12 @@ public class OmniDateRangePickerTests : TestContextBase
     [Fact]
     public void Recompute_fires_when_From_changes()
     {
-        var cut = RenderComponent<OmniDateRangePicker>(p => p
+        var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
             .Add(c => c.To,   new DateOnly(2025, 1, 31)));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.From, new DateOnly(2025, 2, 1)));
+        cut.Render(p => p.Add(c => c.From, new DateOnly(2025, 2, 1)));
 
         Assert.True(cut.Instance.RecomputeCount > baseline);
     }

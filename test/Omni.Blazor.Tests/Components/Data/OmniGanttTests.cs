@@ -44,7 +44,7 @@ public class OmniGanttTests : TestContextBase
     private IRenderedComponent<OmniGantt<GTask>> RenderGantt(
         Action<ComponentParameterCollectionBuilder<OmniGantt<GTask>>>? extra = null,
         List<GTask>? data = null)
-        => RenderComponent<OmniGantt<GTask>>(p =>
+        => Render<OmniGantt<GTask>>(p =>
         {
             p.Add(g => g.Data, data ?? Sample());
             p.Add(g => g.IdProperty, "Id");
@@ -234,7 +234,7 @@ public class OmniGanttTests : TestContextBase
     private IRenderedComponent<OmniGantt<GTask>> RenderGanttWith(
         RenderFragment cols,
         Action<ComponentParameterCollectionBuilder<OmniGantt<GTask>>>? extra = null)
-        => RenderComponent<OmniGantt<GTask>>(p =>
+        => Render<OmniGantt<GTask>>(p =>
         {
             p.Add(g => g.Data, Sample());
             p.Add(g => g.IdProperty, "Id");

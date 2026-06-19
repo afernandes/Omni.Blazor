@@ -23,7 +23,7 @@ public class OmniDropZoneTests : TestContextBase
     [Fact]
     public void Renders_dropzone_div_with_base_class_inside_container()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .AddChildContent<OmniDropZone<Task1>>(z => z
@@ -37,7 +37,7 @@ public class OmniDropZoneTests : TestContextBase
     [Fact]
     public void Filters_items_by_ItemSelector()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .Add(c => c.Template, item => b => b.AddMarkupContent(0, $"<span class='it'>{item.Title}</span>"))
@@ -51,7 +51,7 @@ public class OmniDropZoneTests : TestContextBase
     [Fact]
     public void Renders_zone_Footer_after_items()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .AddChildContent<OmniDropZone<Task1>>(z => z
@@ -64,7 +64,7 @@ public class OmniDropZoneTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .AddChildContent<OmniDropZone<Task1>>(z => z
@@ -77,7 +77,7 @@ public class OmniDropZoneTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .AddChildContent<OmniDropZone<Task1>>(z => z
@@ -90,7 +90,7 @@ public class OmniDropZoneTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .AddChildContent<OmniDropZone<Task1>>(z => z

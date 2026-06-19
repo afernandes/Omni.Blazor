@@ -12,7 +12,7 @@ public class OmniFabMenuItemTests : TestContextBase
     [Fact]
     public void Renders_default_root_with_menuitem_role_and_auto_label_class()
     {
-        var cut = RenderComponent<OmniFabMenuItem>(p => p.Add(c => c.Icon, "plus"));
+        var cut = Render<OmniFabMenuItem>(p => p.Add(c => c.Icon, "plus"));
 
         var root = cut.Find("div.omni-fab-item");
         Assert.Equal("menuitem", root.GetAttribute("role"));
@@ -26,7 +26,7 @@ public class OmniFabMenuItemTests : TestContextBase
     [InlineData(FabMenuItemLabelPosition.None,  "omni-fab-item-no-label")]
     public void Applies_label_position_modifier(FabMenuItemLabelPosition lp, string expectedClass)
     {
-        var cut = RenderComponent<OmniFabMenuItem>(p => p
+        var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.LabelPosition, lp)
             .Add(c => c.Icon, "plus"));
 
@@ -36,7 +36,7 @@ public class OmniFabMenuItemTests : TestContextBase
     [Fact]
     public void Label_renders_when_set_and_position_is_not_None()
     {
-        var cut = RenderComponent<OmniFabMenuItem>(p => p
+        var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
             .Add(c => c.Label, "Folder"));
 
@@ -47,7 +47,7 @@ public class OmniFabMenuItemTests : TestContextBase
     [Fact]
     public void Label_hidden_when_LabelPosition_is_None()
     {
-        var cut = RenderComponent<OmniFabMenuItem>(p => p
+        var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
             .Add(c => c.Label, "Folder")
             .Add(c => c.LabelPosition, FabMenuItemLabelPosition.None));
@@ -58,7 +58,7 @@ public class OmniFabMenuItemTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniFabMenuItem>(p => p
+        var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
             .Add(c => c.Class, "custom-fi"));
 
@@ -68,7 +68,7 @@ public class OmniFabMenuItemTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniFabMenuItem>(p => p
+        var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
             .Add(c => c.Style, "opacity: 0.5"));
 
@@ -78,7 +78,7 @@ public class OmniFabMenuItemTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniFabMenuItem>(p => p
+        var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
             .AddUnmatched("data-testid", "fi")
             .AddUnmatched("data-action", "create"));
@@ -92,7 +92,7 @@ public class OmniFabMenuItemTests : TestContextBase
     public void OnClick_fires_when_inner_button_clicked()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniFabMenuItem>(p => p
+        var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++));
 

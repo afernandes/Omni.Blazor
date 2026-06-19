@@ -12,7 +12,7 @@ public class OmniAuthLayoutTests : TestContextBase
     [Fact]
     public void Default_is_centered_with_decor_and_renders_children()
     {
-        var cut = RenderComponent<OmniAuthLayout>(p => p
+        var cut = Render<OmniAuthLayout>(p => p
             .AddChildContent("<div class=\"card\">form</div>"));
         var root = cut.Find(".omni-auth");
         Assert.Contains("omni-auth-centered", root.ClassName);
@@ -23,7 +23,7 @@ public class OmniAuthLayoutTests : TestContextBase
     [Fact]
     public void Brand_set_switches_to_split_and_renders_brand_panel()
     {
-        var cut = RenderComponent<OmniAuthLayout>(p => p
+        var cut = Render<OmniAuthLayout>(p => p
             .Add(c => c.Brand, b => b.AddMarkupContent(0, "<div class=\"brand-x\">ACME</div>"))
             .AddChildContent("<div class=\"form-x\">form</div>"));
         var root = cut.Find(".omni-auth");
@@ -36,7 +36,7 @@ public class OmniAuthLayoutTests : TestContextBase
     [Fact]
     public void Decor_false_removes_decor_class()
     {
-        var cut = RenderComponent<OmniAuthLayout>(p => p
+        var cut = Render<OmniAuthLayout>(p => p
             .Add(c => c.Decor, false)
             .AddChildContent("<div>form</div>"));
         Assert.DoesNotContain("omni-auth-decor", cut.Find(".omni-auth").ClassName);
@@ -45,7 +45,7 @@ public class OmniAuthLayoutTests : TestContextBase
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniAuthLayout>(p => p
+        var cut = Render<OmniAuthLayout>(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "height:600px")
             .AddUnmatched("data-testid", "a1")

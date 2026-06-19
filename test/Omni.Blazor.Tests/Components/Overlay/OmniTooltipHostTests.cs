@@ -12,7 +12,7 @@ public class OmniTooltipHostTests : TestContextBase
     [Fact]
     public void Renders_nothing_when_closed()
     {
-        var cut = RenderComponent<OmniTooltipHost>();
+        var cut = Render<OmniTooltipHost>();
 
         Assert.Empty(cut.FindAll(".omni-tooltip"));
     }
@@ -21,7 +21,7 @@ public class OmniTooltipHostTests : TestContextBase
     public async Task Renders_tooltip_when_service_opens()
     {
         var tip = Services.GetRequiredService<TooltipService>();
-        var cut = RenderComponent<OmniTooltipHost>();
+        var cut = Render<OmniTooltipHost>();
 
         tip.Open(50, 60, "Hello");
         await cut.InvokeAsync(() => { });

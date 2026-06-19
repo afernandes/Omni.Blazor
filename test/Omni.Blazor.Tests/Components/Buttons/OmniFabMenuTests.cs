@@ -11,7 +11,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void Renders_root_with_menubar_class_and_aria_group()
     {
-        var cut = RenderComponent<OmniFabMenu>();
+        var cut = Render<OmniFabMenu>();
 
         var root = cut.Find("div.omni-fab-menu");
         Assert.Contains("omni-fab-menu", root.ClassName);
@@ -27,7 +27,7 @@ public class OmniFabMenuTests : TestContextBase
     [InlineData(FabPosition.Static,       "omni-fab-static")]
     public void Applies_position_modifier(FabPosition pos, string expectedClass)
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p.Add(c => c.Position, pos));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.Position, pos));
 
         Assert.Contains(expectedClass, cut.Find("div.omni-fab-menu").ClassName);
     }
@@ -39,7 +39,7 @@ public class OmniFabMenuTests : TestContextBase
     [InlineData(FabMenuDirection.Right, "omni-fab-dir-right")]
     public void Applies_direction_modifier(FabMenuDirection dir, string expectedClass)
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p.Add(c => c.Direction, dir));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.Direction, dir));
 
         Assert.Contains(expectedClass, cut.Find("div.omni-fab-menu").ClassName);
     }
@@ -50,7 +50,7 @@ public class OmniFabMenuTests : TestContextBase
     [InlineData(FabMenuAnimation.None,    "omni-fab-anim-none")]
     public void Applies_animation_modifier(FabMenuAnimation anim, string expectedClass)
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p.Add(c => c.Animation, anim));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.Animation, anim));
 
         Assert.Contains(expectedClass, cut.Find("div.omni-fab-menu").ClassName);
     }
@@ -58,7 +58,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void IsOpen_initial_true_adds_open_class_and_renders_items()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p
+        var cut = Render<OmniFabMenu>(p => p
             .Add(c => c.IsOpen, true)
             .AddChildContent("<span class=\"probe\">probe</span>"));
 
@@ -69,7 +69,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void IsOpen_initial_false_hides_items_container()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p.Add(c => c.IsOpen, false));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.IsOpen, false));
 
         Assert.Empty(cut.FindAll(".omni-fab-items"));
         Assert.DoesNotContain("omni-fab-open", cut.Find("div.omni-fab-menu").ClassName);
@@ -79,13 +79,13 @@ public class OmniFabMenuTests : TestContextBase
     public void Backdrop_only_renders_when_ShowBackdrop_and_open()
     {
         // No backdrop closed.
-        var closed = RenderComponent<OmniFabMenu>(p => p
+        var closed = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
             .Add(c => c.IsOpen, false));
         Assert.Empty(closed.FindAll(".omni-fab-backdrop"));
 
         // Backdrop visible when open.
-        var open = RenderComponent<OmniFabMenu>(p => p
+        var open = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
             .Add(c => c.IsOpen, true));
         Assert.NotNull(open.Find(".omni-fab-backdrop"));
@@ -94,7 +94,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void Backdrop_uses_scoped_modifier_when_Static_position()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p
+        var cut = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
             .Add(c => c.IsOpen, true)
             .Add(c => c.Position, FabPosition.Static));
@@ -105,7 +105,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void Backdrop_not_scoped_for_fixed_positions()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p
+        var cut = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
             .Add(c => c.IsOpen, true)
             .Add(c => c.Position, FabPosition.BottomRight));
@@ -116,7 +116,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p.Add(c => c.Class, "custom-fm"));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.Class, "custom-fm"));
 
         Assert.Contains("custom-fm", cut.Find("div.omni-fab-menu").ClassName);
     }
@@ -124,7 +124,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p.Add(c => c.Style, "z-index: 50"));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.Style, "z-index: 50"));
 
         Assert.Equal("z-index: 50", cut.Find("div.omni-fab-menu").GetAttribute("style"));
     }
@@ -132,7 +132,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p
+        var cut = Render<OmniFabMenu>(p => p
             .AddUnmatched("data-testid", "fm")
             .AddUnmatched("id", "main-fm"));
 
@@ -144,7 +144,7 @@ public class OmniFabMenuTests : TestContextBase
     [Fact]
     public void AriaLabel_is_forwarded_to_root()
     {
-        var cut = RenderComponent<OmniFabMenu>(p => p.Add(c => c.AriaLabel, "Speed dial"));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.AriaLabel, "Speed dial"));
 
         Assert.Equal("Speed dial", cut.Find("div.omni-fab-menu").GetAttribute("aria-label"));
     }

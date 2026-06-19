@@ -12,7 +12,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void Renders_default_with_value()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Value, "1.234"));
 
         var root = cut.Find("div.omni-stat");
@@ -23,7 +23,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void Label_renders_above_value()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Label, "Revenue")
             .Add(c => c.Value, "R$ 100"));
 
@@ -33,7 +33,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void Card_adds_modifier_class()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Value, "1")
             .Add(c => c.Card, true));
 
@@ -43,7 +43,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void Delta_renders_when_set()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Value, "1")
             .Add(c => c.Delta, "+5%"));
 
@@ -53,7 +53,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void DeltaDown_applies_down_modifier()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Value, "1")
             .Add(c => c.Delta, "-3%")
             .Add(c => c.DeltaDown, true));
@@ -64,7 +64,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Value, "1")
             .Add(c => c.Class, "my-stat"));
 
@@ -74,7 +74,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Value, "1")
             .Add(c => c.Style, "background: red"));
 
@@ -84,7 +84,7 @@ public class OmniStatTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniStat>(p => p
+        var cut = Render<OmniStat>(p => p
             .Add(c => c.Value, "1")
             .AddUnmatched("data-testid", "st1"));
 

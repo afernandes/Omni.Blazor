@@ -38,7 +38,7 @@ public class OmniTreeTests : TestContextBase
 
     private IRenderedComponent<OmniTree> RenderDataTree(
         Action<ComponentParameterCollectionBuilder<OmniTree>>? extra = null, bool expanded = false)
-        => RenderComponent<OmniTree>(p =>
+        => Render<OmniTree>(p =>
         {
             p.Add(t => t.Data, Sample());
             p.Add(t => t.ChildContent, Levels(expanded));
@@ -198,7 +198,7 @@ public class OmniTreeTests : TestContextBase
             b.CloseComponent();
         };
 
-        var cut = RenderComponent<OmniTree>(p => p.Add(t => t.ChildContent, inline));
+        var cut = Render<OmniTree>(p => p.Add(t => t.ChildContent, inline));
 
         var texts = cut.FindAll(".omni-tree-text").Select(e => e.TextContent).ToList();
         Assert.Contains("Root", texts);

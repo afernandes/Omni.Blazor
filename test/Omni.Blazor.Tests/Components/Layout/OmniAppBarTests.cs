@@ -13,7 +13,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void Renders_default_header_with_base_classes()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p.AddChildContent("Header"));
+        var cut = Render<OmniAppBar>(p => p.AddChildContent("Header"));
 
         var header = cut.Find("header");
         Assert.Contains("omni-header", header.ClassName);
@@ -31,7 +31,7 @@ public class OmniAppBarTests : TestContextBase
     [InlineData(BarPosition.Bottom, "omni-appbar-bottom", "bottom")]
     public void Applies_position_modifier(BarPosition pos, string expectedClass, string expectedAttr)
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .Add(c => c.Position, pos)
             .AddChildContent("X"));
 
@@ -43,7 +43,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void Elevated_false_removes_elevated_class()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .Add(c => c.Elevated, false)
             .AddChildContent("X"));
 
@@ -53,7 +53,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void Bordered_false_removes_bordered_class()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .Add(c => c.Bordered, false)
             .AddChildContent("X"));
 
@@ -63,7 +63,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void HideOnScroll_applies_modifier_class()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .Add(c => c.HideOnScroll, true)
             .AddChildContent("X"));
 
@@ -73,7 +73,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void ElevateOnScroll_disables_static_elevated_class()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .Add(c => c.ElevateOnScroll, true)
             .AddChildContent("X"));
 
@@ -87,7 +87,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -97,7 +97,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .Add(c => c.Style, "background: red")
             .AddChildContent("X"));
 
@@ -107,7 +107,7 @@ public class OmniAppBarTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniAppBar>(p => p
+        var cut = Render<OmniAppBar>(p => p
             .AddUnmatched("data-testid", "appbar")
             .AddUnmatched("aria-label", "Top bar")
             .AddChildContent("X"));

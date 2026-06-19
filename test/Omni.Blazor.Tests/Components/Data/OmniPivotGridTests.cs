@@ -62,7 +62,7 @@ public class OmniPivotGridTests : TestContextBase
         RenderFragment rows, RenderFragment cols, RenderFragment vals,
         Action<ComponentParameterCollectionBuilder<OmniPivotGrid<Sale>>>? extra = null,
         Sale[]? data = null)
-        => RenderComponent<OmniPivotGrid<Sale>>(p =>
+        => Render<OmniPivotGrid<Sale>>(p =>
         {
             p.Add(g => g.Data, data ?? Sales);
             p.Add(g => g.Rows, rows);

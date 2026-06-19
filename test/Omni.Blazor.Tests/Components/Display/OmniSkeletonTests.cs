@@ -13,7 +13,7 @@ public class OmniSkeletonTests : TestContextBase
     [Fact]
     public void Renders_single_text_by_default()
     {
-        var cut = RenderComponent<OmniSkeleton>();
+        var cut = Render<OmniSkeleton>();
 
         var root = cut.Find("span.omni-skeleton");
         Assert.Contains("omni-skeleton", root.ClassName);
@@ -27,7 +27,7 @@ public class OmniSkeletonTests : TestContextBase
     [InlineData(SkeletonVariant.Circle, "omni-skeleton-circle")]
     public void Applies_variant_class(SkeletonVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniSkeleton>(p => p
+        var cut = Render<OmniSkeleton>(p => p
             .Add(c => c.Variant, variant));
 
         Assert.Contains(expected, cut.Find("span.omni-skeleton").ClassName);
@@ -36,7 +36,7 @@ public class OmniSkeletonTests : TestContextBase
     [Fact]
     public void Multi_line_text_renders_stack_with_lines()
     {
-        var cut = RenderComponent<OmniSkeleton>(p => p
+        var cut = Render<OmniSkeleton>(p => p
             .Add(c => c.Variant, SkeletonVariant.Text)
             .Add(c => c.Lines, 3));
 
@@ -48,7 +48,7 @@ public class OmniSkeletonTests : TestContextBase
     [Fact]
     public void Width_and_Height_applied_to_single()
     {
-        var cut = RenderComponent<OmniSkeleton>(p => p
+        var cut = Render<OmniSkeleton>(p => p
             .Add(c => c.Variant, SkeletonVariant.Rect)
             .Add(c => c.Width, "120px")
             .Add(c => c.Height, "40px"));
@@ -61,7 +61,7 @@ public class OmniSkeletonTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSkeleton>(p => p
+        var cut = Render<OmniSkeleton>(p => p
             .Add(c => c.Class, "my-skel"));
 
         Assert.Contains("my-skel", cut.Find("span.omni-skeleton").ClassName);
@@ -70,7 +70,7 @@ public class OmniSkeletonTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSkeleton>(p => p
+        var cut = Render<OmniSkeleton>(p => p
             .AddUnmatched("data-testid", "sk1"));
 
         Assert.Equal("sk1", cut.Find("span.omni-skeleton").GetAttribute("data-testid"));

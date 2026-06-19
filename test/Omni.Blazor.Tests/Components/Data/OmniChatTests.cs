@@ -26,7 +26,7 @@ public class OmniChatTests : TestContextBase
     private IRenderedComponent<OmniChat> RenderChat(
         Action<ComponentParameterCollectionBuilder<OmniChat>>? extra = null,
         List<OmniChatMessage>? messages = null)
-        => RenderComponent<OmniChat>(p =>
+        => Render<OmniChat>(p =>
         {
             p.Add(c => c.CurrentUserId, "me");
             p.Add(c => c.Users, Users());
@@ -96,7 +96,7 @@ public class OmniChatTests : TestContextBase
     public void Renders_roster_with_overflow()
     {
         var many = Enumerable.Range(0, 8).Select(i => new OmniChatUser { Id = $"u{i}", Name = $"User {i}" }).ToArray();
-        var cut = RenderComponent<OmniChat>(p => p
+        var cut = Render<OmniChat>(p => p
             .Add(c => c.CurrentUserId, "u0")
             .Add(c => c.Users, many)
             .Add(c => c.MaxVisibleUsers, 3));
@@ -128,7 +128,7 @@ public class OmniChatTests : TestContextBase
     public async Task SendAsync_ignores_blank_and_without_sender()
     {
         IEnumerable<OmniChatMessage>? changed = null;
-        var cut = RenderComponent<OmniChat>(p => p
+        var cut = Render<OmniChat>(p => p
             .Add(c => c.CurrentUserId, "")   // no sender
             .Add(c => c.Users, Users())
             .Add(c => c.Messages, Msgs())

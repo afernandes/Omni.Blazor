@@ -27,7 +27,7 @@ public class OmniFormTests : TestContextBase
     {
         var model = new Person();
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .AddChildContent("<div data-testid='inside'>body</div>"));
 
@@ -39,7 +39,7 @@ public class OmniFormTests : TestContextBase
     public void Auto_attaches_DataAnnotationsValidator_by_default()
     {
         var model = new Person();
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .AddChildContent("<button type='submit'>Submit</button>"));
 
@@ -55,7 +55,7 @@ public class OmniFormTests : TestContextBase
     public void Can_disable_DataAnnotationsValidator()
     {
         var model = new Person();
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.AddDataAnnotationsValidator, false)
             .AddChildContent("<button type='submit'>Submit</button>"));
@@ -73,7 +73,7 @@ public class OmniFormTests : TestContextBase
         var model = new Person { Name = "Anderson", Email = "a@b.com" };
         var fired = 0;
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.OnValidSubmit, (EditContext _) => fired++)
             .AddChildContent("<button type='submit'>Submit</button>"));
@@ -91,7 +91,7 @@ public class OmniFormTests : TestContextBase
         var validFired = 0;
         var invalidFired = 0;
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.OnValidSubmit, (EditContext _) => validFired++)
             .Add(c => c.OnInvalidSubmit, (EditContext _) => invalidFired++)
@@ -107,7 +107,7 @@ public class OmniFormTests : TestContextBase
     public void Validate_returns_false_when_model_invalid()
     {
         var model = new Person();
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .AddChildContent("body"));
 
@@ -119,7 +119,7 @@ public class OmniFormTests : TestContextBase
     public void Validate_returns_true_when_model_valid()
     {
         var model = new Person { Name = "Anderson", Email = "a@b.com" };
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .AddChildContent("body"));
 
@@ -132,7 +132,7 @@ public class OmniFormTests : TestContextBase
         var model = new Person { Name = "Anderson", Email = "a@b.com" };
         var asyncRan = false;
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.ValidationAsync, async (EditContext _, ValidationMessageStore store) =>
             {
@@ -154,7 +154,7 @@ public class OmniFormTests : TestContextBase
     {
         var model = new Person { Name = "Anderson", Email = "a@b.com" };
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.Validation, (EditContext _, ValidationMessageStore store) =>
             {
@@ -174,7 +174,7 @@ public class OmniFormTests : TestContextBase
         var model = new Person { Name = "Anderson", Email = "a@b.com" };
         var fired = 0;
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.OnValidSubmit, (EditContext _) => fired++)
             .AddChildContent("body"));
@@ -191,7 +191,7 @@ public class OmniFormTests : TestContextBase
         var validFired = 0;
         var invalidFired = 0;
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.OnValidSubmit, (EditContext _) => validFired++)
             .Add(c => c.OnInvalidSubmit, (EditContext _) => invalidFired++)
@@ -208,7 +208,7 @@ public class OmniFormTests : TestContextBase
     {
         var model = new Person { Name = "Anderson", Email = "a@b.com" };
         var ranValidation = false;
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.Validation, (EditContext _, ValidationMessageStore store) =>
             {
@@ -234,7 +234,7 @@ public class OmniFormTests : TestContextBase
     public void Snapshot_and_Restore_round_trip_model_values()
     {
         var model = new Person { Name = "Original", Email = "orig@x.com" };
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .AddChildContent("body"));
 
@@ -253,7 +253,7 @@ public class OmniFormTests : TestContextBase
         var model = new Person { Name = "Original", Email = "orig@x.com" };
         var touchedChanges = new List<bool>();
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.IsTouched, true) // start touched
             .Add(c => c.IsTouchedChanged, (bool v) => touchedChanges.Add(v))
@@ -273,7 +273,7 @@ public class OmniFormTests : TestContextBase
         var model = new Person();
         var changes = new List<bool>();
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.IsTouched, true)
             .Add(c => c.IsTouchedChanged, (bool v) => changes.Add(v))
@@ -290,7 +290,7 @@ public class OmniFormTests : TestContextBase
         var model = new Person();
         var changes = new List<bool>();
 
-        var cut = RenderComponent<OmniForm<Person>>(p => p
+        var cut = Render<OmniForm<Person>>(p => p
             .Add(c => c.Model, model)
             .Add(c => c.IsTouchedChanged, (bool v) => changes.Add(v))
             .AddChildContent("body"));

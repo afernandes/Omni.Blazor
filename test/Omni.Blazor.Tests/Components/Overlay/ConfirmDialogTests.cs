@@ -12,7 +12,7 @@ public class ConfirmDialogTests : TestContextBase
     [Fact]
     public void Renders_message_and_both_buttons()
     {
-        var cut = RenderComponent<ConfirmDialog>(p => p
+        var cut = Render<ConfirmDialog>(p => p
             .Add(c => c.Message, "Are you sure?")
             .Add(c => c.Options, new ConfirmOptions
             {
@@ -36,7 +36,7 @@ public class ConfirmDialogTests : TestContextBase
                 ["Options"] = new ConfirmOptions()
             });
 
-        var cut = RenderComponent<ConfirmDialog>(p => p
+        var cut = Render<ConfirmDialog>(p => p
             .Add(c => c.Message, "x")
             .Add(c => c.Options, new ConfirmOptions()));
 
@@ -57,7 +57,7 @@ public class ConfirmDialogTests : TestContextBase
                 ["Options"] = new ConfirmOptions()
             });
 
-        var cut = RenderComponent<ConfirmDialog>(p => p
+        var cut = Render<ConfirmDialog>(p => p
             .Add(c => c.Message, "x")
             .Add(c => c.Options, new ConfirmOptions()));
 

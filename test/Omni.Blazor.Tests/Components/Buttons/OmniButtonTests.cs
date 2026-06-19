@@ -15,7 +15,7 @@ public class OmniButtonTests : TestContextBase
     [Fact]
     public void Renders_default_button_with_md_class()
     {
-        var cut = RenderComponent<OmniButton>(p => p.AddChildContent("Save"));
+        var cut = Render<OmniButton>(p => p.AddChildContent("Save"));
 
         var btn = cut.Find("button");
         Assert.Contains("omni-btn", btn.ClassName);
@@ -31,7 +31,7 @@ public class OmniButtonTests : TestContextBase
     [InlineData(ButtonVariant.Link,    "omni-btn-link")]
     public void Applies_variant_modifier(ButtonVariant variant, string expectedClass)
     {
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Variant, variant)
             .AddChildContent("X"));
 
@@ -45,7 +45,7 @@ public class OmniButtonTests : TestContextBase
     [InlineData(ComponentSize.Xl, "omni-btn-xl")]
     public void Applies_size_modifier(ComponentSize size, string expectedClass)
     {
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Size, size)
             .AddChildContent("X"));
 
@@ -55,7 +55,7 @@ public class OmniButtonTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -65,7 +65,7 @@ public class OmniButtonTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Style, "width: 200px")
             .AddChildContent("X"));
 
@@ -75,7 +75,7 @@ public class OmniButtonTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .AddUnmatched("data-testid", "save-btn")
             .AddUnmatched("aria-label", "Save changes")
             .AddChildContent("X"));
@@ -89,7 +89,7 @@ public class OmniButtonTests : TestContextBase
     public void Disabled_blocks_OnClick_and_sets_attribute()
     {
         var clicked = 0;
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Disabled, true)
             .Add(c => c.OnClick, _ => clicked++)
             .AddChildContent("X"));
@@ -106,7 +106,7 @@ public class OmniButtonTests : TestContextBase
     public void Loading_renders_spinner_and_blocks_click()
     {
         var clicked = 0;
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Loading, true)
             .Add(c => c.OnClick, _ => clicked++)
             .AddChildContent("X"));
@@ -124,7 +124,7 @@ public class OmniButtonTests : TestContextBase
     public void OnClick_fires_when_enabled()
     {
         var clicked = 0;
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.OnClick, (MouseEventArgs _) => clicked++)
             .AddChildContent("X"));
 
@@ -135,7 +135,7 @@ public class OmniButtonTests : TestContextBase
     [Fact]
     public void IconOnly_applies_modifier_class()
     {
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Icon, "check")
             .Add(c => c.IconOnly, true));
 
@@ -145,7 +145,7 @@ public class OmniButtonTests : TestContextBase
     [Fact]
     public void Block_applies_modifier_class()
     {
-        var cut = RenderComponent<OmniButton>(p => p
+        var cut = Render<OmniButton>(p => p
             .Add(c => c.Block, true)
             .AddChildContent("X"));
 

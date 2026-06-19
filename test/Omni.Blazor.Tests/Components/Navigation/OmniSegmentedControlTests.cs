@@ -15,7 +15,7 @@ public class OmniSegmentedControlTests : TestContextBase
     [Fact]
     public void Renders_root_with_omni_segmented_class()
     {
-        var cut = RenderComponent<OmniSegmentedControl<string>>(p => p
+        var cut = Render<OmniSegmentedControl<string>>(p => p
             .Add(c => c.Items, Items));
         Assert.NotNull(cut.Find(".omni-segmented"));
         Assert.Equal(3, cut.FindAll("button").Count);
@@ -24,7 +24,7 @@ public class OmniSegmentedControlTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSegmentedControl<string>>(p => p
+        var cut = Render<OmniSegmentedControl<string>>(p => p
             .Add(c => c.Class, "my-seg")
             .Add(c => c.Items, Items));
         Assert.Contains("my-seg", cut.Find(".omni-segmented").ClassName);
@@ -33,7 +33,7 @@ public class OmniSegmentedControlTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniSegmentedControl<string>>(p => p
+        var cut = Render<OmniSegmentedControl<string>>(p => p
             .Add(c => c.Style, "width: 200px")
             .Add(c => c.Items, Items));
         Assert.Equal("width: 200px", cut.Find(".omni-segmented").GetAttribute("style"));
@@ -42,7 +42,7 @@ public class OmniSegmentedControlTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSegmentedControl<string>>(p => p
+        var cut = Render<OmniSegmentedControl<string>>(p => p
             .AddUnmatched("data-testid", "seg")
             .Add(c => c.Items, Items));
         Assert.Equal("seg", cut.Find(".omni-segmented").GetAttribute("data-testid"));
@@ -51,7 +51,7 @@ public class OmniSegmentedControlTests : TestContextBase
     [Fact]
     public void Highlights_active_item_matching_Value()
     {
-        var cut = RenderComponent<OmniSegmentedControl<string>>(p => p
+        var cut = Render<OmniSegmentedControl<string>>(p => p
             .Add(c => c.Items, Items)
             .Add(c => c.Value, "b"));
 
@@ -65,7 +65,7 @@ public class OmniSegmentedControlTests : TestContextBase
     public void Click_emits_ValueChanged_with_new_value()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniSegmentedControl<string>>(p => p
+        var cut = Render<OmniSegmentedControl<string>>(p => p
             .Add(c => c.Items, Items)
             .Add(c => c.Value, "a")
             .Add(c => c.ValueChanged, v => captured = v));
@@ -79,7 +79,7 @@ public class OmniSegmentedControlTests : TestContextBase
     public void Click_on_active_item_does_not_fire_ValueChanged()
     {
         var fired = 0;
-        var cut = RenderComponent<OmniSegmentedControl<string>>(p => p
+        var cut = Render<OmniSegmentedControl<string>>(p => p
             .Add(c => c.Items, Items)
             .Add(c => c.Value, "a")
             .Add(c => c.ValueChanged, _ => fired++));
@@ -92,7 +92,7 @@ public class OmniSegmentedControlTests : TestContextBase
     [Fact]
     public void Empty_Items_renders_no_buttons()
     {
-        var cut = RenderComponent<OmniSegmentedControl<string>>();
+        var cut = Render<OmniSegmentedControl<string>>();
         Assert.NotNull(cut.Find(".omni-segmented"));
         Assert.Empty(cut.FindAll("button"));
     }

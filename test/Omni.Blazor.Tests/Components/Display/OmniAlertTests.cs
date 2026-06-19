@@ -13,7 +13,7 @@ public class OmniAlertTests : TestContextBase
     [Fact]
     public void Renders_default_info_alert()
     {
-        var cut = RenderComponent<OmniAlert>(p => p.AddChildContent("Message"));
+        var cut = Render<OmniAlert>(p => p.AddChildContent("Message"));
 
         var root = cut.Find("div.omni-alert");
         Assert.Contains("omni-alert", root.ClassName);
@@ -29,7 +29,7 @@ public class OmniAlertTests : TestContextBase
     [InlineData(NotificationSeverity.Error,   "omni-alert-danger")]
     public void Applies_severity_modifier(NotificationSeverity sev, string expected)
     {
-        var cut = RenderComponent<OmniAlert>(p => p
+        var cut = Render<OmniAlert>(p => p
             .Add(c => c.Severity, sev)
             .AddChildContent("x"));
 
@@ -39,7 +39,7 @@ public class OmniAlertTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniAlert>(p => p
+        var cut = Render<OmniAlert>(p => p
             .Add(c => c.Class, "my-alert")
             .AddChildContent("x"));
 
@@ -49,7 +49,7 @@ public class OmniAlertTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniAlert>(p => p
+        var cut = Render<OmniAlert>(p => p
             .Add(c => c.Style, "margin-top: 4px")
             .AddChildContent("x"));
 
@@ -59,7 +59,7 @@ public class OmniAlertTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniAlert>(p => p
+        var cut = Render<OmniAlert>(p => p
             .AddUnmatched("data-testid", "warn-alert")
             .AddChildContent("x"));
 
@@ -69,7 +69,7 @@ public class OmniAlertTests : TestContextBase
     [Fact]
     public void Renders_title_when_provided()
     {
-        var cut = RenderComponent<OmniAlert>(p => p
+        var cut = Render<OmniAlert>(p => p
             .Add(c => c.Title, "Heads up")
             .AddChildContent("body"));
 
@@ -80,7 +80,7 @@ public class OmniAlertTests : TestContextBase
     public void Dismissible_fires_OnClosed_and_hides_alert()
     {
         var closed = 0;
-        var cut = RenderComponent<OmniAlert>(p => p
+        var cut = Render<OmniAlert>(p => p
             .Add(c => c.Dismissible, true)
             .Add(c => c.OnClosed, () => closed++)
             .AddChildContent("x"));

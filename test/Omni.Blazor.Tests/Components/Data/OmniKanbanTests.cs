@@ -42,7 +42,7 @@ public class OmniKanbanTests : TestContextBase
         List<Card> items,
         KanbanColumn[] cols,
         Action<ComponentParameterCollectionBuilder<OmniKanban<Card>>>? extra = null)
-        => RenderComponent<OmniKanban<Card>>(p =>
+        => Render<OmniKanban<Card>>(p =>
         {
             p.Add(c => c.Items, items);
             p.Add(c => c.Columns, cols);
@@ -289,7 +289,7 @@ public class OmniKanbanTests : TestContextBase
         var a = new Card { Id = 1, Status = "todo" };
         var items = new List<Card> { a, new() { Id = 2, Status = "doing" } };
         KanbanCardMovedEventArgs<Card>? moved = null;
-        var cut = RenderComponent<OmniKanban<Card>>(p =>
+        var cut = Render<OmniKanban<Card>>(p =>
         {
             p.Add(c => c.Items, items);
             p.Add(c => c.Columns, TwoCols());
@@ -317,7 +317,7 @@ public class OmniKanbanTests : TestContextBase
             new() { Id = 1, Status = "todo", Lane = "a" },
             new() { Id = 2, Status = "todo", Lane = "b" },
         };
-        var cut = RenderComponent<OmniKanban<Card>>(p =>
+        var cut = Render<OmniKanban<Card>>(p =>
         {
             p.Add(c => c.Items, items);
             p.Add(c => c.Columns, new[] { new KanbanColumn { Id = "todo", Title = "To Do" } });
@@ -343,7 +343,7 @@ public class OmniKanbanTests : TestContextBase
             new() { Id = 2, Status = "todo", Lane = "a" },
             new() { Id = 3, Status = "todo", Lane = "b" },
         };
-        var cut = RenderComponent<OmniKanban<Card>>(p =>
+        var cut = Render<OmniKanban<Card>>(p =>
         {
             p.Add(c => c.Items, items);
             p.Add(c => c.Columns, new[] { new KanbanColumn { Id = "todo" } });
@@ -364,7 +364,7 @@ public class OmniKanbanTests : TestContextBase
         var a = new Card { Id = 1, Status = "todo", Lane = "a" };
         var items = new List<Card> { a, new() { Id = 2, Status = "todo", Lane = "b" } };
         KanbanCardMovedEventArgs<Card>? moved = null;
-        var cut = RenderComponent<OmniKanban<Card>>(p =>
+        var cut = Render<OmniKanban<Card>>(p =>
         {
             p.Add(c => c.Items, items);
             p.Add(c => c.Columns, new[] { new KanbanColumn { Id = "todo" } });
@@ -477,7 +477,7 @@ public class OmniKanbanTests : TestContextBase
 
         // Re-render with a brand-new filter instance carrying the same Label —
         // the active state must persist (equality by Label, not reference).
-        cut.SetParametersAndRender(p => p.Add(c => c.QuickFilters,
+        cut.Render(p => p.Add(c => c.QuickFilters,
             new[] { new KanbanQuickFilter<Card> { Label = "Bugs", Predicate = c => c.Title.Contains("Bug") } }));
 
         Assert.Single(cut.FindAll(".omni-kanban-card"));

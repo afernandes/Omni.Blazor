@@ -16,7 +16,7 @@ public class OmniHiddenTests : TestContextBase
     {
         // Default: Mode=Down, Breakpoint=Md. _current starts at Md → hide=true →
         // Visible=false (because Md<=Md). Use Invert=true to flip the rule.
-        var cut = RenderComponent<OmniHidden>(p => p
+        var cut = Render<OmniHidden>(p => p
             .Add(c => c.Breakpoint, Breakpoint.Md)
             .Add(c => c.Mode, HiddenMode.Up)        // hide if current >= Md
             .Add(c => c.Invert, true)               // therefore render when current >= Md
@@ -29,7 +29,7 @@ public class OmniHiddenTests : TestContextBase
     public void Hides_children_when_not_visible()
     {
         // Default _current=Md. Mode=Down: hide when current<=Md → hides.
-        var cut = RenderComponent<OmniHidden>(p => p
+        var cut = Render<OmniHidden>(p => p
             .Add(c => c.Breakpoint, Breakpoint.Md)
             .Add(c => c.Mode, HiddenMode.Down)
             .AddChildContent("<span data-testid=\"slot\">hidden</span>"));
@@ -41,7 +41,7 @@ public class OmniHiddenTests : TestContextBase
     public void Only_mode_hides_only_at_exact_breakpoint()
     {
         // current=Md, breakpoint=Md, Only → hide=true.
-        var cut = RenderComponent<OmniHidden>(p => p
+        var cut = Render<OmniHidden>(p => p
             .Add(c => c.Breakpoint, Breakpoint.Md)
             .Add(c => c.Mode, HiddenMode.Only)
             .AddChildContent("<span data-testid=\"slot\">x</span>"));
@@ -53,7 +53,7 @@ public class OmniHiddenTests : TestContextBase
     [Fact]
     public void Only_mode_renders_when_breakpoint_differs()
     {
-        var cut = RenderComponent<OmniHidden>(p => p
+        var cut = Render<OmniHidden>(p => p
             .Add(c => c.Breakpoint, Breakpoint.Xl)   // current is Md by default; Only=Xl → not hidden
             .Add(c => c.Mode, HiddenMode.Only)
             .AddChildContent("<span data-testid=\"slot\">x</span>"));
@@ -66,7 +66,7 @@ public class OmniHiddenTests : TestContextBase
     public void Invert_flips_the_visibility_rule()
     {
         // Default would hide (Md<=Md, Mode=Down). Invert=true should render.
-        var cut = RenderComponent<OmniHidden>(p => p
+        var cut = Render<OmniHidden>(p => p
             .Add(c => c.Breakpoint, Breakpoint.Md)
             .Add(c => c.Mode, HiddenMode.Down)
             .Add(c => c.Invert, true)

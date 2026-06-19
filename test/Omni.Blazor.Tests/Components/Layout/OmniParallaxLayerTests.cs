@@ -15,7 +15,7 @@ public class OmniParallaxLayerTests : TestContextBase
     [Fact]
     public void Renders_layer_with_default_custom_props()
     {
-        var cut = RenderComponent<OmniParallaxLayer>(p => p.AddChildContent("x"));
+        var cut = Render<OmniParallaxLayer>(p => p.AddChildContent("x"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-parallax-layer", div.ClassName);
@@ -29,7 +29,7 @@ public class OmniParallaxLayerTests : TestContextBase
     [Fact]
     public void Speed_and_Range_emit_invariant_culture_and_overscan()
     {
-        var cut = RenderComponent<OmniParallaxLayer>(p => p
+        var cut = Render<OmniParallaxLayer>(p => p
             .Add(c => c.Speed, 0.5)
             .Add(c => c.Range, 200)
             .AddChildContent("x"));
@@ -46,7 +46,7 @@ public class OmniParallaxLayerTests : TestContextBase
     [InlineData(ParallaxAxis.Both, "--omni-px-x: 1", "--omni-px-y: 1")]
     public void Axis_sets_multipliers(ParallaxAxis axis, string xExp, string yExp)
     {
-        var cut = RenderComponent<OmniParallaxLayer>(p => p.Add(c => c.Axis, axis).AddChildContent("x"));
+        var cut = Render<OmniParallaxLayer>(p => p.Add(c => c.Axis, axis).AddChildContent("x"));
 
         var s = cut.Find("div").GetAttribute("style") ?? "";
         Assert.Contains(xExp, s);
@@ -56,7 +56,7 @@ public class OmniParallaxLayerTests : TestContextBase
     [Fact]
     public void Inherits_axis_from_parent_scene()
     {
-        var cut = RenderComponent<OmniParallax>(p => p
+        var cut = Render<OmniParallax>(p => p
             .Add(c => c.Axis, ParallaxAxis.Horizontal)
             .AddChildContent(b =>
             {
@@ -73,7 +73,7 @@ public class OmniParallaxLayerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniParallaxLayer>(p => p.Add(c => c.Class, "bg").AddChildContent("x"));
+        var cut = Render<OmniParallaxLayer>(p => p.Add(c => c.Class, "bg").AddChildContent("x"));
 
         Assert.Contains("bg", cut.Find("div").ClassName);
     }
@@ -81,7 +81,7 @@ public class OmniParallaxLayerTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniParallaxLayer>(p => p.Add(c => c.Style, "z-index: 2").AddChildContent("x"));
+        var cut = Render<OmniParallaxLayer>(p => p.Add(c => c.Style, "z-index: 2").AddChildContent("x"));
 
         Assert.Contains("z-index: 2", cut.Find("div").GetAttribute("style") ?? "");
     }
@@ -89,7 +89,7 @@ public class OmniParallaxLayerTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniParallaxLayer>(p => p.AddUnmatched("data-testid", "ly").AddChildContent("x"));
+        var cut = Render<OmniParallaxLayer>(p => p.AddUnmatched("data-testid", "ly").AddChildContent("x"));
 
         Assert.Equal("ly", cut.Find("div").GetAttribute("data-testid"));
     }

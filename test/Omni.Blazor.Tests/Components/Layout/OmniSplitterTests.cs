@@ -15,7 +15,7 @@ public class OmniSplitterTests : TestContextBase
     [Fact]
     public void Renders_default_horizontal_solid_variant()
     {
-        var cut = RenderComponent<OmniSplitter>();
+        var cut = Render<OmniSplitter>();
 
         var root = cut.Find(".omni-splitter");
         Assert.Contains("omni-splitter-horizontal", root.ClassName);
@@ -30,7 +30,7 @@ public class OmniSplitterTests : TestContextBase
     [InlineData(SplitterVariant.Gap,   "omni-splitter-variant-gap")]
     public void Applies_variant_class(SplitterVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniSplitter>(p => p.Add(c => c.Variant, variant));
+        var cut = Render<OmniSplitter>(p => p.Add(c => c.Variant, variant));
         Assert.Contains(expected, cut.Find(".omni-splitter").ClassName);
     }
 
@@ -39,14 +39,14 @@ public class OmniSplitterTests : TestContextBase
     [InlineData(Orientation.Vertical,   "omni-splitter-vertical")]
     public void Applies_orientation_class(Orientation o, string expected)
     {
-        var cut = RenderComponent<OmniSplitter>(p => p.Add(c => c.Orientation, o));
+        var cut = Render<OmniSplitter>(p => p.Add(c => c.Orientation, o));
         Assert.Contains(expected, cut.Find(".omni-splitter").ClassName);
     }
 
     [Fact]
     public void UseAsOverlay_applies_overlay_class_and_omits_size_style()
     {
-        var cut = RenderComponent<OmniSplitter>(p => p.Add(c => c.UseAsOverlay, true));
+        var cut = Render<OmniSplitter>(p => p.Add(c => c.UseAsOverlay, true));
 
         var root = cut.Find(".omni-splitter");
         Assert.Contains("omni-splitter-overlay", root.ClassName);
@@ -58,7 +58,7 @@ public class OmniSplitterTests : TestContextBase
     [Fact]
     public void Renders_panes_and_inserts_separator_bar()
     {
-        var cut = RenderComponent<OmniSplitter>(p => p.AddChildContent(builder =>
+        var cut = Render<OmniSplitter>(p => p.AddChildContent(builder =>
         {
             builder.OpenComponent<OmniSplitterPane>(0);
             builder.AddAttribute(1, "Size", "50%");
@@ -92,14 +92,14 @@ public class OmniSplitterTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSplitter>(p => p.Add(c => c.Class, "custom-cls"));
+        var cut = Render<OmniSplitter>(p => p.Add(c => c.Class, "custom-cls"));
         Assert.Contains("custom-cls", cut.Find(".omni-splitter").ClassName);
     }
 
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSplitter>(p => p
+        var cut = Render<OmniSplitter>(p => p
             .AddUnmatched("data-testid", "sp"));
 
         Assert.Equal("sp", cut.Find(".omni-splitter").GetAttribute("data-testid"));

@@ -14,7 +14,7 @@ public class OmniPasswordStrengthTests : TestContextBase
     [Fact]
     public void Renders_four_segments_and_five_default_rules()
     {
-        var cut = RenderComponent<OmniPasswordStrength>();
+        var cut = Render<OmniPasswordStrength>();
         Assert.Equal(4, cut.FindAll(".omni-pwstrength-seg").Count);
         // length + uppercase + lowercase + digit + symbol
         Assert.Equal(5, cut.FindAll(".omni-pwstrength-rule").Count);
@@ -23,14 +23,14 @@ public class OmniPasswordStrengthTests : TestContextBase
     [Fact]
     public void Empty_password_fills_no_segments()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p.Add(c => c.Password, ""));
+        var cut = Render<OmniPasswordStrength>(p => p.Add(c => c.Password, ""));
         Assert.Empty(cut.FindAll(".omni-pwstrength-seg-weak, .omni-pwstrength-seg-fair, .omni-pwstrength-seg-good, .omni-pwstrength-seg-strong"));
     }
 
     [Fact]
     public void All_rules_met_fills_all_four_strong_segments()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p
+        var cut = Render<OmniPasswordStrength>(p => p
             .Add(c => c.Password, "Abcdef123!@#")
             .Add(c => c.MinLength, 8));
         Assert.Equal(4, cut.FindAll(".omni-pwstrength-seg-strong").Count);
@@ -41,7 +41,7 @@ public class OmniPasswordStrengthTests : TestContextBase
     public void Weak_password_marks_only_satisfied_rules()
     {
         // "abc": only the lowercase rule passes (length<8, no upper/digit/symbol)
-        var cut = RenderComponent<OmniPasswordStrength>(p => p
+        var cut = Render<OmniPasswordStrength>(p => p
             .Add(c => c.Password, "abc")
             .Add(c => c.MinLength, 8));
         Assert.Single(cut.FindAll(".omni-pwstrength-rule-met"));
@@ -50,7 +50,7 @@ public class OmniPasswordStrengthTests : TestContextBase
     [Fact]
     public void Disabling_a_toggle_drops_that_rule()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p
+        var cut = Render<OmniPasswordStrength>(p => p
             .Add(c => c.RequireSymbol, false)
             .Add(c => c.RequireDigit, false));
         // length + uppercase + lowercase = 3 rules
@@ -62,7 +62,7 @@ public class OmniPasswordStrengthTests : TestContextBase
     [Fact]
     public void RequiredUniqueChars_adds_a_rule()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p.Add(c => c.RequiredUniqueChars, 4));
+        var cut = Render<OmniPasswordStrength>(p => p.Add(c => c.RequiredUniqueChars, 4));
         Assert.Equal(6, cut.FindAll(".omni-pwstrength-rule").Count);
         Assert.Contains("distintos", cut.Markup);
     }
@@ -70,7 +70,7 @@ public class OmniPasswordStrengthTests : TestContextBase
     [Fact]
     public void MinLength_zero_drops_the_length_rule()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p.Add(c => c.MinLength, 0));
+        var cut = Render<OmniPasswordStrength>(p => p.Add(c => c.MinLength, 0));
         // uppercase + lowercase + digit + symbol = 4 rules (no length)
         Assert.Equal(4, cut.FindAll(".omni-pwstrength-rule").Count);
         Assert.DoesNotContain("caracteres", cut.Markup);
@@ -84,7 +84,7 @@ public class OmniPasswordStrengthTests : TestContextBase
             new OmniPasswordRule("Pelo menos 12 caracteres", p => p.Length >= 12),
             new OmniPasswordRule("Não conter 'senha'", p => !p.Contains("senha")),
         };
-        var cut = RenderComponent<OmniPasswordStrength>(p => p
+        var cut = Render<OmniPasswordStrength>(p => p
             .Add(c => c.Rules, rules)
             .Add(c => c.Password, "abcdefghijkl"));   // 12 chars, no 'senha' -> both met
         var ruleEls = cut.FindAll(".omni-pwstrength-rule");
@@ -98,7 +98,7 @@ public class OmniPasswordStrengthTests : TestContextBase
     [Fact]
     public void ShowRules_false_hides_checklist()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p
+        var cut = Render<OmniPasswordStrength>(p => p
             .Add(c => c.Password, "abc")
             .Add(c => c.ShowRules, false));
         Assert.Empty(cut.FindAll(".omni-pwstrength-rule"));
@@ -107,29 +107,29 @@ public class OmniPasswordStrengthTests : TestContextBase
     [Fact]
     public void Recompute_does_NOT_run_when_only_Class_changes()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p.Add(c => c.Password, "abc"));
+        var cut = Render<OmniPasswordStrength>(p => p.Add(c => c.Password, "abc"));
         var before = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.Class, "new"));
+        cut.Render(p => p.Add(c => c.Class, "new"));
         Assert.Equal(before, cut.Instance.RecomputeCount);
     }
 
     [Fact]
     public void Recompute_runs_when_Password_or_policy_changes()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p.Add(c => c.Password, "abc"));
+        var cut = Render<OmniPasswordStrength>(p => p.Add(c => c.Password, "abc"));
         var before = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.Password, "Abcdef123!"));
+        cut.Render(p => p.Add(c => c.Password, "Abcdef123!"));
         Assert.True(cut.Instance.RecomputeCount > before);
 
         var afterPw = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.RequireSymbol, false));
+        cut.Render(p => p.Add(c => c.RequireSymbol, false));
         Assert.True(cut.Instance.RecomputeCount > afterPw);
     }
 
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniPasswordStrength>(p => p
+        var cut = Render<OmniPasswordStrength>(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "margin:4px")
             .AddUnmatched("data-testid", "p1"));

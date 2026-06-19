@@ -13,7 +13,7 @@ public class OmniMenuBarItemTests : TestContextBase
     [Fact]
     public void Path_only_renders_anchor_with_href()
     {
-        var cut = RenderComponent<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
+        var cut = Render<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
             .Add(i => i.Text, "Home")
             .Add(i => i.Path, "/")));
 
@@ -27,7 +27,7 @@ public class OmniMenuBarItemTests : TestContextBase
     public void No_Path_no_children_renders_button_and_fires_OnClick()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
+        var cut = Render<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
             .Add(i => i.Text, "Action")
             .Add(i => i.OnClick, EventCallback.Factory.Create(this, () => clicks++))));
 
@@ -40,7 +40,7 @@ public class OmniMenuBarItemTests : TestContextBase
     public void Disabled_button_does_not_fire_OnClick()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
+        var cut = Render<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
             .Add(i => i.Text, "Action")
             .Add(i => i.Disabled, true)
             .Add(i => i.OnClick, EventCallback.Factory.Create(this, () => clicks++))));
@@ -54,7 +54,7 @@ public class OmniMenuBarItemTests : TestContextBase
     [Fact]
     public void Children_renders_a_trigger_button_with_haspopup()
     {
-        var cut = RenderComponent<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
+        var cut = Render<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
             .Add(i => i.Text, "File")
             .AddChildContent<OmniMenuBarItem>(d => d
                 .Add(i => i.Text, "Open")
@@ -70,7 +70,7 @@ public class OmniMenuBarItemTests : TestContextBase
     [Fact]
     public void Count_renders_count_badge()
     {
-        var cut = RenderComponent<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
+        var cut = Render<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
             .Add(i => i.Text, "Inbox")
             .Add(i => i.Path, "/inbox")
             .Add(i => i.Count, 3)));
@@ -82,7 +82,7 @@ public class OmniMenuBarItemTests : TestContextBase
     [Fact]
     public void Icon_renders_OmniIcon_in_link()
     {
-        var cut = RenderComponent<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
+        var cut = Render<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
             .Add(i => i.Text, "Home")
             .Add(i => i.Path, "/")
             .Add(i => i.Icon, "home")));
@@ -93,7 +93,7 @@ public class OmniMenuBarItemTests : TestContextBase
     [Fact]
     public void Class_parameter_appends_to_outer_li()
     {
-        var cut = RenderComponent<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
+        var cut = Render<OmniMenuBar>(p => p.AddChildContent<OmniMenuBarItem>(c => c
             .Add(i => i.Text, "Home")
             .Add(i => i.Path, "/")
             .Add(i => i.Class, "custom-mi")));

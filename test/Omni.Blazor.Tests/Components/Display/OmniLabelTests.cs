@@ -13,7 +13,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Renders_as_span_when_no_For()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "Email"));
 
         var root = cut.Find("span.omni-label");
@@ -24,7 +24,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Renders_as_label_with_for_when_For_set()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "Email")
             .Add(c => c.For, "email-input"));
 
@@ -38,7 +38,7 @@ public class OmniLabelTests : TestContextBase
     [InlineData(ComponentSize.Lg, "omni-label-lg")]
     public void Applies_size_modifier(ComponentSize size, string expected)
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Size, size));
 
@@ -48,7 +48,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Required_renders_asterisk()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "Name")
             .Add(c => c.Required, true));
 
@@ -58,7 +58,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Disabled_adds_modifier_class()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Disabled, true));
 
@@ -68,7 +68,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Helper_text_renders_when_set()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "Name")
             .Add(c => c.Helper, "Required field"));
 
@@ -78,7 +78,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Class, "user-cls"));
 
@@ -88,7 +88,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Style, "color: blue"));
 
@@ -98,7 +98,7 @@ public class OmniLabelTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniLabel>(p => p
+        var cut = Render<OmniLabel>(p => p
             .Add(c => c.Text, "X")
             .AddUnmatched("data-testid", "lbl1"));
 

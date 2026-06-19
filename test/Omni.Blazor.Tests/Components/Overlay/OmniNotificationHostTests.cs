@@ -13,7 +13,7 @@ public class OmniNotificationHostTests : TestContextBase
     [Fact]
     public void Renders_nothing_when_no_messages()
     {
-        var cut = RenderComponent<OmniNotificationHost>();
+        var cut = Render<OmniNotificationHost>();
 
         Assert.Empty(cut.FindAll(".omni-toast-host"));
         Assert.Empty(cut.FindAll(".omni-toast"));
@@ -23,7 +23,7 @@ public class OmniNotificationHostTests : TestContextBase
     public async Task Renders_toast_when_service_pushes_message()
     {
         var notif = Services.GetRequiredService<NotificationService>();
-        var cut = RenderComponent<OmniNotificationHost>();
+        var cut = Render<OmniNotificationHost>();
 
         notif.Info("Hello", "World", duration: 0);
         await cut.InvokeAsync(() => { /* let OnChange propagate */ });
@@ -39,7 +39,7 @@ public class OmniNotificationHostTests : TestContextBase
     public async Task Severity_maps_to_modifier_class()
     {
         var notif = Services.GetRequiredService<NotificationService>();
-        var cut = RenderComponent<OmniNotificationHost>();
+        var cut = Render<OmniNotificationHost>();
 
         notif.Error("Oops", duration: 0);
         await cut.InvokeAsync(() => { });

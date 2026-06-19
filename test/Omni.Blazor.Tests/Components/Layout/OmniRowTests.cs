@@ -12,7 +12,7 @@ public class OmniRowTests : TestContextBase
     [Fact]
     public void Renders_default_row_with_base_class_and_gap()
     {
-        var cut = RenderComponent<OmniRow>(p => p.AddChildContent("body"));
+        var cut = Render<OmniRow>(p => p.AddChildContent("body"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-row-grid", div.ClassName);
@@ -23,7 +23,7 @@ public class OmniRowTests : TestContextBase
     [Fact]
     public void Custom_Gap_emits_css_variable()
     {
-        var cut = RenderComponent<OmniRow>(p => p
+        var cut = Render<OmniRow>(p => p
             .Add(c => c.Gap, 24)
             .AddChildContent("X"));
 
@@ -33,7 +33,7 @@ public class OmniRowTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniRow>(p => p
+        var cut = Render<OmniRow>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -43,7 +43,7 @@ public class OmniRowTests : TestContextBase
     [Fact]
     public void Appends_consumer_Style_after_gap_variable()
     {
-        var cut = RenderComponent<OmniRow>(p => p
+        var cut = Render<OmniRow>(p => p
             .Add(c => c.Style, "margin-top: 12px")
             .AddChildContent("X"));
 
@@ -55,7 +55,7 @@ public class OmniRowTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniRow>(p => p
+        var cut = Render<OmniRow>(p => p
             .AddUnmatched("data-testid", "row")
             .AddUnmatched("aria-label", "Row")
             .AddChildContent("X"));

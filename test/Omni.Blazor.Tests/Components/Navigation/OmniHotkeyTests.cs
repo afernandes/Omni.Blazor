@@ -14,7 +14,7 @@ public class OmniHotkeyTests : TestContextBase
     [Fact]
     public void Renders_no_dom()
     {
-        var cut = RenderComponent<OmniHotkey>(p => p
+        var cut = Render<OmniHotkey>(p => p
             .Add(c => c.Combo, "Ctrl+K"));
 
         Assert.Equal(0, cut.Nodes.Length);
@@ -26,7 +26,7 @@ public class OmniHotkeyTests : TestContextBase
         var hotkeys = Services.GetRequiredService<HotkeyService>();
         var before = hotkeys.RegistrationCount;
 
-        var cut = RenderComponent<OmniHotkey>(p => p
+        var cut = Render<OmniHotkey>(p => p
             .Add(c => c.Combo, "Ctrl+K"));
 
         Assert.Equal(before + 1, hotkeys.RegistrationCount);
@@ -38,7 +38,7 @@ public class OmniHotkeyTests : TestContextBase
         var hotkeys = Services.GetRequiredService<HotkeyService>();
         var before = hotkeys.RegistrationCount;
 
-        var cut = RenderComponent<OmniHotkey>(p => p
+        var cut = Render<OmniHotkey>(p => p
             .Add(c => c.Key, "K")
             .Add(c => c.Modifiers, Modifier.Ctrl | Modifier.Shift));
 
@@ -51,7 +51,7 @@ public class OmniHotkeyTests : TestContextBase
         var hotkeys = Services.GetRequiredService<HotkeyService>();
         var before = hotkeys.RegistrationCount;
 
-        var cut = RenderComponent<OmniHotkey>(p => p
+        var cut = Render<OmniHotkey>(p => p
             .Add(c => c.Combo, "Ctrl+K|Meta+K"));
 
         // The service buckets multiple combos under a single registration.
@@ -64,23 +64,24 @@ public class OmniHotkeyTests : TestContextBase
         var hotkeys = Services.GetRequiredService<HotkeyService>();
         var before = hotkeys.RegistrationCount;
 
-        var cut = RenderComponent<OmniHotkey>(); // No Combo, no Key.
+        var cut = Render<OmniHotkey>(); // No Combo, no Key.
 
         Assert.Equal(before, hotkeys.RegistrationCount);
     }
 
     [Fact]
-    public void Disposing_component_unregisters_the_handle()
+    public async Task Disposing_component_unregisters_the_handle()
     {
         var hotkeys = Services.GetRequiredService<HotkeyService>();
         var before = hotkeys.RegistrationCount;
 
-        _ = RenderComponent<OmniHotkey>(p => p
+        _ = Render<OmniHotkey>(p => p
             .Add(c => c.Combo, "Ctrl+K"));
 
         Assert.Equal(before + 1, hotkeys.RegistrationCount);
 
-        Dispose();
+        // HotkeyService is IAsyncDisposable-only — bunit 2.x requires DisposeAsync.
+        await DisposeAsync();
         Assert.Equal(before, hotkeys.RegistrationCount);
     }
 
@@ -90,11 +91,11 @@ public class OmniHotkeyTests : TestContextBase
         var hotkeys = Services.GetRequiredService<HotkeyService>();
         var before = hotkeys.RegistrationCount;
 
-        var cut = RenderComponent<OmniHotkey>(p => p
+        var cut = Render<OmniHotkey>(p => p
             .Add(c => c.Combo, "Ctrl+K"));
         Assert.Equal(before + 1, hotkeys.RegistrationCount);
 
-        cut.SetParametersAndRender(p => p.Add(c => c.Combo, "Ctrl+P"));
+        cut.Render(p => p.Add(c => c.Combo, "Ctrl+P"));
         // The old handle is disposed and a new one is created -> still +1.
         Assert.Equal(before + 1, hotkeys.RegistrationCount);
     }
@@ -102,7 +103,7 @@ public class OmniHotkeyTests : TestContextBase
     [Fact]
     public void Captures_OnPressed_PreventDefault_StopPropagation_defaults()
     {
-        var cut = RenderComponent<OmniHotkey>(p => p
+        var cut = Render<OmniHotkey>(p => p
             .Add(c => c.Combo, "Ctrl+K"));
 
         Assert.True(cut.Instance.PreventDefault);

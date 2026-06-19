@@ -12,7 +12,7 @@ public class OmniTextAreaTests : TestContextBase
     [Fact]
     public void Renders_textarea_with_base_classes()
     {
-        var cut = RenderComponent<OmniTextArea>();
+        var cut = Render<OmniTextArea>();
 
         var ta = cut.Find("textarea");
         Assert.Contains("omni-input",    ta.ClassName);
@@ -22,21 +22,21 @@ public class OmniTextAreaTests : TestContextBase
     [Fact]
     public void Defaults_rows_to_four()
     {
-        var cut = RenderComponent<OmniTextArea>();
+        var cut = Render<OmniTextArea>();
         Assert.Equal("4", cut.Find("textarea").GetAttribute("rows"));
     }
 
     [Fact]
     public void Honors_explicit_Rows()
     {
-        var cut = RenderComponent<OmniTextArea>(p => p.Add(c => c.Rows, 8));
+        var cut = Render<OmniTextArea>(p => p.Add(c => c.Rows, 8));
         Assert.Equal("8", cut.Find("textarea").GetAttribute("rows"));
     }
 
     [Fact]
     public void MaxLength_forwarded_to_textarea()
     {
-        var cut = RenderComponent<OmniTextArea>(p => p.Add(c => c.MaxLength, 50));
+        var cut = Render<OmniTextArea>(p => p.Add(c => c.MaxLength, 50));
         Assert.Equal("50", cut.Find("textarea").GetAttribute("maxlength"));
     }
 
@@ -44,7 +44,7 @@ public class OmniTextAreaTests : TestContextBase
     public void Value_two_way_binding_via_input_event()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniTextArea>(p => p
+        var cut = Render<OmniTextArea>(p => p
             .Add(c => c.Value, "")
             .Add(c => c.ValueChanged, v => captured = v));
 
@@ -55,7 +55,7 @@ public class OmniTextAreaTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniTextArea>(p => p
+        var cut = Render<OmniTextArea>(p => p
             .Add(c => c.Class, "custom-cls"));
 
         Assert.Contains("custom-cls", cut.Find("textarea").ClassName);
@@ -64,7 +64,7 @@ public class OmniTextAreaTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniTextArea>(p => p
+        var cut = Render<OmniTextArea>(p => p
             .Add(c => c.Style, "margin: 4px"));
 
         Assert.Equal("margin: 4px", cut.Find("textarea").GetAttribute("style"));
@@ -73,7 +73,7 @@ public class OmniTextAreaTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniTextArea>(p => p
+        var cut = Render<OmniTextArea>(p => p
             .AddUnmatched("data-testid", "ta1"));
 
         Assert.Equal("ta1", cut.Find("textarea").GetAttribute("data-testid"));

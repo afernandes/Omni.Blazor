@@ -27,7 +27,7 @@ public class OmniTourTests : TestContextBase
     [Fact]
     public void Steps_register_with_parent()
     {
-        var cut = RenderComponent<OmniTour>(p => p.AddChildContent(b =>
+        var cut = Render<OmniTour>(p => p.AddChildContent(b =>
         {
             Step(b, 0, "#a");
             Step(b, 10, "#b");
@@ -41,7 +41,7 @@ public class OmniTourTests : TestContextBase
     public void AutoStart_starts_the_tour()
     {
         var svc = Svc;
-        var cut = RenderComponent<OmniTour>(p =>
+        var cut = Render<OmniTour>(p =>
         {
             p.Add(c => c.AutoStart, true);
             p.AddChildContent(b => Step(b, 0, "#a"));
@@ -55,7 +55,7 @@ public class OmniTourTests : TestContextBase
     public void Step_maps_target_title_position()
     {
         var svc = Svc;
-        RenderComponent<OmniTour>(p =>
+        Render<OmniTour>(p =>
         {
             p.Add(c => c.AutoStart, true);
             p.AddChildContent(b => Step(b, 0, "#x", "Olá", TourPosition.Left));

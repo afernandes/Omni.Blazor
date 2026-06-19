@@ -15,7 +15,7 @@ public class OmniSelectTests : TestContextBase
     [Fact]
     public void Renders_trigger_with_base_class()
     {
-        var cut = RenderComponent<OmniSelect<string>>();
+        var cut = Render<OmniSelect<string>>();
         Assert.Contains("omni-select", cut.Find(".omni-select").ClassName);
         Assert.NotNull(cut.Find(".omni-select-trigger"));
     }
@@ -23,14 +23,14 @@ public class OmniSelectTests : TestContextBase
     [Fact]
     public void Shows_placeholder_when_no_value()
     {
-        var cut = RenderComponent<OmniSelect<string>>(p => p.Add(c => c.Placeholder, "Selecione..."));
+        var cut = Render<OmniSelect<string>>(p => p.Add(c => c.Placeholder, "Selecione..."));
         Assert.Contains("Selecione...", cut.Find(".omni-select-placeholder").TextContent);
     }
 
     [Fact]
     public void Closed_by_default_opens_on_trigger_click()
     {
-        var cut = RenderComponent<OmniSelect<string>>(p => p.Add(c => c.Items, new[] { "a", "b" }));
+        var cut = Render<OmniSelect<string>>(p => p.Add(c => c.Items, new[] { "a", "b" }));
         Assert.Empty(cut.FindAll(".omni-select-panel"));
         cut.Find(".omni-select-trigger").Click();
         Assert.NotNull(cut.Find(".omni-select-panel"));
@@ -40,7 +40,7 @@ public class OmniSelectTests : TestContextBase
     [Fact]
     public void Options_render_text_via_TextSelector()
     {
-        var cut = RenderComponent<OmniSelect<string>>(p => p
+        var cut = Render<OmniSelect<string>>(p => p
             .Add(c => c.Items, new[] { "a", "b" })
             .Add(c => c.TextSelector, v => v?.ToUpperInvariant() ?? ""));
         cut.Find(".omni-select-trigger").Click();
@@ -53,7 +53,7 @@ public class OmniSelectTests : TestContextBase
     public void Selecting_option_sets_value_identity()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniSelect<string>>(p => p
+        var cut = Render<OmniSelect<string>>(p => p
             .Add(c => c.Items, new[] { "x", "y" })
             .Add(c => c.Value, "x")
             .Add(c => c.ValueChanged, v => captured = v));
@@ -67,7 +67,7 @@ public class OmniSelectTests : TestContextBase
     public void Selecting_option_with_ValueSelector()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniSelect<string>>(p => p
+        var cut = Render<OmniSelect<string>>(p => p
             .Add(c => c.Items, new[] { "x", "y" })
             .Add(c => c.ValueSelector, v => v)
             .Add(c => c.TextSelector, v => v ?? "")
@@ -85,7 +85,7 @@ public class OmniSelectTests : TestContextBase
     public void Selecting_enum_value()
     {
         Fruit captured = Fruit.Apple;
-        var cut = RenderComponent<OmniSelect<Fruit>>(p => p
+        var cut = Render<OmniSelect<Fruit>>(p => p
             .Add(c => c.Items, new[] { Fruit.Apple, Fruit.Banana, Fruit.Cherry })
             .Add(c => c.Value, Fruit.Apple)
             .Add(c => c.ValueChanged, v => captured = v));
@@ -100,7 +100,7 @@ public class OmniSelectTests : TestContextBase
     [Fact]
     public void Selected_value_is_shown_in_the_trigger()
     {
-        var cut = RenderComponent<OmniSelect<string>>(p => p
+        var cut = Render<OmniSelect<string>>(p => p
             .Add(c => c.Items, new[] { "Alpha", "Beta" })
             .Add(c => c.Value, "Beta"));
         Assert.Contains("Beta", cut.Find(".omni-select-value").TextContent);
@@ -109,7 +109,7 @@ public class OmniSelectTests : TestContextBase
     [Fact]
     public void Selected_option_is_marked()
     {
-        var cut = RenderComponent<OmniSelect<string>>(p => p
+        var cut = Render<OmniSelect<string>>(p => p
             .Add(c => c.Items, new[] { "a", "b" })
             .Add(c => c.Value, "b"));
         cut.Find(".omni-select-trigger").Click();
@@ -123,20 +123,20 @@ public class OmniSelectTests : TestContextBase
     [InlineData(ComponentSize.Lg, "omni-input-lg")]
     public void Size_maps_to_class(ComponentSize size, string expected)
     {
-        Assert.Contains(expected, RenderComponent<OmniSelect<string>>(p => p.Add(c => c.Size, size)).Find(".omni-select").ClassName);
+        Assert.Contains(expected, Render<OmniSelect<string>>(p => p.Add(c => c.Size, size)).Find(".omni-select").ClassName);
     }
 
     [Fact]
     public void Disabled_sets_trigger_attribute()
     {
-        var cut = RenderComponent<OmniSelect<string>>(p => p.Add(c => c.Disabled, true));
+        var cut = Render<OmniSelect<string>>(p => p.Add(c => c.Disabled, true));
         Assert.True(cut.Find(".omni-select-trigger").HasAttribute("disabled"));
     }
 
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniSelect<string>>(p => p
+        var cut = Render<OmniSelect<string>>(p => p
             .Add(c => c.Class, "custom-cls")
             .Add(c => c.Style, "min-width: 200px")
             .AddUnmatched("data-testid", "sel1"));

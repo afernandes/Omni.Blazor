@@ -28,7 +28,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void DefaultRender_HasRootClassAndLayers()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>();
+        var cut = Render<OmniDiagramCanvas>();
 
         var root = cut.Find(".omni-diagram");
         Assert.NotNull(root);
@@ -40,7 +40,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void ConsumerClass_IsAppendedToRoot()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p.Add(x => x.Class, "minha-classe"));
+        var cut = Render<OmniDiagramCanvas>(p => p.Add(x => x.Class, "minha-classe"));
         var root = cut.Find(".omni-diagram");
         Assert.Contains("minha-classe", root.ClassList);
     }
@@ -48,7 +48,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void ConsumerStyle_IsForwardedToRoot()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p.Add(x => x.Style, "height:400px"));
+        var cut = Render<OmniDiagramCanvas>(p => p.Add(x => x.Style, "height:400px"));
         var root = cut.Find(".omni-diagram");
         Assert.Contains("height:400px", root.GetAttribute("style"));
     }
@@ -56,7 +56,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void UnmatchedAttributes_SplatOnRoot()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p.AddUnmatched("data-testid", "diagram"));
+        var cut = Render<OmniDiagramCanvas>(p => p.AddUnmatched("data-testid", "diagram"));
         var root = cut.Find(".omni-diagram");
         Assert.Equal("diagram", root.GetAttribute("data-testid"));
     }
@@ -64,7 +64,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void Nodes_RenderWithTitleSubtitleAndDataAttributes()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, TwoNodes));
+        var cut = Render<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, TwoNodes));
 
         var nodes = cut.FindAll("[data-dgnode]");
         Assert.Equal(2, nodes.Count);
@@ -77,7 +77,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void Node_OutPorts_RenderNamesAndSemanticClasses()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, TwoNodes));
+        var cut = Render<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, TwoNodes));
 
         var b = cut.Find("[data-dgnode='b']");
         var portTrue = b.QuerySelector("[data-port='Verdadeiro']");
@@ -93,7 +93,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public void Node_InPort_RenderedOnlyWhenHasInPort()
     {
         var trigger = Node("t") with { HasInPort = false };
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, [trigger, Node("n")]));
+        var cut = Render<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, [trigger, Node("n")]));
 
         Assert.Null(cut.Find("[data-dgnode='t']").QuerySelector("[data-port-in]"));
         Assert.NotNull(cut.Find("[data-dgnode='n']").QuerySelector("[data-port-in]"));
@@ -102,7 +102,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void Edges_RenderBezierPathWithExpectedGeometry()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.Edges, OneEdge));
 
@@ -117,7 +117,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public void Edge_SuccessPort_GetsTrueClass()
     {
         var edges = new[] { new DiagramEdge("e2", "b", "Verdadeiro", "a") };
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.Edges, edges));
 
@@ -128,7 +128,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void Selection_AppliesSelectedClassToNodeAndEdge()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.Edges, OneEdge)
             .Add(x => x.Selection, new DiagramSelection(["a"], "e1")));
@@ -146,7 +146,7 @@ public class OmniDiagramCanvasTests : TestContextBase
             Done = ["b"],
             TakenEdges = ["e1"],
         };
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.Edges, OneEdge)
             .Add(x => x.RunState, run));
@@ -163,7 +163,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public void RunState_ActiveEdge_RendersToken()
     {
         var run = new DiagramRunState { ActiveEdge = "e1" };
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.Edges, OneEdge)
             .Add(x => x.RunState, run));
@@ -175,7 +175,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void ReadOnly_AddsModifierClass_AndHidesAutoLayout()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.ReadOnly, true));
 
@@ -186,18 +186,18 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void EmptyContent_ShownOnlyWithoutNodes()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.EmptyContent, b => b.AddMarkupContent(0, "<span id='vazio'>Canvas vazio</span>")));
         Assert.NotNull(cut.Find("#vazio"));
 
-        cut.SetParametersAndRender(p => p.Add(x => x.Nodes, TwoNodes));
+        cut.Render(p => p.Add(x => x.Nodes, TwoNodes));
         Assert.Empty(cut.FindAll("#vazio"));
     }
 
     [Fact]
     public void NodeTemplate_ReplacesDefaultCardContent_PortsRemain()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.NodeTemplate, node => b => b.AddMarkupContent(0, $"<em class='tpl'>{node.Title}</em>")));
 
@@ -210,7 +210,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void Minimap_RendersNodesAndViewRect()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, TwoNodes));
+        var cut = Render<OmniDiagramCanvas>(p => p.Add(x => x.Nodes, TwoNodes));
 
         var mm = cut.Find(".omni-diagram-minimap svg");
         Assert.Equal(2, mm.QuerySelectorAll(".omni-diagram-mmnode").Length);
@@ -221,10 +221,10 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void Minimap_HiddenWhenDisabledOrEmpty()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>();
+        var cut = Render<OmniDiagramCanvas>();
         Assert.Empty(cut.FindAll(".omni-diagram-minimap"));
 
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.ShowMinimap, false));
         Assert.Empty(cut.FindAll(".omni-diagram-minimap"));
@@ -233,7 +233,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     [Fact]
     public void ZoomLabel_ReflectsViewportZoom()
     {
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Viewport, new DiagramViewport(0, 0, 1.0)));
         Assert.Equal("100%", cut.Find(".omni-diagram-zoomlabel").TextContent.Trim());
     }
@@ -242,7 +242,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public async Task JsSelect_RaisesSelectionChanged()
     {
         DiagramSelection? received = null;
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.SelectionChanged, s => received = s));
 
@@ -257,7 +257,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public async Task JsMoveNodes_RaisesNodesMoved()
     {
         IReadOnlyList<DiagramNodeMove>? moves = null;
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.NodesMoved, m => moves = m));
 
@@ -271,7 +271,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public async Task JsConnect_RaisesOnConnect()
     {
         DiagramConnectEventArgs? args = null;
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.OnConnect, a => args = a));
 
@@ -286,7 +286,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public async Task JsDeleteRequested_OnlyFiresWithSelection()
     {
         var fired = 0;
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.Nodes, TwoNodes)
             .Add(x => x.OnDeleteRequested, _ => fired++));
 
@@ -302,7 +302,7 @@ public class OmniDiagramCanvasTests : TestContextBase
     public async Task JsExternalDrop_RaisesOnExternalDropWithWorldCoords()
     {
         DiagramExternalDropEventArgs? args = null;
-        var cut = RenderComponent<OmniDiagramCanvas>(p => p
+        var cut = Render<OmniDiagramCanvas>(p => p
             .Add(x => x.OnExternalDrop, a => args = a));
 
         await cut.InvokeAsync(() => cut.Instance.JsExternalDrop("Omni.SendEmail", 123.4, 56.7));

@@ -12,7 +12,7 @@ public class OmniMasonryTests : TestContextBase
     [Fact]
     public void Renders_with_default_columns_and_gap()
     {
-        var cut = RenderComponent<OmniMasonry>(p => p.AddChildContent("body"));
+        var cut = Render<OmniMasonry>(p => p.AddChildContent("body"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-masonry", div.ClassName);
@@ -24,7 +24,7 @@ public class OmniMasonryTests : TestContextBase
     [Fact]
     public void Emits_columns_and_gap_variables()
     {
-        var cut = RenderComponent<OmniMasonry>(p => p
+        var cut = Render<OmniMasonry>(p => p
             .Add(c => c.Columns, 5)
             .Add(c => c.Gap, 8)
             .AddChildContent("X"));
@@ -37,7 +37,7 @@ public class OmniMasonryTests : TestContextBase
     [Fact]
     public void Responsive_columns_emit_breakpoint_variables()
     {
-        var cut = RenderComponent<OmniMasonry>(p => p
+        var cut = Render<OmniMasonry>(p => p
             .Add(c => c.Columns, 2)
             .Add(c => c.ColumnsSm, 3)
             .Add(c => c.ColumnsMd, 4)
@@ -53,7 +53,7 @@ public class OmniMasonryTests : TestContextBase
     [Fact]
     public void MinColumnWidth_enables_autocol_and_omits_columns()
     {
-        var cut = RenderComponent<OmniMasonry>(p => p
+        var cut = Render<OmniMasonry>(p => p
             .Add(c => c.MinColumnWidth, 240)
             .Add(c => c.Columns, 5)        // ignored in autocol mode
             .AddChildContent("X"));
@@ -68,7 +68,7 @@ public class OmniMasonryTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniMasonry>(p => p.Add(c => c.Class, "custom-cls").AddChildContent("X"));
+        var cut = Render<OmniMasonry>(p => p.Add(c => c.Class, "custom-cls").AddChildContent("X"));
 
         Assert.Contains("custom-cls", cut.Find("div").ClassName);
     }
@@ -76,7 +76,7 @@ public class OmniMasonryTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniMasonry>(p => p.Add(c => c.Style, "margin: 4px").AddChildContent("X"));
+        var cut = Render<OmniMasonry>(p => p.Add(c => c.Style, "margin: 4px").AddChildContent("X"));
 
         Assert.Contains("margin: 4px", cut.Find("div").GetAttribute("style") ?? "");
     }
@@ -84,7 +84,7 @@ public class OmniMasonryTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniMasonry>(p => p
+        var cut = Render<OmniMasonry>(p => p
             .AddUnmatched("data-testid", "m")
             .AddUnmatched("aria-label", "Galeria")
             .AddChildContent("X"));

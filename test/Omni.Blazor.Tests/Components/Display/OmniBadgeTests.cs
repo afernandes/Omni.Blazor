@@ -13,7 +13,7 @@ public class OmniBadgeTests : TestContextBase
     [Fact]
     public void Renders_standalone_default_with_text()
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Text, "VIP"));
 
         var root = cut.Find("span.omni-badge");
@@ -31,7 +31,7 @@ public class OmniBadgeTests : TestContextBase
     [InlineData(BadgeVariant.Solid,  "omni-badge-solid")]
     public void Applies_variant_class(BadgeVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Variant, variant));
 
@@ -41,7 +41,7 @@ public class OmniBadgeTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root_standalone()
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Class, "user-cls"));
 
@@ -51,7 +51,7 @@ public class OmniBadgeTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root_standalone()
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Style, "margin: 2px"));
 
@@ -61,7 +61,7 @@ public class OmniBadgeTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root_standalone()
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Text, "X")
             .AddUnmatched("data-testid", "b1"));
 
@@ -71,7 +71,7 @@ public class OmniBadgeTests : TestContextBase
     [Fact]
     public void Caps_numeric_Content_at_Max()
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Content, 150)
             .Add(c => c.Max, 99));
 
@@ -81,7 +81,7 @@ public class OmniBadgeTests : TestContextBase
     [Fact]
     public void Overlay_mode_renders_wrapper_with_child()
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Content, 3)
             .AddChildContent("<button>x</button>"));
 
@@ -93,7 +93,7 @@ public class OmniBadgeTests : TestContextBase
     [Fact]
     public void Invisible_overlay_hides_badge_but_keeps_child()
     {
-        var cut = RenderComponent<OmniBadge>(p => p
+        var cut = Render<OmniBadge>(p => p
             .Add(c => c.Visible, false)
             .Add(c => c.Content, 1)
             .AddChildContent("<button>x</button>"));

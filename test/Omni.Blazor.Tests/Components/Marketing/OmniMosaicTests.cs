@@ -12,7 +12,7 @@ public class OmniMosaicTests : TestContextBase
     [Fact]
     public void Renders_root_div_with_base_class()
     {
-        var cut = RenderComponent<OmniMosaic>(p => p.AddChildContent("body"));
+        var cut = Render<OmniMosaic>(p => p.AddChildContent("body"));
 
         var root = cut.Find("div.omni-mosaic");
         Assert.Contains("omni-mosaic", root.ClassName);
@@ -21,7 +21,7 @@ public class OmniMosaicTests : TestContextBase
     [Fact]
     public void Renders_child_content()
     {
-        var cut = RenderComponent<OmniMosaic>(p => p.AddChildContent("<span class='child'>x</span>"));
+        var cut = Render<OmniMosaic>(p => p.AddChildContent("<span class='child'>x</span>"));
 
         Assert.NotNull(cut.Find("span.child"));
     }
@@ -29,7 +29,7 @@ public class OmniMosaicTests : TestContextBase
     [Fact]
     public void Hosts_OmniMosaicCard_children()
     {
-        var cut = RenderComponent<OmniMosaic>(p => p
+        var cut = Render<OmniMosaic>(p => p
             .AddChildContent<OmniMosaicCard>(c => c.Add(x => x.Name, "Card A")));
 
         Assert.NotNull(cut.Find("div.omni-mosaic"));
@@ -40,7 +40,7 @@ public class OmniMosaicTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniMosaic>(p => p
+        var cut = Render<OmniMosaic>(p => p
             .Add(c => c.Class, "my-grid")
             .AddChildContent("x"));
 
@@ -50,7 +50,7 @@ public class OmniMosaicTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniMosaic>(p => p
+        var cut = Render<OmniMosaic>(p => p
             .Add(c => c.Style, "gap: 8px")
             .AddChildContent("x"));
 
@@ -60,7 +60,7 @@ public class OmniMosaicTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniMosaic>(p => p
+        var cut = Render<OmniMosaic>(p => p
             .AddUnmatched("data-testid", "mosaic1")
             .AddChildContent("x"));
 

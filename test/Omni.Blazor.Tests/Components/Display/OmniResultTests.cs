@@ -13,7 +13,7 @@ public class OmniResultTests : TestContextBase
     [Fact]
     public void Default_renders_root_with_info_tone_and_icon()
     {
-        var cut = RenderComponent<OmniResult>();
+        var cut = Render<OmniResult>();
         var root = cut.Find(".omni-result");
         Assert.Contains("omni-result-info", root.ClassName);
         Assert.NotNull(cut.Find(".omni-result-icon svg"));
@@ -29,14 +29,14 @@ public class OmniResultTests : TestContextBase
     [InlineData(ResultStatus.Info, "omni-result-info")]
     public void Status_maps_to_tone_class(ResultStatus status, string expectedClass)
     {
-        var cut = RenderComponent<OmniResult>(p => p.Add(c => c.Status, status));
+        var cut = Render<OmniResult>(p => p.Add(c => c.Status, status));
         Assert.Contains(expectedClass, cut.Find(".omni-result").ClassName);
     }
 
     [Fact]
     public void Renders_title_and_description()
     {
-        var cut = RenderComponent<OmniResult>(p => p
+        var cut = Render<OmniResult>(p => p
             .Add(c => c.Title, "Página não encontrada")
             .Add(c => c.Description, "A rota não existe."));
         Assert.Equal("Página não encontrada", cut.Find(".omni-result-title").TextContent);
@@ -46,7 +46,7 @@ public class OmniResultTests : TestContextBase
     [Fact]
     public void Renders_actions_fragment()
     {
-        var cut = RenderComponent<OmniResult>(p => p
+        var cut = Render<OmniResult>(p => p
             .Add(c => c.Actions, b => b.AddMarkupContent(0, "<button class=\"go\">Voltar</button>")));
         Assert.NotNull(cut.Find(".omni-result-actions .go"));
     }
@@ -54,7 +54,7 @@ public class OmniResultTests : TestContextBase
     [Fact]
     public void Icon_override_wins_over_status_default()
     {
-        var cut = RenderComponent<OmniResult>(p => p
+        var cut = Render<OmniResult>(p => p
             .Add(c => c.Status, ResultStatus.Success)
             .Add(c => c.Icon, "shield"));
         // The shield path is unique enough; assert an svg renders (icon resolved).
@@ -64,14 +64,14 @@ public class OmniResultTests : TestContextBase
     [Fact]
     public void Compact_adds_modifier_class()
     {
-        var cut = RenderComponent<OmniResult>(p => p.Add(c => c.Compact, true));
+        var cut = Render<OmniResult>(p => p.Add(c => c.Compact, true));
         Assert.Contains("omni-result-compact", cut.Find(".omni-result").ClassName);
     }
 
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniResult>(p => p
+        var cut = Render<OmniResult>(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "margin:4px")
             .AddUnmatched("data-testid", "r1"));

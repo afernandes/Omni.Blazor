@@ -12,7 +12,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Renders_item_without_span_by_default()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p.AddChildContent("x"));
+        var cut = Render<OmniBentoItem>(p => p.AddChildContent("x"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-bento-item", div.ClassName);
@@ -24,7 +24,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Emits_span_classes()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p
+        var cut = Render<OmniBentoItem>(p => p
             .Add(c => c.ColSpan, 2)
             .Add(c => c.RowSpan, 3)
             .AddChildContent("x"));
@@ -37,7 +37,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Emits_responsive_span_classes()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p
+        var cut = Render<OmniBentoItem>(p => p
             .Add(c => c.ColSpan, 4)
             .Add(c => c.ColSpanSm, 1)
             .Add(c => c.ColSpanMd, 2)
@@ -54,7 +54,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void NoPadding_adds_flush_modifier()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p.Add(c => c.NoPadding, true).AddChildContent("x"));
+        var cut = Render<OmniBentoItem>(p => p.Add(c => c.NoPadding, true).AddChildContent("x"));
 
         Assert.Contains("omni-bento-item-flush", cut.Find("div").ClassName);
     }
@@ -62,7 +62,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p.Add(c => c.Class, "cc").AddChildContent("x"));
+        var cut = Render<OmniBentoItem>(p => p.Add(c => c.Class, "cc").AddChildContent("x"));
 
         Assert.Contains("cc", cut.Find("div").ClassName);
     }
@@ -70,7 +70,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p
+        var cut = Render<OmniBentoItem>(p => p
             .Add(c => c.ColSpan, 2)
             .Add(c => c.Style, "opacity: .5")
             .AddChildContent("x"));
@@ -81,7 +81,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p
+        var cut = Render<OmniBentoItem>(p => p
             .AddUnmatched("data-testid", "it")
             .AddChildContent("x"));
 
@@ -91,7 +91,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Href_renders_anchor_interactive()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p.Add(c => c.Href, "/relatorio").AddChildContent("x"));
+        var cut = Render<OmniBentoItem>(p => p.Add(c => c.Href, "/relatorio").AddChildContent("x"));
 
         var a = cut.Find("a");
         Assert.Equal("/relatorio", a.GetAttribute("href"));
@@ -102,7 +102,7 @@ public class OmniBentoItemTests : TestContextBase
     public void OnClick_renders_button_and_fires()
     {
         var clicked = false;
-        var cut = RenderComponent<OmniBentoItem>(p => p
+        var cut = Render<OmniBentoItem>(p => p
             .Add(c => c.OnClick, EventCallback.Factory.Create<MouseEventArgs>(this, () => clicked = true))
             .AddChildContent("x"));
 
@@ -115,7 +115,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Disabled_button_has_attribute_and_class()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p
+        var cut = Render<OmniBentoItem>(p => p
             .Add(c => c.Disabled, true)
             .Add(c => c.OnClick, EventCallback.Factory.Create<MouseEventArgs>(this, () => { }))
             .AddChildContent("x"));
@@ -128,7 +128,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Tone_emits_tone_class()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p.Add(c => c.Tone, CardTone.Accent).AddChildContent("x"));
+        var cut = Render<OmniBentoItem>(p => p.Add(c => c.Tone, CardTone.Accent).AddChildContent("x"));
 
         Assert.Contains("omni-bento-item-tone-accent", cut.Find("div").ClassName);
     }
@@ -136,7 +136,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void AspectRatio_emits_class_and_variable()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p.Add(c => c.AspectRatio, "16/9").AddChildContent("x"));
+        var cut = Render<OmniBentoItem>(p => p.Add(c => c.AspectRatio, "16/9").AddChildContent("x"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-bento-item-ar", div.ClassName);
@@ -146,7 +146,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Content_alignment_emits_flex_classes()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p
+        var cut = Render<OmniBentoItem>(p => p
             .Add(c => c.AlignContent, StackAlign.Center)
             .Add(c => c.JustifyContent, StackAlign.End)
             .AddChildContent("x"));
@@ -160,7 +160,7 @@ public class OmniBentoItemTests : TestContextBase
     [Fact]
     public void Scrim_emits_class()
     {
-        var cut = RenderComponent<OmniBentoItem>(p => p.Add(c => c.Scrim, true).AddChildContent("x"));
+        var cut = Render<OmniBentoItem>(p => p.Add(c => c.Scrim, true).AddChildContent("x"));
 
         Assert.Contains("omni-bento-item-scrim", cut.Find("div").ClassName);
     }

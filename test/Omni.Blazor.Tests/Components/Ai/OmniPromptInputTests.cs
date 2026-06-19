@@ -7,7 +7,7 @@ namespace Omni.Blazor.Tests.Components.Ai;
 public class OmniPromptInputTests : TestContextBase
 {
     private IRenderedComponent<OmniPromptInput> Render(Action<ComponentParameterCollectionBuilder<OmniPromptInput>>? extra = null)
-        => RenderComponent<OmniPromptInput>(p => { extra?.Invoke(p); });
+        => Render<OmniPromptInput>(p => { extra?.Invoke(p); });
 
     [Fact]
     public void Renders_textarea_bound_to_value()
@@ -65,7 +65,7 @@ public class OmniPromptInputTests : TestContextBase
         var send = cut.Find("button[aria-label='Send']");
         Assert.True(send.HasAttribute("disabled"));   // empty → cannot send
 
-        cut.SetParametersAndRender(p => p.Add(c => c.Value, "go"));
+        cut.Render(p => p.Add(c => c.Value, "go"));
         send = cut.Find("button[aria-label='Send']");
         Assert.False(send.HasAttribute("disabled"));
         send.Click();
@@ -78,7 +78,7 @@ public class OmniPromptInputTests : TestContextBase
         var cut = Render(p => p.Add(c => c.Value, "abcd"));
         Assert.Equal("4", cut.Find(".omni-prompt-input-count").TextContent);
 
-        cut.SetParametersAndRender(p => p.Add(c => c.Value, "abcd").Add(c => c.MaxLength, 100));
+        cut.Render(p => p.Add(c => c.Value, "abcd").Add(c => c.MaxLength, 100));
         Assert.Equal("4/100", cut.Find(".omni-prompt-input-count").TextContent);
         Assert.Equal("100", cut.Find("textarea").GetAttribute("maxlength"));
     }

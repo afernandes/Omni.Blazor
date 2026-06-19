@@ -14,7 +14,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void Renders_bare_input_when_no_affixes()
     {
-        var cut = RenderComponent<OmniTextBox>();
+        var cut = Render<OmniTextBox>();
 
         var input = cut.Find("input");
         Assert.Contains("omni-input", input.ClassName);
@@ -24,7 +24,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void Renders_input_with_current_Value()
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.Value, "hello"));
 
         Assert.Equal("hello", cut.Find("input").GetAttribute("value"));
@@ -35,7 +35,7 @@ public class OmniTextBoxTests : TestContextBase
     [InlineData(ComponentSize.Lg, "omni-input-lg")]
     public void Applies_size_modifier_to_input(ComponentSize size, string expected)
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.Size, size));
 
         Assert.Contains(expected, cut.Find("input").ClassName);
@@ -44,7 +44,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void LeadingIcon_wraps_in_input_group()
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.LeadingIcon, "search"));
 
         var group = cut.Find("div.omni-input-group");
@@ -56,7 +56,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void TrailingIcon_only_applies_right_padding_class()
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.TrailingIcon, "x"));
 
         var group = cut.Find("div.omni-input-group");
@@ -67,7 +67,7 @@ public class OmniTextBoxTests : TestContextBase
     public void Clearable_with_value_shows_clear_button_and_clears_on_click()
     {
         string? captured = "abc";
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.Value, "abc")
             .Add(c => c.Clearable, true)
             .Add(c => c.ValueChanged, v => captured = v));
@@ -79,7 +79,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_bare_input()
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.Class, "custom-cls"));
 
         Assert.Contains("custom-cls", cut.Find("input").ClassName);
@@ -88,7 +88,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_group_wrapper()
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.LeadingIcon, "search")
             .Add(c => c.Class, "custom-cls"));
 
@@ -98,7 +98,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .Add(c => c.LeadingIcon, "search")
             .Add(c => c.Style, "width: 200px"));
 
@@ -108,7 +108,7 @@ public class OmniTextBoxTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_input_when_no_group()
     {
-        var cut = RenderComponent<OmniTextBox>(p => p
+        var cut = Render<OmniTextBox>(p => p
             .AddUnmatched("data-testid", "tb1"));
 
         Assert.Equal("tb1", cut.Find("input").GetAttribute("data-testid"));

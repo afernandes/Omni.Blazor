@@ -13,7 +13,7 @@ public class OmniAvatarGroupTests : TestContextBase
     [Fact]
     public void Renders_root_and_avatar_children()
     {
-        var cut = RenderComponent<OmniAvatarGroup>(p => p
+        var cut = Render<OmniAvatarGroup>(p => p
             .AddChildContent<OmniAvatar>(a => a.Add(x => x.Initials, "MT"))
             .AddChildContent<OmniAvatar>(a => a.Add(x => x.Initials, "DA")));
         Assert.NotNull(cut.Find(".omni-avatar-group"));
@@ -23,7 +23,7 @@ public class OmniAvatarGroupTests : TestContextBase
     [Fact]
     public void More_renders_overflow_chip()
     {
-        var cut = RenderComponent<OmniAvatarGroup>(p => p.Add(c => c.More, 3));
+        var cut = Render<OmniAvatarGroup>(p => p.Add(c => c.More, 3));
         var chip = cut.Find(".omni-avatar-group-more");
         Assert.Equal("+3", chip.TextContent);
     }
@@ -31,8 +31,8 @@ public class OmniAvatarGroupTests : TestContextBase
     [Fact]
     public void No_chip_when_More_null_or_zero()
     {
-        Assert.Empty(RenderComponent<OmniAvatarGroup>().FindAll(".omni-avatar-group-more"));
-        Assert.Empty(RenderComponent<OmniAvatarGroup>(p => p.Add(c => c.More, 0)).FindAll(".omni-avatar-group-more"));
+        Assert.Empty(Render<OmniAvatarGroup>().FindAll(".omni-avatar-group-more"));
+        Assert.Empty(Render<OmniAvatarGroup>(p => p.Add(c => c.More, 0)).FindAll(".omni-avatar-group-more"));
     }
 
     [Theory]
@@ -41,14 +41,14 @@ public class OmniAvatarGroupTests : TestContextBase
     [InlineData(AvatarSize.Xl, "omni-avatar-group-xl")]
     public void Size_adds_modifier_class(AvatarSize size, string cls)
     {
-        var cut = RenderComponent<OmniAvatarGroup>(p => p.Add(c => c.Size, size));
+        var cut = Render<OmniAvatarGroup>(p => p.Add(c => c.Size, size));
         Assert.Contains(cls, cut.Find(".omni-avatar-group").ClassName);
     }
 
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniAvatarGroup>(p => p
+        var cut = Render<OmniAvatarGroup>(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "margin:4px")
             .AddUnmatched("data-testid", "g1"));

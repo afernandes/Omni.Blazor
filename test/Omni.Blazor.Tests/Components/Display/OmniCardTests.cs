@@ -14,7 +14,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Renders_default_root_with_base_class()
     {
-        var cut = RenderComponent<OmniCard>(p => p.AddChildContent("body"));
+        var cut = Render<OmniCard>(p => p.AddChildContent("body"));
 
         var root = cut.Find("div.omni-card");
         Assert.Contains("omni-card", root.ClassName);
@@ -23,7 +23,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Renders_title_and_subtitle_in_header()
     {
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .Add(c => c.Title, "Hi")
             .Add(c => c.Subtitle, "World"));
 
@@ -34,7 +34,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Elevated_adds_modifier()
     {
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .Add(c => c.Elevated, true)
             .AddChildContent("x"));
 
@@ -44,7 +44,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Flat_adds_modifier()
     {
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .Add(c => c.Flat, true)
             .AddChildContent("x"));
 
@@ -54,7 +54,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Clickable_adds_modifier()
     {
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .Add(c => c.Clickable, true)
             .AddChildContent("x"));
 
@@ -65,7 +65,7 @@ public class OmniCardTests : TestContextBase
     public void OnClick_fires_when_card_clicked()
     {
         var fired = 0;
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .Add(c => c.OnClick, (MouseEventArgs _) => fired++)
             .AddChildContent("x"));
 
@@ -76,7 +76,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .Add(c => c.Class, "my-card")
             .AddChildContent("x"));
 
@@ -86,7 +86,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .Add(c => c.Style, "max-width: 320px")
             .AddChildContent("x"));
 
@@ -96,7 +96,7 @@ public class OmniCardTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniCard>(p => p
+        var cut = Render<OmniCard>(p => p
             .AddUnmatched("data-testid", "card1")
             .AddChildContent("x"));
 

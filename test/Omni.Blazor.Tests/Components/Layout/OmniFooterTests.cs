@@ -12,7 +12,7 @@ public class OmniFooterTests : TestContextBase
     [Fact]
     public void Renders_default_footer_with_bordered_class()
     {
-        var cut = RenderComponent<OmniFooter>(p => p.AddChildContent("Footer"));
+        var cut = Render<OmniFooter>(p => p.AddChildContent("Footer"));
 
         var footer = cut.Find("footer");
         Assert.Contains("omni-footer", footer.ClassName);
@@ -23,7 +23,7 @@ public class OmniFooterTests : TestContextBase
     [Fact]
     public void Bordered_false_removes_bordered_class()
     {
-        var cut = RenderComponent<OmniFooter>(p => p
+        var cut = Render<OmniFooter>(p => p
             .Add(c => c.Bordered, false)
             .AddChildContent("X"));
 
@@ -33,7 +33,7 @@ public class OmniFooterTests : TestContextBase
     [Fact]
     public void Fixed_applies_fixed_class_and_data_attr()
     {
-        var cut = RenderComponent<OmniFooter>(p => p
+        var cut = Render<OmniFooter>(p => p
             .Add(c => c.Fixed, true)
             .AddChildContent("X"));
 
@@ -45,7 +45,7 @@ public class OmniFooterTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniFooter>(p => p
+        var cut = Render<OmniFooter>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -55,7 +55,7 @@ public class OmniFooterTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniFooter>(p => p
+        var cut = Render<OmniFooter>(p => p
             .Add(c => c.Style, "background: gray")
             .AddChildContent("X"));
 
@@ -65,7 +65,7 @@ public class OmniFooterTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniFooter>(p => p
+        var cut = Render<OmniFooter>(p => p
             .AddUnmatched("data-testid", "footer")
             .AddUnmatched("aria-label", "Footer")
             .AddChildContent("X"));

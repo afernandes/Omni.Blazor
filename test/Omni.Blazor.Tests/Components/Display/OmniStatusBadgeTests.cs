@@ -13,7 +13,7 @@ public class OmniStatusBadgeTests : TestContextBase
     [Fact]
     public void Renders_default_neutral_with_label()
     {
-        var cut = RenderComponent<OmniStatusBadge>(p => p
+        var cut = Render<OmniStatusBadge>(p => p
             .Add(c => c.Label, "Online"));
 
         var root = cut.Find("span.omni-status");
@@ -30,7 +30,7 @@ public class OmniStatusBadgeTests : TestContextBase
     [InlineData(StatusBadgeKind.Danger,  "omni-status-danger")]
     public void Applies_kind_class(StatusBadgeKind kind, string expected)
     {
-        var cut = RenderComponent<OmniStatusBadge>(p => p
+        var cut = Render<OmniStatusBadge>(p => p
             .Add(c => c.Label, "X")
             .Add(c => c.Kind, kind));
 
@@ -40,7 +40,7 @@ public class OmniStatusBadgeTests : TestContextBase
     [Fact]
     public void Pulse_adds_modifier_to_dot()
     {
-        var cut = RenderComponent<OmniStatusBadge>(p => p
+        var cut = Render<OmniStatusBadge>(p => p
             .Add(c => c.Label, "Live")
             .Add(c => c.Pulse, true));
 
@@ -50,7 +50,7 @@ public class OmniStatusBadgeTests : TestContextBase
     [Fact]
     public void Meta_renders_when_set()
     {
-        var cut = RenderComponent<OmniStatusBadge>(p => p
+        var cut = Render<OmniStatusBadge>(p => p
             .Add(c => c.Label, "Ready")
             .Add(c => c.Meta, "08:42"));
 
@@ -60,7 +60,7 @@ public class OmniStatusBadgeTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniStatusBadge>(p => p
+        var cut = Render<OmniStatusBadge>(p => p
             .Add(c => c.Label, "X")
             .Add(c => c.Class, "my-sb"));
 
@@ -72,7 +72,7 @@ public class OmniStatusBadgeTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniStatusBadge>(p => p
+        var cut = Render<OmniStatusBadge>(p => p
             .Add(c => c.Label, "X")
             .Add(c => c.Style, "margin: 4px"));
 
@@ -82,7 +82,7 @@ public class OmniStatusBadgeTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniStatusBadge>(p => p
+        var cut = Render<OmniStatusBadge>(p => p
             .Add(c => c.Label, "X")
             .AddUnmatched("data-testid", "sb1"));
 

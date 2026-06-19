@@ -12,7 +12,7 @@ public class OmniEyebrowTests : TestContextBase
     [Fact]
     public void Renders_root_span_with_base_class()
     {
-        var cut = RenderComponent<OmniEyebrow>(p => p
+        var cut = Render<OmniEyebrow>(p => p
             .Add(c => c.Text, "New"));
 
         var root = cut.Find("span.omni-eyebrow");
@@ -23,7 +23,7 @@ public class OmniEyebrowTests : TestContextBase
     [Fact]
     public void Shows_dot_by_default()
     {
-        var cut = RenderComponent<OmniEyebrow>(p => p
+        var cut = Render<OmniEyebrow>(p => p
             .Add(c => c.Text, "X"));
 
         Assert.NotNull(cut.Find("span.omni-eyebrow-dot"));
@@ -32,7 +32,7 @@ public class OmniEyebrowTests : TestContextBase
     [Fact]
     public void Hides_dot_when_ShowDot_false()
     {
-        var cut = RenderComponent<OmniEyebrow>(p => p
+        var cut = Render<OmniEyebrow>(p => p
             .Add(c => c.ShowDot, false)
             .Add(c => c.Text, "X"));
 
@@ -42,7 +42,7 @@ public class OmniEyebrowTests : TestContextBase
     [Fact]
     public void ChildContent_overrides_Text()
     {
-        var cut = RenderComponent<OmniEyebrow>(p => p
+        var cut = Render<OmniEyebrow>(p => p
             .Add(c => c.Text, "ignored")
             .AddChildContent("kids"));
 
@@ -53,7 +53,7 @@ public class OmniEyebrowTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniEyebrow>(p => p
+        var cut = Render<OmniEyebrow>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Class, "user-cls"));
 
@@ -63,7 +63,7 @@ public class OmniEyebrowTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniEyebrow>(p => p
+        var cut = Render<OmniEyebrow>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Style, "color: red"));
 
@@ -73,7 +73,7 @@ public class OmniEyebrowTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniEyebrow>(p => p
+        var cut = Render<OmniEyebrow>(p => p
             .Add(c => c.Text, "X")
             .AddUnmatched("data-testid", "eyebrow1"));
 

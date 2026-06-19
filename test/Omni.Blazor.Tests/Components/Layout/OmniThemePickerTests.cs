@@ -22,7 +22,7 @@ public class OmniThemePickerTests : TestContextBase
     [Fact]
     public void Renders_trigger_button_with_base_class()
     {
-        var cut = RenderComponent<OmniThemePicker>();
+        var cut = Render<OmniThemePicker>();
 
         var btn = cut.Find("button.omni-theme-picker-btn");
         Assert.NotNull(btn);
@@ -33,7 +33,7 @@ public class OmniThemePickerTests : TestContextBase
     [Fact]
     public void Custom_Title_applies_to_aria_and_tooltip()
     {
-        var cut = RenderComponent<OmniThemePicker>(p => p.Add(c => c.Title, "Aparência"));
+        var cut = Render<OmniThemePicker>(p => p.Add(c => c.Title, "Aparência"));
 
         var btn = cut.Find("button.omni-theme-picker-btn");
         Assert.Equal("Aparência", btn.GetAttribute("aria-label"));
@@ -43,7 +43,7 @@ public class OmniThemePickerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_trigger()
     {
-        var cut = RenderComponent<OmniThemePicker>(p => p.Add(c => c.Class, "custom-cls"));
+        var cut = Render<OmniThemePicker>(p => p.Add(c => c.Class, "custom-cls"));
 
         Assert.Contains("custom-cls", cut.Find("button.omni-theme-picker-btn").ClassName);
     }

@@ -22,7 +22,7 @@ public class OmniDataGridColumnTests : TestContextBase
     [Fact]
     public void Registers_with_parent_grid_and_renders_header()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, b =>
             {
@@ -39,7 +39,7 @@ public class OmniDataGridColumnTests : TestContextBase
     [Fact]
     public void Property_supplies_cell_text()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, b =>
             {
@@ -57,7 +57,7 @@ public class OmniDataGridColumnTests : TestContextBase
     [Fact]
     public void Template_overrides_default_cell_text()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, b =>
             {
@@ -78,7 +78,7 @@ public class OmniDataGridColumnTests : TestContextBase
     [Fact]
     public void Visible_false_hides_column_header()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, b =>
             {

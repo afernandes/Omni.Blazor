@@ -10,7 +10,7 @@ public class OmniSuggestionChipsTests : TestContextBase
     [Fact]
     public void Renders_a_chip_per_suggestion_in_a_group()
     {
-        var cut = RenderComponent<OmniSuggestionChips>(p => p.Add(c => c.Suggestions, Three));
+        var cut = Render<OmniSuggestionChips>(p => p.Add(c => c.Suggestions, Three));
 
         var root = cut.Find("div.omni-suggestion-chips");
         Assert.Equal("group", root.GetAttribute("role"));
@@ -23,7 +23,7 @@ public class OmniSuggestionChipsTests : TestContextBase
     public void OnSelect_fires_with_clicked_suggestion()
     {
         string? selected = null;
-        var cut = RenderComponent<OmniSuggestionChips>(p => p
+        var cut = Render<OmniSuggestionChips>(p => p
             .Add(c => c.Suggestions, Three)
             .Add(c => c.OnSelect, s => selected = s));
 
@@ -34,7 +34,7 @@ public class OmniSuggestionChipsTests : TestContextBase
     [Fact]
     public void Custom_AriaLabel_is_applied()
     {
-        var cut = RenderComponent<OmniSuggestionChips>(p => p
+        var cut = Render<OmniSuggestionChips>(p => p
             .Add(c => c.Suggestions, Three).Add(c => c.AriaLabel, "Follow-ups"));
         Assert.Equal("Follow-ups", cut.Find("div.omni-suggestion-chips").GetAttribute("aria-label"));
     }
@@ -42,7 +42,7 @@ public class OmniSuggestionChipsTests : TestContextBase
     [Fact]
     public void Renders_ChildContent_chips()
     {
-        var cut = RenderComponent<OmniSuggestionChips>(p => p
+        var cut = Render<OmniSuggestionChips>(p => p
             .AddChildContent("<button class=\"omni-chip custom\">Manual</button>"));
         Assert.NotNull(cut.Find("button.custom"));
     }
@@ -50,7 +50,7 @@ public class OmniSuggestionChipsTests : TestContextBase
     [Fact]
     public void Appends_Class_Style_and_Attributes()
     {
-        var cut = RenderComponent<OmniSuggestionChips>(p => p
+        var cut = Render<OmniSuggestionChips>(p => p
             .Add(c => c.Suggestions, Three)
             .Add(c => c.Class, "cc")
             .Add(c => c.Style, "gap: 4px")

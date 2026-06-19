@@ -12,7 +12,7 @@ public class AlertDialogTests : TestContextBase
     [Fact]
     public void Renders_message_and_ok_button()
     {
-        var cut = RenderComponent<AlertDialog>(p => p
+        var cut = Render<AlertDialog>(p => p
             .Add(c => c.Message, "Hello world")
             .Add(c => c.Options, new AlertOptions { OkButtonText = "OK" }));
 
@@ -23,7 +23,7 @@ public class AlertDialogTests : TestContextBase
     [Fact]
     public void Default_options_use_Entendi_label()
     {
-        var cut = RenderComponent<AlertDialog>(p => p
+        var cut = Render<AlertDialog>(p => p
             .Add(c => c.Message, "x")
             .Add(c => c.Options, new AlertOptions()));
 
@@ -41,7 +41,7 @@ public class AlertDialogTests : TestContextBase
                 ["Options"] = new AlertOptions()
             });
 
-        var cut = RenderComponent<AlertDialog>(p => p
+        var cut = Render<AlertDialog>(p => p
             .Add(c => c.Message, "x")
             .Add(c => c.Options, new AlertOptions()));
 

@@ -21,7 +21,7 @@ public class OmniRegexValidatorTests : TestContextBase
     {
         var ctx = new EditContext(new Model());
         var registry = new StubFormRegistry().Register(input);
-        var cut = RenderComponent<OmniRegexValidator>(p => p
+        var cut = Render<OmniRegexValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, input.ResolvedName)

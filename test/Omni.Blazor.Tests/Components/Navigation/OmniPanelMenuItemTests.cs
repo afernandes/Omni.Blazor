@@ -13,7 +13,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void Leaf_with_Path_renders_anchor_with_href()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Home")
             .Add(i => i.Path, "/")));
 
@@ -26,7 +26,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     public void Leaf_without_Path_renders_button_and_fires_OnClick()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Action")
             .Add(i => i.OnClick, EventCallback.Factory.Create(this, () => clicks++))));
 
@@ -38,7 +38,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void Item_with_children_renders_toggle_button()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Group")
             .AddChildContent<OmniPanelMenuItem>(d => d
                 .Add(i => i.Text, "Child")
@@ -54,7 +54,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void Toggle_button_expands_children_on_click()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Group")
             .AddChildContent<OmniPanelMenuItem>(d => d
                 .Add(i => i.Text, "Child")
@@ -72,7 +72,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void Count_renders_count_pill()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Inbox")
             .Add(i => i.Path, "/inbox")
             .Add(i => i.Count, 7)));
@@ -84,7 +84,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void CountText_renders_string_pill_when_Count_absent()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Beta")
             .Add(i => i.Path, "/beta")
             .Add(i => i.CountText, "NEW")));
@@ -100,7 +100,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [InlineData(MenuMetaKind.Danger, "omni-meta-danger")]
     public void Count_pill_applies_CountKind_modifier(MenuMetaKind kind, string expectedClass)
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "X")
             .Add(i => i.Path, "/x")
             .Add(i => i.Count, 1)
@@ -112,7 +112,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void Wrapper_has_data_label_attribute()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Home")
             .Add(i => i.Path, "/")));
 
@@ -126,7 +126,7 @@ public class OmniPanelMenuItemTests : TestContextBase
         // the browser's job via the disabled attribute. The contract we
         // assert here is: when Disabled=true, the rendered button has the
         // attribute, so the real browser will block the click.
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Action")
             .Add(i => i.Disabled, true)));
 
@@ -137,7 +137,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void Class_parameter_appends_to_outer_wrapper()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Home")
             .Add(i => i.Path, "/")
             .Add(i => i.Class, "custom-pmi")));
@@ -148,7 +148,7 @@ public class OmniPanelMenuItemTests : TestContextBase
     [Fact]
     public void Style_parameter_forwards_to_outer_wrapper()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
+        var cut = Render<OmniPanelMenu>(p => p.AddChildContent<OmniPanelMenuItem>(c => c
             .Add(i => i.Text, "Home")
             .Add(i => i.Path, "/")
             .Add(i => i.Style, "opacity: 0.8")));

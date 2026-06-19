@@ -15,7 +15,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Renders_root_and_trigger()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var cut = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
 
         Assert.NotNull(cut.Find("div.omni-colorpicker"));
         Assert.NotNull(cut.Find(".omni-colorpicker-trigger"));
@@ -24,7 +24,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Trigger_text_shows_current_hex()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var cut = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
 
         Assert.Contains("#ff0000", cut.Find(".omni-colorpicker-text").TextContent);
     }
@@ -32,7 +32,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Trigger_swatch_reflects_value_color()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var cut = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
 
         var style = cut.Find(".omni-colorpicker-swatch-fill").GetAttribute("style") ?? "";
         Assert.Contains("255,0,0", style);
@@ -41,7 +41,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Falls_back_to_DefaultColor_when_value_invalid()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "not-a-color")
             .Add(c => c.DefaultColor, "#00ff00"));
 
@@ -51,7 +51,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Panel_hidden_until_trigger_clicked()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var cut = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
         Assert.Empty(cut.FindAll(".omni-colorpicker-panel"));
 
         cut.Find(".omni-colorpicker-trigger").Click();
@@ -64,11 +64,11 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Alpha_slider_only_with_ShowAlpha()
     {
-        var noAlpha = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var noAlpha = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
         noAlpha.Find(".omni-colorpicker-trigger").Click();
         Assert.Empty(noAlpha.FindAll(".omni-colorpicker-alpha"));
 
-        var withAlpha = RenderComponent<OmniColorPicker>(p => p
+        var withAlpha = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000").Add(c => c.ShowAlpha, true));
         withAlpha.Find(".omni-colorpicker-trigger").Click();
         Assert.NotNull(withAlpha.Find(".omni-colorpicker-alpha"));
@@ -77,11 +77,11 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Hex_field_toggles_with_ShowInput()
     {
-        var withInput = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var withInput = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
         withInput.Find(".omni-colorpicker-trigger").Click();
         Assert.NotNull(withInput.Find(".omni-colorpicker-hexfield"));
 
-        var noInput = RenderComponent<OmniColorPicker>(p => p
+        var noInput = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000").Add(c => c.ShowInput, false));
         noInput.Find(".omni-colorpicker-trigger").Click();
         Assert.Empty(noInput.FindAll(".omni-colorpicker-hexfield"));
@@ -90,7 +90,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Presets_render_from_palette()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000")
             .Add(c => c.Palette, new[] { "#111111", "#222222", "#333333" }));
         cut.Find(".omni-colorpicker-trigger").Click();
@@ -101,7 +101,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Presets_hidden_when_ShowPresets_false()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000").Add(c => c.ShowPresets, false));
         cut.Find(".omni-colorpicker-trigger").Click();
 
@@ -112,7 +112,7 @@ public class OmniColorPickerTests : TestContextBase
     public void Clicking_preset_commits_value()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#000000")
             .Add(c => c.Palette, new[] { "#ff0000", "#00ff00" })
             .Add(c => c.ValueChanged, EventCallback.Factory.Create<string?>(this, v => captured = v)));
@@ -127,7 +127,7 @@ public class OmniColorPickerTests : TestContextBase
     public void Valid_hex_input_commits_value()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#000000")
             .Add(c => c.ValueChanged, EventCallback.Factory.Create<string?>(this, v => captured = v)));
         cut.Find(".omni-colorpicker-trigger").Click();
@@ -141,7 +141,7 @@ public class OmniColorPickerTests : TestContextBase
     public void Invalid_hex_input_does_not_commit()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#000000")
             .Add(c => c.ValueChanged, EventCallback.Factory.Create<string?>(this, v => captured = v)));
         cut.Find(".omni-colorpicker-trigger").Click();
@@ -154,7 +154,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Disabled_blocks_opening()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000").Add(c => c.Disabled, true));
 
         Assert.NotNull(cut.Find(".omni-colorpicker-trigger").GetAttribute("disabled"));
@@ -166,7 +166,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000").Add(c => c.Class, "custom-cls"));
 
         Assert.Contains("custom-cls", cut.Find("div.omni-colorpicker").ClassName);
@@ -175,7 +175,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000").Add(c => c.Style, "min-width: 320px"));
 
         Assert.Contains("min-width: 320px", cut.Find("div.omni-colorpicker").GetAttribute("style") ?? "");
@@ -184,7 +184,7 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, "#ff0000").AddUnmatched("data-testid", "cp"));
 
         Assert.Equal("cp", cut.Find("div.omni-colorpicker").GetAttribute("data-testid"));
@@ -202,7 +202,7 @@ public class OmniColorPickerTests : TestContextBase
     public void Initial_ValueExpression_triggers_recompute()
     {
         var model = new Model { Brand = "#ff0000" };
-        var cut = RenderComponent<OmniColorPicker>(p => p
+        var cut = Render<OmniColorPicker>(p => p
             .Add(c => c.Value, model.Brand)
             .Add(c => c.ValueExpression, () => model.Brand));
 
@@ -212,10 +212,10 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Recompute_does_not_fire_when_unrelated_params_change()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var cut = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "color: red")
             .AddUnmatched("data-foo", "bar"));
@@ -226,10 +226,10 @@ public class OmniColorPickerTests : TestContextBase
     [Fact]
     public void Recompute_fires_when_Value_changes()
     {
-        var cut = RenderComponent<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
+        var cut = Render<OmniColorPicker>(p => p.Add(c => c.Value, "#ff0000"));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.Value, "#00ff00"));
+        cut.Render(p => p.Add(c => c.Value, "#00ff00"));
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
     }

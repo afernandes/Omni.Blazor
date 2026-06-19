@@ -15,7 +15,7 @@ public class OmniSparklineTests : TestContextBase
     [Fact]
     public void Renders_default_line_variant()
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData));
 
         var root = cut.Find("div.omni-sparkline");
@@ -31,7 +31,7 @@ public class OmniSparklineTests : TestContextBase
     [InlineData(SparklineVariant.Pie,    "omni-sparkline-pie")]
     public void Applies_variant_class(SparklineVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData)
             .Add(c => c.Variant, variant));
 
@@ -41,7 +41,7 @@ public class OmniSparklineTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData)
             .Add(c => c.Class, "my-spark"));
 
@@ -51,7 +51,7 @@ public class OmniSparklineTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData)
             .Add(c => c.Style, "width: 100px"));
 
@@ -61,7 +61,7 @@ public class OmniSparklineTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData)
             .AddUnmatched("data-testid", "sp1"));
 
@@ -73,7 +73,7 @@ public class OmniSparklineTests : TestContextBase
     [Fact]
     public void Normalize_runs_on_initial_render()
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData));
 
         // Normalized array and point cache populated by RecomputeFromData()
@@ -85,14 +85,14 @@ public class OmniSparklineTests : TestContextBase
     [Fact]
     public void Normalize_does_NOT_run_when_unrelated_parameter_changes()
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData));
 
         var normalizedBefore = cut.Instance._normalized;
         var pointsBefore = cut.Instance._points;
 
         // Re-render only changing Class — Data reference unchanged.
-        cut.SetParametersAndRender(p => p.Add(c => c.Class, "new-class"));
+        cut.Render(p => p.Add(c => c.Class, "new-class"));
 
         // Reference equality: RecomputeFromData() never ran, the arrays are
         // the exact same instances.
@@ -103,13 +103,13 @@ public class OmniSparklineTests : TestContextBase
     [Fact]
     public void Normalize_runs_again_when_Data_reference_changes()
     {
-        var cut = RenderComponent<OmniSparkline>(p => p
+        var cut = Render<OmniSparkline>(p => p
             .Add(c => c.Data, SampleData));
 
         var normalizedBefore = cut.Instance._normalized;
 
         // New array reference -> Data parameter "changed".
-        cut.SetParametersAndRender(p => p.Add(c => c.Data, new double[] { 10, 20, 30 }));
+        cut.Render(p => p.Add(c => c.Data, new double[] { 10, 20, 30 }));
 
         Assert.NotSame(normalizedBefore, cut.Instance._normalized);
         Assert.Equal(3, cut.Instance._normalized.Length);

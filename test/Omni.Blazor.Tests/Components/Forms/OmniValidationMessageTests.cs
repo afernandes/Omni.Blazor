@@ -40,7 +40,7 @@ public class OmniValidationMessageTests : TestContextBase
         var model = new Person { Email = "a@b.com" };
         var ctx = new EditContext(model);
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email));
 
@@ -55,7 +55,7 @@ public class OmniValidationMessageTests : TestContextBase
             (nameof(Person.Email), "Email is required."),
             (nameof(Person.Email), "Email must be valid."));
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email));
 
@@ -75,7 +75,7 @@ public class OmniValidationMessageTests : TestContextBase
             (nameof(Person.Email), "Email is required."),
             (nameof(Person.Email), "Email must be valid."));
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email)
             .Add(c => c.ShowAll, false));
@@ -91,7 +91,7 @@ public class OmniValidationMessageTests : TestContextBase
         var model = new Person();
         var ctx = BuildContextWithErrors(model, (nameof(Person.Email), "x"));
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email)
             .Add(c => c.Class, "custom-cls"));
@@ -105,7 +105,7 @@ public class OmniValidationMessageTests : TestContextBase
         var model = new Person();
         var ctx = BuildContextWithErrors(model, (nameof(Person.Email), "x"));
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email)
             .Add(c => c.Style, "margin-top: 4px"));
@@ -119,7 +119,7 @@ public class OmniValidationMessageTests : TestContextBase
         var model = new Person();
         var ctx = BuildContextWithErrors(model, (nameof(Person.Email), "x"));
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email)
             .AddUnmatched("data-testid", "email-error"));
@@ -134,7 +134,7 @@ public class OmniValidationMessageTests : TestContextBase
         var ctx = new EditContext(model);
         var store = new ValidationMessageStore(ctx);
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email));
 
@@ -159,7 +159,7 @@ public class OmniValidationMessageTests : TestContextBase
         store.Add(new FieldIdentifier(model, "OtherField"), "not-mine");
         ctx.NotifyValidationStateChanged();
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email));
 
@@ -173,7 +173,7 @@ public class OmniValidationMessageTests : TestContextBase
     {
         var model = new Person();
         var ctx = new EditContext(model);
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email));
 
@@ -187,12 +187,12 @@ public class OmniValidationMessageTests : TestContextBase
         var model = new Person();
         var ctx = BuildContextWithErrors(model, (nameof(Person.Email), "boom"));
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, () => model.Email));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Class, "newcls")
             .Add(c => c.Style, "color:red")
             .AddUnmatched("data-foo", "bar"));
@@ -209,12 +209,12 @@ public class OmniValidationMessageTests : TestContextBase
         System.Linq.Expressions.Expression<Func<string?>> emailExpr = () => model.Email;
         System.Linq.Expressions.Expression<Func<string?>> nameExpr  = () => model.Name;
 
-        var cut = RenderComponent<OmniValidationMessage<string>>(p => p
+        var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.For, emailExpr));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.For, nameExpr));
+        cut.Render(p => p.Add(c => c.For, nameExpr));
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
     }

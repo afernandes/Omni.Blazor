@@ -13,7 +13,7 @@ public class OmniQtyStepperTests : TestContextBase
     [Fact]
     public void Renders_three_children_div_with_base_class()
     {
-        var cut = RenderComponent<OmniQtyStepper>(p => p.Add(c => c.Value, 1));
+        var cut = Render<OmniQtyStepper>(p => p.Add(c => c.Value, 1));
 
         var root = cut.Find("div.omni-qty-stepper");
         Assert.NotNull(root);
@@ -26,7 +26,7 @@ public class OmniQtyStepperTests : TestContextBase
     [InlineData(ComponentSize.Lg, "omni-qty-stepper-lg")]
     public void Applies_size_modifier(ComponentSize size, string expected)
     {
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 1)
             .Add(c => c.Size, size));
 
@@ -37,7 +37,7 @@ public class OmniQtyStepperTests : TestContextBase
     public void Increment_button_raises_ValueChanged()
     {
         var captured = 0;
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 1)
             .Add(c => c.ValueChanged, v => captured = v));
 
@@ -49,7 +49,7 @@ public class OmniQtyStepperTests : TestContextBase
     public void Decrement_button_raises_ValueChanged()
     {
         var captured = 0;
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 3)
             .Add(c => c.ValueChanged, v => captured = v));
 
@@ -60,7 +60,7 @@ public class OmniQtyStepperTests : TestContextBase
     [Fact]
     public void Decrement_disabled_at_Min()
     {
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 1)
             .Add(c => c.Min, 1));
 
@@ -70,7 +70,7 @@ public class OmniQtyStepperTests : TestContextBase
     [Fact]
     public void Increment_disabled_at_Max()
     {
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 5)
             .Add(c => c.Max, 5));
 
@@ -80,7 +80,7 @@ public class OmniQtyStepperTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 1)
             .Add(c => c.Class, "custom-cls"));
 
@@ -90,7 +90,7 @@ public class OmniQtyStepperTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 1)
             .Add(c => c.Style, "margin: 4px"));
 
@@ -100,7 +100,7 @@ public class OmniQtyStepperTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniQtyStepper>(p => p
+        var cut = Render<OmniQtyStepper>(p => p
             .Add(c => c.Value, 1)
             .AddUnmatched("data-testid", "qty"));
 

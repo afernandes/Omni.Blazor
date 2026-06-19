@@ -13,7 +13,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Renders_grid_with_default_columns_and_gap()
     {
-        var cut = RenderComponent<OmniBento>(p => p.AddChildContent("body"));
+        var cut = Render<OmniBento>(p => p.AddChildContent("body"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-bento", div.ClassName);
@@ -25,7 +25,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Emits_columns_and_gap_variables()
     {
-        var cut = RenderComponent<OmniBento>(p => p
+        var cut = Render<OmniBento>(p => p
             .Add(c => c.Columns, 4)
             .Add(c => c.Gap, 8)
             .AddChildContent("X"));
@@ -38,7 +38,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Responsive_columns_emit_breakpoint_variables()
     {
-        var cut = RenderComponent<OmniBento>(p => p
+        var cut = Render<OmniBento>(p => p
             .Add(c => c.Columns, 12)
             .Add(c => c.ColumnsSm, 6)
             .Add(c => c.ColumnsMd, 4)
@@ -54,7 +54,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void MinTileWidth_enables_autofit_and_omits_columns()
     {
-        var cut = RenderComponent<OmniBento>(p => p
+        var cut = Render<OmniBento>(p => p
             .Add(c => c.MinTileWidth, 240)
             .Add(c => c.Columns, 4)        // ignored when auto-fit
             .AddChildContent("X"));
@@ -69,7 +69,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void RowHeight_adds_rows_class_and_variable()
     {
-        var cut = RenderComponent<OmniBento>(p => p
+        var cut = Render<OmniBento>(p => p
             .Add(c => c.RowHeight, 100)
             .AddChildContent("X"));
 
@@ -83,7 +83,7 @@ public class OmniBentoTests : TestContextBase
     [InlineData(false)]
     public void Square_toggles_modifier(bool square)
     {
-        var cut = RenderComponent<OmniBento>(p => p.Add(c => c.Square, square).AddChildContent("X"));
+        var cut = Render<OmniBento>(p => p.Add(c => c.Square, square).AddChildContent("X"));
 
         if (square) Assert.Contains("omni-bento-square", cut.Find("div").ClassName);
         else Assert.DoesNotContain("omni-bento-square", cut.Find("div").ClassName);
@@ -92,7 +92,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Connected_adds_modifier()
     {
-        var cut = RenderComponent<OmniBento>(p => p.Add(c => c.Connected, true).AddChildContent("X"));
+        var cut = Render<OmniBento>(p => p.Add(c => c.Connected, true).AddChildContent("X"));
 
         Assert.Contains("omni-bento-connected", cut.Find("div").ClassName);
     }
@@ -100,17 +100,17 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Dense_default_on_omits_sparse_and_false_adds_it()
     {
-        var on = RenderComponent<OmniBento>(p => p.AddChildContent("X"));
+        var on = Render<OmniBento>(p => p.AddChildContent("X"));
         Assert.DoesNotContain("omni-bento-sparse", on.Find("div").ClassName);
 
-        var off = RenderComponent<OmniBento>(p => p.Add(c => c.Dense, false).AddChildContent("X"));
+        var off = Render<OmniBento>(p => p.Add(c => c.Dense, false).AddChildContent("X"));
         Assert.Contains("omni-bento-sparse", off.Find("div").ClassName);
     }
 
     [Fact]
     public void AlignItems_emits_alignment_class()
     {
-        var cut = RenderComponent<OmniBento>(p => p.Add(c => c.AlignItems, StackAlign.Center).AddChildContent("X"));
+        var cut = Render<OmniBento>(p => p.Add(c => c.AlignItems, StackAlign.Center).AddChildContent("X"));
 
         Assert.Contains("omni-bento-align-center", cut.Find("div").ClassName);
     }
@@ -118,7 +118,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void EqualRows_emits_class()
     {
-        var cut = RenderComponent<OmniBento>(p => p.Add(c => c.EqualRows, true).AddChildContent("X"));
+        var cut = Render<OmniBento>(p => p.Add(c => c.EqualRows, true).AddChildContent("X"));
 
         Assert.Contains("omni-bento-equal", cut.Find("div").ClassName);
     }
@@ -126,7 +126,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Container_wraps_in_query_container_and_marks_grid()
     {
-        var cut = RenderComponent<OmniBento>(p => p.Add(c => c.Container, true).AddChildContent("X"));
+        var cut = Render<OmniBento>(p => p.Add(c => c.Container, true).AddChildContent("X"));
 
         var grid = cut.Find(".omni-bento-cq .omni-bento");   // wrapper > grid
         Assert.Contains("omni-bento-container", grid.ClassName);
@@ -135,7 +135,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniBento>(p => p.Add(c => c.Class, "custom-cls").AddChildContent("X"));
+        var cut = Render<OmniBento>(p => p.Add(c => c.Class, "custom-cls").AddChildContent("X"));
 
         Assert.Contains("custom-cls", cut.Find("div").ClassName);
     }
@@ -143,7 +143,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniBento>(p => p.Add(c => c.Style, "margin: 4px").AddChildContent("X"));
+        var cut = Render<OmniBento>(p => p.Add(c => c.Style, "margin: 4px").AddChildContent("X"));
 
         Assert.Contains("margin: 4px", cut.Find("div").GetAttribute("style") ?? "");
     }
@@ -151,7 +151,7 @@ public class OmniBentoTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniBento>(p => p
+        var cut = Render<OmniBento>(p => p
             .AddUnmatched("data-testid", "b")
             .AddUnmatched("aria-label", "Bento")
             .AddChildContent("X"));

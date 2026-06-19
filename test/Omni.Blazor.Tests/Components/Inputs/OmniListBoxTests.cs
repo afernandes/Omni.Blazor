@@ -13,7 +13,7 @@ public class OmniListBoxTests : TestContextBase
     [Fact]
     public void Renders_listbox_role_with_base_class()
     {
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a", "b" }));
 
         var root = cut.Find("div.omni-listbox");
@@ -24,7 +24,7 @@ public class OmniListBoxTests : TestContextBase
     [Fact]
     public void Multi_mode_applies_multi_modifier()
     {
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a" })
             .Add(c => c.Multiple, true));
 
@@ -35,7 +35,7 @@ public class OmniListBoxTests : TestContextBase
     [Fact]
     public void Renders_one_option_per_item()
     {
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a", "b", "c" }));
 
         Assert.Equal(3, cut.FindAll("div.omni-listbox-item").Count);
@@ -45,7 +45,7 @@ public class OmniListBoxTests : TestContextBase
     public void Click_in_single_mode_raises_ValueChanged()
     {
         string? captured = null;
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a", "b" })
             .Add(c => c.ValueChanged, v => captured = v));
 
@@ -56,7 +56,7 @@ public class OmniListBoxTests : TestContextBase
     [Fact]
     public void Disabled_applies_modifier_and_sets_tabindex_minus_one()
     {
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a" })
             .Add(c => c.Disabled, true));
 
@@ -67,7 +67,7 @@ public class OmniListBoxTests : TestContextBase
     [Fact]
     public void MaxHeight_renders_in_style()
     {
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a" })
             .Add(c => c.MaxHeight, "400px"));
 
@@ -77,7 +77,7 @@ public class OmniListBoxTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a" })
             .Add(c => c.Class, "custom-cls"));
 
@@ -87,7 +87,7 @@ public class OmniListBoxTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniListBox<string>>(p => p
+        var cut = Render<OmniListBox<string>>(p => p
             .Add(c => c.Items, new[] { "a" })
             .AddUnmatched("data-testid", "lb"));
 

@@ -13,7 +13,7 @@ public class OmniParallaxTests : TestContextBase
     [Fact]
     public void Renders_scene_div_with_mode_attribute()
     {
-        var cut = RenderComponent<OmniParallax>(p => p.AddChildContent("x"));
+        var cut = Render<OmniParallax>(p => p.AddChildContent("x"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-parallax", div.ClassName);
@@ -23,7 +23,7 @@ public class OmniParallaxTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniParallax>(p => p.Add(c => c.Class, "hero").AddChildContent("x"));
+        var cut = Render<OmniParallax>(p => p.Add(c => c.Class, "hero").AddChildContent("x"));
 
         Assert.Contains("hero", cut.Find("div").ClassName);
     }
@@ -31,20 +31,20 @@ public class OmniParallaxTests : TestContextBase
     [Fact]
     public void MouseParallax_emits_mr_variable()
     {
-        var on = RenderComponent<OmniParallax>(p => p
+        var on = Render<OmniParallax>(p => p
             .Add(c => c.MouseParallax, true)
             .Add(c => c.MouseStrength, 2)
             .AddChildContent("x"));
         Assert.Contains("--omni-px-mr: 48", on.Find("div").GetAttribute("style") ?? "");   // 2 * 24
 
-        var off = RenderComponent<OmniParallax>(p => p.AddChildContent("x"));
+        var off = Render<OmniParallax>(p => p.AddChildContent("x"));
         Assert.DoesNotContain("--omni-px-mr", off.Find("div").GetAttribute("style") ?? "");
     }
 
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniParallax>(p => p.Add(c => c.Style, "min-height: 400px").AddChildContent("x"));
+        var cut = Render<OmniParallax>(p => p.Add(c => c.Style, "min-height: 400px").AddChildContent("x"));
 
         Assert.Contains("min-height: 400px", cut.Find("div").GetAttribute("style") ?? "");
     }
@@ -52,7 +52,7 @@ public class OmniParallaxTests : TestContextBase
     [Fact]
     public void Disabled_sets_off_mode()
     {
-        var cut = RenderComponent<OmniParallax>(p => p.Add(c => c.Disabled, true).AddChildContent("x"));
+        var cut = Render<OmniParallax>(p => p.Add(c => c.Disabled, true).AddChildContent("x"));
 
         cut.WaitForAssertion(() =>
             Assert.Equal("off", cut.Find("div").GetAttribute("data-omni-parallax-mode")));
@@ -61,7 +61,7 @@ public class OmniParallaxTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniParallax>(p => p
+        var cut = Render<OmniParallax>(p => p
             .AddUnmatched("data-testid", "px")
             .AddUnmatched("aria-label", "Cena")
             .AddChildContent("x"));

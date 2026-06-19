@@ -14,7 +14,7 @@ public class OmniProgressCircularTests : TestContextBase
 {
     private IRenderedComponent<OmniProgressCircular> Render(
         Action<ComponentParameterCollectionBuilder<OmniProgressCircular>>? extra = null)
-        => RenderComponent<OmniProgressCircular>(p => extra?.Invoke(p));
+        => Render<OmniProgressCircular>(p => extra?.Invoke(p));
 
     [Fact]
     public void Renders_progressbar_with_two_circles()

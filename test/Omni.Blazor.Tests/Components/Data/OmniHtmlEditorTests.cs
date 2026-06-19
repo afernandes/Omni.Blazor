@@ -16,7 +16,7 @@ public class OmniHtmlEditorTests : TestContextBase
 {
     private IRenderedComponent<OmniHtmlEditor> Render(
         Action<ComponentParameterCollectionBuilder<OmniHtmlEditor>>? extra = null)
-        => RenderComponent<OmniHtmlEditor>(p => extra?.Invoke(p));
+        => Render<OmniHtmlEditor>(p => extra?.Invoke(p));
 
     // ─── Structure ────────────────────────────────────────────────────────
 

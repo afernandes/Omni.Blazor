@@ -16,14 +16,14 @@ public class OmniSplitterPaneTests : TestContextBase
     {
         // Without a parent splitter the pane has nothing to render — verifies
         // that the component is purely a registration carrier.
-        var cut = RenderComponent<OmniSplitterPane>(p => p.AddChildContent("body"));
+        var cut = Render<OmniSplitterPane>(p => p.AddChildContent("body"));
         Assert.Equal(string.Empty, cut.Markup.Trim());
     }
 
     [Fact]
     public void Pane_with_parent_renders_its_child_content()
     {
-        var cut = RenderComponent<OmniSplitter>(p => p.AddChildContent(builder =>
+        var cut = Render<OmniSplitter>(p => p.AddChildContent(builder =>
         {
             builder.OpenComponent<OmniSplitterPane>(0);
             builder.AddAttribute(1, "Size", "100%");
