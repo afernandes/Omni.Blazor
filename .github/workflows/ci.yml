@@ -74,7 +74,7 @@ jobs:
 
       - name: Coverage gate (>= 80% line)
         if: matrix.os == 'ubuntu-latest'
-        run: python3 scripts/check_coverage.py 80 coverage Omni.Blazor Omni.Blazor.ManifestGen Omni.Blazor.Mcp
+        run: python3 scripts/check_coverage.py 80 coverage Omni.Blazor Omni.Blazor.Ai Omni.Blazor.ManifestGen Omni.Blazor.Mcp
 
       - name: Manifest is up to date
         if: matrix.os == 'ubuntu-latest'
@@ -87,6 +87,15 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           dotnet pack src/Omni.Blazor/Omni.Blazor.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./artifacts \
+            -p:ContinuousIntegrationBuild=true
+
+      - name: Pack (Omni.Blazor.Ai, dry-run)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet pack src/Omni.Blazor.Ai/Omni.Blazor.Ai.csproj \
             --configuration Release \
             --no-build \
             --output ./artifacts \

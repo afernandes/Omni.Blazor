@@ -35,6 +35,20 @@ dotnet add package AndersonN.Omni.Blazor
 
 Or via NuGet UI in Visual Studio / Rider.
 
+### Optional — AI layer
+
+The AI orchestration (`OmniChatClient` + the drop-in `OmniAiConversation`, built on the
+standard `Microsoft.Extensions.AI.IChatClient`) ships as a **separate package** so the base
+library never forces the AI dependency on consumers who don't use it:
+
+```bash
+dotnet add package AndersonN.Omni.Blazor.Ai
+```
+
+It references the base package, so installing it pulls in `AndersonN.Omni.Blazor` too. The
+streaming-UI primitives (`OmniStreamingText`, `OmniMessage`, `OmniPromptInput`, …) stay in the
+base package — only the `IChatClient`-backed orchestration lives in `.Ai`.
+
 ## Quick start
 
 **1) Reference the stylesheet** (handled automatically — `<OmniTheme>` injects it):

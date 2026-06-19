@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- TargetFramework, language, build-quality props come from /Directory.Build.props.
+       Package versions are centralized in /Directory.Packages.props (CPM). -->
+
+  <PropertyGroup>
+    <RootNamespace>Omni.Blazor.Ai</RootNamespace>
+    <AssemblyName>Omni.Blazor.Ai</AssemblyName>
+    <!-- Optional AI layer (OmniChatClient + OmniAiConversation) over the standard
+         Microsoft.Extensions.AI.IChatClient. Kept OUT of the base Omni.Blazor package
+         so consumers who don't use AI aren't forced to take the AI abstractions
+         dependency. Static assets (if any) serve under _content/Omni.Blazor.Ai; the
+         component CSS itself ships in the base omni.css bundle (always loaded). -->
+    <StaticWebAssetBasePath>_content/Omni.Blazor.Ai</StaticWebAssetBasePath>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- NuGet package metadata. Version is derived from git tags by MinVer (vX.Y.Z),
+       shared with the base library so both ship in lockstep on a single tag. -->
+  <PropertyGroup>
+    <PackageId>AndersonN.Omni.Blazor.Ai</PackageId>
+    <Title>Omni.Blazor.Ai</Title>
+    <Description>Optional AI layer for Omni.Blazor — a headless OmniChatClient orchestrator and a drop-in OmniAiConversation component over the standard Microsoft.Extensions.AI IChatClient (any provider: OpenAI, Azure, Ollama, …). Streaming, history, system prompt; zero provider lock-in.</Description>
+    <PackageTags>blazor;ai;llm;chat;ichatclient;openai;streaming;omni;dotnet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The base library (primitives the OmniAiConversation composes) + the standard
+         .NET AI abstraction (IChatClient). -->
+    <ProjectReference Include="..\Omni.Blazor\Omni.Blazor.csproj" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Omni.Blazor.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Files shipped inside the .nupkg -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+</Project>

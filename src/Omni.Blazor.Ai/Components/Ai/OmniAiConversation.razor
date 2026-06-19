@@ -1,0 +1,145 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Ai
+@using Omni.Blazor.Models
+@using Omni.Blazor.Services
+@using Omni.Blazor.Utilities
+@implements IDisposable
+@inject ScrollManager Scroll
+
+@* Drop-in AI chat: binds to an OmniChatClient (which wraps any IChatClient) and composes
+   the AI primitives — OmniMessage/OmniStreamingText for turns, OmniPromptInput for the
+   composer. Pure sugar over the public primitives, so you can also build your own UI. *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (HeaderContent is not null)
+    {
+        <div class="omni-ai-conversation-header">@HeaderContent</div>
+    }
+
+    <div class="omni-ai-conversation-log" id="@LogId" role="log" aria-label="@LogLabel">
+        @if (Client.Turns.Count == 0 && EmptyContent is not null)
+        {
+            <div class="omni-ai-conversation-empty">@EmptyContent</div>
+        }
+        @foreach (OmniChatTurn turn in Client.Turns)
+        {
+            <OmniMessage @key="turn"
+                         Role="turn.Role"
+                         Content="@turn.Content"
+                         Streaming="turn.IsStreaming"
+                         Author="@AuthorFor(turn)"
+                         AvatarInitials="@InitialsFor(turn)"
+                         Class="@(turn.IsError ? "omni-message-error" : null)" />
+        }
+    </div>
+
+    <div class="omni-ai-conversation-composer">
+        <OmniPromptInput @bind-Value="_draft"
+                         Placeholder="@Placeholder"
+                         SendLabel="@SendLabel"
+                         Disabled="@(Disabled || Client.IsStreaming)"
+                         OnSend="HandleSendAsync" />
+    </div>
+</div>
+
+@code {
+    /// <summary>The conversation orchestrator (wraps your <c>IChatClient</c>). Required.</summary>
+    [Parameter, EditorRequired] public OmniChatClient Client { get; set; } = null!;
+
+    /// <summary>Placeholder for the composer.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Accessible label for the send button. Default "Send".</summary>
+    [Parameter] public string SendLabel { get; set; } = "Send";
+
+    /// <summary>Accessible label for the message log. Default "Conversation".</summary>
+    [Parameter] public string LogLabel { get; set; } = "Conversation";
+
+    /// <summary>Avatar initials for user turns. Default "U".</summary>
+    [Parameter] public string UserInitials { get; set; } = "U";
+
+    /// <summary>Avatar initials for assistant turns. Default "AI".</summary>
+    [Parameter] public string AssistantInitials { get; set; } = "AI";
+
+    /// <summary>Author name shown above user turns when <see cref="ShowAuthor"/> is on.</summary>
+    [Parameter] public string? UserName { get; set; }
+
+    /// <summary>Author name shown above assistant turns when <see cref="ShowAuthor"/> is on.</summary>
+    [Parameter] public string? AssistantName { get; set; }
+
+    /// <summary>Show the author name above each message. Default false.</summary>
+    [Parameter] public bool ShowAuthor { get; set; }
+
+    /// <summary>Disable the composer (e.g. while offline). Streaming auto-disables it too.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Optional header slot (title, clear button, model picker — you own it).</summary>
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+
+    /// <summary>Shown in the log while the conversation is empty.</summary>
+    [Parameter] public RenderFragment? EmptyContent { get; set; }
+
+    private string _draft = "";
+    private bool _shouldScroll;
+    private string LogId => $"{Id}-log";
+    private OmniChatClient? _subscribedClient;
+
+    // Subscribe in OnParametersSet (not OnInitialized): Client is a [Parameter], so a
+    // parent that swaps the instance must move the subscription to the new client —
+    // otherwise the old client leaks the component and updates stop arriving.
+    protected override void OnParametersSet()
+    {
+        ArgumentNullException.ThrowIfNull(Client);
+        if (!ReferenceEquals(Client, _subscribedClient))
+        {
+            if (_subscribedClient is not null) _subscribedClient.Changed -= OnClientChanged;
+            _subscribedClient = Client;
+            _subscribedClient.Changed += OnClientChanged;
+        }
+    }
+
+    private void OnClientChanged()
+    {
+        _shouldScroll = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldScroll)
+        {
+            _shouldScroll = false;
+            await Scroll.ScrollToBottomAsync($"#{LogId}");
+        }
+    }
+
+    private async Task HandleSendAsync(string text)
+    {
+        _draft = "";
+        await Client.SendAsync(text);
+    }
+
+    private string? AuthorFor(OmniChatTurn turn)
+        => ShowAuthor
+            ? turn.Role switch
+            {
+                MessageRole.User => UserName,
+                MessageRole.Assistant => AssistantName,
+                _ => null, // system turns carry no author label
+            }
+            : null;
+
+    private string InitialsFor(OmniChatTurn turn)
+        => turn.Role == MessageRole.User ? UserInitials : AssistantInitials;
+
+    private string RootCss => CssBuilder.Default("omni-ai-conversation")
+        .AddClass("omni-ai-conversation-streaming", Client.IsStreaming)
+        .AddClass(Class)
+        .Build();
+
+    public void Dispose()
+    {
+        if (_subscribedClient is not null) _subscribedClient.Changed -= OnClientChanged;
+    }
+}
