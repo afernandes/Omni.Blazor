@@ -121,7 +121,14 @@
     }
 
     private string? AuthorFor(OmniChatTurn turn)
-        => ShowAuthor ? (turn.Role == MessageRole.User ? UserName : AssistantName) : null;
+        => ShowAuthor
+            ? turn.Role switch
+            {
+                MessageRole.User => UserName,
+                MessageRole.Assistant => AssistantName,
+                _ => null, // system turns carry no author label
+            }
+            : null;
 
     private string InitialsFor(OmniChatTurn turn)
         => turn.Role == MessageRole.User ? UserInitials : AssistantInitials;

@@ -107,6 +107,22 @@ public class OmniAiConversationTests : TestContextBase
     }
 
     [Fact]
+    public void System_turns_get_no_author_label_even_when_ShowAuthor_is_on()
+    {
+        var client = Client();
+        client.AddTurn(new OmniChatTurn(MessageRole.System, "instruções"));
+        client.AddTurn(new OmniChatTurn(MessageRole.Assistant, "oi"));
+        var cut = Render(client, p => p
+            .Add(c => c.ShowAuthor, true)
+            .Add(c => c.AssistantName, "Omni AI"));
+
+        // system turns carry no author (must not be mislabeled as the assistant)...
+        Assert.Empty(cut.Find(".omni-message-system").QuerySelectorAll(".omni-message-author"));
+        // ...while assistant turns are still labeled
+        Assert.Equal("Omni AI", cut.Find(".omni-message-assistant .omni-message-author").TextContent);
+    }
+
+    [Fact]
     public void Renders_header_content()
     {
         var cut = Render(Client(), p => p.Add(c => c.HeaderContent,

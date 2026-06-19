@@ -44,8 +44,9 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
 
     /// <summary>
     /// Send a user message and stream the assistant's reply into a new turn. No-ops on blank
-    /// input or while a response is already streaming. Cancelling <paramref name="cancellationToken"/>
-    /// (or sending again) aborts the in-flight stream.
+    /// input or while a response is already streaming (one turn at a time — it does not queue
+    /// or interrupt). Cancelling <paramref name="cancellationToken"/> aborts the in-flight stream,
+    /// keeping whatever streamed so far.
     /// </summary>
     public async Task SendAsync(string userText, CancellationToken cancellationToken = default)
     {
