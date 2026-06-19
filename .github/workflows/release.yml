@@ -96,6 +96,18 @@ jobs:
           EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.Mcp.${{ steps.minver.outputs.version }}.nupkg"
           test -f "$EXPECTED" || { echo "::error::MCP tool version != tag — esperado $EXPECTED"; exit 1; }
 
+      - name: Pack AI package (AndersonN.Omni.Blazor.Ai)
+        run: |
+          set -e
+          dotnet pack src/Omni.Blazor.Ai/Omni.Blazor.Ai.csproj \
+            --configuration Release \
+            --output ${{ env.ARTIFACTS }} \
+            -p:ContinuousIntegrationBuild=true
+          # Same version guard: the packed AI package MUST match the tag, else
+          # `dotnet nuget push --skip-duplicate` could silently no-op a mismatch.
+          EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.Ai.${{ steps.minver.outputs.version }}.nupkg"
+          test -f "$EXPECTED" || { echo "::error::AI package version != tag — esperado $EXPECTED"; exit 1; }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

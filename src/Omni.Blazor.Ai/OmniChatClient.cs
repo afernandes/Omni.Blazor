@@ -20,6 +20,7 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     private readonly IChatClient _client;
     private readonly List<OmniChatTurn> _turns = [];
     private CancellationTokenSource? _cts;
+    private bool _disposed;
 
     /// <param name="client">The chat client to talk to (any provider via Microsoft.Extensions.AI).</param>
     /// <param name="options">Conversation options (system prompt, history cap, inference options).</param>
@@ -48,12 +49,14 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     /// </summary>
     public async Task SendAsync(string userText, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (string.IsNullOrWhiteSpace(userText) || IsStreaming) return;
 
         _cts?.Cancel();
         _cts?.Dispose();
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        CancellationToken token = _cts.Token;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _cts = cts;
+        CancellationToken token = cts.Token;
 
         AddTurn(new OmniChatTurn(MessageRole.User, userText.Trim()));
         var assistant = new OmniChatTurn(MessageRole.Assistant) { IsStreaming = true };
@@ -89,6 +92,11 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
             assistant.IsStreaming = false;
             IsStreaming = false;
             Raise();
+
+            // Dispose the linked source so it deregisters from the caller's token
+            // (otherwise a long-lived caller token would root this client — a leak).
+            cts.Dispose();
+            if (_cts == cts) _cts = null;
         }
     }
 
@@ -138,7 +146,9 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        _cts?.Cancel();
+        if (_disposed) return;
+        _disposed = true;
+        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
         _cts?.Dispose();
         _client.Dispose();
     }
@@ -146,7 +156,9 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        _cts?.Cancel();
+        if (_disposed) return;
+        _disposed = true;
+        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
         _cts?.Dispose();
         if (_client is IAsyncDisposable asyncDisposable)
             await asyncDisposable.DisposeAsync().ConfigureAwait(false);

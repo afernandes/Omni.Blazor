@@ -83,11 +83,20 @@
     private string _draft = "";
     private bool _shouldScroll;
     private string LogId => $"{Id}-log";
+    private OmniChatClient? _subscribedClient;
 
-    protected override void OnInitialized()
+    // Subscribe in OnParametersSet (not OnInitialized): Client is a [Parameter], so a
+    // parent that swaps the instance must move the subscription to the new client —
+    // otherwise the old client leaks the component and updates stop arriving.
+    protected override void OnParametersSet()
     {
         ArgumentNullException.ThrowIfNull(Client);
-        Client.Changed += OnClientChanged;
+        if (!ReferenceEquals(Client, _subscribedClient))
+        {
+            if (_subscribedClient is not null) _subscribedClient.Changed -= OnClientChanged;
+            _subscribedClient = Client;
+            _subscribedClient.Changed += OnClientChanged;
+        }
     }
 
     private void OnClientChanged()
@@ -122,5 +131,8 @@
         .AddClass(Class)
         .Build();
 
-    public void Dispose() => Client.Changed -= OnClientChanged;
+    public void Dispose()
+    {
+        if (_subscribedClient is not null) _subscribedClient.Changed -= OnClientChanged;
+    }
 }

@@ -154,4 +154,24 @@ public class OmniAiConversationTests : TestContextBase
     [Fact]
     public void Rendering_without_a_client_fails()
         => Assert.ThrowsAny<Exception>(() => Render<OmniAiConversation>(p => { }));
+
+    [Fact]
+    public async Task Swapping_the_client_resubscribes_to_the_new_one()
+    {
+        var first = Client();
+        var second = Client("nova");
+        var cut = Render(first);
+
+        // Parent swaps the Client instance.
+        cut.Render(p => p.Add(c => c.Client, second));
+
+        // Reacts to the NEW client.
+        await cut.InvokeAsync(() => second.SendAsync("oi"));
+        Assert.Equal(2, cut.FindAll(".omni-message").Count);
+        Assert.Contains("nova", cut.Find(".omni-message-assistant").TextContent);
+
+        // No longer reacts to the OLD client (unsubscribed — no leak, no ghost render).
+        first.AddTurn(new OmniChatTurn(MessageRole.User, "fantasma"));
+        Assert.DoesNotContain("fantasma", cut.Markup);
+    }
 }

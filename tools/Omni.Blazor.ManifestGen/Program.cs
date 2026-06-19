@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
+using Omni.Blazor.Ai;
 using Omni.Blazor.Components;
 using Omni.Blazor.ManifestGen;
 
@@ -23,16 +24,32 @@ using Omni.Blazor.ManifestGen;
 string repoRoot = args.Length > 0 ? Path.GetFullPath(args[0]) : FindRepoRoot();
 Console.WriteLine($"[manifest-gen] repo root: {repoRoot}");
 
-Assembly asm = typeof(OmniComponent).Assembly;
-string xmlPath = Path.ChangeExtension(asm.Location, ".xml");
-Dictionary<string, string> docs = XmlDocText.Load(xmlPath);
-Console.WriteLine($"[manifest-gen] xml docs: {(File.Exists(xmlPath) ? $"{docs.Count} members" : "NOT FOUND (summaries will be empty)")}");
+// Reflect over both shipping component assemblies: the base library and the
+// optional AI package (Omni.Blazor.Ai ships OmniAiConversation). XML doc files
+// from both are merged so summaries resolve regardless of which package a type
+// lives in.
+Assembly[] assemblies = [typeof(OmniComponent).Assembly, typeof(OmniChatClient).Assembly];
 
-string componentsDir = Path.Combine(repoRoot, "src", "Omni.Blazor", "Components");
-var (categoryByName, sourceByName, descByName) = ScanRazor(componentsDir, repoRoot);
+Dictionary<string, string> docs = new(StringComparer.Ordinal);
+foreach (Assembly a in assemblies)
+{
+    string xmlPath = Path.ChangeExtension(a.Location, ".xml");
+    bool found = File.Exists(xmlPath);
+    if (found)
+        foreach (KeyValuePair<string, string> kv in XmlDocText.Load(xmlPath)) docs[kv.Key] = kv.Value;
+    Console.WriteLine($"[manifest-gen] xml docs ({a.GetName().Name}): {(found ? "loaded" : "NOT FOUND (summaries will be empty)")}");
+}
+
+var (categoryByName, sourceByName, descByName) = ScanRazor(
+    [Path.Combine(repoRoot, "src", "Omni.Blazor", "Components"),
+     Path.Combine(repoRoot, "src", "Omni.Blazor.Ai", "Components")],
+    repoRoot);
 
 const string repository = "https://github.com/afernandes/Omni.Blazor";
-List<ComponentInfo> components = ManifestBuilder.Build(asm, docs, categoryByName, sourceByName, descByName);
+List<ComponentInfo> components = [];
+foreach (Assembly a in assemblies)
+    components.AddRange(ManifestBuilder.Build(a, docs, categoryByName, sourceByName, descByName));
+components = [.. components.OrderBy(c => c.Category, StringComparer.Ordinal).ThenBy(c => c.Name, StringComparer.Ordinal)];
 Console.WriteLine($"[manifest-gen] components: {components.Count}");
 
 string tokensScss = Path.Combine(repoRoot, "src", "Omni.Blazor", "Themes", "_tokens.scss");
@@ -69,29 +86,34 @@ static string FindRepoRoot()
     return dir?.FullName ?? Directory.GetCurrentDirectory();
 }
 
-// Scan Components/ for category (first folder), source path and a fallback
-// description (leading @* *@ comment). The pure parsing lives in RazorScan.
+// Scan each Components/ root for category (first folder), source path and a
+// fallback description (leading @* *@ comment). The pure parsing lives in
+// RazorScan. Multiple roots (base lib + AI package) are merged by component name.
 static (Dictionary<string, string> category, Dictionary<string, string> source, Dictionary<string, string> description)
-    ScanRazor(string dir, string repoRoot)
+    ScanRazor(IEnumerable<string> dirs, string repoRoot)
 {
     var category = new Dictionary<string, string>(StringComparer.Ordinal);
     var source = new Dictionary<string, string>(StringComparer.Ordinal);
     var description = new Dictionary<string, string>(StringComparer.Ordinal);
-    if (!Directory.Exists(dir)) return (category, source, description);
 
-    foreach (string f in Directory.EnumerateFiles(dir, "*.razor", SearchOption.AllDirectories))
+    foreach (string dir in dirs)
     {
-        string name = Path.GetFileNameWithoutExtension(f);
-        string rel = Path.GetRelativePath(dir, f).Replace('\\', '/');
-        string[] parts = rel.Split('/');
-        // first folder under Components/, or "Other" for a file directly under it
-        category[name] = parts.Length > 1 ? parts[0] : "Other";
-        source[name] = Path.GetRelativePath(repoRoot, f).Replace('\\', '/');
-        try
+        if (!Directory.Exists(dir)) continue;
+
+        foreach (string f in Directory.EnumerateFiles(dir, "*.razor", SearchOption.AllDirectories))
         {
-            if (RazorScan.LeadComment(File.ReadAllText(f)) is { } desc) description[name] = desc;
+            string name = Path.GetFileNameWithoutExtension(f);
+            string rel = Path.GetRelativePath(dir, f).Replace('\\', '/');
+            string[] parts = rel.Split('/');
+            // first folder under Components/, or "Other" for a file directly under it
+            category[name] = parts.Length > 1 ? parts[0] : "Other";
+            source[name] = Path.GetRelativePath(repoRoot, f).Replace('\\', '/');
+            try
+            {
+                if (RazorScan.LeadComment(File.ReadAllText(f)) is { } desc) description[name] = desc;
+            }
+            catch { /* unreadable file — skip its description */ }
         }
-        catch { /* unreadable file — skip its description */ }
     }
     return (category, source, description);
 }

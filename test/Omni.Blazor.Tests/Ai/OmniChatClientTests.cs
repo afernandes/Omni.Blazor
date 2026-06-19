@@ -272,4 +272,40 @@ public class OmniChatClientTests
         Assert.Equal(MessageRole.User, turn.Role);
         Assert.True(turn.Timestamp <= DateTimeOffset.UtcNow);
     }
+
+    [Fact]
+    public async Task SendAsync_after_dispose_throws()
+    {
+        var client = new OmniChatClient(new FakeChatClient("ok"));
+        await client.DisposeAsync();
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => client.SendAsync("hi"));
+    }
+
+    [Fact]
+    public void Dispose_is_idempotent()
+    {
+        var client = new OmniChatClient(new FakeChatClient("ok"));
+        client.Dispose();
+        client.Dispose(); // second call must be a safe no-op
+    }
+
+    [Fact]
+    public async Task DisposeAsync_is_idempotent()
+    {
+        var client = new OmniChatClient(new FakeChatClient("ok"));
+        await client.DisposeAsync();
+        await client.DisposeAsync(); // second call must be a safe no-op
+    }
+
+    [Fact]
+    public async Task Sequential_sends_each_use_a_fresh_token_source()
+    {
+        // After each send the linked CTS is disposed + cleared, so the next send
+        // creates a fresh one and works — no leak, no reuse of a disposed source.
+        using var caller = new CancellationTokenSource();
+        await using var client = new OmniChatClient(new FakeChatClient("a"));
+        await client.SendAsync("one", caller.Token);
+        await client.SendAsync("two", caller.Token);
+        Assert.Equal(4, client.Turns.Count); // 2 user + 2 assistant
+    }
 }
