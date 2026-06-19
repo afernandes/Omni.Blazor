@@ -1,8 +1,133 @@
 {
   "package": "AndersonN.Omni.Blazor",
   "repository": "https://github.com/afernandes/Omni.Blazor",
-  "count": 173,
+  "count": 174,
   "components": [
+    {
+      "name": "OmniAiConversation",
+      "category": "Ai",
+      "baseType": "OmniComponent",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Drop-in AI chat: binds to an OmniChatClient (which wraps any IChatClient) and composes the AI primitives — OmniMessage/OmniStreamingText for turns, OmniPromptInput for the composer.",
+      "source": "src/Omni.Blazor/Components/Ai/OmniAiConversation.razor",
+      "parameters": [
+        {
+          "name": "AssistantInitials",
+          "kind": "parameter",
+          "type": "string",
+          "default": "AI",
+          "required": false,
+          "summary": "Avatar initials for assistant turns. Default \"AI\"."
+        },
+        {
+          "name": "AssistantName",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Author name shown above assistant turns when ShowAuthor is on."
+        },
+        {
+          "name": "Client",
+          "kind": "parameter",
+          "type": "OmniChatClient",
+          "required": true,
+          "summary": "The conversation orchestrator (wraps your IChatClient). Required."
+        },
+        {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Disable the composer (e.g. while offline). Streaming auto-disables it too."
+        },
+        {
+          "name": "EmptyContent",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Shown in the log while the conversation is empty."
+        },
+        {
+          "name": "HeaderContent",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Optional header slot (title, clear button, model picker — you own it)."
+        },
+        {
+          "name": "LogLabel",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Conversation",
+          "required": false,
+          "summary": "Accessible label for the message log. Default \"Conversation\"."
+        },
+        {
+          "name": "Placeholder",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Placeholder for the composer."
+        },
+        {
+          "name": "SendLabel",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Send",
+          "required": false,
+          "summary": "Accessible label for the send button. Default \"Send\"."
+        },
+        {
+          "name": "ShowAuthor",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Show the author name above each message. Default false."
+        },
+        {
+          "name": "UserInitials",
+          "kind": "parameter",
+          "type": "string",
+          "default": "U",
+          "required": false,
+          "summary": "Avatar initials for user turns. Default \"U\"."
+        },
+        {
+          "name": "UserName",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Author name shown above user turns when ShowAuthor is on."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
     {
       "name": "OmniCitation",
       "category": "Ai",

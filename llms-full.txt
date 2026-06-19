@@ -1,8 +1,27 @@
 # Omni.Blazor — full API reference
 
-> 173 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 174 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
+
+### OmniAiConversation
+Drop-in AI chat: binds to an OmniChatClient (which wraps any IChatClient) and composes the AI primitives — OmniMessage/OmniStreamingText for turns, OmniPromptInput for the composer.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Ai/OmniAiConversation.razor_
+
+Parameters:
+- `AssistantInitials`: string = AI — Avatar initials for assistant turns. Default "AI".
+- `AssistantName`: string — Author name shown above assistant turns when ShowAuthor is on.
+- `Client`: OmniChatClient *required* — The conversation orchestrator (wraps your IChatClient). Required.
+- `Disabled`: bool = false — Disable the composer (e.g. while offline). Streaming auto-disables it too.
+- `LogLabel`: string = Conversation — Accessible label for the message log. Default "Conversation".
+- `Placeholder`: string — Placeholder for the composer.
+- `SendLabel`: string = Send — Accessible label for the send button. Default "Send".
+- `ShowAuthor`: bool = false — Show the author name above each message. Default false.
+- `UserInitials`: string = U — Avatar initials for user turns. Default "U".
+- `UserName`: string — Author name shown above user turns when ShowAuthor is on.
+Slots:
+- `EmptyContent`: RenderFragment — Shown in the log while the conversation is empty.
+- `HeaderContent`: RenderFragment — Optional header slot (title, clear button, model picker — you own it).
 
 ### OmniCitation
 Inline source citation badge ([n]) for AI answers — links to the reference and exposes the title/snippet on hover and to screen readers.
