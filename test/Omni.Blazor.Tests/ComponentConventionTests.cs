@@ -1,9 +1,11 @@
 namespace Omni.Blazor.Tests;
 
 /// <summary>
-/// Repo-wide convention guards, enforced by scanning the component <c>.razor</c>
-/// files and reflecting over the assembly. These catch a new component that skips
-/// a non-negotiable rule (base class, missing test).
+/// Convention guards for the <c>.razor</c>-backed components under
+/// <c>src/Omni.Blazor/Components</c> (matched to their types by reflection). They catch
+/// a new component that skips a non-negotiable rule (base class, missing test).
+/// Scope: only <c>.razor</c> components are scanned — pure-<c>.cs</c> components without
+/// a <c>.razor</c> file (e.g. validators) are out of scope.
 ///
 /// Deliberately NOT enforced here — too many legitimate exceptions to assert
 /// cleanly (a noisy allow-list would defeat the purpose): the root <c>@attributes</c>
