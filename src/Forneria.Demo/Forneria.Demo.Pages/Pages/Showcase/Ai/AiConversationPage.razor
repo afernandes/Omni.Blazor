@@ -1,0 +1,196 @@
+@page "/showcase/ai-conversation"
+@attribute [ShowcaseInfo(Title = "AI Conversation", Category = Cat.Ai, Icon = "message-circle", Featured = true, Aliases = "ai,chat,llm,ichatclient,assistant,conversation,copilot,openai,ollama")]
+@layout ShowcaseLayout
+@implements IAsyncDisposable
+@using System.Runtime.CompilerServices
+@using Microsoft.Extensions.AI
+@using Omni.Blazor.Ai
+@using Omni.Blazor.Models
+
+<PageTitle>AI Conversation — Showcase</PageTitle>
+
+<ShowcasePage Title="AI Conversation"
+              Subtitle="Chat de IA drop-in: ligue um OmniChatClient (que envolve qualquer IChatClient) e o OmniAiConversation cuida de streaming, histórico e UI compondo os primitivos de IA.">
+
+    <Overview>
+        <p>
+            O <code>OmniAiConversation</code> é a peça <em>batteries-included</em> que faltava — mas
+            <strong>sem lock-in</strong>. Ele se liga a um <code>OmniChatClient</code>, um orquestrador
+            <em>headless</em> sobre o padrão oficial <code>Microsoft.Extensions.AI.IChatClient</code>.
+            Você traz qualquer provedor (OpenAI, Azure OpenAI, Ollama, Anthropic, …) e ganha
+            <strong>streaming token a token</strong>, histórico com janela deslizante, system prompt e
+            tratamento de erro — enquanto a UI é só açúcar sobre <code>OmniMessage</code>,
+            <code>OmniStreamingText</code> e <code>OmniPromptInput</code>.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Assistentes / copilotos embutidos no app, com streaming de verdade.</li>
+            <li>Quando você quer um chat funcionando rápido <strong>mas</strong> mantendo controle e zero lock-in de provedor.</li>
+            <li>Precisa de interop com middleware do ecossistema (telemetria, function-calling, caching) — tudo via <code>IChatClient</code>.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="DEMO AO VIVO"
+                         Description="Conversa real em streaming, movida por um IChatClient de demonstração (sem API key). Mande uma mensagem — a resposta chega palavra a palavra, com Markdown e caret."
+                         Code="@Code">
+            <div style="height: 460px; max-width: 560px;">
+                <OmniAiConversation Client="_client"
+                                    Placeholder="Pergunte algo ao assistente…"
+                                    SendLabel="Enviar"
+                                    LogLabel="Conversa com o assistente"
+                                    AssistantInitials="AI"
+                                    UserInitials="Eu">
+                    <HeaderContent>
+                        <strong>Assistente Omni</strong>
+                        <OmniButton Variant="ButtonVariant.Ghost" Icon="trash-2" IconOnly="true"
+                                    OnClick="() => _client.Clear()" aria-label="Limpar conversa" />
+                    </HeaderContent>
+                    <EmptyContent>
+                        <div style="display:flex;flex-direction:column;gap:6px;align-items:center;">
+                            <span style="font-size:28px;">👋</span>
+                            <span>Diga "olá" ou pergunte o que a Omni faz.</span>
+                        </div>
+                    </EmptyContent>
+                </OmniAiConversation>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LIGANDO UM MODELO REAL"
+                         Description="Tudo gira em torno do IChatClient padrão — registre o provedor no DI e injete-o. Nada acima muda."
+                         Code="@WiringCode">
+            <OmniAlert Variant="AlertVariant.Info" Title="Credenciais — sempre server-side">
+                Em Blazor WASM, nunca configure o <code>IChatClient</code> com a chave da API no cliente
+                (ela vaza no browser). Aponte o cliente para um <strong>proxy / endpoint do seu servidor</strong>
+                que guarda a chave. Em Blazor Server a chave já fica no servidor.
+            </OmniAlert>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="Parâmetros — OmniAiConversation">
+            <ShowcaseApiRow Name="Client" Type="OmniChatClient" Default="—" Description="Obrigatório. O orquestrador que envolve seu IChatClient." />
+            <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null" Description="Placeholder do compositor." />
+            <ShowcaseApiRow Name="SendLabel" Type="string" Default="&quot;Send&quot;" Description="Rótulo acessível do botão enviar." />
+            <ShowcaseApiRow Name="LogLabel" Type="string" Default="&quot;Conversation&quot;" Description="aria-label do log de mensagens (role=log)." />
+            <ShowcaseApiRow Name="UserInitials / AssistantInitials" Type="string" Default="&quot;U&quot; / &quot;AI&quot;" Description="Iniciais nos avatares." />
+            <ShowcaseApiRow Name="ShowAuthor + UserName/AssistantName" Type="bool / string?" Default="false" Description="Mostra o nome do autor acima de cada mensagem." />
+            <ShowcaseApiRow Name="HeaderContent" Type="RenderFragment?" Default="null" Description="Slot de cabeçalho (título, limpar, seletor de modelo)." />
+            <ShowcaseApiRow Name="EmptyContent" Type="RenderFragment?" Default="null" Description="Exibido enquanto a conversa está vazia." />
+        </ShowcaseApiTable>
+        <ShowcaseApiTable Title="OmniChatClient (orquestrador headless)">
+            <ShowcaseApiRow Name="new(IChatClient, OmniChatOptions?)" Type="ctor" Default="—" Description="Envolve qualquer IChatClient. Options: SystemPrompt, MaxHistory, ErrorMessage, ChatOptions." />
+            <ShowcaseApiRow Name="SendAsync(string)" Type="Task" Default="—" Description="Envia a mensagem do usuário e transmite a resposta no novo turno." />
+            <ShowcaseApiRow Name="Turns" Type="IReadOnlyList&lt;OmniChatTurn&gt;" Default="—" Description="A conversa (Role, Content, IsStreaming, IsError)." />
+            <ShowcaseApiRow Name="IsStreaming / Changed" Type="bool / event" Default="—" Description="Estado + evento para re-render." />
+            <ShowcaseApiRow Name="AddTurn / Clear" Type="void" Default="—" Description="Semear histórico/saudação ou limpar." />
+        </ShowcaseApiTable>
+    </Api>
+
+</ShowcasePage>
+
+@code {
+    private OmniChatClient _client = null!;
+
+    protected override void OnInitialized()
+    {
+        _client = new OmniChatClient(new DemoChatClient(), new OmniChatOptions
+        {
+            SystemPrompt = "Você é o assistente de demonstração da Omni.Blazor. Seja breve e simpático.",
+            MaxHistory = 20,
+            ErrorMessage = "Não consegui responder agora. Tente novamente.",
+        });
+    }
+
+    public async ValueTask DisposeAsync() => await _client.DisposeAsync();
+
+    // ---- Código exibido no showcase ----------------------------------------
+
+    private const string Code = @"@inject IChatClient ChatClient   @* registrado no DI — ver abaixo *@
+
+<OmniAiConversation Client=""_client"" Placeholder=""Pergunte algo…"" SendLabel=""Enviar"">
+    <HeaderContent>
+        <strong>Assistente Omni</strong>
+        <OmniButton Icon=""trash-2"" IconOnly=""true"" OnClick=""() => _client.Clear()"" />
+    </HeaderContent>
+    <EmptyContent>Diga olá 👋</EmptyContent>
+</OmniAiConversation>
+
+@code {
+    private OmniChatClient _client = null!;
+
+    protected override void OnInitialized() =>
+        _client = new OmniChatClient(ChatClient, new OmniChatOptions
+        {
+            SystemPrompt = ""Você é um assistente útil."",
+            MaxHistory = 20,
+        });
+
+    public ValueTask DisposeAsync() => _client.DisposeAsync();
+}";
+
+    private const string WiringCode = @"// Program.cs — registre QUALQUER IChatClient (Microsoft.Extensions.AI)
+
+// OpenAI / compatível (OpenRouter, Ollama via OpenAI API, LM Studio…):
+builder.Services.AddChatClient(
+    new OpenAI.OpenAIClient(apiKey)
+        .GetChatClient(""gpt-4o-mini"")
+        .AsIChatClient());
+
+// Azure OpenAI:
+builder.Services.AddChatClient(
+    new Azure.AI.OpenAI.AzureOpenAIClient(endpoint, credential)
+        .GetChatClient(deployment)
+        .AsIChatClient());
+
+// Ollama local:
+builder.Services.AddChatClient(
+    new OllamaSharp.OllamaApiClient(""http://localhost:11434"", ""llama3.2""));
+
+// Empilhe middleware do ecossistema — sem mudar nada na UI:
+builder.Services.AddChatClient(baseClient)
+    .UseFunctionInvocation()   // tool calling
+    .UseOpenTelemetry()        // telemetria
+    .UseDistributedCache();    // caching";
+
+    // ---- IChatClient de demonstração (sem rede, streaming simulado) ---------
+
+    private sealed class DemoChatClient : IChatClient
+    {
+        public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            string prompt = messages.LastOrDefault(m => m.Role == ChatRole.User)?.Text ?? string.Empty;
+            foreach (string word in Reply(prompt).Split(' '))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(40, cancellationToken);
+                yield return new ChatResponseUpdate(ChatRole.Assistant, word + " ");
+            }
+        }
+
+        private static string Reply(string prompt)
+        {
+            string p = prompt.ToLowerInvariant();
+            if (p.Contains("olá") || p.Contains("ola") || p.Contains("oi") || p.Contains("bom dia"))
+                return "Olá! 👋 Sou um assistente de **demonstração** — sem rede, só simulando o streaming. Pergunte sobre a Omni.Blazor!";
+            if (p.Contains("omni") || p.Contains("biblioteca") || p.Contains("faz"))
+                return "A **Omni.Blazor** é uma biblioteca de componentes para .NET 10 com 170+ componentes, dark mode, troca de acento em runtime e — agora — uma camada de IA construída sobre o `IChatClient` padrão.";
+            if (p.Contains("streaming") || p.Contains("stream"))
+                return "Esta resposta está chegando *token a token*: cada palavra dispara um `ChatResponseUpdate`, o `OmniChatClient` acumula no turno e o `OmniStreamingText` re-renderiza o Markdown com o caret piscando. ✨";
+            if (p.Contains("código") || p.Contains("code") || p.Contains("exemplo"))
+                return "Trocar este demo por um modelo real é uma linha de DI:\n\n```csharp\nbuilder.Services.AddChatClient(client.AsIChatClient());\n```\n\nO resto da UI não muda.";
+            return "Boa! Esta é uma resposta **simulada** em streaming. Em produção, o `OmniChatClient` envolve seu `IChatClient` real (OpenAI, Azure, Ollama…) e tudo funciona igual. Experimente perguntar sobre *streaming* ou *código*.";
+        }
+
+        public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, Reply(messages.LastOrDefault()?.Text ?? string.Empty))));
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose() { }
+    }
+}
