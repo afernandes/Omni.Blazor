@@ -56,6 +56,11 @@ dotnet tool install -g AndersonN.Omni.Blazor.Mcp
 }
 ```
 
+> **Command not found?** GUI MCP clients (Cursor, Claude Desktop) may not inherit your
+> shell `PATH`, so `~/.dotnet/tools` isn't on it. Use the absolute path instead:
+> `~/.dotnet/tools/omni-blazor-mcp` (macOS/Linux) or
+> `%USERPROFILE%\.dotnet\tools\omni-blazor-mcp.exe` (Windows).
+
 **Contributing to this repo** — it is already wired in [`.mcp.json`](.mcp.json) to run
 straight from source (no install): `dotnet run --project tools/Omni.Blazor.Mcp -c Release`.
 
