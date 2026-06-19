@@ -6,7 +6,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![CI](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml/badge.svg)](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml)
 
-> Modern Blazor component library for .NET 10 — **80+ components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
+> Modern Blazor component library for .NET 10 — **170+ components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
 
 ```xml
 <PackageReference Include="AndersonN.Omni.Blazor" Version="*" />
@@ -16,7 +16,7 @@
 
 ## Highlights
 
-- **80+ components** across data, inputs, layout, navigation, overlays, marketing
+- **170+ components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
 - **Single CSS bundle** (~295 KB) — no Bootstrap, no Tailwind, no runtime CSS-in-JS
 - **Design tokens** in CSS custom properties (`--omni-*`) — restyleable without recompiling
 - **Light / Dark / System** appearance toggle out of the box
@@ -122,6 +122,12 @@ OmniPanelMenu, OmniPanelMenuItem, OmniPanelMenuSection, OmniBreadcrumb, OmniTabs
 <summary><strong>Marketing</strong></summary>
 
 OmniEyebrow, OmniHero, OmniMosaic, OmniMosaicCard
+</details>
+
+<details>
+<summary><strong>AI &amp; chat</strong></summary>
+
+OmniStreamingText, OmniMessage, OmniPromptInput, OmniSuggestionChips, OmniCitation, OmniThinkingBlock
 </details>
 
 <details>
