@@ -83,6 +83,19 @@ jobs:
           grep -q "staticwebassets/css/omni.css" /tmp/contents.txt || (echo "::error::omni.css not packed" && exit 1)
           grep -q "staticwebassets/js/" /tmp/contents.txt || (echo "::error::no JS assets packed" && exit 1)
 
+      - name: Pack MCP tool (AndersonN.Omni.Blazor.Mcp)
+        run: |
+          set -e
+          dotnet pack tools/Omni.Blazor.Mcp/Omni.Blazor.Mcp.csproj \
+            --configuration Release \
+            --output ${{ env.ARTIFACTS }} \
+            -p:ContinuousIntegrationBuild=true
+          # Same version guard as the library: the packed tool MUST match the tag,
+          # else `dotnet nuget push --skip-duplicate` could silently no-op a
+          # mismatched (or absent) tool package.
+          EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.Mcp.${{ steps.minver.outputs.version }}.nupkg"
+          test -f "$EXPECTED" || { echo "::error::MCP tool version != tag — esperado $EXPECTED"; exit 1; }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -40,20 +40,29 @@ dotnet run --project tools/Omni.Blazor.ManifestGen
 
 A stdio **MCP server** (`tools/Omni.Blazor.Mcp`) exposes the catalog as live tools —
 `list_components`, `get_component`, `search_components` — over the embedded manifest
-(self-contained, no library reference). In **this repo** it is already wired in
-[`.mcp.json`](.mcp.json). To use it from another MCP client (Cursor, Claude Code,
-Copilot), add:
+(self-contained, no library reference).
 
+**Use it (external projects)** — install the .NET tool, then point your MCP client
+(Cursor, Claude Code, Copilot) at the `omni-blazor-mcp` command:
+
+```bash
+dotnet tool install -g AndersonN.Omni.Blazor.Mcp
+```
 ```json
 {
   "mcpServers": {
-    "omni-blazor": {
-      "command": "dotnet",
-      "args": ["run", "--project", "tools/Omni.Blazor.Mcp/Omni.Blazor.Mcp.csproj", "-c", "Release"]
-    }
+    "omni-blazor": { "command": "omni-blazor-mcp" }
   }
 }
 ```
+
+> **Command not found?** GUI MCP clients (Cursor, Claude Desktop) may not inherit your
+> shell `PATH`, so `~/.dotnet/tools` isn't on it. Use the absolute path instead:
+> `~/.dotnet/tools/omni-blazor-mcp` (macOS/Linux) or
+> `%USERPROFILE%\.dotnet\tools\omni-blazor-mcp.exe` (Windows).
+
+**Contributing to this repo** — it is already wired in [`.mcp.json`](.mcp.json) to run
+straight from source (no install): `dotnet run --project tools/Omni.Blazor.Mcp -c Release`.
 
 ## Using the library (generating UI)
 

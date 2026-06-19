@@ -14,6 +14,22 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Omni.Blazor.Mcp</RootNamespace>
     <AssemblyName>Omni.Blazor.Mcp</AssemblyName>
+    <!-- Distributed as a .NET tool: `dotnet tool install -g AndersonN.Omni.Blazor.Mcp`
+         then run `omni-blazor-mcp` as the MCP server command. Version comes from
+         git tags via MinVer (same vX.Y.Z tags as the library). The manifest is
+         embedded, so the installed tool is fully self-contained. -->
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <!-- Roll forward to a newer major runtime (.NET 11+) when .NET 10 isn't
+         installed, so the global tool runs on machines without the exact runtime. -->
+    <RollForward>Major</RollForward>
+    <ToolCommandName>omni-blazor-mcp</ToolCommandName>
+    <PackageId>AndersonN.Omni.Blazor.Mcp</PackageId>
+    <Title>Omni.Blazor MCP server</Title>
+    <Description>Model Context Protocol (MCP) server for the AndersonN.Omni.Blazor component library. Exposes list_components / get_component / search_components tools to AI agents (Cursor, Claude Code, Copilot) over stdio, backed by an embedded component manifest.</Description>
+    <PackageTags>mcp;modelcontextprotocol;blazor;omni;ai;dotnet-tool;cursor;copilot</PackageTags>
+    <!-- This is an executable tool, not a referenceable library — skip XML docs. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
