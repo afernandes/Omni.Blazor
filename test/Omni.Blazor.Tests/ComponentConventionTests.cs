@@ -21,12 +21,12 @@ public class ComponentConventionTests
             ? Directory.GetFiles(ComponentsDir, "*.razor", SearchOption.AllDirectories)
             : [];
 
-    // simple type name -> public, non-abstract ComponentBase subclass in the library
-    private static readonly Dictionary<string, Type> ComponentTypes =
+    // simple type name -> public, non-abstract ComponentBase subclasses in the library.
+    // A lookup (not a dictionary) so same-named types in different namespaces are all checked.
+    private static readonly ILookup<string, Type> ComponentTypes =
         typeof(OmniComponent).Assembly.GetTypes()
             .Where(t => t.IsPublic && !t.IsAbstract && typeof(ComponentBase).IsAssignableFrom(t))
-            .GroupBy(t => StripArity(t.Name))
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+            .ToLookup(t => StripArity(t.Name), StringComparer.Ordinal);
 
     // Deliberate base-class exceptions: framework-ish components that don't (and
     // shouldn't) inherit OmniComponent — OmniForm wraps EditForm, OmniTheme injects
@@ -79,6 +79,7 @@ public class ComponentConventionTests
         var testStems = Directory.Exists(testDir)
             ? Directory.GetFiles(testDir, "*.cs", SearchOption.AllDirectories)
                 .Select(Path.GetFileNameWithoutExtension)
+                .OfType<string>()
                 .ToHashSet(StringComparer.Ordinal)
             : [];
 
@@ -97,8 +98,9 @@ public class ComponentConventionTests
     {
         foreach (string razor in ComponentRazors)
         {
-            string name = Path.GetFileNameWithoutExtension(razor);
-            if (ComponentTypes.TryGetValue(name, out Type? type))
+            string? name = Path.GetFileNameWithoutExtension(razor);
+            if (name is null) continue;
+            foreach (Type type in ComponentTypes[name]) // empty when no match
                 yield return type;
         }
     }
