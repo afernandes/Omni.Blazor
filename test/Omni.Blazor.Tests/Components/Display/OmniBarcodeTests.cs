@@ -13,7 +13,7 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Renders_default_root_with_base_class()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "HELLO"));
 
         var root = cut.Find("div.omni-barcode");
@@ -24,7 +24,7 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "ABC")
             .Add(c => c.Class, "my-bc"));
 
@@ -34,7 +34,7 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "ABC")
             .Add(c => c.Style, "padding: 4px"));
 
@@ -45,7 +45,7 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "ABC")
             .AddUnmatched("data-testid", "bc1"));
 
@@ -55,7 +55,7 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Renders_nothing_inside_when_value_empty()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, ""));
 
         var root = cut.Find("div.omni-barcode");
@@ -67,7 +67,7 @@ public class OmniBarcodeTests : TestContextBase
     public void Renders_error_for_invalid_ean13()
     {
         // EAN-13 requires 12 or 13 digits; non-digit chars must error.
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Type, BarcodeType.Ean13)
             .Add(c => c.Value, "abc"));
 
@@ -83,7 +83,7 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Encode_runs_on_initial_render()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "ABC123"));
 
         // DisplayValue is populated by Recompute() through the ParameterState
@@ -95,14 +95,14 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Encode_does_NOT_run_when_unrelated_parameter_changes()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "ABC123"));
 
         var rectsBefore = cut.FindAll("svg.omni-barcode-svg rect").Count;
         var displayBefore = cut.Instance.DisplayValue;
 
         // Re-render only changing Class — neither Value nor Type changed.
-        cut.SetParametersAndRender(p => p.Add(c => c.Class, "new-class"));
+        cut.Render(p => p.Add(c => c.Class, "new-class"));
 
         var rectsAfter = cut.FindAll("svg.omni-barcode-svg rect").Count;
         Assert.Equal(rectsBefore, rectsAfter);
@@ -115,12 +115,12 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Encode_runs_again_when_Value_changes()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "ABC123"));
 
         var displayBefore = cut.Instance.DisplayValue;
 
-        cut.SetParametersAndRender(p => p.Add(c => c.Value, "DEF456"));
+        cut.Render(p => p.Add(c => c.Value, "DEF456"));
 
         Assert.NotEqual(displayBefore, cut.Instance.DisplayValue);
         Assert.Equal("DEF456", cut.Instance.DisplayValue);
@@ -129,13 +129,13 @@ public class OmniBarcodeTests : TestContextBase
     [Fact]
     public void Encode_runs_again_when_Type_changes()
     {
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "12345670")
             .Add(c => c.Type, BarcodeType.Ean8));
 
         var rectsBefore = cut.FindAll("svg.omni-barcode-svg rect").Count;
 
-        cut.SetParametersAndRender(p => p.Add(c => c.Type, BarcodeType.Code128));
+        cut.Render(p => p.Add(c => c.Type, BarcodeType.Code128));
 
         // Different symbology produces a different module count.
         var rectsAfter = cut.FindAll("svg.omni-barcode-svg rect").Count;
@@ -148,7 +148,7 @@ public class OmniBarcodeTests : TestContextBase
         // Migration moved Width/Height from OnParametersSet (which mutated
         // Style) into a RootStyle getter. They should still appear in the
         // root element's inline style.
-        var cut = RenderComponent<OmniBarcode>(p => p
+        var cut = Render<OmniBarcode>(p => p
             .Add(c => c.Value, "ABC")
             .Add(c => c.Width, "240px")
             .Add(c => c.Height, "80px"));

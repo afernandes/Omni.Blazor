@@ -23,7 +23,7 @@ public class OmniDropZoneItemTests : TestContextBase
     [Fact]
     public void Renders_item_div_with_base_class_per_item()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .AddChildContent<OmniDropZone<Task1>>(z => z
@@ -41,7 +41,7 @@ public class OmniDropZoneItemTests : TestContextBase
     [Fact]
     public void Renders_container_Template_per_item()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .Add(c => c.Template, item => b => b.AddMarkupContent(0, $"<strong>{item.Title}</strong>"))
@@ -55,7 +55,7 @@ public class OmniDropZoneItemTests : TestContextBase
     [Fact]
     public void ItemRender_hook_can_hide_item()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .Add(c => c.ItemRender, args =>
@@ -70,7 +70,7 @@ public class OmniDropZoneItemTests : TestContextBase
     [Fact]
     public void ItemRender_hook_can_add_attributes()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.ItemSelector, (item, zone) => item.Status == (string?)zone.Value)
             .Add(c => c.ItemRender, args =>

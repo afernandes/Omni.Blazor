@@ -14,7 +14,7 @@ public class OmniRadioTests : TestContextBase
     [Fact]
     public void Renders_radio_input_with_base_class()
     {
-        var cut = RenderComponent<OmniRadio<string>>(p => p
+        var cut = Render<OmniRadio<string>>(p => p
             .Add(c => c.Value, "x")
             .Add(c => c.Label, "X"));
 
@@ -26,7 +26,7 @@ public class OmniRadioTests : TestContextBase
     [Fact]
     public void Disabled_propagates_to_input()
     {
-        var cut = RenderComponent<OmniRadio<string>>(p => p
+        var cut = Render<OmniRadio<string>>(p => p
             .Add(c => c.Value, "x")
             .Add(c => c.Disabled, true));
 
@@ -37,7 +37,7 @@ public class OmniRadioTests : TestContextBase
     [Fact]
     public void ChildContent_overrides_label()
     {
-        var cut = RenderComponent<OmniRadio<string>>(p => p
+        var cut = Render<OmniRadio<string>>(p => p
             .Add(c => c.Value, "x")
             .Add(c => c.Label, "Ignored")
             .Add(c => c.ChildContent, b => b.AddContent(0, "Custom")));
@@ -49,7 +49,7 @@ public class OmniRadioTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniRadio<string>>(p => p
+        var cut = Render<OmniRadio<string>>(p => p
             .Add(c => c.Value, "x")
             .Add(c => c.Class, "custom-cls"));
 
@@ -59,7 +59,7 @@ public class OmniRadioTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniRadio<string>>(p => p
+        var cut = Render<OmniRadio<string>>(p => p
             .Add(c => c.Value, "x")
             .Add(c => c.Style, "margin: 4px"));
 
@@ -69,7 +69,7 @@ public class OmniRadioTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniRadio<string>>(p => p
+        var cut = Render<OmniRadio<string>>(p => p
             .Add(c => c.Value, "x")
             .AddUnmatched("data-testid", "r1"));
 

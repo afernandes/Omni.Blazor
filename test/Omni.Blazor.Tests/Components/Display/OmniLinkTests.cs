@@ -14,7 +14,7 @@ public class OmniLinkTests : TestContextBase
     [Fact]
     public void Renders_anchor_with_href_and_text()
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Href, "/about")
             .Add(c => c.Text, "About"));
 
@@ -29,7 +29,7 @@ public class OmniLinkTests : TestContextBase
     [InlineData(LinkVariant.Danger,  "omni-link-danger")]
     public void Applies_variant_class(LinkVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Variant, variant));
 
@@ -39,7 +39,7 @@ public class OmniLinkTests : TestContextBase
     [Fact]
     public void Target_blank_adds_noopener_rel()
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Href, "https://x")
             .Add(c => c.Target, "_blank")
             .Add(c => c.Text, "X"));
@@ -50,7 +50,7 @@ public class OmniLinkTests : TestContextBase
     [Fact]
     public void Disabled_renders_as_span_not_anchor()
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Disabled, true)
             .Add(c => c.Text, "X"));
 
@@ -61,7 +61,7 @@ public class OmniLinkTests : TestContextBase
     [Fact]
     public void Underline_adds_modifier_class()
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Underline, true)
             .Add(c => c.Text, "X"));
 
@@ -71,7 +71,7 @@ public class OmniLinkTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Class, "my-link"));
 
@@ -81,7 +81,7 @@ public class OmniLinkTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.Style, "font-size: 16px"));
 
@@ -91,7 +91,7 @@ public class OmniLinkTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Text, "X")
             .AddUnmatched("data-testid", "lnk1"));
 
@@ -102,7 +102,7 @@ public class OmniLinkTests : TestContextBase
     public void OnClick_fires_when_enabled()
     {
         var fired = 0;
-        var cut = RenderComponent<OmniLink>(p => p
+        var cut = Render<OmniLink>(p => p
             .Add(c => c.Text, "X")
             .Add(c => c.OnClick, (MouseEventArgs _) => fired++));
 

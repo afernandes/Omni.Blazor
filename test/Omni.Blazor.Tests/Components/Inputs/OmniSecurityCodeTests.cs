@@ -15,7 +15,7 @@ public class OmniSecurityCodeTests : TestContextBase
 {
     private IRenderedComponent<OmniSecurityCode> Render(
         Action<ComponentParameterCollectionBuilder<OmniSecurityCode>>? extra = null)
-        => RenderComponent<OmniSecurityCode>(p => extra?.Invoke(p));
+        => Render<OmniSecurityCode>(p => extra?.Invoke(p));
 
     [Fact]
     public void Renders_default_four_cells()

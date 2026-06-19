@@ -26,14 +26,14 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Closed_renders_nothing()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p.Add(c => c.Commands, Sample()));
+        var cut = Render<OmniCommandPalette>(p => p.Add(c => c.Commands, Sample()));
         Assert.Empty(cut.FindAll(".omni-cmdk"));
     }
 
     [Fact]
     public void Open_renders_panel_input_and_all_commands()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Sample()));
         Assert.NotNull(cut.Find(".omni-cmdk .omni-cmdk-input"));
         Assert.Equal(4, cut.FindAll(".omni-cmdk-item").Count);
@@ -42,7 +42,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Renders_group_labels_per_category()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Sample()));
         var groups = cut.FindAll(".omni-cmdk-group").Select(g => g.TextContent).ToList();
         Assert.Contains("Navegação", groups);
@@ -53,7 +53,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Typing_filters_by_label()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Sample()));
         cut.Find(".omni-cmdk-input").Input("dash");
         var items = cut.FindAll(".omni-cmdk-item");
@@ -64,7 +64,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Typing_filters_by_keyword()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Sample()));
         cut.Find(".omni-cmdk-input").Input("logout");   // only "Sair" via keyword
         var items = cut.FindAll(".omni-cmdk-item");
@@ -75,7 +75,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Empty_state_when_no_match()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Sample()));
         cut.Find(".omni-cmdk-input").Input("zzzzzz");
         Assert.Empty(cut.FindAll(".omni-cmdk-item"));
@@ -86,7 +86,7 @@ public class OmniCommandPaletteTests : TestContextBase
     public void Clicking_command_fires_OnCommand()
     {
         OmniCommand? chosen = null;
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Sample())
             .Add(c => c.OnCommand, EventCallback.Factory.Create<OmniCommand>(this, c => chosen = c)));
         cut.FindAll(".omni-cmdk-item")[0].Click();
@@ -99,7 +99,7 @@ public class OmniCommandPaletteTests : TestContextBase
     {
         var ran = false;
         var cmds = new[] { new OmniCommand("Run me") { Action = () => { ran = true; return Task.CompletedTask; } } };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-item").Click();
         Assert.True(ran);
@@ -108,7 +108,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Appends_Class_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Sample())
             .Add(c => c.Class, "x").AddUnmatched("data-testid", "cp1"));
         var root = cut.Find(".omni-cmdk");
@@ -125,7 +125,7 @@ public class OmniCommandPaletteTests : TestContextBase
     public void Matches_ignoring_diacritics_and_case(string query)
     {
         var cmds = new[] { new OmniCommand("Usuários") { Category = "Admin" } };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input(query);
         Assert.Single(cut.FindAll(".omni-cmdk-item"));
@@ -135,7 +135,7 @@ public class OmniCommandPaletteTests : TestContextBase
     public void Matches_accented_label_when_query_is_plain()
     {
         var cmds = new[] { new OmniCommand("Configurações") };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input("configuracoes");
         Assert.Single(cut.FindAll(".omni-cmdk-item"));
@@ -149,7 +149,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("Tabela de Usuários") { Category = "App" },
             new OmniCommand("Configurações") { Category = "App" },
         };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input("tu");
         var items = cut.FindAll(".omni-cmdk-item");
@@ -165,7 +165,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("Reset password"),   // "set" no meio da palavra
             new OmniCommand("Settings"),          // "set" é prefixo → deve vir primeiro
         };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input("set");
         var items = cut.FindAll(".omni-cmdk-item");
@@ -178,7 +178,7 @@ public class OmniCommandPaletteTests : TestContextBase
     public void Highlights_matched_characters()
     {
         var cmds = new[] { new OmniCommand("Dashboard") };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input("dash");
         var marks = cut.FindAll(".omni-cmdk-hit");
@@ -191,7 +191,7 @@ public class OmniCommandPaletteTests : TestContextBase
     {
         // "set" is a contiguous run inside "settings" — NOT the scattered s/e/t in "Sweet".
         var cmds = new[] { new OmniCommand("Sweet settings") };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input("set");
         var marks = cut.FindAll(".omni-cmdk-hit");
@@ -206,7 +206,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("Imprimir recibo") { Keywords = new[] { "print" } }, // keyword-only
             new OmniCommand("Quick print"),                                       // label substring
         };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input("print");
         var items = cut.FindAll(".omni-cmdk-item");
@@ -221,7 +221,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("Saldo") { Category = "Conta" },  // category-only
             new OmniCommand("Recontagem"),                    // label substring
         };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.Find(".omni-cmdk-input").Input("conta");
         var items = cut.FindAll(".omni-cmdk-item");
@@ -233,7 +233,7 @@ public class OmniCommandPaletteTests : TestContextBase
     {
         var shared = new OmniCommand("Shared cmd") { Category = "Nav" };
         var cmds = new[] { shared, shared };   // same reference twice
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         // First keystroke triggers a diff — previously threw "duplicate key".
         cut.Find(".omni-cmdk-input").Input("shared");
@@ -251,7 +251,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Parent_with_children_shows_drill_in_chevron()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, WithPage()));
         Assert.NotEmpty(cut.FindAll(".omni-cmdk-item-more"));
     }
@@ -260,7 +260,7 @@ public class OmniCommandPaletteTests : TestContextBase
     public void Selecting_parent_drills_into_subpage_without_running_it()
     {
         OmniCommand? fired = null;
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, WithPage())
             .Add(c => c.OnCommand, EventCallback.Factory.Create<OmniCommand>(this, c => fired = c)));
         cut.FindAll(".omni-cmdk-item").First(b => b.TextContent.Contains("Configurações")).Click();
@@ -277,7 +277,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Back_button_returns_to_root()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, WithPage()));
         cut.FindAll(".omni-cmdk-item").First(b => b.TextContent.Contains("Configurações")).Click();
         cut.Find(".omni-cmdk-back").Click();
@@ -290,7 +290,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Escape_in_subpage_pops_instead_of_closing()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, WithPage()));
         cut.FindAll(".omni-cmdk-item").First(b => b.TextContent.Contains("Configurações")).Click();
         Assert.NotEmpty(cut.FindAll(".omni-cmdk-back"));
@@ -305,7 +305,7 @@ public class OmniCommandPaletteTests : TestContextBase
     [Fact]
     public void Async_CommandSource_results_appear()
     {
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, new[] { new OmniCommand("Local") })
             .Add(c => c.SearchDebounce, 0)
             .Add(c => c.CommandSource, new Func<string, Task<IEnumerable<OmniCommand>>>(
@@ -325,7 +325,7 @@ public class OmniCommandPaletteTests : TestContextBase
         await hist.RecordAsync("default", "Comando B");
 
         var cmds = new[] { new OmniCommand("Comando A"), new OmniCommand("Comando B"), new OmniCommand("Comando C") };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
 
         cut.WaitForAssertion(() =>
@@ -344,7 +344,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("Comando B") { Category = "Conta" },
             new OmniCommand("Comando C"),
         };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
 
         cut.WaitForAssertion(() =>
@@ -365,7 +365,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("Y") { Category = "Recentes" },   // not recent → category group (also "Recentes")
         };
         // Two groups display "Recentes"; positional @key keeps the render diff valid (no crash).
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         cut.WaitForAssertion(() =>
             Assert.Contains("X", cut.FindAll(".omni-cmdk-item-label").Select(x => x.TextContent.Trim())));
@@ -380,7 +380,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("X") { Category = "Recentes" },
             new OmniCommand("Y") { Category = "Recentes" },
         };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
         var headings = cut.FindAll(".omni-cmdk-group").Count(g => g.TextContent.Trim() == "Recentes");
         Assert.Equal(1, headings);   // not fragmented into one-item groups
@@ -390,7 +390,7 @@ public class OmniCommandPaletteTests : TestContextBase
     public void Spinner_clears_when_query_is_cleared_mid_search()
     {
         var gate = new TaskCompletionSource<IEnumerable<OmniCommand>>();
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Array.Empty<OmniCommand>())
             .Add(c => c.SearchDebounce, 0)
             .Add(c => c.CommandSource, new Func<string, Task<IEnumerable<OmniCommand>>>(_ => gate.Task)));
@@ -405,7 +405,7 @@ public class OmniCommandPaletteTests : TestContextBase
     public void Spinner_not_stuck_when_cleared_before_debounce_elapses()
     {
         var gate = new TaskCompletionSource<IEnumerable<OmniCommand>>();
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, Array.Empty<OmniCommand>())
             .Add(c => c.SearchDebounce, 60)
             .Add(c => c.CommandSource, new Func<string, Task<IEnumerable<OmniCommand>>>(_ => gate.Task)));
@@ -424,7 +424,7 @@ public class OmniCommandPaletteTests : TestContextBase
 
         var shared = new OmniCommand("Dup") { Category = "Cat" };
         var cmds = new[] { shared, shared, new OmniCommand("Other") { Category = "Cat" } };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
 
         cut.WaitForAssertion(() =>
@@ -444,7 +444,7 @@ public class OmniCommandPaletteTests : TestContextBase
             new OmniCommand("Same") { Category = "C2" },
             new OmniCommand("Unique") { Category = "C3" },
         };
-        var cut = RenderComponent<OmniCommandPalette>(p => p
+        var cut = Render<OmniCommandPalette>(p => p
             .Add(c => c.Open, true).Add(c => c.Commands, cmds));
 
         cut.WaitForAssertion(() =>

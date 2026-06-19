@@ -12,7 +12,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void Renders_grid_container_with_base_class()
     {
-        var cut = RenderComponent<OmniLayout>(p => p.AddChildContent("<div data-testid=\"slot\">body</div>"));
+        var cut = Render<OmniLayout>(p => p.AddChildContent("<div data-testid=\"slot\">body</div>"));
 
         var root = cut.Find(".omni-layout");
         Assert.Equal("DIV", root.TagName);
@@ -24,7 +24,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void SkipToContent_false_omits_skip_link()
     {
-        var cut = RenderComponent<OmniLayout>(p => p
+        var cut = Render<OmniLayout>(p => p
             .Add(c => c.SkipToContent, false)
             .AddChildContent("body"));
 
@@ -34,7 +34,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void Skip_link_uses_default_label_and_target()
     {
-        var cut = RenderComponent<OmniLayout>();
+        var cut = Render<OmniLayout>();
 
         var link = cut.Find("a.omni-skip-link");
         Assert.Equal("#main", link.GetAttribute("href"));
@@ -44,7 +44,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void Skip_link_honours_custom_label_and_target()
     {
-        var cut = RenderComponent<OmniLayout>(p => p
+        var cut = Render<OmniLayout>(p => p
             .Add(c => c.SkipLabel, "Skip to body")
             .Add(c => c.SkipTarget, "#content"));
 
@@ -56,7 +56,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniLayout>(p => p
+        var cut = Render<OmniLayout>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -66,7 +66,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniLayout>(p => p
+        var cut = Render<OmniLayout>(p => p
             .Add(c => c.Style, "min-height: 100vh")
             .AddChildContent("X"));
 
@@ -76,7 +76,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniLayout>(p => p
+        var cut = Render<OmniLayout>(p => p
             .AddUnmatched("data-testid", "layout")
             .AddUnmatched("aria-label", "App shell")
             .AddChildContent("X"));
@@ -89,7 +89,7 @@ public class OmniLayoutTests : TestContextBase
     [Fact]
     public void Drawer_registry_starts_empty()
     {
-        var cut = RenderComponent<OmniLayout>(p => p.AddChildContent("body"));
+        var cut = Render<OmniLayout>(p => p.AddChildContent("body"));
         Assert.Empty(cut.Instance.Drawers);
     }
 }

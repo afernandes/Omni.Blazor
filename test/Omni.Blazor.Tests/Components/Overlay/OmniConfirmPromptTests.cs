@@ -13,7 +13,7 @@ public class OmniConfirmPromptTests : TestContextBase
     [Fact]
     public void Confirm_button_disabled_until_phrase_matches()
     {
-        var cut = RenderComponent<OmniConfirmPrompt>(p => p.Add(c => c.ConfirmationText, "delete"));
+        var cut = Render<OmniConfirmPrompt>(p => p.Add(c => c.ConfirmationText, "delete"));
         Assert.True(cut.Find(".omni-confirm-prompt-confirm").HasAttribute("disabled"));
 
         cut.Find(".omni-confirm-prompt-input").Input("delete");
@@ -23,7 +23,7 @@ public class OmniConfirmPromptTests : TestContextBase
     [Fact]
     public void Wrong_phrase_keeps_button_disabled()
     {
-        var cut = RenderComponent<OmniConfirmPrompt>(p => p.Add(c => c.ConfirmationText, "delete"));
+        var cut = Render<OmniConfirmPrompt>(p => p.Add(c => c.ConfirmationText, "delete"));
         cut.Find(".omni-confirm-prompt-input").Input("nope");
         Assert.True(cut.Find(".omni-confirm-prompt-confirm").HasAttribute("disabled"));
     }
@@ -32,7 +32,7 @@ public class OmniConfirmPromptTests : TestContextBase
     public void Confirm_fires_only_after_match()
     {
         var confirmed = false;
-        var cut = RenderComponent<OmniConfirmPrompt>(p => p
+        var cut = Render<OmniConfirmPrompt>(p => p
             .Add(c => c.ConfirmationText, "delete")
             .Add(c => c.OnConfirm, EventCallback.Factory.Create(this, () => confirmed = true)));
         cut.Find(".omni-confirm-prompt-input").Input("delete");
@@ -43,7 +43,7 @@ public class OmniConfirmPromptTests : TestContextBase
     [Fact]
     public void Case_insensitive_match_when_configured()
     {
-        var cut = RenderComponent<OmniConfirmPrompt>(p => p
+        var cut = Render<OmniConfirmPrompt>(p => p
             .Add(c => c.ConfirmationText, "Delete")
             .Add(c => c.CaseSensitive, false));
         cut.Find(".omni-confirm-prompt-input").Input("delete");
@@ -53,7 +53,7 @@ public class OmniConfirmPromptTests : TestContextBase
     [Fact]
     public void Renders_title_and_button_text()
     {
-        var cut = RenderComponent<OmniConfirmPrompt>(p => p
+        var cut = Render<OmniConfirmPrompt>(p => p
             .Add(c => c.ConfirmationText, "x")
             .Add(c => c.Title, "Excluir loja")
             .Add(c => c.ButtonText, "Excluir"));
@@ -64,7 +64,7 @@ public class OmniConfirmPromptTests : TestContextBase
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniConfirmPrompt>(p => p
+        var cut = Render<OmniConfirmPrompt>(p => p
             .Add(c => c.ConfirmationText, "x")
             .Add(c => c.Class, "y")
             .Add(c => c.Style, "margin:4px")

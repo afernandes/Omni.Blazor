@@ -16,7 +16,7 @@ public class OmniVirtualizeTests : TestContextBase
     [Fact]
     public void Renders_root_div_with_base_class()
     {
-        var cut = RenderComponent<OmniVirtualize<string>>(p => p
+        var cut = Render<OmniVirtualize<string>>(p => p
             .Add(c => c.Items, SampleItems)
             .Add(c => c.ItemContent, item => b => b.AddMarkupContent(0, $"<span>{item}</span>")));
 
@@ -27,7 +27,7 @@ public class OmniVirtualizeTests : TestContextBase
     [Fact]
     public void Renders_empty_state_text_when_Items_empty()
     {
-        var cut = RenderComponent<OmniVirtualize<string>>(p => p
+        var cut = Render<OmniVirtualize<string>>(p => p
             .Add(c => c.Items, new List<string>())
             .Add(c => c.DefaultEmptyText, "Nothing here")
             .Add(c => c.ItemContent, item => b => b.AddMarkupContent(0, $"<span>{item}</span>")));
@@ -38,7 +38,7 @@ public class OmniVirtualizeTests : TestContextBase
     [Fact]
     public void Renders_custom_EmptyContent_when_set()
     {
-        var cut = RenderComponent<OmniVirtualize<string>>(p => p
+        var cut = Render<OmniVirtualize<string>>(p => p
             .Add(c => c.Items, new List<string>())
             .Add(c => c.EmptyContent, b => b.AddMarkupContent(0, "<div class='my-empty'>nada</div>"))
             .Add(c => c.ItemContent, item => b => b.AddMarkupContent(0, $"<span>{item}</span>")));
@@ -50,7 +50,7 @@ public class OmniVirtualizeTests : TestContextBase
     [Fact]
     public void Applies_height_to_wrapper_style()
     {
-        var cut = RenderComponent<OmniVirtualize<string>>(p => p
+        var cut = Render<OmniVirtualize<string>>(p => p
             .Add(c => c.Items, SampleItems)
             .Add(c => c.Height, "200px")
             .Add(c => c.ItemContent, item => b => b.AddMarkupContent(0, $"<span>{item}</span>")));
@@ -63,7 +63,7 @@ public class OmniVirtualizeTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniVirtualize<string>>(p => p
+        var cut = Render<OmniVirtualize<string>>(p => p
             .Add(c => c.Items, SampleItems)
             .Add(c => c.Class, "v-cls")
             .Add(c => c.ItemContent, item => b => b.AddMarkupContent(0, $"<span>{item}</span>")));
@@ -74,7 +74,7 @@ public class OmniVirtualizeTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniVirtualize<string>>(p => p
+        var cut = Render<OmniVirtualize<string>>(p => p
             .Add(c => c.Items, SampleItems)
             .AddUnmatched("data-testid", "v1")
             .Add(c => c.ItemContent, item => b => b.AddMarkupContent(0, $"<span>{item}</span>")));
@@ -86,7 +86,7 @@ public class OmniVirtualizeTests : TestContextBase
     public void SpacerElement_tr_skips_wrapper_div()
     {
         // Mounted inside a fake tbody — we just confirm no .omni-virtualize wrapper is emitted.
-        var cut = RenderComponent<OmniVirtualize<string>>(p => p
+        var cut = Render<OmniVirtualize<string>>(p => p
             .Add(c => c.Items, SampleItems)
             .Add(c => c.SpacerElement, "tr")
             .Add(c => c.ItemContent, item => b => b.AddMarkupContent(0, $"<tr><td>{item}</td></tr>")));

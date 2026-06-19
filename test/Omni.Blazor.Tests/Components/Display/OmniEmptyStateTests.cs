@@ -12,7 +12,7 @@ public class OmniEmptyStateTests : TestContextBase
     [Fact]
     public void Default_renders_root_and_icon()
     {
-        var cut = RenderComponent<OmniEmptyState>();
+        var cut = Render<OmniEmptyState>();
         Assert.NotNull(cut.Find(".omni-empty"));
         Assert.NotNull(cut.Find(".omni-empty-icon svg"));
     }
@@ -20,7 +20,7 @@ public class OmniEmptyStateTests : TestContextBase
     [Fact]
     public void Renders_title_and_description()
     {
-        var cut = RenderComponent<OmniEmptyState>(p => p
+        var cut = Render<OmniEmptyState>(p => p
             .Add(c => c.Title, "Nenhum pedido")
             .Add(c => c.Description, "Aparecem aqui."));
         Assert.Equal("Nenhum pedido", cut.Find(".omni-empty-title").TextContent);
@@ -30,7 +30,7 @@ public class OmniEmptyStateTests : TestContextBase
     [Fact]
     public void Renders_actions_fragment()
     {
-        var cut = RenderComponent<OmniEmptyState>(p => p
+        var cut = Render<OmniEmptyState>(p => p
             .Add(c => c.Actions, b => b.AddMarkupContent(0, "<button class=\"new\">Novo</button>")));
         Assert.NotNull(cut.Find(".omni-empty-actions .new"));
     }
@@ -38,14 +38,14 @@ public class OmniEmptyStateTests : TestContextBase
     [Fact]
     public void Compact_adds_modifier_class()
     {
-        var cut = RenderComponent<OmniEmptyState>(p => p.Add(c => c.Compact, true));
+        var cut = Render<OmniEmptyState>(p => p.Add(c => c.Compact, true));
         Assert.Contains("omni-empty-compact", cut.Find(".omni-empty").ClassName);
     }
 
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniEmptyState>(p => p
+        var cut = Render<OmniEmptyState>(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "margin:4px")
             .AddUnmatched("data-testid", "e1"));

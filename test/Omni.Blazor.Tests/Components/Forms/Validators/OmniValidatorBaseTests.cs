@@ -30,7 +30,7 @@ public class OmniValidatorBaseTests : TestContextBase
     {
         var registry = new StubFormRegistry();
         Assert.Throws<InvalidOperationException>(() =>
-            RenderComponent<StubValidator>(p => p
+            Render<StubValidator>(p => p
                 .AddCascadingValue<IOmniFormRegistry>(registry)
                 .Add(c => c.Component, "field")));
     }
@@ -40,7 +40,7 @@ public class OmniValidatorBaseTests : TestContextBase
     {
         var ctx = new EditContext(new object());
         Assert.Throws<InvalidOperationException>(() =>
-            RenderComponent<StubValidator>(p => p
+            Render<StubValidator>(p => p
                 .AddCascadingValue<EditContext>(ctx)
                 .Add(c => c.Component, "field")));
     }
@@ -52,7 +52,7 @@ public class OmniValidatorBaseTests : TestContextBase
         var input = new StubFormComponent("bad", "field");
         var registry = new StubFormRegistry().Register(input);
 
-        RenderComponent<StubValidator>(p => p
+        Render<StubValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, "field")
@@ -69,7 +69,7 @@ public class OmniValidatorBaseTests : TestContextBase
         var input = new StubFormComponent("ok", "field");
         var registry = new StubFormRegistry().Register(input);
 
-        RenderComponent<StubValidator>(p => p
+        Render<StubValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, "field"));
@@ -85,7 +85,7 @@ public class OmniValidatorBaseTests : TestContextBase
         var input = new StubFormComponent("bad", "field");
         var registry = new StubFormRegistry().Register(input);
 
-        var cut = RenderComponent<StubValidator>(p => p
+        var cut = Render<StubValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, "field"));
@@ -101,7 +101,7 @@ public class OmniValidatorBaseTests : TestContextBase
         var input = new StubFormComponent("bad", "field");
         var registry = new StubFormRegistry().Register(input);
 
-        var cut = RenderComponent<StubValidator>(p => p
+        var cut = Render<StubValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, "field"));
@@ -117,7 +117,7 @@ public class OmniValidatorBaseTests : TestContextBase
         var ctx = new EditContext(new object());
         var registry = new StubFormRegistry(); // empty — nothing registered
 
-        var cut = RenderComponent<StubValidator>(p => p
+        var cut = Render<StubValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, "ghost"));

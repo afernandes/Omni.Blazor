@@ -12,7 +12,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Hidden_when_Open_false()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, false)
             .AddChildContent("body"));
 
@@ -23,7 +23,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Renders_sheet_with_modal_modifier_by_default_when_open()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .AddChildContent("body"));
 
@@ -36,7 +36,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Modal_variant_renders_backdrop()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .Add(c => c.Variant, BottomSheetVariant.Modal)
             .AddChildContent("body"));
@@ -47,7 +47,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Standard_variant_skips_backdrop_and_marks_modifier()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .Add(c => c.Variant, BottomSheetVariant.Standard)
             .AddChildContent("body"));
@@ -61,7 +61,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Default_shows_drag_handle()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .AddChildContent("body"));
 
@@ -72,7 +72,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void ShowDragHandle_false_omits_handle_and_marks_modifier()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .Add(c => c.ShowDragHandle, false)
             .AddChildContent("body"));
@@ -84,7 +84,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Title_renders_in_header()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .Add(c => c.Title, "Detalhes")
             .AddChildContent("body"));
@@ -96,7 +96,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Footer_renders_when_provided()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .Add(c => c.Footer, builder =>
             {
@@ -112,7 +112,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void ChildContent_renders_inside_body()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .AddChildContent("<span class=\"probe-body\">hello</span>"));
 
@@ -123,7 +123,7 @@ public class OmniBottomSheetTests : TestContextBase
     public async Task CloseAsync_flips_state_and_invokes_OpenChanged()
     {
         var openValue = true;
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, openValue)
             .Add(c => c.OpenChanged, (bool v) => openValue = v)
             .AddChildContent("body"));
@@ -139,7 +139,7 @@ public class OmniBottomSheetTests : TestContextBase
     public async Task OpenAsync_flips_state_and_invokes_OpenChanged()
     {
         var openValue = false;
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, openValue)
             .Add(c => c.OpenChanged, (bool v) => openValue = v)
             .AddChildContent("body"));
@@ -154,7 +154,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .Add(c => c.Class, "custom-bs")
             .AddChildContent("body"));
@@ -165,7 +165,7 @@ public class OmniBottomSheetTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniBottomSheet>(p => p
+        var cut = Render<OmniBottomSheet>(p => p
             .Add(c => c.Open, true)
             .AddUnmatched("data-testid", "bs")
             .AddChildContent("body"));

@@ -13,7 +13,7 @@ public class OmniMainTests : TestContextBase
     [Fact]
     public void Renders_main_element_with_base_classes()
     {
-        var cut = RenderComponent<OmniMain>(p => p.AddChildContent("body"));
+        var cut = Render<OmniMain>(p => p.AddChildContent("body"));
 
         var main = cut.Find("main");
         Assert.Contains("omni-body", main.ClassName);
@@ -26,7 +26,7 @@ public class OmniMainTests : TestContextBase
     [Fact]
     public void NoPadding_applies_modifier_class()
     {
-        var cut = RenderComponent<OmniMain>(p => p
+        var cut = Render<OmniMain>(p => p
             .Add(c => c.NoPadding, true)
             .AddChildContent("X"));
 
@@ -36,7 +36,7 @@ public class OmniMainTests : TestContextBase
     [Fact]
     public void Container_param_wraps_children_in_OmniContainer()
     {
-        var cut = RenderComponent<OmniMain>(p => p
+        var cut = Render<OmniMain>(p => p
             .Add(c => c.Container, ContainerMaxWidth.Xl)
             .AddChildContent("body"));
 
@@ -49,7 +49,7 @@ public class OmniMainTests : TestContextBase
     [Fact]
     public void Container_null_renders_children_directly()
     {
-        var cut = RenderComponent<OmniMain>(p => p.AddChildContent("<span data-testid=\"raw\">x</span>"));
+        var cut = Render<OmniMain>(p => p.AddChildContent("<span data-testid=\"raw\">x</span>"));
 
         Assert.Empty(cut.FindAll("main .omni-container"));
         Assert.NotNull(cut.Find("[data-testid='raw']"));
@@ -58,7 +58,7 @@ public class OmniMainTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniMain>(p => p
+        var cut = Render<OmniMain>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -68,7 +68,7 @@ public class OmniMainTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniMain>(p => p
+        var cut = Render<OmniMain>(p => p
             .Add(c => c.Style, "padding: 0")
             .AddChildContent("X"));
 
@@ -78,7 +78,7 @@ public class OmniMainTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniMain>(p => p
+        var cut = Render<OmniMain>(p => p
             .AddUnmatched("data-testid", "main")
             .AddUnmatched("aria-label", "Main")
             .AddChildContent("X"));

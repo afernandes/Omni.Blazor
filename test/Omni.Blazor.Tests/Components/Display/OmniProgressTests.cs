@@ -13,7 +13,7 @@ public class OmniProgressTests : TestContextBase
     [Fact]
     public void Renders_bar_by_default()
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Value, 40));
 
         var root = cut.Find("div.omni-progress");
@@ -24,7 +24,7 @@ public class OmniProgressTests : TestContextBase
     [Fact]
     public void Bar_width_reflects_clamped_value()
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Value, 50)
             .Add(c => c.Max, 100));
 
@@ -36,7 +36,7 @@ public class OmniProgressTests : TestContextBase
     [Fact]
     public void Custom_Color_applies_to_bar_style()
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Value, 30)
             .Add(c => c.Color, "#ff0000"));
 
@@ -50,7 +50,7 @@ public class OmniProgressTests : TestContextBase
     [InlineData(BadgeVariant.Danger, "omni-progress-danger")]
     public void Applies_variant_modifier(BadgeVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Value, 10)
             .Add(c => c.Variant, variant));
 
@@ -60,7 +60,7 @@ public class OmniProgressTests : TestContextBase
     [Fact]
     public void Segmented_mode_renders_cells()
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Segments, 4)
             .Add(c => c.Active, 2));
 
@@ -72,7 +72,7 @@ public class OmniProgressTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root_bar()
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Value, 30)
             .Add(c => c.Class, "my-prog"));
 
@@ -82,7 +82,7 @@ public class OmniProgressTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root_bar()
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Value, 30)
             .Add(c => c.Style, "margin-top: 8px"));
 
@@ -92,7 +92,7 @@ public class OmniProgressTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root_bar()
     {
-        var cut = RenderComponent<OmniProgress>(p => p
+        var cut = Render<OmniProgress>(p => p
             .Add(c => c.Value, 30)
             .AddUnmatched("data-testid", "p1"));
 

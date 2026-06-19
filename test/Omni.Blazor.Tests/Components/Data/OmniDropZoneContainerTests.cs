@@ -14,7 +14,7 @@ public class OmniDropZoneContainerTests : TestContextBase
     [Fact]
     public void Renders_root_div_with_base_class()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, new[] { new Task1("a", "todo") })
             .AddChildContent("body"));
 
@@ -25,7 +25,7 @@ public class OmniDropZoneContainerTests : TestContextBase
     [Fact]
     public void Renders_child_content()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, new[] { new Task1("a", "todo") })
             .AddChildContent("<span class='kid'>x</span>"));
 
@@ -35,7 +35,7 @@ public class OmniDropZoneContainerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, new[] { new Task1("a", "todo") })
             .Add(c => c.Class, "kanban")
             .AddChildContent("x"));
@@ -46,7 +46,7 @@ public class OmniDropZoneContainerTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, new[] { new Task1("a", "todo") })
             .Add(c => c.Style, "gap: 12px")
             .AddChildContent("x"));
@@ -57,7 +57,7 @@ public class OmniDropZoneContainerTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniDropZoneContainer<Task1>>(p => p
+        var cut = Render<OmniDropZoneContainer<Task1>>(p => p
             .Add(c => c.Data, new[] { new Task1("a", "todo") })
             .AddUnmatched("data-testid", "kanban1")
             .AddChildContent("x"));

@@ -12,7 +12,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Renders_root_with_default_full_class()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 100)
             .Add(c => c.PageSize, 10));
 
@@ -23,7 +23,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Compact_mode_adds_modifier_and_shows_current_of_total_label()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 100)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 2)
@@ -39,7 +39,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void ShowSummary_renders_range_summary_text()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 50)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 0)
@@ -58,7 +58,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Renders_numeric_tokens_with_ellipsis_for_large_totals()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 200)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 9)
@@ -72,7 +72,7 @@ public class OmniPaginationTests : TestContextBase
     public void Clicking_numeric_button_fires_CurrentPageChanged()
     {
         var captured = -1;
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 30)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 0)
@@ -89,7 +89,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Prev_arrow_disabled_on_first_page()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 30)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 0));
@@ -102,7 +102,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Next_arrow_disabled_on_last_page()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 30)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 2));
@@ -117,7 +117,7 @@ public class OmniPaginationTests : TestContextBase
     public void Clicking_next_arrow_advances_one_page()
     {
         var captured = -1;
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 30)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 0)
@@ -134,7 +134,7 @@ public class OmniPaginationTests : TestContextBase
     public void Clamps_CurrentPage_to_valid_range_on_parameters_set()
     {
         // CurrentPage=99 with only 3 pages -> clamps to 2.
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 30)
             .Add(c => c.PageSize, 10)
             .Add(c => c.CurrentPage, 99));
@@ -145,7 +145,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Zero_total_shows_zero_zero_summary()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 0)
             .Add(c => c.PageSize, 10)
             .Add(c => c.ShowSummary, true));
@@ -157,7 +157,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 10)
             .Add(c => c.Class, "custom-pg"));
 
@@ -167,7 +167,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 10)
             .Add(c => c.Style, "margin: 4px"));
 
@@ -177,7 +177,7 @@ public class OmniPaginationTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniPagination>(p => p
+        var cut = Render<OmniPagination>(p => p
             .Add(c => c.TotalCount, 10)
             .AddUnmatched("data-testid", "pg")
             .AddUnmatched("aria-label", "Paginator"));

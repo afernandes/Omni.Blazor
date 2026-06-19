@@ -38,7 +38,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Renders_root_div_with_base_class()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, ColumnsFragment()));
 
@@ -49,7 +49,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Renders_column_headers()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, ColumnsFragment()));
 
@@ -61,7 +61,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Column_headers_have_scope_col()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, ColumnsFragment()));
 
@@ -81,7 +81,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Utility_column_headers_have_scope_col_and_aria_label()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.AllowMultiSelection, true)
             .Add(c => c.EditMode, DataGridEditMode.Row)
@@ -101,7 +101,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Renders_data_rows()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, ColumnsFragment()));
 
@@ -114,7 +114,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Renders_EmptyText_when_data_is_empty()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Array.Empty<Person>())
             .Add(c => c.EmptyText, "Sem registros")
             .Add(c => c.Columns, ColumnsFragment()));
@@ -125,7 +125,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Embed_adds_modifier_class()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Embed, true)
             .Add(c => c.Columns, ColumnsFragment()));
@@ -136,7 +136,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Class, "my-grid")
             .Add(c => c.Columns, ColumnsFragment()));
@@ -147,7 +147,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Style, "border: 1px solid red")
             .Add(c => c.Columns, ColumnsFragment()));
@@ -159,7 +159,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .AddUnmatched("data-testid", "grid1")
             .Add(c => c.Columns, ColumnsFragment()));
@@ -172,7 +172,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void AllowColumnResize_marks_table_and_renders_handles()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.AllowColumnResize, true)
             .Add(c => c.Columns, ColumnsFragment()));
@@ -184,7 +184,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void No_resize_handles_when_disabled()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, ColumnsFragment()));
 
@@ -209,7 +209,7 @@ public class OmniDataGridTests : TestContextBase
             b.CloseComponent();
         };
 
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.AllowColumnResize, true)
             .Add(c => c.Columns, frag));
@@ -221,7 +221,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void Renders_colgroup_col_with_id_per_visible_column()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.AllowColumnResize, true)
             .Add(c => c.Columns, ColumnsFragment()));
@@ -237,7 +237,7 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public void No_filler_column_when_resize_disabled()
     {
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.Columns, ColumnsFragment()));
 
@@ -248,7 +248,7 @@ public class OmniDataGridTests : TestContextBase
     public async Task OnColumnResized_updates_col_width_and_fires_event()
     {
         DataGridColumnResizedEventArgs? captured = null;
-        var cut = RenderComponent<OmniDataGrid<Person>>(p => p
+        var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
             .Add(c => c.AllowColumnResize, true)
             .Add(c => c.ColumnResized,
@@ -300,7 +300,7 @@ public class OmniDataGridTests : TestContextBase
 
     private IRenderedComponent<OmniDataGrid<Sale>> RenderSalesGrid(
         Action<ComponentParameterCollectionBuilder<OmniDataGrid<Sale>>>? extra = null)
-        => RenderComponent<OmniDataGrid<Sale>>(p =>
+        => Render<OmniDataGrid<Sale>>(p =>
         {
             p.Add(c => c.Data, Sales);
             p.Add(c => c.AllowGrouping, true);

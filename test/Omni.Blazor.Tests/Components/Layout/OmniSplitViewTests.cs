@@ -13,7 +13,7 @@ public class OmniSplitViewTests : TestContextBase
     [Fact]
     public void Renders_root_with_aside_and_main()
     {
-        var cut = RenderComponent<OmniSplitView>(p => p
+        var cut = Render<OmniSplitView>(p => p
             .Add(c => c.AsideContent, builder =>
             {
                 builder.OpenElement(0, "div");
@@ -36,7 +36,7 @@ public class OmniSplitViewTests : TestContextBase
     [Fact]
     public void AsideRight_applies_right_modifier()
     {
-        var cut = RenderComponent<OmniSplitView>(p => p.Add(c => c.AsideRight, true));
+        var cut = Render<OmniSplitView>(p => p.Add(c => c.AsideRight, true));
 
         Assert.Contains("omni-split-aside-right", cut.Find(".omni-split").ClassName);
     }
@@ -46,7 +46,7 @@ public class OmniSplitViewTests : TestContextBase
     [InlineData(ComponentSize.Lg, "omni-split-aside-wide")]
     public void AsideSize_applies_modifier(ComponentSize size, string expected)
     {
-        var cut = RenderComponent<OmniSplitView>(p => p.Add(c => c.AsideSize, size));
+        var cut = Render<OmniSplitView>(p => p.Add(c => c.AsideSize, size));
 
         Assert.Contains(expected, cut.Find(".omni-split").ClassName);
     }
@@ -54,7 +54,7 @@ public class OmniSplitViewTests : TestContextBase
     [Fact]
     public void AsideSize_Md_emits_no_size_modifier()
     {
-        var cut = RenderComponent<OmniSplitView>(p => p.Add(c => c.AsideSize, ComponentSize.Md));
+        var cut = Render<OmniSplitView>(p => p.Add(c => c.AsideSize, ComponentSize.Md));
 
         var className = cut.Find(".omni-split").ClassName;
         Assert.DoesNotContain("omni-split-aside-narrow", className);
@@ -65,7 +65,7 @@ public class OmniSplitViewTests : TestContextBase
     [Fact]
     public void AsideWidth_emits_custom_modifier_and_css_variable()
     {
-        var cut = RenderComponent<OmniSplitView>(p => p.Add(c => c.AsideWidth, "320px"));
+        var cut = Render<OmniSplitView>(p => p.Add(c => c.AsideWidth, "320px"));
 
         var root = cut.Find(".omni-split");
         Assert.Contains("omni-split-aside-custom", root.ClassName);
@@ -75,7 +75,7 @@ public class OmniSplitViewTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSplitView>(p => p.Add(c => c.Class, "custom-cls"));
+        var cut = Render<OmniSplitView>(p => p.Add(c => c.Class, "custom-cls"));
 
         Assert.Contains("custom-cls", cut.Find(".omni-split").ClassName);
     }
@@ -83,7 +83,7 @@ public class OmniSplitViewTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSplitView>(p => p
+        var cut = Render<OmniSplitView>(p => p
             .AddUnmatched("data-testid", "sv")
             .AddUnmatched("aria-label", "Master detail"));
 

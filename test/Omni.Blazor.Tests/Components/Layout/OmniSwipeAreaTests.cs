@@ -14,7 +14,7 @@ public class OmniSwipeAreaTests : TestContextBase
     [Fact]
     public void Renders_default_swipearea_root()
     {
-        var cut = RenderComponent<OmniSwipeArea>(p => p.AddChildContent("body"));
+        var cut = Render<OmniSwipeArea>(p => p.AddChildContent("body"));
 
         var div = cut.Find("div.omni-swipearea");
         Assert.Contains("omni-swipearea", div.ClassName);
@@ -29,7 +29,7 @@ public class OmniSwipeAreaTests : TestContextBase
     [InlineData(SwipeAreaLiveTransform.None, false)]
     public void LiveTransform_applies_modifier_class(SwipeAreaLiveTransform mode, bool expected)
     {
-        var cut = RenderComponent<OmniSwipeArea>(p => p
+        var cut = Render<OmniSwipeArea>(p => p
             .Add(c => c.LiveTransform, mode)
             .AddChildContent("X"));
 
@@ -44,14 +44,14 @@ public class OmniSwipeAreaTests : TestContextBase
     {
         // Cancel is a public method that just resets a few private fields; ensure
         // it doesn't throw when called on a fresh component.
-        var cut = RenderComponent<OmniSwipeArea>(p => p.AddChildContent("X"));
+        var cut = Render<OmniSwipeArea>(p => p.AddChildContent("X"));
         cut.Instance.Cancel();
     }
 
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSwipeArea>(p => p
+        var cut = Render<OmniSwipeArea>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -61,7 +61,7 @@ public class OmniSwipeAreaTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniSwipeArea>(p => p
+        var cut = Render<OmniSwipeArea>(p => p
             .Add(c => c.Style, "touch-action: none")
             .AddChildContent("X"));
 
@@ -71,7 +71,7 @@ public class OmniSwipeAreaTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSwipeArea>(p => p
+        var cut = Render<OmniSwipeArea>(p => p
             .AddUnmatched("data-testid", "sa")
             .AddUnmatched("aria-label", "Swipe")
             .AddChildContent("X"));

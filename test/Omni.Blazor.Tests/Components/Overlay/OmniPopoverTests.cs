@@ -18,7 +18,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Renders_root_wrapper_with_default_class()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe()));
 
         var root = cut.Find(".omni-popover-wrap");
@@ -30,7 +30,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Renders_Trigger_slot()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe("hello")));
 
         Assert.NotNull(cut.Find(".omni-popover-trigger .probe-trigger"));
@@ -40,7 +40,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Open_false_default_hides_popover_panel()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe()));
 
         Assert.Empty(cut.FindAll(".omni-popover"));
@@ -49,7 +49,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Click_on_trigger_opens_popover_and_renders_ChildContent()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .AddChildContent("<span class=\"probe-content\">content</span>"));
 
@@ -67,7 +67,7 @@ public class OmniPopoverTests : TestContextBase
     [InlineData(PopoverPosition.Right,  "omni-popover-right")]
     public void Applies_position_modifier_when_open(PopoverPosition pos, string expected)
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .Add(c => c.Position, pos)
             .AddChildContent("x"));
@@ -80,7 +80,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void ShowArrow_false_adds_no_arrow_modifier()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .Add(c => c.ShowArrow, false)
             .AddChildContent("x"));
@@ -93,7 +93,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void AlignEnd_true_adds_align_end_modifier()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .Add(c => c.AlignEnd, true)
             .AddChildContent("x"));
@@ -106,7 +106,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Open_panel_is_an_aria_modal_dialog()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .AddChildContent("x"));
 
@@ -120,7 +120,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .Add(c => c.Class, "custom-pop"));
 
@@ -130,7 +130,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .Add(c => c.Style, "display: inline-block"));
 
@@ -140,7 +140,7 @@ public class OmniPopoverTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniPopover>(p => p
+        var cut = Render<OmniPopover>(p => p
             .Add(c => c.Trigger, Probe())
             .AddUnmatched("data-testid", "pop")
             .AddUnmatched("aria-label", "More"));

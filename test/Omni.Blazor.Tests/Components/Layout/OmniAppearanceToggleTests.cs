@@ -21,7 +21,7 @@ public class OmniAppearanceToggleTests : TestContextBase
     [Fact]
     public void Default_renders_dropdown_trigger_button()
     {
-        var cut = RenderComponent<OmniAppearanceToggle>();
+        var cut = Render<OmniAppearanceToggle>();
         // Trigger is the underlying OmniButton with omni-app-tog class.
         var btn = cut.Find("button");
         Assert.Contains("omni-app-tog", btn.ClassName);
@@ -31,7 +31,7 @@ public class OmniAppearanceToggleTests : TestContextBase
     [Fact]
     public void Segmented_variant_renders_three_buttons()
     {
-        var cut = RenderComponent<OmniAppearanceToggle>(p => p
+        var cut = Render<OmniAppearanceToggle>(p => p
             .Add(c => c.Variant, AppearanceToggleVariant.Segmented));
 
         var group = cut.Find(".omni-app-tog-seg");
@@ -43,7 +43,7 @@ public class OmniAppearanceToggleTests : TestContextBase
     [Fact]
     public void Cycle_variant_renders_single_button()
     {
-        var cut = RenderComponent<OmniAppearanceToggle>(p => p
+        var cut = Render<OmniAppearanceToggle>(p => p
             .Add(c => c.Variant, AppearanceToggleVariant.Cycle));
 
         var btn = cut.Find("button");
@@ -57,7 +57,7 @@ public class OmniAppearanceToggleTests : TestContextBase
     [InlineData(ComponentSize.Xl, "omni-app-tog-xl")]
     public void Segmented_applies_size_modifier(ComponentSize size, string expected)
     {
-        var cut = RenderComponent<OmniAppearanceToggle>(p => p
+        var cut = Render<OmniAppearanceToggle>(p => p
             .Add(c => c.Variant, AppearanceToggleVariant.Segmented)
             .Add(c => c.Size, size));
 
@@ -67,7 +67,7 @@ public class OmniAppearanceToggleTests : TestContextBase
     [Fact]
     public void Custom_AriaLabel_applies_to_segmented_group()
     {
-        var cut = RenderComponent<OmniAppearanceToggle>(p => p
+        var cut = Render<OmniAppearanceToggle>(p => p
             .Add(c => c.Variant, AppearanceToggleVariant.Segmented)
             .Add(c => c.AriaLabel, "Theme mode"));
 
@@ -77,7 +77,7 @@ public class OmniAppearanceToggleTests : TestContextBase
     [Fact]
     public void Segmented_with_ShowLabels_renders_inline_labels()
     {
-        var cut = RenderComponent<OmniAppearanceToggle>(p => p
+        var cut = Render<OmniAppearanceToggle>(p => p
             .Add(c => c.Variant, AppearanceToggleVariant.Segmented)
             .Add(c => c.ShowLabels, true));
 

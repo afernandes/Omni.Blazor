@@ -16,7 +16,7 @@ public class OmniPickListTests : TestContextBase
     private IRenderedComponent<OmniPickList<string>> Render(
         string[]? source = null, string[]? target = null,
         Action<ComponentParameterCollectionBuilder<OmniPickList<string>>>? extra = null)
-        => RenderComponent<OmniPickList<string>>(p =>
+        => Render<OmniPickList<string>>(p =>
         {
             p.Add(c => c.Source, (IEnumerable<string>?)(source ?? new[] { "A", "B", "C" }));
             p.Add(c => c.Target, (IEnumerable<string>?)(target ?? Array.Empty<string>()));

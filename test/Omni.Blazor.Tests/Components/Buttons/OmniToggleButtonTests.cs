@@ -13,7 +13,7 @@ public class OmniToggleButtonTests : TestContextBase
     [Fact]
     public void Renders_default_button_with_md_class_and_aria_pressed_false()
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p.AddChildContent("Bold"));
+        var cut = Render<OmniToggleButton>(p => p.AddChildContent("Bold"));
 
         var btn = cut.Find("button");
         Assert.Contains("omni-toggle-btn", btn.ClassName);
@@ -25,7 +25,7 @@ public class OmniToggleButtonTests : TestContextBase
     [Fact]
     public void Active_state_sets_aria_pressed_and_active_class()
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.Active, true)
             .AddChildContent("Bold"));
 
@@ -41,7 +41,7 @@ public class OmniToggleButtonTests : TestContextBase
     [InlineData(ToggleVariant.Ghost,   "omni-toggle-btn-ghost")]
     public void Applies_variant_modifier(ToggleVariant variant, string? expectedClass)
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.Variant, variant)
             .AddChildContent("X"));
 
@@ -65,7 +65,7 @@ public class OmniToggleButtonTests : TestContextBase
     [InlineData(ComponentSize.Xl, "omni-toggle-btn-xl")]
     public void Applies_size_modifier(ComponentSize size, string expectedClass)
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.Size, size)
             .AddChildContent("X"));
 
@@ -75,7 +75,7 @@ public class OmniToggleButtonTests : TestContextBase
     [Fact]
     public void IconOnly_applies_modifier_class()
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.IconOnly, true)
             .Add(c => c.Icon, "bold"));
 
@@ -87,7 +87,7 @@ public class OmniToggleButtonTests : TestContextBase
     {
         var captured = false;
         var fires = 0;
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.Active, false)
             .Add(c => c.ActiveChanged, EventCallback.Factory.Create<bool>(this, v => { captured = v; fires++; }))
             .AddChildContent("X"));
@@ -101,7 +101,7 @@ public class OmniToggleButtonTests : TestContextBase
     public void Click_also_fires_OnClick_callback()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++)
             .AddChildContent("X"));
 
@@ -114,7 +114,7 @@ public class OmniToggleButtonTests : TestContextBase
     {
         var captured = false;
         var fires = 0;
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.Disabled, true)
             .Add(c => c.ActiveChanged, EventCallback.Factory.Create<bool>(this, v => { captured = v; fires++; }))
             .AddChildContent("X"));
@@ -129,7 +129,7 @@ public class OmniToggleButtonTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.Class, "custom-tb")
             .AddChildContent("X"));
 
@@ -139,7 +139,7 @@ public class OmniToggleButtonTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .Add(c => c.Style, "color: red")
             .AddChildContent("X"));
 
@@ -149,7 +149,7 @@ public class OmniToggleButtonTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniToggleButton>(p => p
+        var cut = Render<OmniToggleButton>(p => p
             .AddUnmatched("data-testid", "tb")
             .AddUnmatched("aria-label", "Bold formatting")
             .AddChildContent("X"));

@@ -13,7 +13,7 @@ public class OmniContainerTests : TestContextBase
     [Fact]
     public void Renders_default_container_with_lg_maxwidth()
     {
-        var cut = RenderComponent<OmniContainer>(p => p.AddChildContent("body"));
+        var cut = Render<OmniContainer>(p => p.AddChildContent("body"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-container", div.ClassName);
@@ -30,7 +30,7 @@ public class OmniContainerTests : TestContextBase
     [InlineData(ContainerMaxWidth.Full,"omni-container-full")]
     public void Applies_maxwidth_modifier(ContainerMaxWidth max, string expected)
     {
-        var cut = RenderComponent<OmniContainer>(p => p
+        var cut = Render<OmniContainer>(p => p
             .Add(c => c.MaxWidth, max)
             .AddChildContent("X"));
 
@@ -40,7 +40,7 @@ public class OmniContainerTests : TestContextBase
     [Fact]
     public void Fluid_forces_full_modifier()
     {
-        var cut = RenderComponent<OmniContainer>(p => p
+        var cut = Render<OmniContainer>(p => p
             .Add(c => c.MaxWidth, ContainerMaxWidth.Md)
             .Add(c => c.Fluid, true)
             .AddChildContent("X"));
@@ -52,7 +52,7 @@ public class OmniContainerTests : TestContextBase
     [Fact]
     public void Gutters_false_adds_no_gutters_modifier()
     {
-        var cut = RenderComponent<OmniContainer>(p => p
+        var cut = Render<OmniContainer>(p => p
             .Add(c => c.Gutters, false)
             .AddChildContent("X"));
 
@@ -62,7 +62,7 @@ public class OmniContainerTests : TestContextBase
     [Fact]
     public void Default_Gutters_true_omits_modifier()
     {
-        var cut = RenderComponent<OmniContainer>(p => p.AddChildContent("X"));
+        var cut = Render<OmniContainer>(p => p.AddChildContent("X"));
 
         Assert.DoesNotContain("omni-container-no-gutters", cut.Find("div").ClassName);
     }
@@ -70,7 +70,7 @@ public class OmniContainerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniContainer>(p => p
+        var cut = Render<OmniContainer>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -80,7 +80,7 @@ public class OmniContainerTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniContainer>(p => p
+        var cut = Render<OmniContainer>(p => p
             .Add(c => c.Style, "padding: 0")
             .AddChildContent("X"));
 
@@ -90,7 +90,7 @@ public class OmniContainerTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniContainer>(p => p
+        var cut = Render<OmniContainer>(p => p
             .AddUnmatched("data-testid", "container")
             .AddUnmatched("aria-label", "Wrap")
             .AddChildContent("X"));

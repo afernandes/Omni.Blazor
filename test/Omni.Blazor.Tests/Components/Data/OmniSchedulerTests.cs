@@ -37,7 +37,7 @@ public class OmniSchedulerTests : TestContextBase
     private IRenderedComponent<OmniScheduler<TestAppt>> RenderScheduler(
         Action<ComponentParameterCollectionBuilder<OmniScheduler<TestAppt>>>? extra = null,
         List<TestAppt>? data = null)
-        => RenderComponent<OmniScheduler<TestAppt>>(p =>
+        => Render<OmniScheduler<TestAppt>>(p =>
         {
             p.Add(s => s.Data, data ?? SampleToday());
             p.Add(s => s.StartProperty, nameof(TestAppt.Start));
@@ -135,7 +135,7 @@ public class OmniSchedulerTests : TestContextBase
     [Fact]
     public void No_projection_without_start_end_properties()
     {
-        var cut = RenderComponent<OmniScheduler<TestAppt>>(p =>
+        var cut = Render<OmniScheduler<TestAppt>>(p =>
         {
             p.Add(s => s.Data, SampleToday());
             p.Add(s => s.ChildContent, Views());
@@ -242,7 +242,7 @@ public class OmniSchedulerTests : TestContextBase
         var cut = RenderScheduler();
         Assert.Equal(1, cut.Instance.AppointmentsRebuildCount);
 
-        cut.SetParametersAndRender(p => p.Add(s => s.Class, "x"));
+        cut.Render(p => p.Add(s => s.Class, "x"));
 
         Assert.Equal(1, cut.Instance.AppointmentsRebuildCount);
     }
@@ -253,7 +253,7 @@ public class OmniSchedulerTests : TestContextBase
         var cut = RenderScheduler();
         Assert.Equal(1, cut.Instance.AppointmentsRebuildCount);
 
-        cut.SetParametersAndRender(p => p.Add(s => s.Data, new List<TestAppt>
+        cut.Render(p => p.Add(s => s.Data, new List<TestAppt>
         {
             new(DateTime.Today.AddHours(14), DateTime.Today.AddHours(15), "Novo"),
         }));
@@ -296,7 +296,7 @@ public class OmniSchedulerTests : TestContextBase
             builder.AddAttribute(1, nameof(OmniMultiDayView.NumberOfDays), 3);
             builder.CloseComponent();
         };
-        var cut = RenderComponent<OmniScheduler<TestAppt>>(p => p
+        var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
             .Add(s => s.StartProperty, nameof(TestAppt.Start))
             .Add(s => s.EndProperty, nameof(TestAppt.End))
@@ -314,7 +314,7 @@ public class OmniSchedulerTests : TestContextBase
             builder.OpenComponent<OmniYearView>(0);
             builder.CloseComponent();
         };
-        var cut = RenderComponent<OmniScheduler<TestAppt>>(p => p
+        var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
             .Add(s => s.StartProperty, nameof(TestAppt.Start))
             .Add(s => s.EndProperty, nameof(TestAppt.End))
@@ -368,7 +368,7 @@ public class OmniSchedulerTests : TestContextBase
             builder.OpenComponent<OmniYearPlannerView>(0);
             builder.CloseComponent();
         };
-        var cut = RenderComponent<OmniScheduler<TestAppt>>(p => p
+        var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
             .Add(s => s.StartProperty, nameof(TestAppt.Start))
             .Add(s => s.EndProperty, nameof(TestAppt.End))
@@ -381,7 +381,7 @@ public class OmniSchedulerTests : TestContextBase
     }
 
     private IRenderedComponent<OmniScheduler<TestAppt>> RenderSingleView<TView>() where TView : IComponent
-        => RenderComponent<OmniScheduler<TestAppt>>(p => p
+        => Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
             .Add(s => s.StartProperty, nameof(TestAppt.Start))
             .Add(s => s.EndProperty, nameof(TestAppt.End))
@@ -431,7 +431,7 @@ public class OmniSchedulerTests : TestContextBase
     {
         SchedulerSlotSelectEventArgs? captured = null;
         RenderFragment views = builder => { builder.OpenComponent<OmniMonthView>(0); builder.CloseComponent(); };
-        var cut = RenderComponent<OmniScheduler<TestAppt>>(p => p
+        var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
             .Add(s => s.StartProperty, nameof(TestAppt.Start))
             .Add(s => s.EndProperty, nameof(TestAppt.End))

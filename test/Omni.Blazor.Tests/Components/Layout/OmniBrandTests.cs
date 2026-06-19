@@ -12,7 +12,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Renders_div_when_Href_is_null()
     {
-        var cut = RenderComponent<OmniBrand>();
+        var cut = Render<OmniBrand>();
 
         var root = cut.Find("div.omni-brand");
         Assert.NotNull(root);
@@ -25,7 +25,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Renders_anchor_when_Href_is_set()
     {
-        var cut = RenderComponent<OmniBrand>(p => p.Add(c => c.Href, "/home"));
+        var cut = Render<OmniBrand>(p => p.Add(c => c.Href, "/home"));
 
         var anchor = cut.Find("a.omni-brand");
         Assert.NotNull(anchor);
@@ -35,7 +35,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Renders_tenant_when_provided()
     {
-        var cut = RenderComponent<OmniBrand>(p => p.Add(c => c.Tenant, "Acme"));
+        var cut = Render<OmniBrand>(p => p.Add(c => c.Tenant, "Acme"));
 
         Assert.Contains("Acme", cut.Markup);
         Assert.NotNull(cut.Find(".omni-brand-slash"));
@@ -45,7 +45,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Omits_tenant_when_null()
     {
-        var cut = RenderComponent<OmniBrand>();
+        var cut = Render<OmniBrand>();
 
         Assert.Empty(cut.FindAll(".omni-brand-tenant"));
         Assert.Empty(cut.FindAll(".omni-brand-slash"));
@@ -54,7 +54,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Large_applies_lg_mark_modifier()
     {
-        var cut = RenderComponent<OmniBrand>(p => p.Add(c => c.Large, true));
+        var cut = Render<OmniBrand>(p => p.Add(c => c.Large, true));
 
         var mark = cut.Find(".omni-brand-mark");
         Assert.Contains("omni-brand-mark-lg", mark.ClassName);
@@ -63,7 +63,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniBrand>(p => p.Add(c => c.Class, "custom-cls"));
+        var cut = Render<OmniBrand>(p => p.Add(c => c.Class, "custom-cls"));
 
         Assert.Contains("custom-cls", cut.Find(".omni-brand").ClassName);
     }
@@ -71,7 +71,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniBrand>(p => p.Add(c => c.Style, "color: red"));
+        var cut = Render<OmniBrand>(p => p.Add(c => c.Style, "color: red"));
 
         Assert.Equal("color: red", cut.Find(".omni-brand").GetAttribute("style"));
     }
@@ -79,7 +79,7 @@ public class OmniBrandTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniBrand>(p => p
+        var cut = Render<OmniBrand>(p => p
             .AddUnmatched("data-testid", "brand")
             .AddUnmatched("aria-label", "Logo"));
 

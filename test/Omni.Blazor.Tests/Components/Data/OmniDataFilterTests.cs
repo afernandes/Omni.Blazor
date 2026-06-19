@@ -26,7 +26,7 @@ public class OmniDataFilterTests : TestContextBase
     private IRenderedComponent<OmniDataFilter<Person>> RenderFilter(
         Action<IEnumerable<Person>>? onFilter = null,
         Action<ComponentParameterCollectionBuilder<OmniDataFilter<Person>>>? extra = null)
-        => RenderComponent<OmniDataFilter<Person>>(p =>
+        => Render<OmniDataFilter<Person>>(p =>
         {
             p.Add(c => c.Data, (IEnumerable<Person>)People);
             if (onFilter is not null)

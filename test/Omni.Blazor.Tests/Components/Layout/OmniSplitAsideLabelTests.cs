@@ -13,7 +13,7 @@ public class OmniSplitAsideLabelTests : TestContextBase
     [Fact]
     public void Renders_root_with_base_class()
     {
-        var cut = RenderComponent<OmniSplitAsideLabel>(p => p.Add(c => c.Text, "GROUP"));
+        var cut = Render<OmniSplitAsideLabel>(p => p.Add(c => c.Text, "GROUP"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-split-aside-label", div.ClassName);
@@ -23,7 +23,7 @@ public class OmniSplitAsideLabelTests : TestContextBase
     [Fact]
     public void ChildContent_takes_precedence_over_Text()
     {
-        var cut = RenderComponent<OmniSplitAsideLabel>(p => p
+        var cut = Render<OmniSplitAsideLabel>(p => p
             .Add(c => c.Text, "FROM_TEXT")
             .AddChildContent("<span data-testid=\"slot\">FROM_CHILD</span>"));
 
@@ -36,7 +36,7 @@ public class OmniSplitAsideLabelTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSplitAsideLabel>(p => p
+        var cut = Render<OmniSplitAsideLabel>(p => p
             .Add(c => c.Class, "custom-cls")
             .Add(c => c.Text, "X"));
 
@@ -46,7 +46,7 @@ public class OmniSplitAsideLabelTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniSplitAsideLabel>(p => p
+        var cut = Render<OmniSplitAsideLabel>(p => p
             .Add(c => c.Style, "letter-spacing: 1px")
             .Add(c => c.Text, "X"));
 
@@ -56,7 +56,7 @@ public class OmniSplitAsideLabelTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSplitAsideLabel>(p => p
+        var cut = Render<OmniSplitAsideLabel>(p => p
             .AddUnmatched("data-testid", "label")
             .AddUnmatched("aria-label", "Group label")
             .Add(c => c.Text, "X"));

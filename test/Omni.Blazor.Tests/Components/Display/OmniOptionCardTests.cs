@@ -13,7 +13,7 @@ public class OmniOptionCardTests : TestContextBase
     [Fact]
     public void Default_renders_button_with_radio()
     {
-        var cut = RenderComponent<OmniOptionCard>(p => p.Add(c => c.Title, "Pro"));
+        var cut = Render<OmniOptionCard>(p => p.Add(c => c.Title, "Pro"));
         var btn = cut.Find("button.omni-option-card");
         Assert.NotNull(cut.Find(".omni-option-radio"));
         Assert.Contains("Pro", btn.TextContent);
@@ -23,7 +23,7 @@ public class OmniOptionCardTests : TestContextBase
     [Fact]
     public void Selected_adds_class_and_aria()
     {
-        var cut = RenderComponent<OmniOptionCard>(p => p.Add(c => c.Selected, true));
+        var cut = Render<OmniOptionCard>(p => p.Add(c => c.Selected, true));
         var btn = cut.Find("button.omni-option-card");
         Assert.Contains("omni-option-card-selected", btn.ClassName);
         Assert.Equal("true", btn.GetAttribute("aria-checked"));
@@ -32,7 +32,7 @@ public class OmniOptionCardTests : TestContextBase
     [Fact]
     public void Renders_description_badge_and_price()
     {
-        var cut = RenderComponent<OmniOptionCard>(p => p
+        var cut = Render<OmniOptionCard>(p => p
             .Add(c => c.Description, "Para crescer")
             .Add(c => c.Badge, "POPULAR")
             .Add(c => c.Price, "R$ 99")
@@ -47,7 +47,7 @@ public class OmniOptionCardTests : TestContextBase
     {
         var clicked = false;
         bool? selected = null;
-        var cut = RenderComponent<OmniOptionCard>(p => p
+        var cut = Render<OmniOptionCard>(p => p
             .Add(c => c.OnClick, EventCallback.Factory.Create(this, () => clicked = true))
             .Add(c => c.SelectedChanged, EventCallback.Factory.Create<bool>(this, v => selected = v)));
         cut.Find("button").Click();
@@ -58,14 +58,14 @@ public class OmniOptionCardTests : TestContextBase
     [Fact]
     public void Disabled_card_is_disabled()
     {
-        var cut = RenderComponent<OmniOptionCard>(p => p.Add(c => c.Disabled, true));
+        var cut = Render<OmniOptionCard>(p => p.Add(c => c.Disabled, true));
         Assert.True(cut.Find("button").HasAttribute("disabled"));
     }
 
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniOptionCard>(p => p
+        var cut = Render<OmniOptionCard>(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "margin:4px")
             .AddUnmatched("data-testid", "o1"));

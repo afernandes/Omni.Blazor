@@ -19,7 +19,7 @@ public class OmniCustomValidatorTests : TestContextBase
     {
         var ctx = new EditContext(new Model());
         var registry = new StubFormRegistry().Register(input);
-        var cut = RenderComponent<OmniCustomValidator<string>>(p => p
+        var cut = Render<OmniCustomValidator<string>>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, input.ResolvedName)

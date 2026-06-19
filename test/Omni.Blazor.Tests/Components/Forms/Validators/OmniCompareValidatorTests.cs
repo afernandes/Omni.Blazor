@@ -23,7 +23,7 @@ public class OmniCompareValidatorTests : TestContextBase
     {
         var ctx = new EditContext(new Model());
         registry ??= new StubFormRegistry().Register(input);
-        var cut = RenderComponent<OmniCompareValidator>(p => p
+        var cut = Render<OmniCompareValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, input.ResolvedName)

@@ -13,7 +13,7 @@ public class OmniSplitButtonTests : TestContextBase
     [Fact]
     public void Renders_wrapper_div_with_split_button_class()
     {
-        var cut = RenderComponent<OmniSplitButton>(p => p.Add(c => c.Text, "Save"));
+        var cut = Render<OmniSplitButton>(p => p.Add(c => c.Text, "Save"));
 
         var root = cut.Find("div.omni-split-btn");
         Assert.Contains("omni-split-btn", root.ClassName);
@@ -27,7 +27,7 @@ public class OmniSplitButtonTests : TestContextBase
     [InlineData(ComponentSize.Xl, "omni-split-btn-xl")]
     public void Applies_size_modifier(ComponentSize size, string expectedClass)
     {
-        var cut = RenderComponent<OmniSplitButton>(p => p
+        var cut = Render<OmniSplitButton>(p => p
             .Add(c => c.Size, size)
             .Add(c => c.Text, "Save"));
 
@@ -37,7 +37,7 @@ public class OmniSplitButtonTests : TestContextBase
     [Fact]
     public void Renders_primary_and_chevron_buttons()
     {
-        var cut = RenderComponent<OmniSplitButton>(p => p.Add(c => c.Text, "Save"));
+        var cut = Render<OmniSplitButton>(p => p.Add(c => c.Text, "Save"));
 
         Assert.NotNull(cut.Find(".omni-split-btn-primary"));
         Assert.NotNull(cut.Find(".omni-split-btn-chevron"));
@@ -47,7 +47,7 @@ public class OmniSplitButtonTests : TestContextBase
     public void OnClick_fires_when_primary_clicked()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniSplitButton>(p => p
+        var cut = Render<OmniSplitButton>(p => p
             .Add(c => c.Text, "Save")
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++));
 
@@ -59,7 +59,7 @@ public class OmniSplitButtonTests : TestContextBase
     public void Disabled_blocks_primary_click()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniSplitButton>(p => p
+        var cut = Render<OmniSplitButton>(p => p
             .Add(c => c.Text, "Save")
             .Add(c => c.Disabled, true)
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++));
@@ -72,7 +72,7 @@ public class OmniSplitButtonTests : TestContextBase
     public void Loading_blocks_primary_click_and_disables_chevron()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniSplitButton>(p => p
+        var cut = Render<OmniSplitButton>(p => p
             .Add(c => c.Text, "Save")
             .Add(c => c.Loading, true)
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++));
@@ -85,7 +85,7 @@ public class OmniSplitButtonTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniSplitButton>(p => p
+        var cut = Render<OmniSplitButton>(p => p
             .Add(c => c.Text, "Save")
             .Add(c => c.Class, "custom-split"));
 
@@ -95,7 +95,7 @@ public class OmniSplitButtonTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniSplitButton>(p => p
+        var cut = Render<OmniSplitButton>(p => p
             .Add(c => c.Text, "Save")
             .Add(c => c.Style, "margin-left: 8px"));
 
@@ -105,7 +105,7 @@ public class OmniSplitButtonTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniSplitButton>(p => p
+        var cut = Render<OmniSplitButton>(p => p
             .Add(c => c.Text, "Save")
             .AddUnmatched("data-testid", "split")
             .AddUnmatched("id", "main-split"));

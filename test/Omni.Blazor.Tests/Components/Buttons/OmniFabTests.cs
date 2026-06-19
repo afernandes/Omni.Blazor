@@ -13,7 +13,7 @@ public class OmniFabTests : TestContextBase
     [Fact]
     public void Renders_default_button_with_fab_classes()
     {
-        var cut = RenderComponent<OmniFab>();
+        var cut = Render<OmniFab>();
 
         var btn = cut.Find("button");
         Assert.Contains("omni-fab", btn.ClassName);
@@ -30,7 +30,7 @@ public class OmniFabTests : TestContextBase
     [InlineData(FabPosition.Static,       "omni-fab-static")]
     public void Applies_position_modifier(FabPosition pos, string expectedClass)
     {
-        var cut = RenderComponent<OmniFab>(p => p.Add(c => c.Position, pos));
+        var cut = Render<OmniFab>(p => p.Add(c => c.Position, pos));
 
         Assert.Contains(expectedClass, cut.Find("button").ClassName);
     }
@@ -38,7 +38,7 @@ public class OmniFabTests : TestContextBase
     [Fact]
     public void Setting_Text_switches_to_extended_layout()
     {
-        var cut = RenderComponent<OmniFab>(p => p.Add(c => c.Text, "Compose"));
+        var cut = Render<OmniFab>(p => p.Add(c => c.Text, "Compose"));
 
         var btn = cut.Find("button");
         Assert.Contains("omni-fab-extended", btn.ClassName);
@@ -49,7 +49,7 @@ public class OmniFabTests : TestContextBase
     [Fact]
     public void Empty_Text_keeps_icon_only_layout()
     {
-        var cut = RenderComponent<OmniFab>(p => p.Add(c => c.Text, ""));
+        var cut = Render<OmniFab>(p => p.Add(c => c.Text, ""));
 
         var btn = cut.Find("button");
         Assert.Contains("omni-fab-icon", btn.ClassName);
@@ -58,7 +58,7 @@ public class OmniFabTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniFab>(p => p.Add(c => c.Class, "custom-fab"));
+        var cut = Render<OmniFab>(p => p.Add(c => c.Class, "custom-fab"));
 
         Assert.Contains("custom-fab", cut.Find("button").ClassName);
     }
@@ -66,7 +66,7 @@ public class OmniFabTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniFab>(p => p.Add(c => c.Style, "z-index: 999"));
+        var cut = Render<OmniFab>(p => p.Add(c => c.Style, "z-index: 999"));
 
         Assert.Contains("z-index: 999", cut.Find("button").GetAttribute("style") ?? "");
     }
@@ -74,7 +74,7 @@ public class OmniFabTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniFab>(p => p
+        var cut = Render<OmniFab>(p => p
             .AddUnmatched("data-testid", "fab")
             .AddUnmatched("id", "main-fab"));
 
@@ -87,20 +87,20 @@ public class OmniFabTests : TestContextBase
     public void AriaLabel_falls_back_to_Title_then_Text()
     {
         // AriaLabel explicit wins.
-        var cutExplicit = RenderComponent<OmniFab>(p => p
+        var cutExplicit = Render<OmniFab>(p => p
             .Add(c => c.AriaLabel, "explicit")
             .Add(c => c.Title, "title")
             .Add(c => c.Text, "text"));
         Assert.Equal("explicit", cutExplicit.Find("button").GetAttribute("aria-label"));
 
         // No AriaLabel -> Title.
-        var cutTitle = RenderComponent<OmniFab>(p => p
+        var cutTitle = Render<OmniFab>(p => p
             .Add(c => c.Title, "title")
             .Add(c => c.Text, "text"));
         Assert.Equal("title", cutTitle.Find("button").GetAttribute("aria-label"));
 
         // No AriaLabel + no Title -> Text.
-        var cutText = RenderComponent<OmniFab>(p => p.Add(c => c.Text, "text"));
+        var cutText = Render<OmniFab>(p => p.Add(c => c.Text, "text"));
         Assert.Equal("text", cutText.Find("button").GetAttribute("aria-label"));
     }
 
@@ -108,7 +108,7 @@ public class OmniFabTests : TestContextBase
     public void OnClick_fires_when_enabled()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniFab>(p => p
+        var cut = Render<OmniFab>(p => p
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++));
 
         cut.Find("button").Click();
@@ -119,7 +119,7 @@ public class OmniFabTests : TestContextBase
     public void Disabled_blocks_click_and_sets_attribute()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniFab>(p => p
+        var cut = Render<OmniFab>(p => p
             .Add(c => c.Disabled, true)
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++));
 

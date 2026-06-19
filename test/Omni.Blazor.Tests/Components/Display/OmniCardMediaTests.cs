@@ -13,7 +13,7 @@ public class OmniCardMediaTests : TestContextBase
     [Fact]
     public void Renders_image_when_src_set()
     {
-        var cut = RenderComponent<OmniCardMedia>(p => p
+        var cut = Render<OmniCardMedia>(p => p
             .Add(c => c.Src, "/x.jpg")
             .Add(c => c.Alt, "Photo"));
 
@@ -30,7 +30,7 @@ public class OmniCardMediaTests : TestContextBase
     [InlineData(CardMediaPosition.End,     "omni-card-media-end")]
     public void Applies_position_class(CardMediaPosition pos, string expected)
     {
-        var cut = RenderComponent<OmniCardMedia>(p => p
+        var cut = Render<OmniCardMedia>(p => p
             .Add(c => c.Src, "/x.jpg")
             .Add(c => c.Position, pos));
 
@@ -40,7 +40,7 @@ public class OmniCardMediaTests : TestContextBase
     [Fact]
     public void Height_applies_to_inline_style()
     {
-        var cut = RenderComponent<OmniCardMedia>(p => p
+        var cut = Render<OmniCardMedia>(p => p
             .Add(c => c.Src, "/x.jpg")
             .Add(c => c.Height, "200px"));
 
@@ -51,7 +51,7 @@ public class OmniCardMediaTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniCardMedia>(p => p
+        var cut = Render<OmniCardMedia>(p => p
             .Add(c => c.Src, "/x.jpg")
             .Add(c => c.Class, "media-x"));
 
@@ -61,7 +61,7 @@ public class OmniCardMediaTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_concatenated_with_height()
     {
-        var cut = RenderComponent<OmniCardMedia>(p => p
+        var cut = Render<OmniCardMedia>(p => p
             .Add(c => c.Src, "/x.jpg")
             .Add(c => c.Style, "border-radius: 4px"));
 
@@ -72,7 +72,7 @@ public class OmniCardMediaTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniCardMedia>(p => p
+        var cut = Render<OmniCardMedia>(p => p
             .Add(c => c.Src, "/x.jpg")
             .AddUnmatched("data-testid", "m1"));
 

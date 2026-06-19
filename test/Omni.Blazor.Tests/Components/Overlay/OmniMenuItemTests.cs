@@ -10,7 +10,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void Renders_button_with_base_class_and_role()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p.Add(c => c.Text, "Open"));
+        var cut = Render<OmniMenuItem>(p => p.Add(c => c.Text, "Open"));
 
         var btn = cut.Find("button");
         Assert.Contains("omni-menu-item", btn.ClassName);
@@ -22,7 +22,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void IsDanger_applies_danger_modifier_class()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "Delete")
             .Add(c => c.IsDanger, true));
 
@@ -32,7 +32,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void Default_has_no_danger_modifier()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p.Add(c => c.Text, "Open"));
+        var cut = Render<OmniMenuItem>(p => p.Add(c => c.Text, "Open"));
 
         Assert.DoesNotContain("omni-menu-item-danger", cut.Find("button").ClassName);
     }
@@ -41,7 +41,7 @@ public class OmniMenuItemTests : TestContextBase
     public void Disabled_sets_attribute_and_blocks_OnClick()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "Open")
             .Add(c => c.Disabled, true)
             .Add(c => c.OnClick, _ => clicks++));
@@ -57,7 +57,7 @@ public class OmniMenuItemTests : TestContextBase
     public void OnClick_fires_when_enabled()
     {
         var clicks = 0;
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "Open")
             .Add(c => c.OnClick, (MouseEventArgs _) => clicks++));
 
@@ -68,7 +68,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void Renders_icon_when_provided()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "Open")
             .Add(c => c.Icon, "edit"));
 
@@ -79,7 +79,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void Renders_shortcut_when_provided()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "Save")
             .Add(c => c.Shortcut, "Ctrl+S"));
 
@@ -89,7 +89,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void ChildContent_overrides_Text_label()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "ignored")
             .AddChildContent("<span class=\"slot\">slot</span>"));
 
@@ -99,7 +99,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "x")
             .Add(c => c.Class, "custom-mi"));
 
@@ -109,7 +109,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "x")
             .Add(c => c.Style, "color: red"));
 
@@ -119,7 +119,7 @@ public class OmniMenuItemTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniMenuItem>(p => p
+        var cut = Render<OmniMenuItem>(p => p
             .Add(c => c.Text, "x")
             .AddUnmatched("data-testid", "mi")
             .AddUnmatched("aria-keyshortcuts", "Control+S"));

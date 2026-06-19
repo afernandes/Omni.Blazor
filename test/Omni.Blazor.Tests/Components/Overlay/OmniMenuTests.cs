@@ -9,7 +9,7 @@ public class OmniMenuTests : TestContextBase
     [Fact]
     public void Renders_div_with_menu_class_and_role()
     {
-        var cut = RenderComponent<OmniMenu>(p => p.AddChildContent("<span>x</span>"));
+        var cut = Render<OmniMenu>(p => p.AddChildContent("<span>x</span>"));
 
         var root = cut.Find("div");
         Assert.Contains("omni-menu", root.ClassName);
@@ -19,7 +19,7 @@ public class OmniMenuTests : TestContextBase
     [Fact]
     public void Renders_child_content()
     {
-        var cut = RenderComponent<OmniMenu>(p => p
+        var cut = Render<OmniMenu>(p => p
             .AddChildContent("<span class=\"probe\">probe</span>"));
 
         Assert.NotNull(cut.Find(".probe"));
@@ -28,7 +28,7 @@ public class OmniMenuTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniMenu>(p => p
+        var cut = Render<OmniMenu>(p => p
             .Add(c => c.Class, "custom-menu")
             .AddChildContent("x"));
 
@@ -38,7 +38,7 @@ public class OmniMenuTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniMenu>(p => p
+        var cut = Render<OmniMenu>(p => p
             .Add(c => c.Style, "min-width: 240px")
             .AddChildContent("x"));
 
@@ -48,7 +48,7 @@ public class OmniMenuTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniMenu>(p => p
+        var cut = Render<OmniMenu>(p => p
             .AddUnmatched("data-testid", "menu")
             .AddUnmatched("aria-label", "Actions")
             .AddChildContent("x"));

@@ -11,7 +11,7 @@ public class OmniBreadcrumbTests : TestContextBase
     [Fact]
     public void Renders_nav_with_breadcrumb_class()
     {
-        var cut = RenderComponent<OmniBreadcrumb>();
+        var cut = Render<OmniBreadcrumb>();
 
         var nav = cut.Find("nav");
         Assert.Contains("omni-breadcrumb", nav.ClassName);
@@ -26,7 +26,7 @@ public class OmniBreadcrumbTests : TestContextBase
             new OmniBreadcrumb.Item("Catalog", "/catalog"),
             new OmniBreadcrumb.Item("Pizza"),
         };
-        var cut = RenderComponent<OmniBreadcrumb>(p => p.Add(c => c.Items, items));
+        var cut = Render<OmniBreadcrumb>(p => p.Add(c => c.Items, items));
 
         // Two anchors (Home, Catalog) + one current span (Pizza).
         var anchors = cut.FindAll("a");
@@ -51,7 +51,7 @@ public class OmniBreadcrumbTests : TestContextBase
             new OmniBreadcrumb.Item("Home"),       // no path -> current span
             new OmniBreadcrumb.Item("End", "/e"),
         };
-        var cut = RenderComponent<OmniBreadcrumb>(p => p.Add(c => c.Items, items));
+        var cut = Render<OmniBreadcrumb>(p => p.Add(c => c.Items, items));
 
         // The "End" item is last -> current span. "Home" has no path -> also current span.
         Assert.Equal(2, cut.FindAll(".omni-breadcrumb-current").Count);
@@ -61,7 +61,7 @@ public class OmniBreadcrumbTests : TestContextBase
     [Fact]
     public void Null_items_renders_empty_nav()
     {
-        var cut = RenderComponent<OmniBreadcrumb>(p => p.Add(c => c.Items, (IEnumerable<OmniBreadcrumb.Item>?)null));
+        var cut = Render<OmniBreadcrumb>(p => p.Add(c => c.Items, (IEnumerable<OmniBreadcrumb.Item>?)null));
 
         var nav = cut.Find("nav");
         Assert.Contains("omni-breadcrumb", nav.ClassName);
@@ -72,7 +72,7 @@ public class OmniBreadcrumbTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniBreadcrumb>(p => p.Add(c => c.Class, "custom-bc"));
+        var cut = Render<OmniBreadcrumb>(p => p.Add(c => c.Class, "custom-bc"));
 
         Assert.Contains("custom-bc", cut.Find("nav").ClassName);
     }
@@ -80,7 +80,7 @@ public class OmniBreadcrumbTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniBreadcrumb>(p => p.Add(c => c.Style, "margin: 4px"));
+        var cut = Render<OmniBreadcrumb>(p => p.Add(c => c.Style, "margin: 4px"));
 
         Assert.Equal("margin: 4px", cut.Find("nav").GetAttribute("style"));
     }
@@ -88,7 +88,7 @@ public class OmniBreadcrumbTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniBreadcrumb>(p => p
+        var cut = Render<OmniBreadcrumb>(p => p
             .AddUnmatched("data-testid", "bc")
             .AddUnmatched("aria-label", "Trail"));
 

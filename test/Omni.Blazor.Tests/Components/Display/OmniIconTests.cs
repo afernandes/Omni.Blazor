@@ -16,7 +16,7 @@ public class OmniIconTests : TestContextBase
     [Fact]
     public void Renders_known_icon_with_base_class()
     {
-        var cut = RenderComponent<OmniIcon>(p => p
+        var cut = Render<OmniIcon>(p => p
             .Add(c => c.Name, "check"));
 
         var root = cut.Find("span.omni-icon");
@@ -27,7 +27,7 @@ public class OmniIconTests : TestContextBase
     [Fact]
     public void Renders_nothing_for_unknown_icon()
     {
-        var cut = RenderComponent<OmniIcon>(p => p
+        var cut = Render<OmniIcon>(p => p
             .Add(c => c.Name, "this-icon-does-not-exist-xyz"));
 
         Assert.Equal(string.Empty, cut.Markup.Trim());
@@ -40,7 +40,7 @@ public class OmniIconTests : TestContextBase
     [InlineData(ComponentSize.Xl, "omni-icon-xl")]
     public void Applies_size_modifier(ComponentSize size, string expected)
     {
-        var cut = RenderComponent<OmniIcon>(p => p
+        var cut = Render<OmniIcon>(p => p
             .Add(c => c.Name, "check")
             .Add(c => c.Size, size));
 
@@ -50,7 +50,7 @@ public class OmniIconTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniIcon>(p => p
+        var cut = Render<OmniIcon>(p => p
             .Add(c => c.Name, "check")
             .Add(c => c.Class, "my-ico"));
 
@@ -60,7 +60,7 @@ public class OmniIconTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniIcon>(p => p
+        var cut = Render<OmniIcon>(p => p
             .Add(c => c.Name, "check")
             .Add(c => c.Style, "color: red"));
 
@@ -70,7 +70,7 @@ public class OmniIconTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniIcon>(p => p
+        var cut = Render<OmniIcon>(p => p
             .Add(c => c.Name, "check")
             .AddUnmatched("data-testid", "ico1"));
 

@@ -12,7 +12,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Renders_default_pane_head_root()
     {
-        var cut = RenderComponent<OmniPaneHeader>();
+        var cut = Render<OmniPaneHeader>();
 
         var root = cut.Find(".omni-pane-head");
         Assert.Equal("DIV", root.TagName);
@@ -21,7 +21,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Renders_Title_as_h1_with_view_title_class()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p.Add(c => c.Title, "Customers"));
+        var cut = Render<OmniPaneHeader>(p => p.Add(c => c.Title, "Customers"));
 
         var h1 = cut.Find("h1.omni-view-title");
         Assert.Equal("Customers", h1.TextContent);
@@ -30,7 +30,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Renders_Subtitle_below_title()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p
+        var cut = Render<OmniPaneHeader>(p => p
             .Add(c => c.Title, "T")
             .Add(c => c.Subtitle, "Sub"));
 
@@ -41,7 +41,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Actions_slot_renders_in_two_column_row()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p
+        var cut = Render<OmniPaneHeader>(p => p
             .Add(c => c.Title, "T")
             .Add(c => c.Actions, builder =>
             {
@@ -58,7 +58,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Breadcrumb_renders_above_title()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p
+        var cut = Render<OmniPaneHeader>(p => p
             .Add(c => c.Title, "T")
             .Add(c => c.Breadcrumb, builder =>
             {
@@ -74,7 +74,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Subtabs_renders_below_actions()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p
+        var cut = Render<OmniPaneHeader>(p => p
             .Add(c => c.Title, "T")
             .Add(c => c.Subtabs, builder =>
             {
@@ -90,7 +90,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p.Add(c => c.Class, "custom-cls"));
+        var cut = Render<OmniPaneHeader>(p => p.Add(c => c.Class, "custom-cls"));
 
         Assert.Contains("custom-cls", cut.Find(".omni-pane-head").ClassName);
     }
@@ -98,7 +98,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p.Add(c => c.Style, "margin: 0"));
+        var cut = Render<OmniPaneHeader>(p => p.Add(c => c.Style, "margin: 0"));
 
         Assert.Equal("margin: 0", cut.Find(".omni-pane-head").GetAttribute("style"));
     }
@@ -106,7 +106,7 @@ public class OmniPaneHeaderTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniPaneHeader>(p => p
+        var cut = Render<OmniPaneHeader>(p => p
             .AddUnmatched("data-testid", "ph")
             .AddUnmatched("aria-label", "Header"));
 

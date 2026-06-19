@@ -42,7 +42,7 @@ public class OmniDataAnnotationValidatorTests : TestContextBase
     {
         var ctx = new EditContext(model);
         var registry = new StubFormRegistry().Register(input);
-        var cut = RenderComponent<OmniDataAnnotationValidator>(p => p
+        var cut = Render<OmniDataAnnotationValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, input.ResolvedName));

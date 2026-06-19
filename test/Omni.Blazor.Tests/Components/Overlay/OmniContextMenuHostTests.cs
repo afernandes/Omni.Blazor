@@ -13,7 +13,7 @@ public class OmniContextMenuHostTests : TestContextBase
     [Fact]
     public void Renders_nothing_when_closed()
     {
-        var cut = RenderComponent<OmniContextMenuHost>();
+        var cut = Render<OmniContextMenuHost>();
 
         Assert.Empty(cut.FindAll(".omni-context-menu"));
     }
@@ -22,7 +22,7 @@ public class OmniContextMenuHostTests : TestContextBase
     public async Task Renders_menu_when_service_opens()
     {
         var menu = Services.GetRequiredService<ContextMenuService>();
-        var cut = RenderComponent<OmniContextMenuHost>();
+        var cut = Render<OmniContextMenuHost>();
 
         menu.Open(10, 20, new[]
         {

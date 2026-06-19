@@ -19,7 +19,7 @@ public class OmniEmailValidatorTests : TestContextBase
     {
         var ctx = new EditContext(new Model());
         var registry = new StubFormRegistry().Register(input);
-        var cut = RenderComponent<OmniEmailValidator>(p => p
+        var cut = Render<OmniEmailValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
             .Add(c => c.Component, input.ResolvedName)

@@ -14,7 +14,7 @@ public class OmniSocialButtonTests : TestContextBase
     [Fact]
     public void Default_renders_google_with_label_and_mark()
     {
-        var cut = RenderComponent<OmniSocialButton>();
+        var cut = Render<OmniSocialButton>();
         var btn = cut.Find("button.omni-social-btn");
         Assert.Contains("omni-social-google", btn.ClassName);
         Assert.Contains("Continuar com Google", btn.TextContent);
@@ -28,7 +28,7 @@ public class OmniSocialButtonTests : TestContextBase
     [InlineData(SocialProvider.Facebook, "omni-social-facebook", "Facebook")]
     public void Provider_maps_to_class_and_label(SocialProvider provider, string cls, string label)
     {
-        var cut = RenderComponent<OmniSocialButton>(p => p.Add(c => c.Provider, provider));
+        var cut = Render<OmniSocialButton>(p => p.Add(c => c.Provider, provider));
         var btn = cut.Find("button.omni-social-btn");
         Assert.Contains(cls, btn.ClassName);
         Assert.Contains(label, btn.TextContent);
@@ -37,14 +37,14 @@ public class OmniSocialButtonTests : TestContextBase
     [Fact]
     public void Passkey_uses_distinct_label()
     {
-        var cut = RenderComponent<OmniSocialButton>(p => p.Add(c => c.Provider, SocialProvider.Passkey));
+        var cut = Render<OmniSocialButton>(p => p.Add(c => c.Provider, SocialProvider.Passkey));
         Assert.Contains("Entrar com Passkey", cut.Find("button").TextContent);
     }
 
     [Fact]
     public void Compact_drops_label_and_adds_modifier()
     {
-        var cut = RenderComponent<OmniSocialButton>(p => p.Add(c => c.Compact, true));
+        var cut = Render<OmniSocialButton>(p => p.Add(c => c.Compact, true));
         var btn = cut.Find("button.omni-social-btn");
         Assert.Contains("omni-social-btn-compact", btn.ClassName);
         Assert.Empty(btn.QuerySelectorAll("span"));
@@ -55,7 +55,7 @@ public class OmniSocialButtonTests : TestContextBase
     [Fact]
     public void Block_adds_modifier()
     {
-        var cut = RenderComponent<OmniSocialButton>(p => p.Add(c => c.Block, true));
+        var cut = Render<OmniSocialButton>(p => p.Add(c => c.Block, true));
         Assert.Contains("omni-social-btn-block", cut.Find("button").ClassName);
     }
 
@@ -63,7 +63,7 @@ public class OmniSocialButtonTests : TestContextBase
     public void Click_invokes_callback()
     {
         var clicked = false;
-        var cut = RenderComponent<OmniSocialButton>(p => p
+        var cut = Render<OmniSocialButton>(p => p
             .Add(c => c.OnClick, EventCallback.Factory.Create(this, () => clicked = true)));
         cut.Find("button").Click();
         Assert.True(clicked);
@@ -72,14 +72,14 @@ public class OmniSocialButtonTests : TestContextBase
     [Fact]
     public void Disabled_button_is_disabled()
     {
-        var cut = RenderComponent<OmniSocialButton>(p => p.Add(c => c.Disabled, true));
+        var cut = Render<OmniSocialButton>(p => p.Add(c => c.Disabled, true));
         Assert.True(cut.Find("button").HasAttribute("disabled"));
     }
 
     [Fact]
     public void Appends_Class_Style_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniSocialButton>(p => p
+        var cut = Render<OmniSocialButton>(p => p
             .Add(c => c.Class, "x")
             .Add(c => c.Style, "margin:4px")
             .AddUnmatched("data-testid", "s1"));

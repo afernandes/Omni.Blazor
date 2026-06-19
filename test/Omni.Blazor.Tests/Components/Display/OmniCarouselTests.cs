@@ -17,7 +17,7 @@ public class OmniCarouselTests : TestContextBase
     private IRenderedComponent<OmniCarousel> Render(
         int items = 3,
         Action<ComponentParameterCollectionBuilder<OmniCarousel>>? extra = null)
-        => RenderComponent<OmniCarousel>(p =>
+        => Render<OmniCarousel>(p =>
         {
             p.Add(c => c.Auto, false);
             for (int i = 0; i < items; i++)

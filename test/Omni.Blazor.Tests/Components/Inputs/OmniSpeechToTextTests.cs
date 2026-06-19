@@ -15,14 +15,14 @@ public class OmniSpeechToTextTests : TestContextBase
     [Fact]
     public void Renders_no_markup_without_ChildContent()
     {
-        var cut = RenderComponent<OmniSpeechToText>();
+        var cut = Render<OmniSpeechToText>();
         Assert.Equal(string.Empty, cut.Markup.Trim());
     }
 
     [Fact]
     public void Initial_state_is_Idle()
     {
-        var cut = RenderComponent<OmniSpeechToText>();
+        var cut = Render<OmniSpeechToText>();
         Assert.Equal(SpeechRecognitionState.Idle, cut.Instance.State);
         Assert.False(cut.Instance.IsRecording);
         Assert.False(cut.Instance.IsBusy);
@@ -33,7 +33,7 @@ public class OmniSpeechToTextTests : TestContextBase
     {
         // The render-prop pattern is RenderFragment<TContext>; bUnit wires it
         // up via the typed Add overload from ComponentParameterBuilderExtensions.
-        var cut = RenderComponent<OmniSpeechToText>(p => p
+        var cut = Render<OmniSpeechToText>(p => p
             .Add(c => c.ChildContent, (OmniSpeechToText.SpeechContext ctx) => (RenderFragment)(b =>
             {
                 b.OpenElement(0, "button");

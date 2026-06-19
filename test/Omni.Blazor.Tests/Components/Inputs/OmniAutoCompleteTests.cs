@@ -13,7 +13,7 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Renders_input_with_autocomplete_classes()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? ""));
 
         var root = cut.Find("div.omni-autocomplete");
@@ -24,7 +24,7 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Shows_chevron_when_no_value()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? ""));
 
         // The right slot holds a chevron span (not the clear button).
@@ -34,7 +34,7 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Shows_clear_button_when_Clearable_and_Value_present()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .Add(c => c.Value, "abc")
             .Add(c => c.Clearable, true));
@@ -45,7 +45,7 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Disabled_propagates_to_input()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .Add(c => c.Disabled, true));
 
@@ -55,7 +55,7 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .Add(c => c.Class, "custom-cls"));
 
@@ -65,7 +65,7 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .Add(c => c.Style, "min-width: 240px"));
 
@@ -75,7 +75,7 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .AddUnmatched("data-testid", "ac"));
 
@@ -88,7 +88,7 @@ public class OmniAutoCompleteTests : TestContextBase
     public void Initial_Value_seeds_recompute_on_first_render()
     {
         // Derived state (RecomputeCount) populates on first detect cycle.
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .Add(c => c.Value, "alpha"));
 
@@ -98,12 +98,12 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Recompute_does_not_fire_when_unrelated_params_change()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .Add(c => c.Value, "alpha"));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Class, "new-cls")
             .Add(c => c.Style, "color: red")
             .AddUnmatched("data-foo", "bar"));
@@ -114,12 +114,12 @@ public class OmniAutoCompleteTests : TestContextBase
     [Fact]
     public void Recompute_fires_when_Value_changes()
     {
-        var cut = RenderComponent<OmniAutoComplete<string>>(p => p
+        var cut = Render<OmniAutoComplete<string>>(p => p
             .Add(c => c.TextSelector, s => s ?? "")
             .Add(c => c.Value, "alpha"));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.Value, "beta"));
+        cut.Render(p => p.Add(c => c.Value, "beta"));
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
     }

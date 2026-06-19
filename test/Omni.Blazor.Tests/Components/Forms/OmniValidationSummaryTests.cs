@@ -35,7 +35,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = new EditContext(model);
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
+        var cut = Render<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
 
         Assert.Empty(cut.FindAll(".omni-alert"));
     }
@@ -48,7 +48,7 @@ public class OmniValidationSummaryTests : TestContextBase
             ("A", "A is required."),
             ("B", "B must be valid."));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
+        var cut = Render<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
 
         var root = cut.Find(".omni-alert");
         Assert.Contains("omni-alert", root.ClassName);
@@ -68,7 +68,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = BuildContextWithErrors(model, ("A", "x"));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p
+        var cut = Render<OmniValidationSummary>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.Title, "Please fix:"));
 
@@ -81,7 +81,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = BuildContextWithErrors(model, ("A", "x"));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p
+        var cut = Render<OmniValidationSummary>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.Title, string.Empty));
 
@@ -96,7 +96,7 @@ public class OmniValidationSummaryTests : TestContextBase
             ("A", "duplicate"),
             ("B", "duplicate"));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
+        var cut = Render<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
 
         var items = cut.FindAll(".omni-validation-summary-list li");
         Assert.Single(items);
@@ -109,7 +109,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = BuildContextWithErrors(model, ("A", "x"));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p
+        var cut = Render<OmniValidationSummary>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.Class, "custom-summary"));
 
@@ -122,7 +122,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = BuildContextWithErrors(model, ("A", "x"));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p
+        var cut = Render<OmniValidationSummary>(p => p
             .AddCascadingValue(ctx)
             .Add(c => c.Style, "margin: 8px"));
 
@@ -135,7 +135,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = BuildContextWithErrors(model, ("A", "x"));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p
+        var cut = Render<OmniValidationSummary>(p => p
             .AddCascadingValue(ctx)
             .AddUnmatched("data-testid", "summary"));
 
@@ -149,7 +149,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var ctx = new EditContext(model);
         var store = new ValidationMessageStore(ctx);
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
+        var cut = Render<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
         Assert.Empty(cut.FindAll(".omni-alert"));
 
         store.Add(new FieldIdentifier(model, "A"), "boom");
@@ -167,7 +167,7 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = new EditContext(model);
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
+        var cut = Render<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
 
         Assert.Equal(1, cut.Instance.RecomputeCount);
     }
@@ -178,10 +178,10 @@ public class OmniValidationSummaryTests : TestContextBase
         var model = new Model();
         var ctx = BuildContextWithErrors(model, ("A", "boom"));
 
-        var cut = RenderComponent<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
+        var cut = Render<OmniValidationSummary>(p => p.AddCascadingValue(ctx));
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Title, "Other title")
             .Add(c => c.Class, "newcls")
             .Add(c => c.Style, "color:red")
@@ -196,12 +196,12 @@ public class OmniValidationSummaryTests : TestContextBase
     public void Recompute_fires_when_EditContext_cascading_value_changes()
     {
         // bUnit doesn't allow swapping the cascading value via
-        // SetParametersAndRender, so wrap the component in a host with a
+        // Render, so wrap the component in a host with a
         // mutable EditContext field bound to a CascadingValue.
         var model1 = new Model();
         var ctx1 = BuildContextWithErrors(model1, ("A", "first"));
 
-        var cut = RenderComponent<EditContextHost>(p => p
+        var cut = Render<EditContextHost>(p => p
             .Add(h => h.Ctx, ctx1));
 
         var inner = cut.FindComponent<OmniValidationSummary>().Instance;
@@ -209,7 +209,7 @@ public class OmniValidationSummaryTests : TestContextBase
 
         var model2 = new Model();
         var ctx2 = BuildContextWithErrors(model2, ("A", "second"));
-        cut.SetParametersAndRender(p => p.Add(h => h.Ctx, ctx2));
+        cut.Render(p => p.Add(h => h.Ctx, ctx2));
 
         Assert.Equal(baseline + 1, inner.RecomputeCount);
     }

@@ -14,7 +14,7 @@ public class OmniExitPromptTests : TestContextBase
     [Fact]
     public void Renders_no_dom()
     {
-        var cut = RenderComponent<OmniExitPrompt>();
+        var cut = Render<OmniExitPrompt>();
 
         // The component is render-fragment-empty; bUnit reports zero nodes.
         Assert.Equal(0, cut.Nodes.Length);
@@ -24,7 +24,7 @@ public class OmniExitPromptTests : TestContextBase
     public void When_returning_false_allows_navigation()
     {
         var nav = Services.GetRequiredService<NavigationManager>();
-        var cut = RenderComponent<OmniExitPrompt>(p => p
+        var cut = Render<OmniExitPrompt>(p => p
             .Add(c => c.When, () => false));
 
         // Navigate — handler should not block.
@@ -38,7 +38,7 @@ public class OmniExitPromptTests : TestContextBase
         // Renders cleanly even with no `When` set — no exceptions during
         // OnInitialized / OnParametersSetAsync. The native-prompt JS path
         // is silently swallowed by the bUnit loose-mode JS runtime.
-        var cut = RenderComponent<OmniExitPrompt>();
+        var cut = Render<OmniExitPrompt>();
 
         Assert.Equal(0, cut.Nodes.Length);
     }
@@ -46,7 +46,7 @@ public class OmniExitPromptTests : TestContextBase
     [Fact]
     public void Parameters_have_default_portuguese_text()
     {
-        var cut = RenderComponent<OmniExitPrompt>();
+        var cut = Render<OmniExitPrompt>();
 
         Assert.Equal("Sair sem salvar?", cut.Instance.Title);
         Assert.Equal("Você tem alterações não salvas. Deseja sair mesmo assim?", cut.Instance.Text);
@@ -58,7 +58,7 @@ public class OmniExitPromptTests : TestContextBase
     [Fact]
     public void Custom_text_parameters_are_captured()
     {
-        var cut = RenderComponent<OmniExitPrompt>(p => p
+        var cut = Render<OmniExitPrompt>(p => p
             .Add(c => c.Title, "Discard?")
             .Add(c => c.Text, "You will lose changes.")
             .Add(c => c.ConfirmText, "Discard")
@@ -75,7 +75,7 @@ public class OmniExitPromptTests : TestContextBase
     [Fact]
     public void Dispose_cleans_up_without_throwing()
     {
-        _ = RenderComponent<OmniExitPrompt>(p => p.Add(c => c.When, () => true));
+        _ = Render<OmniExitPrompt>(p => p.Add(c => c.When, () => true));
 
         // Dispose path includes a JS interop call that must not throw under
         // the loose-mode bUnit runtime (catch-all in the source guards it).

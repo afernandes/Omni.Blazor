@@ -13,7 +13,7 @@ namespace Omni.Blazor.Tests.Components.Display;
 public class OmniImageTests : TestContextBase
 {
     private IRenderedComponent<OmniImage> Render(Action<ComponentParameterCollectionBuilder<OmniImage>>? extra = null)
-        => RenderComponent<OmniImage>(p => { p.Add(c => c.Src, "x.png"); extra?.Invoke(p); });
+        => Render<OmniImage>(p => { p.Add(c => c.Src, "x.png"); extra?.Invoke(p); });
 
     [Fact]
     public void Renders_img_with_src_and_alt()

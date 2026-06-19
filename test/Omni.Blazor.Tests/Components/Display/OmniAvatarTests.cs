@@ -13,7 +13,7 @@ public class OmniAvatarTests : TestContextBase
     [Fact]
     public void Renders_default_md_with_initials()
     {
-        var cut = RenderComponent<OmniAvatar>(p => p
+        var cut = Render<OmniAvatar>(p => p
             .Add(c => c.Initials, "AB"));
 
         var root = cut.Find("span.omni-avatar");
@@ -30,7 +30,7 @@ public class OmniAvatarTests : TestContextBase
     [InlineData(AvatarSize.XXl, "omni-avatar-2xl")]
     public void Applies_size_modifier(AvatarSize size, string expected)
     {
-        var cut = RenderComponent<OmniAvatar>(p => p
+        var cut = Render<OmniAvatar>(p => p
             .Add(c => c.Size, size)
             .Add(c => c.Initials, "A"));
 
@@ -40,7 +40,7 @@ public class OmniAvatarTests : TestContextBase
     [Fact]
     public void Square_adds_modifier_class()
     {
-        var cut = RenderComponent<OmniAvatar>(p => p
+        var cut = Render<OmniAvatar>(p => p
             .Add(c => c.Square, true)
             .Add(c => c.Initials, "A"));
 
@@ -50,7 +50,7 @@ public class OmniAvatarTests : TestContextBase
     [Fact]
     public void Renders_image_when_ImageUrl_set()
     {
-        var cut = RenderComponent<OmniAvatar>(p => p
+        var cut = Render<OmniAvatar>(p => p
             .Add(c => c.ImageUrl, "/foo.png")
             .Add(c => c.Initials, "AB"));
 
@@ -62,7 +62,7 @@ public class OmniAvatarTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniAvatar>(p => p
+        var cut = Render<OmniAvatar>(p => p
             .Add(c => c.Class, "u1")
             .Add(c => c.Initials, "X"));
 
@@ -72,7 +72,7 @@ public class OmniAvatarTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniAvatar>(p => p
+        var cut = Render<OmniAvatar>(p => p
             .Add(c => c.Style, "background: red")
             .Add(c => c.Initials, "X"));
 
@@ -82,7 +82,7 @@ public class OmniAvatarTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniAvatar>(p => p
+        var cut = Render<OmniAvatar>(p => p
             .AddUnmatched("data-testid", "a1")
             .Add(c => c.Initials, "X"));
 

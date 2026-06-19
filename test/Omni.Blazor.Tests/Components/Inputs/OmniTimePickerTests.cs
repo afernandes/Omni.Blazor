@@ -12,7 +12,7 @@ public class OmniTimePickerTests : TestContextBase
     [Fact]
     public void Renders_root_with_base_class_and_two_cells_by_default()
     {
-        var cut = RenderComponent<OmniTimePicker>();
+        var cut = Render<OmniTimePicker>();
         Assert.NotNull(cut.Find("div.omni-time-picker"));
         // Hour + minute (no seconds, no AM/PM by default).
         Assert.Equal(2, cut.FindAll("div.omni-time-cell").Count);
@@ -21,21 +21,21 @@ public class OmniTimePickerTests : TestContextBase
     [Fact]
     public void ShowSeconds_adds_third_cell()
     {
-        var cut = RenderComponent<OmniTimePicker>(p => p.Add(c => c.ShowSeconds, true));
+        var cut = Render<OmniTimePicker>(p => p.Add(c => c.ShowSeconds, true));
         Assert.Equal(3, cut.FindAll("div.omni-time-cell").Count);
     }
 
     [Fact]
     public void TwelveHour_format_renders_AM_PM_buttons()
     {
-        var cut = RenderComponent<OmniTimePicker>(p => p.Add(c => c.HourFormat, "12"));
+        var cut = Render<OmniTimePicker>(p => p.Add(c => c.HourFormat, "12"));
         Assert.Equal(2, cut.FindAll("button.omni-time-ampm-btn").Count);
     }
 
     [Fact]
     public void AmPm_state_reflects_in_active_class()
     {
-        var cut = RenderComponent<OmniTimePicker>(p => p
+        var cut = Render<OmniTimePicker>(p => p
             .Add(c => c.Time, new TimeOnly(13, 30))
             .Add(c => c.HourFormat, "12"));
 
@@ -48,21 +48,21 @@ public class OmniTimePickerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniTimePicker>(p => p.Add(c => c.Class, "custom-cls"));
+        var cut = Render<OmniTimePicker>(p => p.Add(c => c.Class, "custom-cls"));
         Assert.Contains("custom-cls", cut.Find("div.omni-time-picker").ClassName);
     }
 
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniTimePicker>(p => p.Add(c => c.Style, "margin: 4px"));
+        var cut = Render<OmniTimePicker>(p => p.Add(c => c.Style, "margin: 4px"));
         Assert.Equal("margin: 4px", cut.Find("div.omni-time-picker").GetAttribute("style"));
     }
 
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniTimePicker>(p => p
+        var cut = Render<OmniTimePicker>(p => p
             .AddUnmatched("data-testid", "tp"));
 
         Assert.Equal("tp", cut.Find("div.omni-time-picker").GetAttribute("data-testid"));
@@ -79,7 +79,7 @@ public class OmniTimePickerTests : TestContextBase
     [Fact]
     public void Initial_recompute_fires_on_first_render()
     {
-        var cut = RenderComponent<OmniTimePicker>();
+        var cut = Render<OmniTimePicker>();
         // First detect cycle always fires the change handler.
         Assert.Equal(1, cut.Instance.RecomputeCount);
     }
@@ -87,10 +87,10 @@ public class OmniTimePickerTests : TestContextBase
     [Fact]
     public void Recompute_does_not_fire_when_unrelated_params_change()
     {
-        var cut = RenderComponent<OmniTimePicker>();
+        var cut = Render<OmniTimePicker>();
 
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p
+        cut.Render(p => p
             .Add(c => c.Class, "newcls")
             .Add(c => c.Style, "color: red")
             .AddUnmatched("data-foo", "bar"));
@@ -105,9 +105,9 @@ public class OmniTimePickerTests : TestContextBase
         System.Linq.Expressions.Expression<Func<TimeOnly>> first  = () => model.A;
         System.Linq.Expressions.Expression<Func<TimeOnly>> second = () => model.B;
 
-        var cut = RenderComponent<OmniTimePicker>(p => p.Add(c => c.TimeExpression, first));
+        var cut = Render<OmniTimePicker>(p => p.Add(c => c.TimeExpression, first));
         var baseline = cut.Instance.RecomputeCount;
-        cut.SetParametersAndRender(p => p.Add(c => c.TimeExpression, second));
+        cut.Render(p => p.Add(c => c.TimeExpression, second));
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
     }

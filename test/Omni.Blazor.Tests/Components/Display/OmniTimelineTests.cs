@@ -27,7 +27,7 @@ public class OmniTimelineTests : TestContextBase
 
     private IRenderedComponent<OmniTimeline> RenderTimeline(
         Action<ComponentParameterCollectionBuilder<OmniTimeline>>? extra = null)
-        => RenderComponent<OmniTimeline>(p =>
+        => Render<OmniTimeline>(p =>
         {
             p.Add(t => t.ChildContent, TwoItems());
             extra?.Invoke(p);
@@ -119,7 +119,7 @@ public class OmniTimelineTests : TestContextBase
     [Fact]
     public void Item_defaults_to_base_filled_md_point()
     {
-        var cut = RenderComponent<OmniTimelineItem>();
+        var cut = Render<OmniTimelineItem>();
         var point = cut.Find(".omni-timeline-point");
         Assert.Contains("omni-timeline-point-base", point.ClassName);
         Assert.Contains("omni-timeline-point-filled", point.ClassName);
@@ -133,7 +133,7 @@ public class OmniTimelineTests : TestContextBase
     [InlineData(TimelinePointStyle.Info, "omni-timeline-point-info")]
     public void PointStyle_maps_to_point_class(TimelinePointStyle style, string expected)
     {
-        var cut = RenderComponent<OmniTimelineItem>(p => p.Add(i => i.PointStyle, style));
+        var cut = Render<OmniTimelineItem>(p => p.Add(i => i.PointStyle, style));
         Assert.Contains(expected, cut.Find(".omni-timeline-point").ClassName);
     }
 
@@ -142,7 +142,7 @@ public class OmniTimelineTests : TestContextBase
     [InlineData(TimelinePointVariant.Text, "omni-timeline-point-text")]
     public void PointVariant_maps_to_point_class(TimelinePointVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniTimelineItem>(p => p.Add(i => i.PointVariant, variant));
+        var cut = Render<OmniTimelineItem>(p => p.Add(i => i.PointVariant, variant));
         Assert.Contains(expected, cut.Find(".omni-timeline-point").ClassName);
     }
 
@@ -152,14 +152,14 @@ public class OmniTimelineTests : TestContextBase
     [InlineData(ComponentSize.Xl, "omni-timeline-size-xl")]
     public void PointSize_maps_to_item_class(ComponentSize size, string expected)
     {
-        var cut = RenderComponent<OmniTimelineItem>(p => p.Add(i => i.PointSize, size));
+        var cut = Render<OmniTimelineItem>(p => p.Add(i => i.PointSize, size));
         Assert.Contains(expected, cut.Find(".omni-timeline-item").ClassName);
     }
 
     [Fact]
     public void PointContent_renders_inside_the_dot()
     {
-        var cut = RenderComponent<OmniTimelineItem>(p => p
+        var cut = Render<OmniTimelineItem>(p => p
             .Add(i => i.PointContent, b => b.AddMarkupContent(0, "<span class=\"x\">★</span>")));
         Assert.NotNull(cut.Find(".omni-timeline-point .x"));
     }
@@ -167,7 +167,7 @@ public class OmniTimelineTests : TestContextBase
     [Fact]
     public void Item_appends_consumer_Class_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniTimelineItem>(p => p
+        var cut = Render<OmniTimelineItem>(p => p
             .Add(i => i.Class, "my-item")
             .AddUnmatched("data-testid", "it1"));
         var root = cut.Find(".omni-timeline-item");

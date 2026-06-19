@@ -12,7 +12,7 @@ public class OmniCardBodyTests : TestContextBase
     [Fact]
     public void Renders_default_with_base_classes()
     {
-        var cut = RenderComponent<OmniCardBody>(p => p.AddChildContent("body"));
+        var cut = Render<OmniCardBody>(p => p.AddChildContent("body"));
 
         var root = cut.Find("div.omni-card-part");
         Assert.Contains("omni-card-part", root.ClassName);
@@ -23,7 +23,7 @@ public class OmniCardBodyTests : TestContextBase
     [Fact]
     public void NoPadding_adds_flush_modifier()
     {
-        var cut = RenderComponent<OmniCardBody>(p => p
+        var cut = Render<OmniCardBody>(p => p
             .Add(c => c.NoPadding, true)
             .AddChildContent("x"));
 
@@ -33,7 +33,7 @@ public class OmniCardBodyTests : TestContextBase
     [Fact]
     public void Divided_adds_divider_modifier()
     {
-        var cut = RenderComponent<OmniCardBody>(p => p
+        var cut = Render<OmniCardBody>(p => p
             .Add(c => c.Divided, true)
             .AddChildContent("x"));
 
@@ -43,7 +43,7 @@ public class OmniCardBodyTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniCardBody>(p => p
+        var cut = Render<OmniCardBody>(p => p
             .Add(c => c.Class, "my-body")
             .AddChildContent("x"));
 
@@ -53,7 +53,7 @@ public class OmniCardBodyTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniCardBody>(p => p
+        var cut = Render<OmniCardBody>(p => p
             .Add(c => c.Style, "padding: 24px")
             .AddChildContent("x"));
 
@@ -63,7 +63,7 @@ public class OmniCardBodyTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniCardBody>(p => p
+        var cut = Render<OmniCardBody>(p => p
             .AddUnmatched("data-testid", "cb1")
             .AddChildContent("x"));
 

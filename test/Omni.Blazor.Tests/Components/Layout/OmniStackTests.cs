@@ -13,7 +13,7 @@ public class OmniStackTests : TestContextBase
     [Fact]
     public void Renders_default_column_stack()
     {
-        var cut = RenderComponent<OmniStack>(p => p.AddChildContent("body"));
+        var cut = Render<OmniStack>(p => p.AddChildContent("body"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-stack", div.ClassName);
@@ -28,7 +28,7 @@ public class OmniStackTests : TestContextBase
     [InlineData(StackDirection.Column, "omni-stack-column")]
     public void Applies_direction_modifier(StackDirection dir, string expected)
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .Add(c => c.Direction, dir)
             .AddChildContent("X"));
 
@@ -41,7 +41,7 @@ public class OmniStackTests : TestContextBase
     [InlineData(StackAlign.Baseline, "omni-stack-align-baseline")]
     public void Applies_align_items_modifier(StackAlign align, string expected)
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .Add(c => c.AlignItems, align)
             .AddChildContent("X"));
 
@@ -54,7 +54,7 @@ public class OmniStackTests : TestContextBase
     [InlineData(StackJustify.Evenly,  "omni-stack-justify-evenly")]
     public void Applies_justify_modifier(StackJustify justify, string expected)
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .Add(c => c.Justify, justify)
             .AddChildContent("X"));
 
@@ -64,7 +64,7 @@ public class OmniStackTests : TestContextBase
     [Fact]
     public void Wrap_applies_modifier_class()
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .Add(c => c.Wrap, true)
             .AddChildContent("X"));
 
@@ -74,7 +74,7 @@ public class OmniStackTests : TestContextBase
     [Fact]
     public void Responsive_direction_overrides_emit_breakpoint_classes()
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .Add(c => c.DirectionSm, StackDirection.Row)
             .Add(c => c.DirectionMd, StackDirection.Column)
             .Add(c => c.DirectionLg, StackDirection.Row)
@@ -89,7 +89,7 @@ public class OmniStackTests : TestContextBase
     [Fact]
     public void Custom_Gap_emits_css_variable()
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .Add(c => c.Gap, 20)
             .AddChildContent("X"));
 
@@ -99,7 +99,7 @@ public class OmniStackTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -109,7 +109,7 @@ public class OmniStackTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniStack>(p => p
+        var cut = Render<OmniStack>(p => p
             .AddUnmatched("data-testid", "stack")
             .AddUnmatched("aria-label", "Stack")
             .AddChildContent("X"));

@@ -11,7 +11,7 @@ public class OmniPanelMenuTests : TestContextBase
     [Fact]
     public void Renders_nav_with_panel_menu_class()
     {
-        var cut = RenderComponent<OmniPanelMenu>();
+        var cut = Render<OmniPanelMenu>();
 
         var nav = cut.Find("nav");
         Assert.Contains("omni-panel-menu", nav.ClassName);
@@ -20,7 +20,7 @@ public class OmniPanelMenuTests : TestContextBase
     [Fact]
     public void Renders_child_content_inside_nav()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p
+        var cut = Render<OmniPanelMenu>(p => p
             .AddChildContent("<span class=\"probe\">x</span>"));
 
         Assert.NotNull(cut.Find("nav .probe"));
@@ -29,7 +29,7 @@ public class OmniPanelMenuTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.Add(c => c.Class, "custom-pm"));
+        var cut = Render<OmniPanelMenu>(p => p.Add(c => c.Class, "custom-pm"));
 
         Assert.Contains("custom-pm", cut.Find("nav").ClassName);
     }
@@ -37,7 +37,7 @@ public class OmniPanelMenuTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.Add(c => c.Style, "padding: 8px"));
+        var cut = Render<OmniPanelMenu>(p => p.Add(c => c.Style, "padding: 8px"));
 
         Assert.Equal("padding: 8px", cut.Find("nav").GetAttribute("style"));
     }
@@ -45,7 +45,7 @@ public class OmniPanelMenuTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p
+        var cut = Render<OmniPanelMenu>(p => p
             .AddUnmatched("data-testid", "pm")
             .AddUnmatched("aria-label", "Sidebar"));
 
@@ -57,7 +57,7 @@ public class OmniPanelMenuTests : TestContextBase
     [Fact]
     public void SectionLabel_parameter_is_captured()
     {
-        var cut = RenderComponent<OmniPanelMenu>(p => p.Add(c => c.SectionLabel, "WORKSPACE"));
+        var cut = Render<OmniPanelMenu>(p => p.Add(c => c.SectionLabel, "WORKSPACE"));
 
         Assert.Equal("WORKSPACE", cut.Instance.SectionLabel);
     }

@@ -38,7 +38,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Renders_default_chart_root_and_svg()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleLine() }));
 
         var root = cut.Find("div.omni-chart");
@@ -49,7 +49,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleLine() })
             .Add(c => c.Class, "my-chart"));
 
@@ -59,7 +59,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Width_height_applied_via_inline_style()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleLine() })
             .Add(c => c.Width, "400px")
             .Add(c => c.Height, "120px"));
@@ -72,7 +72,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_concatenated_with_size()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleLine() })
             .Add(c => c.Style, "border: 1px solid red"));
 
@@ -83,7 +83,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleLine() })
             .AddUnmatched("data-testid", "chart1"));
 
@@ -95,7 +95,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void RecomputeFromSeries_runs_on_initial_render()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleLine() }));
 
         // _series filter + _categories derive populated by first detect.
@@ -107,13 +107,13 @@ public class OmniChartTests : TestContextBase
     public void RecomputeFromSeries_does_NOT_run_when_unrelated_parameter_changes()
     {
         var seriesArr = new[] { SampleLine() };
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, seriesArr));
 
         var seriesBefore = cut.Instance._series;
         var catsBefore = cut.Instance._categories;
 
-        cut.SetParametersAndRender(p => p.Add(c => c.Class, "new-class"));
+        cut.Render(p => p.Add(c => c.Class, "new-class"));
 
         // Same list/array instances — RecomputeFromSeries() never ran.
         Assert.Same(seriesBefore, cut.Instance._series);
@@ -123,7 +123,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void RecomputeFromSeries_runs_again_when_Series_reference_changes()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleLine() }));
 
         var seriesBefore = cut.Instance._series;
@@ -138,7 +138,7 @@ public class OmniChartTests : TestContextBase
                 new ChartDataPoint { Category = "Q2", Value = 8 },
             }
         };
-        cut.SetParametersAndRender(p => p.Add(c => c.Series, new[] { newSeries }));
+        cut.Render(p => p.Add(c => c.Series, new[] { newSeries }));
 
         Assert.NotSame(seriesBefore, cut.Instance._series);
         Assert.Equal(2, cut.Instance._categories.Length);
@@ -149,7 +149,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Waterfall_derives_categories_and_renders_one_rect_per_point()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleWaterfall() }));
 
         // Categories come straight from the points (order preserved).
@@ -161,7 +161,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Waterfall_colors_encode_total_gain_and_loss()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleWaterfall() }));
 
         var rects = cut.FindAll("svg.omni-chart-svg rect");
@@ -175,7 +175,7 @@ public class OmniChartTests : TestContextBase
     [Fact]
     public void Waterfall_rect_carries_value_tooltip()
     {
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { SampleWaterfall() }));
 
         var firstTitle = cut.Find("svg.omni-chart-svg rect title");
@@ -193,7 +193,7 @@ public class OmniChartTests : TestContextBase
             new ChartDataPoint { Category = "End",   Value = 140, IsTotal = true },
         };
 
-        var cut = RenderComponent<OmniChart>(p => p
+        var cut = Render<OmniChart>(p => p
             .Add(c => c.Series, new[] { custom }));
 
         Assert.Equal("rebeccapurple", cut.FindAll("svg.omni-chart-svg rect")[1].GetAttribute("fill"));

@@ -8,7 +8,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Renders_root_with_omni_tabs_class()
     {
-        var cut = RenderComponent<OmniTabs>();
+        var cut = Render<OmniTabs>();
         var root = cut.Find(".omni-tabs");
         Assert.NotNull(root);
         Assert.NotNull(cut.Find(".omni-tabs-bar"));
@@ -18,21 +18,21 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniTabs>(p => p.Add(c => c.Class, "my-tabs"));
+        var cut = Render<OmniTabs>(p => p.Add(c => c.Class, "my-tabs"));
         Assert.Contains("my-tabs", cut.Find(".omni-tabs").ClassName);
     }
 
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniTabs>(p => p.Add(c => c.Style, "background: red"));
+        var cut = Render<OmniTabs>(p => p.Add(c => c.Style, "background: red"));
         Assert.Equal("background: red", cut.Find(".omni-tabs").GetAttribute("style"));
     }
 
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddUnmatched("data-testid", "tabs"));
         Assert.Equal("tabs", cut.Find(".omni-tabs").GetAttribute("data-testid"));
     }
@@ -40,7 +40,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Renders_tab_buttons_for_each_registered_item()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
 
@@ -53,7 +53,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void First_registered_tab_is_active_by_default()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
 
@@ -63,7 +63,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Click_activates_target_tab()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
 
@@ -76,7 +76,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Tab_bar_has_tablist_role()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One")));
 
         Assert.Equal("tablist", cut.Find(".omni-tabs-bar").GetAttribute("role"));
@@ -85,7 +85,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Each_tab_button_has_tab_role()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
 
@@ -96,7 +96,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Active_body_has_tabpanel_role()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One")));
 
         Assert.Equal("tabpanel", cut.Find(".omni-tabs-body").GetAttribute("role"));
@@ -105,7 +105,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Aria_selected_is_true_only_on_active_tab()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
 
@@ -117,7 +117,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Aria_selected_follows_active_tab_after_click()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
 
@@ -131,7 +131,7 @@ public class OmniTabsTests : TestContextBase
     [Fact]
     public void Active_panel_is_labelled_by_active_tab()
     {
-        var cut = RenderComponent<OmniTabs>(p => p
+        var cut = Render<OmniTabs>(p => p
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
             .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
 

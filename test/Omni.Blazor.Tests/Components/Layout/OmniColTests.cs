@@ -12,7 +12,7 @@ public class OmniColTests : TestContextBase
     [Fact]
     public void Renders_default_col_with_size_12()
     {
-        var cut = RenderComponent<OmniCol>(p => p.AddChildContent("body"));
+        var cut = Render<OmniCol>(p => p.AddChildContent("body"));
 
         var col = cut.Find("div");
         Assert.Contains("omni-col", col.ClassName);
@@ -26,7 +26,7 @@ public class OmniColTests : TestContextBase
     [InlineData(12, "omni-col-12")]
     public void Applies_size_modifier(int size, string expectedClass)
     {
-        var cut = RenderComponent<OmniCol>(p => p
+        var cut = Render<OmniCol>(p => p
             .Add(c => c.Size, size)
             .AddChildContent("X"));
 
@@ -36,7 +36,7 @@ public class OmniColTests : TestContextBase
     [Fact]
     public void Adds_responsive_size_overrides()
     {
-        var cut = RenderComponent<OmniCol>(p => p
+        var cut = Render<OmniCol>(p => p
             .Add(c => c.SizeSm, 8)
             .Add(c => c.SizeMd, 6)
             .Add(c => c.SizeLg, 4)
@@ -51,7 +51,7 @@ public class OmniColTests : TestContextBase
     [Fact]
     public void Omits_responsive_overrides_when_null()
     {
-        var cut = RenderComponent<OmniCol>(p => p.AddChildContent("X"));
+        var cut = Render<OmniCol>(p => p.AddChildContent("X"));
 
         var className = cut.Find("div").ClassName;
         Assert.DoesNotContain("omni-col-sm-", className);
@@ -62,7 +62,7 @@ public class OmniColTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniCol>(p => p
+        var cut = Render<OmniCol>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -72,7 +72,7 @@ public class OmniColTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniCol>(p => p
+        var cut = Render<OmniCol>(p => p
             .Add(c => c.Style, "padding: 8px")
             .AddChildContent("X"));
 
@@ -82,7 +82,7 @@ public class OmniColTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniCol>(p => p
+        var cut = Render<OmniCol>(p => p
             .AddUnmatched("data-testid", "col")
             .AddUnmatched("aria-label", "Grid cell")
             .AddChildContent("X"));

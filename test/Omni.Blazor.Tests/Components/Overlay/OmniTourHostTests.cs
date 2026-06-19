@@ -21,7 +21,7 @@ public class OmniTourHostTests : TestContextBase
     [Fact]
     public void Not_rendered_when_inactive()
     {
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
         Assert.Empty(cut.FindAll(".omni-tour-coachmark"));
     }
 
@@ -29,7 +29,7 @@ public class OmniTourHostTests : TestContextBase
     public void Renders_coachmark_and_counter_when_active()
     {
         _ = Svc.StartAsync(Steps(2));
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
 
         Assert.NotNull(cut.Find(".omni-tour-coachmark"));
         Assert.Equal("1 / 2", cut.Find(".omni-tour-counter").TextContent.Trim());
@@ -40,7 +40,7 @@ public class OmniTourHostTests : TestContextBase
     public void Backdrop_can_be_disabled()
     {
         _ = Svc.StartAsync(Steps(1), new TourOptions { ShowBackdrop = false });
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
 
         Assert.NotNull(cut.Find(".omni-tour-coachmark"));
         Assert.Empty(cut.FindAll(".omni-tour-cutout"));
@@ -50,7 +50,7 @@ public class OmniTourHostTests : TestContextBase
     public void Next_advances_and_shows_complete_on_last()
     {
         _ = Svc.StartAsync(Steps(2));
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
 
         cut.Find(".omni-tour-btn-primary").Click(); // Próximo
         Assert.Equal("2 / 2", cut.Find(".omni-tour-counter").TextContent.Trim());
@@ -61,7 +61,7 @@ public class OmniTourHostTests : TestContextBase
     public void Prev_button_hidden_on_first_step()
     {
         _ = Svc.StartAsync(Steps(2));
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
 
         Assert.DoesNotContain("Anterior", cut.Markup);
         cut.Find(".omni-tour-btn-primary").Click(); // → passo 2
@@ -73,7 +73,7 @@ public class OmniTourHostTests : TestContextBase
     {
         var svc = Svc;
         _ = svc.StartAsync(Steps(2));
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
 
         cut.Find(".omni-tour-close").Click();
 
@@ -85,7 +85,7 @@ public class OmniTourHostTests : TestContextBase
     public void A11y_attributes_present()
     {
         _ = Svc.StartAsync(Steps(1));
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
 
         var coach = cut.Find(".omni-tour-coachmark");
         Assert.Equal("dialog", coach.GetAttribute("role"));
@@ -99,7 +99,7 @@ public class OmniTourHostTests : TestContextBase
     {
         var svc = Svc;
         _ = svc.StartAsync(Steps(2));
-        var cut = RenderComponent<OmniTourHost>();
+        var cut = Render<OmniTourHost>();
 
         await cut.Instance.OnEscape();
 

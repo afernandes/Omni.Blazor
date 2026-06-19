@@ -12,7 +12,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [Fact]
     public void Renders_default_button_with_position_variant_size_classes()
     {
-        var cut = RenderComponent<OmniScrollToTopButton>();
+        var cut = Render<OmniScrollToTopButton>();
 
         var btn = cut.Find("button");
         Assert.Contains("omni-scroll-top-btn", btn.ClassName);
@@ -29,7 +29,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [InlineData(FabPosition.Static,       "omni-fab-static")]
     public void Applies_position_modifier(FabPosition pos, string expectedClass)
     {
-        var cut = RenderComponent<OmniScrollToTopButton>(p => p.Add(c => c.Position, pos));
+        var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.Position, pos));
 
         Assert.Contains(expectedClass, cut.Find("button").ClassName);
     }
@@ -41,7 +41,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [InlineData(ButtonVariant.Danger,  "omni-stt-variant-danger")]
     public void Applies_variant_modifier(ButtonVariant variant, string expectedClass)
     {
-        var cut = RenderComponent<OmniScrollToTopButton>(p => p.Add(c => c.Variant, variant));
+        var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.Variant, variant));
 
         Assert.Contains(expectedClass, cut.Find("button").ClassName);
     }
@@ -53,7 +53,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [InlineData(ComponentSize.Xl, "omni-stt-xl")]
     public void Applies_size_modifier(ComponentSize size, string expectedClass)
     {
-        var cut = RenderComponent<OmniScrollToTopButton>(p => p.Add(c => c.Size, size));
+        var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.Size, size));
 
         Assert.Contains(expectedClass, cut.Find("button").ClassName);
     }
@@ -61,7 +61,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [Fact]
     public void ShowProgress_adds_modifier_class_and_renders_ring_svg()
     {
-        var cut = RenderComponent<OmniScrollToTopButton>(p => p.Add(c => c.ShowProgress, true));
+        var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.ShowProgress, true));
 
         var btn = cut.Find("button");
         Assert.Contains("omni-stt-with-progress", btn.ClassName);
@@ -71,7 +71,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [Fact]
     public void ShowProgress_disabled_omits_ring_svg()
     {
-        var cut = RenderComponent<OmniScrollToTopButton>(p => p.Add(c => c.ShowProgress, false));
+        var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.ShowProgress, false));
 
         Assert.Empty(cut.FindAll("svg.omni-scroll-top-ring"));
         Assert.DoesNotContain("omni-stt-with-progress", cut.Find("button").ClassName);
@@ -82,7 +82,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     {
         // Button is in the DOM (so the scroll observer can wire up) but is
         // aria-hidden and tabindex=-1 until the scroll observer fires.
-        var cut = RenderComponent<OmniScrollToTopButton>();
+        var cut = Render<OmniScrollToTopButton>();
 
         var btn = cut.Find("button");
         Assert.Equal("true", btn.GetAttribute("aria-hidden"));
@@ -93,7 +93,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniScrollToTopButton>(p => p.Add(c => c.Class, "custom-stt"));
+        var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.Class, "custom-stt"));
 
         Assert.Contains("custom-stt", cut.Find("button").ClassName);
     }
@@ -102,11 +102,11 @@ public class OmniScrollToTopButtonTests : TestContextBase
     public void Consumer_Style_is_appended_alongside_progress_var()
     {
         // Without progress, only consumer Style is present.
-        var cutNoRing = RenderComponent<OmniScrollToTopButton>(p => p.Add(c => c.Style, "z-index: 99"));
+        var cutNoRing = Render<OmniScrollToTopButton>(p => p.Add(c => c.Style, "z-index: 99"));
         Assert.Contains("z-index: 99", cutNoRing.Find("button").GetAttribute("style") ?? "");
 
         // With progress, the --omni-stt-percent CSS var AND consumer Style coexist.
-        var cutRing = RenderComponent<OmniScrollToTopButton>(p => p
+        var cutRing = Render<OmniScrollToTopButton>(p => p
             .Add(c => c.ShowProgress, true)
             .Add(c => c.Style, "z-index: 99"));
         var style = cutRing.Find("button").GetAttribute("style") ?? "";
@@ -117,7 +117,7 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniScrollToTopButton>(p => p
+        var cut = Render<OmniScrollToTopButton>(p => p
             .AddUnmatched("data-testid", "stt")
             .AddUnmatched("id", "main-stt"));
 

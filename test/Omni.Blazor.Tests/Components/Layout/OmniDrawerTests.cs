@@ -13,7 +13,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public void Renders_default_drawer_aside_with_base_classes()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p.AddChildContent("body"));
+        var cut = Render<OmniDrawer>(p => p.AddChildContent("body"));
 
         var aside = cut.Find("aside");
         Assert.Contains("omni-sidebar", aside.ClassName);
@@ -32,7 +32,7 @@ public class OmniDrawerTests : TestContextBase
     [InlineData(DrawerAnchor.Right, "right")]
     public void Applies_anchor_attribute(DrawerAnchor anchor, string expected)
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Anchor, anchor)
             .AddChildContent("X"));
 
@@ -46,7 +46,7 @@ public class OmniDrawerTests : TestContextBase
     [InlineData(DrawerVariant.Responsive, "responsive")]
     public void Applies_variant_attribute(DrawerVariant variant, string expected)
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Variant, variant)
             .AddChildContent("X"));
 
@@ -56,7 +56,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public void Mini_variant_with_Open_false_marks_collapsed_class()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Variant, DrawerVariant.Mini)
             .Add(c => c.Open, false)
             .AddChildContent("X"));
@@ -69,7 +69,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public void Explicit_Collapsed_true_overrides_variant()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Variant, DrawerVariant.Persistent)
             .Add(c => c.Collapsed, true)
             .AddChildContent("X"));
@@ -81,7 +81,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public void Renders_Header_and_Footer_slots()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Header, builder =>
             {
                 builder.OpenElement(0, "div");
@@ -103,7 +103,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public async Task OpenAsync_and_CloseAsync_toggle_state()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Open, false)
             .Add(c => c.Variant, DrawerVariant.Temporary)
             .AddChildContent("X"));
@@ -120,7 +120,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public async Task ToggleAsync_flips_Open()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Open, false)
             .Add(c => c.Variant, DrawerVariant.Temporary)
             .AddChildContent("X"));
@@ -135,7 +135,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public void Width_param_emits_css_variable()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Width, "320px")
             .AddChildContent("X"));
 
@@ -145,7 +145,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -155,7 +155,7 @@ public class OmniDrawerTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniDrawer>(p => p
+        var cut = Render<OmniDrawer>(p => p
             .AddUnmatched("data-testid", "drawer")
             .AddUnmatched("aria-label", "Sidebar")
             .AddChildContent("X"));

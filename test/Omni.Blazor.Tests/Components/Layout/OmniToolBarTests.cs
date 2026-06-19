@@ -12,7 +12,7 @@ public class OmniToolBarTests : TestContextBase
     [Fact]
     public void Renders_default_toolbar_with_bordered_class()
     {
-        var cut = RenderComponent<OmniToolBar>(p => p.AddChildContent("body"));
+        var cut = Render<OmniToolBar>(p => p.AddChildContent("body"));
 
         var div = cut.Find("div");
         Assert.Contains("omni-subheader", div.ClassName);
@@ -24,7 +24,7 @@ public class OmniToolBarTests : TestContextBase
     [Fact]
     public void Bordered_false_removes_bordered_class()
     {
-        var cut = RenderComponent<OmniToolBar>(p => p
+        var cut = Render<OmniToolBar>(p => p
             .Add(c => c.Bordered, false)
             .AddChildContent("X"));
 
@@ -34,7 +34,7 @@ public class OmniToolBarTests : TestContextBase
     [Fact]
     public void Appends_consumer_Class_to_root()
     {
-        var cut = RenderComponent<OmniToolBar>(p => p
+        var cut = Render<OmniToolBar>(p => p
             .Add(c => c.Class, "custom-cls")
             .AddChildContent("X"));
 
@@ -44,7 +44,7 @@ public class OmniToolBarTests : TestContextBase
     [Fact]
     public void Forwards_consumer_Style_to_root()
     {
-        var cut = RenderComponent<OmniToolBar>(p => p
+        var cut = Render<OmniToolBar>(p => p
             .Add(c => c.Style, "padding: 4px")
             .AddChildContent("X"));
 
@@ -54,7 +54,7 @@ public class OmniToolBarTests : TestContextBase
     [Fact]
     public void Splats_unmatched_Attributes_onto_root()
     {
-        var cut = RenderComponent<OmniToolBar>(p => p
+        var cut = Render<OmniToolBar>(p => p
             .AddUnmatched("data-testid", "tb")
             .AddUnmatched("aria-label", "Toolbar")
             .AddChildContent("X"));

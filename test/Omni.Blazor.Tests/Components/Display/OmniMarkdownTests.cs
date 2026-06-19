@@ -11,7 +11,7 @@ namespace Omni.Blazor.Tests.Components.Display;
 public class OmniMarkdownTests : TestContextBase
 {
     private IRenderedComponent<OmniMarkdown> Render(string text, bool allowHtml = false)
-        => RenderComponent<OmniMarkdown>(p => p
+        => Render<OmniMarkdown>(p => p
             .Add(c => c.Text, text)
             .Add(c => c.AllowHtml, allowHtml));
 
@@ -27,7 +27,7 @@ public class OmniMarkdownTests : TestContextBase
     [Fact]
     public void Appends_Class_and_splats_attributes()
     {
-        var cut = RenderComponent<OmniMarkdown>(p => p
+        var cut = Render<OmniMarkdown>(p => p
             .Add(c => c.Text, "hi")
             .Add(c => c.Class, "doc")
             .AddUnmatched("data-testid", "md1"));
