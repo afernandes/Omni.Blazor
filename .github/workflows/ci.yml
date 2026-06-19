@@ -92,6 +92,15 @@ jobs:
             --output ./artifacts \
             -p:ContinuousIntegrationBuild=true
 
+      - name: Pack (MCP tool, dry-run)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet pack tools/Omni.Blazor.Mcp/Omni.Blazor.Mcp.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./artifacts \
+            -p:ContinuousIntegrationBuild=true
+
       - name: Upload preview packages
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4

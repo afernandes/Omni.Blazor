@@ -83,6 +83,13 @@ jobs:
           grep -q "staticwebassets/css/omni.css" /tmp/contents.txt || (echo "::error::omni.css not packed" && exit 1)
           grep -q "staticwebassets/js/" /tmp/contents.txt || (echo "::error::no JS assets packed" && exit 1)
 
+      - name: Pack MCP tool (AndersonN.Omni.Blazor.Mcp)
+        run: |
+          dotnet pack tools/Omni.Blazor.Mcp/Omni.Blazor.Mcp.csproj \
+            --configuration Release \
+            --output ${{ env.ARTIFACTS }} \
+            -p:ContinuousIntegrationBuild=true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
