@@ -200,4 +200,23 @@ public class OmniChatTests : TestContextBase
         // tears down the Blazor Server circuit.
         Assert.Null(Record.Exception(() => chat.OnTypingTimeout(null)));
     }
+
+    // ─── Accessibility ────────────────────────────────────────────────────
+
+    [Fact]
+    public void Message_log_and_send_button_expose_accessible_names()
+    {
+        var cut = RenderChat(p => p
+            .Add(c => c.SendLabel, "Send")
+            .Add(c => c.MessagesLabel, "Messages"));
+
+        var log = cut.Find(".omni-chat-messages");
+        Assert.Equal("log", log.GetAttribute("role"));
+        Assert.Equal("polite", log.GetAttribute("aria-live"));
+        Assert.Equal("Messages", log.GetAttribute("aria-label"));
+
+        var send = cut.Find(".omni-chat-send");
+        Assert.Equal("Send", send.GetAttribute("aria-label"));
+        Assert.Equal("Send", send.GetAttribute("title"));
+    }
 }

@@ -58,7 +58,7 @@ Omni.Blazor/
 
 - The repo enforces formatting via `.editorconfig`. Run `dotnet format` before committing.
 - C# uses **file-scoped namespaces**, `var` when the type is apparent, expression-bodied members when they fit on one line.
-- Razor components live in `src/Omni.Blazor/Components/<Group>/Omni<Name>.razor` with the optional code-behind `Omni<Name>.razor.cs`.
+- Razor components are single-file: `src/Omni.Blazor/Components/<Group>/Omni<Name>.razor` with inline `@code` (there are **no** `.razor.cs` code-behinds).
 - CSS classes use the `omni-` prefix (`.omni-btn`, `.omni-card`); custom properties use `--omni-` (`var(--omni-accent)`); JS namespace is `window.omniBlazor`.
 
 ### Components
