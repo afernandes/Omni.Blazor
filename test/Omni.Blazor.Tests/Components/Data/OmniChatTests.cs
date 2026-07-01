@@ -224,4 +224,11 @@ public class OmniChatTests : TestContextBase
         Assert.Equal("Send", send.GetAttribute("aria-label"));
         Assert.Equal("Send", send.GetAttribute("title"));
     }
+
+    [Fact]
+    public void Message_log_has_an_id_so_ScrollManager_can_target_it()
+    {
+        var cut = RenderChat();
+        Assert.False(string.IsNullOrEmpty(cut.Find(".omni-chat-messages").GetAttribute("id")));
+    }
 }

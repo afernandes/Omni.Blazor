@@ -2,8 +2,10 @@
 @inherits OmniComponent
 @implements IDisposable
 @inject IJSRuntime JS
+@inject Omni.Blazor.Services.ScrollManager Scroll
 @using System.Globalization
 @using Omni.Blazor.Models
+@using Omni.Blazor.Services
 @using Omni.Blazor.Utilities
 
 @*
@@ -47,7 +49,7 @@
         </div>
     }
 
-    <div class="omni-chat-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="@MessagesLabel" @ref="_messagesRef">
+    <div class="omni-chat-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="@MessagesLabel" id="@_messagesId">
         @if (_messages.Count == 0)
         {
             <div class="omni-chat-empty">
@@ -229,7 +231,7 @@
     private List<OmniChatMessage> _messages = new();
     private readonly HashSet<string> _typing = new();
     private string _input = "";
-    private ElementReference _messagesRef;
+    private string _messagesId => $"{Id}-messages";
     private ElementReference _inputRef;
     private DotNetObjectReference<OmniChat>? _selfRef;
     private bool _created;
@@ -292,7 +294,7 @@
         }
     }
 
-    private ValueTask ScrollToBottomAsync() => JS.InvokeVoidAsync("omniBlazor.chatScrollToBottom", _messagesRef);
+    private ValueTask ScrollToBottomAsync() => Scroll.ScrollToBottomAsync($"#{_messagesId}", ScrollBehavior.Auto);
 
     // ─── Public API ───────────────────────────────────────────────────────
     public async Task SendAsync(string content, string? userId = null)
