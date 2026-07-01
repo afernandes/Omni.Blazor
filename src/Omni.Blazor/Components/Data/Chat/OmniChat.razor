@@ -119,7 +119,7 @@
 
     <div class="omni-chat-input">
         <textarea class="omni-chat-textarea" rows="1" placeholder="@Placeholder"
-                  aria-label="@(Placeholder ?? SendLabel)"
+                  aria-label="@InputLabel"
                   @ref="_inputRef" value="@_input" @oninput="OnInputChangedAsync"
                   disabled="@(Disabled || ReadOnly)"></textarea>
         <button type="button" class="omni-chat-send" title="@SendLabel" aria-label="@SendLabel"
@@ -175,6 +175,10 @@
 
     /// <summary>Accessible label / tooltip for the send button. Default <c>"Enviar"</c>.</summary>
     [Parameter] public string SendLabel { get; set; } = "Enviar";
+
+    /// <summary>Accessible label (<c>aria-label</c>) for the compose textarea — describes the
+    /// field, not the send action. Default <c>"Mensagem"</c>.</summary>
+    [Parameter] public string InputLabel { get; set; } = "Mensagem";
 
     /// <summary>Accessible label (<c>aria-label</c>) for the message log region. Default <c>"Mensagens"</c>.</summary>
     [Parameter] public string MessagesLabel { get; set; } = "Mensagens";

@@ -208,12 +208,17 @@ public class OmniChatTests : TestContextBase
     {
         var cut = RenderChat(p => p
             .Add(c => c.SendLabel, "Send")
-            .Add(c => c.MessagesLabel, "Messages"));
+            .Add(c => c.MessagesLabel, "Messages")
+            .Add(c => c.InputLabel, "Message"));
 
         var log = cut.Find(".omni-chat-messages");
         Assert.Equal("log", log.GetAttribute("role"));
         Assert.Equal("polite", log.GetAttribute("aria-live"));
         Assert.Equal("Messages", log.GetAttribute("aria-label"));
+
+        // the textarea's name describes the FIELD, not the send action
+        var textarea = cut.Find(".omni-chat-textarea");
+        Assert.Equal("Message", textarea.GetAttribute("aria-label"));
 
         var send = cut.Find(".omni-chat-send");
         Assert.Equal("Send", send.GetAttribute("aria-label"));
