@@ -361,16 +361,29 @@ internal static class MarkdownRenderer
     /// <summary>Allow-lists URL schemes (http/https/mailto/tel) + relative/anchor URLs; rejects the rest.</summary>
     private static string? SanitizeUrl(string url) => UrlSafety.Sanitize(url);
 
-    /// <summary>Best-effort HTML sanitizer for <c>AllowHtml</c>: strips scripts, event handlers and dangerous URLs.</summary>
-    private static string SanitizeHtml(string html)
+    /// <summary>
+    /// Best-effort HTML sanitizer for <c>AllowHtml</c>: strips scripts, event handlers and
+    /// dangerous URLs. Hardened against unquoted-attribute, control-char-in-scheme and
+    /// slash-separated-handler bypasses — but regex is not a substitute for a real parser:
+    /// only pass TRUSTED content. For untrusted HTML use a parser-based sanitizer upstream.
+    /// </summary>
+    internal static string SanitizeHtml(string html)
     {
+        // Strip control chars browsers ignore inside schemes ("jav&#9;ascript:") so they
+        // can't smuggle a dangerous scheme past the URL filter below.
+        html = Regex.Replace(html, @"[\x00-\x1F\x7F]", " ");
+        // Dangerous elements (with their content) + their standalone/self-closing tags.
         html = Regex.Replace(html, @"<(script|style|iframe|object|embed|form|svg|math)\b[\s\S]*?</\1\s*>", "",
             RegexOptions.IgnoreCase);
         html = Regex.Replace(html, @"</?(script|style|iframe|object|embed|form|svg|math|link|meta|base)\b[^>]*>", "",
             RegexOptions.IgnoreCase);
-        html = Regex.Replace(html, @"\son\w+\s*=\s*(""[^""]*""|'[^']*'|[^\s>]+)", "", RegexOptions.IgnoreCase);
-        html = Regex.Replace(html, @"(href|src)\s*=\s*(""|')\s*(?:javascript|vbscript|data\s*:\s*text/html)[^""']*\2",
-            "$1=$2#$2", RegexOptions.IgnoreCase);
+        // Inline event handlers — attributes may be separated by whitespace OR a slash
+        // (<img/onerror=...>), so accept either as the leading boundary.
+        html = Regex.Replace(html, @"[\s/]on\w+\s*=\s*(""[^""]*""|'[^']*'|[^\s>]+)", "", RegexOptions.IgnoreCase);
+        // Dangerous URL schemes on href/src, whether quoted OR unquoted → neutralized to '#'.
+        html = Regex.Replace(html,
+            @"(href|src)\s*=\s*(""|'|)\s*(?:javascript|vbscript|data\s*:\s*text/html)[^""'>\s]*",
+            "$1=$2#", RegexOptions.IgnoreCase);
         return html;
     }
 }

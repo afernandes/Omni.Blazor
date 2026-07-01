@@ -225,6 +225,7 @@
     private int _lastCount = -1;
     private System.Threading.Timer? _typingTimer;
     private bool _typingActive;
+    private bool _disposed;
 
     private string RootCss => CssBuilder.Default("omni-chat").AddClass(Class).Build();
     private bool HasHeader => !string.IsNullOrEmpty(Title) || (ShowClearButton && !Disabled) || (ShowUsers && (Users?.Any() ?? false));
@@ -346,10 +347,24 @@
             await TypingChanged.InvokeAsync(new OmniChatTypingEventArgs { UserId = CurrentUserId, IsTyping = true });
         }
         _typingTimer?.Dispose();
-        _typingTimer = new System.Threading.Timer(async _ =>
+        _typingTimer = new System.Threading.Timer(OnTypingTimeout, null, Math.Max(250, TypingTimeout), System.Threading.Timeout.Infinite);
+    }
+
+    // Timer fires on a threadpool thread ~1.5s later; the component may already be gone
+    // (navigation). Guard on _disposed and never surface an exception as async-void —
+    // an unobserved exception here can tear down the whole Blazor Server circuit.
+    internal void OnTypingTimeout(object? _)
+    {
+        if (_disposed) return;
+        try
         {
-            await InvokeAsync(StopTypingAsync);
-        }, null, Math.Max(250, TypingTimeout), System.Threading.Timeout.Infinite);
+            _ = InvokeAsync(async () =>
+            {
+                if (_disposed) return;
+                try { await StopTypingAsync(); } catch { /* circuit already gone */ }
+            });
+        }
+        catch { /* renderer torn down between the guard and dispatch */ }
     }
 
     private async Task StopTypingAsync()
@@ -366,6 +381,7 @@
 
     public void Dispose()
     {
+        _disposed = true;
         _typingTimer?.Dispose();
         if (_created)
         {

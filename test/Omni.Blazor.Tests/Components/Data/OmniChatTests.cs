@@ -187,4 +187,17 @@ public class OmniChatTests : TestContextBase
         await cut.InvokeAsync(() => cut.Instance.SetUserTypingAsync("bob", false));
         Assert.Empty(cut.FindAll(".omni-chat-typing"));
     }
+
+    [Fact]
+    public void Typing_timeout_after_dispose_is_a_safe_noop()
+    {
+        var cut = RenderChat();
+        OmniChat chat = cut.Instance;
+        chat.Dispose(); // sets _disposed = true (as navigation would)
+
+        // The threadpool typing-timer can fire ~1.5s later, after the component is gone
+        // (navigation). It must be a guarded no-op — never an async-void exception that
+        // tears down the Blazor Server circuit.
+        Assert.Null(Record.Exception(() => chat.OnTypingTimeout(null)));
+    }
 }

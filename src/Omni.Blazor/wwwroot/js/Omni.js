@@ -2543,10 +2543,14 @@
   }
 
   function omniSanitizeEditorHtml(html) {
+    // Neutralize control chars browsers strip from URL schemes ("jav\tascript:").
+    html = html.replace(/[\u0000-\u001F\u007F]/g, ' ');
     html = html.replace(/<(script|style|iframe|object|embed|form|svg|math)\b[\s\S]*?<\/\1\s*>/gi, '');
     html = html.replace(/<\/?(script|style|iframe|object|embed|form|svg|math|link|meta|base)\b[^>]*>/gi, '');
-    html = html.replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-    html = html.replace(/(href|src)\s*=\s*("|')\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^"']*\2/gi, '$1=$2#$2');
+    // Event handlers may be separated by whitespace OR a slash (<img/onerror=...>).
+    html = html.replace(/[\s/]on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    // Dangerous URL schemes on href/src, quoted OR unquoted.
+    html = html.replace(/(href|src)\s*=\s*("|'|)\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^"'>\s]*/gi, '$1=$2#');
     return html;
   }
 
@@ -2685,7 +2689,7 @@
       if (inp.__omniPaste) inp.removeEventListener('paste', inp.__omniPaste);
     });
   };
-  ns.htmlEditorSetHtml = function (ref, html) { if (ref) ref.innerHTML = html == null ? '' : html; };
+  ns.htmlEditorSetHtml = function (ref, html) { if (ref) ref.innerHTML = html == null ? '' : omniSanitizeEditorHtml(html); };
   ns.htmlEditorGetHtml = function (ref) { return ref ? ref.innerHTML : ''; };
   ns.htmlEditorFocus = function (ref) { if (ref) ref.focus(); };
 
