@@ -76,6 +76,10 @@
 
     // Render the child fragment into a throwaway builder and concatenate its
     // text/markup frames — this recovers the raw markdown written between the tags.
+    // BL0006: reading RenderTree frames is deliberate here — recovering the raw markdown
+    // authored between the tags is exactly what needs the frame contents, and there is no
+    // public API for it. Contained to this one helper.
+#pragma warning disable BL0006
     private static string ExtractText(RenderFragment fragment)
     {
         using var builder = new RenderTreeBuilder();
@@ -91,6 +95,7 @@
         }
         return sb.ToString();
     }
+#pragma warning restore BL0006
 
     // Strip the common leading indentation introduced by writing markdown
     // indented under the .razor tag.
