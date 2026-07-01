@@ -228,6 +228,7 @@
     [Parameter] public EventCallback<OmniChatTypingEventArgs> TypingChanged { get; set; }
 
     private List<OmniChatUser> _users = new();
+    private Dictionary<string, OmniChatUser> _userById = new();
     private List<OmniChatMessage> _messages = new();
     private readonly HashSet<string> _typing = new();
     private string _input = "";
@@ -246,12 +247,17 @@
     protected override void OnParametersSet()
     {
         _users = Users?.ToList() ?? new();
+        // O(1) id lookup (GetUser runs per message bubble) — first wins on duplicate ids,
+        // matching the previous FirstOrDefault.
+        _userById = new(_users.Count);
+        foreach (var u in _users)
+            if (u.Id is not null) _userById.TryAdd(u.Id, u);
         _messages = Messages?.ToList() ?? new();
     }
 
     private CultureInfo Culture => CultureInfo.CurrentCulture;
 
-    private OmniChatUser? GetUser(string id) => _users.FirstOrDefault(u => u.Id == id);
+    private OmniChatUser? GetUser(string id) => _userById.GetValueOrDefault(id);
 
     // Apply the user's color directly to the avatar (background + white initials for
     // contrast). Falls back to OmniAvatar's default accent tint when no color is set.
