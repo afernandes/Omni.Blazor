@@ -33,12 +33,22 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     // Monotonic clock, overridable in tests to make the throttle deterministic.
     internal Func<long> NowTicks { get; set; } = Stopwatch.GetTimestamp;
 
+    private readonly bool _disposeClient;
+
     /// <param name="client">The chat client to talk to (any provider via Microsoft.Extensions.AI).</param>
     /// <param name="options">Conversation options (system prompt, history cap, inference options).</param>
-    public OmniChatClient(IChatClient client, OmniChatOptions? options = null)
+    /// <param name="disposeClient">
+    /// Whether disposing this <see cref="OmniChatClient"/> should also dispose
+    /// <paramref name="client"/>. Default <c>false</c>: the <see cref="IChatClient"/> is usually
+    /// shared / DI-managed (Singleton or Scoped), so disposing it here would break other
+    /// consumers with <c>ObjectDisposedException</c>. Set <c>true</c> only when this instance
+    /// exclusively owns a client created just for it.
+    /// </param>
+    public OmniChatClient(IChatClient client, OmniChatOptions? options = null, bool disposeClient = false)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         Options = options ?? new OmniChatOptions();
+        _disposeClient = disposeClient;
     }
 
     /// <summary>Conversation options. Mutable — change the system prompt or model between turns.</summary>
@@ -168,7 +178,9 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
         _disposed = true;
         try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
         _cts?.Dispose();
-        _client.Dispose();
+        // Only dispose the client when this instance exclusively owns it — a shared /
+        // DI-managed IChatClient must outlive the conversation.
+        if (_disposeClient) _client.Dispose();
     }
 
     /// <inheritdoc />
@@ -178,9 +190,12 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
         _disposed = true;
         try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
         _cts?.Dispose();
-        if (_client is IAsyncDisposable asyncDisposable)
-            await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-        else
-            _client.Dispose();
+        if (_disposeClient)
+        {
+            if (_client is IAsyncDisposable asyncDisposable)
+                await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+            else
+                _client.Dispose();
+        }
     }
 }

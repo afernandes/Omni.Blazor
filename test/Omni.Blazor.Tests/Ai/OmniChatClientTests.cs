@@ -252,10 +252,23 @@ public class OmniChatClientTests
     }
 
     [Fact]
-    public async Task DisposeAsync_disposes_the_underlying_client()
+    public async Task DisposeAsync_does_not_dispose_a_shared_client_by_default()
     {
+        // The IChatClient is usually shared / DI-managed — disposing it here would break
+        // other consumers. Default disposeClient=false must leave it alone.
         var fake = new FakeChatClient("ok");
         var client = new OmniChatClient(fake);
+
+        await client.DisposeAsync();
+
+        Assert.False(fake.Disposed);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_disposes_the_client_when_it_owns_it()
+    {
+        var fake = new FakeChatClient("ok");
+        var client = new OmniChatClient(fake, disposeClient: true);
 
         await client.DisposeAsync();
 
