@@ -47,7 +47,7 @@
         </div>
     }
 
-    <div class="omni-chat-messages" @ref="_messagesRef">
+    <div class="omni-chat-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="@MessagesLabel" @ref="_messagesRef">
         @if (_messages.Count == 0)
         {
             <div class="omni-chat-empty">
@@ -119,9 +119,10 @@
 
     <div class="omni-chat-input">
         <textarea class="omni-chat-textarea" rows="1" placeholder="@Placeholder"
+                  aria-label="@InputLabel"
                   @ref="_inputRef" value="@_input" @oninput="OnInputChangedAsync"
                   disabled="@(Disabled || ReadOnly)"></textarea>
-        <button type="button" class="omni-chat-send" title="Enviar"
+        <button type="button" class="omni-chat-send" title="@SendLabel" aria-label="@SendLabel"
                 disabled="@(Disabled || ReadOnly || string.IsNullOrWhiteSpace(_input))"
                 @onclick="@(() => SendAsync(_input))">
             <OmniIcon Name="arrow-up" Size="ComponentSize.Sm" />
@@ -171,6 +172,16 @@
 
     /// <summary>Compose-box placeholder. Default <c>"Digite uma mensagem..."</c>.</summary>
     [Parameter] public string Placeholder { get; set; } = "Digite uma mensagem...";
+
+    /// <summary>Accessible label / tooltip for the send button. Default <c>"Enviar"</c>.</summary>
+    [Parameter] public string SendLabel { get; set; } = "Enviar";
+
+    /// <summary>Accessible label (<c>aria-label</c>) for the compose textarea — describes the
+    /// field, not the send action. Default <c>"Mensagem"</c>.</summary>
+    [Parameter] public string InputLabel { get; set; } = "Mensagem";
+
+    /// <summary>Accessible label (<c>aria-label</c>) for the message log region. Default <c>"Mensagens"</c>.</summary>
+    [Parameter] public string MessagesLabel { get; set; } = "Mensagens";
 
     /// <summary>Text shown when there are no messages. Default <c>"Nenhuma mensagem ainda. Comece a conversa!"</c>.</summary>
     [Parameter] public string EmptyMessage { get; set; } = "Nenhuma mensagem ainda. Comece a conversa!";

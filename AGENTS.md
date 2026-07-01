@@ -7,7 +7,7 @@ see [CLAUDE.md](CLAUDE.md) (architecture deep-dive) and
 
 ## What this is
 
-**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. ~167 components
+**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. 170+ components
 across Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation and
 Overlay. One SCSS bundle, one JS file, all theming via CSS custom properties.
 

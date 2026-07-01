@@ -49,6 +49,11 @@ It references the base package, so installing it pulls in `AndersonN.Omni.Blazor
 streaming-UI primitives (`OmniStreamingText`, `OmniMessage`, `OmniPromptInput`, …) stay in the
 base package — only the `IChatClient`-backed orchestration lives in `.Ai`.
 
+> **Security — keep model credentials server-side.** In a Blazor **WebAssembly** app, never
+> configure the `IChatClient` with a provider API key on the client (it ships to the browser).
+> Point the client at a **server-side proxy / your own backend endpoint** that holds the key.
+> In Blazor **Server** the key already lives on the server.
+
 ## Quick start
 
 **1) Reference the stylesheet** (handled automatically — `<OmniTheme>` injects it):
