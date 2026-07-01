@@ -2542,15 +2542,35 @@
     };
   }
 
+  function omniDecodeNumericEntities(s) {
+    return s.replace(/&#(\d{1,7});|&#[xX]([0-9a-fA-F]{1,6});/g, function (m, dec, hex) {
+      var code = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+      if (!(code > 0) || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) return m;
+      try { return String.fromCodePoint(code); } catch (e) { return m; }
+    });
+  }
+  function omniSafeDataImage(p) {
+    return p.indexOf('data:image/png') === 0 || p.indexOf('data:image/jpeg') === 0
+      || p.indexOf('data:image/jpg') === 0 || p.indexOf('data:image/gif') === 0
+      || p.indexOf('data:image/webp') === 0;
+  }
   function omniSanitizeEditorHtml(html) {
-    // Neutralize control chars browsers strip from URL schemes ("jav\tascript:").
+    // Decode numeric entities (&#9;/&#x09;) the browser resolves before the scheme check;
+    // loop (capped) to defeat double-encoding. Regex is best-effort — prefer a real
+    // sanitizer (DOMPurify / DOMParser) for hostile input.
+    for (var i = 0; i < 5; i++) { var d = omniDecodeNumericEntities(html); if (d === html) break; html = d; }
     html = html.replace(/[\u0000-\u001F\u007F]/g, ' ');
     html = html.replace(/<(script|style|iframe|object|embed|form|svg|math)\b[\s\S]*?<\/\1\s*>/gi, '');
     html = html.replace(/<\/?(script|style|iframe|object|embed|form|svg|math|link|meta|base)\b[^>]*>/gi, '');
-    // Event handlers may be separated by whitespace OR a slash (<img/onerror=...>).
     html = html.replace(/[\s/]on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-    // Dangerous URL schemes on href/src, quoted OR unquoted.
-    html = html.replace(/(href|src)\s*=\s*("|'|)\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^"'>\s]*/gi, '$1=$2#');
+    html = html.replace(/(href|src)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, function (m, attr, val) {
+      var quote = (val && (val[0] === '"' || val[0] === "'")) ? val[0] : '';
+      var inner = quote ? val.slice(1, -1) : val;
+      var probe = inner.replace(/\s/g, '').toLowerCase();
+      var bad = probe.indexOf('javascript:') === 0 || probe.indexOf('vbscript:') === 0
+        || (probe.indexOf('data:') === 0 && !omniSafeDataImage(probe));
+      return bad ? (attr + '=' + quote + '#' + quote) : m;
+    });
     return html;
   }
 

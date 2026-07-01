@@ -369,21 +369,61 @@ internal static class MarkdownRenderer
     /// </summary>
     internal static string SanitizeHtml(string html)
     {
-        // Strip control chars browsers ignore inside schemes ("jav&#9;ascript:") so they
-        // can't smuggle a dangerous scheme past the URL filter below.
+        // Resolve numeric character references (&#9; / &#x09;) — browsers decode these
+        // BEFORE evaluating a URL scheme, so "jav&#9;ascript:" would otherwise slip past the
+        // checks. Loop (capped) to defeat double-encoding. Named entities (&lt; …) are NOT
+        // decoded here (the element/handler filters run afterwards). Regex is still
+        // best-effort: only pass TRUSTED content; use a DOM/parser-based sanitizer for
+        // hostile input.
+        for (int i = 0; i < 5; i++)
+        {
+            string decoded = DecodeNumericEntities(html);
+            if (string.Equals(decoded, html, StringComparison.Ordinal)) break;
+            html = decoded;
+        }
+        // Control chars browsers strip from URL schemes -> space (breaks the scheme).
         html = Regex.Replace(html, @"[\x00-\x1F\x7F]", " ");
-        // Dangerous elements (with their content) + their standalone/self-closing tags.
-        html = Regex.Replace(html, @"<(script|style|iframe|object|embed|form|svg|math)\b[\s\S]*?</\1\s*>", "",
-            RegexOptions.IgnoreCase);
-        html = Regex.Replace(html, @"</?(script|style|iframe|object|embed|form|svg|math|link|meta|base)\b[^>]*>", "",
-            RegexOptions.IgnoreCase);
-        // Inline event handlers — attributes may be separated by whitespace OR a slash
-        // (<img/onerror=...>), so accept either as the leading boundary.
+        // Dangerous elements (with content) + their standalone/self-closing tags.
+        html = Regex.Replace(html, @"<(script|style|iframe|object|embed|form|svg|math)\b[\s\S]*?</\1\s*>", "", RegexOptions.IgnoreCase);
+        html = Regex.Replace(html, @"</?(script|style|iframe|object|embed|form|svg|math|link|meta|base)\b[^>]*>", "", RegexOptions.IgnoreCase);
+        // Inline event handlers — attributes may be whitespace- OR slash-separated.
         html = Regex.Replace(html, @"[\s/]on\w+\s*=\s*(""[^""]*""|'[^']*'|[^\s>]+)", "", RegexOptions.IgnoreCase);
-        // Dangerous URL schemes on href/src, whether quoted OR unquoted → neutralized to '#'.
-        html = Regex.Replace(html,
-            @"(href|src)\s*=\s*(""|'|)\s*(?:javascript|vbscript|data\s*:\s*text/html)[^""'>\s]*",
-            "$1=$2#", RegexOptions.IgnoreCase);
+        // href/src with a dangerous scheme -> neutralized to '#', re-emitting a well-formed value.
+        html = Regex.Replace(html, @"(href|src)\s*=\s*(""[^""]*""|'[^']*'|[^\s>]+)", NeutralizeUrl, RegexOptions.IgnoreCase);
         return html;
     }
+
+    // Neutralize a href/src whose value uses a dangerous scheme, re-emitting a well-formed
+    // (quoted or unquoted) value. Every data: URL is blocked except safe static image types.
+    private static string NeutralizeUrl(Match m)
+    {
+        string attr = m.Groups[1].Value;
+        string raw = m.Groups[2].Value;
+        char quote = raw.Length > 0 && (raw[0] == '"' || raw[0] == '\'') ? raw[0] : '\0';
+        string inner = quote != '\0' ? raw.Trim(quote) : raw;
+        string probe = Regex.Replace(inner, @"\s", "").ToLowerInvariant();
+        bool dangerous = probe.StartsWith("javascript:", StringComparison.Ordinal)
+            || probe.StartsWith("vbscript:", StringComparison.Ordinal)
+            || (probe.StartsWith("data:", StringComparison.Ordinal) && !IsSafeDataImage(probe));
+        if (!dangerous) return m.Value;
+        return quote != '\0' ? $"{attr}={quote}#{quote}" : $"{attr}=#";
+    }
+
+    private static bool IsSafeDataImage(string probe) =>
+        probe.StartsWith("data:image/png", StringComparison.Ordinal)
+        || probe.StartsWith("data:image/jpeg", StringComparison.Ordinal)
+        || probe.StartsWith("data:image/jpg", StringComparison.Ordinal)
+        || probe.StartsWith("data:image/gif", StringComparison.Ordinal)
+        || probe.StartsWith("data:image/webp", StringComparison.Ordinal);
+
+    private static string DecodeNumericEntities(string s) =>
+        Regex.Replace(s, @"&#(\d{1,7});|&#[xX]([0-9a-fA-F]{1,6});", m =>
+        {
+            int code;
+            bool ok = m.Groups[1].Success
+                ? int.TryParse(m.Groups[1].Value, out code)
+                : int.TryParse(m.Groups[2].Value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out code);
+            if (!ok || code <= 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) return m.Value;
+            return char.ConvertFromUtf32(code);
+        });
 }

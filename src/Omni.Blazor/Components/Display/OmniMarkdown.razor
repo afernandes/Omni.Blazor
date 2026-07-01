@@ -37,26 +37,28 @@
     /// </summary>
     [Parameter] public bool AllowHtml { get; set; }
 
-    private string? _cacheKey;
+    private string? _cachedSource;
+    private bool _cachedAllowHtml;
     private MarkupString _cached;
 
     // Number of times the Markdown parser actually ran — exposed for tests to assert
     // memoization (re-renders that don't change the source must NOT reparse).
     internal int ParseCount { get; private set; }
 
-    // Memoized: reparse only when the source text or AllowHtml changes. Unrelated
-    // re-renders (Class/Style/parent) reuse the cached MarkupString instead of
+    // Memoized: reparse only when the source text or AllowHtml changes. Comparing the
+    // fields directly avoids allocating a combined cache key on every (cache-hit) render.
+    // Unrelated re-renders (Class/Style/parent) reuse the cached MarkupString instead of
     // re-running the parser every frame — the streaming hot path re-rendered O(n²).
     private MarkupString Rendered
     {
         get
         {
             string? source = ResolveSource();
-            string key = (AllowHtml ? "1\n" : "0\n") + source;
-            if (!string.Equals(key, _cacheKey, StringComparison.Ordinal))
+            if (!string.Equals(source, _cachedSource, StringComparison.Ordinal) || AllowHtml != _cachedAllowHtml)
             {
                 _cached = (MarkupString)MarkdownRenderer.ToHtml(source, AllowHtml);
-                _cacheKey = key;
+                _cachedSource = source;
+                _cachedAllowHtml = AllowHtml;
                 ParseCount++;
             }
             return _cached;

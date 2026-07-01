@@ -51,4 +51,40 @@ public class MarkdownSanitizerTests
         Assert.Contains("https://example.com", outp);
         Assert.Contains("<b>bold</b>", outp);
     }
+
+    [Theory]
+    [InlineData("<a href=\"jav&#9;ascript:alert(1)\">x</a>")]    // decimal entity (tab) in scheme
+    [InlineData("<a href=\"jav&#x09;ascript:alert(1)\">x</a>")]  // hex entity (tab) in scheme
+    [InlineData("<a href=\"&#106;avascript:alert(1)\">x</a>")]   // entity-encoded 'j'
+    public void Neutralizes_entity_encoded_scheme_bypasses(string html)
+    {
+        string outp = MarkdownRenderer.SanitizeHtml(html);
+        Assert.DoesNotContain("javascript:", outp, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("<img src=\"data:image/svg+xml,<svg onload=alert(1)>\">")]
+    [InlineData("<a href=\"data:application/xhtml+xml,x\">y</a>")]
+    public void Neutralizes_dangerous_data_mime_types(string html)
+    {
+        string outp = MarkdownRenderer.SanitizeHtml(html);
+        Assert.DoesNotContain("data:image/svg", outp, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("data:application", outp, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Keeps_safe_data_image_urls()
+    {
+        string outp = MarkdownRenderer.SanitizeHtml("<img src=\"data:image/png;base64,iVBORw0KGgo=\">");
+        Assert.Contains("data:image/png;base64", outp);
+    }
+
+    [Fact]
+    public void Produces_well_formed_output_for_quoted_dangerous_urls()
+    {
+        // Regression for the trailing-quote bug: must yield href="#", never href="#"".
+        string outp = MarkdownRenderer.SanitizeHtml("<a href=\"javascript:alert(1)\">x</a>");
+        Assert.Contains("href=\"#\"", outp);
+        Assert.DoesNotContain("#\"\"", outp);
+    }
 }
