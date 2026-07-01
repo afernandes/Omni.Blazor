@@ -231,4 +231,13 @@ public class OmniChatTests : TestContextBase
         var cut = RenderChat();
         Assert.False(string.IsNullOrEmpty(cut.Find(".omni-chat-messages").GetAttribute("id")));
     }
+
+    [Fact]
+    public void Message_with_null_user_id_does_not_throw()
+    {
+        // A null UserId (deserialization / consumer) must be tolerated — GetUser guards the
+        // Dictionary key (regression: dictionary lookup threw ArgumentNullException on null).
+        var msgs = new List<OmniChatMessage> { new() { Content = "ghost", UserId = null!, Timestamp = DateTime.Now } };
+        Assert.Null(Record.Exception(() => RenderChat(messages: msgs)));
+    }
 }
