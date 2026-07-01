@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using Omni.Blazor.Models;
 
@@ -21,6 +22,16 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     private readonly List<OmniChatTurn> _turns = [];
     private CancellationTokenSource? _cts;
     private bool _disposed;
+
+    // Render coalescing: during streaming, tokens can arrive faster than the UI can
+    // usefully repaint. Raising Changed per token forces a full Markdown reparse of the
+    // growing text every time (O(n²)); instead we coalesce to ~30fps. The final Raise()
+    // in SendAsync's finally guarantees the last tokens always render.
+    private static readonly long RenderThrottleTicks = Stopwatch.Frequency / 30;
+    private long _lastRaiseTicks;
+
+    // Monotonic clock, overridable in tests to make the throttle deterministic.
+    internal Func<long> NowTicks { get; set; } = Stopwatch.GetTimestamp;
 
     /// <param name="client">The chat client to talk to (any provider via Microsoft.Extensions.AI).</param>
     /// <param name="options">Conversation options (system prompt, history cap, inference options).</param>
@@ -64,6 +75,7 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
         AddTurn(assistant);
         IsStreaming = true;
         Raise();
+        _lastRaiseTicks = NowTicks() - RenderThrottleTicks - 1; // let the first token render immediately
 
         try
         {
@@ -74,7 +86,12 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
                 if (!string.IsNullOrEmpty(text))
                 {
                     assistant.Content += text;
-                    Raise();
+                    long now = NowTicks();
+                    if (now - _lastRaiseTicks >= RenderThrottleTicks)
+                    {
+                        _lastRaiseTicks = now;
+                        Raise();
+                    }
                 }
             }
         }

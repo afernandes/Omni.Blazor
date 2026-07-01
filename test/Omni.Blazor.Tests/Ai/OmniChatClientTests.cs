@@ -308,4 +308,31 @@ public class OmniChatClientTests
         await client.SendAsync("two", caller.Token);
         Assert.Equal(4, client.Turns.Count); // 2 user + 2 assistant
     }
+
+    [Fact]
+    public async Task Streaming_render_coalescing_cuts_raise_count_without_losing_content()
+    {
+        string[] tokens = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+        // Clock jumps a full second per token → each token is its own frame → a raise each.
+        long fastClock = 0;
+        long second = System.Diagnostics.Stopwatch.Frequency;
+        var fast = new OmniChatClient(new FakeChatClient(tokens)) { NowTicks = () => { fastClock += second; return fastClock; } };
+        int fastRaises = 0;
+        fast.Changed += () => fastRaises++;
+        await fast.SendAsync("hi");
+        await fast.DisposeAsync();
+
+        // Frozen clock → all tokens land within one frame → coalesced to far fewer raises.
+        long frozen = System.Diagnostics.Stopwatch.GetTimestamp();
+        var slow = new OmniChatClient(new FakeChatClient(tokens)) { NowTicks = () => frozen };
+        int coalescedRaises = 0;
+        slow.Changed += () => coalescedRaises++;
+        await slow.SendAsync("hi");
+
+        Assert.Equal("abcdefgh", slow.Turns[1].Content); // content fully preserved
+        Assert.True(coalescedRaises < fastRaises,
+            $"coalescing should cut raises: coalesced={coalescedRaises} vs fast={fastRaises}");
+        await slow.DisposeAsync();
+    }
 }

@@ -159,4 +159,22 @@ public class OmniMarkdownTests : TestContextBase
         var span = cut.Find("span");
         Assert.Null(span.GetAttribute("onclick"));         // event handler stripped
     }
+
+    // ─── Performance: parse memoization ───────────────────────────────────
+
+    [Fact]
+    public void Memoizes_the_parse_across_unrelated_rerenders()
+    {
+        var cut = Render<OmniMarkdown>(p => p.Add(c => c.Text, "**hi**"));
+        int afterFirst = cut.Instance.ParseCount;
+        Assert.True(afterFirst >= 1);
+
+        // Re-render changing only Class → the source is unchanged, so NO reparse.
+        cut.Render(p => p.Add(c => c.Text, "**hi**").Add(c => c.Class, "extra"));
+        Assert.Equal(afterFirst, cut.Instance.ParseCount);
+
+        // Re-render changing the Text → must reparse.
+        cut.Render(p => p.Add(c => c.Text, "**bye**"));
+        Assert.True(cut.Instance.ParseCount > afterFirst);
+    }
 }
