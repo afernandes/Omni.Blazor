@@ -251,13 +251,15 @@
         // matching the previous FirstOrDefault.
         _userById = new(_users.Count);
         foreach (var u in _users)
-            if (u.Id is not null) _userById.TryAdd(u.Id, u);
+            if (u?.Id is not null) _userById.TryAdd(u.Id, u);
         _messages = Messages?.ToList() ?? new();
     }
 
     private CultureInfo Culture => CultureInfo.CurrentCulture;
 
-    private OmniChatUser? GetUser(string id) => _userById.GetValueOrDefault(id);
+    // Null-tolerant like the previous FirstOrDefault: a Dictionary rejects a null key,
+    // so guard it (a message may carry a null UserId).
+    private OmniChatUser? GetUser(string? id) => id is null ? null : _userById.GetValueOrDefault(id);
 
     // Apply the user's color directly to the avatar (background + white initials for
     // contrast). Falls back to OmniAvatar's default accent tint when no color is set.
