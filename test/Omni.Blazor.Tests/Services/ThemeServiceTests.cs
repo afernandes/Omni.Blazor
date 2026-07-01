@@ -147,8 +147,12 @@ public class ThemeServiceTests : TestContextBase
     public async Task UseSystemColorSchemeAsync_clears_user_picked_and_fires_change()
     {
         var svc = NewService();
-        await svc.SetDarkAsync(true); // becomes user-picked first
+        await svc.SetDarkAsync(false); // user-picks light first
         Assert.True(svc.IsUserPicked);
+
+        // Drive the OS preference to dark so we verify the service ADOPTS it, rather than
+        // relying on Loose mode's default false.
+        JSInterop.Setup<bool>("omniBlazor.prefersColorSchemeDark").SetResult(true);
 
         var changesAfter = 0;
         svc.OnChange += () => changesAfter++;
@@ -156,8 +160,7 @@ public class ThemeServiceTests : TestContextBase
         await svc.UseSystemColorSchemeAsync();
 
         Assert.False(svc.IsUserPicked); // reverted to following the OS
-        // prefersColorSchemeDark is a loose no-op returning false.
-        Assert.False(svc.Dark);
+        Assert.True(svc.Dark);          // adopted the OS preference (dark)
         Assert.Equal(1, changesAfter);
         JSInterop.VerifyInvoke("omniBlazor.storageRemove"); // cleared the key
     }

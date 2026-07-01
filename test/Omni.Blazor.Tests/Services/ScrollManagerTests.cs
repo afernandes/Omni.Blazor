@@ -29,10 +29,10 @@ public class ScrollManagerTests : TestContextBase
     }
 
     [Fact]
-    public async Task GetLockCount_returns_zero_under_loose_mode_and_does_not_throw()
+    public async Task GetLockCount_returns_the_value_from_js()
     {
-        // JS return is not observable in Loose mode; the guard yields default(int).
-        Assert.Equal(0, await Svc.GetLockCountAsync());
+        JSInterop.Setup<int>("omniBlazor.scrollLockCount", "auto").SetResult(5);
+        Assert.Equal(5, await Svc.GetLockCountAsync());
     }
 
     [Fact]
@@ -82,9 +82,10 @@ public class ScrollManagerTests : TestContextBase
     }
 
     [Fact]
-    public async Task GetScrollOffsetY_returns_zero_under_loose_mode_and_does_not_throw()
+    public async Task GetScrollOffsetY_returns_the_value_from_js()
     {
-        Assert.Equal(0d, await Svc.GetScrollOffsetYAsync());
+        JSInterop.Setup<double>("omniBlazor.scrollOffsetY", "auto").SetResult(150.5);
+        Assert.Equal(150.5, await Svc.GetScrollOffsetYAsync());
     }
 
     [Fact]

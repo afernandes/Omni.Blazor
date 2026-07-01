@@ -36,6 +36,7 @@ public class DialogServiceTests : TestContextBase
 
         svc.OpenAsync<DummyDialog>("Untitled");
 
+        Assert.Single(svc.OpenDialogs);
         Assert.NotNull(svc.OpenDialogs[0].Options);
         Assert.IsType<DialogOptions>(svc.OpenDialogs[0].Options);
     }
@@ -179,6 +180,7 @@ public class DialogServiceTests : TestContextBase
         svc.OpenAsync<DummyDialog>("A");
         svc.OpenAsync<DummyDialog>("B");
 
+        Assert.Equal(2, svc.OpenDialogs.Count);
         var id0 = svc.OpenDialogs[0].Id;
         var id1 = svc.OpenDialogs[1].Id;
         Assert.StartsWith("omni-dlg-", id0);

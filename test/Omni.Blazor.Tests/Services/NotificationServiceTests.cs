@@ -149,13 +149,15 @@ public class NotificationServiceTests : TestContextBase
         var svc = new NotificationService();
         var m = Msg(duration: 30);
 
+        // The auto-remove fires OnChange when the list empties — await that (bounded),
+        // no time-based polling loop (deterministic, not flaky under load).
+        var emptied = new TaskCompletionSource();
+        svc.OnChange += () => { if (svc.Messages.Count == 0) emptied.TrySetResult(); };
+
         svc.Notify(m);
         Assert.Single(svc.Messages);
 
-        // Espera o Task.Delay(30ms) + ContinueWith(Remove) fluir, sem sleep fixo.
-        var start = DateTime.UtcNow;
-        while (svc.Messages.Count > 0 && (DateTime.UtcNow - start).TotalSeconds < 5)
-            await Task.Delay(10);
+        await emptied.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.Empty(svc.Messages);
     }
