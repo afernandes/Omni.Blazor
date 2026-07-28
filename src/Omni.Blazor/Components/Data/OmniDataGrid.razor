@@ -1392,11 +1392,14 @@
     {
         if (value is null) return "—";
         if (col.AggregateFormat is not null) return col.AggregateFormat(value);
+        // CurrentCulture (not a fixed locale): the aggregate row must match how the cells
+        // above it are formatted — a hardcoded culture shows the wrong decimal separator
+        // in any app that isn't pt-BR.
         return value switch
         {
-            decimal d => d.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")),
-            double dbl => dbl.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")),
-            float f => f.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")),
+            decimal d => d.ToString("N2", System.Globalization.CultureInfo.CurrentCulture),
+            double dbl => dbl.ToString("N2", System.Globalization.CultureInfo.CurrentCulture),
+            float f => f.ToString("N2", System.Globalization.CultureInfo.CurrentCulture),
             _ => value.ToString() ?? "—"
         };
     }
