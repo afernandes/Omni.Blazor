@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Omni.Blazor.Localization;
 using Omni.Blazor.State;
 
 namespace Omni.Blazor.Components;
@@ -28,6 +29,20 @@ public abstract class OmniComponent : ComponentBase
 
     /// <summary>Auto-generated stable id, available for ARIA labels and JS targeting.</summary>
     public string Id => _id ??= "omni-" + Guid.NewGuid().ToString("N")[..8];
+
+    [Inject] private IServiceProvider? ServiceProvider { get; set; }
+
+    private OmniTexts? _texts;
+
+    /// <summary>
+    /// User-facing strings a component falls back to when the consumer did not pass an
+    /// explicit parameter. Resolved from DI when registered (see
+    /// <c>AddOmniComponents(o =&gt; o.Texts = ...)</c>), otherwise the built-in pt-BR set.
+    /// Resolution stays optional on purpose: a component still renders correctly in a host
+    /// that never called <c>AddOmniComponents</c>.
+    /// </summary>
+    protected OmniTexts Texts =>
+        _texts ??= ServiceProvider?.GetService(typeof(OmniTexts)) as OmniTexts ?? OmniTexts.Default;
 
     /// <summary>
     /// Scope for declarative parameter change detection. Use
