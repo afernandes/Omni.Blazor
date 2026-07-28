@@ -6,7 +6,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![CI](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml/badge.svg)](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml)
 
-> Modern Blazor component library for .NET 10 — **170+ components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
+> Modern Blazor component library for .NET 10 — **174 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
 
 ```xml
 <PackageReference Include="AndersonN.Omni.Blazor" Version="*" />
@@ -16,7 +16,7 @@
 
 ## Highlights
 
-- **170+ components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
+- **174 components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
 - **Single CSS bundle** (~295 KB) — no Bootstrap, no Tailwind, no runtime CSS-in-JS
 - **Design tokens** in CSS custom properties (`--omni-*`) — restyleable without recompiling
 - **Light / Dark / System** appearance toggle out of the box
@@ -65,100 +65,121 @@ base package — only the `IChatClient`-backed orchestration lives in `.Ai`.
 </head>
 ```
 
-**2) Wrap your shell** with the layout primitives:
+**2) Wrap your shell** with the layout primitives (`MainLayout.razor`):
 
 ```razor
+@inherits LayoutComponentBase
+
 <OmniLayout>
-    <OmniHeader>
-        <OmniBrand>Acme</OmniBrand>
+    <OmniAppBar>
+        <OmniDrawerToggle Target="_drawer" />
+        <OmniBrand Name="Acme" />
+        <div class="omni-header-spacer"></div>
         <OmniAppearanceToggle />
-    </OmniHeader>
-    <OmniSidebar>
-        <OmniPanelMenu>
-            <OmniPanelMenuItem Text="Dashboard" Icon="dashboard" Href="/" />
-            <OmniPanelMenuItem Text="Orders"   Icon="receipt"   Href="/orders" />
-        </OmniPanelMenu>
-    </OmniSidebar>
+    </OmniAppBar>
+
+    <OmniDrawer @ref="_drawer" Anchor="DrawerAnchor.Left">
+        <OmniPanelMenuSection Label="Main">
+            <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" Path="/" />
+            <OmniPanelMenuItem Text="Orders"    Icon="package"          Path="/orders" />
+        </OmniPanelMenuSection>
+    </OmniDrawer>
+
     <OmniMain>
         @Body
     </OmniMain>
 </OmniLayout>
+
+@* Renders dialogs, notifications, tooltips and context menus opened via the services. *@
+<OmniOverlayHosts />
+
+@code {
+    private OmniDrawer _drawer = null!;
+}
 ```
 
 **3) Use components** anywhere:
 
 ```razor
-<OmniDataGrid Data="@orders" PageSize="20" AllowFiltering AllowSorting>
-    <OmniDataGridColumn Property="Id"     Title="#" />
-    <OmniDataGridColumn Property="Total"  Title="Total" Format="C" />
-    <OmniDataGridColumn Property="Status" Title="Status">
-        <Template Context="o">
-            <OmniBadge Color="@StatusColor(o.Status)">@o.Status</OmniBadge>
-        </Template>
-    </OmniDataGridColumn>
+<OmniDataGrid TItem="Order" Data="@orders" AllowPaging PageSize="20" AllowSorting AllowColumnFilter>
+    <Columns>
+        <OmniDataGridColumn TItem="Order" Title="#" Property="@(o => (object)o.Id)" />
+        <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => (object)o.Total)">
+            <Template>
+                <span class="omni-mono">@context.Total.ToString("C")</span>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem="Order" Title="Status" Property="@(o => o.Status)">
+            <Template>
+                <OmniBadge Text="@context.Status" Variant="BadgeVariant.Accent" />
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
 </OmniDataGrid>
 ```
 
 ## Component catalog
 
-<details>
-<summary><strong>Buttons</strong></summary>
+_174 components — generated from [`docs/components.json`](docs/components.json). Run `dotnet run --project tools/Omni.Blazor.ManifestGen` after changing the public surface._
 
-OmniButton, OmniIconButton, OmniSplitButton, OmniToggleButton, OmniFab, OmniFabMenu, OmniScrollToTopButton, OmniSpeechToTextButton
+<details>
+<summary><strong>Layout</strong> (30)</summary>
+
+OmniAppBar, OmniAppearanceToggle, OmniAuthLayout, OmniBanner, OmniBento, OmniBentoItem, OmniBrand, OmniBreakpointProvider, OmniCol, OmniContainer, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniHidden, OmniLayout, OmniMain, OmniMasonry, OmniPaneHeader, OmniPaneToolbar, OmniParallax, OmniParallaxLayer, OmniRow, OmniSplitAsideLabel, OmniSplitView, OmniSplitter, OmniSplitterPane, OmniStack, OmniSwipeArea, OmniThemePicker, OmniToolBar
 </details>
 
 <details>
-<summary><strong>Data</strong></summary>
+<summary><strong>Navigation</strong> (14)</summary>
 
-OmniDataGrid, OmniDataGridColumn, OmniVirtualize, OmniDropZone, OmniKanban, OmniChart, OmniSparkline
+OmniBreadcrumb, OmniExitPrompt, OmniHotkey, OmniMenuBar, OmniMenuBarItem, OmniPagination, OmniPanelMenu, OmniPanelMenuItem, OmniPanelMenuSection, OmniSegmentedControl, OmniStep, OmniStepper, OmniTabItem, OmniTabs
 </details>
 
 <details>
-<summary><strong>Display</strong></summary>
+<summary><strong>Inputs</strong> (29)</summary>
 
-OmniCard, OmniStat, OmniBadge, OmniChip, OmniAvatar, OmniIcon, OmniKbd, OmniProgress, OmniSkeleton, OmniQRCode, OmniBarcode, OmniAlert
+OmniAutoComplete, OmniCalendar, OmniCheckBox, OmniCheckBoxList, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniFileUpload, OmniFormField, OmniListBox, OmniMaskedTextBox, OmniMultiSelect, OmniNumeric, OmniPassword, OmniPasswordStrength, OmniPickList, OmniQtyStepper, OmniRadio, OmniRadioGroup, OmniRating, OmniSecurityCode, OmniSelect, OmniSlider, OmniSpeechToTextButton, OmniSwitch, OmniTagInput, OmniTextArea, OmniTextBox, OmniTimePicker
 </details>
 
 <details>
-<summary><strong>Inputs</strong></summary>
+<summary><strong>Forms</strong> (2)</summary>
 
-OmniTextBox, OmniPassword, OmniTextArea, OmniCheckBox, OmniSwitch, OmniSelect, OmniMultiSelect, OmniTagInput, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniTimePicker, OmniCalendar, OmniFormField, OmniUpload
+OmniValidationMessage, OmniValidationSummary
 </details>
 
 <details>
-<summary><strong>Layout</strong></summary>
+<summary><strong>Buttons</strong> (8)</summary>
 
-OmniLayout, OmniHeader, OmniSidebar, OmniMain, OmniContainer, OmniBrand, OmniAppBar, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniPaneHeader, OmniBento, OmniBentoItem, OmniMasonry, OmniParallax, OmniParallaxLayer, OmniRow, OmniCol, OmniStack
+OmniButton, OmniFab, OmniFabMenu, OmniFabMenuItem, OmniScrollToTopButton, OmniSocialButton, OmniSplitButton, OmniToggleButton
 </details>
 
 <details>
-<summary><strong>Navigation</strong></summary>
+<summary><strong>Display</strong> (37)</summary>
 
-OmniPanelMenu, OmniPanelMenuItem, OmniPanelMenuSection, OmniBreadcrumb, OmniTabs, OmniTabItem, OmniSegmentedControl, OmniStepper, OmniMenuBar, OmniMenuBarItem
+OmniAccordion, OmniAccordionItem, OmniAlert, OmniAvatar, OmniAvatarGroup, OmniBadge, OmniBarcode, OmniCard, OmniCardBody, OmniCardGroup, OmniCardMedia, OmniCarousel, OmniCarouselItem, OmniChart, OmniChip, OmniDescriptionItem, OmniDescriptionList, OmniEmptyState, OmniIcon, OmniImage, OmniKbd, OmniLabel, OmniLink, OmniMarkdown, OmniOptionCard, OmniProgress, OmniProgressCircular, OmniQRCode, OmniResult, OmniSkeleton, OmniSparkline, OmniSpinner, OmniStat, OmniStatGroup, OmniStatusBadge, OmniTimeline, OmniTimelineItem
 </details>
 
 <details>
-<summary><strong>Marketing</strong></summary>
+<summary><strong>Data</strong> (26)</summary>
+
+OmniChat, OmniDataFilter, OmniDataFilterItem, OmniDataFilterProperty, OmniDataGrid, OmniDataGridColumn, OmniDayView, OmniDiagramCanvas, OmniDropZone, OmniDropZoneContainer, OmniDropZoneItem, OmniGantt, OmniGanttColumn, OmniHtmlEditor, OmniKanban, OmniMonthView, OmniMultiDayView, OmniPivotGrid, OmniScheduler, OmniTree, OmniTreeItem, OmniVirtualize, OmniWeekView, OmniYearPlannerView, OmniYearTimelineView, OmniYearView
+</details>
+
+<details>
+<summary><strong>Overlays &amp; feedback</strong> (17)</summary>
+
+AlertDialog, ConfirmDialog, OmniBottomSheet, OmniCommandPalette, OmniConfirmPrompt, OmniContextMenuHost, OmniDialogHost, OmniMenu, OmniMenuItem, OmniMenuSeparator, OmniNotificationHost, OmniOverlay, OmniPopover, OmniTooltipHost, OmniTour, OmniTourHost, OmniTourStep
+</details>
+
+<details>
+<summary><strong>Marketing</strong> (4)</summary>
 
 OmniEyebrow, OmniHero, OmniMosaic, OmniMosaicCard
 </details>
 
 <details>
-<summary><strong>AI &amp; chat</strong></summary>
+<summary><strong>AI &amp; chat</strong> (7)</summary>
 
-OmniStreamingText, OmniMessage, OmniPromptInput, OmniSuggestionChips, OmniCitation, OmniThinkingBlock
-</details>
-
-<details>
-<summary><strong>Overlays & feedback</strong></summary>
-
-OmniDialogHost, OmniNotificationHost, OmniTooltipHost, OmniContextMenuHost, OmniConfirmDialog, OmniAlertDialog, OmniOverlays, OmniPopover, OmniBottomSheet, OmniTour, OmniTourStep, OmniTourHost
-</details>
-
-<details>
-<summary><strong>Foundations</strong></summary>
-
-OmniTheme, OmniAppearanceToggle, OmniThemePicker, OmniSwipeArea, OmniHotkeys, OmniExitPrompt, OmniHidden, BreakpointService, ScrollManager
+OmniAiConversation, OmniCitation, OmniMessage, OmniPromptInput, OmniStreamingText, OmniSuggestionChips, OmniThinkingBlock
 </details>
 
 ## For AI agents

@@ -403,4 +403,30 @@ public class OmniDataGridTests : TestContextBase
         Assert.NotNull(captured);
         Assert.Equal(new[] { "Region" }, captured!);
     }
+
+    // ─── Aggregate formatting ──────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("en-US", "180.00")]
+    [InlineData("pt-BR", "180,00")]
+    [InlineData("de-DE", "180,00")]
+    public void Aggregate_row_formats_with_the_current_culture(string culture, string expected)
+    {
+        // Regression: the aggregate row used to hardcode pt-BR, so an en-US/de-DE app
+        // showed the wrong decimal separator right below correctly-formatted cells.
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo(culture);
+
+            var cut = RenderSalesGrid(p => p.Add(c => c.ShowAggregateRow, true));
+
+            // Sum of the Amount column: 100 + 50 + 30
+            Assert.Contains(expected, cut.Find(".omni-grid-aggregate-value").TextContent);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
+    }
 }
