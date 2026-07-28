@@ -76,6 +76,10 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: python3 scripts/check_coverage.py 80 coverage Omni.Blazor Omni.Blazor.Ai Omni.Blazor.ManifestGen Omni.Blazor.Mcp
 
+      - name: Templates have no copy-paste drift
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 scripts/check_template_code.py
+
       - name: Manifest is up to date
         if: matrix.os == 'ubuntu-latest'
         run: |

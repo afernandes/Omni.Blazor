@@ -182,6 +182,22 @@ OmniEyebrow, OmniHero, OmniMosaic, OmniMosaicCard
 OmniAiConversation, OmniCitation, OmniMessage, OmniPromptInput, OmniStreamingText, OmniSuggestionChips, OmniThinkingBlock
 </details>
 
+## Page templates
+
+Beyond the components, the repo ships **26 ready-made pages** — login, register, 2FA,
+users grid, roles, permissions, dashboard, pricing, error states, and the **app shell**
+(top bar + collapsible sidebar + content) that every app needs.
+
+They are **copy-paste starters**, not a package: run the gallery, hit *"Ver código"*, paste
+into your project. The copyable markup only uses components plus CSS classes that ship in
+`omni.css`, so it works as-is in your app (enforced in CI).
+
+```bash
+dotnet run --project src/Omni.Templates/Omni.Templates.Host   # http://localhost:5305
+```
+
+→ **[Template index and usage](src/Omni.Templates/README.md)**
+
 ## For AI agents
 
 Coding agents (Claude Code, Cursor, Copilot, v0) should read the generated,
