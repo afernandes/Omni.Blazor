@@ -74,19 +74,29 @@
 <OmniDataGrid TItem=""UserRow"" Data=""users"" AllowSearch AllowPaging PageSize=""6""
               SearchPlaceholder=""Buscar por nome, papel..."">
     <Columns>
-            <OmniDataGridColumn TItem=""UserRow"" Title=""Usuário"" PropertyName=""Name"" TextSelector=""@(u => u.Name)"">
-                <Template Context=""u"">
-                    <div class=""u-cell"">
-                        <OmniAvatar Initials=""@u.Initials"" />
-                        <div><b>@u.Name</b><span>@u.Email</span></div>
+        <OmniDataGridColumn TItem=""UserRow"" Title=""Usuário"" PropertyName=""Name"" TextSelector=""@(u => u.Name)"">
+            <Template Context=""u"">
+                <div style=""display:flex; align-items:center; gap:10px"">
+                    <OmniAvatar Initials=""@u.Initials"" />
+                    <div style=""display:flex; flex-direction:column; line-height:1.3; min-width:0"">
+                        <span style=""font-weight:600; font-size:13px"">@u.Name</span>
+                        <span class=""omni-mono"" style=""font-size:11.5px; color:var(--omni-fg-muted)"">@u.Email</span>
                     </div>
-                </Template>
-            </OmniDataGridColumn>
-            <OmniDataGridColumn TItem=""UserRow"" Title=""Papel"" Property=""@(u => u.Role)"" />
-            <OmniDataGridColumn TItem=""UserRow"" Title=""Status"">
-                <Template Context=""u""><OmniStatusBadge Label=""@u.Status"" Kind=""@u.StatusKind"" /></Template>
-            </OmniDataGridColumn>
-            <OmniDataGridColumn TItem=""UserRow"" Title=""Último acesso"" Property=""@(u => u.LastAccess)"" />
-        </Columns>
-    </OmniDataGrid>";
+                </div>
+            </Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem=""UserRow"" Title=""Papel"" PropertyName=""Role"" Property=""@(u => u.Role)"" />
+        <OmniDataGridColumn TItem=""UserRow"" Title=""Status"" PropertyName=""Status"" TextSelector=""@(u => u.Status)"">
+            <Template Context=""u""><OmniStatusBadge Label=""@u.Status"" Kind=""@u.StatusKind"" /></Template>
+        </OmniDataGridColumn>
+        <OmniDataGridColumn TItem=""UserRow"" Title=""Último acesso"" PropertyName=""LastAccess"" Property=""@(u => u.LastAccess)"" />
+        <OmniDataGridColumn TItem=""UserRow"" Title="""" Sortable=""false"" Width=""56px"">
+            <Template Context=""u"">
+                <button class=""omni-btn omni-btn-icon"" aria-label=""Ações"">
+                    <OmniIcon Name=""more-vertical"" Size=""ComponentSize.Sm"" />
+                </button>
+            </Template>
+        </OmniDataGridColumn>
+    </Columns>
+</OmniDataGrid>";
 }

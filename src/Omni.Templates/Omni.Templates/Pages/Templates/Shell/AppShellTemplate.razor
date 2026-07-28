@@ -1,0 +1,56 @@
+@page "/templates/shell"
+@layout TemplatesLayout
+
+<PageTitle>App shell — Omni Templates</PageTitle>
+
+<div class="tpl-page">
+    <TemplateDoc Title="App shell (topbar + sidebar)"
+                 Description="O frame externo que todo app precisa: barra superior, sidebar colapsável (mini/responsiva) e área de conteúdo. OmniLayout + OmniAppBar + OmniDrawer + OmniMain."
+                 FullScreenPath="/templates/shell/full"
+                 Code="@_code">
+        <div class="tpl-shell-preview">
+            <AppShell Root="/templates/shell" />
+        </div>
+    </TemplateDoc>
+</div>
+
+@code {
+    private const string _code = @"@* MainLayout.razor — o frame do app *@
+@inherits LayoutComponentBase
+
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle Target=""_drawer"" />
+        <OmniBrand Name=""Acme"" Tenant=""Workspace"" />
+        <span style=""flex:1""></span>
+        <OmniThemePicker />
+        <OmniAvatar Initials=""AC"" />
+    </OmniAppBar>
+
+    <OmniDrawer @ref=""_drawer"" Anchor=""DrawerAnchor.Left"" Variant=""DrawerVariant.Mini"">
+        <OmniPanelMenuSection Label=""Workspace"">
+            <OmniPanelMenuItem Text=""Dashboard"" Icon=""layout-dashboard"" Path=""/"" Match=""NavLinkMatch.All"" />
+            <OmniPanelMenuItem Text=""Customers"" Icon=""users"" Count=""12"" CountKind=""MenuMetaKind.Accent"" />
+            <OmniPanelMenuItem Text=""Orders"" Icon=""package"" Count=""3"" CountKind=""MenuMetaKind.Warn"" />
+            <OmniPanelMenuItem Text=""Reports"" Icon=""bar-chart"" />
+        </OmniPanelMenuSection>
+
+        <OmniPanelMenuSection Label=""Settings"">
+            <OmniPanelMenuItem Text=""Team"" Icon=""users"" />
+            <OmniPanelMenuItem Text=""Billing"" Icon=""dollar-sign"" />
+            <OmniPanelMenuItem Text=""Preferences"" Icon=""settings"" />
+        </OmniPanelMenuSection>
+    </OmniDrawer>
+
+    <OmniMain>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+@* Hosts para diálogos, notificações, tooltips e menus de contexto. *@
+<OmniOverlayHosts />
+
+@code {
+    private OmniDrawer _drawer = null!;
+}";
+}

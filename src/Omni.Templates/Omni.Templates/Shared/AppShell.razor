@@ -1,0 +1,71 @@
+@namespace Omni.Templates.Shared
+
+@* The outer application frame every app needs: top bar (drawer toggle + brand +
+   theme switch), a responsive collapsible sidebar, and the content area. Rendered
+   both inside the gallery preview and full-screen, so the two can never diverge.
+   Product-agnostic on purpose — rename the brand and the menu and it is yours. *@
+
+<OmniLayout>
+    <OmniAppBar>
+        <OmniDrawerToggle Target="_drawer" />
+        <OmniBrand Name="Acme" Tenant="Workspace" />
+        <span style="flex:1"></span>
+        <OmniThemePicker />
+        <OmniAvatar Initials="AC" />
+    </OmniAppBar>
+
+    <OmniDrawer @ref="_drawer" Anchor="DrawerAnchor.Left" Variant="DrawerVariant.Mini">
+        <OmniPanelMenuSection Label="Workspace">
+            <OmniPanelMenuItem Text="Dashboard" Icon="layout-dashboard" Path="@Root" Match="NavLinkMatch.All" />
+            <OmniPanelMenuItem Text="Customers" Icon="users" Count="12" CountKind="MenuMetaKind.Accent" />
+            <OmniPanelMenuItem Text="Orders" Icon="package" Count="3" CountKind="MenuMetaKind.Warn" />
+            <OmniPanelMenuItem Text="Reports" Icon="bar-chart" />
+        </OmniPanelMenuSection>
+
+        <OmniPanelMenuSection Label="Settings">
+            <OmniPanelMenuItem Text="Team" Icon="users" />
+            <OmniPanelMenuItem Text="Billing" Icon="dollar-sign" />
+            <OmniPanelMenuItem Text="Preferences" Icon="settings" />
+        </OmniPanelMenuSection>
+    </OmniDrawer>
+
+    <OmniMain>
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            <OmniPaneHeader Title="Dashboard" Subtitle="Your content goes here">
+                <Actions>
+                    <button class="omni-btn omni-btn-sm">Export</button>
+                    <button class="omni-btn omni-btn-primary omni-btn-sm">New</button>
+                </Actions>
+            </OmniPaneHeader>
+
+            <OmniStatGroup>
+                <OmniStat Label="Revenue" Value="128.4k" Delta="8.2%" DeltaCaption="vs last month" />
+                <OmniStat Label="Orders" Value="1,284" Delta="3.1%" DeltaCaption="vs last month" />
+                <OmniStat Label="Customers" Value="642" Delta="1.4%" DeltaDown DeltaCaption="vs last month" />
+                <OmniStat Label="Refunds" Value="12" Delta="0.6%" DeltaDown DeltaCaption="vs last month" />
+            </OmniStatGroup>
+
+            <OmniCard Title="Content" Style="margin-top:16px">
+                <p class="omni-muted" style="margin:0">
+                    Replace this card with your page. The shell above — top bar, collapsible
+                    sidebar and content area — is the part worth copying.
+                </p>
+            </OmniCard>
+        }
+    </OmniMain>
+</OmniLayout>
+
+@code {
+    /// <summary>Route the first menu item points at (so the preview and the full-screen page each highlight their own root).</summary>
+    [Parameter] public string Root { get; set; } = "/";
+
+    /// <summary>Page content rendered inside <c>OmniMain</c>. Falls back to a sample dashboard.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private OmniDrawer _drawer = null!;
+}
