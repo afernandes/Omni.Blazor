@@ -1,43 +1,54 @@
 # Roadmap — Omni.Blazor
 
 > Estado em **2026-07-28** · versão publicada **v0.3.0** (`AndersonN.Omni.Blazor`, `.Ai`, `.Mcp`)
-> 174 componentes · 1992 testes · cobertura 81,3% (lib) / 100% (Ai) · lib packable sem warnings (`TreatWarningsAsErrors`)
+> 174 componentes · **2004 testes** · cobertura **83,1%** (lib) / 100% (Ai) · lib packable sem warnings (`TreatWarningsAsErrors`)
 
-Consolida três fontes: a **auditoria de hardening** (2026-07-01, 7 PRs mergeados), a **análise de biblioteca + templates** (2026-07-28) e as **pendências de roadmaps anteriores** (gaps de componentes/telas, iniciativa AI-Ready).
+Consolida três fontes: a **auditoria de hardening** (2026-07-01, 7 PRs), a **análise de biblioteca + templates** (2026-07-28) e as **pendências de roadmaps anteriores** (gaps de componentes/telas, AI-Ready).
 
-**Leitura do momento:** o kit de componentes está maduro e bem documentado no nível de API. O que trava valor hoje **não é o código da lib** — é a **superfície de consumo**: o Quick-start do README não compila, o `Omni.Templates` é invisível/não-consumível, e não existe história de i18n. Priorize nessa ordem.
+**Leitura do momento.** As três travas que a análise apontou — o Quick-start que não compilava, os templates invisíveis/não-consumíveis e a ausência de i18n — **foram endereçadas** (PRs #28, #29, #30). O kit segue maduro no nível de API; o que resta é **cobertura** (templates para os componentes-flagship, showcase), **consistência de API** e **features pontuais**. Nada mais é quebra-confiança.
 
 ---
 
-## 1. Lista priorizada
+## 0. Concluído
 
-### P0 — Quebra-confiança (fazer já · esforço S)
+| # | Item | PR |
+|---|---|---|
+| 1 | Quick-start e catálogo do README não compilavam (8 componentes fantasma + params errados) | [#28](https://github.com/afernandes/Omni.Blazor/pull/28) |
+| 2 | `OmniDataGrid` formatava agregados com `pt-BR` cravado (bug de cultura) | [#28](https://github.com/afernandes/Omni.Blazor/pull/28) |
+| 3 | Links mortos nos templates de Auth | [#28](https://github.com/afernandes/Omni.Blazor/pull/28) |
+| 4 | Contagem de componentes divergente entre docs | [#28](https://github.com/afernandes/Omni.Blazor/pull/28) |
+| 6 | Distribuição + descoberta do `Omni.Templates` (README-índice das 26 páginas + link no README raiz) | [#29](https://github.com/afernandes/Omni.Blazor/pull/29) |
+| 7 | Drift do código copiável (16 classes inexistentes em 10 templates) + guarda na CI | [#29](https://github.com/afernandes/Omni.Blazor/pull/29) |
+| 8 | App-shell real + `FullScreenPath` finalmente vivo | [#29](https://github.com/afernandes/Omni.Blazor/pull/29) |
+| 5a | Seam de localização (`OmniTexts` + `AddOmniComponents(o => o.Texts = …)`) e as 17 strings que **não tinham override** | [#30](https://github.com/afernandes/Omni.Blazor/pull/30) |
+
+**Dois bugs de biblioteca descobertos no caminho** (afetavam todo consumidor, não estavam na análise original):
+
+- **Utilitários CSS que não shipavam** — `.omni-mono`, `.omni-muted`, `.omni-soft`, `.omni-flex-1` existiam só no CSS do app de demo, mas **6 componentes da lib** as usam (`OmniCard`, `OmniTextBox`, `OmniQtyStepper`, `OmniStepper`, Alert/ConfirmDialog) → renderizavam sem estilo em qualquer app consumidor. Corrigido em #29.
+- **Agregados do grid com cultura fixa** — rodapé em `pt-BR` ao lado de células em `CurrentCulture`. Corrigido em #28.
+
+Artefatos novos que passam a valer como convenção: [`scripts/check_template_code.py`](scripts/check_template_code.py) (guarda de drift, na CI) e o catálogo do README **gerado** de `docs/components.json`.
+
+---
+
+## 1. Lista priorizada (pendente)
+
+### P1 — Fundações
 
 | # | Item | Área | Esforço |
 |---|---|---|---|
-| 1 | Quick-start e catálogo do README não compilam (8 componentes fantasma) | Docs | S |
-| 2 | `OmniDataGrid` formata agregados com `pt-BR` cravado (bug de i18n) | Lib | S |
-| 3 | Links mortos nos templates de Auth | Templates | S |
-| 4 | Contagem de componentes divergente entre docs | Docs | S |
-
-### P1 — Fundações que destravam consumidores
-
-| # | Item | Área | Esforço |
-|---|---|---|---|
-| 5 | Seam central de localização (i18n) | Lib | L |
-| 6 | Distribuição + descoberta do `Omni.Templates` | Templates | M |
-| 7 | Fim do drift no código copiável dos templates | Templates | M |
+| 5b | Apontar os ~30 defaults de `[Parameter]` para o `OmniTexts` | Lib | M |
 
 ### P2 — Cobertura e consistência
 
 | # | Item | Área | Esforço |
 |---|---|---|---|
-| 8 | App-shell real + variedade de layouts nos templates | Templates | M |
 | 9 | Templates para os componentes-flagship (Kanban/Scheduler/Chat/Wizard/Tabs) | Templates | L |
 | 10 | Cobertura de showcase (~40 componentes sem página) | Docs | M |
 | 11 | Consistência de API pública (`Label`/`Content` → `Text`, `Open`/`IsOpen`, Tabs) | Lib | M |
 | 12 | Contrato único de binding multi-valor | Lib | L |
 | 13 | Acessibilidade sistêmica dos templates (`label for`, headings) | Templates | M |
+| 24 | Limpar as 4 utilitárias duplicadas no `_demo.scss` | Demo | S |
 
 ### P3 — Features que faltam
 
@@ -63,122 +74,17 @@ Consolida três fontes: a **auditoria de hardening** (2026-07-01, 7 PRs mergeado
 
 ## 2. Detalhamento
 
-### P0 · 1. Quick-start e catálogo do README não compilam
+### P1 · 5b. Apontar os defaults de `[Parameter]` para o `OmniTexts`
 
-**Problema.** O primeiro trecho de código que um consumidor copia **não compila** (`RZ10012`). Oito componentes citados no README **não existem** no código.
+**Contexto.** O seam existe e funciona (#30): `[Parameter]` → `Texts` registrado → default embutido. As **17 strings que não tinham override nenhum** já estão ligadas.
 
-**Evidência (verificada).**
-`README.md` referencia `OmniHeader`, `OmniSidebar`, `OmniIconButton`, `OmniConfirmDialog`, `OmniAlertDialog`, `OmniOverlays`, `OmniUpload`, `OmniHotkeys` — nenhum existe em `src/Omni.Blazor/Components`.
+**O que falta.** Cerca de **30 parâmetros** cujo default ainda é uma string pt-BR literal — `OmniChat.SendLabel`/`Placeholder`/`EmptyMessage`, `OmniStepper.NextText`/`PrevText`/`CompleteText`, `OmniScheduler.TodayText`/`NextText`/`PrevText`, `OmniDataFilter.*Text`, `OmniDataGrid.SearchPlaceholder`/`EmptyText`, `OmniDateRangePicker.*Text`, `OmniLayout.SkipLabel`, `OmniCommandPalette.Placeholder`, `OmniConfirmPrompt.ButtonText`, … Eles **já aceitam override por instância**, então o gap é menor — mas quem registra `OmniTexts.English()` ainda vê esses defaults em pt-BR, o que é incoerente.
 
-**Por que importa.** É o pior tipo de bug de onboarding: quebra a confiança no minuto zero, antes de qualquer avaliação da lib.
+**Como corrigir.** Por parâmetro: tornar nullable (`public string? X`), remover o inicializador e resolver no uso (`X ?? Texts.Chave`). São ~30 declarações e ~40 pontos de uso, todos simples (`@Param` em atributo/conteúdo). As chaves correspondentes **já existem** no `OmniTexts` (`Send`, `Next`, `Back`, `Complete`, `Today`, `Apply`, `Cancel`, `ClearAll`, `SearchPlaceholder`, `NoRecords`, …) — hoje sem consumidor.
 
-**Como corrigir.**
-1. Reescrever o Quick-start com os componentes reais de layout: `OmniLayout`, `OmniAppBar`, `OmniDrawer`, `OmniMain`, `OmniPanelMenu`, `OmniBrand` (todos existem).
-2. **Gerar a seção de catálogo a partir de `docs/components.json`** (já completo e validado na CI por drift-check) para que README e código não possam mais divergir.
-3. Compilar o snippet num projeto-teste (ou numa página do Forneria.Demo) como prova.
+**Cuidado.** `OmniDataFilter` reencaminha vários desses parâmetros por uma interface (`string IOmniDataFilterOwner.AddFilterText => AddFilterText;`) — a substituição precisa acertar só o lado direito.
 
-**Esforço:** S · **Área:** Docs
-
----
-
-### P0 · 2. `OmniDataGrid` formata agregados com `pt-BR` cravado
-
-**Problema.** Bug real de correção: o rodapé de agregados usa cultura fixa enquanto as células usam `CurrentCulture` — num app `en-US`/`de-DE` o separador decimal do total sai errado ao lado de valores certos.
-
-**Evidência (verificada).** `src/Omni.Blazor/Components/Data/OmniDataGrid.razor:1397-1399`:
-```csharp
-decimal d => d.ToString("N2", CultureInfo.GetCultureInfo("pt-BR")),
-double dbl => dbl.ToString("N2", CultureInfo.GetCultureInfo("pt-BR")),
-float f => f.ToString("N2", CultureInfo.GetCultureInfo("pt-BR")),
-```
-É o **único** hardcode de cultura em saída visível da lib (`OmniNumeric`/`OmniCalendar` usam `CurrentCulture` corretamente).
-
-**Como corrigir.** Trocar por `CultureInfo.CurrentCulture` nas três linhas + teste de regressão com cultura `en-US`.
-
-**Esforço:** S · **Área:** Lib
-
----
-
-### P0 · 3. Links mortos nos templates de Auth
-
-**Problema.** CTAs apontam para a própria página, então o fluxo de auth do starter não navega.
-
-**Evidência (verificada).** `src/Omni.Templates/Omni.Templates/Pages/Templates/Auth/LoginTemplate.razor`:
-- linha 54 — "Esqueci minha senha" → `/templates/auth/login` (deveria ser `/forgot`)
-- linha 73 — "Criar conta" → `/templates/auth/login` (deveria ser `/register`)
-- `TwoFactorTemplate` — "Usar outro método" com auto-link.
-
-**Como corrigir.** Apontar para as rotas reais (que já existem) **no markup e no bloco de código copiável**.
-
-**Esforço:** S · **Área:** Templates
-
----
-
-### P0 · 4. Contagem de componentes divergente
-
-**Problema.** O número de componentes aparece diferente em cada documento (77 / 170+ / ~181), e o manifesto diz **174**.
-
-**Como corrigir.** Derivar de `docs/components.json` em todos os pontos (README, AGENTS.md, CLAUDE.md, `<Description>` do NuGet) — de preferência no mesmo passo do item 1.
-
-**Esforço:** S · **Área:** Docs
-
----
-
-### P1 · 5. Seam central de localização (i18n)
-
-**Problema.** A lib **não tem nenhuma infraestrutura de localização** e tem texto visível/`aria` cravado em pt-BR sem parâmetro de override em vários componentes — um consumidor não-pt-BR precisa forkar a lib, e leitores de tela anunciam "Fechar"/"Ações" num app em inglês.
-
-**Evidência (verificada).**
-- Zero ocorrências de `IStringLocalizer`/`ResourceManager`/`.resx` em `src/Omni.Blazor`.
-- **17 arquivos** de componente com string pt-BR visível cravada (`DialogHost`, `TourHost`, `Alert`, `Banner`, `CommandPalette`, `Kanban`, `OmniChat`, …).
-- Split incoerente: a lib base tem defaults em pt-BR; a `Omni.Blazor.Ai` tem defaults em inglês.
-
-**Como corrigir.**
-1. `OmniLocalizationOptions` / `IOmniTextProvider` registrável em `AddOmniComponents(o => o.Texts = …)`, atuando como **fallback abaixo** dos `[Parameter]` existentes (não quebra nada).
-2. Promover as strings cravadas a parâmetros com default vindo do provider.
-3. Publicar exemplos `en`/`pt` e alinhar o idioma-padrão entre base e `.Ai`.
-
-**Por que P1.** É mecânico mas amplo, e é o **maior desbloqueio** para adoção internacional.
-
-**Esforço:** L · **Área:** Lib
-
----
-
-### P1 · 6. Distribuição + descoberta do `Omni.Templates`
-
-**Problema.** O projeto chamado "Templates" **não tem como ser consumido nem descoberto**: não é pacote NuGet (`IsPackable=false`), não é `dotnet new` (sem `PackageType=Template`/`.template.config`), não tem README, e o README raiz **nunca o menciona**. Existe só como preview local na porta 5305.
-
-**Como corrigir (decisão recomendada).** Para 24 páginas fortemente customizadas, **copy-paste documentado** é o modelo certo — não `dotnet new` por página.
-1. `src/Omni.Templates/README.md` com **índice** (página → rota → componentes usados) e screenshots.
-2. Link a partir do README raiz e do CLAUDE.md, com a frase explícita: *"starters de copy-paste, não um pacote"*.
-3. Documentar como rodar o host de preview (porta 5305).
-4. *(Opcional, alto valor)* **um** template de solução `dotnet new omni-app` — muito mais útil que templatizar 24 páginas.
-
-**Esforço:** M · **Área:** Templates
-
----
-
-### P1 · 7. Fim do drift no código copiável dos templates
-
-**Problema.** A promessa da galeria é *"copie o código, cole no seu projeto"*, mas o bloco copiável é um **duplicado mantido à mão que já divergiu** — consumidores colam markup silenciosamente quebrado.
-
-**Evidência.** `UsersTemplate.razor` emite `class="u-cell"`, que **não existe em nenhum SCSS**; vários blocos `_code` omitem `PropertyName`/formatters que o grid ao vivo usa.
-
-**Como corrigir (escolher um).**
-- **(a) Fonte única:** renderizar o preview a partir da própria string `_code` (impossível divergir); ou
-- **(b) Guarda automática:** teste que compara as classes CSS citadas no `_code` com as que existem no bundle e verifica a paridade de parâmetros.
-
-**Esforço:** M · **Área:** Templates
-
----
-
-### P2 · 8. App-shell real + variedade de layouts
-
-**Problema.** As **24 páginas usam o mesmo layout de galeria**; não há nenhum exemplo do **frame de aplicação** (topbar + sidebar colapsável + conteúdo) — justamente o artefato mais valioso de um starter. O gancho `TemplateDoc.FullScreenPath` (visualização sem o chrome da galeria) existe e é usado **0 vezes**.
-
-**Como corrigir.** Um layout de app-shell autônomo (`OmniAppBar` + `OmniDrawer` responsivo + `OmniMain`) e um master-detail (`OmniSplitView`), ambos expostos em tela cheia via o `FullScreenPath` já existente.
-
-**Esforço:** M · **Área:** Templates
+**Esforço:** M · **Área:** Lib
 
 ---
 
@@ -186,9 +92,9 @@ float f => f.ToString("N2", CultureInfo.GetCultureInfo("pt-BR")),
 
 **Problema.** Os componentes que **mais diferenciam** a lib e que são os **mais trabalhosos de montar numa tela real** têm **zero** cobertura de template.
 
-**Evidência (verificada).** Nos 24 templates, o uso de `OmniTabs`, `OmniStepper`, `OmniKanban`, `OmniScheduler`, `OmniChat`, `OmniSplitView`, `OmniDrawer`, `OmniGantt`, `OmniPivotGrid`, `OmniDataFilter` é **0**. Os templates só montam primitivos básicos.
+**Evidência (verificada).** Nos templates, o uso de `OmniTabs`, `OmniStepper`, `OmniKanban`, `OmniScheduler`, `OmniChat`, `OmniGantt`, `OmniPivotGrid`, `OmniDataFilter` é **0**. (O `OmniDrawer`/`OmniSplitView` passaram a aparecer no app-shell de #29.)
 
-**Como corrigir.** Telas realistas: board Kanban, agenda/Scheduler, Chat/Inbox (split), Onboarding com `OmniStepper`, Settings com `OmniTabs`. Cada uma com a página de showcase correspondente (regra do CONTRIBUTING).
+**Como corrigir.** Telas realistas: board Kanban, agenda/Scheduler, Chat/Inbox (split), Onboarding com `OmniStepper`, Settings com `OmniTabs`. Cada uma com a página de showcase correspondente (regra do CONTRIBUTING) e respeitando o guarda de drift.
 
 **Esforço:** L · **Área:** Templates
 
@@ -239,6 +145,18 @@ float f => f.ToString("N2", CultureInfo.GetCultureInfo("pt-BR")),
 **Como corrigir.** Passar `for`/`id` nos formulários e usar `<h1>`/`<h2>` reais **no markup e no bloco copiável**.
 
 **Esforço:** M · **Área:** Templates
+
+---
+
+### P2 · 24. Limpar as utilitárias duplicadas no `_demo.scss`
+
+**Contexto.** `.omni-mono`, `.omni-muted`, `.omni-soft` e `.omni-flex-1` passaram a shipar no bundle da lib (#29), mas o `_demo.scss` da Forneria.Demo **ainda as define localmente**. Os valores são idênticos, então é inofensivo — só redundante, e o prefixo `omni-` é da biblioteca por convenção.
+
+**Por que não saiu junto.** Remover exige **rebuild em Debug** do `forneria-demo.css`: um build em Release minifica o artefato commitado (5903 linhas → 1), gerando um diff enorme e enganoso.
+
+**Como corrigir.** Remover as 4 regras do `_demo.scss` e rebuildar `Forneria.Demo.Pages` **em Debug** no mesmo commit.
+
+**Esforço:** S · **Área:** Demo
 
 ---
 
@@ -303,9 +221,11 @@ Do levantamento de gaps anterior, ainda pendentes: **`OmniGlobalSearch` full-pag
 
 ## 3. Sequência recomendada
 
-1. **Sprint "confiança"** — P0 inteiro (itens 1–4) num único PR pequeno. Alto impacto, baixo risco.
-2. **Sprint "templates consumíveis"** — itens 6 + 7 + 8 (README/índice, fim do drift, app-shell). Transforma o ativo mais subutilizado do repo em entregável.
-3. **Sprint "i18n"** — item 5. Maior desbloqueio de adoção; mecânico, mas amplo.
-4. **Depois:** P2 (consistência/cobertura) e P3 (features), conforme demanda real de consumidores.
+1. ~~**Sprint "confiança"** — P0 (itens 1–4).~~ ✅ #28
+2. ~~**Sprint "templates consumíveis"** — itens 6 + 7 + 8.~~ ✅ #29
+3. ~~**Sprint "i18n"** — seam do item 5.~~ ✅ #30 *(falta o 5b)*
+4. **Agora:** fechar o **5b** (coerência do i18n, esforço M) e o **24** (S) — ambos pequenos e fecham frentes já abertas.
+5. **Depois:** **9** e **10** (cobertura: templates dos flagship + showcase) — é onde o consumidor mais sente falta hoje.
+6. **Conforme demanda:** 11–17.
 
-> Convenções obrigatórias para qualquer item: testes junto (cobertura ≥ 80%), lib packable sem warnings (`TreatWarningsAsErrors`), showcase por componente novo, e regenerar o manifesto (`dotnet run --project tools/Omni.Blazor.ManifestGen`) quando a API pública mudar.
+> Convenções obrigatórias para qualquer item: testes junto (cobertura ≥ 80%), lib packable sem warnings (`TreatWarningsAsErrors`), showcase por componente novo, o guarda de drift dos templates verde, e regenerar o manifesto (`dotnet run --project tools/Omni.Blazor.ManifestGen`) quando a API pública mudar.
