@@ -36,7 +36,7 @@
                 <div class="omni-kanban-search">
                     <OmniIcon Name="search" Size="ComponentSize.Sm" />
                     <input class="omni-kanban-search-input" type="text" value="@_search"
-                           placeholder="@SearchPlaceholder" aria-label="Buscar cards" @oninput="OnSearchInput" />
+                           placeholder="@EffSearchPlaceholder" aria-label="Buscar cards" @oninput="OnSearchInput" />
                 </div>
             }
             @if (QuickFilters is not null)
@@ -204,7 +204,8 @@
     [Parameter] public Func<TCard, string>? SearchSelector { get; set; }
 
     /// <summary>Placeholder da busca.</summary>
-    [Parameter] public string SearchPlaceholder { get; set; } = "Buscar...";
+    [Parameter] public string? SearchPlaceholder { get; set; }
+    private string EffSearchPlaceholder => SearchPlaceholder ?? Texts.SearchPlaceholder;
 
     /// <summary>Chips de filtro rápido (combinam em E). Cards que falham num filtro ativo são ocultados.</summary>
     [Parameter] public IEnumerable<KanbanQuickFilter<TCard>>? QuickFilters { get; set; }

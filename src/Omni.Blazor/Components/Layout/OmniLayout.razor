@@ -35,7 +35,7 @@
 <CascadingValue Value="this" IsFixed="true">
     @if (SkipToContent)
     {
-        <a class="omni-skip-link" href="@SkipTarget">@SkipLabel</a>
+        <a class="omni-skip-link" href="@SkipTarget">@EffSkipLabel</a>
     }
     <div class="@RootCss" style="@Style" @attributes="Attributes">
         @ChildContent
@@ -48,7 +48,8 @@
     [Parameter] public bool SkipToContent { get; set; } = true;
 
     /// <summary>Texto do link de skip. Default "Pular para o conteúdo".</summary>
-    [Parameter] public string SkipLabel { get; set; } = "Pular para o conteúdo";
+    [Parameter] public string? SkipLabel { get; set; }
+    private string EffSkipLabel => SkipLabel ?? Texts.SkipToContent;
 
     /// <summary>Âncora do skip link. Default <c>#main</c> (o OmniMain renderiza
     /// um elemento <c>&lt;main&gt;</c> que pode receber esse id no consumidor

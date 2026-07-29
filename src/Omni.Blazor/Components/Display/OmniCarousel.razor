@@ -36,7 +36,7 @@
             <OmniButton Class="omni-carousel-next" Icon="@NextIcon" Text="@NextText"
                         IconOnly="@string.IsNullOrEmpty(NextText)"
                         Variant="ButtonVariant" Size="ButtonSize"
-                        aria-label="@NextAriaLabel" OnClick="NextAsync" />
+                        aria-label="@EffNextAriaLabel" OnClick="NextAsync" />
         }
 
         <ul class="@ItemsCss" @ref="_itemsRef" data-omni-cid="@Id"
@@ -122,7 +122,8 @@
     [Parameter] public string PrevAriaLabel { get; set; } = "Slide anterior";
 
     /// <summary>Accessible label for the next button. Default "Próximo slide".</summary>
-    [Parameter] public string NextAriaLabel { get; set; } = "Próximo slide";
+    [Parameter] public string? NextAriaLabel { get; set; }
+    private string EffNextAriaLabel => NextAriaLabel ?? Texts.NextSlide;
 
     /// <summary>Format string for each pager dot's aria-label ({0} = 1-based page). Default "Ir para o slide {0}".</summary>
     [Parameter] public string PagerButtonAriaLabelFormat { get; set; } = "Ir para o slide {0}";

@@ -35,7 +35,7 @@
            placeholder="@ConfirmationText" autocomplete="off" spellcheck="false" />
     <button type="button" class="omni-btn omni-confirm-prompt-confirm"
             disabled="@(!IsMatch)" @onclick="OnConfirmAsync">
-        @ButtonText
+        @EffButtonText
     </button>
 </div>
 
@@ -50,7 +50,8 @@
     [Parameter] public string? Label { get; set; }
 
     /// <summary>Confirm button text. Default "Confirmar".</summary>
-    [Parameter] public string ButtonText { get; set; } = "Confirmar";
+    [Parameter] public string? ButtonText { get; set; }
+    private string EffButtonText => ButtonText ?? Texts.Confirm;
 
     /// <summary>Match case-sensitively. Default true.</summary>
     [Parameter] public bool CaseSensitive { get; set; } = true;

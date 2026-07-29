@@ -67,7 +67,7 @@
                 }
 
                 <div class="omni-datafilter-actions">
-                    <OmniButton Text="@CopyText" Icon="copy" Variant="ButtonVariant.Default"
+                    <OmniButton Text="@EffCopyText" Icon="copy" Variant="ButtonVariant.Default"
                                 Size="ComponentSize.Sm" OnClick="CopySqlAsync" Disabled="@Disabled" />
                     <OmniButton Text="@ApplySqlText" Icon="check" Variant="ButtonVariant.Primary"
                                 Size="ComponentSize.Sm" OnClick="ApplySqlAsync" Disabled="@(Disabled || _sqlError is not null)" />
@@ -83,12 +83,12 @@
                 <div class="omni-datafilter-actions">
                     @if (!Auto)
                     {
-                        <OmniButton Text="@ApplyFilterText" Icon="filter" Variant="ButtonVariant.Primary"
+                        <OmniButton Text="@EffApplyFilterText" Icon="filter" Variant="ButtonVariant.Primary"
                                     Size="ComponentSize.Sm" OnClick="ApplyFilterAsync" Disabled="@Disabled" />
                     }
                     @if (HasRules)
                     {
-                        <OmniButton Text="@ClearFilterText" Icon="x" Variant="ButtonVariant.Default"
+                        <OmniButton Text="@EffClearFilterText" Icon="x" Variant="ButtonVariant.Default"
                                     Size="ComponentSize.Sm" OnClick="ClearAsync" Disabled="@Disabled" />
                     }
                 </div>
@@ -100,7 +100,7 @@
                     <summary>@SqlPreviewLabel</summary>
                     <div class="omni-datafilter-sqlpreview-body">
                         <pre>@CurrentSql</pre>
-                        <OmniButton Text="@CopyText" Icon="copy" Variant="ButtonVariant.Default"
+                        <OmniButton Text="@EffCopyText" Icon="copy" Variant="ButtonVariant.Default"
                                     Size="ComponentSize.Sm" OnClick="CopyPreviewAsync" Disabled="@Disabled" />
                     </div>
                 </details>
@@ -148,19 +148,23 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Label of the "add condition" button. Default <c>"Adicionar condição"</c>.</summary>
-    [Parameter] public string AddFilterText { get; set; } = "Adicionar condição";
+    [Parameter] public string? AddFilterText { get; set; }
+    private string EffAddFilterText => AddFilterText ?? Texts.Add;
 
     /// <summary>Label of the "add group" button. Default <c>"Adicionar grupo"</c>.</summary>
     [Parameter] public string AddGroupText { get; set; } = "Adicionar grupo";
 
     /// <summary>Title/aria-label of the remove-condition button. Default <c>"Remover"</c>.</summary>
-    [Parameter] public string RemoveFilterText { get; set; } = "Remover";
+    [Parameter] public string? RemoveFilterText { get; set; }
+    private string EffRemoveFilterText => RemoveFilterText ?? Texts.Remove;
 
     /// <summary>Label of the "clear all" button. Default <c>"Limpar tudo"</c>.</summary>
-    [Parameter] public string ClearFilterText { get; set; } = "Limpar tudo";
+    [Parameter] public string? ClearFilterText { get; set; }
+    private string EffClearFilterText => ClearFilterText ?? Texts.ClearAll;
 
     /// <summary>Label of the apply button (shown when <see cref="Auto"/> is false). Default <c>"Aplicar"</c>.</summary>
-    [Parameter] public string ApplyFilterText { get; set; } = "Aplicar";
+    [Parameter] public string? ApplyFilterText { get; set; }
+    private string EffApplyFilterText => ApplyFilterText ?? Texts.Apply;
 
     /// <summary>Label of the AND logic toggle. Default <c>"E"</c>.</summary>
     [Parameter] public string AndOperatorText { get; set; } = "E";
@@ -195,7 +199,8 @@
     [Parameter] public string SqlPreviewLabel { get; set; } = "SQL gerado";
 
     /// <summary>Label of the copy button. Default <c>"Copiar"</c>.</summary>
-    [Parameter] public string CopyText { get; set; } = "Copiar";
+    [Parameter] public string? CopyText { get; set; }
+    private string EffCopyText => CopyText ?? Texts.Copy;
 
     /// <summary>Label preceding the available-fields chips in SQL mode. Default <c>"Campos"</c>.</summary>
     [Parameter] public string FieldsLabel { get; set; } = "Campos";
@@ -407,9 +412,9 @@
     bool IOmniDataFilterOwner.AllowGroups => AllowGroups;
     bool IOmniDataFilterOwner.Disabled => Disabled;
     ComponentSize IOmniDataFilterOwner.FieldSize => Size;
-    string IOmniDataFilterOwner.AddFilterText => AddFilterText;
+    string IOmniDataFilterOwner.AddFilterText => EffAddFilterText;
     string IOmniDataFilterOwner.AddGroupText => AddGroupText;
-    string IOmniDataFilterOwner.RemoveFilterText => RemoveFilterText;
+    string IOmniDataFilterOwner.RemoveFilterText => EffRemoveFilterText;
     string IOmniDataFilterOwner.AndText => AndOperatorText;
     string IOmniDataFilterOwner.OrText => OrOperatorText;
     string IOmniDataFilterOwner.PropertyPlaceholder => "Campo";

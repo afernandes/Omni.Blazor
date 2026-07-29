@@ -21,8 +21,8 @@
 
 <button type="button"
         class="@RootCss"
-        title="@Title"
-        aria-label="@Title"
+        title="@EffTitle"
+        aria-label="@EffTitle"
         aria-hidden="@(_visible ? "false" : "true")"
         tabindex="@(_visible ? "0" : "-1")"
         style="@RootStyle"
@@ -45,7 +45,8 @@
     [Parameter] public string Icon { get; set; } = "arrow-up";
 
     /// <summary>Tooltip + aria-label. Default <c>"Voltar ao topo"</c>.</summary>
-    [Parameter] public string Title { get; set; } = "Voltar ao topo";
+    [Parameter] public string? Title { get; set; }
+    private string EffTitle => Title ?? Texts.ScrollToTop;
 
     /// <summary>Canto da viewport. Default <c>BottomRight</c>.</summary>
     [Parameter] public FabPosition Position { get; set; } = FabPosition.BottomRight;
