@@ -147,11 +147,11 @@ Parameters:
 - `Icon`: string = plus — Ícone do FAB quando o menu está fechado. Default "plus".
 - `IsOpen`: bool = false — Two-way bound. Pode ser controlado externamente.
 - `OpenIcon`: string = x — Ícone do FAB quando o menu está aberto. Default "x" (padrão Material — close icon indica "agora fecha").
-- `OpenTitle`: string = Fechar menu — Tooltip quando aberto. Default "Fechar menu".
+- `OpenTitle`: string — Tooltip quando aberto. Default "Fechar menu".
 - `Position`: FabPosition {BottomRight | BottomLeft | TopRight | TopLeft | BottomCenter | Static} = BottomRight — Canto da viewport onde o FAB ancora. Default BottomRight.
 - `ShowBackdrop`: bool = false — Mostra um backdrop semi-transparente que cobre a tela quando o menu está aberto. Default false — speed dial clássico não usa, mas em mobile pode focar a atenção.
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Lg — Tamanho. Default Lg.
-- `Title`: string = Abrir menu — Tooltip quando fechado. Default "Abrir menu".
+- `Title`: string — Tooltip quando fechado. Default "Abrir menu".
 - `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Primary — Variant do FAB. Default Primary.
 Events:
 - `IsOpenChanged`: EventCallback<bool>
@@ -188,7 +188,7 @@ Parameters:
 - `ShowAfterPx`: double = 200 — Quantos pixels scrollados pra começar a mostrar. Default 200. Ignorado se ShowAfterPercent for setado.
 - `ShowProgress`: bool = false — Mostra anel de progresso (SVG) ao redor do ícone indicando quanto da página foi scrollada (0% no topo → 100% no final). Default false.
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Lg — Tamanho. Default Lg.
-- `Title`: string = Voltar ao topo — Tooltip + aria-label. Default "Voltar ao topo".
+- `Title`: string — Tooltip + aria-label. Default "Voltar ao topo".
 - `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Primary — Variant do botão. Default Primary.
 
 ### OmniSocialButton
@@ -247,21 +247,21 @@ OmniChat — self-contained chat UI (RadzenChat port): header (title + roster + 
 _base: OmniComponent · source: src/Omni.Blazor/Components/Data/Chat/OmniChat.razor_
 
 Parameters:
-- `ClearButtonText`: string = Limpar — Label for the clear button. Default "Limpar".
+- `ClearButtonText`: string — Label for the clear button. Default "Limpar".
 - `CurrentUserId`: string =  — The id of the current user — their messages align right; others' align left.
 - `DateSeparatorFormat`: string = D — Date format for the day separators. Default "D".
 - `Disabled`: bool = false — Disables the whole chat (compose box, send, clear). Default false.
-- `EmptyMessage`: string = Nenhuma mensagem ainda. Comece a conversa! — Text shown when there are no messages. Default "Nenhuma mensagem ainda. Comece a conversa!".
+- `EmptyMessage`: string — Text shown when there are no messages. Default "Nenhuma mensagem ainda. Comece a conversa!".
 - `Height`: string = 480px — Height of the chat (CSS). Default 480px.
 - `InputLabel`: string = Mensagem — Accessible label (aria-label) for the compose textarea — describes the field, not the send action. Default "Mensagem".
 - `MaxMessages`: int = 200 — Max messages kept; older ones are trimmed once exceeded. Default 200.
 - `MaxVisibleUsers`: int = 5 — Max roster avatars shown before a "+N" overflow badge. Default 5.
 - `Messages`: IEnumerable<OmniChatMessage> — The messages to render (two-way via MessagesChanged).
 - `MessagesLabel`: string = Mensagens — Accessible label (aria-label) for the message log region. Default "Mensagens".
-- `Placeholder`: string = Digite uma mensagem... — Compose-box placeholder. Default "Digite uma mensagem...".
+- `Placeholder`: string — Compose-box placeholder. Default "Digite uma mensagem...".
 - `ReadOnly`: bool = false — Read-only mode — messages render but the compose box is disabled. Default false.
 - `RenderMarkdown`: bool = true — Render bubble content as Markdown (default) or plain text.
-- `SendLabel`: string = Enviar — Accessible label / tooltip for the send button. Default "Enviar".
+- `SendLabel`: string — Accessible label / tooltip for the send button. Default "Enviar".
 - `ShowClearButton`: bool = true — Shows the "clear chat" button in the header. Default true.
 - `ShowDateSeparator`: bool = true — Inserts a date separator between messages from different days. Default true.
 - `ShowTypingIndicator`: bool = false — Shows a typing indicator when remote users are typing (see SetUserTypingAsync). Default false.
@@ -951,13 +951,13 @@ Parameters:
 - `ButtonVariant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Ghost — Variant of the prev/next buttons. Default Ghost.
 - `Interval`: double = 4000 — Auto-cycle interval in milliseconds. Default 4000.
 - `ItemsPerPage`: int = 1 — Number of slides visible at once. Default 1.
-- `NextAriaLabel`: string = Próximo slide — Accessible label for the next button. Default "Próximo slide".
+- `NextAriaLabel`: string — Accessible label for the next button. Default "Próximo slide".
 - `NextIcon`: string = chevron-right — Next-button icon name. Default "chevron-right".
 - `NextText`: string =  — Optional next-button text.
 - `PagerButtonAriaLabelFormat`: string = Ir para o slide {0} — Format string for each pager dot's aria-label ({0} = 1-based page). Default "Ir para o slide {0}".
 - `PagerOverlay`: bool = true — Whether the pager overlays the slides (vs. sitting outside). Default true.
 - `PagerPosition`: CarouselPagerPosition {Top | Bottom | TopAndBottom} = Bottom — Pager (dots) position. Default Bottom.
-- `PrevAriaLabel`: string = Slide anterior — Accessible label for the previous button. Default "Slide anterior".
+- `PrevAriaLabel`: string — Accessible label for the previous button. Default "Slide anterior".
 - `PrevIcon`: string = chevron-left — Previous-button icon name. Default "chevron-left".
 - `PrevText`: string =  — Optional previous-button text (shown alongside / instead of the icon).
 - `SelectedIndex`: int = 0 — Index of the active slide. Two-way bindable via @bind-SelectedIndex.
@@ -1403,10 +1403,10 @@ Date range picker with a single combined input.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniDateRangePicker.razor_
 
 Parameters:
-- `ApplyText`: string = Aplicar — Label for the apply button (shown when AutoApply is off). Default "Aplicar".
+- `ApplyText`: string — Label for the apply button (shown when AutoApply is off). Default "Aplicar".
 - `AutoApply`: bool = true — When true (default), the second click on a day commits and closes the picker immediately. When false, the popover stays open and Apply / Cancel buttons are shown so the user can preview before committing.
-- `CancelText`: string = Cancelar — Label for the cancel button (shown when AutoApply is off). Default "Cancelar".
-- `ClearText`: string = Limpar — Label for the clear button. Default "Limpar".
+- `CancelText`: string — Label for the cancel button (shown when AutoApply is off). Default "Cancelar".
+- `ClearText`: string — Label for the clear button. Default "Limpar".
 - `DateFormat`: string = dd/MM/yyyy — Format used to display the From/To dates in the input. Default "dd/MM/yyyy".
 - `DateRender`: Action<DateRenderEventArgs> — Per-day render hook applied to both calendars (holidays, markers, tooltips).
 - `DisableWeekends`: bool = false — Disable Saturdays and Sundays on both calendars. Default false.
@@ -1965,7 +1965,7 @@ Container raiz do shell.
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniLayout.razor_
 
 Parameters:
-- `SkipLabel`: string = Pular para o conteúdo — Texto do link de skip. Default "Pular para o conteúdo".
+- `SkipLabel`: string — Texto do link de skip. Default "Pular para o conteúdo".
 - `SkipTarget`: string = #main — Âncora do skip link. Default #main (o OmniMain renderiza um elemento <main> que pode receber esse id no consumidor via Class ou attributes).
 - `SkipToContent`: bool = true — Renderiza um "skip to content" link visível apenas com foco por teclado (Tab no início da página). WCAG 2.4.1. Default true.
 
@@ -2316,10 +2316,10 @@ _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Bla
 
 Parameters:
 - `ActiveStep`: int = 0 — Zero-based index of the active step. Two-way bindable via @bind-ActiveStep.
-- `CompleteText`: string = Concluir — Label of the final "complete" button shown on the last step. Default "Concluir".
+- `CompleteText`: string — Label of the final "complete" button shown on the last step. Default "Concluir".
 - `Linear`: bool = true — When true, steps must be completed in order: you cannot jump forward past the next step or click a pending step. Default true.
-- `NextText`: string = Próximo — Label of the "next step" button. Default "Próximo".
-- `PrevText`: string = Voltar — Label of the "previous step" button. Default "Voltar".
+- `NextText`: string — Label of the "next step" button. Default "Próximo".
+- `PrevText`: string — Label of the "previous step" button. Default "Voltar".
 Events:
 - `ActiveStepChanged`: EventCallback<int> — Raised when the active step changes, carrying the new zero-based index.
 - `OnComplete`: EventCallback — Raised when the complete button on the last step is clicked.
@@ -2394,7 +2394,7 @@ Parameters:
 - `HistoryKey`: string = default — Namespace key for the recent-command history (lets multiple palettes keep separate history).
 - `HotKey`: string = Ctrl+K|Meta+K — The open hotkey combo. Default Ctrl+K (Win/Linux) and Cmd+K (mac).
 - `Open`: bool = false — Open state (two-way). Also toggled by the global hotkey.
-- `Placeholder`: string = Buscar comando... — Search box placeholder.
+- `Placeholder`: string — Search box placeholder.
 - `RecentCount`: int = 5 — How many recent commands to surface in the "Recentes" section.
 - `RecentLabel`: string = Recentes — Heading for the recent-commands section.
 - `SearchDebounce`: int = 200 — Debounce (ms) before calling CommandSource. Default 200.
@@ -2408,7 +2408,7 @@ Destructive-action confirmation that requires the user to TYPE a matching phrase
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniConfirmPrompt.razor_
 
 Parameters:
-- `ButtonText`: string = Confirmar — Confirm button text. Default "Confirmar".
+- `ButtonText`: string — Confirm button text. Default "Confirmar".
 - `CaseSensitive`: bool = true — Match case-sensitively. Default true.
 - `ConfirmationText`: string *required* =  — The phrase the user must type exactly to enable the confirm button.
 - `Label`: string — Instruction above the input. Defaults to "Digite \"{ConfirmationText}\" para confirmar".
