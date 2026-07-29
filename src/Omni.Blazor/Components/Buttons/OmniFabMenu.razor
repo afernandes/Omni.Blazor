@@ -107,7 +107,8 @@
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Tooltip quando fechado. Default <c>"Abrir menu"</c>.</summary>
-    [Parameter] public string Title { get; set; } = "Abrir menu";
+    [Parameter] public string? Title { get; set; }
+    private string EffTitle => Title ?? Texts.OpenMenu;
 
     /// <summary>Tooltip quando aberto. Default <c>"Fechar menu"</c>.</summary>
     [Parameter] public string? OpenTitle { get; set; }
@@ -148,7 +149,7 @@
     private string _id = $"omni-fab-{Guid.NewGuid():N}";
 
     private string CurrentIcon => _isOpen ? OpenIcon : Icon;
-    private string CurrentTitle => _isOpen ? EffOpenTitle : Title;
+    private string CurrentTitle => _isOpen ? EffOpenTitle : EffTitle;
 
     private string BackdropCss => CssBuilder.Default("omni-fab-backdrop")
         // Em Static, vira absolute pra escopar ao container pai (que deve

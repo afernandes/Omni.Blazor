@@ -41,6 +41,12 @@ public class OmniTexts
     public string Apply { get; set; } = "Aplicar";
     /// <summary>Add. Default "Adicionar".</summary>
     public string Add { get; set; } = "Adicionar";
+    /// <summary>Add a filter condition (data filter). Default "Adicionar condição".</summary>
+    public string AddCondition { get; set; } = "Adicionar condição";
+    /// <summary>Add a filter group (data filter). Default "Adicionar grupo".</summary>
+    public string AddGroup { get; set; } = "Adicionar grupo";
+    /// <summary>Apply the typed SQL back to the filter (data filter). Default "Aplicar ao filtro".</summary>
+    public string ApplyToFilter { get; set; } = "Aplicar ao filtro";
     /// <summary>Remove. Default "Remover".</summary>
     public string Remove { get; set; } = "Remover";
     /// <summary>Send. Default "Enviar".</summary>
@@ -75,6 +81,8 @@ public class OmniTexts
     public string ScrollToTop { get; set; } = "Voltar ao topo";
     /// <summary>Close the navigation drawer/pane. Default "Fechar navegação".</summary>
     public string CloseNavigation { get; set; } = "Fechar navegação";
+    /// <summary>Open a FAB menu. Default "Abrir menu".</summary>
+    public string OpenMenu { get; set; } = "Abrir menu";
     /// <summary>Close a FAB menu. Default "Fechar menu".</summary>
     public string CloseMenu { get; set; } = "Fechar menu";
 
@@ -113,6 +121,9 @@ public class OmniTexts
         Confirm = "Confirm",
         Apply = "Apply",
         Add = "Add",
+        AddCondition = "Add condition",
+        AddGroup = "Add group",
+        ApplyToFilter = "Apply to filter",
         Remove = "Remove",
         Send = "Send",
         Copy = "Copy",
@@ -129,6 +140,7 @@ public class OmniTexts
         SkipToContent = "Skip to content",
         ScrollToTop = "Back to top",
         CloseNavigation = "Close navigation",
+        OpenMenu = "Open menu",
         CloseMenu = "Close menu",
         SearchPlaceholder = "Search...",
         CommandPlaceholder = "Search command...",

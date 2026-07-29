@@ -69,7 +69,7 @@
                 <div class="omni-datafilter-actions">
                     <OmniButton Text="@EffCopyText" Icon="copy" Variant="ButtonVariant.Default"
                                 Size="ComponentSize.Sm" OnClick="CopySqlAsync" Disabled="@Disabled" />
-                    <OmniButton Text="@ApplySqlText" Icon="check" Variant="ButtonVariant.Primary"
+                    <OmniButton Text="@EffApplySqlText" Icon="check" Variant="ButtonVariant.Primary"
                                 Size="ComponentSize.Sm" OnClick="ApplySqlAsync" Disabled="@(Disabled || _sqlError is not null)" />
                 </div>
             </div>
@@ -149,10 +149,11 @@
 
     /// <summary>Label of the "add condition" button. Default <c>"Adicionar condição"</c>.</summary>
     [Parameter] public string? AddFilterText { get; set; }
-    private string EffAddFilterText => AddFilterText ?? Texts.Add;
+    private string EffAddFilterText => AddFilterText ?? Texts.AddCondition;
 
     /// <summary>Label of the "add group" button. Default <c>"Adicionar grupo"</c>.</summary>
-    [Parameter] public string AddGroupText { get; set; } = "Adicionar grupo";
+    [Parameter] public string? AddGroupText { get; set; }
+    private string EffAddGroupText => AddGroupText ?? Texts.AddGroup;
 
     /// <summary>Title/aria-label of the remove-condition button. Default <c>"Remover"</c>.</summary>
     [Parameter] public string? RemoveFilterText { get; set; }
@@ -190,7 +191,8 @@
     [Parameter] public string SqlModeText { get; set; } = "SQL";
 
     /// <summary>Label of the "apply SQL to filter" button. Default <c>"Aplicar ao filtro"</c>.</summary>
-    [Parameter] public string ApplySqlText { get; set; } = "Aplicar ao filtro";
+    [Parameter] public string? ApplySqlText { get; set; }
+    private string EffApplySqlText => ApplySqlText ?? Texts.ApplyToFilter;
 
     /// <summary>Status text shown when the typed SQL is valid. Default <c>"SQL válido"</c>.</summary>
     [Parameter] public string SqlValidText { get; set; } = "SQL válido";
@@ -413,7 +415,7 @@
     bool IOmniDataFilterOwner.Disabled => Disabled;
     ComponentSize IOmniDataFilterOwner.FieldSize => Size;
     string IOmniDataFilterOwner.AddFilterText => EffAddFilterText;
-    string IOmniDataFilterOwner.AddGroupText => AddGroupText;
+    string IOmniDataFilterOwner.AddGroupText => EffAddGroupText;
     string IOmniDataFilterOwner.RemoveFilterText => EffRemoveFilterText;
     string IOmniDataFilterOwner.AndText => AndOperatorText;
     string IOmniDataFilterOwner.OrText => OrOperatorText;
