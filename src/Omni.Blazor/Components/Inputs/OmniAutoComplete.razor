@@ -27,7 +27,7 @@
     <input class="omni-input omni-autocomplete-input"
            type="text"
            value="@_searchText"
-           placeholder="@Placeholder"
+           placeholder="@EffPlaceholder"
            disabled="@Disabled"
            readonly="@ReadOnly"
            name="@Name"
@@ -64,7 +64,7 @@
             }
             else if (_filtered.Count == 0)
             {
-                <div class="omni-autocomplete-status">@EmptyText</div>
+                <div class="omni-autocomplete-status">@EffEmptyText</div>
             }
             else
             {
@@ -87,13 +87,15 @@
 
 @code {
     /// <summary>Placeholder text shown in the search input. Default "Buscar...".</summary>
-    [Parameter] public string? Placeholder { get; set; } = "Buscar...";
+    [Parameter] public string? Placeholder { get; set; }
+    private string EffPlaceholder => Placeholder ?? Texts.SearchPlaceholder;
     /// <summary>Visual size of the input. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
     /// <summary>Show a clear (×) button when a value is selected. Default true.</summary>
     [Parameter] public bool Clearable { get; set; } = true;
     /// <summary>Text shown in the dropdown when no results match. Default "Nenhum resultado.".</summary>
-    [Parameter] public string EmptyText { get; set; } = "Nenhum resultado.";
+    [Parameter] public string? EmptyText { get; set; }
+    private string EffEmptyText => EmptyText ?? Texts.NoResults;
 
     /// <summary>Synchronous item source. Use this OR LoadData, not both.</summary>
     [Parameter] public IEnumerable<TItem>? Items { get; set; }
