@@ -49,7 +49,7 @@
             }
             <input class="omni-autofocus omni-cmdk-input" type="text" value="@_query" @ref="_inputRef"
                    @oninput="OnInput" @onkeydown="OnKeyDown"
-                   placeholder="@Placeholder" autocomplete="off" spellcheck="false"
+                   placeholder="@EffPlaceholder" autocomplete="off" spellcheck="false"
                    role="combobox" aria-expanded="true" aria-controls="@($"{_id}-list")" />
             @if (_loading)
             {
@@ -147,7 +147,8 @@
     [Parameter] public EventCallback<bool> OpenChanged { get; set; }
 
     /// <summary>Search box placeholder.</summary>
-    [Parameter] public string Placeholder { get; set; } = "Buscar comando...";
+    [Parameter] public string? Placeholder { get; set; }
+    private string EffPlaceholder => Placeholder ?? Texts.CommandPlaceholder;
 
     /// <summary>Bind the global open hotkey. Default true.</summary>
     [Parameter] public bool EnableHotkey { get; set; } = true;

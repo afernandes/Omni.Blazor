@@ -33,17 +33,17 @@
                         @if (ShowTodayButton)
                         {
                             <OmniButton Size="ComponentSize.Sm" Variant="ButtonVariant.Default"
-                                        Text="@TodayText" OnClick="OnTodayAsync" />
+                                        Text="@EffTodayText" OnClick="OnTodayAsync" />
                         }
                         @if (ShowNavigationButtons)
                         {
                             <div class="omni-scheduler-nav-arrows">
-                                <button type="button" class="omni-scheduler-nav-arrow" title="@PrevText"
-                                        aria-label="@PrevText" @onclick="OnPrevAsync">
+                                <button type="button" class="omni-scheduler-nav-arrow" title="@EffPrevText"
+                                        aria-label="@EffPrevText" @onclick="OnPrevAsync">
                                     <OmniIcon Name="chevron-left" Size="ComponentSize.Sm" />
                                 </button>
-                                <button type="button" class="omni-scheduler-nav-arrow" title="@NextText"
-                                        aria-label="@NextText" @onclick="OnNextAsync">
+                                <button type="button" class="omni-scheduler-nav-arrow" title="@EffNextText"
+                                        aria-label="@EffNextText" @onclick="OnNextAsync">
                                     <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
                                 </button>
                             </div>
@@ -130,13 +130,16 @@
     [Parameter] public bool ShowDateTitle { get; set; } = true;
 
     /// <summary>Label for the "today" button. Default <c>"Hoje"</c>.</summary>
-    [Parameter] public string TodayText { get; set; } = "Hoje";
+    [Parameter] public string? TodayText { get; set; }
+    private string EffTodayText => TodayText ?? Texts.Today;
 
     /// <summary>Title/aria-label for the next-range arrow. Default <c>"Próximo"</c>.</summary>
-    [Parameter] public string NextText { get; set; } = "Próximo";
+    [Parameter] public string? NextText { get; set; }
+    private string EffNextText => NextText ?? Texts.Next;
 
     /// <summary>Title/aria-label for the previous-range arrow. Default <c>"Anterior"</c>.</summary>
-    [Parameter] public string PrevText { get; set; } = "Anterior";
+    [Parameter] public string? PrevText { get; set; }
+    private string EffPrevText => PrevText ?? Texts.Previous;
 
     // ─── Event callbacks ──────────────────────────────────────────────────
 

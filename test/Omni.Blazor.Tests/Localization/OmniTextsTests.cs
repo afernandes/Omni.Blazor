@@ -101,4 +101,36 @@ public class OmniTextsTests : TestContextBase
 
         Assert.Equal("Fechar", cut.Find(".omni-alert-close").GetAttribute("aria-label"));
     }
+
+    // ── [Parameter] defaults now come from the seam too ───────────────────
+
+    [Fact]
+    public void Parameter_default_follows_the_registered_texts()
+    {
+        Services.AddSingleton(OmniTexts.English());
+
+        var cut = Render<OmniLayout>(p => p.Add(c => c.SkipTarget, "#content"));
+
+        Assert.Contains("Skip to content", cut.Find("a.omni-skip-link").TextContent);
+    }
+
+    [Fact]
+    public void Parameter_default_is_pt_br_without_registration()
+    {
+        var cut = Render<OmniLayout>(p => p.Add(c => c.SkipTarget, "#content"));
+
+        Assert.Contains("Pular para o conteúdo", cut.Find("a.omni-skip-link").TextContent);
+    }
+
+    [Fact]
+    public void An_explicit_parameter_still_wins_over_the_registered_texts()
+    {
+        Services.AddSingleton(OmniTexts.English());
+
+        var cut = Render<OmniLayout>(p => p
+            .Add(c => c.SkipLabel, "Ir para o conteúdo")
+            .Add(c => c.SkipTarget, "#content"));
+
+        Assert.Contains("Ir para o conteúdo", cut.Find("a.omni-skip-link").TextContent);
+    }
 }

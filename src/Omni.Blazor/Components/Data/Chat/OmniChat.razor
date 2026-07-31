@@ -44,7 +44,7 @@
             </div>
             @if (ShowClearButton && !Disabled)
             {
-                <button type="button" class="omni-chat-clear" @onclick="ClearChatAsync">@ClearButtonText</button>
+                <button type="button" class="omni-chat-clear" @onclick="ClearChatAsync">@EffClearButtonText</button>
             }
         </div>
     }
@@ -54,7 +54,7 @@
         {
             <div class="omni-chat-empty">
                 @if (EmptyTemplate is not null) { @EmptyTemplate }
-                else { @EmptyMessage }
+                else { @EffEmptyMessage }
             </div>
         }
         else
@@ -120,11 +120,11 @@
     </div>
 
     <div class="omni-chat-input">
-        <textarea class="omni-chat-textarea" rows="1" placeholder="@Placeholder"
+        <textarea class="omni-chat-textarea" rows="1" placeholder="@EffPlaceholder"
                   aria-label="@InputLabel"
                   @ref="_inputRef" value="@_input" @oninput="OnInputChangedAsync"
                   disabled="@(Disabled || ReadOnly)"></textarea>
-        <button type="button" class="omni-chat-send" title="@SendLabel" aria-label="@SendLabel"
+        <button type="button" class="omni-chat-send" title="@EffSendLabel" aria-label="@EffSendLabel"
                 disabled="@(Disabled || ReadOnly || string.IsNullOrWhiteSpace(_input))"
                 @onclick="@(() => SendAsync(_input))">
             <OmniIcon Name="arrow-up" Size="ComponentSize.Sm" />
@@ -161,7 +161,8 @@
     [Parameter] public bool ShowClearButton { get; set; } = true;
 
     /// <summary>Label for the clear button. Default <c>"Limpar"</c>.</summary>
-    [Parameter] public string ClearButtonText { get; set; } = "Limpar";
+    [Parameter] public string? ClearButtonText { get; set; }
+    private string EffClearButtonText => ClearButtonText ?? Texts.Clear;
 
     /// <summary>Inserts a date separator between messages from different days. Default true.</summary>
     [Parameter] public bool ShowDateSeparator { get; set; } = true;
@@ -173,10 +174,12 @@
     [Parameter] public string TimestampFormat { get; set; } = "HH:mm";
 
     /// <summary>Compose-box placeholder. Default <c>"Digite uma mensagem..."</c>.</summary>
-    [Parameter] public string Placeholder { get; set; } = "Digite uma mensagem...";
+    [Parameter] public string? Placeholder { get; set; }
+    private string EffPlaceholder => Placeholder ?? Texts.MessagePlaceholder;
 
     /// <summary>Accessible label / tooltip for the send button. Default <c>"Enviar"</c>.</summary>
-    [Parameter] public string SendLabel { get; set; } = "Enviar";
+    [Parameter] public string? SendLabel { get; set; }
+    private string EffSendLabel => SendLabel ?? Texts.Send;
 
     /// <summary>Accessible label (<c>aria-label</c>) for the compose textarea — describes the
     /// field, not the send action. Default <c>"Mensagem"</c>.</summary>
@@ -186,7 +189,8 @@
     [Parameter] public string MessagesLabel { get; set; } = "Mensagens";
 
     /// <summary>Text shown when there are no messages. Default <c>"Nenhuma mensagem ainda. Comece a conversa!"</c>.</summary>
-    [Parameter] public string EmptyMessage { get; set; } = "Nenhuma mensagem ainda. Comece a conversa!";
+    [Parameter] public string? EmptyMessage { get; set; }
+    private string EffEmptyMessage => EmptyMessage ?? Texts.NoMessages;
 
     /// <summary>Disables the whole chat (compose box, send, clear). Default false.</summary>
     [Parameter] public bool Disabled { get; set; }

@@ -97,12 +97,12 @@
                         <div class="omni-row omni-row-gap-8">
                             @if (ShowClearButton)
                             {
-                                <OmniButton Text="@ClearText" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" OnClick="ClearAsync" />
+                                <OmniButton Text="@EffClearText" Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" OnClick="ClearAsync" />
                             }
                             @if (!AutoApply)
                             {
-                                <OmniButton Text="@CancelText" Variant="ButtonVariant.Ghost"  Size="ComponentSize.Sm" OnClick="CancelAsync" />
-                                <OmniButton Text="@ApplyText"  Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                <OmniButton Text="@EffCancelText" Variant="ButtonVariant.Ghost"  Size="ComponentSize.Sm" OnClick="CancelAsync" />
+                                <OmniButton Text="@EffApplyText"  Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
                                              Disabled="@(_pendingFrom is null || _pendingTo is null)"
                                              OnClick="CommitAsync" />
                             }
@@ -187,11 +187,14 @@
     [Parameter] public bool ShowClearButton { get; set; } = true;
 
     /// <summary>Label for the clear button. Default "Limpar".</summary>
-    [Parameter] public string ClearText  { get; set; } = "Limpar";
+    [Parameter] public string? ClearText { get; set; }
+    private string EffClearText => ClearText ?? Texts.Clear;
     /// <summary>Label for the apply button (shown when AutoApply is off). Default "Aplicar".</summary>
-    [Parameter] public string ApplyText  { get; set; } = "Aplicar";
+    [Parameter] public string? ApplyText { get; set; }
+    private string EffApplyText => ApplyText ?? Texts.Apply;
     /// <summary>Label for the cancel button (shown when AutoApply is off). Default "Cancelar".</summary>
-    [Parameter] public string CancelText { get; set; } = "Cancelar";
+    [Parameter] public string? CancelText { get; set; }
+    private string EffCancelText => CancelText ?? Texts.Cancel;
 
     /// <summary>Whether the footer row is rendered at all. Hidden if no buttons would show and AutoApply is on.</summary>
     private bool ShowFooter => ShowClearButton || !AutoApply || true;

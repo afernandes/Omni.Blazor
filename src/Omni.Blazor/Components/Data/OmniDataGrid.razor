@@ -19,7 +19,7 @@
                 @if (AllowSearch)
                 {
                     <OmniTextBox Class="omni-grid-search"
-                                  Placeholder="@SearchPlaceholder"
+                                  Placeholder="@EffSearchPlaceholder"
                                   LeadingIcon="search"
                                   Clearable="true"
                                   Value="@_search"
@@ -207,7 +207,7 @@
                     {
                         <tr><td colspan="@FullColSpan" class="omni-grid-empty">
                             @if (EmptyTemplate is not null) { @EmptyTemplate }
-                            else { @EmptyText }
+                            else { @EffEmptyText }
                         </td></tr>
                     }
                     else if (IsHierarchyMode)
@@ -345,10 +345,12 @@
     [Parameter] public int PageSize { get; set; } = 10;
 
     /// <summary>Placeholder do campo de busca. Default <c>"Buscar..."</c>.</summary>
-    [Parameter] public string SearchPlaceholder { get; set; } = "Buscar...";
+    [Parameter] public string? SearchPlaceholder { get; set; }
+    private string EffSearchPlaceholder => SearchPlaceholder ?? Texts.SearchPlaceholder;
 
     /// <summary>Texto exibido quando não há registros. Default <c>"Nenhum registro encontrado."</c>.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Nenhum registro encontrado.";
+    [Parameter] public string? EmptyText { get; set; }
+    private string EffEmptyText => EmptyText ?? Texts.NoRecords;
 
     /// <summary>Emitido quando uma linha é clicada (fora do modo edição).</summary>
     [Parameter] public EventCallback<TItem> OnRowClick { get; set; }

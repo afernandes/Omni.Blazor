@@ -75,18 +75,18 @@
         </div>
 
         <div class="omni-stepper-foot">
-            <OmniButton Text="@PrevText" Icon="chevron-left"
+            <OmniButton Text="@EffPrevText" Icon="chevron-left"
                          Disabled="@(ActiveStep == 0)"
                          OnClick="@(_ => GoToAsync(ActiveStep - 1))" />
             <div class="omni-flex-1"></div>
             @if (ActiveStep < _steps.Count - 1)
             {
-                <OmniButton Text="@NextText" TrailingIcon="chevron-right" Variant="ButtonVariant.Primary"
+                <OmniButton Text="@EffNextText" TrailingIcon="chevron-right" Variant="ButtonVariant.Primary"
                              OnClick="@(_ => GoToAsync(ActiveStep + 1))" />
             }
             else
             {
-                <OmniButton Text="@CompleteText" Icon="check" Variant="ButtonVariant.Primary"
+                <OmniButton Text="@EffCompleteText" Icon="check" Variant="ButtonVariant.Primary"
                              OnClick="OnCompleteClickAsync" />
             }
         </div>
@@ -103,11 +103,14 @@
     /// <summary>Raised when the complete button on the last step is clicked.</summary>
     [Parameter] public EventCallback OnComplete { get; set; }
     /// <summary>Label of the "next step" button. Default "Próximo".</summary>
-    [Parameter] public string NextText { get; set; } = "Próximo";
+    [Parameter] public string? NextText { get; set; }
+    private string EffNextText => NextText ?? Texts.Next;
     /// <summary>Label of the "previous step" button. Default "Voltar".</summary>
-    [Parameter] public string PrevText { get; set; } = "Voltar";
+    [Parameter] public string? PrevText { get; set; }
+    private string EffPrevText => PrevText ?? Texts.Back;
     /// <summary>Label of the final "complete" button shown on the last step. Default "Concluir".</summary>
-    [Parameter] public string CompleteText { get; set; } = "Concluir";
+    [Parameter] public string? CompleteText { get; set; }
+    private string EffCompleteText => CompleteText ?? Texts.Complete;
 
     internal enum StepStatus { Done, Active, Pending }
 

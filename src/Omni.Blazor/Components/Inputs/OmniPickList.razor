@@ -28,9 +28,9 @@
         }
         @if (AllowFiltering)
         {
-            <input class="omni-picklist-filter" type="search" placeholder="@FilterPlaceholder"
+            <input class="omni-picklist-filter" type="search" placeholder="@EffFilterPlaceholder"
                    value="@_sourceFilter" @oninput="@(e => _sourceFilter = e.Value?.ToString() ?? "")"
-                   disabled="@Disabled" aria-label="@($"{FilterPlaceholder} ({SourceTitle})")" />
+                   disabled="@Disabled" aria-label="@($"{EffFilterPlaceholder} ({SourceTitle})")" />
         }
         @if (FilteredSource.Count > 0)
         {
@@ -76,9 +76,9 @@
         }
         @if (AllowFiltering)
         {
-            <input class="omni-picklist-filter" type="search" placeholder="@FilterPlaceholder"
+            <input class="omni-picklist-filter" type="search" placeholder="@EffFilterPlaceholder"
                    value="@_targetFilter" @oninput="@(e => _targetFilter = e.Value?.ToString() ?? "")"
-                   disabled="@Disabled" aria-label="@($"{FilterPlaceholder} ({TargetTitle})")" />
+                   disabled="@Disabled" aria-label="@($"{EffFilterPlaceholder} ({TargetTitle})")" />
         }
         @if (FilteredTarget.Count > 0)
         {
@@ -160,7 +160,8 @@
     /// <summary>Text shown when the target list is empty.</summary>
     [Parameter] public string TargetEmptyText { get; set; } = "Lista vazia";
     /// <summary>Placeholder for the filter boxes.</summary>
-    [Parameter] public string FilterPlaceholder { get; set; } = "Filtrar…";
+    [Parameter] public string? FilterPlaceholder { get; set; }
+    private string EffFilterPlaceholder => FilterPlaceholder ?? Texts.FilterPlaceholder;
 
     // ─── State ────────────────────────────────────────────────────────────────
 
