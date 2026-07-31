@@ -59,7 +59,9 @@
     private IJSObjectReference? _scrollSub;
     private System.Threading.Timer? _timer;
     private int _selectedIndex;
+    private int _autoAdvanceInProgress;
     private bool _created;
+    private int _disposeState;
     private double? _touchX, _touchY;
 
     // ─── Parameters ──────────────────────────────────────────────────────────
@@ -174,7 +176,7 @@
     {
         if (_items.Remove(item))
         {
-            try { _ = InvokeAsync(StateHasChanged); } catch { /* circuit gone */ }
+            ObserveTask(RenderSafelyAsync(), "OmniCarousel.UnregisterItem");
         }
     }
 
@@ -240,11 +242,16 @@
     }
 
     /// <summary>Stops the auto-cycle timer.</summary>
-    public void Stop() => _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+    public void Stop()
+    {
+        if (IsDisposed) return;
+        _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+    }
 
     /// <summary>Starts (or restarts) the auto-cycle timer.</summary>
     public void Start()
     {
+        if (IsDisposed) return;
         var total = TimeSpan.FromMilliseconds(Interval + (AnimationDuration ?? 0));
         _timer?.Change(total, total);
     }
@@ -337,7 +344,7 @@
             Element = _sectionRef;
 
             var total = TimeSpan.FromMilliseconds(Interval + (AnimationDuration ?? 0));
-            _timer = new System.Threading.Timer(_ => InvokeAsync(NextAsync),
+            _timer = new System.Threading.Timer(OnAutoAdvance,
                 null, Auto ? total : Timeout.InfiniteTimeSpan, total);
 
             try { _scrollSub = await JS.InvokeAsync<IJSObjectReference>("omniBlazor.carouselCreate", _itemsRef, _selfRef); }
@@ -350,6 +357,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+
         if (_timer != null) { await _timer.DisposeAsync(); _timer = null; }
         if (_scrollSub != null)
         {
@@ -359,5 +368,70 @@
         }
         _selfRef?.Dispose();
         _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnAutoAdvance(object? _)
+    {
+        if (IsDisposed || Interlocked.Exchange(ref _autoAdvanceInProgress, 1) != 0) return;
+        ObserveTask(AutoAdvanceSafelyAsync(), "OmniCarousel.AutoAdvance");
+    }
+
+    private async Task AutoAdvanceSafelyAsync()
+    {
+        try
+        {
+            if (!IsDisposed) await InvokeAsync(NextAsync);
+        }
+        catch (ObjectDisposedException) when (IsDisposed)
+        {
+            // Timer raced with component disposal.
+        }
+        catch (InvalidOperationException) when (IsDisposed)
+        {
+            // Renderer was released during disposal.
+        }
+        catch (Exception exception)
+        {
+            await ReportExceptionSafelyAsync(exception);
+        }
+        finally
+        {
+            Volatile.Write(ref _autoAdvanceInProgress, 0);
+        }
+    }
+
+    private async Task RenderSafelyAsync()
+    {
+        try
+        {
+            if (!IsDisposed) await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException) when (IsDisposed)
+        {
+            // Child unregistered while the parent was being disposed.
+        }
+        catch (InvalidOperationException) when (IsDisposed)
+        {
+            // Renderer was released during disposal.
+        }
+        catch (Exception exception)
+        {
+            await ReportExceptionSafelyAsync(exception);
+        }
+    }
+
+    private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
+
+    private async Task ReportExceptionSafelyAsync(Exception exception)
+    {
+        try
+        {
+            await DispatchExceptionAsync(exception);
+        }
+        catch when (IsDisposed)
+        {
+            // The renderer was released while reporting the original failure.
+        }
     }
 }

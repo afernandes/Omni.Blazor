@@ -1,4 +1,5 @@
 using Bunit;
+using Microsoft.AspNetCore.Components.Web;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
 
@@ -35,6 +36,22 @@ public class OmniSelectTests : TestContextBase
         cut.Find(".omni-select-trigger").Click();
         Assert.NotNull(cut.Find(".omni-select-panel"));
         Assert.Equal(2, cut.FindAll(".omni-select-option").Count);
+    }
+
+    [Fact]
+    public void Keyboard_activation_ignores_the_native_synthetic_click()
+    {
+        var cut = Render<OmniSelect<string>>(parameters => parameters
+            .Add(component => component.Items, new[] { "a", "b" }));
+        var trigger = cut.Find(".omni-select-trigger");
+
+        trigger.KeyDown(new KeyboardEventArgs { Key = "Enter" });
+        Assert.NotEmpty(cut.FindAll(".omni-select-panel"));
+
+        // A native button dispatches click after Enter/Space. It must not undo
+        // the state transition already performed by the keyboard handler.
+        trigger.Click();
+        Assert.NotEmpty(cut.FindAll(".omni-select-panel"));
     }
 
     [Fact]
@@ -144,5 +161,38 @@ public class OmniSelectTests : TestContextBase
         Assert.Contains("custom-cls", root.ClassName);
         Assert.Contains("min-width: 200px", root.GetAttribute("style") ?? "");
         Assert.Equal("sel1", root.GetAttribute("data-testid"));
+    }
+
+    [Fact]
+    public async Task ItemsProvider_pages_with_a_hard_retention_limit()
+    {
+        var requests = new List<OmniItemsRequest>();
+        ValueTask<OmniItemsPage<string>> Provider(
+            OmniItemsRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            requests.Add(request);
+            var items = Enumerable.Range(request.Skip, 10).Select(index => $"opção-{index}").ToArray();
+            return ValueTask.FromResult(new OmniItemsPage<string>(items, 50));
+        }
+
+        var cut = Render<OmniSelect<string>>(parameters => parameters
+            .Add(component => component.ItemsProvider, Provider)
+            .Add(component => component.ProviderPageSize, 2)
+            .Add(component => component.MaxProviderItems, 3));
+
+        await cut.Find(".omni-select-trigger").ClickAsync(new());
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".omni-select-option").Count));
+        await cut.Find(".omni-select-load-more").ClickAsync(new());
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(3, cut.FindAll(".omni-select-option").Count);
+            Assert.Empty(cut.FindAll(".omni-select-load-more"));
+            Assert.Collection(requests,
+                first => Assert.Equal((0, 2), (first.Skip, first.Take)),
+                second => Assert.Equal((2, 1), (second.Skip, second.Take)));
+        });
     }
 }

@@ -329,7 +329,8 @@
         _view = new DateOnly(year, _view.Month, 1);
         _showYears = false;
         BuildDays();
-        if (ViewMonthChanged.HasDelegate) _ = ViewMonthChanged.InvokeAsync(_view);
+        if (ViewMonthChanged.HasDelegate)
+            ObserveTask(ViewMonthChanged.InvokeAsync(_view), "OmniCalendar.ViewMonthChanged");
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)

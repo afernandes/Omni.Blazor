@@ -21,7 +21,7 @@
         <OmniColorPicker @bind-Value="cor" ShowAlpha Palette="@minhasCores" /> *@
 
 <div class="@RootCss" style="@Style" data-omni-cpid="@_id" @attributes="Attributes">
-    <button type="button" class="omni-input omni-colorpicker-trigger"
+    <button id="@InputId" type="button" class="omni-input omni-colorpicker-trigger"
             disabled="@Disabled"
             aria-haspopup="dialog" aria-expanded="@(_open ? "true" : "false")"
             @onclick="ToggleAsync">
@@ -328,7 +328,7 @@
     public override void Dispose()
     {
         base.Dispose();
-        _ = CloseAsync();
+        TaskObserver.Observe(CloseAsync(), operation: "OmniColorPicker.Dispose");
         _dotnetRef?.Dispose();
     }
 }

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Omni.Blazor.Models;
+using Omni.Blazor.Utilities;
 
 namespace Omni.Blazor.Services;
 
@@ -12,14 +14,25 @@ namespace Omni.Blazor.Services;
 /// com <c>true</c> (concluído) ou <c>false</c> (pulado/dispensado). O <c>OmniTour</c> declarativo
 /// usa internamente o mesmo <see cref="StartAsync"/>.</para>
 /// </summary>
-public sealed class TourService
+public sealed class TourService : IDisposable
 {
     private readonly IJSRuntime _js;
+    private readonly ILogger<TourService>? _logger;
     private List<TourStep> _steps = new();
     private TaskCompletionSource<bool>? _tcs;
     private TourOptions _options = new();
+    private int _disposeState;
 
-    public TourService(IJSRuntime js) => _js = js;
+    public TourService(IJSRuntime js)
+        : this(js, null)
+    {
+    }
+
+    public TourService(IJSRuntime js, ILogger<TourService>? logger)
+    {
+        _js = js ?? throw new ArgumentNullException(nameof(js));
+        _logger = logger;
+    }
 
     /// <summary>True enquanto um tour está em andamento.</summary>
     public bool IsActive { get; private set; }
@@ -47,6 +60,7 @@ public sealed class TourService
     /// </summary>
     public async Task<bool> StartAsync(IEnumerable<TourStep> steps, TourOptions? options = null)
     {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         var list = steps?.ToList() ?? new();
         if (list.Count == 0) return false;
         _options = options ?? new();
@@ -72,8 +86,20 @@ public sealed class TourService
         _steps = list;
         CurrentStepIndex = 0;
         IsActive = true;
-        _tcs = new TaskCompletionSource<bool>();
-        OnChange?.Invoke();
+        _tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            OnChange?.Invoke();
+        }
+        catch
+        {
+            IsActive = false;
+            _steps = new();
+            var failed = _tcs;
+            _tcs = null;
+            failed?.TrySetResult(false);
+            throw;
+        }
         return await _tcs.Task;
     }
 
@@ -82,7 +108,7 @@ public sealed class TourService
     {
         if (!IsActive) return;
         if (CurrentStepIndex < _steps.Count - 1) { CurrentStepIndex++; OnChange?.Invoke(); }
-        else _ = CompleteAsync();
+        else TaskObserver.Observe(CompleteSafelyAsync(), operation: "TourService.Complete");
     }
 
     /// <summary>Volta um passo (no-op no primeiro).</summary>
@@ -116,14 +142,20 @@ public sealed class TourService
         _tcs = null;
         _steps = new();
         CurrentStepIndex = 0;
-        OnChange?.Invoke();
         // Libera o consumer imediatamente — a persistência (abaixo) não deve atrasar a Task.
         tcs?.TrySetResult(completed);
 
-        if (opts.Persist && !string.IsNullOrEmpty(opts.TourId))
+        try
         {
-            try { await _js.InvokeVoidAsync("omniBlazor.storageSet", DismissKey(opts.TourId!), "1"); }
-            catch { }
+            OnChange?.Invoke();
+        }
+        finally
+        {
+            if (opts.Persist && !string.IsNullOrEmpty(opts.TourId))
+            {
+                try { await _js.InvokeVoidAsync("omniBlazor.storageSet", DismissKey(opts.TourId!), "1"); }
+                catch { }
+            }
         }
     }
 
@@ -133,6 +165,35 @@ public sealed class TourService
         try { await _js.InvokeVoidAsync("omniBlazor.storageRemove", DismissKey(tourId)); }
         catch { }
     }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+
+        IsActive = false;
+        CurrentStepIndex = 0;
+        _steps = new();
+        var completion = _tcs;
+        _tcs = null;
+        OnChange = null;
+        completion?.TrySetResult(false);
+        GC.SuppressFinalize(this);
+    }
+
+    private async Task CompleteSafelyAsync()
+    {
+        try
+        {
+            await CompleteAsync();
+        }
+        catch (Exception exception)
+        {
+            _logger?.LogError(exception, "An exception occurred while completing a tour.");
+        }
+    }
+
+    private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
 
     private static string DismissKey(string tourId) => $"omni.tour.dismissed.{tourId}";
 }

@@ -53,7 +53,10 @@
         _triggerState = RegisterParameter<bool>(nameof(StartTrigger))
             .WithParameter(() => StartTrigger)
             .WithEventCallback(() => StartTriggerChanged)
-            .WithChangeHandler(args => { if (args.Value) _ = StartAsync(); })
+            .WithChangeHandler(args =>
+            {
+                if (args.Value) ObserveTask(StartAsync(), "OmniTour.StartTrigger");
+            })
             .Attach();
     }
 

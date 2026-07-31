@@ -1,5 +1,6 @@
 using Bunit;
 using Omni.Blazor.Components;
+using Omni.Blazor.Models;
 
 namespace Omni.Blazor.Tests.Components.Inputs;
 
@@ -120,7 +121,7 @@ public class OmniMultiSelectTests : TestContextBase
     public void Recompute_fires_when_ValuesExpression_changes()
     {
         var model = new Model();
-        System.Linq.Expressions.Expression<Func<IEnumerable<string>?>> first  = () => model.Cats;
+        System.Linq.Expressions.Expression<Func<IEnumerable<string>?>> first = () => model.Cats;
         System.Linq.Expressions.Expression<Func<IEnumerable<string>?>> second = () => model.Tags;
 
         var cut = Render<OmniMultiSelect<string>>(p => p
@@ -131,5 +132,31 @@ public class OmniMultiSelectTests : TestContextBase
         cut.Render(p => p.Add(c => c.ValuesExpression, second));
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
+    }
+
+    [Fact]
+    public async Task Closing_popover_cancels_pending_provider_request()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observedToken = default;
+        async ValueTask<OmniItemsPage<string>> Provider(
+            OmniItemsRequest request,
+            CancellationToken cancellationToken)
+        {
+            observedToken = cancellationToken;
+            started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new OmniItemsPage<string>([], 0);
+        }
+
+        var cut = Render<OmniMultiSelect<string>>(parameters => parameters
+            .Add(component => component.ItemsProvider, Provider));
+
+        var opening = cut.Find(".omni-multiselect-trigger").ClickAsync(new());
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+        var closing = cut.Find(".omni-multiselect-trigger").ClickAsync(new());
+
+        await Task.WhenAll(opening, closing).WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+        Assert.True(observedToken.IsCancellationRequested);
     }
 }

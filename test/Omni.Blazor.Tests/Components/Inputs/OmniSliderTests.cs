@@ -18,7 +18,7 @@ public class OmniSliderTests : TestContextBase
         var cut = Render<OmniSlider>();
 
         Assert.NotNull(cut.Find("div.omni-slider"));
-        Assert.Equal(1, cut.FindAll("div.omni-slider-thumb").Count);
+        Assert.Single(cut.FindAll("div.omni-slider-thumb"));
         Assert.Contains("omni-slider-single", cut.Find("div.omni-slider").ClassName);
     }
 

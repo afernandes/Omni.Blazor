@@ -1,18 +1,18 @@
 using Microsoft.Extensions.DependencyInjection;
 using Omni.Blazor.Services;
-using BunitTestContext = Bunit.TestContext;
+using BunitTestContext = Bunit.BunitContext;
 
 namespace Omni.Blazor.Tests;
 
 /// <summary>
 /// Shared base for every Omni.Blazor component test. Provides a bUnit
-/// <c>TestContext</c> pre-wired with Omni.Blazor's services (BreakpointService,
+/// <c>BunitContext</c> pre-wired with Omni.Blazor's services (BreakpointService,
 /// ScrollManager, etc.) plus JSInterop set to loose mode so JS calls don't
 /// throw — components under test exercise their C# render paths without a
 /// real browser.
 ///
-/// xUnit v3 introduced its own <c>Xunit.TestContext</c>, so we alias
-/// <c>BunitTestContext</c> to disambiguate.
+/// The alias keeps the existing test base name independent from bUnit's
+/// concrete context type.
 /// </summary>
 public abstract class TestContextBase : BunitTestContext
 {
@@ -28,6 +28,8 @@ public abstract class TestContextBase : BunitTestContext
         // gets a real (test-scoped) instance, not a mock.
         Services.AddSingleton<BreakpointService>();
         Services.AddSingleton<ScrollManager>();
+        Services.AddSingleton<FocusManager>();
+        Services.AddSingleton<DataFormEditorRegistry>();
         Services.AddSingleton<ParallaxService>();
         Services.AddSingleton<DialogService>();
         Services.AddSingleton<HotkeyService>();
@@ -37,5 +39,9 @@ public abstract class TestContextBase : BunitTestContext
         Services.AddSingleton<TooltipService>();
         Services.AddSingleton<ContextMenuService>();
         Services.AddSingleton<TourService>();
+        Services.AddSingleton<SignaturePadService>();
+        Services.AddSingleton<FileDownloadService>();
+        Services.AddSingleton<ClickOutsideService>();
+        Services.AddSingleton<DataGridInteropService>();
     }
 }

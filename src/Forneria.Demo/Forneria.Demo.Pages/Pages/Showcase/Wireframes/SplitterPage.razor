@@ -316,13 +316,13 @@ git commit -m "feat: splitter"</pre>
             </OmniSplitter>
             <OmniStack Direction="StackDirection.Row" Gap="8" AlignItems="StackAlign.Center" Style="margin-top:12px;flex-wrap:wrap;">
                 <OmniButton Text="Reset (Size iniciais)" Size="ComponentSize.Sm" Variant="ButtonVariant.Primary"
-                             OnClick="@(_ => _progSplitter.ResetPaneSizesAsync())" />
+                             OnClick="@(_ => ResetProgrammaticSplitterAsync())" />
                 <OmniButton Text="A = 20%" Size="ComponentSize.Sm"
-                             OnClick="@(_ => _progSplitter.SetPaneSizeAsync(0, 20))" />
+                             OnClick="@(_ => SetProgrammaticPaneSizeAsync(0, 20))" />
                 <OmniButton Text="B = 60%" Size="ComponentSize.Sm"
-                             OnClick="@(_ => _progSplitter.SetPaneSizeAsync(1, 60))" />
+                             OnClick="@(_ => SetProgrammaticPaneSizeAsync(1, 60))" />
                 <OmniButton Text="C = 50%" Size="ComponentSize.Sm"
-                             OnClick="@(_ => _progSplitter.SetPaneSizeAsync(2, 50))" />
+                             OnClick="@(_ => SetProgrammaticPaneSizeAsync(2, 50))" />
                 <OmniButton Text="Ler tamanhos atuais" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
                              OnClick="ReadCurrentSizes" />
                 <span class="omni-muted omni-mono" style="font-size:11px;">@_progLabel</span>
@@ -485,4 +485,10 @@ git commit -m "feat: splitter"</pre>
         var c = await _progSplitter.GetPaneSizeAsync(2);
         _progLabel = $"A={a:F1}%  ·  B={b:F1}%  ·  C={c:F1}%";
     }
+
+    private Task ResetProgrammaticSplitterAsync()
+        => _progSplitter?.ResetPaneSizesAsync() ?? Task.CompletedTask;
+
+    private Task SetProgrammaticPaneSizeAsync(int index, double percent)
+        => _progSplitter?.SetPaneSizeAsync(index, percent) ?? Task.CompletedTask;
 }

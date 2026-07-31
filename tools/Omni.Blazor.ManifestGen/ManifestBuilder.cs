@@ -6,10 +6,11 @@ namespace Omni.Blazor.ManifestGen;
 
 /// <summary>
 /// Builds the component list by reflecting over the Omni.Blazor assembly. A type
-/// counts as a component when it is a public, non-abstract <see cref="OmniComponent"/>
-/// subclass that has a matching <c>.razor</c> source (i.e. an entry in
-/// <paramref name="sourceByName"/>). Kept separate from IO so it is unit-testable
-/// against the real assembly with controlled name→source/category/description maps.
+/// counts as a component when it is a public, non-abstract
+/// <see cref="ComponentBase"/> subclass with a matching component source and is
+/// not marked with <see cref="OmniCatalogIgnoreAttribute"/>. Kept separate from
+/// IO so it is unit-testable against the real assembly with controlled
+/// name→source/category/description maps.
 /// </summary>
 public static class ManifestBuilder
 {
@@ -20,20 +21,30 @@ public static class ManifestBuilder
         IReadOnlyDictionary<string, string> sourceByName,
         IReadOnlyDictionary<string, string> descByName)
     {
-        Type baseType = typeof(OmniComponent);
+        Type componentBaseType = typeof(ComponentBase);
         List<ComponentInfo> components = [];
 
         foreach (Type t in TypeNames.SafeGetTypes(assembly))
         {
             if (!t.IsClass || t.IsAbstract || !t.IsPublic) continue;
-            if (!baseType.IsAssignableFrom(t)) continue;
+            if (!componentBaseType.IsAssignableFrom(t)) continue;
+            if (t.GetCustomAttribute<OmniCatalogIgnoreAttribute>() is not null) continue;
 
             string simpleName = TypeNames.StripArity(t.Name);
             if (!sourceByName.TryGetValue(simpleName, out string? source)) continue;
 
             bool isInput = TypeNames.IsFormInput(t);
-            bool hasChildren = typeof(OmniComponentWithChildren).IsAssignableFrom(t);
-            string baseLabel = isInput ? "FormComponent<T>" : hasChildren ? "OmniComponentWithChildren" : "OmniComponent";
+            bool hasChildren = t.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
+                .Any(p => p.Name == "ChildContent"
+                    && p.GetCustomAttribute<ParameterAttribute>() is not null
+                    && TypeNames.Classify(Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType).kind == "slot");
+            string baseLabel = isInput
+                ? "FormComponent<T>"
+                : typeof(OmniComponentWithChildren).IsAssignableFrom(t)
+                    ? "OmniComponentWithChildren"
+                    : typeof(OmniComponent).IsAssignableFrom(t)
+                        ? "OmniComponent"
+                        : TypeNames.Friendly(t.BaseType ?? componentBaseType);
 
             object? instance = TypeNames.TryInstantiate(t);
 

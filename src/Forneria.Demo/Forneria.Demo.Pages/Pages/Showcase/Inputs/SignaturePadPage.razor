@@ -1,0 +1,82 @@
+@page "/showcase/signature-pad"
+@attribute [ShowcaseInfo(Title = "Signature Pad", Category = Cat.Inputs, Icon = "edit-3", New = true, Featured = true, Aliases = "assinatura,canvas,signature,digital,svg")]
+@layout ShowcaseLayout
+
+<PageTitle>Signature Pad — Showcase</PageTitle>
+
+<ShowcasePage Title="Signature Pad"
+              Subtitle="Captura de assinatura por mouse, caneta ou toque, com binding de formulário, desfazer, limpar e exportação PNG/JPEG/SVG.">
+    <Overview>
+        <p>
+            <code>OmniSignaturePad</code> é um <code>FormComponent&lt;string&gt;</code>: o valor
+            vinculado é um data URL pronto para persistência ou envio ao backend. A captura mantém
+            os traços no navegador e só atravessa a interop ao concluir uma ação, reduzindo renders
+            e alocações durante o movimento do ponteiro.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Aceite de entrega, ordem de serviço, consentimento e vistoria.</li>
+            <li>Fluxos touch-first em tablet ou terminal de atendimento.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="ASSINATURA BÁSICA"
+                         Description="Desenhe com mouse, toque ou caneta. O valor é atualizado ao concluir cada traço."
+                         Code="@(@"<OmniSignaturePad @bind-Value=""assinatura"" />")">
+            <div style="max-width:720px;">
+                <OmniSignaturePad @bind-Value="_signature" />
+                <p class="omni-muted" style="font-size:12px;margin-top:8px;">
+                    Valor: @(_signature is null ? "nenhum" : $"{_signature.Length:N0} caracteres")
+                </p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EXPORTAÇÃO SVG"
+                         Description="SVG preserva os traços como vetores e escala sem perda de nitidez."
+                         Code="@(@"<OmniSignaturePad @bind-Value=""assinaturaSvg""
+                  Format=""SignaturePadFormat.Svg""
+                  StrokeColor=""#2563eb"" />")">
+            <div style="max-width:720px;">
+                <OmniSignaturePad @bind-Value="_signatureSvg"
+                                  Format="SignaturePadFormat.Svg"
+                                  StrokeColor="#2563eb"
+                                  Height="180" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="ESTADOS"
+                         Description="Disabled e ReadOnly impedem novos traços e desabilitam as ações da toolbar.">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+                <div>
+                    <OmniLabel Text="Disabled" />
+                    <OmniSignaturePad Disabled Height="150" />
+                </div>
+                <div>
+                    <OmniLabel Text="ReadOnly" />
+                    <OmniSignaturePad ReadOnly Height="150" />
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniSignaturePad">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="string?" Default="null" Description="Data URL da assinatura para two-way binding." />
+            <ShowcaseApiRow Name="Format" Type="SignaturePadFormat" Default="Png" Description="Png, Jpeg ou Svg." />
+            <ShowcaseApiRow Name="Height" Type="int" Default="220" Description="Altura do canvas em pixels CSS." />
+            <ShowcaseApiRow Name="StrokeColor / BackgroundColor" Type="string" Default="#111827 / #ffffff" Description="Cores usadas na captura e exportação." />
+            <ShowcaseApiRow Name="StrokeWidth" Type="double" Default="2" Description="Espessura do traço em pixels CSS." />
+            <ShowcaseApiRow Name="ShowToolbar" Type="bool" Default="true" Description="Exibe desfazer, limpar e o status." />
+            <ShowcaseApiRow Name="StrokeCompleted" Type="EventCallback&lt;string?&gt;" Default="—" Description="Dispara ao concluir, desfazer ou limpar." />
+            <ShowcaseApiRow Name="ClearAsync / UndoAsync / ExportAsync" Type="methods" Default="—" Description="API programática para controlar e exportar a assinatura." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private string? _signature;
+    private string? _signatureSvg;
+}

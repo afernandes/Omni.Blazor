@@ -9,15 +9,14 @@
 
     <Overview>
         <p>
-            O <code>OmniSelect&lt;TValue&gt;</code> é um wrapper sobre o <code>&lt;select&gt;</code>
-            nativo do navegador — leve, acessível e ideal para <strong>listas curtas</strong> de
-            opções conhecidas. Aceita itens via parâmetro <code>Items</code> ou conteúdo
-            <code>&lt;option&gt;</code> livre.
+            O <code>OmniSelect&lt;TValue&gt;</code> é um combobox acessível para escolha única.
+            Aceita uma coleção local por <code>Items</code> ou um <code>ItemsProvider</code>
+            paginado e cancelável para catálogos remotos.
         </p>
         <p>
             O <code>OmniAutoComplete&lt;TItem&gt;</code> é search-as-you-type: filtra a lista
             conforme o usuário digita. Suporta fonte <strong>síncrona</strong> (<code>Items</code>)
-            ou <strong>assíncrona</strong> (<code>LoadData</code> com debounce), além de
+            ou <strong>assíncrona</strong> (<code>ItemsProvider</code> paginado, cancelável e com debounce), além de
             <code>ItemTemplate</code> para renderizar cada opção com layout rico.
         </p>
     </Overview>
@@ -41,7 +40,7 @@
 
     <ChildContent>
         <ShowcaseSection Title="SELECT"
-                         Description="Wrapper sobre <select> nativo, com Items ou conteúdo livre."
+                         Description="Combobox acessível com fonte local ou provider paginado."
                          Code="@(@"<OmniSelect TValue=""string"" @bind-Value=""cat""
              Items=""@categorias"" Placeholder=""Selecione..."" />
 <OmniSelect TValue=""int"" @bind-Value=""ano"" Items=""@anos"" Placeholder=""Ano"" />")">
@@ -54,28 +53,49 @@
             </p>
         </ShowcaseSection>
 
+        <ShowcaseSection Title="SELECT — PROVIDER PAGINADO"
+                         Description="A lista remota é carregada em páginas; fechar o dropdown cancela a requisição pendente."
+                         Code="@(@"<OmniSelect TValue=""string""
+            ItemsProvider=""LoadSelectAsync""
+            ProviderPageSize=""4""
+            MaxProviderItems=""12""
+            @bind-Value=""remoteCategory"" />")">
+            <OmniSelect TValue="string"
+                        ItemsProvider="LoadSelectAsync"
+                        ProviderPageSize="4"
+                        MaxProviderItems="12"
+                        @bind-Value="remoteCategory"
+                        Placeholder="Categoria remota..." />
+            <p class="omni-muted omni-mono" style="font-size: 11px; margin-top: 12px;">
+                VALOR ATUAL → @(remoteCategory ?? "—")
+            </p>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="AUTOCOMPLETE — SYNC"
                          Description="Lista síncrona. Filtra à medida que o usuário digita."
-                         Code="@(@"<OmniAutoComplete TValue=""string"" Items=""@produtosTodos""
+                         Code="@(@"<OmniAutoComplete TItem=""string"" Items=""@produtosTodos""
                    @bind-Value=""prodSel""
                    TextSelector=""@(p => p ?? """")""
                    Placeholder=""Buscar produto..."" />")">
             <div class="omni-grid-2">
-                <OmniAutoComplete TValue="string"
+                <OmniAutoComplete TItem="string"
                                     Items="@(produtosTodos)"
                                     @bind-Value="prodSel"
                                     TextSelector="@(p => p ?? "")"
                                     Placeholder="Buscar produto..." />
-                <OmniAutoComplete TValue="Cidade"
+                <OmniAutoComplete TItem="Cidade"
                                     Items="@(cidadesTodas)"
                                     @bind-Value="cidadeSel"
                                     TextSelector="@(c => c?.Nome ?? "")"
-                                    Placeholder="Buscar cidade...">
+                    Placeholder="Buscar cidade...">
                     <ItemTemplate>
-                        <div>
-                            <div style="font-weight:600;">@context.Nome</div>
-                            <div class="omni-muted" style="font-size:11px;">@context.Uf · @context.Pop hab</div>
-                        </div>
+                        @if (context is { } cidade)
+                        {
+                            <div>
+                                <div style="font-weight:600;">@cidade.Nome</div>
+                                <div class="omni-muted" style="font-size:11px;">@cidade.Uf · @cidade.Pop hab</div>
+                            </div>
+                        }
                     </ItemTemplate>
                 </OmniAutoComplete>
             </div>
@@ -85,13 +105,13 @@
         </ShowcaseSection>
 
         <ShowcaseSection Title="AUTOCOMPLETE — ASYNC"
-                         Description="LoadData async com debounce de 220ms — simula chamada de API."
-                         Code="@(@"<OmniAutoComplete TValue=""string"" LoadData=""LoadAsync""
+                         Description="ItemsProvider paginado e cancelável com debounce de 220ms — simula chamada de API."
+                         Code="@(@"<OmniAutoComplete TItem=""string"" ItemsProvider=""LoadAsync""
                    @bind-Value=""asyncSel""
                    TextSelector=""@(s => s ?? """")""
                    Placeholder=""Digite para buscar (debounced)..."" />")">
-            <OmniAutoComplete TValue="string"
-                                LoadData="LoadAsync"
+            <OmniAutoComplete TItem="string"
+                                ItemsProvider="LoadAsync"
                                 @bind-Value="asyncSel"
                                 TextSelector="@(s => s ?? "")"
                                 Placeholder="Digite para buscar (debounced)..." />
@@ -113,8 +133,10 @@
                             Description="Extrai o valor de cada item da lista." />
             <ShowcaseApiRow Name="TextSelector" Type="Func<TValue?, string>?" Default="null"
                             Description="Extrai o texto exibido de cada item." />
-            <ShowcaseApiRow Name="ChildContent" Type="RenderFragment?" Default="null"
-                            Description="Opções <option> declaradas manualmente." />
+            <ShowcaseApiRow Name="ItemsProvider" Type="OmniItemsProvider&lt;TValue&gt;?" Default="null"
+                            Description="Fonte remota paginada e cancelável. Use esta ou Items." />
+            <ShowcaseApiRow Name="ProviderPageSize / MaxProviderItems" Type="int" Default="50 / 500"
+                            Description="Tamanho da página e limite rígido de itens remotos retidos." />
             <ShowcaseApiRow Name="Disabled" Type="bool" Default="false"
                             Description="Desabilita a interação com o select." />
         </ShowcaseApiTable>
@@ -126,9 +148,9 @@
             <ShowcaseApiRow Name="Value" Type="TItem?" Default="default"
                             Description="Item selecionado. Suporta bind-Value." />
             <ShowcaseApiRow Name="Items" Type="IEnumerable<TItem>?" Default="null"
-                            Description="Fonte síncrona de itens — use esta OU LoadData." />
-            <ShowcaseApiRow Name="LoadData" Type="Func<string, Task<IEnumerable<TItem>>>?" Default="null"
-                            Description="Fonte assíncrona — chamada a cada digitação (debounced)." />
+                            Description="Fonte síncrona de itens — use esta OU ItemsProvider." />
+            <ShowcaseApiRow Name="ItemsProvider" Type="OmniItemsProvider&lt;TItem&gt;?" Default="null"
+                            Description="Fonte assíncrona paginada; recebe busca, skip, take e CancellationToken." />
             <ShowcaseApiRow Name="TextSelector" Type="Func<TItem, string>" Default="(obrigatório)"
                             Description="Extrai o texto de exibição de cada item." />
             <ShowcaseApiRow Name="ItemTemplate" Type="RenderFragment<TItem>?" Default="null"
@@ -140,7 +162,7 @@
             <ShowcaseApiRow Name="MinSearchLength" Type="int" Default="0"
                             Description="Mínimo de caracteres antes de iniciar a busca." />
             <ShowcaseApiRow Name="DebounceMs" Type="int" Default="220"
-                            Description="Janela de debounce para chamadas async LoadData." />
+                            Description="Janela de debounce para chamadas ao ItemsProvider." />
             <ShowcaseApiRow Name="Clearable" Type="bool" Default="true"
                             Description="Exibe o botão x para limpar a seleção." />
             <ShowcaseApiRow Name="Size" Type="ComponentSize" Default="Md"
@@ -170,6 +192,7 @@
         "Brownie", "Petit Gâteau", "Pudim da Casa",
     };
     private string? prodSel;
+    private string? remoteCategory;
 
     private readonly List<Cidade> cidadesTodas = new()
     {
@@ -181,10 +204,27 @@
     private Cidade? cidadeSel;
 
     private string? asyncSel;
-    private async Task<IEnumerable<string>> LoadAsync(string q)
+
+    private async ValueTask<OmniItemsPage<string>> LoadSelectAsync(
+        OmniItemsRequest request,
+        CancellationToken cancellationToken)
     {
-        await Task.Delay(350);   // simulate API latency
-        if (string.IsNullOrWhiteSpace(q)) return produtosTodos;
-        return produtosTodos.Where(p => p.Contains(q, StringComparison.OrdinalIgnoreCase));
+        await Task.Delay(250, cancellationToken);
+        return new OmniItemsPage<string>(
+            produtosTodos.Skip(request.Skip).Take(request.Take).ToArray(),
+            produtosTodos.Length);
+    }
+
+    private async ValueTask<OmniItemsPage<string>> LoadAsync(
+        OmniItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(350, cancellationToken);   // simulate API latency
+        var filtered = string.IsNullOrWhiteSpace(request.Search)
+            ? produtosTodos
+            : produtosTodos.Where(p => p.Contains(request.Search, StringComparison.OrdinalIgnoreCase)).ToArray();
+        return new OmniItemsPage<string>(
+            filtered.Skip(request.Skip).Take(request.Take).ToArray(),
+            filtered.Length);
     }
 }

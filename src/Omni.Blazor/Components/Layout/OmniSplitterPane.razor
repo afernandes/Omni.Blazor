@@ -74,7 +74,8 @@
         // the parameter changes → SetParametersAsync re-syncs correctly.
         // If they don't bind, the parameter stays at default (false) and
         // _previousCollapsed stays at the initial sync, so no echo loop.
-        if (CollapsedChanged.HasDelegate) _ = CollapsedChanged.InvokeAsync(value);
+        if (CollapsedChanged.HasDelegate)
+            ObserveTask(CollapsedChanged.InvokeAsync(value), "OmniSplitterPane.CollapsedChanged");
     }
 
     public void Dispose() => Parent?.Unregister(this);

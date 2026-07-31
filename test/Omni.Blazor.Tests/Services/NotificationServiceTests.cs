@@ -146,19 +146,66 @@ public class NotificationServiceTests : TestContextBase
     [Fact]
     public async Task Notify_with_positive_duration_auto_removes_after_delay()
     {
-        var svc = new NotificationService();
+        using var svc = new NotificationService();
         var m = Msg(duration: 30);
 
         // The auto-remove fires OnChange when the list empties — await that (bounded),
         // no time-based polling loop (deterministic, not flaky under load).
-        var emptied = new TaskCompletionSource();
+        var emptied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         svc.OnChange += () => { if (svc.Messages.Count == 0) emptied.TrySetResult(); };
 
         svc.Notify(m);
         Assert.Single(svc.Messages);
 
-        await emptied.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await emptied.Task.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            Xunit.TestContext.Current.CancellationToken);
 
         Assert.Empty(svc.Messages);
+    }
+
+    [Fact]
+    public void OnChange_can_reenter_Clear_without_deadlock()
+    {
+        using var svc = new NotificationService();
+        var reentered = 0;
+        svc.OnChange += () =>
+        {
+            if (Interlocked.Exchange(ref reentered, 1) == 0)
+            {
+                svc.Clear();
+            }
+        };
+
+        svc.Notify(Msg());
+
+        Assert.Empty(svc.Messages);
+    }
+
+    [Fact]
+    public async Task Clear_cancels_pending_expiration_without_late_change()
+    {
+        using var svc = new NotificationService();
+        var changes = 0;
+        svc.OnChange += () => Interlocked.Increment(ref changes);
+        svc.Notify(Msg(duration: 50));
+
+        svc.Clear();
+        await Task.Delay(150, Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, Volatile.Read(ref changes));
+        Assert.Empty(svc.Messages);
+    }
+
+    [Fact]
+    public void Dispose_clears_state_and_rejects_new_notifications()
+    {
+        var svc = new NotificationService();
+        svc.Notify(Msg(duration: 5_000));
+
+        svc.Dispose();
+
+        Assert.Empty(svc.Messages);
+        Assert.Throws<ObjectDisposedException>(() => svc.Notify(Msg()));
     }
 }

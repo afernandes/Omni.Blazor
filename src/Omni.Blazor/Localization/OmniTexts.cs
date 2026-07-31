@@ -49,6 +49,26 @@ public class OmniTexts
     public string Copy { get; set; } = "Copiar";
     /// <summary>Row/card actions menu. Default "Ações".</summary>
     public string Actions { get; set; } = "Ações";
+    /// <summary>Save a form or record. Default "Salvar".</summary>
+    public string Save { get; set; } = "Salvar";
+    /// <summary>Default required-field validation. Default "Campo obrigatório.".</summary>
+    public string Required { get; set; } = "Campo obrigatório.";
+    /// <summary>DataForm validation summary heading.</summary>
+    public string DataFormValidationSummary { get; set; } = "Corrija os erros abaixo:";
+    /// <summary>Move a collection item up. Default "Mover para cima".</summary>
+    public string MoveUp { get; set; } = "Mover para cima";
+    /// <summary>Move a collection item down. Default "Mover para baixo".</summary>
+    public string MoveDown { get; set; } = "Mover para baixo";
+    /// <summary>DataForm minimum collection count format.</summary>
+    public string DataFormMinimumItems { get; set; } = "Adicione pelo menos {0} item(ns).";
+    /// <summary>DataForm maximum collection count format.</summary>
+    public string DataFormMaximumItems { get; set; } = "Mantenha no máximo {0} item(ns).";
+    /// <summary>Boolean affirmative option. Default "Sim".</summary>
+    public string Yes { get; set; } = "Sim";
+    /// <summary>Boolean negative option. Default "Não".</summary>
+    public string No { get; set; } = "Não";
+    /// <summary>Nullable option without a value. Default "Não informado".</summary>
+    public string NotProvided { get; set; } = "Não informado";
 
     // ── Navigation ───────────────────────────────────────────────────────
     /// <summary>Next (stepper, scheduler). Default "Próximo".</summary>
@@ -117,6 +137,16 @@ public class OmniTexts
         Send = "Send",
         Copy = "Copy",
         Actions = "Actions",
+        Save = "Save",
+        Required = "Required field.",
+        DataFormValidationSummary = "Fix the errors below:",
+        MoveUp = "Move up",
+        MoveDown = "Move down",
+        DataFormMinimumItems = "Add at least {0} item(s).",
+        DataFormMaximumItems = "Keep at most {0} item(s).",
+        Yes = "Yes",
+        No = "No",
+        NotProvided = "Not provided",
         Next = "Next",
         Previous = "Previous",
         Back = "Back",

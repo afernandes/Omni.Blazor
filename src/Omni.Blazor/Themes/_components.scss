@@ -2477,6 +2477,125 @@ button.omni-select-option.omni-selected { color: var(--omni-accent); }
 }
 .omni-validation-message-item { line-height: 1.4; }
 
+// ——— Data form ———————————————————————————————————————————————————————
+.omni-data-form {
+  width: 100%;
+  min-width: 0;
+  container: omni-data-form / inline-size;
+}
+.omni-data-form-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--omni-data-form-columns, 1), minmax(0, 1fr));
+  row-gap: var(--omni-data-form-row-gap, 16px);
+  column-gap: var(--omni-data-form-column-gap, 16px);
+  min-width: 0;
+}
+.omni-data-form-cell {
+  grid-column: span var(--omni-data-form-span, 1);
+  min-width: 0;
+}
+.omni-data-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+.omni-data-form-disabled { opacity: .72; }
+.omni-data-form-group-cell { grid-column: 1 / -1; min-width: 0; }
+.omni-data-form-group {
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--omni-border);
+  border-radius: var(--omni-radius-lg);
+}
+.omni-data-form-group-title {
+  padding: 0 6px;
+  color: var(--omni-fg);
+  font-size: 14px;
+  font-weight: 650;
+}
+.omni-data-form-group-description {
+  margin: -2px 0 14px;
+  color: var(--omni-muted);
+  font-size: 12px;
+}
+.omni-data-form-collection { display: flex; flex-direction: column; gap: 12px; }
+.omni-data-form-collection-empty {
+  padding: 16px;
+  border: 1px dashed var(--omni-border);
+  border-radius: var(--omni-radius-md);
+  color: var(--omni-muted);
+  text-align: center;
+}
+.omni-data-form-collection-item {
+  padding: 14px;
+  border: 1px solid var(--omni-border);
+  border-radius: var(--omni-radius-md);
+  background: var(--omni-bg-subtle);
+}
+.omni-data-form-collection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.omni-data-form-collection-title { min-width: 0; font-size: 13px; font-weight: 650; }
+.omni-data-form-collection-actions { display: flex; align-items: center; gap: 4px; }
+.omni-data-form-collection-add { align-self: flex-start; }
+.omni-data-form-validation-summary { margin-bottom: 16px; }
+.omni-data-form-validation-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.omni-data-form-validation-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.omni-data-form-diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px dashed var(--omni-warning);
+  border-radius: var(--omni-radius-md);
+  color: var(--omni-fg-muted);
+  font-size: 12px;
+}
+.omni-data-form-diagnostic { display: flex; align-items: baseline; gap: 8px; }
+
+@container omni-data-form (min-width: 576px) {
+  .omni-data-form-grid { grid-template-columns: repeat(var(--omni-data-form-columns-sm, var(--omni-data-form-columns, 1)), minmax(0, 1fr)); }
+  .omni-data-form-cell { grid-column: span var(--omni-data-form-span-sm, var(--omni-data-form-span, 1)); }
+}
+@container omni-data-form (min-width: 768px) {
+  .omni-data-form-grid { grid-template-columns: repeat(var(--omni-data-form-columns-md, var(--omni-data-form-columns-sm, var(--omni-data-form-columns, 1))), minmax(0, 1fr)); }
+  .omni-data-form-cell { grid-column: span var(--omni-data-form-span-md, var(--omni-data-form-span-sm, var(--omni-data-form-span, 1))); }
+}
+@container omni-data-form (min-width: 992px) {
+  .omni-data-form-grid { grid-template-columns: repeat(var(--omni-data-form-columns-lg, var(--omni-data-form-columns-md, var(--omni-data-form-columns, 1))), minmax(0, 1fr)); }
+  .omni-data-form-cell { grid-column: span var(--omni-data-form-span-lg, var(--omni-data-form-span-md, var(--omni-data-form-span, 1))); }
+}
+@container omni-data-form (min-width: 1200px) {
+  .omni-data-form-grid { grid-template-columns: repeat(var(--omni-data-form-columns-xl, var(--omni-data-form-columns-lg, var(--omni-data-form-columns, 1))), minmax(0, 1fr)); }
+  .omni-data-form-cell { grid-column: span var(--omni-data-form-span-xl, var(--omni-data-form-span-lg, var(--omni-data-form-span, 1))); }
+}
+@container omni-data-form (min-width: 1400px) {
+  .omni-data-form-grid { grid-template-columns: repeat(var(--omni-data-form-columns-xxl, var(--omni-data-form-columns-xl, var(--omni-data-form-columns, 1))), minmax(0, 1fr)); }
+  .omni-data-form-cell { grid-column: span var(--omni-data-form-span-xxl, var(--omni-data-form-span-xl, var(--omni-data-form-span, 1))); }
+}
+
 // ——— Checkbox ———————————————————————————————————————————————————————
 .omni-check {
   display: inline-flex; align-items: flex-start; gap: 8px;
@@ -10763,6 +10882,493 @@ span.omni-citation { cursor: default; }
 .omni-ai-conversation-composer {
   border-top: 1px solid var(--omni-line);
   padding: 12px 16px;
+}
+
+// OmniTreeGrid — bounded hierarchical table.
+.omni-tree-grid {
+  width: 100%;
+  overflow: hidden;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 10px;
+}
+.omni-tree-grid-column-registration { display: none; }
+.omni-tree-grid-scroller {
+  width: 100%;
+  overflow: auto;
+}
+.omni-tree-grid-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.omni-tree-grid-table th {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  height: 42px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--omni-line);
+  background: var(--omni-bg-soft);
+  color: var(--omni-fg-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.omni-tree-grid-table td {
+  height: 44px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--omni-line);
+  color: var(--omni-fg);
+  font-size: 13px;
+}
+.omni-tree-grid-row {
+  outline: none;
+  cursor: pointer;
+}
+.omni-tree-grid-row:hover,
+.omni-tree-grid-row:focus-visible,
+.omni-tree-grid-row-selected {
+  background: var(--omni-bg-hover);
+}
+.omni-tree-grid-row-selected {
+  box-shadow: inset 3px 0 0 var(--omni-accent);
+}
+.omni-tree-grid-anchor {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.omni-tree-grid-indent { flex: 0 0 auto; }
+.omni-tree-grid-toggle,
+.omni-tree-grid-toggle-spacer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+}
+.omni-tree-grid-toggle {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--omni-fg-soft);
+  cursor: pointer;
+}
+.omni-tree-grid-toggle:hover:not(:disabled) { background: var(--omni-bg-soft); }
+.omni-tree-grid-toggle:disabled { cursor: wait; }
+.omni-tree-grid-cell-content {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-tree-grid-align-start { text-align: start; }
+.omni-tree-grid-align-center { text-align: center; }
+.omni-tree-grid-align-end { text-align: end; }
+.omni-tree-grid-state {
+  height: 160px !important;
+  color: var(--omni-fg-muted) !important;
+  text-align: center;
+}
+.omni-tree-grid-error-row td {
+  padding-left: 48px;
+  background: color-mix(in srgb, var(--omni-danger) 7%, transparent);
+  color: var(--omni-danger);
+  font-size: 12px;
+}
+.omni-tree-grid-error-row button {
+  margin-left: 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.omni-tree-grid-limit {
+  padding: 8px 12px;
+  border-top: 1px solid var(--omni-line);
+  color: var(--omni-fg-muted);
+  font-size: 11px;
+}
+
+// OmniFileManager — provider-backed file browsing and operations.
+.omni-file-manager {
+  width: 100%;
+  overflow: hidden;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 12px;
+}
+.omni-file-manager-toolbar,
+.omni-file-manager-location,
+.omni-file-manager-editor,
+.omni-file-manager-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-file-manager-toolbar { flex-wrap: wrap; }
+.omni-file-manager-toolbar-spacer { flex: 1; }
+.omni-file-manager-tool {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 1px solid var(--omni-line);
+  border-radius: 7px;
+  padding: 5px 9px;
+  background: var(--omni-bg-elev);
+  color: var(--omni-fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.omni-file-manager-tool:hover:not(:disabled):not(.omni-disabled),
+.omni-file-manager-tool.omni-active { background: var(--omni-bg-hover); }
+.omni-file-manager-tool:disabled,
+.omni-file-manager-tool.omni-disabled { cursor: default; opacity: 0.5; }
+.omni-file-manager-tool-danger { color: var(--omni-danger); }
+.omni-file-manager-tool-icon { width: 32px; padding: 5px; }
+.omni-file-manager-upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.omni-file-manager-location { justify-content: space-between; }
+.omni-file-manager-breadcrumb {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+}
+.omni-file-manager-crumb-segment {
+  display: inline-flex;
+  align-items: center;
+}
+.omni-file-manager-crumb {
+  border: 0;
+  padding: 4px 6px;
+  background: transparent;
+  color: var(--omni-fg-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.omni-file-manager-crumb-segment:last-child .omni-file-manager-crumb {
+  color: var(--omni-fg);
+  font-weight: 600;
+}
+.omni-file-manager-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 210px;
+  border: 1px solid var(--omni-line);
+  border-radius: 7px;
+  padding: 5px 8px;
+}
+.omni-file-manager-search input,
+.omni-file-manager-editor-input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--omni-fg);
+  font: inherit;
+  font-size: 12px;
+}
+.omni-file-manager-editor-input { flex: 1; }
+.omni-file-manager-confirm { background: color-mix(in srgb, var(--omni-danger) 8%, transparent); }
+.omni-file-manager-confirm > span { flex: 1; }
+.omni-file-manager-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--omni-line);
+  color: var(--omni-danger);
+  font-size: 12px;
+}
+.omni-file-manager-content {
+  min-height: 220px;
+  max-height: 520px;
+  overflow: auto;
+  padding: 6px;
+}
+.omni-file-manager-content-list { display: flex; flex-direction: column; }
+.omni-file-manager-content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  align-content: start;
+  gap: 8px;
+}
+.omni-file-manager-item {
+  display: grid;
+  grid-template-columns: 34px minmax(120px, 1fr) minmax(70px, auto) minmax(130px, auto);
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--omni-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.omni-file-manager-item:hover,
+.omni-file-manager-item.omni-selected { background: var(--omni-bg-hover); }
+.omni-file-manager-item.omni-selected {
+  box-shadow: inset 0 0 0 1px var(--omni-accent);
+}
+.omni-file-manager-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--omni-accent);
+}
+.omni-file-manager-item-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-file-manager-item-size,
+.omni-file-manager-item-modified {
+  color: var(--omni-fg-muted);
+  font-size: 11px;
+}
+.omni-file-manager-content-grid .omni-file-manager-item {
+  display: flex;
+  min-width: 0;
+  min-height: 116px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+}
+.omni-file-manager-content-grid .omni-file-manager-item-icon svg {
+  width: 32px;
+  height: 32px;
+}
+.omni-file-manager-content-grid .omni-file-manager-item-modified { display: none; }
+.omni-file-manager-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 200px;
+  color: var(--omni-fg-muted);
+}
+.omni-file-manager-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--omni-line);
+  color: var(--omni-fg-muted);
+  font-size: 11px;
+}
+@media (max-width: 640px) {
+  .omni-file-manager-location { align-items: stretch; flex-direction: column; }
+  .omni-file-manager-search { min-width: 0; }
+  .omni-file-manager-item {
+    grid-template-columns: 30px minmax(100px, 1fr) auto;
+  }
+  .omni-file-manager-item-modified { display: none; }
+}
+
+// OmniGlobalSearch — embedded application-wide search surface.
+.omni-global-search {
+  width: 100%;
+  overflow: hidden;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: 12px;
+}
+.omni-global-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-global-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--omni-fg);
+  font: inherit;
+  font-size: 16px;
+}
+.omni-global-search-input::placeholder { color: var(--omni-fg-muted); }
+.omni-global-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--omni-fg-muted);
+  cursor: pointer;
+}
+.omni-global-search-clear:hover { background: var(--omni-bg-hover); color: var(--omni-fg); }
+.omni-global-search-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--omni-line);
+  border-top-color: var(--omni-accent);
+  border-radius: 50%;
+  animation: omni-spin 0.75s linear infinite;
+}
+.omni-global-search-results {
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.omni-global-search-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--omni-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.omni-global-search-result:hover,
+.omni-global-search-result.omni-active {
+  background: var(--omni-bg-hover);
+}
+.omni-global-search-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent);
+}
+.omni-global-search-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.omni-global-search-title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-global-search-description {
+  overflow: hidden;
+  color: var(--omni-fg-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-global-search-category {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--omni-bg-soft);
+  color: var(--omni-fg-soft);
+  font-size: 11px;
+}
+.omni-global-search-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  padding: 24px;
+  color: var(--omni-fg-muted);
+  text-align: center;
+}
+.omni-global-search-error { color: var(--omni-danger); }
+
+// OmniSignaturePad — pointer/touch signature capture.
+.omni-signature-pad {
+  width: 100%;
+  overflow: hidden;
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius, 10px);
+}
+.omni-signature-pad-canvas {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  cursor: crosshair;
+  touch-action: none;
+  outline: none;
+}
+.omni-signature-pad-canvas:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--omni-accent);
+}
+.omni-signature-pad-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--omni-line);
+  background: var(--omni-bg-soft);
+}
+.omni-signature-pad-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 9px;
+  background: transparent;
+  color: var(--omni-fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.omni-signature-pad-action:hover:not(:disabled) { background: var(--omni-bg-hover); }
+.omni-signature-pad-action:disabled { cursor: default; opacity: 0.45; }
+.omni-signature-pad-status {
+  margin-left: auto;
+  color: var(--omni-fg-muted);
+  font-size: 12px;
+}
+.omni-signature-pad-disabled,
+.omni-signature-pad-readonly {
+  opacity: 0.72;
+}
+.omni-signature-pad-disabled .omni-signature-pad-canvas,
+.omni-signature-pad-readonly .omni-signature-pad-canvas {
+  cursor: default;
 }
 
 // ── Utilities ────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
-@implements IDisposable
+@implements IAsyncDisposable
 @inject IJSRuntime JS
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
@@ -71,6 +71,7 @@
     private string _id = $"pp-{Guid.NewGuid():N}";
     private DotNetObjectReference<OmniPopover>? _dotnetRef;
     private readonly ParameterState<bool> _openState;
+    private int _disposeState;
 
     public OmniPopover()
     {
@@ -171,9 +172,20 @@
         StateHasChanged();
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _ = CloseAsync();
-        _dotnetRef?.Dispose();
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+        _open = false;
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
+            await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
+            await JS.InvokeVoidAsync("omniBlazor.popoverUnregister", _wrapRef);
+        }
+        catch { /* circuit already gone */ }
+        finally
+        {
+            Interlocked.Exchange(ref _dotnetRef, null)?.Dispose();
+        }
     }
 }

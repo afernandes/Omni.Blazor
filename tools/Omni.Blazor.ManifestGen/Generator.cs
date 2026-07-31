@@ -85,9 +85,15 @@ public static class TypeNames
         return (t.FullName ?? t.Name).Replace('+', '.');
     }
 
-    /// <summary>True if the type derives from <c>FormComponent&lt;T&gt;</c> (i.e. a form input).</summary>
+    /// <summary>
+    /// True when the type participates in the Omni form-component contract.
+    /// Most inputs derive from <c>FormComponent&lt;T&gt;</c>; a few specialized
+    /// inputs implement <see cref="IOmniFormComponent"/> directly.
+    /// </summary>
     public static bool IsFormInput(Type t)
     {
+        if (typeof(IOmniFormComponent).IsAssignableFrom(t)) return true;
+
         for (Type? b = t.BaseType; b is not null; b = b.BaseType)
             if (b.IsGenericType && b.GetGenericTypeDefinition() == typeof(FormComponent<>)) return true;
         return false;

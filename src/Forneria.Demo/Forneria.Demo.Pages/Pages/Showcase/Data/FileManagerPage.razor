@@ -1,0 +1,194 @@
+@page "/showcase/file-manager"
+@attribute [ShowcaseInfo(Title = "File Manager", Category = Cat.Data, Icon = "folder", New = true, Featured = true, Aliases = "arquivos,pastas,upload,download,explorer,provider")]
+@layout ShowcaseLayout
+
+<PageTitle>File Manager — Showcase</PageTitle>
+
+<ShowcasePage Title="File Manager"
+              Subtitle="Explorador de arquivos com provider desacoplado, navegação, busca, lista/grade, upload e operações protegidas.">
+    <Overview>
+        <p>
+            <code>OmniFileManager</code> não conhece armazenamento físico: o
+            <code>IOmniFileManagerProvider</code> pode representar disco, Azure Blob, S3,
+            SharePoint ou uma API própria. O componente limita a quantidade de itens em memória,
+            cancela carregamentos obsoletos e exige confirmação antes de excluir.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="PROVIDER EM MEMÓRIA"
+                         Description="Duplo clique abre uma pasta; as operações atualizam o provider e recarregam a listagem."
+                         Code="@(@"<OmniFileManager Provider=""@provider""
+                 Capabilities=""FileManagerCapabilities.All""
+                 @bind-Path=""path"" />")">
+            <OmniFileManager Provider="@_provider"
+                             Capabilities="FileManagerCapabilities.All"
+                             @bind-Path="_path"
+                             DownloadRequested="OnDownload" />
+            @if (_downloaded is not null)
+            {
+                <p class="omni-muted" style="margin-top:8px;">Download solicitado: @_downloaded</p>
+            }
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniFileManager">
+            <ShowcaseApiRow Name="Provider" Type="IOmniFileManagerProvider" Default="required" Description="Backend de listagem e mutações." />
+            <ShowcaseApiRow Name="Path / PathChanged" Type="string" Default="/" Description="Caminho lógico com two-way binding." />
+            <ShowcaseApiRow Name="Capabilities" Type="FileManagerCapabilities" Default="Browse" Description="Habilita criar, renomear, excluir, upload e download." />
+            <ShowcaseApiRow Name="View / ViewChanged" Type="FileManagerView" Default="List" Description="Alterna lista e grade." />
+            <ShowcaseApiRow Name="MaxItems" Type="int" Default="1000" Description="Limite de retenção/renderização por pasta." />
+            <ShowcaseApiRow Name="SelectedItem / SelectedItemChanged" Type="FileManagerEntry?" Default="null" Description="Seleção atual." />
+            <ShowcaseApiRow Name="ItemTemplate" Type="RenderFragment&lt;FileManagerEntry&gt;?" Default="null" Description="Renderização customizada." />
+            <ShowcaseApiRow Name="DownloadRequested" Type="EventCallback&lt;FileManagerEntry&gt;" Default="—" Description="Integra o download específico do backend." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private readonly DemoFileProvider _provider = new();
+    private string _path = "/";
+    private string? _downloaded;
+
+    private void OnDownload(FileManagerEntry item) => _downloaded = item.Name;
+
+    private sealed class DemoFileProvider : IOmniFileManagerProvider
+    {
+        private readonly object _sync = new();
+        private readonly Dictionary<string, List<FileManagerEntry>> _directories = new(StringComparer.Ordinal)
+        {
+            ["/"] =
+            [
+                new("docs", "Documentos", "/Documentos", true),
+                new("images", "Imagens", "/Imagens", true),
+                new("readme", "Leia-me.txt", "/Leia-me.txt", false)
+                {
+                    Size = 3_420,
+                    ModifiedAt = DateTimeOffset.Now.AddDays(-2),
+                    ContentType = "text/plain"
+                }
+            ],
+            ["/Documentos"] =
+            [
+                new("proposal", "Proposta.pdf", "/Documentos/Proposta.pdf", false)
+                {
+                    Size = 245_800,
+                    ModifiedAt = DateTimeOffset.Now.AddHours(-5),
+                    ContentType = "application/pdf"
+                }
+            ],
+            ["/Imagens"] =
+            [
+                new("brand", "Marca.png", "/Imagens/Marca.png", false)
+                {
+                    Size = 98_400,
+                    ModifiedAt = DateTimeOffset.Now.AddDays(-1),
+                    ContentType = "image/png"
+                }
+            ]
+        };
+
+        public async ValueTask<Omni.Blazor.Models.FileManagerPage> GetItemsAsync(
+            FileManagerRequest request,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(180, cancellationToken);
+            lock (_sync)
+            {
+                var source = _directories.GetValueOrDefault(request.Path, []);
+                var filtered = string.IsNullOrWhiteSpace(request.SearchText)
+                    ? source
+                    : source.Where(item =>
+                        item.Name.Contains(request.SearchText, StringComparison.CurrentCultureIgnoreCase)).ToList();
+                var items = filtered.Take(request.Take).ToArray();
+                return new Omni.Blazor.Models.FileManagerPage(items, filtered.Count);
+            }
+        }
+
+        public ValueTask CreateFolderAsync(string parentPath, string name, CancellationToken cancellationToken)
+        {
+            lock (_sync)
+            {
+                var path = Combine(parentPath, name);
+                GetOrCreate(parentPath).Add(
+                    new(Guid.NewGuid().ToString("N"), name, path, true));
+                _directories.TryAdd(path, []);
+            }
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask RenameAsync(
+            FileManagerEntry entry,
+            string newName,
+            CancellationToken cancellationToken)
+        {
+            lock (_sync)
+            {
+                foreach (var pair in _directories)
+                {
+                    var index = pair.Value.FindIndex(item => item.Id == entry.Id);
+                    if (index < 0) continue;
+                    pair.Value[index] = entry with
+                    {
+                        Name = newName,
+                        Path = Combine(ParentOf(entry.Path), newName)
+                    };
+                    if (entry.IsDirectory && _directories.Remove(entry.Path, out var children))
+                        _directories[Combine(ParentOf(entry.Path), newName)] = children;
+                    break;
+                }
+            }
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask DeleteAsync(FileManagerEntry entry, CancellationToken cancellationToken)
+        {
+            lock (_sync)
+            {
+                foreach (var entries in _directories.Values)
+                    entries.RemoveAll(item => item.Id == entry.Id);
+                if (entry.IsDirectory) _directories.Remove(entry.Path);
+            }
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask UploadAsync(
+            string path,
+            IReadOnlyList<IBrowserFile> files,
+            CancellationToken cancellationToken)
+        {
+            lock (_sync)
+            {
+                var target = GetOrCreate(path);
+                foreach (var file in files)
+                {
+                    target.Add(new(Guid.NewGuid().ToString("N"), file.Name, Combine(path, file.Name), false)
+                    {
+                        Size = file.Size,
+                        ModifiedAt = file.LastModified,
+                        ContentType = file.ContentType
+                    });
+                }
+            }
+            return ValueTask.CompletedTask;
+        }
+
+        private static string Combine(string parent, string name)
+            => parent == "/" ? $"/{name}" : $"{parent}/{name}";
+
+        private List<FileManagerEntry> GetOrCreate(string path)
+        {
+            if (_directories.TryGetValue(path, out var entries)) return entries;
+            entries = [];
+            _directories[path] = entries;
+            return entries;
+        }
+
+        private static string ParentOf(string path)
+        {
+            var index = path.LastIndexOf('/');
+            return index <= 0 ? "/" : path[..index];
+        }
+    }
+}

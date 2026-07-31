@@ -15,16 +15,22 @@
             O <code>OmniDataGrid&lt;TItem&gt;</code> é o componente de tabela da biblioteca,
             desenhado para telas de listagem de qualquer escala. Trabalha em <strong>dois
             modos de dados</strong>: in-memory via <code>Data</code> (filtro, ordenação e
-            paginação calculados no cliente) ou server-side via <code>LoadData</code>, onde
+            paginação calculados no cliente) ou server-side via <code>DataProvider</code>, onde
             o grid delega tudo ao consumidor e renderiza apenas a janela retornada.
         </p>
         <p>
             As colunas são declaradas com <code>OmniDataGridColumn&lt;TItem&gt;</code> dentro
             do slot <code>Columns</code>. O grid suporta ordenação multi-coluna (Shift+clique),
             linha de agregações no rodapé, filtros por coluna, seleção múltipla com checkbox,
-            expansão master-detail, modo árvore (tree-grid) via <code>ChildrenSelector</code> e
+            expansão master-detail, modo árvore (tree-grid) via <code>Children</code> e
             virtualização do <code>&lt;tbody&gt;</code> para milhares de registros. Colunas
             podem ser congeladas (<code>Frozen</code>), ocultadas e exportadas para CSV.
+        </p>
+        <p>
+            Use este modo hierárquico quando a tela também precisar dos recursos ricos do
+            DataGrid. Quando a hierarquia for o conceito principal e uma API menor for
+            preferível, use <code>OmniTreeGrid</code>. Ambos compartilham o mesmo motor de
+            expansão, cancelamento, cache LRU e proteção contra ciclos.
         </p>
     </Overview>
 
@@ -161,13 +167,13 @@
         </ShowcaseSection>
 
         <ShowcaseSection Title="Server-side simulado (10.000 pedidos)"
-                         Description="LoadData callback. Latência de 220ms exibe o loading overlay. Search com debounce de 300ms. Paginação chama o servidor."
+                         Description="DataProvider cancelável. Latência de 220ms exibe o loading overlay. Search com debounce de 300ms. Paginação chama o servidor."
                          Code="@(@"<OmniDataGrid TItem=""Order""
-               LoadData=""@(state => Orders.SearchAsync(state))""
+               DataProvider=""@Orders.SearchAsync""
                AllowSearch AllowPaging PageSize=""20"">
     <Columns>...</Columns>
 </OmniDataGrid>")">
-            <OmniDataGrid TItem="Order" LoadData="@(state => Orders.SearchAsync(state))" AllowSearch AllowPaging PageSize="20">
+            <OmniDataGrid TItem="Order" DataProvider="Orders.SearchAsync" AllowSearch AllowPaging PageSize="20">
                 <Columns>
                     <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)" Width="120px">
                         <Template><span class="omni-mono">#@context.Numero</span></Template>
@@ -189,13 +195,13 @@
 
         <ShowcaseSection Title="Multi-column sort + Aggregations"
                          Description="Shift+clique no header adiciona o critério ao sort. Footer (tfoot) mostra Σ Total, Σ Itens e contagem."
-                         Code="@(@"<OmniDataGrid TItem=""Order"" LoadData=""@Load"" ShowAggregateRow>
+                         Code="@(@"<OmniDataGrid TItem=""Order"" DataProvider=""@Load"" ShowAggregateRow>
     <Columns>
         <OmniDataGridColumn TItem=""Order"" Title=""Total"" Property=""@(o => (object)o.Total)""
                              Aggregate=""AggregateFunction.Sum"" />
     </Columns>
 </OmniDataGrid>")">
-            <OmniDataGrid TItem="Order" LoadData="@(state => Orders.SearchAsync(state))" AllowSearch AllowPaging PageSize="15" ShowAggregateRow>
+            <OmniDataGrid TItem="Order" DataProvider="Orders.SearchAsync" AllowSearch AllowPaging PageSize="15" ShowAggregateRow>
                 <Columns>
                     <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
                                          Aggregate="AggregateFunction.Count" Width="120px">
@@ -220,12 +226,12 @@
 
         <ShowcaseSection Title="Filter per-column"
                          Description="Linha de filtros abaixo do header. Cada coluna decide se é filtrável (operador Contains client-side e server-side)."
-                         Code="@(@"<OmniDataGrid TItem=""Order"" LoadData=""@Load"" AllowColumnFilter>
+                         Code="@(@"<OmniDataGrid TItem=""Order"" DataProvider=""@Load"" AllowColumnFilter>
     <Columns>
         <OmniDataGridColumn TItem=""Order"" Title=""Cliente"" Property=""@(o => o.Cliente)"" Filterable />
     </Columns>
 </OmniDataGrid>")">
-            <OmniDataGrid TItem="Order" LoadData="@(state => Orders.SearchAsync(state))" AllowColumnFilter AllowPaging PageSize="12">
+            <OmniDataGrid TItem="Order" DataProvider="Orders.SearchAsync" AllowColumnFilter AllowPaging PageSize="12">
                 <Columns>
                     <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
                                          Filterable Width="120px">
@@ -300,11 +306,12 @@
             </OmniDataGrid>
         </ShowcaseSection>
 
-        <ShowcaseSection Title="Hierarquia (tree-grid auto-aninhado)"
-                         Description="ChildrenSelector síncrono + InitiallyExpanded. Chevron + indentação na coluna âncora. Multi-nível recursivo. Linha destacada via RowClass."
+        <ShowcaseSection Title="Hierarquia (DataGrid com árvore)"
+                         Description="Usa o mesmo motor seguro do OmniTreeGrid, preservando sorting, edição, seleção, exportação e virtualização do DataGrid."
                          Code="@(@"<OmniDataGrid TItem=""SharingNode"" Data=""@_sharingRoots""
-               ChildrenSelector=""@(n => n.Children)""
-               InitiallyExpanded IndentSize=""22"">
+               KeySelector=""@(n => n.IdLoja)""
+               Children=""@(n => n.Children)""
+               InitiallyExpanded=""@(n => true)"" IndentSize=""22"">
     <Columns>
         <OmniDataGridColumn TItem=""SharingNode"" Title=""Nome""
                              IsHierarchyAnchor Property=""@(n => n.Nome)"" />
@@ -334,8 +341,9 @@
 
                 <OmniDataGrid TItem="SharingNode" Data="@FilteredSharing"
                                @ref="_treeGridRef"
-                               ChildrenSelector="@(n => n.Children)"
-                               InitiallyExpanded
+                               KeySelector="@(n => n.IdLoja)"
+                               Children="@(n => n.Children)"
+                               InitiallyExpanded="@(n => true)"
                                IndentSize="22"
                                AllowPaging="false"
                                RowClass="@(n => n.IsCurrent ? "omni-grid-row-highlight"
@@ -429,8 +437,9 @@
         <ShowcaseSection Title="Virtualize + Hierarquia (tree-grid)"
                          Description="Tree-grid com Virtualize ativo: _flatView virtualizado, chevron + indent funcionam idênticos. Ideal pra árvores grandes.">
             <OmniDataGrid TItem="SharingNode" Data="@_sharingRoots"
-                           ChildrenSelector="@(n => n.Children)"
-                           InitiallyExpanded
+                           KeySelector="@(n => n.IdLoja)"
+                           Children="@(n => n.Children)"
+                           InitiallyExpanded="@(n => true)"
                            Virtualize RowHeight="44" Height="360px"
                            IndentSize="22"
                            RowClass="@(n => n.IsCurrent ? "omni-grid-row-highlight"
@@ -467,7 +476,7 @@
 
         <ShowcaseSection Title="EmptyTemplate + LoadingTemplate"
                          Description="Slots customizáveis pro empty state (ícone + texto + CTA) e pro loading (skeleton rows em vez do spinner). Toggle pra ver cada estado."
-                         Code="@(@"<OmniDataGrid TItem=""Order"" LoadData=""@Load"" LoadingSkeleton>
+                         Code="@(@"<OmniDataGrid TItem=""Order"" DataProvider=""@Load"" LoadingSkeleton>
     <Columns>...</Columns>
     <EmptyTemplate>
         <p>Nenhum pedido por aqui</p>
@@ -486,7 +495,7 @@
                                  OnClick="OnDemoLoadAsync" />
                 </div>
                 <OmniDataGrid TItem="Order"
-                               LoadData="@DemoLoadAsync"
+                               DataProvider="@DemoLoadAsync"
                                AllowPaging PageSize="6"
                                LoadingSkeleton>
                     <Columns>
@@ -549,13 +558,13 @@
     <Api>
         <ShowcaseApiTable Title="OmniDataGrid — Dados">
             <ShowcaseApiRow Name="Data" Type="IEnumerable&lt;TItem&gt;?" Default="null"
-                            Description="Fonte de dados in-memory. Ignorado quando LoadData é setado." />
-            <ShowcaseApiRow Name="LoadData" Type="Func&lt;GridState, Task&lt;GridLoadResult&gt;&gt;?" Default="null"
-                            Description="Callback server-side. Recebe o estado (skip/top/sort/filtros) e retorna a janela de itens + total." />
+                            Description="Fonte de dados in-memory. Ignorado quando DataProvider é setado." />
+            <ShowcaseApiRow Name="DataProvider" Type="GridDataProvider&lt;TItem&gt;?" Default="null"
+                            Description="Provider server-side cancelável. Recebe estado e token, retornando uma janela de itens e o total." />
             <ShowcaseApiRow Name="Count" Type="int?" Default="null"
                             Description="Override do total quando server-side e o resultado não preenche TotalCount." />
             <ShowcaseApiRow Name="DebounceMs" Type="int" Default="300"
-                            Description="Debounce entre keystrokes na busca antes de chamar LoadData." />
+                            Description="Debounce entre keystrokes na busca antes de chamar DataProvider." />
             <ShowcaseApiRow Name="Columns" Type="RenderFragment?" Default="null"
                             Description="Slot onde as OmniDataGridColumn são declaradas." />
             <ShowcaseApiRow Name="EmptyText" Type="string" Default="Nenhum registro..."
@@ -622,16 +631,24 @@
         </ShowcaseApiTable>
 
         <ShowcaseApiTable Title="OmniDataGrid — Hierarquia">
-            <ShowcaseApiRow Name="ChildrenSelector" Type="Func&lt;TItem, IEnumerable&lt;TItem&gt;?&gt;?" Default="null"
+            <ShowcaseApiRow Name="KeySelector" Type="Func&lt;TItem, object&gt;?" Default="item"
+                            Description="Identidade estável usada pela expansão, cache e operações lazy." />
+            <ShowcaseApiRow Name="Children" Type="Func&lt;TItem, IEnumerable&lt;TItem&gt;?&gt;?" Default="null"
                             Description="Função síncrona que retorna os filhos de um item — ativa o modo tree-grid." />
-            <ShowcaseApiRow Name="LoadChildren" Type="Func&lt;TItem, Task&lt;...&gt;&gt;?" Default="null"
-                            Description="Callback assíncrono que carrega filhos sob demanda na primeira expansão. Resultado cacheado." />
+            <ShowcaseApiRow Name="ChildrenProvider" Type="HierarchyChildrenProvider&lt;TItem&gt;?" Default="null"
+                            Description="Provider lazy cancelável, deduplicado e com cache LRU limitado." />
             <ShowcaseApiRow Name="HasChildren" Type="Func&lt;TItem, bool&gt;?" Default="null"
                             Description="Predicado que decide se uma linha tem filhos (mostra o chevron)." />
             <ShowcaseApiRow Name="IndentSize" Type="int" Default="20"
                             Description="Pixels de indentação por nível na coluna âncora." />
-            <ShowcaseApiRow Name="InitiallyExpanded" Type="bool" Default="false"
-                            Description="Expande todos os nós no primeiro render." />
+            <ShowcaseApiRow Name="InitiallyExpanded" Type="Func&lt;TItem, bool&gt;?" Default="null"
+                            Description="Predicado aplicado uma vez quando a fonte hierárquica muda." />
+            <ShowcaseApiRow Name="ExpandedKeys / ExpandedKeysChanged" Type="IReadOnlyCollection&lt;object&gt;?" Default="null"
+                            Description="Estado de expansão controlável pelas chaves estáveis." />
+            <ShowcaseApiRow Name="MaxCachedNodes / MaxCachedItems" Type="int" Default="500 / 10000"
+                            Description="Limites do cache LRU compartilhado com o OmniTreeGrid." />
+            <ShowcaseApiRow Name="MaxVisibleRows / MaxDepth" Type="int" Default="5000 / 64"
+                            Description="Proteções contra árvores patológicas e ciclos." />
             <ShowcaseApiRow Name="RowClass" Type="Func&lt;TItem, string?&gt;?" Default="null"
                             Description="Função que retorna classes CSS extras por linha — útil para destacar linhas." />
         </ShowcaseApiTable>
@@ -778,12 +795,14 @@
     // —— Empty/Loading template demo ——
     private int _emptyDemoState; // 0=dados, 1=vazio, 2=loading
 
-    private async Task<GridLoadResult<Order>> DemoLoadAsync(GridState<Order> state)
+    private async ValueTask<GridLoadResult<Order>> DemoLoadAsync(
+        GridState<Order> state,
+        CancellationToken cancellationToken)
     {
         if (_emptyDemoState == 2)
         {
             // Simula loading longo: fica ~1s antes de retornar
-            await Task.Delay(1200);
+            await Task.Delay(1200, cancellationToken);
             _emptyDemoState = 0; // volta pra "dados" após o load
             StateHasChanged();
         }

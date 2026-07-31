@@ -76,6 +76,44 @@ public class OmniDataGridColumnTests : TestContextBase
     }
 
     [Fact]
+    public void Visible_toggled_after_the_first_render_shows_and_hides_the_column()
+    {
+        // Regressão: a coluna copiava Visible para o estado interno só no
+        // OnInitialized, então o parâmetro valia como valor de PARTIDA e nunca mais
+        // era lido. Um seletor de colunas do consumidor — que liga/desliga Visible
+        // depois que o grid já montou — não surtia efeito nenhum: marcar e desmarcar
+        // não fazia a coluna aparecer nem sumir.
+        static RenderFragment Colunas(bool idadeVisivel) => b =>
+        {
+            b.OpenComponent<OmniDataGridColumn<Person>>(0);
+            b.AddAttribute(1, nameof(OmniDataGridColumn<Person>.Title), "Nome");
+            b.AddAttribute(2, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(p => p.Name));
+            b.CloseComponent();
+
+            b.OpenComponent<OmniDataGridColumn<Person>>(3);
+            b.AddAttribute(4, nameof(OmniDataGridColumn<Person>.Title), "Idade");
+            b.AddAttribute(5, nameof(OmniDataGridColumn<Person>.Visible), idadeVisivel);
+            b.AddAttribute(6, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(p => p.Age));
+            b.CloseComponent();
+        };
+
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.Columns, Colunas(true)));
+
+        Assert.Contains(Cabecalhos(cut), t => t.Contains("Idade"));
+
+        cut.Render(p => p.Add(c => c.Columns, Colunas(false)));
+        Assert.DoesNotContain(Cabecalhos(cut), t => t.Contains("Idade"));
+
+        cut.Render(p => p.Add(c => c.Columns, Colunas(true)));
+        Assert.Contains(Cabecalhos(cut), t => t.Contains("Idade"));
+    }
+
+    private static List<string> Cabecalhos(IRenderedComponent<OmniDataGrid<Person>> cut) =>
+        cut.FindAll("table.omni-grid-table thead th").Select(h => h.TextContent).ToList();
+
+    [Fact]
     public void Visible_false_hides_column_header()
     {
         var cut = Render<OmniDataGrid<Person>>(p => p

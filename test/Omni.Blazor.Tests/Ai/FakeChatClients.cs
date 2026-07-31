@@ -56,6 +56,8 @@ internal sealed class GatedChatClient : IChatClient
     /// <summary>Completes once the first chunk has been yielded and the stream is parked on the gate.</summary>
     public Task FirstYielded => _firstYielded.Task;
 
+    public bool Disposed { get; private set; }
+
     /// <summary>Releases the gate so the stream emits its final chunk.</summary>
     public void Release() => _gate.TrySetResult();
 
@@ -74,5 +76,5 @@ internal sealed class GatedChatClient : IChatClient
 
     public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
-    public void Dispose() { }
+    public void Dispose() => Disposed = true;
 }

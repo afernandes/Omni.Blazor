@@ -1,0 +1,121 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel where TModel : class
+@inherits OmniComponent
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Metadata-driven form with a reusable typed schema, generated Omni editors, external EditContext support and cancellable validation. *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    <OmniForm TModel="TModel"
+              Model="@Model"
+              EditContext="@EditContext"
+              OnValidSubmit="@OnValidSubmit"
+              OnInvalidSubmit="@HandleInvalidSubmitAsync"
+              AddDataAnnotationsValidator="@AddDataAnnotationsValidator"
+              Validation="@EffectiveValidation"
+              ValidationAsyncWithCancellation="@EffectiveAsyncValidation"
+              ValidationDelay="@ValidationDelay"
+              RenderFormElement="@RenderFormElement"
+              IsTouched="@IsTouched"
+              IsTouchedChanged="@IsTouchedChanged"
+              @ref="_form">
+        @if (ShowValidationSummary)
+        {
+            @if (ValidationSummaryEntries is { Count: > 0 } summaryEntries)
+            {
+                <div class="omni-alert omni-alert-danger omni-data-form-validation-summary" role="alert" aria-live="polite">
+                    <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
+                    <div class="omni-alert-body">
+                        @if (!string.IsNullOrEmpty(ValidationSummaryTitle ?? Texts.DataFormValidationSummary))
+                        {
+                            <div class="omni-alert-title">@(ValidationSummaryTitle ?? Texts.DataFormValidationSummary)</div>
+                        }
+                        <ul class="omni-validation-summary-list">
+                            @foreach (DataFormValidationSummaryEntry entry in summaryEntries)
+                            {
+                                <li @key="entry.Key">
+                                    @if (entry.PropertyPath is not null)
+                                    {
+                                        <button type="button"
+                                                class="omni-data-form-validation-link"
+                                                @onclick="@(() => FocusSummaryEntryAsync(entry.PropertyPath))">@entry.Message</button>
+                                    }
+                                    else
+                                    {
+                                        @entry.Message
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        }
+
+        @if (ShowDiagnostics && Diagnostics.Count > 0)
+        {
+            @if (DiagnosticsTemplate is not null)
+            {
+                @DiagnosticsTemplate(Diagnostics)
+            }
+            else
+            {
+                <aside class="omni-data-form-diagnostics" role="status">
+                    @foreach (DataFormDiagnostic diagnostic in Diagnostics)
+                    {
+                        <div @key="@($"{diagnostic.Code}:{diagnostic.PropertyPath}")"
+                             class="omni-data-form-diagnostic">
+                            <code>@diagnostic.Code</code>
+                            <span>@diagnostic.Message</span>
+                        </div>
+                    }
+                </aside>
+            }
+        }
+
+        <div class="omni-data-form-grid" style="@GridStyle">
+            @foreach (var resolvedField in _resolvedFields)
+            {
+                @if (_currentModel is not null && resolvedField.IsVisible(_currentModel))
+                {
+                    <div @key="resolvedField.Metadata.Property"
+                         id="@resolvedField.FieldId"
+                         class="omni-data-form-cell"
+                         style="@CellStyle(resolvedField)">
+                        <DynamicComponent Type="@resolvedField.RendererType"
+                                          Parameters="@resolvedField.RendererParameters" />
+                    </div>
+                }
+            }
+            @foreach (var resolvedGroup in _resolvedGroups)
+            {
+                <div @key="resolvedGroup.Metadata.Id" class="omni-data-form-group-cell">
+                    <OmniDataFormGroupRenderer TModel="TModel"
+                                               Group="@resolvedGroup"
+                                               Model="@_currentModel"
+                                               FormId="@Id" />
+                </div>
+            }
+        </div>
+
+        @ChildContent
+
+        @if (Actions is not null)
+        {
+            <div class="omni-data-form-actions">@Actions</div>
+        }
+        else if (ShowSubmitButton)
+        {
+            <div class="omni-data-form-actions">
+                <OmniButton Type="submit"
+                            Text="@(SubmitText ?? Texts.Save)"
+                            Loading="@Submitting"
+                            Disabled="@(Disabled || ReadOnly)"
+                            Variant="ButtonVariant.Primary" />
+            </div>
+        }
+    </OmniForm>
+</div>

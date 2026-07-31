@@ -1,0 +1,53 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@implements IDisposable
+
+@* Declarative column definition registered with a parent OmniTreeGrid. *@
+
+@code {
+    [CascadingParameter] internal OmniTreeGrid<TItem>? Parent { get; set; }
+
+    /// <summary>Column header text.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>CSS width such as <c>240px</c> or <c>30%</c>.</summary>
+    [Parameter] public string? Width { get; set; }
+
+    /// <summary>Raw value selector used by the default cell renderer.</summary>
+    [Parameter] public Func<TItem, object?>? Property { get; set; }
+
+    /// <summary>Text selector overriding <see cref="Property"/> formatting.</summary>
+    [Parameter] public Func<TItem, string?>? TextSelector { get; set; }
+
+    /// <summary>Custom cell template receiving the row item.</summary>
+    [Parameter] public RenderFragment<TItem>? Template { get; set; }
+
+    /// <summary>Marks this column as the hierarchy indentation/expansion anchor.</summary>
+    [Parameter] public bool IsHierarchyAnchor { get; set; }
+
+    /// <summary>Horizontal cell alignment.</summary>
+    [Parameter] public TreeGridColumnAlign Align { get; set; }
+
+    protected override void OnInitialized() => Parent?.Register(this);
+
+    public void Dispose()
+    {
+        Parent?.Unregister(this);
+        GC.SuppressFinalize(this);
+    }
+
+    internal string? GetText(TItem item)
+    {
+        if (TextSelector is not null) return TextSelector(item);
+        return Property?.Invoke(item)?.ToString();
+    }
+
+    internal string AlignmentClass => Align switch
+    {
+        TreeGridColumnAlign.Center => "omni-tree-grid-align-center",
+        TreeGridColumnAlign.End => "omni-tree-grid-align-end",
+        _ => "omni-tree-grid-align-start"
+    };
+}
+

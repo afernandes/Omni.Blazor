@@ -29,24 +29,27 @@
     else
     {
         <div class="omni-pdv-cust-search">
-            <OmniAutoComplete TValue="Customer"
+            <OmniAutoComplete TItem="Customer"
                                Placeholder="Buscar cliente por nome ou telefone…"
-                               LoadData="LoadCustomers"
+                               ItemsProvider="LoadCustomers"
                                TextSelector="@(c => c?.Name ?? "")"
                                @bind-Value="_picked"
                                @bind-Value:after="OnPicked">
                 <ItemTemplate>
-                    <div class="omni-pdv-cust-suggestion">
-                        <div class="omni-pdv-cust-av omni-pdv-cust-av-sm">@Initials(context.Name)</div>
-                        <div>
-                            <div class="omni-pdv-cust-name">@context.Name</div>
-                            <div class="omni-pdv-cust-meta">
-                                <span>@context.Phone</span>
-                                <span class="omni-pdv-cust-meta-sep">·</span>
-                                <span>@context.Orders pedidos</span>
+                    @if (context is { } customer)
+                    {
+                        <div class="omni-pdv-cust-suggestion">
+                            <div class="omni-pdv-cust-av omni-pdv-cust-av-sm">@Initials(customer.Name)</div>
+                            <div>
+                                <div class="omni-pdv-cust-name">@customer.Name</div>
+                                <div class="omni-pdv-cust-meta">
+                                    <span>@customer.Phone</span>
+                                    <span class="omni-pdv-cust-meta-sep">·</span>
+                                    <span>@customer.Orders pedidos</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    }
                 </ItemTemplate>
             </OmniAutoComplete>
         </div>
@@ -70,10 +73,13 @@
         }
     }
 
-    // Signature alinhada com OmniAutoComplete.LoadData (Func<string, Task<IEnumerable<TValue?>>>)
-    private Task<IEnumerable<Customer?>> LoadCustomers(string query)
+    private ValueTask<OmniItemsPage<Customer>> LoadCustomers(
+        OmniItemsRequest request,
+        CancellationToken cancellationToken)
     {
-        IEnumerable<Customer?> results;
+        cancellationToken.ThrowIfCancellationRequested();
+        var query = request.Search;
+        IEnumerable<Customer> results;
         if (string.IsNullOrWhiteSpace(query))
         {
             results = PdvMockData.Customers;
@@ -87,7 +93,10 @@
                 : PdvMockData.Customers.Where(c =>
                     c.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
         }
-        return Task.FromResult(results);
+        var materialized = results.ToList();
+        return ValueTask.FromResult(new OmniItemsPage<Customer>(
+            materialized.Skip(request.Skip).Take(request.Take).ToList(),
+            materialized.Count));
     }
 
     private static string Initials(string name) =>

@@ -209,7 +209,7 @@ else
     {
         if (_children.Contains(child)) return;
         _children.Add(child);
-        InvokeAsync(StateHasChanged);
+        ObserveTask(InvokeAsync(StateHasChanged), "OmniMenuBarItem.Render");
     }
 
     internal void UnregisterChild(OmniMenuBarItem child) => _children.Remove(child);

@@ -1,0 +1,559 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel where TModel : class
+@typeparam TValue
+@inherits OmniComponent
+@attribute [OmniCatalogIgnore]
+@using System.Linq.Expressions
+@using System.Reflection
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.Models
+@using Omni.Blazor.State
+
+<OmniFormField Label="@Field.Label"
+               Hint="@Field.Hint"
+               HintRight="@Field.HintRight"
+               Required="@Field.IsRequired(Model)"
+               For="@(Field.Collection is null ? EditorId : null)"
+               ValidationFor="@_validationExpression"
+               Class="@Field.Class"
+               Style="@Field.Style">
+    @if (Field.Template is DataFormFieldTemplate<TModel, TValue> template
+         && _templateContext is not null)
+    {
+        @template.Content(_templateContext)
+    }
+    else
+    {
+        @switch (Field.Editor)
+        {
+            case DataFormEditor.TextArea:
+                <OmniTextArea @attributes="Field.EditorParameters" InputId="@EditorId"
+                              Value="@StringValue"
+                              ValueChanged="@OnStringChangedAsync"
+                              ValueExpression="@StringExpression"
+                              Placeholder="@Field.Placeholder"
+                              Name="@Property.Name"
+                              Disabled="@EffectiveDisabled"
+                              ReadOnly="@EffectiveReadOnly" />
+                break;
+            case DataFormEditor.Password:
+                <OmniPassword @attributes="Field.EditorParameters" InputId="@EditorId"
+                              Value="@StringValue"
+                              ValueChanged="@OnStringChangedAsync"
+                              ValueExpression="@StringExpression"
+                              Placeholder="@Field.Placeholder"
+                              Name="@Property.Name"
+                              Disabled="@EffectiveDisabled"
+                              ReadOnly="@EffectiveReadOnly" />
+                break;
+            case DataFormEditor.Email:
+            case DataFormEditor.Telephone:
+            case DataFormEditor.Url:
+            case DataFormEditor.Text:
+                <OmniTextBox @attributes="Field.EditorParameters" InputId="@EditorId"
+                             Value="@StringValue"
+                             ValueChanged="@OnStringChangedAsync"
+                             ValueExpression="@StringExpression"
+                             Type="@TextInputType"
+                             Placeholder="@Field.Placeholder"
+                             Name="@Property.Name"
+                             Disabled="@EffectiveDisabled"
+                             ReadOnly="@EffectiveReadOnly" />
+                break;
+            case DataFormEditor.Number:
+                <OmniNumeric TValue="TValue"
+                             @attributes="Field.EditorParameters"
+                             InputId="@EditorId"
+                             Value="@CurrentValue"
+                             ValueChanged="@OnValueChangedAsync"
+                             ValueExpression="@_valueExpression"
+                             Placeholder="@Field.Placeholder"
+                             Name="@Property.Name"
+                             Disabled="@EffectiveDisabled"
+                             ReadOnly="@EffectiveReadOnly" />
+                break;
+            case DataFormEditor.Date:
+            case DataFormEditor.DateTime:
+            case DataFormEditor.Time:
+                <OmniDatePicker TValue="TValue"
+                                @attributes="Field.EditorParameters"
+                                InputId="@EditorId"
+                                Value="@CurrentValue"
+                                ValueChanged="@OnValueChangedAsync"
+                                ValueExpression="@_valueExpression"
+                                Placeholder="@Field.Placeholder"
+                                ShowTime="@(Field.Editor == DataFormEditor.DateTime)"
+                                ShowTimeOnly="@(Field.Editor == DataFormEditor.Time)"
+                                Name="@Property.Name"
+                                Disabled="@EffectiveDisabled"
+                                ReadOnly="@EffectiveReadOnly" />
+                break;
+            case DataFormEditor.CheckBox:
+                <OmniCheckBox @attributes="Field.EditorParameters" InputId="@EditorId"
+                              Value="@BoolValue"
+                              ValueChanged="@OnBoolChangedAsync"
+                              ValueExpression="@BoolExpression"
+                              Name="@Property.Name"
+                              Disabled="@(EffectiveDisabled || EffectiveReadOnly)" />
+                break;
+            case DataFormEditor.Switch:
+                <OmniSwitch @attributes="Field.EditorParameters" InputId="@EditorId"
+                            Value="@BoolValue"
+                            ValueChanged="@OnBoolChangedAsync"
+                            ValueExpression="@BoolExpression"
+                            Name="@Property.Name"
+                            Disabled="@(EffectiveDisabled || EffectiveReadOnly)" />
+                break;
+            case DataFormEditor.Select:
+                @if (Field.Lookup is not null)
+                {
+                    <DynamicComponent Type="@Field.Lookup.EditorType"
+                                      Parameters="@LookupEditorParameters" />
+                }
+                else
+                {
+                    <OmniSelect TValue="TValue"
+                                @attributes="Field.EditorParameters"
+                                InputId="@EditorId"
+                                Value="@CurrentValue"
+                                ValueChanged="@OnValueChangedAsync"
+                                ValueExpression="@_valueExpression"
+                                Items="@_optionValues"
+                                TextSelector="@OptionText"
+                                Placeholder="@Field.Placeholder"
+                                Name="@Property.Name"
+                                Disabled="@EffectiveDisabled"
+                                ReadOnly="@EffectiveReadOnly"
+                                Clearable="@SelectClearable" />
+                }
+                break;
+            case DataFormEditor.Collection:
+                @if (Field.Collection is not null)
+                {
+                    <DynamicComponent Type="@Field.Collection.EditorType"
+                                      Parameters="@CollectionEditorParameters" />
+                }
+                break;
+            case DataFormEditor.Custom:
+                @if (Field.CustomEditorType is not null)
+                {
+                    <DynamicComponent Type="@Field.CustomEditorType"
+                                      Parameters="@CustomEditorParameters" />
+                }
+                break;
+        }
+    }
+</OmniFormField>
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    /// <summary>Model instance edited by this internal renderer.</summary>
+    [Parameter, EditorRequired] public TModel Model { get; set; } = default!;
+
+    /// <summary>Effective field metadata.</summary>
+    [Parameter, EditorRequired] public DataFormField<TModel> Field { get; set; } = default!;
+
+    /// <summary>Property bound by this renderer.</summary>
+    [Parameter, EditorRequired] public PropertyInfo Property { get; set; } = default!;
+
+    /// <summary>Complete property chain used for nested model binding.</summary>
+    [Parameter, EditorRequired] public PropertyInfo[] Properties { get; set; } = default!;
+
+    /// <summary>Stable id shared by the label, editor and focus APIs.</summary>
+    [Parameter, EditorRequired] public string FieldId { get; set; } = default!;
+
+    /// <summary>Disables the generated editor.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Makes the generated editor read-only.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>Raised after the bound property is written.</summary>
+    [Parameter] public EventCallback<DataFormFieldChangedEventArgs<TModel>> FieldChanged { get; set; }
+
+    /// <summary>Lookup dependency version used to invalidate provider state.</summary>
+    [Parameter] public long LookupVersion { get; set; }
+
+    private TModel? _accessorModel;
+    private PropertyInfo? _accessorProperty;
+    private PropertyInfo[]? _accessorProperties;
+    private DataFormField<TModel>? _accessorField;
+    private EditContext? _context;
+    private IReadOnlyList<DataFormOption>? _options;
+    private Func<TModel, TValue> _getter = default!;
+    private Action<TModel, TValue>? _setter;
+    private Expression<Func<TValue>> _valueExpression = default!;
+    private Expression<Func<object?>> _validationExpression = default!;
+    private DataFormFieldContext<TModel, TValue>? _templateContext;
+    private IReadOnlyList<TValue> _optionValues = [];
+    private IDictionary<string, object> _customEditorParameters =
+        new Dictionary<string, object>(0, StringComparer.Ordinal);
+    private IDictionary<string, object> _lookupEditorParameters =
+        new Dictionary<string, object>(0, StringComparer.Ordinal);
+    private IDictionary<string, object> _collectionEditorParameters =
+        new Dictionary<string, object>(0, StringComparer.Ordinal);
+    private HashSet<string> _customSupportedParameters = new(StringComparer.Ordinal);
+    private readonly ParameterState<RendererState> _rendererState;
+
+    private bool EffectiveDisabled => Disabled || Field.IsDisabled(Model);
+    private bool EffectiveReadOnly => ReadOnly || Field.IsReadOnly(Model);
+    private string EditorId => $"{FieldId}-input";
+    private IDictionary<string, object> CustomEditorParameters
+    {
+        get
+        {
+            if (_customEditorParameters.Count == 0) return _customEditorParameters;
+            _customEditorParameters["Value"] = CurrentValue!;
+            AddIfSupported(_customEditorParameters, _customSupportedParameters, "Disabled", EffectiveDisabled);
+            AddIfSupported(_customEditorParameters, _customSupportedParameters, "ReadOnly", EffectiveReadOnly);
+            return _customEditorParameters;
+        }
+    }
+    private IDictionary<string, object> LookupEditorParameters
+    {
+        get
+        {
+            if (_lookupEditorParameters.Count == 0) return _lookupEditorParameters;
+            _lookupEditorParameters["Value"] = CurrentValue!;
+            _lookupEditorParameters["Disabled"] = EffectiveDisabled;
+            _lookupEditorParameters["ReadOnly"] = EffectiveReadOnly;
+            _lookupEditorParameters["DependencyVersion"] = LookupVersion;
+            return _lookupEditorParameters;
+        }
+    }
+    private IDictionary<string, object> CollectionEditorParameters
+    {
+        get
+        {
+            if (_collectionEditorParameters.Count == 0) return _collectionEditorParameters;
+            _collectionEditorParameters["Value"] = CurrentValue!;
+            _collectionEditorParameters["Disabled"] = EffectiveDisabled;
+            _collectionEditorParameters["ReadOnly"] = EffectiveReadOnly;
+            return _collectionEditorParameters;
+        }
+    }
+
+    public OmniDataFormFieldRenderer()
+    {
+        _rendererState = RegisterParameter<RendererState>(nameof(Field))
+            .WithParameter(() => new RendererState(Model, Field, Property, Properties, EditContext, Disabled, ReadOnly, FieldId, LookupVersion))
+            .WithComparer(RendererStateComparer.Instance)
+            .WithChangeHandler(RefreshBindings)
+            .Attach();
+    }
+
+    private void RefreshBindings()
+    {
+        if (!ReferenceEquals(_accessorProperty, Property)
+            || !ReferenceEquals(_accessorProperties, Properties))
+        {
+            CompileAccessors();
+            _accessorProperty = Property;
+            _accessorProperties = Properties;
+            _accessorModel = null;
+        }
+
+        if (!ReferenceEquals(_accessorModel, Model))
+        {
+            BuildExpressions();
+            _accessorModel = Model;
+        }
+
+        if (!ReferenceEquals(_context, EditContext))
+        {
+            _context = EditContext;
+            BuildTemplateContext();
+        }
+
+        if (!ReferenceEquals(_accessorField, Field))
+        {
+            _accessorField = Field;
+            BuildTemplateContext();
+        }
+
+        BuildCustomEditorParameters();
+        BuildLookupEditorParameters();
+        BuildCollectionEditorParameters();
+
+        if (!ReferenceEquals(_options, Field.Options))
+        {
+            _options = Field.Options;
+            BuildOptions();
+        }
+    }
+
+    private TValue CurrentValue => _getter(Model);
+    private string? StringValue => (string?)(object?)CurrentValue;
+    private bool BoolValue => (bool)(object?)CurrentValue!;
+
+    private Expression<Func<string?>> StringExpression
+        => (Expression<Func<string?>>)(object)_valueExpression;
+
+    private Expression<Func<bool>> BoolExpression
+        => (Expression<Func<bool>>)(object)_valueExpression;
+
+    private bool SelectClearable
+        => Field.EditorParameters.TryGetValue("Clearable", out object? configured)
+           && configured is bool value
+            ? value
+            : Nullable.GetUnderlyingType(typeof(TValue)) is not null || !typeof(TValue).IsValueType;
+
+    private string TextInputType => Field.Editor switch
+    {
+        DataFormEditor.Email => "email",
+        DataFormEditor.Telephone => "tel",
+        DataFormEditor.Url => "url",
+        _ => "text"
+    };
+
+    private Task OnStringChangedAsync(string? value)
+        => OnValueChangedAsync((TValue)(object?)value!);
+
+    private Task OnBoolChangedAsync(bool value)
+        => OnValueChangedAsync((TValue)(object)value);
+
+    private Task OnCollectionChangedAsync(TValue? value)
+        => OnValueChangedAsync(value!);
+
+    private async Task OnValueChangedAsync(TValue value)
+    {
+        if (_setter is null || EffectiveDisabled || EffectiveReadOnly) return;
+        _setter(Model, value);
+        if (FieldChanged.HasDelegate)
+        {
+            await FieldChanged.InvokeAsync(new DataFormFieldChangedEventArgs<TModel>(
+                Model,
+                Field.Property,
+                value));
+        }
+    }
+
+    private string OptionText(TValue? value)
+    {
+        IReadOnlyList<DataFormOption>? options = Field.Options;
+        if (options is null) return value?.ToString() ?? string.Empty;
+
+        object? boxed = value;
+        foreach (DataFormOption option in options)
+        {
+            if (Equals(option.Value, boxed)) return option.Text;
+        }
+        return boxed?.ToString() ?? string.Empty;
+    }
+
+    private void CompileAccessors()
+    {
+        ParameterExpression model = Expression.Parameter(typeof(TModel), "model");
+        Expression access = model;
+        foreach (PropertyInfo property in Properties)
+            access = Expression.Property(access, property);
+        _getter = Expression.Lambda<Func<TModel, TValue>>(access, model).Compile();
+
+        if (Property.SetMethod is null)
+        {
+            _setter = null;
+            return;
+        }
+
+        ParameterExpression value = Expression.Parameter(typeof(TValue), "value");
+        BinaryExpression assign = Expression.Assign(access, value);
+        _setter = Expression.Lambda<Action<TModel, TValue>>(assign, model, value).Compile();
+    }
+
+    private void BuildExpressions()
+    {
+        ConstantExpression model = Expression.Constant(Model, typeof(TModel));
+        Expression access = model;
+        foreach (PropertyInfo property in Properties)
+            access = Expression.Property(access, property);
+        _valueExpression = Expression.Lambda<Func<TValue>>(access);
+        _validationExpression = Expression.Lambda<Func<object?>>(
+            Expression.Convert(access, typeof(object)));
+        BuildTemplateContext();
+    }
+
+    private void BuildCustomEditorParameters()
+    {
+        if (Field.Editor != DataFormEditor.Custom || Field.CustomEditorType is null)
+        {
+            _customEditorParameters = new Dictionary<string, object>(0, StringComparer.Ordinal);
+            _customSupportedParameters.Clear();
+            return;
+        }
+
+        Dictionary<string, object> parameters = new(StringComparer.Ordinal)
+        {
+            ["Value"] = CurrentValue!,
+            ["ValueChanged"] = EventCallback.Factory.Create<TValue>(this, OnValueChangedAsync),
+            ["ValueExpression"] = _valueExpression
+        };
+
+        HashSet<string> supported = Field.CustomEditorType.GetProperties()
+            .Where(static property => property.IsDefined(typeof(ParameterAttribute), inherit: true))
+            .Select(static property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        _customSupportedParameters = supported;
+        AddIfSupported(parameters, supported, "Name", Property.Name);
+        AddIfSupported(parameters, supported, "Placeholder", Field.Placeholder);
+        AddIfSupported(parameters, supported, "Disabled", EffectiveDisabled);
+        AddIfSupported(parameters, supported, "ReadOnly", EffectiveReadOnly);
+        AddIfSupported(parameters, supported, "InputId", EditorId);
+        if (supported.Contains("Attributes"))
+            parameters["Attributes"] = new Dictionary<string, object>(StringComparer.Ordinal);
+        _customEditorParameters = parameters;
+    }
+
+    private void BuildLookupEditorParameters()
+    {
+        if (Field.Lookup is null)
+        {
+            _lookupEditorParameters = new Dictionary<string, object>(0, StringComparer.Ordinal);
+            return;
+        }
+
+        _lookupEditorParameters = new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            ["Model"] = Model,
+            ["LookupDefinition"] = Field.Lookup,
+            ["Value"] = CurrentValue!,
+            ["ValueChanged"] = EventCallback.Factory.Create<TValue>(this, OnValueChangedAsync),
+            ["ValueExpression"] = _valueExpression,
+            ["Placeholder"] = Field.Placeholder!,
+            ["Name"] = Property.Name,
+            ["InputId"] = EditorId,
+            ["Disabled"] = EffectiveDisabled,
+            ["ReadOnly"] = EffectiveReadOnly,
+            ["DependencyVersion"] = LookupVersion
+        };
+    }
+
+    private void BuildCollectionEditorParameters()
+    {
+        if (Field.Collection is null)
+        {
+            _collectionEditorParameters = new Dictionary<string, object>(0, StringComparer.Ordinal);
+            return;
+        }
+
+        _collectionEditorParameters = new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            ["Model"] = Model,
+            ["CollectionDefinition"] = Field.Collection,
+            ["Value"] = CurrentValue!,
+            ["ValueChanged"] = EventCallback.Factory.Create<TValue?>(this, OnCollectionChangedAsync),
+            ["FieldIdentifier"] = FieldIdentifier.Create(_valueExpression),
+            ["PropertyPath"] = Field.Property,
+            ["FieldId"] = EditorId,
+            ["Label"] = Field.Label!,
+            ["Disabled"] = EffectiveDisabled,
+            ["ReadOnly"] = EffectiveReadOnly
+        };
+    }
+
+    private static void AddIfSupported(
+        IDictionary<string, object> target,
+        ISet<string> supported,
+        string name,
+        object? value)
+    {
+        if (supported.Contains(name)) target[name] = value!;
+    }
+
+    private void BuildTemplateContext()
+    {
+        _templateContext = EditContext is null
+            ? null
+            : new DataFormFieldContext<TModel, TValue>(
+                Model,
+                Field,
+                EditContext,
+                () => CurrentValue,
+                EventCallback.Factory.Create<TValue>(this, OnValueChangedAsync),
+                _valueExpression);
+    }
+
+    private void BuildOptions()
+    {
+        if (Field.Options is not { Count: > 0 } options)
+        {
+            _optionValues = [];
+            return;
+        }
+
+        List<TValue> values = new(options.Count);
+        foreach (DataFormOption option in options)
+        {
+            if (option.Value is null)
+            {
+                if (default(TValue) is null) values.Add(default!);
+                continue;
+            }
+
+            if (option.Value is TValue typed)
+            {
+                values.Add(typed);
+                continue;
+            }
+
+            Type target = Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+            if (target.IsEnum && option.Value.GetType() == target)
+            {
+                values.Add((TValue)option.Value);
+                continue;
+            }
+
+            try
+            {
+                object converted = Convert.ChangeType(
+                    option.Value,
+                    target,
+                    System.Globalization.CultureInfo.InvariantCulture);
+                values.Add((TValue)converted);
+            }
+            catch (Exception exception) when (exception is FormatException or InvalidCastException or OverflowException)
+            {
+                // An incompatible option is ignored instead of breaking the whole form.
+            }
+        }
+        _optionValues = values;
+    }
+
+    private readonly record struct RendererState(
+        TModel Model,
+        DataFormField<TModel> Field,
+        PropertyInfo Property,
+        PropertyInfo[] Properties,
+        EditContext? EditContext,
+        bool Disabled,
+        bool ReadOnly,
+        string FieldId,
+        long LookupVersion);
+
+    private sealed class RendererStateComparer : IEqualityComparer<RendererState>
+    {
+        public static RendererStateComparer Instance { get; } = new();
+
+        public bool Equals(RendererState x, RendererState y)
+            => ReferenceEquals(x.Model, y.Model)
+               && ReferenceEquals(x.Field, y.Field)
+               && ReferenceEquals(x.Property, y.Property)
+               && ReferenceEquals(x.Properties, y.Properties)
+               && ReferenceEquals(x.EditContext, y.EditContext)
+               && x.Disabled == y.Disabled
+               && x.ReadOnly == y.ReadOnly
+               && x.LookupVersion == y.LookupVersion
+               && StringComparer.Ordinal.Equals(x.FieldId, y.FieldId);
+
+        public int GetHashCode(RendererState obj)
+            => HashCode.Combine(
+                System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Model),
+                System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Field),
+                System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Property),
+                obj.EditContext is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.EditContext),
+                obj.Disabled,
+                obj.ReadOnly,
+                obj.FieldId,
+                obj.LookupVersion);
+    }
+}

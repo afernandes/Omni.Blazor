@@ -172,7 +172,7 @@
             _panes.Add(pane);
             _percents.Add(0);
             _sizesResolved = false;   // recompute sizes to include the new pane
-            InvokeAsync(StateHasChanged);
+            ObserveTask(InvokeAsync(StateHasChanged), "OmniSplitter.Render");
         }
     }
 
@@ -184,7 +184,7 @@
             _panes.RemoveAt(idx);
             if (idx < _percents.Count) _percents.RemoveAt(idx);
             _sizesResolved = false;
-            InvokeAsync(StateHasChanged);
+            ObserveTask(InvokeAsync(StateHasChanged), "OmniSplitter.Render");
         }
     }
 
@@ -368,7 +368,9 @@
 
         if (OnResize.HasDelegate)
         {
-            _ = OnResize.InvokeAsync(new SplitterResizeEventArgs(barIdx, newA, newB));
+            ObserveTask(
+                OnResize.InvokeAsync(new SplitterResizeEventArgs(barIdx, newA, newB)),
+                "OmniSplitter.OnResize");
         }
     }
 

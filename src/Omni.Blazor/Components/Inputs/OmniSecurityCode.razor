@@ -20,7 +20,8 @@
     @for (int i = 0; i < Count; i++)
     {
         var n = i + 1;
-        <input class="omni-seccode-input" type="@InputType" maxlength="1"
+        <input id="@(i == 0 ? InputId : null)"
+               class="omni-seccode-input" type="@InputType" maxlength="1"
                inputmode="@(Type == SecurityCodeType.Numeric ? "numeric" : null)"
                autocomplete="one-time-code" disabled="@Disabled" readonly="@ReadOnly"
                aria-label="@($"{AriaLabel} {n}")" />
@@ -99,7 +100,9 @@
         base.Dispose();
         if (_created)
         {
-            try { _ = JS.InvokeVoidAsync("omniBlazor.securityCodeDestroy", _container); } catch { }
+            TaskObserver.Observe(
+                JS.InvokeVoidAsync("omniBlazor.securityCodeDestroy", _container),
+                operation: "OmniSecurityCode.Dispose");
         }
         _selfRef?.Dispose();
         _selfRef = null;

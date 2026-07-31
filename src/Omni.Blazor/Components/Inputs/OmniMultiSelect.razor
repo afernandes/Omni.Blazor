@@ -3,31 +3,23 @@
 @inherits OmniComponent
 @implements IOmniFormComponent
 @implements IDisposable
-@using Microsoft.AspNetCore.Components.Forms
-@using System.Linq.Expressions
-@using Omni.Blazor.State
-@using Omni.Blazor.Utilities
 
-@*  Select múltiplo no estilo de chips dentro de um campo + popup com a
-    lista de opções. API espelha o OmniSelect, mas o bind é
-    <c>IEnumerable&lt;TValue&gt;</c> (Values em vez de Value).
-
-    Padrão visual: campo parece um input com chips dentro (cada item
-    selecionado vira chip removível) + chevron à direita que abre o popover
-    com a lista (reusa OmniListBox internamente). Click fora fecha.
-
-    Usage:
-        <OmniMultiSelect TValue="string"
-                          Items="@categorias"
-                          @bind-Values="selecionadas"
-                          Placeholder="Selecione categorias..." /> *@
+@* Multiple selection with chips and bounded local or cancellable server-side options. *@
 
 <div class="@RootCss" style="@Style" @attributes="Attributes">
-    <OmniPopover Position="PopoverPosition.Bottom" Width="@PopoverWidth" @bind-Open="_open"
-                  ShowArrow="false" Offset="4">
+    <OmniPopover Position="PopoverPosition.Bottom"
+                 Width="@PopoverWidth"
+                 Open="@_open"
+                 OpenChanged="OnOpenChangedAsync"
+                 ShowArrow="false"
+                 Offset="4">
         <Trigger>
-            <div class="@TriggerCss" tabindex="@(Disabled ? -1 : 0)" role="combobox"
-                 aria-haspopup="listbox" aria-expanded="@(_open ? "true" : "false")"
+            <div class="@TriggerCss"
+                 tabindex="@(Disabled ? -1 : 0)"
+                 role="combobox"
+                 aria-haspopup="listbox"
+                 aria-expanded="@(_open ? "true" : "false")"
+                 aria-busy="@_loading"
                  aria-disabled="@Disabled">
                 <div class="omni-multiselect-chips">
                     @if (Values is null || !Values.Any())
@@ -36,17 +28,18 @@
                     }
                     else
                     {
-                        @foreach (var v in Values)
+                        @foreach (var value in Values)
                         {
-                            var label = ItemTextFor(v);
-                            <span class="omni-multiselect-chip">
+                            var label = ItemTextFor(value);
+                            <span @key="value" class="omni-multiselect-chip">
                                 <span>@label</span>
                                 @if (!Disabled)
                                 {
-                                    <button type="button" class="omni-multiselect-chip-x"
-                                            @onclick="@(_ => RemoveAsync(v))"
-                                            @onclick:stopPropagation="true"
-                                            aria-label="@($"Remover {label}")">
+                                    <button type="button"
+                                            class="omni-multiselect-chip-x"
+                                            aria-label="@($"Remover {label}")"
+                                            @onclick="@(_ => RemoveAsync(value))"
+                                            @onclick:stopPropagation>
                                         <OmniIcon Name="x" Size="ComponentSize.Sm" />
                                     </button>
                                 }
@@ -64,27 +57,64 @@
                 @if (Searchable)
                 {
                     <div class="omni-multiselect-search">
-                        <OmniTextBox @bind-Value="_searchText" Placeholder="@(SearchPlaceholder ?? "Buscar...")"
-                                      LeadingIcon="search" Class="omni-autofocus" />
+                        <OmniTextBox Value="@_searchText"
+                                     ValueChanged="OnSearchChangedAsync"
+                                     Placeholder="@(SearchPlaceholder ?? "Buscar...")"
+                                     LeadingIcon="search"
+                                     Class="omni-autofocus" />
                     </div>
                 }
-                <OmniListBox TValue="TValue"
-                              Items="@FilteredItems"
-                              Multiple="true"
-                              Values="@(Values ?? Array.Empty<TValue>())"
-                              ValuesChanged="OnListChanged"
-                              ValueSelector="@ValueSelector"
-                              TextSelector="@TextSelector"
-                              DescriptionSelector="@DescriptionSelector"
-                              IconSelector="@IconSelector"
-                              DisabledSelector="@DisabledSelector"
-                              MaxHeight="@PopoverMaxHeight" />
+
+                @if (_providerError is not null)
+                {
+                    <div class="omni-select-status" role="alert">
+                        <span>@LoadErrorText</span>
+                        <button type="button" @onclick="RetryProviderAsync">@RetryText</button>
+                    </div>
+                }
+                else if (_loading && _availableItems.Count == 0)
+                {
+                    <div class="omni-select-status" role="status">
+                        <OmniSpinner Size="ComponentSize.Sm" />
+                        <span>@LoadingText</span>
+                    </div>
+                }
+                else
+                {
+                    <OmniListBox TValue="TValue"
+                                 Items="@FilteredItems"
+                                 Multiple="true"
+                                 Values="@(Values ?? Array.Empty<TValue>())"
+                                 ValuesChanged="OnListChangedAsync"
+                                 ValueSelector="@ValueSelector"
+                                 TextSelector="@TextSelector"
+                                 DescriptionSelector="@DescriptionSelector"
+                                 IconSelector="@IconSelector"
+                                 DisabledSelector="@DisabledSelector"
+                                 MaxHeight="@PopoverMaxHeight" />
+
+                    @if (_loading)
+                    {
+                        <div class="omni-select-status" role="status">
+                            <OmniSpinner Size="ComponentSize.Sm" />
+                            <span>@LoadingText</span>
+                        </div>
+                    }
+                    else if (CanLoadMore)
+                    {
+                        <button type="button" class="omni-select-load-more" @onclick="LoadMoreAsync">
+                            @LoadMoreText
+                        </button>
+                    }
+                }
+
                 @if (ShowClearAll && Values?.Any() == true)
                 {
                     <div class="omni-multiselect-footer">
-                        <button type="button" class="omni-multiselect-clear"
+                        <button type="button"
+                                class="omni-multiselect-clear"
                                 @onclick="ClearAllAsync"
-                                @onclick:stopPropagation="true">
+                                @onclick:stopPropagation>
                             Limpar seleção (@Values.Count())
                         </button>
                     </div>
@@ -93,152 +123,3 @@
         </ChildContent>
     </OmniPopover>
 </div>
-
-@code {
-    /// <summary>Itens disponíveis para seleção.</summary>
-    [Parameter] public IEnumerable<TValue>? Items { get; set; }
-
-    /// <summary>Coleção selecionada (two-way via <c>@bind-Values</c>).</summary>
-    [Parameter] public IEnumerable<TValue>? Values { get; set; }
-    /// <summary>Disparado quando a seleção muda.</summary>
-    [Parameter] public EventCallback<IEnumerable<TValue>> ValuesChanged { get; set; }
-
-    /// <summary>Expression pra integração com EditContext (validators irmãos).</summary>
-    [Parameter] public Expression<Func<IEnumerable<TValue>?>>? ValuesExpression { get; set; }
-
-    /// <summary>Nome lógico — registra com OmniForm para validators irmãos
-    /// (<c>&lt;OmniRequiredValidator Component="..." /&gt;</c>).</summary>
-    [Parameter] public string? Name { get; set; }
-
-    [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
-
-    // ── IOmniFormComponent — descoberta por validators irmãos ──
-    private FieldIdentifier _fieldId;
-    string IOmniFormComponent.ResolvedName => Name ?? _fieldId.FieldName ?? string.Empty;
-    FieldIdentifier IOmniFormComponent.FieldIdentifier => _fieldId;
-    object? IOmniFormComponent.GetValue() => Values;
-    bool IOmniFormComponent.HasValue => Values is not null && Values.Any();
-
-    /// <summary>Extrai o valor de bind de cada item. Default = o próprio item (identidade).</summary>
-    [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
-    /// <summary>Texto principal de cada item. Default = <c>item.ToString()</c>.</summary>
-    [Parameter] public Func<TValue?, string>? TextSelector { get; set; }
-    /// <summary>Texto auxiliar opcional de cada item na lista.</summary>
-    [Parameter] public Func<TValue?, string?>? DescriptionSelector { get; set; }
-    /// <summary>Nome do ícone exibido à esquerda de cada item na lista.</summary>
-    [Parameter] public Func<TValue?, string?>? IconSelector { get; set; }
-    /// <summary>Item-by-item: retorne true para desabilitar este item específico.</summary>
-    [Parameter] public Func<TValue?, bool>? DisabledSelector { get; set; }
-
-    /// <summary>Texto exibido no campo quando nada está selecionado.</summary>
-    [Parameter] public string? Placeholder { get; set; }
-    /// <summary>Desabilita o campo (sem abrir popover nem remover chips). Default false.</summary>
-    [Parameter] public bool Disabled { get; set; }
-
-    /// <summary>Habilita campo de busca dentro do popover.</summary>
-    [Parameter] public bool Searchable { get; set; }
-
-    /// <summary>Placeholder do campo de busca. Default "Buscar...".</summary>
-    [Parameter] public string? SearchPlaceholder { get; set; }
-
-    /// <summary>Mostra botão "Limpar seleção (N)" no rodapé do popover.</summary>
-    [Parameter] public bool ShowClearAll { get; set; } = true;
-
-    /// <summary>Largura do popover. Default vazio = mesma do trigger.</summary>
-    [Parameter] public string? PopoverWidth { get; set; }
-
-    /// <summary>Altura máxima da lista dentro do popover.</summary>
-    [Parameter] public string PopoverMaxHeight { get; set; } = "280px";
-
-    private bool _open;
-    private string? _searchText;
-
-    private string RootCss => CssBuilder.Default("omni-multiselect")
-        .AddClass("omni-multiselect-disabled", Disabled)
-        .AddClass(Class)
-        .Build();
-
-    private string TriggerCss => CssBuilder.Default("omni-multiselect-trigger")
-        .AddClass("omni-multiselect-trigger-open",     _open)
-        .AddClass("omni-multiselect-trigger-disabled", Disabled)
-        .Build();
-
-    private string ItemTextFor(TValue? v)
-    {
-        if (TextSelector is not null) return TextSelector(v);
-        if (Items is null) return v?.ToString() ?? "";
-        // Try to find the matching item in Items to get its display text
-        var match = Items.FirstOrDefault(i =>
-            EqualityComparer<TValue>.Default.Equals(
-                ValueSelector is not null ? ValueSelector(i) : i, v));
-        return match?.ToString() ?? v?.ToString() ?? "";
-    }
-
-    private IEnumerable<TValue>? FilteredItems
-    {
-        get
-        {
-            if (Items is null) return null;
-            if (string.IsNullOrWhiteSpace(_searchText)) return Items;
-            var term = _searchText.Trim();
-            return Items.Where(i =>
-            {
-                var text = TextSelector is not null ? TextSelector(i) : i?.ToString() ?? "";
-                return text.Contains(term, StringComparison.OrdinalIgnoreCase);
-            });
-        }
-    }
-
-    private async Task OnListChanged(IEnumerable<TValue> next)
-    {
-        Values = next;
-        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(next);
-    }
-
-    private async Task RemoveAsync(TValue v)
-    {
-        var list = Values?.Where(x => !EqualityComparer<TValue>.Default.Equals(x, v)).ToList() ?? new();
-        Values = list;
-        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(list);
-    }
-
-    private async Task ClearAllAsync()
-    {
-        var empty = Array.Empty<TValue>();
-        Values = empty;
-        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(empty);
-    }
-
-    // ParameterState fires only when the consumer rebinds ValuesExpression
-    // (rare — usually once per mount). Avoids rebuilding FieldIdentifier on
-    // every render triggered by an unrelated parameter change.
-    private readonly ParameterState<Expression<Func<IEnumerable<TValue>?>>?> _valuesExprState;
-
-    // Test-only counter: increments every time the expression-driven recompute fires.
-    internal int RecomputeCount { get; private set; }
-
-    public OmniMultiSelect()
-    {
-        _valuesExprState = RegisterParameter<Expression<Func<IEnumerable<TValue>?>>?>(nameof(ValuesExpression))
-            .WithParameter(() => ValuesExpression)
-            .WithChangeHandler(RecomputeFieldId)
-            .Attach();
-    }
-
-    private void RecomputeFieldId()
-    {
-        if (ValuesExpression is not null)
-            _fieldId = FieldIdentifier.Create(ValuesExpression);
-        RecomputeCount++;
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender && !string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
-        {
-            FormRegistry?.RegisterComponent(this);
-        }
-    }
-
-    public void Dispose() => FormRegistry?.UnregisterComponent(this);
-}

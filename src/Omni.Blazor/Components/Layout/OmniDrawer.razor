@@ -199,7 +199,8 @@
                     if (newOpen != Open)
                     {
                         Open = newOpen;
-                        if (OpenChanged.HasDelegate) _ = OpenChanged.InvokeAsync(Open);
+                        if (OpenChanged.HasDelegate)
+                            ObserveTask(OpenChanged.InvokeAsync(Open), "OmniDrawer.OpenChanged");
                     }
                 }
                 StateHasChanged();
@@ -270,7 +271,7 @@
     {
         if (IsOverlayMode && Open)
         {
-            _ = InvokeAsync(async () => { await CloseAsync(); });
+            ObserveTask(InvokeAsync(CloseAsync), "OmniDrawer.CloseOnNavigation");
         }
     }
 

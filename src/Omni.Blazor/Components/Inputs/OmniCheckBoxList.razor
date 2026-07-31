@@ -18,6 +18,7 @@
 <div class="@RootCss" style="@Style" role="group" aria-label="@AriaLabel" @attributes="Attributes">
     @if (Items is not null)
     {
+        var inputIdAssigned = false;
         @foreach (var item in Items)
         {
             // Default ValueSelector = identity: sem selector, o próprio item é o valor.
@@ -26,8 +27,10 @@
             var desc = DescriptionSelector is not null ? DescriptionSelector(item) : null;
             var itemDisabled = Disabled || (DisabledSelector is not null && DisabledSelector(item));
             var isChecked = IsChecked(v);
+            var useInputId = !inputIdAssigned && !itemDisabled;
             <label class="@ItemCss(itemDisabled)">
-                <input type="checkbox"
+                <input id="@(useInputId ? InputId : null)"
+                       type="checkbox"
                        class="omni-check-input"
                        checked="@isChecked"
                        disabled="@itemDisabled"
@@ -40,6 +43,7 @@
                     }
                 </span>
             </label>
+            if (useInputId) inputIdAssigned = true;
         }
     }
     @if (ChildContent is not null) { @ChildContent }

@@ -222,14 +222,14 @@
     {
         if (_children.Contains(child)) return;
         _children.Add(child);
-        InvokeAsync(StateHasChanged);
+        ObserveTask(InvokeAsync(StateHasChanged), "OmniPanelMenuItem.Render");
     }
 
     internal void UnregisterChild(OmniPanelMenuItem child) => _children.Remove(child);
 
     private void OnLocationChanged(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
     {
-        InvokeAsync(StateHasChanged);
+        ObserveTask(InvokeAsync(StateHasChanged), "OmniPanelMenuItem.Render");
     }
 
     /// <summary>True when this item's own <see cref="Path"/> matches the current route.</summary>

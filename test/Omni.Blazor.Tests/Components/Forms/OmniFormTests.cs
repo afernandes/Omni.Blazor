@@ -36,6 +36,112 @@ public class OmniFormTests : TestContextBase
     }
 
     [Fact]
+    public void Accepts_external_EditContext_and_preserves_its_identity()
+    {
+        var model = new Person { Name = "Anderson", Email = "a@b.com" };
+        var editContext = new EditContext(model);
+        EditContext? submittedContext = null;
+        var cut = Render<OmniForm<Person>>(parameters => parameters
+            .Add(component => component.EditContext, editContext)
+            .Add(component => component.OnValidSubmit, context => submittedContext = context)
+            .AddChildContent("<button type='submit'>Submit</button>"));
+
+        cut.Find("form").Submit();
+
+        Assert.Same(editContext, cut.Instance.CurrentEditContext);
+        Assert.Same(editContext, submittedContext);
+    }
+
+    [Fact]
+    public void Model_and_EditContext_are_mutually_exclusive()
+    {
+        var model = new Person();
+        var editContext = new EditContext(model);
+
+        Exception both = Assert.ThrowsAny<Exception>(() =>
+            Render<OmniForm<Person>>(parameters => parameters
+                .Add(component => component.Model, model)
+                .Add(component => component.EditContext, editContext)));
+        Assert.Contains("not both", both.ToString());
+
+        Exception neither = Assert.ThrowsAny<Exception>(() => Render<OmniForm<Person>>());
+        Assert.Contains("requires either", neither.ToString());
+    }
+
+    [Fact]
+    public void External_EditContext_model_must_match_TModel()
+    {
+        Exception error = Assert.ThrowsAny<Exception>(() =>
+            Render<OmniForm<Person>>(parameters => parameters
+                .Add(component => component.EditContext, new EditContext(new object()))));
+
+        Assert.Contains(nameof(Person), error.ToString());
+    }
+
+    [Fact]
+    public void Switching_EditContext_unsubscribes_from_the_previous_instance()
+    {
+        var firstModel = new Person();
+        var secondModel = new Person();
+        var first = new EditContext(firstModel);
+        var second = new EditContext(secondModel);
+        var touchedChanges = new List<bool>();
+        var cut = Render<OmniForm<Person>>(parameters => parameters
+            .Add(component => component.EditContext, first)
+            .Add(component => component.IsTouchedChanged, value => touchedChanges.Add(value))
+            .AddChildContent("body"));
+
+        cut.Render(parameters => parameters
+            .Add(component => component.EditContext, second)
+            .Add(component => component.IsTouchedChanged, value => touchedChanges.Add(value))
+            .AddChildContent("body"));
+
+        first.NotifyFieldChanged(new FieldIdentifier(firstModel, nameof(Person.Name)));
+        Assert.Empty(touchedChanges);
+
+        second.NotifyFieldChanged(new FieldIdentifier(secondModel, nameof(Person.Name)));
+        Assert.Equal([true], touchedChanges);
+    }
+
+    [Fact]
+    public async Task Switching_EditContext_cancels_pending_validation()
+    {
+        var first = new EditContext(new Person { Name = "First" });
+        var second = new EditContext(new Person { Name = "Second" });
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Func<EditContext, ValidationMessageStore, CancellationToken, Task> validator =
+            async (context, _, cancellationToken) =>
+            {
+                if (!ReferenceEquals(context, first)) return;
+                started.TrySetResult();
+                try
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancelled.TrySetResult();
+                    throw;
+                }
+            };
+        var cut = Render<OmniForm<Person>>(parameters => parameters
+            .Add(component => component.EditContext, first)
+            .Add(component => component.ValidationAsyncWithCancellation, validator)
+            .AddChildContent("body"));
+
+        Task pending = cut.Instance.ValidateAsync(Xunit.TestContext.Current.CancellationToken);
+        await started.Task;
+        cut.Render(parameters => parameters
+            .Add(component => component.EditContext, second)
+            .Add(component => component.ValidationAsyncWithCancellation, validator)
+            .AddChildContent("body"));
+
+        await pending;
+        Assert.True(cancelled.Task.IsCompleted);
+    }
+
+    [Fact]
     public void Auto_attaches_DataAnnotationsValidator_by_default()
     {
         var model = new Person();
@@ -142,10 +248,133 @@ public class OmniFormTests : TestContextBase
             })
             .AddChildContent("body"));
 
-        var result = await cut.Instance.ValidateAsync();
+        var result = await cut.Instance.ValidateAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.True(asyncRan);
         Assert.False(result);
+        Assert.Contains("Async error.", cut.Instance.Errors);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_preserves_sync_and_async_messages()
+    {
+        var model = new Person { Name = "Anderson", Email = "a@b.com" };
+        var field = new FieldIdentifier(model, nameof(Person.Name));
+
+        var cut = Render<OmniForm<Person>>(p => p
+            .Add(c => c.Model, model)
+            .Add(c => c.Validation, (EditContext _, ValidationMessageStore store) =>
+                store.Add(field, "Sync error."))
+            .Add(c => c.ValidationAsync, (EditContext _, ValidationMessageStore store) =>
+            {
+                store.Add(field, "Async error.");
+                return Task.CompletedTask;
+            })
+            .AddChildContent("body"));
+
+        var result = await cut.Instance.ValidateAsync(Xunit.TestContext.Current.CancellationToken);
+
+        Assert.False(result);
+        Assert.Contains("Sync error.", cut.Instance.Errors);
+        Assert.Contains("Async error.", cut.Instance.Errors);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_uses_latest_result_when_legacy_validator_completes_out_of_order()
+    {
+        var model = new Person { Name = "first", Email = "a@b.com" };
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFirst = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var cut = Render<OmniForm<Person>>(p => p
+            .Add(c => c.Model, model)
+            .Add(c => c.ValidationAsync, async (EditContext context, ValidationMessageStore store) =>
+            {
+                var valueAtStart = ((Person)context.Model).Name;
+                if (valueAtStart == "first")
+                {
+                    firstStarted.TrySetResult();
+                    await releaseFirst.Task;
+                }
+
+                store.Add(
+                    new FieldIdentifier(context.Model, nameof(Person.Name)),
+                    $"{valueAtStart} error.");
+            })
+            .AddChildContent("body"));
+
+        var first = cut.Instance.ValidateAsync(Xunit.TestContext.Current.CancellationToken);
+        await firstStarted.Task;
+
+        model.Name = "second";
+        var second = cut.Instance.ValidateAsync(Xunit.TestContext.Current.CancellationToken);
+        await second;
+
+        releaseFirst.TrySetResult();
+        await first;
+
+        Assert.Contains("second error.", cut.Instance.Errors);
+        Assert.DoesNotContain("first error.", cut.Instance.Errors);
+    }
+
+    [Fact]
+    public async Task New_validation_cancels_cancellable_validator()
+    {
+        var model = new Person { Name = "first", Email = "a@b.com" };
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var cut = Render<OmniForm<Person>>(p => p
+            .Add(c => c.Model, model)
+            .Add(c => c.ValidationAsyncWithCancellation,
+                async (EditContext context, ValidationMessageStore _, CancellationToken cancellationToken) =>
+                {
+                    if (((Person)context.Model).Name != "first") return;
+                    firstStarted.TrySetResult();
+                    try
+                    {
+                        await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        firstCancelled.TrySetResult();
+                        throw;
+                    }
+                })
+            .AddChildContent("body"));
+
+        var first = cut.Instance.ValidateAsync(Xunit.TestContext.Current.CancellationToken);
+        await firstStarted.Task;
+
+        model.Name = "second";
+        await cut.Instance.ValidateAsync(Xunit.TestContext.Current.CancellationToken);
+        await first;
+
+        Assert.True(firstCancelled.Task.IsCompleted);
+    }
+
+    [Fact]
+    public void Browser_submit_runs_async_validation_before_invalid_callback()
+    {
+        var model = new Person { Name = "Anderson", Email = "a@b.com" };
+        var asyncRan = false;
+        var invalidFired = false;
+
+        var cut = Render<OmniForm<Person>>(p => p
+            .Add(c => c.Model, model)
+            .Add(c => c.ValidationAsync, (EditContext context, ValidationMessageStore store) =>
+            {
+                asyncRan = true;
+                store.Add(new FieldIdentifier(context.Model, nameof(Person.Name)), "Async error.");
+                return Task.CompletedTask;
+            })
+            .Add(c => c.OnInvalidSubmit, (EditContext _) => invalidFired = true)
+            .AddChildContent("<button type='submit'>Submit</button>"));
+
+        cut.Find("form").Submit();
+
+        Assert.True(asyncRan);
+        Assert.True(invalidFired);
         Assert.Contains("Async error.", cut.Instance.Errors);
     }
 
@@ -179,7 +408,7 @@ public class OmniFormTests : TestContextBase
             .Add(c => c.OnValidSubmit, (EditContext _) => fired++)
             .AddChildContent("body"));
 
-        await cut.Instance.SubmitAsync();
+        await cut.Instance.SubmitAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(1, fired);
     }
@@ -197,7 +426,7 @@ public class OmniFormTests : TestContextBase
             .Add(c => c.OnInvalidSubmit, (EditContext _) => invalidFired++)
             .AddChildContent("body"));
 
-        await cut.Instance.SubmitAsync();
+        await cut.Instance.SubmitAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(0, validFired);
         Assert.Equal(1, invalidFired);

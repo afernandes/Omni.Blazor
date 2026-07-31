@@ -1,0 +1,43 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@implements IAsyncDisposable
+@inject SignaturePadService SignaturePadService
+
+@* Canvas-based signature input with undo, clear and PNG/JPEG/SVG export. *@
+
+<div @ref="Element"
+     class="@RootCss"
+     style="@Style"
+     aria-disabled="@Disabled.ToString().ToLowerInvariant()"
+     @attributes="Attributes">
+    <canvas id="@InputId"
+            @ref="_canvas"
+            class="omni-signature-pad-canvas"
+            style="height: @(Height)px"
+            aria-label="@AriaLabel"
+            tabindex="@(Disabled ? -1 : 0)">
+    </canvas>
+
+    @if (ShowToolbar)
+    {
+        <div class="omni-signature-pad-toolbar">
+            <button type="button"
+                    class="omni-signature-pad-action"
+                    disabled="@(Disabled || ReadOnly || !HasSignature)"
+                    @onclick="UndoAsync">
+                <OmniIcon Name="undo" Size="ComponentSize.Sm" />
+                @UndoText
+            </button>
+            <button type="button"
+                    class="omni-signature-pad-action"
+                    disabled="@(Disabled || ReadOnly || !HasSignature)"
+                    @onclick="ClearAsync">
+                <OmniIcon Name="trash-2" Size="ComponentSize.Sm" />
+                @ClearText
+            </button>
+            <span class="omni-signature-pad-status" aria-live="polite">
+                @(HasSignature ? SignedText : EmptyText)
+            </span>
+        </div>
+    }
+</div>

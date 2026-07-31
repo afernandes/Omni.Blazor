@@ -1,0 +1,160 @@
+@page "/showcase/tree-grid"
+@attribute [ShowcaseInfo(Title = "Tree Grid", Category = Cat.Data, Icon = "git-branch", New = true, Featured = true, Aliases = "treegrid,hierarquia,tabela,arvore,lazy,bom,organograma")]
+@layout ShowcaseLayout
+
+<PageTitle>Tree Grid — Showcase</PageTitle>
+
+<ShowcasePage Title="Tree Grid"
+              Subtitle="Tabela hierárquica acessível, com colunas declarativas, seleção, teclado e lazy loading cancelável por nó.">
+    <Overview>
+        <p>
+            <code>OmniTreeGrid</code> combina a leitura hierárquica do Tree com colunas tabulares.
+            Para dados remotos, chamadas concorrentes do mesmo nó compartilham uma única tarefa;
+            recolher o nó cancela a requisição e o cache LRU possui limites de nós e itens.
+        </p>
+        <p>
+            Use <code>OmniDataGrid</code> em modo hierárquico quando também precisar de sorting,
+            filtros, edição, exportação, seleção múltipla ou virtualização. Os dois componentes
+            usam o mesmo motor interno; o TreeGrid mantém uma API focada na navegação da árvore.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Plano de contas, centros de custo, organograma e estrutura de produto (BOM).</li>
+            <li>Pastas ou categorias que precisam exibir atributos adicionais em colunas.</li>
+        </ul>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="HIERARQUIA EM MEMÓRIA"
+                         Description="Children resolve os filhos; a primeira coluna marcada como IsHierarchyAnchor recebe indentação e toggle."
+                         Code="@(@"<OmniTreeGrid Items=""@nodes""
+              Children=""@(n => n.Children)""
+              HasChildren=""@(n => n.Children.Count > 0)"">
+    <Columns>
+        <OmniTreeGridColumn Title=""Área"" TextSelector=""@(n => n.Name)"" IsHierarchyAnchor />
+        <OmniTreeGridColumn Title=""Responsável"" TextSelector=""@(n => n.Owner)"" />
+    </Columns>
+</OmniTreeGrid>")">
+            <OmniTreeGrid TItem="OrgNode"
+                          Items="@_organization"
+                          KeySelector="@(node => node.Id)"
+                          Children="@(node => node.Children)"
+                          HasChildren="@(node => node.Children.Count > 0)"
+                          InitiallyExpanded="@(node => node.Id == "company")"
+                          @bind-SelectedItem="_selected">
+                <Columns>
+                    <OmniTreeGridColumn TItem="OrgNode" Title="Área" Width="42%"
+                                        TextSelector="@(node => node.Name)" IsHierarchyAnchor />
+                    <OmniTreeGridColumn TItem="OrgNode" Title="Responsável"
+                                        TextSelector="@(node => node.Owner)" />
+                    <OmniTreeGridColumn TItem="OrgNode" Title="Pessoas"
+                                        TextSelector="@(node => node.People.ToString("N0"))"
+                                        Align="TreeGridColumnAlign.End" />
+                </Columns>
+            </OmniTreeGrid>
+            <p class="omni-muted" style="margin-top:8px;">
+                Selecionado: <strong>@(_selected?.Name ?? "—")</strong>
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LAZY LOADING CANCELÁVEL"
+                         Description="Expanda uma pasta. O provider simula latência e recebe CancellationToken; recolher antes do término cancela a carga.">
+            <OmniTreeGrid TItem="LazyNode"
+                          Items="@_lazyRoots"
+                          KeySelector="@(node => node.Id)"
+                          HasChildren="@(node => node.IsFolder)"
+                          ChildrenProvider="ProvideChildrenAsync"
+                          MaxCachedNodes="20"
+                          MaxCachedItems="200">
+                <Columns>
+                    <OmniTreeGridColumn TItem="LazyNode" Title="Nome" Width="55%"
+                                        TextSelector="@(node => node.Name)" IsHierarchyAnchor />
+                    <OmniTreeGridColumn TItem="LazyNode" Title="Tipo"
+                                        TextSelector="@(node => node.IsFolder ? "Pasta" : "Arquivo")" />
+                    <OmniTreeGridColumn TItem="LazyNode" Title="Tamanho"
+                                        TextSelector="@(node => node.Size)"
+                                        Align="TreeGridColumnAlign.End" />
+                </Columns>
+            </OmniTreeGrid>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniTreeGrid&lt;TItem&gt;">
+            <ShowcaseApiRow Name="Items" Type="IEnumerable&lt;TItem&gt;?" Default="null" Description="Nós raiz." />
+            <ShowcaseApiRow Name="KeySelector" Type="Func&lt;TItem,object&gt;?" Default="item" Description="Identidade estável e única por nó." />
+            <ShowcaseApiRow Name="Children / HasChildren" Type="delegates" Default="null" Description="Hierarquia em memória e indicação de expansão." />
+            <ShowcaseApiRow Name="ChildrenProvider" Type="HierarchyChildrenProvider&lt;TItem&gt;?" Default="null" Description="Lazy loading cancelável e deduplicado." />
+            <ShowcaseApiRow Name="Columns" Type="RenderFragment" Default="null" Description="OmniTreeGridColumn declarativas." />
+            <ShowcaseApiRow Name="SelectedItem / SelectedItemChanged" Type="TItem?" Default="null" Description="Seleção única com binding." />
+            <ShowcaseApiRow Name="ExpandedKeys / ExpandedKeysChanged" Type="IReadOnlyCollection&lt;object&gt;?" Default="null" Description="Estado de expansão controlável." />
+            <ShowcaseApiRow Name="MaxCachedNodes / MaxCachedItems" Type="int" Default="500 / 10000" Description="Limites do cache LRU." />
+            <ShowcaseApiRow Name="MaxVisibleRows / MaxDepth" Type="int" Default="5000 / 64" Description="Proteções de renderização e travessia." />
+            <ShowcaseApiRow Name="MaxConcurrentLoads" Type="int" Default="4" Description="Limite de providers lazy executados simultaneamente." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private OrgNode? _selected;
+
+    private readonly OrgNode[] _organization =
+    [
+        new("company", "Omni Commerce", "Diretoria", 84,
+        [
+            new("engineering", "Engenharia", "Marina", 32,
+            [
+                new("platform", "Plataforma", "Rafael", 14),
+                new("product", "Produto", "Carla", 18)
+            ]),
+            new("operations", "Operações", "Beatriz", 28),
+            new("sales", "Vendas", "Eduardo", 24)
+        ])
+    ];
+
+    private readonly LazyNode[] _lazyRoots =
+    [
+        new("src", "src", true, "—"),
+        new("docs", "docs", true, "—")
+    ];
+
+    private static async ValueTask<IReadOnlyList<LazyNode>> ProvideChildrenAsync(
+        LazyNode parent,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(700, cancellationToken);
+        return parent.Id switch
+        {
+            "src" =>
+            [
+                new("components", "Components", true, "—"),
+                new("program", "Program.cs", false, "6 KB")
+            ],
+            "components" =>
+            [
+                new("treegrid", "OmniTreeGrid.razor", false, "8 KB"),
+                new("treegridcs", "OmniTreeGrid.razor.cs", false, "22 KB")
+            ],
+            "docs" =>
+            [
+                new("readme", "README.md", false, "12 KB"),
+                new("catalog", "components.json", false, "480 KB")
+            ],
+            _ => []
+        };
+    }
+
+    private sealed record OrgNode(
+        string Id,
+        string Name,
+        string Owner,
+        int People,
+        IReadOnlyList<OrgNode>? ChildNodes = null)
+    {
+        public IReadOnlyList<OrgNode> Children { get; } = ChildNodes ?? [];
+    }
+
+    private sealed record LazyNode(string Id, string Name, bool IsFolder, string Size);
+}

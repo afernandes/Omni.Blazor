@@ -7,7 +7,7 @@ see [CLAUDE.md](CLAUDE.md) (architecture deep-dive) and
 
 ## What this is
 
-**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. 174 components (authoritative count + full API: [`docs/components.json`](docs/components.json))
+**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. 198 components (authoritative count + full API: [`docs/components.json`](docs/components.json))
 across Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation and
 Overlay. One SCSS bundle, one JS file, all theming via CSS custom properties.
 
@@ -22,7 +22,7 @@ Overlay. One SCSS bundle, one JS file, all theming via CSS custom properties.
 
 ## Machine-readable surface — read these first
 
-Do **not** browse 167 `.razor` files to learn the API. Read the generated artifacts:
+Do **not** browse component source files to learn the API. Read the generated artifacts:
 
 - **[`llms.txt`](llms.txt)** — curated index: every component with a one-line description and a source link, grouped by category. Start here.
 - **[`llms-full.txt`](llms-full.txt)** — full dump: every component's parameters, events, slots, enum values and the theme tokens.
@@ -86,25 +86,53 @@ parameters — if it is not in the manifest, it does not exist.
 
 Template to copy: `src/Omni.Blazor/Components/Buttons/OmniButton.razor` (+ its test).
 
-1. **File** `src/Omni.Blazor/Components/<Category>/Omni<Name>.razor`, single-file (inline `@code` — **no `.razor.cs` code-behinds**).
+1. **Files**: keep small components in
+   `src/Omni.Blazor/Components/<Category>/Omni<Name>.razor`. Complex components
+   may use a partial `Omni<Name>.razor.cs` code-behind, following the Radzen
+   pattern: markup and Razor-only concerns stay in `.razor`; state machines,
+   lifecycle, async work and testable logic go in `.razor.cs`. Use
+   `Omni<Name>.razor.css` only for truly component-scoped styles; shared tokens
+   and reusable variants stay in the theme sources.
 2. **Inherit** `OmniComponent` (or `OmniComponentWithChildren` for `ChildContent`, or `FormComponent<TValue>` for inputs).
 3. **Root element splats all three:** `class="@RootCss" style="@Style" @attributes="Attributes"`.
 4. **Compose classes only with `CssBuilder`** — `CssBuilder.Default("omni-x").AddClass(...).AddClass(Class).Build()`. The consumer's `Class` is **always appended last**. (`StyleBuilder` is the twin for inline styles.)
-5. **`@key` on every `foreach`** (`@key="item.Id"`).
+5. **Stable identity for dynamic lists:** use `@key="item.Id"` for mutable,
+   stateful, editable, selectable or reordered lists. Static, immutable
+   decoration loops may omit it when the identity-preservation cost has no
+   benefit; document non-obvious exceptions.
 6. **Inputs** inherit `FormComponent<TValue>`; write through `SetValueAsync` only — never re-implement two-way binding.
 7. **Reactive recompute** goes through `ParameterState<T>` registered in `OnInitialized`, not raw `OnParametersSet`.
 8. **JS via DI services** (`ScrollManager`, `HotkeyService`, `OverlayLifecycle`, …) — never inject `IJSRuntime` directly. New services register in `Extensions/ServiceCollectionExtensions.cs`.
-9. **Styles**: append a block to the single bundle `src/Omni.Blazor/Themes/_components.scss`. **JS**: append to the single file `src/Omni.Blazor/wwwroot/js/Omni.js` under `window.omniBlazor`. (No per-component files.)
+9. **Styles / JS**: reusable styles belong in the theme sources; isolated
+   implementation details may use `.razor.css`. Prefer typed DI services and
+   colocated/lazy JS modules for complex browser integrations. Keep
+   `window.omniBlazor` compatibility only where the existing bundle still owns
+   the feature.
 10. **Document every public `[Parameter]`** with a `/// <summary>` and give the component a leading `@* one-sentence description *@` — both feed the AI manifest.
 11. **Test** at `test/Omni.Blazor.Tests/Components/<Category>/Omni<Name>Tests.cs` (base render + `Class`/`Style`/`Attributes` splat + behaviour) **and** a **showcase page** under `src/Forneria.Demo/Forneria.Demo.Pages/Pages/Showcase/<Category>/`.
 
 Then regenerate the manifest (above), `dotnet format`, and `dotnet test`.
 
+## Performance, concurrency and lifetime
+
+Follow [`docs/engineering-quality.md`](docs/engineering-quality.md). In
+particular:
+
+- measure before introducing `Span<T>`, pooling, caching or lock-free code;
+- never use sync-over-async (`.Result`, `.Wait()`, `GetAwaiter().GetResult()`);
+- async refresh/search/validation operations are cancellable and latest-wins;
+- every event, timer, observer, `DotNetObjectReference`, JS handle,
+  `CancellationTokenSource` and owned stream is released deterministically;
+- fire-and-forget work must observe and route exceptions;
+- shared mutable state needs an explicit synchronization and ownership model;
+- caches are bounded or have an eviction/lifetime policy;
+- add race, cancellation, reentrancy and disposal tests for affected code.
+
 ## Build / test / format
 
 ```bash
 dotnet build src/Omni.Blazor/Omni.Blazor.csproj                 # library only (fast, no exe lock)
-dotnet test  test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj    # ~1,700 bUnit tests
+dotnet test  test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj    # 2,000+ bUnit tests
 dotnet test  test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj --filter "FullyQualifiedName~Omni<Name>Tests"
 dotnet format
 ```
