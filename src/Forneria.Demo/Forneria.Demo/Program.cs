@@ -41,7 +41,12 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 // ---- Demo upload — serve saved files at /uploads/* ------------------------
-var uploadDir = Path.Combine(app.Environment.WebRootPath, "uploads");
+// A source checkout may not contain an empty wwwroot directory (Git does not
+// track directories), so WebRootPath can be null in CI before static assets are
+// materialized. Keep the demo upload endpoint usable in that environment.
+var webRootPath = app.Environment.WebRootPath
+    ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var uploadDir = Path.Combine(webRootPath, "uploads");
 Directory.CreateDirectory(uploadDir);
 app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
 {
