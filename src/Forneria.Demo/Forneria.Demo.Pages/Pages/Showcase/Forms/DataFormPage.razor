@@ -8,6 +8,11 @@
 
 <PageTitle>Data Form — Showcase</PageTitle>
 
+@if (_interactiveReady)
+{
+    <span data-testid="data-form-interactive" aria-hidden="true"></span>
+}
+
 <ShowcasePage Title="Data Form"
               Subtitle="Formulários declarativos gerados por metadados, com inputs Omni, EditContext e validação completa.">
     <Overview>
@@ -143,6 +148,7 @@
 </ShowcasePage>
 
 @code {
+    private bool _interactiveReady;
     private OmniDataForm<CadastroCliente>? _form;
     private CadastroCliente _cliente = new();
     private CadastroAvancado _cadastroAvancado = new();
@@ -235,9 +241,16 @@
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (!firstRender || _snapshotCapturado || _form is null) return;
-        _form.Snapshot();
-        _snapshotCapturado = true;
+        if (!firstRender) return;
+
+        if (!_snapshotCapturado && _form is not null)
+        {
+            _form.Snapshot();
+            _snapshotCapturado = true;
+        }
+
+        _interactiveReady = true;
+        StateHasChanged();
     }
 
     private Task AoAlterarCampo(DataFormFieldChangedEventArgs<CadastroCliente> args)

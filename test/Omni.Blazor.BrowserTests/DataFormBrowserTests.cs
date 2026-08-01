@@ -13,6 +13,8 @@ public sealed class DataFormBrowserTests(BrowserFixture fixture)
         await using IBrowserContext context = await fixture.CreateContextAsync();
         IPage page = await context.NewPageAsync();
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/data-form");
+        await page.GetByTestId("data-form-interactive").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
         ILocator form = page.Locator(".omni-data-form").First;
         await form.Locator("input[name='Nome']").WaitForAsync();
 
@@ -41,6 +43,8 @@ public sealed class DataFormBrowserTests(BrowserFixture fixture)
         await using IBrowserContext context = await fixture.CreateContextAsync();
         IPage page = await context.NewPageAsync();
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/data-form");
+        await page.GetByTestId("data-form-interactive").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
         ILocator scope = page.GetByTestId("data-form-browser");
         await scope.WaitForAsync();
 
@@ -71,6 +75,8 @@ public sealed class DataFormBrowserTests(BrowserFixture fixture)
         await using IBrowserContext context = await fixture.CreateContextAsync();
         IPage page = await context.NewPageAsync();
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/data-form");
+        await page.GetByTestId("data-form-interactive").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
         ILocator scope = page.GetByTestId("data-form-browser");
         await scope.WaitForAsync();
 
@@ -92,6 +98,8 @@ public sealed class DataFormBrowserTests(BrowserFixture fixture)
         List<string> errors = [];
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/data-form");
+        await page.GetByTestId("data-form-interactive").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
         ILocator scope = page.GetByTestId("data-form-browser");
         await scope.WaitForAsync();
 
