@@ -1,0 +1,30 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel where TModel : class
+@typeparam TItem
+@typeparam TValue
+@inherits FormComponent<TValue>
+@attribute [OmniCatalogIgnore]
+@using Omni.Blazor.Models
+
+<OmniSelect TValue="DataFormLookupOption<TValue>"
+            Value="@SelectedOption"
+            ValueChanged="@OnSelectedAsync"
+            Items="@LocalOptions"
+            ItemsProvider="@EffectiveProvider"
+            ProviderVersion="@DependencyVersion"
+            ProviderPageSize="@TypedDefinition.PageSize"
+            MaxProviderItems="@TypedDefinition.MaxItems"
+            TextSelector="@OptionText"
+            Placeholder="@Placeholder"
+            Clearable="@TypedDefinition.Clearable"
+            Disabled="@Disabled"
+            ReadOnly="@ReadOnly"
+            InputId="@InputId"
+            EmptyText="@EffectiveEmptyText"
+            LoadingText="@EffectiveLoadingText"
+            LoadErrorText="@EffectiveLoadErrorText"
+            RetryText="@EffectiveRetryText"
+            LoadMoreText="@EffectiveLoadMoreText"
+            EmptyTemplate="@TypedDefinition.EmptyTemplate"
+            LoadingTemplate="@TypedDefinition.LoadingTemplate"
+            ErrorTemplate="@TypedDefinition.ErrorTemplate" />

@@ -1,6 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Ai;
 using Omni.Blazor.Components;
@@ -40,7 +40,7 @@ foreach (Assembly a in assemblies)
     Console.WriteLine($"[manifest-gen] xml docs ({a.GetName().Name}): {(found ? "loaded" : "NOT FOUND (summaries will be empty)")}");
 }
 
-var (categoryByName, sourceByName, descByName) = ScanRazor(
+var (categoryByName, sourceByName, descByName) = ScanComponentSources(
     [Path.Combine(repoRoot, "src", "Omni.Blazor", "Components"),
      Path.Combine(repoRoot, "src", "Omni.Blazor.Ai", "Components")],
     repoRoot);
@@ -90,7 +90,7 @@ static string FindRepoRoot()
 // fallback description (leading @* *@ comment). The pure parsing lives in
 // RazorScan. Multiple roots (base lib + AI package) are merged by component name.
 static (Dictionary<string, string> category, Dictionary<string, string> source, Dictionary<string, string> description)
-    ScanRazor(IEnumerable<string> dirs, string repoRoot)
+    ScanComponentSources(IEnumerable<string> dirs, string repoRoot)
 {
     var category = new Dictionary<string, string>(StringComparer.Ordinal);
     var source = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -113,6 +113,22 @@ static (Dictionary<string, string> category, Dictionary<string, string> source, 
                 if (RazorScan.LeadComment(File.ReadAllText(f)) is { } desc) description[name] = desc;
             }
             catch { /* unreadable file — skip its description */ }
+        }
+
+        // RenderTreeBuilder components and validators may be authored directly
+        // in C#. Razor code-behind files are intentionally skipped because the
+        // corresponding .razor file is the canonical catalog source.
+        foreach (string f in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
+        {
+            if (f.EndsWith(".razor.cs", StringComparison.OrdinalIgnoreCase)) continue;
+
+            string name = Path.GetFileNameWithoutExtension(f);
+            if (source.ContainsKey(name)) continue;
+
+            string rel = Path.GetRelativePath(dir, f).Replace('\\', '/');
+            string[] parts = rel.Split('/');
+            category[name] = parts.Length > 1 ? parts[0] : "Other";
+            source[name] = Path.GetRelativePath(repoRoot, f).Replace('\\', '/');
         }
     }
     return (category, source, description);

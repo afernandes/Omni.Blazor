@@ -142,6 +142,27 @@
             </div>
         </ShowcaseSection>
 
+        <ShowcaseSection Title="MULTISELECT — PROVIDER REMOTO"
+                         Description="Busca server-side com debounce, paginação incremental, cancelamento latest-wins e limite de retenção."
+                         Code="@(@"<OmniMultiSelect TValue=""string""
+                  ItemsProvider=""LoadNeighborhoodsAsync""
+                  ProviderPageSize=""5""
+                  MaxProviderItems=""15""
+                  Searchable
+                  @bind-Values=""bairrosRemotos"" />")">
+            <div>
+                <OmniLabel Text="Bairros remotos" Size="ComponentSize.Sm" />
+                <OmniMultiSelect TValue="string"
+                                  ItemsProvider="LoadNeighborhoodsAsync"
+                                  ProviderPageSize="5"
+                                  MaxProviderItems="15"
+                                  Searchable
+                                  SearchPlaceholder="Buscar no servidor..."
+                                  @bind-Values="_bairrosRemotos"
+                                  Placeholder="Selecione bairros..." />
+            </div>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="QUANDO USAR CADA UM"
                          Description="Cada componente tem seu caso ideal. Aqui um guia rápido.">
             <div class="omni-grid-3">
@@ -216,6 +237,10 @@
                             Description="Adiciona OmniTextBox no topo do popover." />
             <ShowcaseApiRow Name="SearchPlaceholder" Type="string?" Default="&quot;Buscar...&quot;"
                             Description="Placeholder do campo de busca." />
+            <ShowcaseApiRow Name="ItemsProvider" Type="OmniItemsProvider&lt;TValue&gt;?" Default="null"
+                            Description="Fonte remota paginada, cancelável e latest-wins." />
+            <ShowcaseApiRow Name="ProviderPageSize / MaxProviderItems" Type="int" Default="50 / 500"
+                            Description="Tamanho da página e limite rígido de opções remotas retidas." />
             <ShowcaseApiRow Name="ShowClearAll" Type="bool" Default="true"
                             Description="Botão 'Limpar seleção (N)' no rodapé do popover." />
             <ShowcaseApiRow Name="PopoverMaxHeight" Type="string" Default="&quot;280px&quot;"
@@ -268,4 +293,20 @@
         "Bela Vista", "Higienópolis", "Perdizes", "Lapa", "Pompeia", "Vila Romana"
     };
     private IEnumerable<string>? _bairrosSel = new[] { "Pinheiros", "Vila Madalena" };
+    private IEnumerable<string>? _bairrosRemotos;
+
+    private async ValueTask<OmniItemsPage<string>> LoadNeighborhoodsAsync(
+        OmniItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(300, cancellationToken);
+        var filtered = string.IsNullOrWhiteSpace(request.Search)
+            ? _bairrosOptions
+            : _bairrosOptions
+                .Where(item => item.Contains(request.Search, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        return new OmniItemsPage<string>(
+            filtered.Skip(request.Skip).Take(request.Take).ToArray(),
+            filtered.Length);
+    }
 }

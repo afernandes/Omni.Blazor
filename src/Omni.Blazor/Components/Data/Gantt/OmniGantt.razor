@@ -1,5 +1,5 @@
 @namespace Omni.Blazor.Components
-@typeparam TItem where TItem : notnull
+@typeparam TItem
 @attribute [CascadingTypeParameter(nameof(TItem))]
 @inherits OmniComponent
 @implements IDisposable
@@ -710,7 +710,9 @@
         return args.Attributes.Count > 0 ? args.Attributes : null;
     }
 
+#pragma warning disable CS8714 // Public v0.3.0 allowed nullable TItem; retain binary compatibility.
     private readonly Dictionary<TItem, GanttBarRenderEventArgs<TItem>> _renderCache = new();
+#pragma warning restore CS8714
     private GanttBarRenderEventArgs<TItem> GetRenderArgs(TItem item)
     {
         if (_renderCache.TryGetValue(item, out var cached)) return cached;
@@ -1044,7 +1046,9 @@
         var ls = new Dictionary<object, double>();
         var lf = new Dictionary<object, double>();
         var dur = new Dictionary<object, double>();
+#pragma warning disable CS8714 // Public v0.3.0 allowed nullable TItem; retain binary compatibility.
         var keyByItem = new Dictionary<TItem, object>();
+#pragma warning restore CS8714
 
         DateTime refDate = DateTime.MaxValue;
         foreach (var t in items)

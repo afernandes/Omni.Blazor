@@ -50,6 +50,9 @@ public class ComponentConventionTests
         "OmniYearPlannerView", "OmniYearTimelineView", "OmniYearView", "OmniCarouselItem",
         "OmniDescriptionItem", "OmniTimelineItem", "OmniPanelMenuSection", "OmniStep",
         "OmniTabItem", "OmniTourStep",
+        "OmniTreeGridColumn",
+        "OmniDataFormCollectionEditor", "OmniDataFormFieldRenderer",
+        "OmniDataFormGroupRenderer", "OmniDataFormLookupEditor",
         "OmniHtmlEditorButton", "OmniTreeLevel", "SchedulerTimeView", "SchedulerYearGrid",
     };
 

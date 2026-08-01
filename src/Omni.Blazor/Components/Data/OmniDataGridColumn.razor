@@ -98,10 +98,39 @@
     /// <summary>Resolved property name (PropertyName ou Title como fallback).</summary>
     internal string ResolvedPropertyName => PropertyName ?? Title ?? string.Empty;
 
+    /// <summary>
+    /// Último <see cref="Visible"/> visto vindo do consumidor. Serve para distinguir
+    /// "o consumidor mudou o parâmetro" de "o menu interno alternou a coluna": só o
+    /// primeiro caso sobrescreve <see cref="VisibleInternal"/>.
+    /// </summary>
+    private bool _lastVisibleParam = true;
+
     protected override void OnInitialized()
     {
         VisibleInternal = Visible;
+        _lastVisibleParam = Visible;
         Parent?.Register(this);
+    }
+
+    /// <summary>
+    /// Reaplica <see cref="Visible"/> quando o consumidor o altera depois da montagem —
+    /// sem isto o parâmetro valeria só como valor inicial, e um seletor de colunas
+    /// próprio (marcar/desmarcar) não faria a coluna aparecer nem sumir.
+    ///
+    /// Compara com o último valor RECEBIDO, e não com <see cref="VisibleInternal"/>:
+    /// este último também muda pelo menu embutido, e reagir a ele desfaria a escolha
+    /// do usuário no primeiro re-render do pai.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (Visible == _lastVisibleParam) return;
+
+        _lastVisibleParam = Visible;
+        VisibleInternal = Visible;
+
+        // O cabeçalho e as células vivem no pai; sem avisá-lo, o estado muda e a
+        // tabela continua desenhada como estava.
+        Parent?.NotifyColumnsChanged();
     }
 
     public void Dispose() => Parent?.Unregister(this);

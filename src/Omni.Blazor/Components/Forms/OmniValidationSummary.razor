@@ -71,7 +71,7 @@
     private void OnChanged(object? sender, ValidationStateChangedEventArgs e)
     {
         Refresh();
-        InvokeAsync(StateHasChanged);
+        ObserveTask(InvokeAsync(StateHasChanged), "OmniValidationSummary.Render");
     }
 
     private void Refresh()

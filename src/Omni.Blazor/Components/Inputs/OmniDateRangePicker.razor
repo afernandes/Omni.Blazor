@@ -413,7 +413,7 @@
     public void Dispose()
     {
         FormRegistry?.UnregisterComponent(this);
-        _ = CloseAsync();
+        TaskObserver.Observe(CloseAsync(), operation: "OmniDateRangePicker.Dispose");
         _dotnetRef?.Dispose();
     }
 

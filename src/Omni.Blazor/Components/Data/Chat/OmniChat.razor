@@ -243,7 +243,7 @@
     private int _lastCount = -1;
     private System.Threading.Timer? _typingTimer;
     private bool _typingActive;
-    private bool _disposed;
+    private int _disposeState;
 
     private string RootCss => CssBuilder.Default("omni-chat").AddClass(Class).Build();
     private bool HasHeader => !string.IsNullOrEmpty(Title) || (ShowClearButton && !Disabled) || (ShowUsers && (Users?.Any() ?? false));
@@ -371,8 +371,15 @@
             _typingActive = true;
             await TypingChanged.InvokeAsync(new OmniChatTypingEventArgs { UserId = CurrentUserId, IsTyping = true });
         }
-        _typingTimer?.Dispose();
-        _typingTimer = new System.Threading.Timer(OnTypingTimeout, null, Math.Max(250, TypingTimeout), System.Threading.Timeout.Infinite);
+        var timer = new System.Threading.Timer(
+            OnTypingTimeout,
+            null,
+            Math.Max(250, TypingTimeout),
+            System.Threading.Timeout.Infinite);
+        Interlocked.Exchange(ref _typingTimer, timer)?.Dispose();
+
+        if (Volatile.Read(ref _disposeState) != 0)
+            Interlocked.Exchange(ref _typingTimer, null)?.Dispose();
     }
 
     // Timer fires on a threadpool thread ~1.5s later; the component may already be gone
@@ -380,22 +387,41 @@
     // an unobserved exception here can tear down the whole Blazor Server circuit.
     internal void OnTypingTimeout(object? _)
     {
-        if (_disposed) return;
+        if (Volatile.Read(ref _disposeState) != 0) return;
+        ObserveTask(HandleTypingTimeoutAsync(), "OmniChat.TypingTimeout");
+    }
+
+    private async Task HandleTypingTimeoutAsync()
+    {
         try
         {
-            _ = InvokeAsync(async () =>
-            {
-                if (_disposed) return;
-                try { await StopTypingAsync(); } catch { /* circuit already gone */ }
-            });
+            if (Volatile.Read(ref _disposeState) == 0)
+                await InvokeAsync(StopTypingAsync);
         }
-        catch { /* renderer torn down between the guard and dispatch */ }
+        catch (ObjectDisposedException) when (Volatile.Read(ref _disposeState) != 0)
+        {
+            // The timer raced with component disposal.
+        }
+        catch (InvalidOperationException) when (Volatile.Read(ref _disposeState) != 0)
+        {
+            // The renderer was released during disposal.
+        }
+        catch (Exception exception)
+        {
+            try
+            {
+                await DispatchExceptionAsync(exception);
+            }
+            catch when (Volatile.Read(ref _disposeState) != 0)
+            {
+                // The circuit was released while reporting the original failure.
+            }
+        }
     }
 
     private async Task StopTypingAsync()
     {
-        _typingTimer?.Dispose();
-        _typingTimer = null;
+        Interlocked.Exchange(ref _typingTimer, null)?.Dispose();
         if (_typingActive)
         {
             _typingActive = false;
@@ -406,13 +432,26 @@
 
     public void Dispose()
     {
-        _disposed = true;
-        _typingTimer?.Dispose();
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+
+        Interlocked.Exchange(ref _typingTimer, null)?.Dispose();
         if (_created)
-        {
-            try { _ = JS.InvokeVoidAsync("omniBlazor.chatDetach", _inputRef); } catch { }
-        }
+            ObserveTask(DetachSafelyAsync(), "OmniChat.Detach");
+
         _selfRef?.Dispose();
         _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+
+    private async Task DetachSafelyAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("omniBlazor.chatDetach", _inputRef);
+        }
+        catch
+        {
+            // Cleanup is best effort because the JS runtime may already be disconnected.
+        }
     }
 }

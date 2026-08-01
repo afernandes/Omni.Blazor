@@ -6,18 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Three first-class projects under `src/`, plus a single test project:
 
-- **`src/Omni.Blazor/`** — packable Razor Class Library (`Microsoft.NET.Sdk.Razor`). 174 single-file components (inline `@code` — there are no `.razor.cs` code-behinds; `docs/components.json` is the authoritative count + API) across `Components/{Buttons,Display,Inputs,Layout,Navigation,Overlay,Data,Forms,Marketing,Base}/`. Ships its own SCSS bundle (`Themes/omni.scss` → auto-compiled by `AspNetCore.SassCompiler` on build → served via `_content/Omni.Blazor/css/omni.css`).
+- **`src/Omni.Blazor/`** — packable Razor Class Library (`Microsoft.NET.Sdk.Razor`). Components may be single-file or split into `.razor` + `.razor.cs` when complexity warrants it; `docs/components.json` is the generated catalog and API. Components live across `Components/{Buttons,Display,Inputs,Layout,Navigation,Overlay,Data,Forms,Marketing,Base}/`. The shared SCSS bundle (`Themes/omni.scss`) is auto-compiled by `AspNetCore.SassCompiler` and served via `_content/Omni.Blazor/css/omni.css`.
 - **`src/Omni.Blazor.Ai/`** — optional AI layer as a **separate packable** RCL (`AndersonN.Omni.Blazor.Ai`) referencing the base library + `Microsoft.Extensions.AI.Abstractions`. Holds `OmniChatClient` (headless orchestrator over `IChatClient`) + the `OmniAiConversation` drop-in. Kept out of the base package so consumers aren't forced to take the AI dependency.
 - **`src/Omni.Templates/`** — starter/template pages RCL (`Omni.Templates`) + a Blazor host (`Omni.Templates.Host`, preview port 5305) to preview them locally.
 - **`src/Forneria.Demo/`** — three-project showcase: `.Pages` (RCL with all demo pages), `Forneria.Demo` (Blazor Server host), `Forneria.Demo.Wasm` (Blazor WebAssembly host). Dual-render — both hosts reference the same `.Pages` RCL.
 - **`src/FoodService/`** — POS-style consumer app: `FoodService.Pages` (RCL) + `FoodService` (Server host only). Two domain features: `PdvFeature/` (operator point-of-sale) and `CardapioFeature/` (customer-facing digital menu with 7-screen state machine).
-- **`test/Omni.Blazor.Tests/`** — bUnit + xUnit.v3, one `Components/{Folder}/Omni{Name}Tests.cs` per library component (~138 files, ~1330 tests).
+- **`test/Omni.Blazor.Tests/`** — bUnit + xUnit.v3, with component, service and infrastructure coverage exceeding 2,000 tests.
 
 Solution file: `Omni.Blazor.slnx` (new SDK-style solution format). Central Package Management is on — `Directory.Packages.props` is the single source of truth for versions; csproj files reference packages by ID only.
 
 ## Build / run / test
 
-The .NET SDK is pinned in `global.json` (`10.0.100-rc.1` or later via `latestMinor`).
+The stable .NET SDK is pinned in `global.json`.
 
 ```bash
 # Build the whole solution
@@ -57,7 +57,9 @@ The running host serves the compiled `omni.css` *and* locks `Omni.Blazor.dll`, s
 
 ## Component authoring conventions (non-negotiable)
 
-Every razor component in `src/Omni.Blazor/` MUST follow this shape:
+Small Razor components in `src/Omni.Blazor/` should follow this shape. Complex
+components may move lifecycle, async orchestration and testable logic to a
+partial `.razor.cs` file:
 
 ```razor
 @namespace Omni.Blazor.Components
@@ -83,7 +85,7 @@ Hard rules enforced by the test suite:
 
 1. **`OmniComponent` is the base for everything.** It exposes `Class`, `Style`, `Attributes` (`CaptureUnmatchedValues=true`), an auto-generated `Id`, and `ParameterScope`. The root element of every component must splat all three (`class="@RootCss" style="@Style" @attributes="Attributes"`).
 2. **`CssBuilder` is the only way to compose classes.** The legacy `Cls(params string?[])` helper was deleted from `OmniComponent`. Don't reintroduce it. `StyleBuilder` is the twin for inline styles when you have conditional CSS declarations.
-3. **`@key` in every foreach.** Lists of items render with `@key="item.Id"` to keep Blazor's diff stable.
+3. **Stable identity in dynamic lists.** Mutable, stateful, selectable, editable or reordered lists render with `@key="item.Id"`. Static decoration loops may omit it when identity preservation provides no benefit.
 4. **Form inputs inherit `FormComponent<TValue>`** (in `Components/Base/`). It wires `Value`/`ValueChanged`/`ValueExpression`, builds `FieldIdentifier`, attaches to cascading `EditContext`, exposes `SetValueAsync` (the only sanctioned write path), and runs per-input validators. Never re-implement two-way binding manually in an input.
 5. **Reactive recomputation goes through `ParameterState<T>`**, not raw `OnParametersSet`. Register in `OnInitialized`:
    ```csharp
@@ -110,7 +112,12 @@ All visual tokens are CSS custom properties in `src/Omni.Blazor/Themes/_tokens.s
 
 `<OmniTheme />` in `<head>` injects the stylesheet link. `<OmniAppearanceToggle />` exposes a user-facing toggle (persists to localStorage). `<OmniBreakpointProvider>` cascades the current breakpoint (Xs/Sm/Md/Lg/Xl/Xxl) — query `BreakpointService` for the live value.
 
-**SCSS is one bundle, not per-component files.** The entry point `Themes/omni.scss` imports `_reset → _tokens → _base → _components` in that order, and **every component's styles are appended to the single `Themes/_components.scss`** (~9000 lines). Add a new component's block there — and mind the cascade: when two rules collide the later block wins, so a stale or duplicate block further down can silently override yours (favor container queries over viewport `@media` for widgets that should react to their own width). All JS is likewise one file, `wwwroot/js/Omni.js`, under `window.omniBlazor`.
+The entry point `Themes/omni.scss` imports `_reset → _tokens → _base → _components` in that order. Shared variants, design tokens and styles used by dynamically-created DOM belong in these theme sources. A component may use `.razor.css` for truly private implementation details. Prefer typed services and lazy/colocated modules for new complex JS integrations while preserving the existing `window.omniBlazor` compatibility surface.
+
+Performance, async, concurrency and lifetime requirements are defined in
+[`docs/engineering-quality.md`](docs/engineering-quality.md). Optimizations
+must be measured; `Span<T>`, pooling and lock-free code are not default
+architecture choices.
 
 ## Testing
 

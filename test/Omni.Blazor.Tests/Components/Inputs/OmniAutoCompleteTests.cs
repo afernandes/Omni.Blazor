@@ -1,5 +1,6 @@
 using Bunit;
 using Omni.Blazor.Components;
+using Omni.Blazor.Models;
 
 namespace Omni.Blazor.Tests.Components.Inputs;
 
@@ -122,5 +123,138 @@ public class OmniAutoCompleteTests : TestContextBase
         cut.Render(p => p.Add(c => c.Value, "beta"));
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
+    }
+
+    [Fact]
+    public async Task ItemsProvider_cancels_superseded_search_and_latest_result_wins()
+    {
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken firstToken = default;
+
+        async ValueTask<OmniItemsPage<string>> Provider(
+            OmniItemsRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (request.Search == "primeiro")
+            {
+                firstToken = cancellationToken;
+                firstStarted.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
+            return new OmniItemsPage<string>([request.Search ?? "vazio"], 1);
+        }
+
+        var cut = Render<OmniAutoComplete<string>>(parameters => parameters
+            .Add(component => component.ItemsProvider, Provider)
+            .Add(component => component.DebounceMs, 0)
+            .Add(component => component.TextSelector, value => value));
+        var input = cut.Find("input");
+
+        var first = input.InputAsync("primeiro");
+        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+        var second = input.InputAsync("segundo");
+
+        await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(firstToken.IsCancellationRequested);
+            Assert.Equal("segundo", cut.Find(".omni-autocomplete-option").TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public async Task ItemsProvider_enforces_page_and_retained_item_limits()
+    {
+        var requests = new List<OmniItemsRequest>();
+        ValueTask<OmniItemsPage<string>> Provider(
+            OmniItemsRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            requests.Add(request);
+            var items = Enumerable.Range(request.Skip, 10).Select(index => $"item-{index}").ToArray();
+            return ValueTask.FromResult(new OmniItemsPage<string>(items, 100));
+        }
+
+        var cut = Render<OmniAutoComplete<string>>(parameters => parameters
+            .Add(component => component.ItemsProvider, Provider)
+            .Add(component => component.ProviderPageSize, 2)
+            .Add(component => component.MaxProviderItems, 3)
+            .Add(component => component.DebounceMs, 0)
+            .Add(component => component.TextSelector, value => value));
+
+        await cut.Find("input").FocusAsync(new());
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".omni-autocomplete-option").Count));
+        await cut.Find(".omni-autocomplete-load-more").ClickAsync(new());
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(3, cut.FindAll(".omni-autocomplete-option").Count);
+            Assert.Empty(cut.FindAll(".omni-autocomplete-load-more"));
+            Assert.Collection(requests,
+                first => Assert.Equal((0, 2), (first.Skip, first.Take)),
+                second => Assert.Equal((2, 1), (second.Skip, second.Take)));
+        });
+    }
+
+    [Fact]
+    public async Task Disposal_cancels_pending_provider_request()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observedToken = default;
+        async ValueTask<OmniItemsPage<string>> Provider(
+            OmniItemsRequest request,
+            CancellationToken cancellationToken)
+        {
+            observedToken = cancellationToken;
+            started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new OmniItemsPage<string>([], 0);
+        }
+
+        var cut = Render<OmniAutoComplete<string>>(parameters => parameters
+            .Add(component => component.ItemsProvider, Provider)
+            .Add(component => component.DebounceMs, 0)
+            .Add(component => component.TextSelector, value => value));
+        var pending = cut.Find("input").InputAsync("consulta");
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+
+        await cut.Instance.DisposeAsync();
+        await pending.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+
+        Assert.True(observedToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task Provider_failure_is_reported_and_retry_can_recover()
+    {
+        var attempts = 0;
+        Exception? reported = null;
+        ValueTask<OmniItemsPage<string>> Provider(
+            OmniItemsRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++attempts == 1) throw new InvalidOperationException("falha esperada");
+            return ValueTask.FromResult(new OmniItemsPage<string>(["recuperado"], 1));
+        }
+
+        var cut = Render<OmniAutoComplete<string>>(parameters => parameters
+            .Add(component => component.ItemsProvider, Provider)
+            .Add(component => component.DebounceMs, 0)
+            .Add(component => component.ItemsProviderFailed, exception => reported = exception)
+            .Add(component => component.TextSelector, value => value));
+
+        await cut.Find("input").FocusAsync(new());
+        cut.WaitForAssertion(() =>
+        {
+            Assert.IsType<InvalidOperationException>(reported);
+            Assert.NotNull(cut.Find("[role='alert']"));
+        });
+        await cut.Find("[role='alert'] button").ClickAsync(new());
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("recuperado", cut.Find(".omni-autocomplete-option").TextContent.Trim()));
     }
 }

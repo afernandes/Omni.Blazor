@@ -1,7 +1,7 @@
 {
   "package": "AndersonN.Omni.Blazor",
   "repository": "https://github.com/afernandes/Omni.Blazor",
-  "count": 174,
+  "count": 198,
   "components": [
     {
       "name": "OmniAiConversation",
@@ -397,6 +397,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -452,7 +460,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -1033,7 +1041,7 @@
       "category": "Buttons",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "FAB com menu expansível — clique no botão principal pra mostrar/esconder itens (OmniFabMenuItem).",
       "source": "src/Omni.Blazor/Components/Buttons/OmniFabMenu.razor",
       "parameters": [
@@ -2812,7 +2820,7 @@
       "baseType": "OmniComponent",
       "isInput": false,
       "hasChildContent": false,
-      "summary": "Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via LoadData.",
+      "summary": "Rich data grid with sorting, filtering, grouping, editing, virtualization and optional hierarchical rows.",
       "source": "src/Omni.Blazor/Components/Data/OmniDataGrid.razor",
       "parameters": [
         {
@@ -2841,7 +2849,7 @@
           "kind": "parameter",
           "type": "bool",
           "required": false,
-          "summary": "Shows a \"Exportar\" button in the toolbar that downloads visible rows as CSV."
+          "summary": "Shows an export action that streams the filtered dataset as a bounded CSV."
         },
         {
           "name": "AllowGrouping",
@@ -2879,11 +2887,25 @@
           "summary": "Permite ordenar clicando no header das colunas Sortable. Default true."
         },
         {
-          "name": "ChildrenSelector",
+          "name": "Children",
           "kind": "parameter",
           "type": "Func<TItem, IEnumerable<TItem>>",
           "required": false,
-          "summary": "Função síncrona que retorna os filhos de um item. Quando setada, o grid vira tree-grid: cada linha pode expandir mostrando filhos com indentação. Multi-nível recursivo."
+          "summary": "Synchronous child selector that enables hierarchy mode for in-memory trees."
+        },
+        {
+          "name": "ChildrenProvider",
+          "kind": "parameter",
+          "type": "HierarchyChildrenProvider<TItem>",
+          "required": false,
+          "summary": "Asynchronous, cancellable child source that enables lazy hierarchy mode."
+        },
+        {
+          "name": "CollapseText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible label for collapsing a hierarchy row."
         },
         {
           "name": "ColumnResized",
@@ -2911,14 +2933,21 @@
           "kind": "parameter",
           "type": "IEnumerable<TItem>",
           "required": false,
-          "summary": "Fonte de dados in-memory. Ignorado se LoadData for setado."
+          "summary": "Fonte de dados in-memory. Ignorado se DataProvider for setado."
+        },
+        {
+          "name": "DataProvider",
+          "kind": "parameter",
+          "type": "GridDataProvider<TItem>",
+          "required": false,
+          "summary": "Callback server-side. Quando setado, o DataGrid delega filter/sort/page ao consumidor. O retorno é a janela de items a renderizar + total count."
         },
         {
           "name": "DebounceMs",
           "kind": "parameter",
           "type": "int",
           "required": false,
-          "summary": "Debounce (ms) entre keystrokes na busca antes de chamar LoadData."
+          "summary": "Debounce (ms) entre keystrokes na busca antes de chamar DataProvider."
         },
         {
           "name": "DetailTemplate",
@@ -2988,11 +3017,60 @@
           "summary": "Single = apenas uma linha expandida por vez; Multi = quantas o usuário quiser."
         },
         {
+          "name": "ExpandText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible label for expanding a hierarchy row."
+        },
+        {
+          "name": "ExpandedKeys",
+          "kind": "parameter",
+          "type": "IReadOnlyCollection<object>",
+          "required": false,
+          "summary": "Externally controlled expanded key set. Replace the collection when updating it."
+        },
+        {
+          "name": "ExpandedKeysChanged",
+          "kind": "event",
+          "type": "EventCallback<IReadOnlyCollection<object>>",
+          "required": false,
+          "summary": "Raised with an immutable snapshot after hierarchy expansion changes."
+        },
+        {
+          "name": "ExportBatchSize",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Page size used while exporting through DataProvider."
+        },
+        {
+          "name": "ExportFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when an uncancelled export fails."
+        },
+        {
           "name": "ExportFilename",
           "kind": "parameter",
           "type": "string",
           "required": false,
           "summary": "Nome do arquivo gerado pelo export CSV. Default \"export.csv\"."
+        },
+        {
+          "name": "ExportProvider",
+          "kind": "parameter",
+          "type": "GridExportProvider<TItem>",
+          "required": false,
+          "summary": "Optional streaming source used only by CSV export. When omitted, the grid pages through DataProvider or exports its in-memory source."
+        },
+        {
+          "name": "ExportTruncated",
+          "kind": "event",
+          "type": "EventCallback<int>",
+          "required": false,
+          "summary": "Raised when an export reaches MaxExportRows."
         },
         {
           "name": "GroupPanelText",
@@ -3013,7 +3091,7 @@
           "kind": "parameter",
           "type": "Func<TItem, bool>",
           "required": false,
-          "summary": "Predicado opcional que decide se uma linha tem filhos (mostra o chevron). Útil em modo LoadChildren onde a contagem só é conhecida após o load. Default: assume true quando LoadChildren está setado."
+          "summary": "Predicate indicating whether a hierarchy item can be expanded."
         },
         {
           "name": "Height",
@@ -3030,32 +3108,60 @@
           "summary": "Hides a column from the table once it is used as a grouping key (its value shows in the group header instead)."
         },
         {
+          "name": "HierarchyAriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible label used when the table is rendered as a tree grid."
+        },
+        {
+          "name": "HierarchyLimitReachedText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Message displayed when the configured hierarchy row limit is reached."
+        },
+        {
+          "name": "HierarchyLoadErrorText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Message displayed when lazy child loading fails."
+        },
+        {
+          "name": "HierarchyLoadFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when an uncancelled lazy hierarchy load fails."
+        },
+        {
+          "name": "HierarchyRetryText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Label for retrying a failed lazy hierarchy load."
+        },
+        {
           "name": "IndentSize",
           "kind": "parameter",
           "type": "int",
           "required": false,
-          "summary": "Pixels de indentação por nível. Default 20."
+          "summary": "Pixels of indentation per hierarchy level."
         },
         {
           "name": "InitiallyExpanded",
           "kind": "parameter",
-          "type": "bool",
+          "type": "Func<TItem, bool>",
           "required": false,
-          "summary": "Quando true, expande todos os nós no primeiro render. Default false."
+          "summary": "Optional predicate applied once when the hierarchy source changes."
         },
         {
-          "name": "LoadChildren",
+          "name": "KeySelector",
           "kind": "parameter",
-          "type": "Func<TItem, Task<IEnumerable<TItem>>>",
+          "type": "Func<TItem, object>",
           "required": false,
-          "summary": "Callback assíncrono que carrega os filhos sob demanda. Disparado na primeira expansão de cada nó. Resultado é cacheado. Mutuamente exclusivo com ChildrenSelector; se ambos estiverem setados, ChildrenSelector tem prioridade."
-        },
-        {
-          "name": "LoadData",
-          "kind": "parameter",
-          "type": "Func<GridState<TItem>, Task<GridLoadResult<TItem>>>",
-          "required": false,
-          "summary": "Callback server-side. Quando setado, o DataGrid delega filter/sort/page ao consumidor. O retorno é a janela de items a renderizar + total count."
+          "summary": "Stable unique key selector used by hierarchy expansion, cache and loading state."
         },
         {
           "name": "LoadingSkeleton",
@@ -3070,6 +3176,55 @@
           "type": "RenderFragment",
           "required": false,
           "summary": "Slot custom para o overlay de loading. Substitui o spinner default quando setado."
+        },
+        {
+          "name": "MaxCachedItems",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum total lazy-loaded child items retained in the LRU cache."
+        },
+        {
+          "name": "MaxCachedNodes",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum lazy-loaded parent nodes retained in the LRU cache."
+        },
+        {
+          "name": "MaxChildrenPerNode",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum children retained from one lazy-load response."
+        },
+        {
+          "name": "MaxConcurrentLoads",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum number of lazy child requests executed concurrently."
+        },
+        {
+          "name": "MaxDepth",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum hierarchy depth traversed, protecting against cycles and pathological input."
+        },
+        {
+          "name": "MaxExportRows",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Hard cap applied to every export, including custom streaming providers."
+        },
+        {
+          "name": "MaxVisibleRows",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum hierarchy rows flattened before rendering or virtualization."
         },
         {
           "name": "OnRowClick",
@@ -3526,7 +3681,7 @@
       "category": "Data",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "OmniDiagramCanvas — generic infinite graph editor: pan/zoom, dotted grid, nodes with named ports, bezier edges, drag-to-connect, marquee selection, minimap, zoom controls and auto-layout.",
       "source": "src/Omni.Blazor/Components/Data/Diagram/OmniDiagramCanvas.razor",
       "parameters": [
@@ -3933,11 +4088,396 @@
       ]
     },
     {
-      "name": "OmniGantt",
+      "name": "OmniFileManager",
       "category": "Data",
       "baseType": "OmniComponent",
       "isInput": false,
       "hasChildContent": false,
+      "summary": "Provider-backed file manager with bounded loading, navigation and guarded mutations.",
+      "source": "src/Omni.Blazor/Components/Data/OmniFileManager.razor",
+      "parameters": [
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Gerenciador de arquivos",
+          "required": false,
+          "summary": "Accessible label for the component."
+        },
+        {
+          "name": "BreadcrumbLabel",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Localização",
+          "required": false,
+          "summary": "Accessible label for breadcrumb navigation."
+        },
+        {
+          "name": "CancelText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Cancelar",
+          "required": false,
+          "summary": "Label for cancelling a pending action."
+        },
+        {
+          "name": "Capabilities",
+          "kind": "parameter",
+          "type": "FileManagerCapabilities",
+          "enumValues": [
+            {
+              "name": "Browse",
+              "summary": "Read-only browsing."
+            },
+            {
+              "name": "CreateFolder",
+              "summary": "Create folders."
+            },
+            {
+              "name": "Rename",
+              "summary": "Rename files and folders."
+            },
+            {
+              "name": "Delete",
+              "summary": "Delete files and folders."
+            },
+            {
+              "name": "Upload",
+              "summary": "Upload browser files."
+            },
+            {
+              "name": "Download",
+              "summary": "Request a download through the consumer callback."
+            },
+            {
+              "name": "All",
+              "summary": "All optional operations."
+            }
+          ],
+          "default": "Browse",
+          "required": false,
+          "summary": "Enabled optional operations. Browse is always available."
+        },
+        {
+          "name": "ConfirmText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Confirmar",
+          "required": false,
+          "summary": "Label for confirming deletion."
+        },
+        {
+          "name": "DeleteConfirmationText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Excluir “{0}”?",
+          "required": false,
+          "summary": "Delete confirmation template. Placeholder zero receives the entry name."
+        },
+        {
+          "name": "DeleteText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Excluir",
+          "required": false,
+          "summary": "Label for the delete action."
+        },
+        {
+          "name": "DirectoryOpened",
+          "kind": "event",
+          "type": "EventCallback<FileManagerEntry>",
+          "required": false,
+          "summary": "Raised after a directory is opened and its path changes."
+        },
+        {
+          "name": "DownloadRequested",
+          "kind": "event",
+          "type": "EventCallback<FileManagerEntry>",
+          "required": false,
+          "summary": "Raised when the user requests download of a file."
+        },
+        {
+          "name": "DownloadText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Baixar",
+          "required": false,
+          "summary": "Label for the download action."
+        },
+        {
+          "name": "EmptyText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Esta pasta está vazia.",
+          "required": false,
+          "summary": "Message shown when the directory is empty."
+        },
+        {
+          "name": "ErrorText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Não foi possível concluir a operação.",
+          "required": false,
+          "summary": "Message shown after a provider failure."
+        },
+        {
+          "name": "GridViewText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Exibição em grade",
+          "required": false,
+          "summary": "Label for grid view."
+        },
+        {
+          "name": "ItemTemplate",
+          "kind": "slot",
+          "type": "RenderFragment<FileManagerEntry>",
+          "contextType": "FileManagerEntry",
+          "required": false,
+          "summary": "Optional custom renderer for each entry."
+        },
+        {
+          "name": "ItemsChanged",
+          "kind": "event",
+          "type": "EventCallback",
+          "required": false,
+          "summary": "Raised after a provider operation changes the directory contents."
+        },
+        {
+          "name": "ItemsCountText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "{0} de {1} itens",
+          "required": false,
+          "summary": "Footer template for visible and total item counts."
+        },
+        {
+          "name": "LimitText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Limite de {0} itens",
+          "required": false,
+          "summary": "Footer template shown when the configured item limit was reached."
+        },
+        {
+          "name": "ListViewText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Exibição em lista",
+          "required": false,
+          "summary": "Label for list view."
+        },
+        {
+          "name": "LoadingText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Carregando arquivos...",
+          "required": false,
+          "summary": "Message shown while the initial listing loads."
+        },
+        {
+          "name": "MaxItems",
+          "kind": "parameter",
+          "type": "int",
+          "default": "1000",
+          "required": false,
+          "summary": "Maximum entries requested, retained and rendered per directory."
+        },
+        {
+          "name": "MaxUploadFiles",
+          "kind": "parameter",
+          "type": "int",
+          "default": "20",
+          "required": false,
+          "summary": "Maximum files accepted in one upload selection."
+        },
+        {
+          "name": "NewFolderPlaceholder",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Nome da pasta",
+          "required": false,
+          "summary": "Placeholder for a new folder name."
+        },
+        {
+          "name": "NewFolderText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Nova pasta",
+          "required": false,
+          "summary": "Label for the create-folder action."
+        },
+        {
+          "name": "OperationFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when an uncancelled provider operation fails."
+        },
+        {
+          "name": "Path",
+          "kind": "parameter",
+          "type": "string",
+          "default": "/",
+          "required": false,
+          "summary": "Current logical path for two-way binding. Paths use forward slashes."
+        },
+        {
+          "name": "PathChanged",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "summary": "Raised when Path changes."
+        },
+        {
+          "name": "Provider",
+          "kind": "parameter",
+          "type": "IOmniFileManagerProvider",
+          "required": true,
+          "summary": "Backend responsible for browsing and optional mutations."
+        },
+        {
+          "name": "RefreshText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Atualizar",
+          "required": false,
+          "summary": "Label for the refresh action."
+        },
+        {
+          "name": "RenamePlaceholder",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Novo nome",
+          "required": false,
+          "summary": "Placeholder for a new entry name."
+        },
+        {
+          "name": "RenameText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Renomear",
+          "required": false,
+          "summary": "Label for the rename action."
+        },
+        {
+          "name": "SaveText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Salvar",
+          "required": false,
+          "summary": "Label for saving an inline edit."
+        },
+        {
+          "name": "SearchDebounce",
+          "kind": "parameter",
+          "type": "int",
+          "default": "250",
+          "required": false,
+          "summary": "Delay before provider-side text searches, in milliseconds."
+        },
+        {
+          "name": "SearchPlaceholder",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Buscar nesta pasta",
+          "required": false,
+          "summary": "Provider-side search placeholder."
+        },
+        {
+          "name": "SearchText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": false,
+          "summary": "Current provider-side search text for two-way binding."
+        },
+        {
+          "name": "SearchTextChanged",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "summary": "Raised when SearchText changes."
+        },
+        {
+          "name": "SelectedItem",
+          "kind": "parameter",
+          "type": "FileManagerEntry",
+          "required": false,
+          "summary": "Currently selected entry for two-way binding."
+        },
+        {
+          "name": "SelectedItemChanged",
+          "kind": "event",
+          "type": "EventCallback<FileManagerEntry>",
+          "required": false,
+          "summary": "Raised when SelectedItem changes."
+        },
+        {
+          "name": "UploadText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Enviar",
+          "required": false,
+          "summary": "Label for the upload action."
+        },
+        {
+          "name": "View",
+          "kind": "parameter",
+          "type": "FileManagerView",
+          "enumValues": [
+            {
+              "name": "List",
+              "summary": "Compact tabular rows."
+            },
+            {
+              "name": "Grid",
+              "summary": "Responsive icon cards."
+            }
+          ],
+          "default": "List",
+          "required": false,
+          "summary": "Current list or grid layout for two-way binding."
+        },
+        {
+          "name": "ViewChanged",
+          "kind": "event",
+          "type": "EventCallback<FileManagerView>",
+          "required": false,
+          "summary": "Raised when View changes."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniGantt",
+      "category": "Data",
+      "baseType": "OmniComponent",
+      "isInput": false,
+      "hasChildContent": true,
       "summary": "OmniGantt — project timeline inspired by RadzenGantt.",
       "source": "src/Omni.Blazor/Components/Data/Gantt/OmniGantt.razor",
       "parameters": [
@@ -4335,7 +4875,7 @@
       "category": "Data",
       "baseType": "FormComponent<T>",
       "isInput": true,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "source": "src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditor.razor",
       "parameters": [
         {
@@ -4418,6 +4958,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -4473,7 +5021,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -4497,6 +5045,54 @@
           "type": "Expression<Func<string>>",
           "required": false,
           "inheritedFrom": "FormComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniHtmlEditorButton",
+      "category": "Data",
+      "baseType": "ComponentBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "A toolbar tool for OmniHtmlEditor.",
+      "source": "src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditorButton.razor",
+      "parameters": [
+        {
+          "name": "Command",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "The execCommand name (e.g. bold, justifyCenter, insertOrderedList)."
+        },
+        {
+          "name": "Icon",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Icon name (Omni icon library)."
+        },
+        {
+          "name": "Shortcut",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Optional keyboard shortcut (e.g. Ctrl+B) registered with the editor."
+        },
+        {
+          "name": "Title",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Tooltip / accessible title."
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Optional command value (e.g. a color, or a block tag for formatBlock)."
         }
       ]
     },
@@ -5050,6 +5646,40 @@
       ]
     },
     {
+      "name": "OmniPivotColumn",
+      "category": "Data",
+      "baseType": "OmniPivotFieldBase<TItem>",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "A column dimension of an OmniPivotGrid`1. Multiple nest.",
+      "source": "src/Omni.Blazor/Components/Data/Pivot/OmniPivotColumn.cs",
+      "parameters": [
+        {
+          "name": "Width",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Optional fixed width for the value columns under this group."
+        },
+        {
+          "name": "Property",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Name of the property this field reads from each data item.",
+          "inheritedFrom": "OmniPivotFieldBase"
+        },
+        {
+          "name": "Title",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Header text. Falls back to Property.",
+          "inheritedFrom": "OmniPivotFieldBase"
+        }
+      ]
+    },
+    {
       "name": "OmniPivotGrid",
       "category": "Data",
       "baseType": "OmniComponent",
@@ -5155,11 +5785,116 @@
       ]
     },
     {
+      "name": "OmniPivotRow",
+      "category": "Data",
+      "baseType": "OmniPivotFieldBase<TItem>",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "A row dimension of an OmniPivotGrid`1. Multiple nest.",
+      "source": "src/Omni.Blazor/Components/Data/Pivot/OmniPivotRow.cs",
+      "parameters": [
+        {
+          "name": "Property",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Name of the property this field reads from each data item.",
+          "inheritedFrom": "OmniPivotFieldBase"
+        },
+        {
+          "name": "Title",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Header text. Falls back to Property.",
+          "inheritedFrom": "OmniPivotFieldBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniPivotValue",
+      "category": "Data",
+      "baseType": "OmniPivotFieldBase<TItem>",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "A value/measure of an OmniPivotGrid`1 — an aggregate (AggregateFunction) of a property computed at each row×column intersection. Multiple values render side-by-side under every column group.",
+      "source": "src/Omni.Blazor/Components/Data/Pivot/OmniPivotValue.cs",
+      "parameters": [
+        {
+          "name": "Aggregate",
+          "kind": "parameter",
+          "type": "AggregateFunction",
+          "enumValues": [
+            {
+              "name": "Sum",
+              "summary": "Soma dos valores."
+            },
+            {
+              "name": "Average",
+              "summary": "Média dos valores."
+            },
+            {
+              "name": "Count",
+              "summary": "Contagem de itens."
+            },
+            {
+              "name": "Min",
+              "summary": "Menor valor."
+            },
+            {
+              "name": "Max",
+              "summary": "Maior valor."
+            }
+          ],
+          "required": false,
+          "summary": "Aggregate function. Default Sum."
+        },
+        {
+          "name": "Align",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "CSS text-align for the value cells. Default right."
+        },
+        {
+          "name": "FormatString",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Composite format string for the cell value (e.g. \"{0:C}\", \"{0:P0}\")."
+        },
+        {
+          "name": "Template",
+          "kind": "slot",
+          "type": "RenderFragment<object>",
+          "contextType": "object",
+          "required": false,
+          "summary": "Optional cell template (receives the aggregated value)."
+        },
+        {
+          "name": "Property",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Name of the property this field reads from each data item.",
+          "inheritedFrom": "OmniPivotFieldBase"
+        },
+        {
+          "name": "Title",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Header text. Falls back to Property.",
+          "inheritedFrom": "OmniPivotFieldBase"
+        }
+      ]
+    },
+    {
       "name": "OmniScheduler",
       "category": "Data",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "OmniScheduler — calendar/agenda component inspired by RadzenScheduler.",
       "source": "src/Omni.Blazor/Components/Data/Scheduler/OmniScheduler.razor",
       "parameters": [
@@ -5412,7 +6147,7 @@
       "category": "Data",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "OmniTree — hierarchical tree view (RadzenTree port).",
       "source": "src/Omni.Blazor/Components/Data/Tree/OmniTree.razor",
       "parameters": [
@@ -5537,11 +6272,355 @@
       ]
     },
     {
-      "name": "OmniTreeItem",
+      "name": "OmniTreeGrid",
       "category": "Data",
       "baseType": "OmniComponent",
       "isInput": false,
       "hasChildContent": false,
+      "summary": "Accessible hierarchical data table with bounded lazy loading and selection.",
+      "source": "src/Omni.Blazor/Components/Data/OmniTreeGrid.razor",
+      "parameters": [
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible label for the tree grid."
+        },
+        {
+          "name": "Children",
+          "kind": "parameter",
+          "type": "Func<TItem, IEnumerable<TItem>>",
+          "required": false,
+          "summary": "Synchronous child selector for fully in-memory trees."
+        },
+        {
+          "name": "ChildrenProvider",
+          "kind": "parameter",
+          "type": "HierarchyChildrenProvider<TItem>",
+          "required": false,
+          "summary": "Asynchronous, cancellable lazy child source."
+        },
+        {
+          "name": "CollapseText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible label for collapsing a row."
+        },
+        {
+          "name": "Columns",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Declarative OmniTreeGridColumn definitions."
+        },
+        {
+          "name": "EmptyTemplate",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Optional empty-state content."
+        },
+        {
+          "name": "EmptyText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Empty-state text."
+        },
+        {
+          "name": "ExpandOnRowDoubleClick",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Whether a row double-click toggles its expansion state."
+        },
+        {
+          "name": "ExpandText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible label for expanding a row."
+        },
+        {
+          "name": "ExpandedKeys",
+          "kind": "parameter",
+          "type": "IReadOnlyCollection<object>",
+          "required": false,
+          "summary": "Externally controlled expanded key set. Replace the collection when updating it."
+        },
+        {
+          "name": "ExpandedKeysChanged",
+          "kind": "event",
+          "type": "EventCallback<IReadOnlyCollection<object>>",
+          "required": false,
+          "summary": "Raised with an immutable snapshot after expansion changes."
+        },
+        {
+          "name": "HasChildren",
+          "kind": "parameter",
+          "type": "Func<TItem, bool>",
+          "required": false,
+          "summary": "Predicate indicating whether an item can be expanded."
+        },
+        {
+          "name": "IndentSize",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Indentation per hierarchy level in CSS pixels."
+        },
+        {
+          "name": "InitiallyExpanded",
+          "kind": "parameter",
+          "type": "Func<TItem, bool>",
+          "required": false,
+          "summary": "Optional predicate applied once when a data source is reset."
+        },
+        {
+          "name": "Items",
+          "kind": "parameter",
+          "type": "IEnumerable<TItem>",
+          "required": false,
+          "summary": "Root items in the hierarchy."
+        },
+        {
+          "name": "KeySelector",
+          "kind": "parameter",
+          "type": "Func<TItem, object>",
+          "required": false,
+          "summary": "Stable unique key selector. Keys identify expansion, cache and loading state; changing an item's key requires ReloadAsync."
+        },
+        {
+          "name": "LimitReachedText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Template shown when the visible-row limit is reached."
+        },
+        {
+          "name": "LoadErrorText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Message shown when lazy child loading fails."
+        },
+        {
+          "name": "LoadFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when an uncancelled lazy-load operation fails."
+        },
+        {
+          "name": "MaxCachedItems",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum total lazy-loaded child items retained in the LRU cache."
+        },
+        {
+          "name": "MaxCachedNodes",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum lazy-loaded parent nodes retained in the LRU cache."
+        },
+        {
+          "name": "MaxChildrenPerNode",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum children retained from a single lazy-load response."
+        },
+        {
+          "name": "MaxConcurrentLoads",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum number of lazy child requests executed concurrently."
+        },
+        {
+          "name": "MaxDepth",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum traversed hierarchy depth, protecting against cycles and pathological input."
+        },
+        {
+          "name": "MaxVisibleRows",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum rows flattened and rendered at once."
+        },
+        {
+          "name": "RetryText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Label for retrying a failed lazy load."
+        },
+        {
+          "name": "RowClass",
+          "kind": "parameter",
+          "type": "Func<TItem, string>",
+          "required": false,
+          "summary": "Optional row CSS class selector."
+        },
+        {
+          "name": "RowSelected",
+          "kind": "event",
+          "type": "EventCallback<TItem>",
+          "required": false,
+          "summary": "Raised after a row is selected."
+        },
+        {
+          "name": "SelectedItem",
+          "kind": "parameter",
+          "type": "TItem",
+          "required": false,
+          "summary": "Currently selected row item for two-way binding."
+        },
+        {
+          "name": "SelectedItemChanged",
+          "kind": "event",
+          "type": "EventCallback<TItem>",
+          "required": false,
+          "summary": "Raised when SelectedItem changes."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniTreeGridColumn",
+      "category": "Data",
+      "baseType": "OmniComponent",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Declarative column definition registered with a parent OmniTreeGrid.",
+      "source": "src/Omni.Blazor/Components/Data/OmniTreeGridColumn.razor",
+      "parameters": [
+        {
+          "name": "Align",
+          "kind": "parameter",
+          "type": "TreeGridColumnAlign",
+          "enumValues": [
+            {
+              "name": "Start",
+              "summary": "Aligns content to the inline start."
+            },
+            {
+              "name": "Center",
+              "summary": "Centers content."
+            },
+            {
+              "name": "End",
+              "summary": "Aligns content to the inline end."
+            }
+          ],
+          "required": false,
+          "summary": "Horizontal cell alignment."
+        },
+        {
+          "name": "IsHierarchyAnchor",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Marks this column as the hierarchy indentation/expansion anchor."
+        },
+        {
+          "name": "Property",
+          "kind": "parameter",
+          "type": "Func<TItem, object>",
+          "required": false,
+          "summary": "Raw value selector used by the default cell renderer."
+        },
+        {
+          "name": "Template",
+          "kind": "slot",
+          "type": "RenderFragment<TItem>",
+          "contextType": "TItem",
+          "required": false,
+          "summary": "Custom cell template receiving the row item."
+        },
+        {
+          "name": "TextSelector",
+          "kind": "parameter",
+          "type": "Func<TItem, string>",
+          "required": false,
+          "summary": "Text selector overriding Property formatting."
+        },
+        {
+          "name": "Title",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Column header text."
+        },
+        {
+          "name": "Width",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "CSS width such as 240px or 30%."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniTreeItem",
+      "category": "Data",
+      "baseType": "OmniComponent",
+      "isInput": false,
+      "hasChildContent": true,
       "summary": "A single node of an OmniTree.",
       "source": "src/Omni.Blazor/Components/Data/Tree/OmniTreeItem.razor",
       "parameters": [
@@ -5636,6 +6715,95 @@
           "required": false,
           "summary": "Inline style appended to the component root.",
           "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniTreeLevel",
+      "category": "Data",
+      "baseType": "ComponentBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Declarative binding for one depth of a data-bound OmniTree.",
+      "source": "src/Omni.Blazor/Components/Data/Tree/OmniTreeLevel.razor",
+      "parameters": [
+        {
+          "name": "Checkable",
+          "kind": "parameter",
+          "type": "Func<object, bool>",
+          "required": false,
+          "summary": "Whether a node's checkbox is enabled. Default: all checkable."
+        },
+        {
+          "name": "Children",
+          "kind": "parameter",
+          "type": "Func<object, IEnumerable>",
+          "required": false,
+          "summary": "Explicit children selector (wins over ChildrenProperty)."
+        },
+        {
+          "name": "ChildrenProperty",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Property name whose value (an IEnumerable) holds the children."
+        },
+        {
+          "name": "Expanded",
+          "kind": "parameter",
+          "type": "Func<object, bool>",
+          "required": false,
+          "summary": "Whether a node starts expanded."
+        },
+        {
+          "name": "HasChildren",
+          "kind": "parameter",
+          "type": "Func<object, bool>",
+          "required": false,
+          "summary": "Whether a node has children (controls the chevron). Defaults to \"children non-empty\"."
+        },
+        {
+          "name": "Icon",
+          "kind": "parameter",
+          "type": "Func<object, string>",
+          "required": false,
+          "summary": "Explicit icon selector (wins over IconProperty)."
+        },
+        {
+          "name": "IconProperty",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Property name read for each node's leading icon."
+        },
+        {
+          "name": "Selected",
+          "kind": "parameter",
+          "type": "Func<object, bool>",
+          "required": false,
+          "summary": "Whether a node starts selected."
+        },
+        {
+          "name": "Template",
+          "kind": "slot",
+          "type": "RenderFragment<OmniTreeItem>",
+          "contextType": "OmniTreeItem",
+          "required": false,
+          "summary": "Per-node template (receives the OmniTreeItem; use context.Value/context.Text)."
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "Func<object, string>",
+          "required": false,
+          "summary": "Explicit text selector (wins over TextProperty)."
+        },
+        {
+          "name": "TextProperty",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Property name read for each node's text."
         }
       ]
     },
@@ -7590,7 +8758,7 @@
       "category": "Display",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "OmniCarouselItem — a single slide inside an <OmniCarousel>.",
       "source": "src/Omni.Blazor/Components/Display/OmniCarouselItem.razor",
       "parameters": [
@@ -8540,7 +9708,7 @@
       "category": "Display",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "OmniMarkdown — renders CommonMark-ish Markdown as HTML (RadzenMarkdown port).",
       "source": "src/Omni.Blazor/Components/Display/OmniMarkdown.razor",
       "parameters": [
@@ -9784,7 +10952,7 @@
       "category": "Display",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "Pílula compacta de status — primitivo do design system para indicar estado operacional (caixa aberto, API online, sincronizando, fila vazia, etc.).",
       "source": "src/Omni.Blazor/Components/Display/OmniStatusBadge.razor",
       "parameters": [
@@ -9979,7 +11147,7 @@
       "category": "Display",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "A single event on an <OmniTimeline>.",
       "source": "src/Omni.Blazor/Components/Display/OmniTimelineItem.razor",
       "parameters": [
@@ -10127,6 +11295,882 @@
       ]
     },
     {
+      "name": "OmniCompareValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Compara o valor de um campo com outro campo (lookup por nome) OU com um valor literal. Caso clássico: \"confirmar senha\". Cuidado especial: revalida automaticamente quando o campo de referência muda (não só quando o próprio campo muda). <OmniTextBox Name=\"password\" @bind-Value=\"model.Password\" /> <OmniTextBox Name=\"confirm\" @bind-Value=\"model.Confirm\" /> <OmniCompareValidator Component=\"confirm\" Value=\"@model.Password\" Text=\"Senhas não conferem.\" />",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniCompareValidator.cs",
+      "parameters": [
+        {
+          "name": "Operator",
+          "kind": "parameter",
+          "type": "CompareOperator",
+          "enumValues": [
+            {
+              "name": "Equal",
+              "summary": "Igual ao valor de referência."
+            },
+            {
+              "name": "NotEqual",
+              "summary": "Diferente do valor de referência."
+            },
+            {
+              "name": "LessThan",
+              "summary": "Menor que o valor de referência."
+            },
+            {
+              "name": "LessThanEqual",
+              "summary": "Menor ou igual ao valor de referência."
+            },
+            {
+              "name": "GreaterThan",
+              "summary": "Maior que o valor de referência."
+            },
+            {
+              "name": "GreaterThanEqual",
+              "summary": "Maior ou igual ao valor de referência."
+            }
+          ],
+          "default": "Equal",
+          "required": false,
+          "summary": "Operador. Default Equal."
+        },
+        {
+          "name": "OtherComponent",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Nome de OUTRO componente cujo valor será comparado."
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Valor literal a comparar. Use Value OU OtherComponent, não ambos."
+        },
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Valor inválido.",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniCustomValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Validator custom com delegate Func`2 tipado. Diferença pro RadzenCustomValidator: Radzen usa Func<bool> (sem o valor), forçando closure sobre o model. Aqui o delegate recebe o valor atual do campo já tipado, fica mais reutilizável e testável. <OmniCustomValidator TValue=\"string\" Component=\"username\" Validator=\"@IsAvailable\" Text=\"Usuário já existe.\" /> @code { bool IsAvailable(string? value) => !usedNames.Contains(value); } Pra lógica assíncrona (consulta server), prefira o Validation do FormComponent per-input que aceita Func<T, Task<string?>>.",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniCustomValidator.cs",
+      "parameters": [
+        {
+          "name": "Validator",
+          "kind": "parameter",
+          "type": "Func<TValue, bool>",
+          "required": true,
+          "summary": "Função de validação. Retorna true = OK, false = inválido."
+        },
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniDataAnnotationValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Valida um único campo do model contra TODOS os ValidationAttributes declarados na propriedade ([Required], [StringLength], [EmailAddress], etc.). Diferente do <DataAnnotationsValidator /> nativo do Blazor (que valida o model inteiro), este focaliza um único campo — útil quando você está montando regras campo a campo no markup, junto com outros validators irmãos.<OmniDataAnnotationValidator Component=\"email\" Property=\"@(() => model.Email)\" />O OmniForm já tem AddDataAnnotationsValidator=true por default — você raramente precisa deste validator individual. Use quando quiser desligar o DataAnnotationsValidator global e ter controle fino por campo.",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniDataAnnotationValidator.cs",
+      "parameters": [
+        {
+          "name": "MessageSeparator",
+          "kind": "parameter",
+          "type": "string",
+          "default": "; ",
+          "required": false,
+          "summary": "Separador quando múltiplos atributos falham. Default \"; \"."
+        },
+        {
+          "name": "Property",
+          "kind": "parameter",
+          "type": "Expression<Func<object>>",
+          "required": false,
+          "summary": "Caminho do model.Property — usado para descobrir os atributos declarados via reflection. Quando null, usa o FieldIdentifier do target."
+        },
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Valor inválido.",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniDataForm",
+      "category": "Forms",
+      "baseType": "OmniComponent",
+      "isInput": false,
+      "hasChildContent": true,
+      "summary": "Metadata-driven form that composes a reusable strongly typed field schema, generated Omni inputs, Blazor's EditContext and data annotation validators.",
+      "source": "src/Omni.Blazor/Components/Forms/OmniDataForm.razor",
+      "parameters": [
+        {
+          "name": "Actions",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Custom action area. When supplied, it replaces the built-in submit button."
+        },
+        {
+          "name": "AddDataAnnotationsValidator",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Auto-attaches a DataAnnotationsValidator. Default true."
+        },
+        {
+          "name": "ChildContent",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Additional content rendered inside the underlying form after generated fields."
+        },
+        {
+          "name": "Columns",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Optional root column override. When null, the schema responsive layout is used. Values are clamped from 1 to 12."
+        },
+        {
+          "name": "DiagnosticsChanged",
+          "kind": "event",
+          "type": "EventCallback<IReadOnlyList<DataFormDiagnostic>>",
+          "required": false,
+          "summary": "Invoked after schema diagnostics are rebuilt."
+        },
+        {
+          "name": "DiagnosticsTemplate",
+          "kind": "slot",
+          "type": "RenderFragment<IReadOnlyList<DataFormDiagnostic>>",
+          "contextType": "IReadOnlyList<DataFormDiagnostic>",
+          "required": false,
+          "summary": "Custom renderer for schema diagnostics."
+        },
+        {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Disables every generated editor and the default submit button."
+        },
+        {
+          "name": "EditContext",
+          "kind": "parameter",
+          "type": "EditContext",
+          "required": false,
+          "summary": "Existing Blazor edit context. Supply either EditContext or Model, never both. Its model must be a TModel instance."
+        },
+        {
+          "name": "FieldChanged",
+          "kind": "event",
+          "type": "EventCallback<DataFormFieldChangedEventArgs<TModel>>",
+          "required": false,
+          "summary": "Invoked after a generated editor writes a property value."
+        },
+        {
+          "name": "FieldStateChanged",
+          "kind": "event",
+          "type": "EventCallback<DataFormFieldStateChangedEventArgs<TModel>>",
+          "required": false,
+          "summary": "Invoked with an immutable snapshot when one generated field state changes."
+        },
+        {
+          "name": "FocusFirstInvalidOnSubmit",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Scrolls to and focuses the first invalid generated field after submit. Default true."
+        },
+        {
+          "name": "IsTouched",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Whether any generated field has changed since the last touched reset."
+        },
+        {
+          "name": "IsTouchedChanged",
+          "kind": "event",
+          "type": "EventCallback<bool>",
+          "required": false,
+          "summary": "Callback for two-way binding of IsTouched."
+        },
+        {
+          "name": "Model",
+          "kind": "parameter",
+          "type": "TModel",
+          "required": false,
+          "summary": "Model instance edited by the generated fields. Supply either Model or EditContext, never both."
+        },
+        {
+          "name": "OnInvalidSubmit",
+          "kind": "event",
+          "type": "EventCallback<EditContext>",
+          "required": false,
+          "summary": "Invoked when the underlying OmniForm submission is invalid."
+        },
+        {
+          "name": "OnValidSubmit",
+          "kind": "event",
+          "type": "EventCallback<EditContext>",
+          "required": false,
+          "summary": "Invoked when the underlying OmniForm submission is valid."
+        },
+        {
+          "name": "ReadOnly",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Makes every generated editor read-only."
+        },
+        {
+          "name": "RenderFormElement",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Renders the semantic HTML form element. Disable for an embedded collection item subform to avoid nested forms. Default true."
+        },
+        {
+          "name": "Schema",
+          "kind": "parameter",
+          "type": "DataFormSchema<TModel>",
+          "required": false,
+          "summary": "Immutable, reusable field schema. When omitted, every supported model property is inferred from its type and data annotations."
+        },
+        {
+          "name": "ShowDiagnostics",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Shows schema diagnostics in the rendered form. Intended for development. Default false."
+        },
+        {
+          "name": "ShowSubmitButton",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Shows the built-in submit button when Actions is null. Default true."
+        },
+        {
+          "name": "ShowValidationSummary",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Shows OmniValidationSummary above the fields. Default true."
+        },
+        {
+          "name": "SubmitText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text displayed by the built-in submit button. Null uses the localized OmniTexts value."
+        },
+        {
+          "name": "Submitting",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Displays the loading state on the built-in submit button."
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "Action<EditContext, ValidationMessageStore>",
+          "required": false,
+          "summary": "Synchronous cross-field validation delegated to the underlying OmniForm."
+        },
+        {
+          "name": "ValidationAsync",
+          "kind": "parameter",
+          "type": "Func<EditContext, ValidationMessageStore, Task>",
+          "required": false,
+          "summary": "Asynchronous validation delegated to the underlying OmniForm."
+        },
+        {
+          "name": "ValidationAsyncWithCancellation",
+          "kind": "parameter",
+          "type": "Func<EditContext, ValidationMessageStore, CancellationToken, Task>",
+          "required": false,
+          "summary": "Preferred cancellable asynchronous validation callback."
+        },
+        {
+          "name": "ValidationDelay",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Debounce in milliseconds for validation caused by field changes."
+        },
+        {
+          "name": "ValidationStateChanged",
+          "kind": "event",
+          "type": "EventCallback<DataFormValidationStateChangedEventArgs<TModel>>",
+          "required": false,
+          "summary": "Invoked with the aggregate validation state after any field or message change."
+        },
+        {
+          "name": "ValidationSummaryTitle",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Heading used by the generated validation summary. Null uses the localized OmniTexts value."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniEmailValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Valida e-mail usando o mesmo motor do EmailAddressAttribute (suficientemente permissivo, RFC 5322 simplificado — o que [EmailAddress] usa). Vazio passa. <OmniEmailValidator Component=\"email\" Text=\"E-mail inválido.\" />",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniEmailValidator.cs",
+      "parameters": [
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Valor inválido.",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniForm",
+      "category": "Forms",
+      "baseType": "ComponentBase",
+      "isInput": false,
+      "hasChildContent": true,
+      "summary": "Async validation and submission orchestration for OmniForm`1. Kept out of the Razor file so cancellation, latest-wins and exception-safety invariants remain reviewable independently from the markup.",
+      "source": "src/Omni.Blazor/Components/Forms/OmniForm.razor",
+      "parameters": [
+        {
+          "name": "AddDataAnnotationsValidator",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Auto-attach a DataAnnotationsValidator inside the form. Default true."
+        },
+        {
+          "name": "ChildContent",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Form content — inputs, validators, and submit controls."
+        },
+        {
+          "name": "EditContext",
+          "kind": "parameter",
+          "type": "EditContext",
+          "required": false,
+          "summary": "Existing Blazor edit context. Supply either EditContext or Model, never both. Its model must be a TModel instance."
+        },
+        {
+          "name": "IsTouched",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Fired the first time a field changes; stays true until reset. Bound parameter — write a backing field with @bind-IsTouched."
+        },
+        {
+          "name": "IsTouchedChanged",
+          "kind": "event",
+          "type": "EventCallback<bool>",
+          "required": false,
+          "summary": "Callback for two-way binding of IsTouched."
+        },
+        {
+          "name": "Model",
+          "kind": "parameter",
+          "type": "TModel",
+          "required": false,
+          "summary": "Model instance edited by the form. Supply either Model or EditContext, never both."
+        },
+        {
+          "name": "OnInvalidSubmit",
+          "kind": "event",
+          "type": "EventCallback<EditContext>",
+          "required": false,
+          "summary": "Invoked when the form is submitted but validation fails."
+        },
+        {
+          "name": "OnValidSubmit",
+          "kind": "event",
+          "type": "EventCallback<EditContext>",
+          "required": false,
+          "summary": "Invoked when the form is submitted and passes validation."
+        },
+        {
+          "name": "RenderFormElement",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Renders the semantic HTML form element. Disable only when composing an embedded subform inside another form. Default true."
+        },
+        {
+          "name": "SnapshotOptions",
+          "kind": "parameter",
+          "type": "JsonSerializerOptions",
+          "required": false,
+          "summary": "Opções JSON usadas pelo Snapshot/Restore. Default cobre POCOs comuns. Override quando o model precisar de converters custom (ex: DateOnly em .NET 6)."
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "Action<EditContext, ValidationMessageStore>",
+          "required": false,
+          "summary": "Synchronous custom validation. Invoked on submit and on every field change (subject to ValidationDelay). Add messages to ValidationMessageStore directly, keyed by FieldIdentifier."
+        },
+        {
+          "name": "ValidationAsync",
+          "kind": "parameter",
+          "type": "Func<EditContext, ValidationMessageStore, Task>",
+          "required": false,
+          "summary": "Async custom validation — typically a server round-trip. Runs in the same lifecycle as Validation but awaited. On submit it is awaited fully before deciding valid/invalid; during field-change debounce, it runs on the trailing edge."
+        },
+        {
+          "name": "ValidationAsyncWithCancellation",
+          "kind": "parameter",
+          "type": "Func<EditContext, ValidationMessageStore, CancellationToken, Task>",
+          "required": false,
+          "summary": "Preferred cancellable async validation callback. It receives a token that is cancelled when a newer validation supersedes the current pass or when the form is disposed."
+        },
+        {
+          "name": "ValidationDelay",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Debounce (ms) applied to custom-validation firings caused by OnFieldChanged. Default 0 = no debounce (current behavior). Submits and explicit ValidateAsync calls bypass the delay."
+        }
+      ]
+    },
+    {
+      "name": "OmniLengthValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Valida comprimento de string (ou tamanho de coleção ICollection). Vazio passa — componha com OmniRequiredValidator quando ambos forem necessários. <OmniLengthValidator Component=\"cnpj\" Min=\"14\" Max=\"14\" Text=\"CNPJ deve ter 14 dígitos.\" />",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniLengthValidator.cs",
+      "parameters": [
+        {
+          "name": "Max",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Comprimento máximo (inclusive). Null = sem limite superior."
+        },
+        {
+          "name": "Min",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Comprimento mínimo (inclusive). Null = sem limite inferior."
+        },
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Valor inválido.",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniRangeValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Valida faixa numérica (int / double / decimal / DateTime). Aceita qualquer tipo que implemente IComparable. Vazio passa — componha com Required quando precisar. <OmniRangeValidator Component=\"idade\" Min=\"18\" Max=\"120\" Text=\"Idade entre 18 e 120.\" />",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniRangeValidator.cs",
+      "parameters": [
+        {
+          "name": "Max",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Valor máximo (inclusive)."
+        },
+        {
+          "name": "Min",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Valor mínimo (inclusive)."
+        },
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Valor inválido.",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniRegexValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Valida string contra um padrão regex. Vazio passa. <OmniRegexValidator Component=\"cep\" Pattern=\"^\\\\d{5}-\\\\d{3}$\" Text=\"CEP deve ser 00000-000.\" />",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniRegexValidator.cs",
+      "parameters": [
+        {
+          "name": "Options",
+          "kind": "parameter",
+          "type": "RegexOptions",
+          "enumValues": [
+            {
+              "name": "None"
+            },
+            {
+              "name": "IgnoreCase"
+            },
+            {
+              "name": "Multiline"
+            },
+            {
+              "name": "ExplicitCapture"
+            },
+            {
+              "name": "Compiled"
+            },
+            {
+              "name": "Singleline"
+            },
+            {
+              "name": "IgnorePatternWhitespace"
+            },
+            {
+              "name": "RightToLeft"
+            },
+            {
+              "name": "ECMAScript"
+            },
+            {
+              "name": "CultureInvariant"
+            },
+            {
+              "name": "NonBacktracking"
+            }
+          ],
+          "default": "None",
+          "required": false,
+          "summary": "Opções do regex. Default None."
+        },
+        {
+          "name": "Pattern",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Pattern regex. .NET regex syntax (não JS)."
+        },
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Valor inválido.",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
+      "name": "OmniRequiredValidator",
+      "category": "Forms",
+      "baseType": "OmniValidatorBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Falha quando o campo está vazio. Verifica via HasValue — que cobre null, string vazia, e default(T) pra structs. <OmniRequiredValidator Component=\"email\" Text=\"Informe o e-mail.\" />",
+      "source": "src/Omni.Blazor/Components/Forms/Validators/OmniRequiredValidator.cs",
+      "parameters": [
+        {
+          "name": "DefaultValue",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Valor \"default\" customizado. Útil quando você quer que 0 seja válido pra um campo numérico (default), mas -1 não."
+        },
+        {
+          "name": "Component",
+          "kind": "parameter",
+          "type": "string",
+          "default": "",
+          "required": true,
+          "summary": "Nome do input alvo. Match com Name do OmniTextBox/etc.",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "ShowMessage",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Estilo inline opcional do span de mensagem (quando ShowMessage=true).",
+          "inheritedFrom": "OmniValidatorBase"
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Valor inválido.",
+          "required": false,
+          "summary": "Mensagem exibida quando a validação falha.",
+          "inheritedFrom": "OmniValidatorBase"
+        }
+      ]
+    },
+    {
       "name": "OmniValidationMessage",
       "category": "Forms",
       "baseType": "OmniComponent",
@@ -10224,6 +12268,7 @@
       "baseType": "FormComponent<T>",
       "isInput": true,
       "hasChildContent": false,
+      "summary": "Search-as-you-type selection with bounded local or cancellable server-side data.",
       "source": "src/Omni.Blazor/Components/Inputs/OmniAutoComplete.razor",
       "parameters": [
         {
@@ -10231,21 +12276,21 @@
           "kind": "parameter",
           "type": "bool",
           "required": false,
-          "summary": "Show a clear (×) button when a value is selected. Default true."
+          "summary": "Whether to show a clear button when a value is selected."
         },
         {
           "name": "DebounceMs",
           "kind": "parameter",
           "type": "int",
           "required": false,
-          "summary": "Debounce window for async LoadData calls. Default 220ms."
+          "summary": "Debounce window applied to asynchronous searches."
         },
         {
           "name": "EmptyText",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Text shown in the dropdown when no results match. Default \"Nenhum resultado.\"."
+          "summary": "Text shown when no option matches."
         },
         {
           "name": "ItemTemplate",
@@ -10253,35 +12298,84 @@
           "type": "RenderFragment<TItem>",
           "contextType": "TItem",
           "required": false,
-          "summary": "Optional template rendered for each option in the dropdown."
+          "summary": "Optional option template."
         },
         {
           "name": "Items",
           "kind": "parameter",
           "type": "IEnumerable<TItem>",
           "required": false,
-          "summary": "Synchronous item source. Use this OR LoadData, not both."
+          "summary": "Synchronous option source. Mutually exclusive with ItemsProvider."
         },
         {
-          "name": "LoadData",
+          "name": "ItemsProvider",
           "kind": "parameter",
-          "type": "Func<string, Task<IEnumerable<TItem>>>",
+          "type": "OmniItemsProvider<TItem>",
           "required": false,
-          "summary": "Async item source — called whenever the search text changes (debounced)."
+          "summary": "Asynchronous, cancellable and paged option source."
+        },
+        {
+          "name": "ItemsProviderFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when an uncancelled provider request fails."
+        },
+        {
+          "name": "LoadErrorText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text shown when the asynchronous provider fails."
+        },
+        {
+          "name": "LoadMoreText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text of the action that requests the next provider page."
+        },
+        {
+          "name": "LoadingText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text shown while an asynchronous page is loading."
+        },
+        {
+          "name": "MaxProviderItems",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Hard limit for options retained from one provider search."
         },
         {
           "name": "MinSearchLength",
           "kind": "parameter",
           "type": "int",
           "required": false,
-          "summary": "Minimum characters before searching. Default 0 (show all on focus)."
+          "summary": "Minimum characters required before searching."
         },
         {
           "name": "Placeholder",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Placeholder text shown in the search input. Default \"Buscar...\"."
+          "summary": "Placeholder text shown in the search input."
+        },
+        {
+          "name": "ProviderPageSize",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum number of options requested per provider page."
+        },
+        {
+          "name": "RetryText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text of the provider retry action."
         },
         {
           "name": "Size",
@@ -10306,14 +12400,14 @@
             }
           ],
           "required": false,
-          "summary": "Visual size of the input. Default Md."
+          "summary": "Visual size of the input."
         },
         {
           "name": "TextSelector",
           "kind": "parameter",
           "type": "Func<TItem, string>",
           "required": true,
-          "summary": "Required: how to extract the display text from an item."
+          "summary": "Required mapping from an option to its display text."
         },
         {
           "name": "Attributes",
@@ -10336,6 +12430,14 @@
           "kind": "parameter",
           "type": "bool",
           "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -10390,7 +12492,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -10640,7 +12742,7 @@
       "category": "Inputs",
       "baseType": "FormComponent<T>",
       "isInput": true,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "source": "src/Omni.Blazor/Components/Inputs/OmniCheckBox.razor",
       "parameters": [
         {
@@ -10679,6 +12781,14 @@
           "type": "bool",
           "default": "false",
           "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -10737,7 +12847,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -10770,7 +12880,7 @@
       "category": "Inputs",
       "baseType": "FormComponent<T>",
       "isInput": true,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "source": "src/Omni.Blazor/Components/Inputs/OmniCheckBoxList.razor",
       "parameters": [
         {
@@ -10863,6 +12973,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -10914,7 +13032,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -11039,6 +13157,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -11094,7 +13220,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -11341,6 +13467,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -11392,7 +13526,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -11422,8 +13556,8 @@
     {
       "name": "OmniDateRangePicker",
       "category": "Inputs",
-      "baseType": "OmniComponent",
-      "isInput": false,
+      "baseType": "FormComponent<T>",
+      "isInput": true,
       "hasChildContent": false,
       "summary": "Date range picker with a single combined input.",
       "source": "src/Omni.Blazor/Components/Inputs/OmniDateRangePicker.razor",
@@ -11641,8 +13775,8 @@
     {
       "name": "OmniFileUpload",
       "category": "Inputs",
-      "baseType": "OmniComponent",
-      "isInput": false,
+      "baseType": "FormComponent<T>",
+      "isInput": true,
       "hasChildContent": false,
       "summary": "Drag-and-drop file uploader.",
       "source": "src/Omni.Blazor/Components/Inputs/OmniFileUpload.razor",
@@ -11955,6 +14089,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -12006,7 +14148,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -12122,6 +14264,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -12177,7 +14327,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -12207,130 +14357,193 @@
     {
       "name": "OmniMultiSelect",
       "category": "Inputs",
-      "baseType": "OmniComponent",
-      "isInput": false,
+      "baseType": "FormComponent<T>",
+      "isInput": true,
       "hasChildContent": false,
-      "summary": "Select múltiplo no estilo de chips dentro de um campo + popup com a lista de opções.",
+      "summary": "Multiple selection with chips and bounded local or cancellable server-side options.",
       "source": "src/Omni.Blazor/Components/Inputs/OmniMultiSelect.razor",
       "parameters": [
+        {
+          "name": "DebounceMs",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Debounce applied to provider-backed searches."
+        },
         {
           "name": "DescriptionSelector",
           "kind": "parameter",
           "type": "Func<TValue, string>",
           "required": false,
-          "summary": "Texto auxiliar opcional de cada item na lista."
+          "summary": "Maps an option to secondary text."
         },
         {
           "name": "Disabled",
           "kind": "parameter",
           "type": "bool",
           "required": false,
-          "summary": "Desabilita o campo (sem abrir popover nem remover chips). Default false."
+          "summary": "Whether the component is disabled."
         },
         {
           "name": "DisabledSelector",
           "kind": "parameter",
           "type": "Func<TValue, bool>",
           "required": false,
-          "summary": "Item-by-item: retorne true para desabilitar este item específico."
+          "summary": "Determines whether an option is disabled."
         },
         {
           "name": "IconSelector",
           "kind": "parameter",
           "type": "Func<TValue, string>",
           "required": false,
-          "summary": "Nome do ícone exibido à esquerda de cada item na lista."
+          "summary": "Maps an option to an icon name."
         },
         {
           "name": "Items",
           "kind": "parameter",
           "type": "IEnumerable<TValue>",
           "required": false,
-          "summary": "Itens disponíveis para seleção."
+          "summary": "Synchronous options. Mutually exclusive with ItemsProvider."
+        },
+        {
+          "name": "ItemsProvider",
+          "kind": "parameter",
+          "type": "OmniItemsProvider<TValue>",
+          "required": false,
+          "summary": "Asynchronous, cancellable and paged option source."
+        },
+        {
+          "name": "ItemsProviderFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when an uncancelled provider request fails."
+        },
+        {
+          "name": "LoadErrorText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text shown when the provider fails."
+        },
+        {
+          "name": "LoadMoreText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Action text for requesting another provider page."
+        },
+        {
+          "name": "LoadingText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text shown while options are loading."
+        },
+        {
+          "name": "MaxProviderItems",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Hard limit for options retained from one provider search."
         },
         {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Nome lógico — registra com OmniForm para validators irmãos (<OmniRequiredValidator Component=\"...\" />)."
+          "summary": "Logical form-component name."
         },
         {
           "name": "Placeholder",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Texto exibido no campo quando nada está selecionado."
+          "summary": "Text displayed when nothing is selected."
         },
         {
           "name": "PopoverMaxHeight",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Altura máxima da lista dentro do popover."
+          "summary": "Maximum list height."
         },
         {
           "name": "PopoverWidth",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Largura do popover. Default vazio = mesma do trigger."
+          "summary": "Popover width."
+        },
+        {
+          "name": "ProviderPageSize",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum options requested per provider page."
+        },
+        {
+          "name": "RetryText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Provider retry action text."
         },
         {
           "name": "SearchPlaceholder",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Placeholder do campo de busca. Default \"Buscar...\"."
+          "summary": "Search input placeholder."
         },
         {
           "name": "Searchable",
           "kind": "parameter",
           "type": "bool",
           "required": false,
-          "summary": "Habilita campo de busca dentro do popover."
+          "summary": "Whether to display a search input."
         },
         {
           "name": "ShowClearAll",
           "kind": "parameter",
           "type": "bool",
           "required": false,
-          "summary": "Mostra botão \"Limpar seleção (N)\" no rodapé do popover."
+          "summary": "Whether to display the clear-all action."
         },
         {
           "name": "TextSelector",
           "kind": "parameter",
           "type": "Func<TValue, string>",
           "required": false,
-          "summary": "Texto principal de cada item. Default = item.ToString()."
+          "summary": "Maps an option to primary text."
         },
         {
           "name": "ValueSelector",
           "kind": "parameter",
           "type": "Func<TValue, TValue>",
           "required": false,
-          "summary": "Extrai o valor de bind de cada item. Default = o próprio item (identidade)."
+          "summary": "Extracts the bound value from an option."
         },
         {
           "name": "Values",
           "kind": "parameter",
           "type": "IEnumerable<TValue>",
           "required": false,
-          "summary": "Coleção selecionada (two-way via @bind-Values)."
+          "summary": "Selected values."
         },
         {
           "name": "ValuesChanged",
           "kind": "event",
           "type": "EventCallback<IEnumerable<TValue>>",
           "required": false,
-          "summary": "Disparado quando a seleção muda."
+          "summary": "Raised when Values changes."
         },
         {
           "name": "ValuesExpression",
           "kind": "parameter",
           "type": "Expression<Func<IEnumerable<TValue>>>",
           "required": false,
-          "summary": "Expression pra integração com EditContext (validators irmãos)."
+          "summary": "Expression used for EditContext integration."
         },
         {
           "name": "Attributes",
@@ -12485,6 +14698,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -12536,7 +14757,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -12652,6 +14873,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -12707,7 +14936,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -13175,6 +15404,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -13230,7 +15467,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -13326,7 +15563,7 @@
       "category": "Inputs",
       "baseType": "FormComponent<T>",
       "isInput": true,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "source": "src/Omni.Blazor/Components/Inputs/OmniRadioGroup.razor",
       "parameters": [
         {
@@ -13374,6 +15611,14 @@
           "kind": "parameter",
           "type": "bool",
           "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -13428,7 +15673,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -13583,6 +15828,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -13638,7 +15891,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -13745,6 +15998,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -13800,7 +16061,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -13833,42 +16094,121 @@
       "baseType": "FormComponent<T>",
       "isInput": true,
       "hasChildContent": false,
+      "summary": "Single-choice select with bounded local or cancellable server-side options.",
       "source": "src/Omni.Blazor/Components/Inputs/OmniSelect.razor",
       "parameters": [
-        {
-          "name": "ChildContent",
-          "kind": "slot",
-          "type": "RenderFragment",
-          "required": false,
-          "summary": "Kept for API compatibility. Prefer Items + selectors."
-        },
         {
           "name": "Clearable",
           "kind": "parameter",
           "type": "bool",
           "required": false,
-          "summary": "Show a clear (×) button when a value is selected. Default false."
+          "summary": "Whether a selected value can be cleared."
+        },
+        {
+          "name": "EmptyTemplate",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Custom content shown when the provider has no options."
         },
         {
           "name": "EmptyText",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Text shown when there are no items."
+          "summary": "Text shown when there are no options."
+        },
+        {
+          "name": "ErrorTemplate",
+          "kind": "slot",
+          "type": "RenderFragment<OmniItemsProviderErrorContext>",
+          "contextType": "OmniItemsProviderErrorContext",
+          "required": false,
+          "summary": "Custom retry-capable content shown after a provider failure."
         },
         {
           "name": "Items",
           "kind": "parameter",
           "type": "IEnumerable<TValue>",
           "required": false,
-          "summary": "Options to choose from."
+          "summary": "Synchronous options. Mutually exclusive with ItemsProvider."
+        },
+        {
+          "name": "ItemsProvider",
+          "kind": "parameter",
+          "type": "OmniItemsProvider<TValue>",
+          "required": false,
+          "summary": "Asynchronous, cancellable and paged option source."
+        },
+        {
+          "name": "ItemsProviderFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when an uncancelled provider request fails."
+        },
+        {
+          "name": "LoadErrorText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text shown when the provider fails."
+        },
+        {
+          "name": "LoadMoreText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Action text for requesting another provider page."
+        },
+        {
+          "name": "LoadingTemplate",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Custom content shown while the first provider page is loading."
+        },
+        {
+          "name": "LoadingText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Text shown while options are loading."
+        },
+        {
+          "name": "MaxProviderItems",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Hard limit for options retained from the provider."
         },
         {
           "name": "Placeholder",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Text shown in the trigger when nothing is selected."
+          "summary": "Text shown when no value is selected."
+        },
+        {
+          "name": "ProviderPageSize",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Maximum options requested per provider page."
+        },
+        {
+          "name": "ProviderVersion",
+          "kind": "parameter",
+          "type": "long",
+          "required": false,
+          "summary": "Explicit provider invalidation version. Changing it cancels the current request and clears retained provider items."
+        },
+        {
+          "name": "RetryText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Provider retry action text."
         },
         {
           "name": "Size",
@@ -13893,21 +16233,21 @@
             }
           ],
           "required": false,
-          "summary": "Control height/typography. Default Md (matches the other inputs)."
+          "summary": "Visual size of the input."
         },
         {
           "name": "TextSelector",
           "kind": "parameter",
           "type": "Func<TValue, string>",
           "required": false,
-          "summary": "Maps an item to its display text. Default = item.ToString()."
+          "summary": "Maps an option to display text."
         },
         {
           "name": "ValueSelector",
           "kind": "parameter",
           "type": "Func<TValue, TValue>",
           "required": false,
-          "summary": "Extracts the bound value from an item. Default = the item itself."
+          "summary": "Extracts the bound value from an option."
         },
         {
           "name": "Attributes",
@@ -13930,6 +16270,14 @@
           "kind": "parameter",
           "type": "bool",
           "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -13984,7 +16332,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -14006,6 +16354,247 @@
           "name": "ValueExpression",
           "kind": "parameter",
           "type": "Expression<Func<TValue>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniSignaturePad",
+      "category": "Inputs",
+      "baseType": "FormComponent<T>",
+      "isInput": true,
+      "hasChildContent": false,
+      "summary": "Canvas-based signature input with undo, clear and PNG/JPEG/SVG export.",
+      "source": "src/Omni.Blazor/Components/Inputs/OmniSignaturePad.razor",
+      "parameters": [
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Área para assinatura",
+          "required": false,
+          "summary": "Accessible label announced for the drawing canvas."
+        },
+        {
+          "name": "BackgroundColor",
+          "kind": "parameter",
+          "type": "string",
+          "default": "#ffffff",
+          "required": false,
+          "summary": "Canvas background color."
+        },
+        {
+          "name": "ClearText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Limpar",
+          "required": false,
+          "summary": "Label for the clear action."
+        },
+        {
+          "name": "EmptyText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Aguardando assinatura",
+          "required": false,
+          "summary": "Status text shown while no signature has been captured."
+        },
+        {
+          "name": "Format",
+          "kind": "parameter",
+          "type": "SignaturePadFormat",
+          "enumValues": [
+            {
+              "name": "Png",
+              "summary": "Portable Network Graphics with lossless compression."
+            },
+            {
+              "name": "Jpeg",
+              "summary": "JPEG raster image using the configured quality."
+            },
+            {
+              "name": "Svg",
+              "summary": "Scalable Vector Graphics generated from the captured strokes."
+            }
+          ],
+          "default": "Png",
+          "required": false,
+          "summary": "Format used by the bound Value and ExportAsync."
+        },
+        {
+          "name": "Height",
+          "kind": "parameter",
+          "type": "int",
+          "default": "220",
+          "required": false,
+          "summary": "Canvas height in CSS pixels."
+        },
+        {
+          "name": "Quality",
+          "kind": "parameter",
+          "type": "double",
+          "default": "0.92",
+          "required": false,
+          "summary": "JPEG quality between 0 and 1. Ignored by PNG and SVG."
+        },
+        {
+          "name": "ShowToolbar",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Shows the built-in undo, clear and status toolbar."
+        },
+        {
+          "name": "SignedText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Assinatura capturada",
+          "required": false,
+          "summary": "Status text shown after at least one stroke is captured."
+        },
+        {
+          "name": "StrokeColor",
+          "kind": "parameter",
+          "type": "string",
+          "default": "#111827",
+          "required": false,
+          "summary": "Stroke color accepted by the browser canvas API."
+        },
+        {
+          "name": "StrokeCompleted",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "summary": "Raised after the user completes, removes or clears a stroke."
+        },
+        {
+          "name": "StrokeWidth",
+          "kind": "parameter",
+          "type": "double",
+          "default": "2",
+          "required": false,
+          "summary": "Stroke width in CSS pixels."
+        },
+        {
+          "name": "UndoText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Desfazer",
+          "required": false,
+          "summary": "Label for the undo action."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Name",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Nome lógico do campo. Use com validators irmãos (<OmniRequiredValidator Component=\"email\" />). Default = nome da propriedade extraído do ValueExpression.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "OnlyValidateIfDirty",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Quando true, valida apenas após o user mexer no campo (touched). Evita erros vermelhos na primeira render do formulário. Default true.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ReadOnly",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Required",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Marca o campo como obrigatório — valor default/vazio dispara RequiredError.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "RequiredError",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Campo obrigatório.",
+          "required": false,
+          "summary": "Mensagem exibida quando Required = true e o valor é default/empty.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Valor atual.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueChanged",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueExpression",
+          "kind": "parameter",
+          "type": "Expression<Func<string>>",
           "required": false,
           "inheritedFrom": "FormComponent"
         }
@@ -14150,6 +16739,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -14205,7 +16802,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -14230,6 +16827,98 @@
           "type": "Expression<Func<double>>",
           "required": false,
           "inheritedFrom": "FormComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniSpeechToText",
+      "category": "Inputs",
+      "baseType": "ComponentBase",
+      "isInput": false,
+      "hasChildContent": true,
+      "summary": "Wrapper headless da Web Speech API (SpeechRecognition + webkit variant).",
+      "source": "src/Omni.Blazor/Components/Inputs/OmniSpeechToText.razor",
+      "parameters": [
+        {
+          "name": "ChildContent",
+          "kind": "slot",
+          "type": "RenderFragment<SpeechContext>",
+          "contextType": "SpeechContext",
+          "required": false,
+          "summary": "Render-prop que recebe um SpeechContext tipado para você desenhar o próprio botão/UI."
+        },
+        {
+          "name": "Continuous",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Quando true (default), continua reconhecendo até o user parar. false = para automaticamente após o primeiro silêncio longo."
+        },
+        {
+          "name": "InterimResults",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Quando true, dispara OnResult com resultados parciais (IsFinal=false) enquanto o user fala. Útil pra mostrar texto \"ao vivo\" enquanto fala. Default false — só resultados finais."
+        },
+        {
+          "name": "Language",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "BCP-47 language code: \"pt-BR\", \"en-US\", \"es-ES\", etc. Null = browser default."
+        },
+        {
+          "name": "MaxAlternatives",
+          "kind": "parameter",
+          "type": "int",
+          "default": "1",
+          "required": false,
+          "summary": "Quantas alternativas pedir do motor por trecho. Default 1."
+        },
+        {
+          "name": "OnEnd",
+          "kind": "event",
+          "type": "EventCallback",
+          "required": false,
+          "summary": "Disparado quando o reconhecimento termina (user parou, silêncio longo em modo non-continuous, ou erro). Use pra resetar UI."
+        },
+        {
+          "name": "OnError",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "summary": "Disparado em erro. Códigos comuns: \"not-allowed\" (permissão negada), \"no-speech\", \"audio-capture\", \"network\", \"aborted\", \"start-timeout\" (browser não respondeu), \"invalid-state\" (instância prévia travada). Use pra mostrar feedback ao user."
+        },
+        {
+          "name": "OnResult",
+          "kind": "event",
+          "type": "EventCallback<SpeechRecognitionResult>",
+          "required": false,
+          "summary": "Disparado a cada onresult do motor. Recebe transcript + IsFinal + confidence."
+        },
+        {
+          "name": "OnStart",
+          "kind": "event",
+          "type": "EventCallback",
+          "required": false,
+          "summary": "Disparado quando o reconhecimento começa (após permissão de mic)."
+        },
+        {
+          "name": "OnStateChange",
+          "kind": "event",
+          "type": "EventCallback<SpeechRecognitionState>",
+          "required": false,
+          "summary": "Disparado a cada transição de estado da state machine (Idle ↔ Connecting ↔ Recording ↔ Stopping ↔ Error). Use pra UI avançada (spinner em transição, badge de erro, etc)."
+        },
+        {
+          "name": "OnUnsupported",
+          "kind": "event",
+          "type": "EventCallback",
+          "required": false,
+          "summary": "Disparado quando o browser NÃO suporta Web Speech API (Firefox, alguns embedded webviews). Use pra esconder o botão de mic ou mostrar mensagem alternativa."
         }
       ]
     },
@@ -14512,7 +17201,7 @@
       "category": "Inputs",
       "baseType": "FormComponent<T>",
       "isInput": true,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "source": "src/Omni.Blazor/Components/Inputs/OmniSwitch.razor",
       "parameters": [
         {
@@ -14551,6 +17240,14 @@
           "type": "bool",
           "default": "false",
           "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -14609,7 +17306,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -14640,8 +17337,8 @@
     {
       "name": "OmniTagInput",
       "category": "Inputs",
-      "baseType": "OmniComponent",
-      "isInput": false,
+      "baseType": "FormComponent<T>",
+      "isInput": true,
       "hasChildContent": false,
       "summary": "OmniTagInput — entrada de múltiplos valores de texto livre (tags, e-mails, escopos, rótulos).",
       "source": "src/Omni.Blazor/Components/Inputs/OmniTagInput.razor",
@@ -14864,6 +17561,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -14919,7 +17624,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -15085,6 +17790,14 @@
           "inheritedFrom": "FormComponent"
         },
         {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Name",
           "kind": "parameter",
           "type": "string",
@@ -15140,7 +17853,7 @@
           "kind": "parameter",
           "type": "object",
           "required": false,
-          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
           "inheritedFrom": "FormComponent"
         },
         {
@@ -15170,8 +17883,8 @@
     {
       "name": "OmniTimePicker",
       "category": "Inputs",
-      "baseType": "OmniComponent",
-      "isInput": false,
+      "baseType": "FormComponent<T>",
+      "isInput": true,
       "hasChildContent": false,
       "summary": "Time picker.",
       "source": "src/Omni.Blazor/Components/Inputs/OmniTimePicker.razor",
@@ -17112,6 +19825,87 @@
       ]
     },
     {
+      "name": "OmniMediaQuery",
+      "category": "Layout",
+      "baseType": "ComponentBase",
+      "isInput": false,
+      "hasChildContent": true,
+      "summary": "Componente \"headless\" (sem render visual próprio) que escuta uma CSS media query e dispara um callback / two-way bind quando o estado muda. Equivalente ao RadzenMediaQuery, mas com APIs adicionais:Two-way @bind-Matches além do Change callback.Atalho Breakpoint que traduz para (min-width: …) usando os mesmos thresholds do OmniHidden/BreakpointService.ChildContent como render-prop opcional — recebe o bool atual pra você renderizar condicionalmente sem precisar de um campo no @code.Usage — callback: <OmniMediaQuery Query=\"(max-width: 768px)\" Change=\"OnMobileChange\" /> @code { void OnMobileChange(bool isMobile) { _isMobile = isMobile; } } Usage — two-way bind: <OmniMediaQuery Query=\"(prefers-color-scheme: dark)\" @bind-Matches=\"_isDark\" /> Usage — render-prop: <OmniMediaQuery Breakpoint=\"Breakpoint.Md\" Context=\"atMd\"> @if (atMd) { <DesktopNav /> } else { <MobileNav /> } </OmniMediaQuery>",
+      "source": "src/Omni.Blazor/Components/Layout/OmniMediaQuery.cs",
+      "parameters": [
+        {
+          "name": "Breakpoint",
+          "kind": "parameter",
+          "type": "Breakpoint",
+          "enumValues": [
+            {
+              "name": "Xs",
+              "summary": "Extra small — <576px."
+            },
+            {
+              "name": "Sm",
+              "summary": "Small — <768px."
+            },
+            {
+              "name": "Md",
+              "summary": "Medium — <992px."
+            },
+            {
+              "name": "Lg",
+              "summary": "Large — <1200px."
+            },
+            {
+              "name": "Xl",
+              "summary": "Extra large — <1400px."
+            },
+            {
+              "name": "Xxl",
+              "summary": "Extra extra large — ≥1400px."
+            }
+          ],
+          "required": false,
+          "summary": "Atalho conveniente: traduz para (min-width: Npx) usando os mesmos thresholds dos outros componentes (sm=576, md=768, lg=992, xl=1200, xxl=1400). Útil quando você quer \"viewport ≥ Md\". Ignorado quando Query está definido."
+        },
+        {
+          "name": "Change",
+          "kind": "event",
+          "type": "EventCallback<bool>",
+          "required": false,
+          "summary": "Callback opcional disparado quando o resultado da query muda. Recebe o novo valor (true = corresponde). Fora do bind: serve pra rodar side effects (logging, scroll lock, etc.) quando o estado muda."
+        },
+        {
+          "name": "ChildContent",
+          "kind": "slot",
+          "type": "RenderFragment<bool>",
+          "contextType": "bool",
+          "required": false,
+          "summary": "Render-prop opcional: quando definido, o conteúdo é renderizado recebendo o bool atual via Context. Sem ChildContent, o componente é totalmente headless (zero DOM)."
+        },
+        {
+          "name": "Matches",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Two-way bind do resultado: true quando a query corresponde, false caso contrário. Use junto com @bind-Matches em vez do callback Change quando você só precisa do valor declarativamente."
+        },
+        {
+          "name": "MatchesChanged",
+          "kind": "event",
+          "type": "EventCallback<bool>",
+          "required": false,
+          "summary": "Disparado quando o Matches muda (escrita do two-way bind)."
+        },
+        {
+          "name": "Query",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Media query CSS literal. Exemplo: \"(max-width: 768px)\", \"(prefers-color-scheme: dark)\", \"(orientation: portrait)\". Tem precedência sobre Breakpoint quando ambos estão definidos."
+        }
+      ]
+    },
+    {
       "name": "OmniPaneHeader",
       "category": "Layout",
       "baseType": "OmniComponentWithChildren",
@@ -17550,7 +20344,7 @@
       "category": "Layout",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "Generic master/detail layout primitive: an aside (sub-navigation) + main content column inside a positioned parent (usually a <OmniMain>).",
       "source": "src/Omni.Blazor/Components/Layout/OmniSplitView.razor",
       "parameters": [
@@ -18211,6 +21005,33 @@
       ]
     },
     {
+      "name": "OmniTheme",
+      "category": "Layout",
+      "baseType": "ComponentBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Theme bootstrap — drop into the <head> of your App.razor.",
+      "source": "src/Omni.Blazor/Components/Layout/OmniTheme.razor",
+      "parameters": [
+        {
+          "name": "Accent",
+          "kind": "parameter",
+          "type": "string",
+          "default": "amber",
+          "required": false,
+          "summary": "Initial accent. 12 cores suportadas: amber (default), emerald, blue, violet, crimson, rose, orange, teal, cyan, indigo, fuchsia, lime. Unknown values fall back to amber."
+        },
+        {
+          "name": "Dark",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Start in dark mode. Default false."
+        }
+      ]
+    },
+    {
       "name": "OmniThemePicker",
       "category": "Layout",
       "baseType": "OmniComponent",
@@ -18671,6 +21492,194 @@
           "type": "Func<bool>",
           "required": false,
           "summary": "Predicate that gates the prompt: navigation is intercepted only while it returns true. When null, the prompt is always active."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniGlobalSearch",
+      "category": "Navigation",
+      "baseType": "OmniComponent",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Embedded global search surface with local/remote providers and keyboard navigation.",
+      "source": "src/Omni.Blazor/Components/Navigation/OmniGlobalSearch.razor",
+      "parameters": [
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Busca global",
+          "required": false,
+          "summary": "Accessible label for the search landmark."
+        },
+        {
+          "name": "ClearText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Limpar busca",
+          "required": false,
+          "summary": "Accessible label for the clear-query action."
+        },
+        {
+          "name": "Debounce",
+          "kind": "parameter",
+          "type": "int",
+          "default": "250",
+          "required": false,
+          "summary": "Delay before invoking SearchProvider, in milliseconds."
+        },
+        {
+          "name": "EmptyText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Nenhum resultado encontrado.",
+          "required": false,
+          "summary": "Message shown when no result matches."
+        },
+        {
+          "name": "ErrorText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Não foi possível concluir a busca.",
+          "required": false,
+          "summary": "Message shown when the provider fails."
+        },
+        {
+          "name": "HintText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Digite para buscar",
+          "required": false,
+          "summary": "Hint shown before the minimum query length is reached."
+        },
+        {
+          "name": "InitialContent",
+          "kind": "slot",
+          "type": "RenderFragment",
+          "required": false,
+          "summary": "Optional content displayed before the minimum query length is reached."
+        },
+        {
+          "name": "Items",
+          "kind": "parameter",
+          "type": "IEnumerable<GlobalSearchResult>",
+          "required": false,
+          "summary": "Optional in-memory result source, combined with provider results."
+        },
+        {
+          "name": "LoadingText",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Buscando...",
+          "required": false,
+          "summary": "Message shown while the provider is running."
+        },
+        {
+          "name": "MaxResults",
+          "kind": "parameter",
+          "type": "int",
+          "default": "50",
+          "required": false,
+          "summary": "Maximum number of combined results retained and rendered."
+        },
+        {
+          "name": "MinQueryLength",
+          "kind": "parameter",
+          "type": "int",
+          "default": "2",
+          "required": false,
+          "summary": "Minimum trimmed query length required to search."
+        },
+        {
+          "name": "NavigateOnSelect",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Navigates to a selected result's URL after raising ResultSelected."
+        },
+        {
+          "name": "Placeholder",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Buscar em todo o sistema...",
+          "required": false,
+          "summary": "Search input placeholder."
+        },
+        {
+          "name": "Query",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Current query for two-way binding."
+        },
+        {
+          "name": "QueryChanged",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "summary": "Raised when Query changes."
+        },
+        {
+          "name": "ResultSelected",
+          "kind": "event",
+          "type": "EventCallback<GlobalSearchResult>",
+          "required": false,
+          "summary": "Raised when the user chooses a result."
+        },
+        {
+          "name": "ResultTemplate",
+          "kind": "slot",
+          "type": "RenderFragment<GlobalSearchResult>",
+          "contextType": "GlobalSearchResult",
+          "required": false,
+          "summary": "Optional custom result renderer."
+        },
+        {
+          "name": "SearchFailed",
+          "kind": "event",
+          "type": "EventCallback<Exception>",
+          "required": false,
+          "summary": "Raised when a provider throws an uncancelled exception."
+        },
+        {
+          "name": "SearchProvider",
+          "kind": "parameter",
+          "type": "GlobalSearchProvider",
+          "required": false,
+          "summary": "Optional asynchronous, cancellable server-side result source."
+        },
+        {
+          "name": "ShowAllWhenEmpty",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Shows all local items when the query is empty."
         },
         {
           "name": "Attributes",
@@ -19488,7 +22497,7 @@
       "category": "Navigation",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "A single step inside an OmniStepper; renders no markup itself and registers with the parent stepper, which draws its header and body.",
       "source": "src/Omni.Blazor/Components/Navigation/OmniStep.razor",
       "parameters": [
@@ -19661,7 +22670,7 @@
       "category": "Navigation",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "A single tab inside an OmniTabs; renders no markup itself and registers with the parent, which draws the tab button and shows its body when active.",
       "source": "src/Omni.Blazor/Components/Navigation/OmniTabItem.razor",
       "parameters": [
@@ -19860,7 +22869,7 @@
       "category": "Overlay",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "Material 3 Bottom Sheet — surface slides up from the bottom edge with optional drag handle + snap points.",
       "source": "src/Omni.Blazor/Components/Overlay/OmniBottomSheet.razor",
       "parameters": [
@@ -20569,7 +23578,7 @@
       "category": "Overlay",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "Componente standalone de overlay/backdrop reutilizável.",
       "source": "src/Omni.Blazor/Components/Overlay/OmniOverlay.razor",
       "parameters": [
@@ -20682,11 +23691,21 @@
       ]
     },
     {
+      "name": "OmniOverlayHosts",
+      "category": "Overlay",
+      "baseType": "ComponentBase",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "Conveniência: monta de uma vez os 4 hosts de overlay da lib (Dialog, Notification, Tooltip, ContextMenu).",
+      "source": "src/Omni.Blazor/Components/Overlay/OmniOverlayHosts.razor",
+      "parameters": []
+    },
+    {
       "name": "OmniPopover",
       "category": "Overlay",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "Interactive popover — like Tooltip but with arbitrary content (links, forms, menus).",
       "source": "src/Omni.Blazor/Components/Overlay/OmniPopover.razor",
       "parameters": [
@@ -20986,7 +24005,7 @@
       "category": "Overlay",
       "baseType": "OmniComponent",
       "isInput": false,
-      "hasChildContent": false,
+      "hasChildContent": true,
       "summary": "Passo declarativo de um <OmniTour>.",
       "source": "src/Omni.Blazor/Components/Overlay/OmniTourStep.razor",
       "parameters": [

@@ -1,0 +1,154 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem
+@inherits OmniComponent
+@implements IDisposable
+
+@* Accessible hierarchical data table with bounded lazy loading and selection. *@
+
+<CascadingValue Value="this" IsFixed="true">
+    <section @ref="Element"
+             class="@RootCss"
+             style="@Style"
+             aria-busy="@IsLoading"
+             @attributes="Attributes">
+        <div class="omni-tree-grid-column-registration" aria-hidden="true">@Columns</div>
+
+        <div class="omni-tree-grid-scroller">
+            <table class="omni-tree-grid-table"
+                   role="treegrid"
+                   aria-label="@AriaLabel"
+                   aria-rowcount="@Rows.Count">
+                <colgroup>
+                    @foreach (var column in _columns)
+                    {
+                        <col @key="column" style="@ColumnWidth(column)" />
+                    }
+                </colgroup>
+                <thead>
+                    <tr>
+                        @foreach (var column in _columns)
+                        {
+                            <th @key="column"
+                                scope="col"
+                                class="@column.AlignmentClass">
+                                @column.Title
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Rows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="@ColumnSpan" class="omni-tree-grid-state">
+                                @if (EmptyTemplate is not null)
+                                {
+                                    @EmptyTemplate
+                                }
+                                else
+                                {
+                                    @EmptyText
+                                }
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in Rows)
+                        {
+                            <tr @key="row.Key"
+                                class="@RowCss(row)"
+                                role="row"
+                                aria-level="@(row.Level + 1)"
+                                aria-expanded="@ExpandedAria(row)"
+                                aria-selected="@IsSelected(row.Item)"
+                                tabindex="@RowTabIndex(row)"
+                                @onclick="@(() => SelectAsync(row.Item))"
+                                @ondblclick="@(() => RowDoubleClickAsync(row))"
+                                @onkeydown="@(args => RowKeyDownAsync(row, args))">
+                                @foreach (var column in _columns)
+                                {
+                                    var isAnchor = ReferenceEquals(column, HierarchyColumn);
+                                    <td @key="column"
+                                        role="gridcell"
+                                        class="@column.AlignmentClass">
+                                        @if (isAnchor)
+                                        {
+                                            <div class="omni-tree-grid-anchor">
+                                                <span class="omni-tree-grid-indent"
+                                                      style="@($"width:{row.Level * Math.Max(8, IndentSize)}px")"></span>
+                                                @if (row.HasChildren)
+                                                {
+                                                    <button type="button"
+                                                            class="omni-tree-grid-toggle"
+                                                            aria-label="@(IsExpanded(row.Key) ? CollapseText : ExpandText)"
+                                                            aria-expanded="@IsExpanded(row.Key)"
+                                                            disabled="@IsNodeLoading(row.Key)"
+                                                            @onclick:stopPropagation
+                                                            @onclick="@(() => ToggleAsync(row.Item))">
+                                                        @if (IsNodeLoading(row.Key))
+                                                        {
+                                                            <OmniSpinner Size="ComponentSize.Sm" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <OmniIcon Name="@(IsExpanded(row.Key) ? "chevron-down" : "chevron-right")"
+                                                                      Size="ComponentSize.Sm" />
+                                                        }
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="omni-tree-grid-toggle-spacer"></span>
+                                                }
+                                                <span class="omni-tree-grid-cell-content">
+                                                    @if (column.Template is not null)
+                                                    {
+                                                        @column.Template(row.Item)
+                                                    }
+                                                    else
+                                                    {
+                                                        @column.GetText(row.Item)
+                                                    }
+                                                </span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @if (column.Template is not null)
+                                            {
+                                                @column.Template(row.Item)
+                                            }
+                                            else
+                                            {
+                                                @column.GetText(row.Item)
+                                            }
+                                        }
+                                    </td>
+                                }
+                            </tr>
+
+                            @if (TryGetError(row.Key, out var error))
+                            {
+                                <tr @key="ErrorRowKey(row.Key)" class="omni-tree-grid-error-row">
+                                    <td colspan="@ColumnSpan">
+                                        <span>@LoadErrorText</span>
+                                        <button type="button" @onclick="@(() => RetryAsync(row.Item))">@RetryText</button>
+                                        <span class="omni-visually-hidden">@error</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (LimitReached)
+        {
+            <footer class="omni-tree-grid-limit" role="status">
+                @string.Format(LimitReachedText, MaxVisibleRows)
+            </footer>
+        }
+    </section>
+</CascadingValue>

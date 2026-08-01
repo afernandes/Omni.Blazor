@@ -70,10 +70,12 @@ public sealed class FakeOrderService
             .ToList();
     }
 
-    public async Task<GridLoadResult<Order>> SearchAsync(GridState<Order> state, CancellationToken ct = default)
+    public async ValueTask<GridLoadResult<Order>> SearchAsync(
+        GridState<Order> state,
+        CancellationToken cancellationToken)
     {
         // Latência simulada — deixa o loading state visível
-        await Task.Delay(220, ct);
+        await Task.Delay(220, cancellationToken);
 
         IEnumerable<Order> src = _data;
 
@@ -116,8 +118,8 @@ public sealed class FakeOrderService
         // Agregações (sobre o conjunto pós-filtro, antes do paging)
         var aggregates = new Dictionary<string, object?>
         {
-            ["Total"]  = materialized.Sum(o => o.Total),
-            ["Itens"]  = materialized.Sum(o => o.Itens),
+            ["Total"] = materialized.Sum(o => o.Total),
+            ["Itens"] = materialized.Sum(o => o.Itens),
             ["Numero"] = (object)materialized.Count
         };
 
@@ -128,12 +130,12 @@ public sealed class FakeOrderService
 
     private static Func<Order, object?> MakeKeySelector(string property) => property switch
     {
-        "Numero"    => o => o.Numero,
-        "Cliente"   => o => o.Cliente,
-        "Canal"     => o => o.Canal,
-        "Status"    => o => o.Status,
-        "Total"     => o => o.Total,
-        "Itens"     => o => o.Itens,
+        "Numero" => o => o.Numero,
+        "Cliente" => o => o.Cliente,
+        "Canal" => o => o.Canal,
+        "Status" => o => o.Status,
+        "Total" => o => o.Total,
+        "Itens" => o => o.Itens,
         "QuandoUtc" => o => o.QuandoUtc,
         _ => o => o.Numero
     };
@@ -144,9 +146,9 @@ public sealed class FakeOrderService
         return f.Property switch
         {
             "Cliente" => src.Where(o => o.Cliente.Contains(txt, StringComparison.OrdinalIgnoreCase)),
-            "Canal"   => src.Where(o => o.Canal.Contains(txt, StringComparison.OrdinalIgnoreCase)),
-            "Status"  => src.Where(o => o.Status.Contains(txt, StringComparison.OrdinalIgnoreCase)),
-            "Numero"  => src.Where(o => o.Numero.ToString().Contains(txt)),
+            "Canal" => src.Where(o => o.Canal.Contains(txt, StringComparison.OrdinalIgnoreCase)),
+            "Status" => src.Where(o => o.Status.Contains(txt, StringComparison.OrdinalIgnoreCase)),
+            "Numero" => src.Where(o => o.Numero.ToString().Contains(txt)),
             _ => src
         };
     }

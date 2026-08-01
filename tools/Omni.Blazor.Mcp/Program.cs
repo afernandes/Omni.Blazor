@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,17 @@ using Omni.Blazor.Mcp;
 // ComponentCatalog they depend on is resolved from DI. The manifest is the one
 // embedded at build time unless --manifest <path> / OMNI_COMPONENTS_JSON points
 // at a freshly generated docs/components.json (handy in this repo during dev).
+
+if (args is ["--version"] or ["-v"])
+{
+    var informationalVersion = typeof(ComponentCatalog).Assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion;
+    Console.WriteLine(informationalVersion?.Split('+', 2)[0]
+        ?? typeof(ComponentCatalog).Assembly.GetName().Version?.ToString()
+        ?? "unknown");
+    return;
+}
 
 var builder = Host.CreateApplicationBuilder(args);
 

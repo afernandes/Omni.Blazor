@@ -1,0 +1,60 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel where TModel : class
+@inherits OmniComponent
+@attribute [OmniCatalogIgnore]
+@using Omni.Blazor.Models
+
+@* Recursively renders an accessible DataForm fieldset and its responsive child grid. *@
+
+@if (Group.IsVisible(Model))
+{
+    <fieldset @key="Group.Metadata.Id"
+              id="@($"{FormId}-{Group.Metadata.Id}")"
+              class="omni-data-form-group">
+        <legend class="omni-data-form-group-title">@Group.Metadata.Title</legend>
+        @if (!string.IsNullOrWhiteSpace(Group.Metadata.Description))
+        {
+            <div class="omni-data-form-group-description">@Group.Metadata.Description</div>
+        }
+        <div class="omni-data-form-grid" style="@LayoutStyle(Group.Metadata.Layout)">
+            @foreach (DataFormResolvedField<TModel> field in Group.Fields)
+            {
+                @if (field.IsVisible(Model))
+                {
+                    <div @key="field.Metadata.Property"
+                         id="@field.FieldId"
+                         class="omni-data-form-cell"
+                         style="@CellStyle(field.Metadata)">
+                        <DynamicComponent Type="@field.RendererType" Parameters="@field.RendererParameters" />
+                    </div>
+                }
+            }
+            @foreach (DataFormResolvedGroup<TModel> child in Group.Groups)
+            {
+                <div @key="child.Metadata.Id" class="omni-data-form-group-cell">
+                    <OmniDataFormGroupRenderer TModel="TModel"
+                                               Group="@child"
+                                               Model="@Model"
+                                               FormId="@FormId" />
+                </div>
+            }
+        </div>
+    </fieldset>
+}
+
+@code {
+    /// <summary>Resolved group metadata.</summary>
+    [Parameter, EditorRequired] public DataFormResolvedGroup<TModel> Group { get; set; } = default!;
+
+    /// <summary>Current model.</summary>
+    [Parameter, EditorRequired] public TModel Model { get; set; } = default!;
+
+    /// <summary>Stable id of the owning DataForm.</summary>
+    [Parameter, EditorRequired] public string FormId { get; set; } = default!;
+
+    private static string LayoutStyle(DataFormLayout layout)
+        => DataFormCss.LayoutStyle(layout);
+
+    private string CellStyle(DataFormField<TModel> field)
+        => DataFormCss.CellStyle(field.ColumnSpan, field.ResponsiveSpans, Group.Metadata.Layout);
+}

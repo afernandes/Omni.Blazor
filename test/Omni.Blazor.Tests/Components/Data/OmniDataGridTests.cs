@@ -404,6 +404,19 @@ public class OmniDataGridTests : TestContextBase
         Assert.Equal(new[] { "Region" }, captured!);
     }
 
+    [Fact]
+    public async Task Dragging_a_groupable_column_onto_the_panel_groups_the_rows()
+    {
+        // O caminho que o usuário percorre de fato — arrastar a alça até a faixa —
+        // e não o GroupByAsync que o resto dos testes usa.
+        var cut = RenderSalesGrid();
+
+        await cut.FindAll(".omni-grid-col-drag")[0].TriggerEventAsync("ondragstart", new DragEventArgs());
+        await cut.Find(".omni-grid-group-panel").TriggerEventAsync("ondrop", new DragEventArgs());
+
+        Assert.NotEmpty(cut.FindAll(".omni-grid-group-row"));
+    }
+
     // ─── Aggregate formatting ──────────────────────────────────────────────
 
     [Theory]
@@ -428,5 +441,278 @@ public class OmniDataGridTests : TestContextBase
         {
             System.Globalization.CultureInfo.CurrentCulture = previous;
         }
+    }
+
+    // ─── Shared hierarchy engine ──────────────────────────────────────────
+
+    [Fact]
+    public void Hierarchy_mode_renders_treegrid_semantics_and_stable_levels()
+    {
+        var cut = RenderHierarchyGrid(CreateHierarchy(), parameters => parameters
+            .Add(component => component.Children, node => node.Children)
+            .Add(component => component.HasChildren, node => node.Children.Count > 0)
+            .Add(component => component.InitiallyExpanded, node => node.Id == "root"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var table = cut.Find("table.omni-grid-table");
+            Assert.Equal("treegrid", table.GetAttribute("role"));
+            Assert.Equal("Estrutura", table.GetAttribute("aria-label"));
+            var rows = cut.FindAll("tbody tr[role='row']");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal("1", rows[0].GetAttribute("aria-level"));
+            Assert.Equal("2", rows[1].GetAttribute("aria-level"));
+            Assert.All(rows, row => Assert.NotEmpty(row.QuerySelectorAll("td[role='gridcell']")));
+        });
+    }
+
+    [Fact]
+    public async Task Concurrent_hierarchy_expands_share_one_lazy_request()
+    {
+        var root = new HierarchyNode("root", "Raiz");
+        var completion = new TaskCompletionSource<IReadOnlyList<HierarchyNode>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        HierarchyChildrenProvider<HierarchyNode> provider = (_, _) =>
+        {
+            calls++;
+            return new(completion.Task);
+        };
+        var cut = RenderHierarchyGrid([root], parameters => parameters
+            .Add(component => component.HasChildren, _ => true)
+            .Add(component => component.ChildrenProvider, provider));
+
+        Task first = Task.CompletedTask;
+        Task second = Task.CompletedTask;
+        await cut.InvokeAsync(() =>
+        {
+            first = cut.Instance.ExpandAsync(root);
+            second = cut.Instance.ExpandAsync(root);
+        });
+
+        Assert.Equal(1, calls);
+        completion.SetResult([new("child", "Filho")]);
+        await Task.WhenAll(first, second);
+
+        Assert.Equal(1, calls);
+        Assert.Equal(2, cut.Instance.VisibleHierarchyRowCount);
+    }
+
+    [Fact]
+    public async Task Collapsing_hierarchy_cancels_pending_lazy_request()
+    {
+        var root = new HierarchyNode("root", "Raiz");
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observed = default;
+        HierarchyChildrenProvider<HierarchyNode> provider = async (_, token) =>
+        {
+            observed = token;
+            started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+            return [];
+        };
+        var cut = RenderHierarchyGrid([root], parameters => parameters
+            .Add(component => component.HasChildren, _ => true)
+            .Add(component => component.ChildrenProvider, provider));
+
+        Task expansion = Task.CompletedTask;
+        await cut.InvokeAsync(() => { expansion = cut.Instance.ExpandAsync(root); });
+        await started.Task;
+        await cut.InvokeAsync(() => cut.Instance.CollapseAsync(root));
+        await expansion;
+
+        Assert.True(observed.IsCancellationRequested);
+        Assert.False(cut.Instance.IsHierarchyLoading);
+    }
+
+    [Fact]
+    public void Controlled_expanded_keys_start_lazy_loading_and_update_aria()
+    {
+        var root = new HierarchyNode("root", "Raiz");
+        var calls = 0;
+        HierarchyChildrenProvider<HierarchyNode> provider = (_, _) =>
+        {
+            calls++;
+            return ValueTask.FromResult<IReadOnlyList<HierarchyNode>>([new("child", "Filho")]);
+        };
+        var cut = RenderHierarchyGrid([root], parameters => parameters
+            .Add(component => component.HasChildren, node => node.Id == "root")
+            .Add(component => component.ChildrenProvider, provider)
+            .Add(component => component.ExpandedKeys, new object[] { "root" }));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(1, calls);
+            Assert.Equal(2, cut.Instance.VisibleHierarchyRowCount);
+            Assert.Equal("true", cut.Find("tbody tr[role='row']").GetAttribute("aria-expanded"));
+        });
+    }
+
+    [Fact]
+    public void Hierarchy_mode_preserves_master_detail_column_and_content()
+    {
+        var root = new HierarchyNode("root", "Raiz");
+        var cut = RenderHierarchyGrid([root], parameters => parameters
+            .Add(component => component.Children, _ => Array.Empty<HierarchyNode>())
+            .Add(component => component.DetailTemplate, node => builder =>
+                builder.AddContent(0, $"Detalhe de {node.Name}")));
+
+        var hierarchyRow = cut.Find("tbody tr[role='row']");
+        Assert.Equal(2, hierarchyRow.QuerySelectorAll("td").Length);
+
+        cut.Find(".omni-grid-td-expand button").Click();
+
+        cut.WaitForAssertion(() =>
+            Assert.Contains("Detalhe de Raiz", cut.Find(".omni-grid-detail-row").TextContent));
+    }
+
+    [Fact]
+    public async Task DataProvider_cancels_superseded_load_and_latest_result_wins()
+    {
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken firstToken = default;
+
+        async ValueTask<GridLoadResult<Person>> Provider(
+            GridState<Person> state,
+            CancellationToken cancellationToken)
+        {
+            if (state.Search == "primeiro")
+            {
+                firstToken = cancellationToken;
+                firstStarted.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
+            var item = new Person(state.Search ?? "inicial", 1);
+            return new GridLoadResult<Person>([item], 1);
+        }
+
+        var cut = Render<OmniDataGrid<Person>>(parameters => parameters
+            .Add(component => component.DataProvider, Provider)
+            .Add(component => component.DebounceMs, 0)
+            .Add(component => component.AllowSearch, true)
+            .Add(component => component.Columns, ColumnsFragment()));
+        var search = cut.Find(".omni-grid-search input");
+
+        var first = search.InputAsync("primeiro");
+        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+        var second = search.InputAsync("segundo");
+
+        await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(firstToken.IsCancellationRequested);
+            var body = cut.Find("tbody").TextContent;
+            Assert.Contains("segundo", body);
+            Assert.DoesNotContain("primeiro", body);
+        });
+    }
+
+    [Fact]
+    public async Task Export_pages_provider_streams_download_and_reports_truncation()
+    {
+        var data = Enumerable.Range(1, 5).Select(index => new Person($"Pessoa {index}", index)).ToArray();
+        var requests = new List<GridState<Person>>();
+        var truncatedAt = 0;
+
+        ValueTask<GridLoadResult<Person>> Provider(
+            GridState<Person> state,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            requests.Add(state);
+            return ValueTask.FromResult(new GridLoadResult<Person>(
+                data.Skip(state.Skip).Take(state.Top).ToArray(),
+                data.Length));
+        }
+
+        var cut = Render<OmniDataGrid<Person>>(parameters => parameters
+            .Add(component => component.DataProvider, Provider)
+            .Add(component => component.AllowExport, true)
+            .Add(component => component.MaxExportRows, 3)
+            .Add(component => component.ExportBatchSize, 2)
+            .Add(component => component.ExportTruncated, count => truncatedAt = count)
+            .Add(component => component.Columns, ColumnsFragment()));
+
+        await cut.FindAll("button").Single(button => button.TextContent.Contains("Exportar")).ClickAsync(new());
+
+        Assert.True(cut.Instance.LastExportWasTruncated);
+        Assert.Equal(3, truncatedAt);
+        Assert.Contains(requests, request => request.Skip == 0 && request.Top == 2);
+        Assert.Contains(requests, request => request.Skip == 2 && request.Top == 1);
+        Assert.DoesNotContain(requests, request => request.Top == int.MaxValue);
+        JSInterop.VerifyInvoke("omniBlazor.downloadStream");
+    }
+
+    [Fact]
+    public async Task Export_observes_stream_failure_and_releases_single_export_gate()
+    {
+        var failure = new InvalidOperationException("falha de exportação");
+        Exception? reported = null;
+
+        async IAsyncEnumerable<Person> FailingExport(
+            GridState<Person> state,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return Sample[0];
+            throw failure;
+        }
+
+        var cut = Render<OmniDataGrid<Person>>(parameters => parameters
+            .Add(component => component.Data, Sample)
+            .Add(component => component.AllowExport, true)
+            .Add(component => component.ExportProvider, FailingExport)
+            .Add(component => component.ExportFailed, exception => reported = exception)
+            .Add(component => component.Columns, ColumnsFragment()));
+
+        await cut.FindAll("button").Single(button => button.TextContent.Contains("Exportar")).ClickAsync(new());
+
+        Assert.Same(failure, reported);
+        Assert.False(cut.Instance.IsExporting);
+    }
+
+    private IRenderedComponent<OmniDataGrid<HierarchyNode>> RenderHierarchyGrid(
+        IEnumerable<HierarchyNode> items,
+        Action<ComponentParameterCollectionBuilder<OmniDataGrid<HierarchyNode>>>? configure = null)
+    {
+        return Render<OmniDataGrid<HierarchyNode>>(parameters =>
+        {
+            parameters
+                .Add(component => component.Data, items)
+                .Add(component => component.KeySelector, node => node.Id)
+                .Add(component => component.AllowPaging, false)
+                .Add(component => component.HierarchyAriaLabel, "Estrutura")
+                .Add(component => component.Columns, HierarchyColumns());
+            configure?.Invoke(parameters);
+        });
+    }
+
+    private static RenderFragment HierarchyColumns() => builder =>
+    {
+        builder.OpenComponent<OmniDataGridColumn<HierarchyNode>>(0);
+        builder.AddAttribute(1, nameof(OmniDataGridColumn<HierarchyNode>.Title), "Nome");
+        builder.AddAttribute(2, nameof(OmniDataGridColumn<HierarchyNode>.Property),
+            (Func<HierarchyNode, object?>)(node => node.Name));
+        builder.AddAttribute(3, nameof(OmniDataGridColumn<HierarchyNode>.IsHierarchyAnchor), true);
+        builder.CloseComponent();
+    };
+
+    private static HierarchyNode[] CreateHierarchy() =>
+    [
+        new("root", "Raiz",
+        [
+            new("first", "Primeiro"),
+            new("second", "Segundo")
+        ])
+    ];
+
+    private sealed record HierarchyNode(
+        string Id,
+        string Name,
+        List<HierarchyNode>? ChildNodes = null)
+    {
+        public List<HierarchyNode> Children { get; } = ChildNodes ?? [];
     }
 }

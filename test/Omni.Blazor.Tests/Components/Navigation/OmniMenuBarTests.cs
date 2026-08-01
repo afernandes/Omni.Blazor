@@ -91,5 +91,19 @@ public class OmniMenuBarTests : TestContextBase
         var nav = cut.Find("nav");
         Assert.Equal("mb", nav.GetAttribute("data-testid"));
         Assert.Equal("main-mb", nav.GetAttribute("id"));
+        Assert.Equal("main-mb", cut.Instance.Id);
+    }
+
+    [Fact]
+    public void Generated_Id_is_stable_across_renders()
+    {
+        var cut = Render<OmniMenuBar>();
+        var initialId = cut.Instance.Id;
+
+        cut.Render(p => p.Add(c => c.Class, "rerender"));
+
+        Assert.StartsWith("omni-", initialId);
+        Assert.Equal(initialId, cut.Instance.Id);
+        Assert.Equal(initialId, cut.Find("nav").GetAttribute("id"));
     }
 }

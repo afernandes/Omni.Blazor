@@ -1,11 +1,36 @@
 # Roadmap — Omni.Blazor
 
-> Estado em **2026-07-28** · versão publicada **v0.3.0** (`AndersonN.Omni.Blazor`, `.Ai`, `.Mcp`)
-> 174 componentes · **2004 testes** · cobertura **83,1%** (lib) / 100% (Ai) · lib packable sem warnings (`TreatWarningsAsErrors`)
+> Estado em **2026-07-31** · versão publicada **v0.3.0** (`AndersonN.Omni.Blazor`, `.Ai`, `.Mcp`)
+> 198 componentes catalogados · **2.204 testes passando** · cobertura: lib **84,93%**, AI **96,12%**, gerador **95,79%**, MCP **93,48%** · pacotes com validação de compatibilidade e warnings como erro
 
 Consolida três fontes: a **auditoria de hardening** (2026-07-01, 7 PRs), a **análise de biblioteca + templates** (2026-07-28) e as **pendências de roadmaps anteriores** (gaps de componentes/telas, AI-Ready).
 
-**Leitura do momento.** As três travas que a análise apontou — o Quick-start que não compilava, os templates invisíveis/não-consumíveis e a ausência de i18n — **foram endereçadas** (PRs #28, #29, #30). O kit segue maduro no nível de API; o que resta é **cobertura** (templates para os componentes-flagship, showcase), **consistência de API** e **features pontuais**. Nada mais é quebra-confiança.
+**Leitura do momento.** As três travas da análise anterior — Quick-start, templates
+consumíveis e seam de i18n — foram endereçadas. A auditoria de 2026-07-31 elevou
+também o piso de engenharia: catálogo completo, SDK estável, validação assíncrona
+latest-wins, descarte cancelável, snapshots seguros e gates de vulnerabilidade e
+sync-over-async. O P0 de providers e distribuição também foi concluído: fontes remotas
+canceláveis, export CSV limitado/streaming e smoke tests dos pacotes reais. O próximo
+salto de maturidade depende de **testes reais de browser e acessibilidade**,
+**benchmarks com orçamento de alocação** e **migração gradual do JS global para módulos tipados**.
+
+## Marco de engenharia — auditoria 2026-07-31
+
+| Área | Resultado |
+|---|---|
+| Estrutura | Componentes complexos podem usar `.razor` + `.razor.cs`; `.razor.css` fica reservado a estilos privados. O bundle global continua sendo a fonte de tokens e variantes. |
+| Formulários | Validação assíncrona cancelável e latest-wins; submissão aguarda validações; stores sync/async não se apagam mutuamente; descarte remove eventos e cancela trabalho. |
+| Concorrência | Chat de IA, DataGrid, Carousel, Chat e notificações tiveram corridas, callbacks temporizados e tarefas não observadas endurecidos. Eventos não são disparados dentro de locks. |
+| Memória | Cache de reflexão usa chave fraca e não armazena consultas inválidas; serviços temporizados cancelam e liberam seus recursos; listas concorrentes são expostas por snapshots estáveis. |
+| Catálogo | O gerador passou a descobrir todo `ComponentBase` público apoiado por fonte; tipos internos usam exclusão explícita. Catálogo, `llms*.txt` e MCP concordam em 198 componentes. |
+| Toolchain | SDK 10 estável fixado, dependências atualizadas, Package Validation habilitado e CI com gates de vulnerabilidade e segurança assíncrona. |
+| Performance | Evitou-se LINQ em caminhos quentes revisados e reduziram-se recomputações/cópias desnecessárias. `Span<T>`, `Memory<T>` e pooling só serão adotados quando benchmark comprovar benefício e o lifetime for seguro. |
+
+**Referência Radzen.** O checkout usado na comparação possui 254 arquivos `.razor`,
+190 code-behinds e nenhum `.razor.css`. A conclusão não é copiar a proporção, mas
+adotar a separação onde há lifecycle, JS interop ou orquestração assíncrona. A
+estratégia de um bundle temático central do Omni continua coerente; CSS isolado deve
+ser exceção para detalhes semânticos privados, não para tokens ou overlays.
 
 ---
 
@@ -21,6 +46,17 @@ Consolida três fontes: a **auditoria de hardening** (2026-07-01, 7 PRs), a **an
 | 7 | Drift do código copiável (16 classes inexistentes em 10 templates) + guarda na CI | [#29](https://github.com/afernandes/Omni.Blazor/pull/29) |
 | 8 | App-shell real + `FullScreenPath` finalmente vivo | [#29](https://github.com/afernandes/Omni.Blazor/pull/29) |
 | 5a | Seam de localização (`OmniTexts` + `AddOmniComponents(o => o.Texts = …)`) e as 17 strings que **não tinham override** | [#30](https://github.com/afernandes/Omni.Blazor/pull/30) |
+| 25 | Catálogo completo de componentes públicos + exclusão explícita de implementações internas | auditoria 2026-07-31 |
+| 26 | Hardening de validação assíncrona, submissão de formulário e descarte | auditoria 2026-07-31 |
+| 27 | IDs DOM estáveis e respeito ao `id` fornecido pelo consumidor | auditoria 2026-07-31 |
+| 28 | Gates de dependências vulneráveis e padrões async perigosos | auditoria 2026-07-31 |
+| 29 | Cache de reflexão com eviction por chave fraca e serviços temporizados canceláveis | auditoria 2026-07-31 |
+| 17 | `OmniTreeGrid`, `OmniGlobalSearch`, `OmniFileManager` e `OmniSignaturePad`, todos com testes e showcase | implementação 2026-07-31 |
+| 36 | Motor hierárquico único para `OmniDataGrid` e `OmniTreeGrid`, com cancelamento, deduplicação, limites, proteção contra ciclos, descarte determinístico e API pública coerente | implementação 2026-07-31 |
+| 37 | Providers paginados, canceláveis e latest-wins em `OmniDataGrid`, `OmniAutoComplete`, `OmniSelect` e `OmniMultiSelect` | P0 2026-07-31 |
+| 38 | Exportação CSV do DataGrid por streaming, em lotes e com limite rígido; sem `int.MaxValue` nem materialização integral | P0 2026-07-31 |
+| 39 | Smoke tests dos pacotes base/AI/MCP em consumidores Server/WASM limpos e release protegida pelos mesmos gates da CI | P0 2026-07-31 |
+| 40 | Observer central para tarefas destacadas, gate contra descarte async e serialização versionada dos listeners globais do MenuBar | P0 2026-07-31 |
 
 **Dois bugs de biblioteca descobertos no caminho** (afetavam todo consumidor, não estavam na análise original):
 
@@ -38,6 +74,8 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | # | Item | Área | Esforço |
 |---|---|---|---|
 | 5b | Apontar os ~30 defaults de `[Parameter]` para o `OmniTexts` | Lib | M |
+| 30 | Migrar interop complexo para módulos JS tipados/lazy e contratos descartáveis | Lib | L |
+| 32 | BenchmarkDotNet para DataGrid, Markdown, CSS builders e gerador, com budgets de alocação | Performance | M |
 
 ### P2 — Cobertura e consistência
 
@@ -49,15 +87,15 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | 12 | Contrato único de binding multi-valor | Lib | L |
 | 13 | Acessibilidade sistêmica dos templates (`label for`, headings) | Templates | M |
 | 24 | Limpar as 4 utilitárias duplicadas no `_demo.scss` | Demo | S |
+| 33 | Testes Playwright de teclado, foco, overlays, descarte e reconexão | QA | L |
+| 34 | Gate de paridade componente ↔ teste ↔ showcase, com allow-list explícita de subcomponentes | CI/Docs | M |
 
 ### P3 — Features que faltam
 
 | # | Item | Área | Esforço |
 |---|---|---|---|
-| 14 | `OmniSelect`/`OmniMultiSelect` com dados server-side | Lib | L |
 | 15 | Tipos de gráfico faltando (Stacked/Radar/Scatter/Gauge) | Lib | L |
 | 16 | Telas SaaS faltando (Onboarding, Billing, Settings com abas, Search, Notificações, CRUD detalhe) | Templates | L |
-| 17 | Componentes faltando (`OmniGlobalSearch` full-page, `OmniFileManager`) | Lib | L |
 
 ### P4 — Deferidos (reavaliar antes de executar)
 
@@ -102,7 +140,11 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 
 ### P2 · 10. Cobertura de showcase
 
-**Problema.** O CONTRIBUTING exige uma página de showcase por componente; hoje há **110 páginas para 174 componentes**. Descontando ~20 sub-componentes legitimamente cobertos pelo pai, sobram **~40 sem página própria**.
+**Problema.** O CONTRIBUTING exige uma página de showcase por componente; hoje há
+**142 arquivos Razor no showcase para 198 componentes catalogados**. A diferença não
+é o gap real porque hosts, validators e subcomponentes são legitimamente demonstrados
+pelo pai; falta transformar essa regra em mapeamento verificável para obter a lista
+exata e impedir regressão.
 
 **Como corrigir.**
 1. Levantar a lista exata (excluindo sub-componentes, usando a allow-list `TestedViaParent` dos convention tests como referência).
@@ -160,16 +202,6 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 
 ---
 
-### P3 · 14. `OmniSelect`/`OmniMultiSelect` com dados server-side
-
-**Problema.** Ambos só bindam uma lista **estática em memória** — sem `ItemsProvider`/`LoadData`/virtualização (verificado: 0 ocorrências). Num kit voltado a apps administrativos com muitos dados, conjuntos grandes ou paginados no servidor não têm caminho, empurrando o consumidor para libs de terceiros (e quebrando o theming por tokens, que é o núcleo de valor).
-
-**Como corrigir.** `ItemsProvider` reaproveitando a paginação do `OmniDataGrid` + dropdown virtualizado com `OmniVirtualize` (ambos já existem).
-
-**Esforço:** L · **Área:** Lib
-
----
-
 ### P3 · 15. Tipos de gráfico faltando
 
 **Problema.** `ChartSeriesType` tem **7 tipos** (`Line`, `Area`, `Column`, `Bar`, `Pie`, `Donut`, `Waterfall`) — faltam `StackedColumn`/`StackedBar`, `Radar`, `Scatter`/`Bubble` e `Gauge` radial, que dashboards (e os próprios templates SAAS/Bento do repo) demandam.
@@ -198,11 +230,21 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 
 ---
 
-### P3 · 17. Componentes faltando
+### Concluído · 17. Novos componentes estruturais
 
-Do levantamento de gaps anterior, ainda pendentes: **`OmniGlobalSearch` full-page** (busca global com resultados agrupados) e **`OmniFileManager`/galeria**. A análise nova confirma que o kit é, no geral, **excepcionalmente completo** — estas são faltas estreitas e honestas, junto com um **Signature pad**.
+O levantamento de gaps foi atendido com:
 
-**Esforço:** L · **Área:** Lib
+- **`OmniTreeGrid`**, com colunas declarativas, expansão lazy cancelável,
+  seleção, limites de profundidade/linhas e cache LRU limitado;
+- **`OmniGlobalSearch` full-page**, com resultados locais/remotos, teclado e
+  provider assíncrono latest-wins;
+- **`OmniFileManager`/galeria**, separando o backend de armazenamento da UI;
+- **`OmniSignaturePad`**, com saída vetorial/raster, undo e acessibilidade por
+  rótulos e estados anunciáveis.
+
+Foram priorizados por serem mais valiosos que ampliar a biblioteca com wrappers muito específicos.
+Mapas, PDF viewer e editores colaborativos devem permanecer integrações externas até
+haver demanda e um contrato de provider sustentável.
 
 ---
 
@@ -224,8 +266,11 @@ Do levantamento de gaps anterior, ainda pendentes: **`OmniGlobalSearch` full-pag
 1. ~~**Sprint "confiança"** — P0 (itens 1–4).~~ ✅ #28
 2. ~~**Sprint "templates consumíveis"** — itens 6 + 7 + 8.~~ ✅ #29
 3. ~~**Sprint "i18n"** — seam do item 5.~~ ✅ #30 *(falta o 5b)*
-4. **Agora:** fechar o **5b** (coerência do i18n, esforço M) e o **24** (S) — ambos pequenos e fecham frentes já abertas.
-5. **Depois:** **9** e **10** (cobertura: templates dos flagship + showcase) — é onde o consumidor mais sente falta hoje.
-6. **Conforme demanda:** 11–17.
+4. **Agora:** fechar o **5b**, o smoke test de pacotes (**31**) e o gate de
+   paridade de showcase (**34**).
+5. **Depois:** observer de tarefas descartadas (**35**), módulos JS tipados
+   (**30**), browser/a11y (**33**) e benchmarks com orçamento (**32**).
+6. **Cobertura funcional:** itens **9**, **10**, **14**, **15** e **17**.
+7. **Conforme demanda:** demais itens 11–16.
 
 > Convenções obrigatórias para qualquer item: testes junto (cobertura ≥ 80%), lib packable sem warnings (`TreatWarningsAsErrors`), showcase por componente novo, o guarda de drift dos templates verde, e regenerar o manifesto (`dotnet run --project tools/Omni.Blazor.ManifestGen`) quando a API pública mudar.

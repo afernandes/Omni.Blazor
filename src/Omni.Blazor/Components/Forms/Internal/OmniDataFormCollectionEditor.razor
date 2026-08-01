@@ -1,0 +1,77 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel where TModel : class
+@typeparam TCollection
+@typeparam TItem where TItem : class
+@inherits OmniComponent
+@implements IDisposable
+@attribute [OmniCatalogIgnore]
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.Models
+
+<div id="@FieldId" class="omni-data-form-collection" role="group" aria-label="@Label">
+    @if (_items.Count == 0)
+    {
+        @if (TypedDefinition.EmptyTemplate is not null)
+        {
+            @TypedDefinition.EmptyTemplate
+        }
+        else
+        {
+            <div class="omni-data-form-collection-empty">@Texts.NoRecords</div>
+        }
+    }
+
+    @foreach (ItemRuntime runtime in _items)
+    {
+        <section @key="runtime.Key" class="omni-data-form-collection-item">
+            <header class="omni-data-form-collection-header">
+                <div class="omni-data-form-collection-title">
+                    @if (TypedDefinition.ItemHeader is not null)
+                    {
+                        @TypedDefinition.ItemHeader(new DataFormCollectionItemContext<TItem>(runtime.Item, runtime.Index, _items.Count))
+                    }
+                    else
+                    {
+                        <span>@Label @(runtime.Index + 1)</span>
+                    }
+                </div>
+                <div class="omni-data-form-collection-actions">
+                    @if (TypedDefinition.AllowReorder)
+                    {
+                        <button type="button" class="omni-btn omni-btn-ghost omni-btn-sm"
+                                disabled="@(Disabled || ReadOnly || CollectionIsReadOnly || runtime.Index == 0)"
+                                aria-label="@MoveUpText"
+                                @onclick="@(() => MoveAsync(runtime.Index, -1))">↑</button>
+                        <button type="button" class="omni-btn omni-btn-ghost omni-btn-sm"
+                                disabled="@(Disabled || ReadOnly || CollectionIsReadOnly || runtime.Index == _items.Count - 1)"
+                                aria-label="@MoveDownText"
+                                @onclick="@(() => MoveAsync(runtime.Index, 1))">↓</button>
+                    }
+                    @if (TypedDefinition.AllowRemove)
+                    {
+                        <button type="button" class="omni-btn omni-btn-ghost omni-btn-sm"
+                                disabled="@(Disabled || ReadOnly || CollectionIsReadOnly || _items.Count <= TypedDefinition.MinimumItems)"
+                                @onclick="@(() => RemoveAsync(runtime.Index))">@RemoveText</button>
+                    }
+                </div>
+            </header>
+
+            <OmniDataForm TModel="TItem"
+                          EditContext="@runtime.Context"
+                          Schema="@TypedDefinition.ItemSchema"
+                          RenderFormElement="false"
+                          ShowValidationSummary="false"
+                          ShowSubmitButton="false"
+                          Disabled="@Disabled"
+                          ReadOnly="@ReadOnly"
+                          FieldChanged="@(args => OnItemChangedAsync(runtime, args))" />
+        </section>
+    }
+
+    @if (TypedDefinition.ItemFactory is not null)
+    {
+        <button type="button" class="omni-btn omni-btn-secondary omni-btn-sm omni-data-form-collection-add"
+                disabled="@(Disabled || ReadOnly || CollectionIsReadOnly || _items.Count >= TypedDefinition.MaximumItems)"
+                @onclick="AddAsync">@AddText</button>
+    }
+</div>

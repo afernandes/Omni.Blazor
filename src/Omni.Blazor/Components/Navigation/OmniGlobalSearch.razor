@@ -1,0 +1,116 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@implements IDisposable
+
+@* Embedded global search surface with local/remote providers and keyboard navigation. *@
+
+<section @ref="Element"
+         class="@RootCss"
+         style="@Style"
+         aria-label="@AriaLabel"
+         @attributes="Attributes">
+    <div class="omni-global-search-box">
+        <OmniIcon Name="search" Size="ComponentSize.Sm" />
+        <input class="omni-global-search-input"
+               type="search"
+               value="@_query"
+               placeholder="@Placeholder"
+               autocomplete="off"
+               spellcheck="false"
+               role="combobox"
+               aria-autocomplete="list"
+               aria-expanded="@(_results.Count > 0)"
+               aria-controls="@ResultsId"
+               aria-activedescendant="@ActiveDescendant"
+               @oninput="OnInputAsync"
+               @onkeydown="OnKeyDownAsync" />
+        @if (_loading)
+        {
+            <span class="omni-global-search-spinner" role="status" aria-label="@LoadingText"></span>
+        }
+        else if (!string.IsNullOrEmpty(_query))
+        {
+            <button type="button"
+                    class="omni-global-search-clear"
+                    aria-label="@ClearText"
+                    @onclick="ClearAsync">
+                <OmniIcon Name="x" Size="ComponentSize.Sm" />
+            </button>
+        }
+    </div>
+
+    <div id="@ResultsId" class="omni-global-search-results" role="listbox">
+        @if (_error is not null)
+        {
+            <div class="omni-global-search-message omni-global-search-error" role="alert">
+                <OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" />
+                @ErrorText
+            </div>
+        }
+        else if (_loading && _results.Count == 0)
+        {
+            <div class="omni-global-search-message">@LoadingText</div>
+        }
+        else if (_query.Trim().Length < MinQueryLength && !ShowAllWhenEmpty)
+        {
+            @if (InitialContent is not null)
+            {
+                @InitialContent
+            }
+            else
+            {
+                <div class="omni-global-search-message">@HintText</div>
+            }
+        }
+        else if (_results.Count == 0)
+        {
+            <div class="omni-global-search-message">@EmptyText</div>
+        }
+        else
+        {
+            @for (var index = 0; index < _results.Count; index++)
+            {
+                var result = _results[index];
+                var resultIndex = index;
+                var active = resultIndex == _activeIndex;
+                <button @key="ResultId(resultIndex)"
+                        id="@ResultId(resultIndex)"
+                        type="button"
+                        role="option"
+                        aria-selected="@active"
+                        class="@ResultCss(active)"
+                        @onmouseenter="@(() => _activeIndex = resultIndex)"
+                        @onclick="@(() => SelectAsync(result))">
+                    @if (ResultTemplate is not null)
+                    {
+                        @ResultTemplate(result)
+                    }
+                    else
+                    {
+                        @if (!string.IsNullOrWhiteSpace(result.Icon))
+                        {
+                            <span class="omni-global-search-icon">
+                                <OmniIcon Name="@result.Icon" />
+                            </span>
+                        }
+                        <span class="omni-global-search-content">
+                            <span class="omni-global-search-title">@result.Title</span>
+                            @if (!string.IsNullOrWhiteSpace(result.Description))
+                            {
+                                <span class="omni-global-search-description">@result.Description</span>
+                            }
+                        </span>
+                        @if (!string.IsNullOrWhiteSpace(result.Category))
+                        {
+                            <span class="omni-global-search-category">@result.Category</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(result.Url))
+                        {
+                            <OmniIcon Name="arrow-up-right" Size="ComponentSize.Sm" />
+                        }
+                    }
+                </button>
+            }
+        }
+    </div>
+</section>

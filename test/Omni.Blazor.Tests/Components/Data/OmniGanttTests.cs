@@ -106,7 +106,7 @@ public class OmniGanttTests : TestContextBase
     {
         var cut = RenderGantt();
         cut.Find(".omni-gantt-chevron").Click();
-        Assert.Equal(1, cut.FindAll(".omni-gantt-left-row").Count);
+        Assert.Single(cut.FindAll(".omni-gantt-left-row"));
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class OmniGanttTests : TestContextBase
         var cut = RenderGantt();
         var buttons = cut.FindAll(".omni-gantt-zoom-btn");
         Assert.Equal(4, buttons.Count);
-        Assert.Contains(buttons, b => b.ClassName.Contains("omni-active") && b.TextContent.Trim() == "Semana");
+        Assert.Contains(buttons, b => b.ClassList.Contains("omni-active") && b.TextContent.Trim() == "Semana");
     }
 
     [Fact]

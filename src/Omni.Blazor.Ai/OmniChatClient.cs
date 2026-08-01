@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
+using Omni.Blazor.Components;
 using Omni.Blazor.Models;
 
 namespace Omni.Blazor.Ai;
@@ -20,8 +21,14 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
 {
     private readonly IChatClient _client;
     private readonly List<OmniChatTurn> _turns = [];
+    private readonly object _stateSync = new();
+    private readonly SemaphoreSlim _sendGate = new(1, 1);
+    private OmniChatTurn[] _turnSnapshot = [];
     private CancellationTokenSource? _cts;
-    private bool _disposed;
+    private int _isStreaming;
+    private int _disposeState;
+    private int _disposeClientPending;
+    private int _ownedClientDisposeState;
 
     // Render coalescing: during streaming, tokens can arrive faster than the UI can
     // usefully repaint. Raising Changed per token forces a full Markdown reparse of the
@@ -35,16 +42,34 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
 
     private readonly bool _disposeClient;
 
+    /// <summary>
+    /// Creates a conversation orchestrator over a client owned by the caller or DI container.
+    /// </summary>
     /// <param name="client">The chat client to talk to (any provider via Microsoft.Extensions.AI).</param>
     /// <param name="options">Conversation options (system prompt, history cap, inference options).</param>
+    public OmniChatClient(IChatClient client, OmniChatOptions? options = null)
+        : this(client, options, disposeClient: false)
+    {
+    }
+
+    /// <summary>
+    /// Creates a conversation orchestrator with default options and explicit client ownership.
+    /// </summary>
+    public OmniChatClient(IChatClient client, bool disposeClient)
+        : this(client, options: null, disposeClient)
+    {
+    }
+
+    /// <summary>
+    /// Creates a conversation orchestrator with explicit ownership of the underlying client.
+    /// </summary>
+    /// <param name="client">The chat client to talk to.</param>
+    /// <param name="options">Conversation options.</param>
     /// <param name="disposeClient">
     /// Whether disposing this <see cref="OmniChatClient"/> should also dispose
-    /// <paramref name="client"/>. Default <c>false</c>: the <see cref="IChatClient"/> is usually
-    /// shared / DI-managed (Singleton or Scoped), so disposing it here would break other
-    /// consumers with <c>ObjectDisposedException</c>. Set <c>true</c> only when this instance
-    /// exclusively owns a client created just for it.
+    /// <paramref name="client"/>. Keep this <c>false</c> for shared or DI-managed clients.
     /// </param>
-    public OmniChatClient(IChatClient client, OmniChatOptions? options = null, bool disposeClient = false)
+    public OmniChatClient(IChatClient client, OmniChatOptions? options, bool disposeClient)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         Options = options ?? new OmniChatOptions();
@@ -55,10 +80,10 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     public OmniChatOptions Options { get; set; }
 
     /// <summary>The conversation so far (user / assistant / system turns), in order.</summary>
-    public IReadOnlyList<OmniChatTurn> Turns => _turns;
+    public IReadOnlyList<OmniChatTurn> Turns => Volatile.Read(ref _turnSnapshot);
 
     /// <summary>True while a response is streaming in.</summary>
-    public bool IsStreaming { get; private set; }
+    public bool IsStreaming => Volatile.Read(ref _isStreaming) != 0;
 
     /// <summary>Raised whenever the conversation changes (new turn, streamed token, cleared).</summary>
     public event Action? Changed;
@@ -71,24 +96,35 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
     /// </summary>
     public async Task SendAsync(string userText, CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ThrowIfDisposed();
         if (string.IsNullOrWhiteSpace(userText) || IsStreaming) return;
 
-        _cts?.Cancel();
-        _cts?.Dispose();
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _cts = cts;
-        CancellationToken token = cts.Token;
+        // The public contract says a concurrent send is ignored, not queued.
+        // WaitAsync(0) closes the check/set race without creating a convoy.
+        if (!await _sendGate.WaitAsync(0, cancellationToken).ConfigureAwait(false)) return;
 
-        AddTurn(new OmniChatTurn(MessageRole.User, userText.Trim()));
-        var assistant = new OmniChatTurn(MessageRole.Assistant) { IsStreaming = true };
-        AddTurn(assistant);
-        IsStreaming = true;
-        Raise();
-        _lastRaiseTicks = NowTicks() - RenderThrottleTicks - 1; // let the first token render immediately
-
+        CancellationTokenSource? cts = null;
+        OmniChatTurn? assistant = null;
         try
         {
+            ThrowIfDisposed();
+            cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            CancellationToken token = cts.Token;
+
+            lock (_stateSync)
+            {
+                ThrowIfDisposed();
+                _cts = cts;
+                _turns.Add(new OmniChatTurn(MessageRole.User, userText.Trim()));
+                assistant = new OmniChatTurn(MessageRole.Assistant) { IsStreaming = true };
+                _turns.Add(assistant);
+                PublishTurnSnapshot();
+                Volatile.Write(ref _isStreaming, 1);
+            }
+
+            Raise();
+            _lastRaiseTicks = NowTicks() - RenderThrottleTicks - 1;
+
             await foreach (ChatResponseUpdate update in _client.GetStreamingResponseAsync(BuildRequest(), Options.ChatOptions, token).ConfigureAwait(false))
             {
                 if (token.IsCancellationRequested) break;
@@ -105,11 +141,11 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cts?.IsCancellationRequested is true)
         {
-            // aborted by a new send or the caller — leave whatever streamed so far
+            // Disposal or caller cancellation keeps the partial response.
         }
-        catch (Exception ex)
+        catch (Exception ex) when (assistant is not null)
         {
             assistant.IsError = true;
             if (string.IsNullOrEmpty(assistant.Content))
@@ -117,49 +153,83 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
         }
         finally
         {
-            assistant.IsStreaming = false;
-            IsStreaming = false;
-            Raise();
+            if (assistant is not null) assistant.IsStreaming = false;
+            Volatile.Write(ref _isStreaming, 0);
 
-            // Dispose the linked source so it deregisters from the caller's token
-            // (otherwise a long-lived caller token would root this client — a leak).
-            cts.Dispose();
-            if (_cts == cts) _cts = null;
+            lock (_stateSync)
+            {
+                if (ReferenceEquals(_cts, cts)) _cts = null;
+            }
+
+            // The send owns its linked source. Dispose unregisters it from a
+            // potentially long-lived caller token without racing active use.
+            cts?.Dispose();
+            if (!IsDisposed) Raise();
+            _sendGate.Release();
+
+            if (IsDisposed && Volatile.Read(ref _disposeClientPending) != 0)
+                DisposeOwnedClientAfterSend();
         }
     }
 
     /// <summary>Append a turn without calling the model (e.g. seed history or a greeting).</summary>
     public void AddTurn(OmniChatTurn turn)
     {
+        ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(turn);
-        _turns.Add(turn);
+        lock (_stateSync)
+        {
+            _turns.Add(turn);
+            PublishTurnSnapshot();
+        }
         Raise();
     }
 
     /// <summary>Clear the whole conversation.</summary>
     public void Clear()
     {
-        _turns.Clear();
+        ThrowIfDisposed();
+        lock (_stateSync)
+        {
+            _turns.Clear();
+            PublishTurnSnapshot();
+        }
         Raise();
     }
 
     // The message list sent to the model: system prompt + the (windowed) completed turns.
-    private IEnumerable<ChatMessage> BuildRequest()
+    private IReadOnlyList<ChatMessage> BuildRequest()
     {
-        var messages = new List<ChatMessage>();
-        if (!string.IsNullOrEmpty(Options.SystemPrompt))
-            messages.Add(new ChatMessage(ChatRole.System, Options.SystemPrompt));
-
-        IEnumerable<OmniChatTurn> history = Options.MaxHistory is int max && max > 0
-            ? _turns.Where(t => !t.IsStreaming).TakeLast(max)
-            : _turns;
-
-        foreach (OmniChatTurn turn in history)
+        lock (_stateSync)
         {
-            if (turn.IsStreaming) continue; // skip the empty assistant turn we're filling
-            messages.Add(new ChatMessage(ToRole(turn.Role), turn.Content));
+            var messages = new List<ChatMessage>(_turns.Count + 1);
+            if (!string.IsNullOrEmpty(Options.SystemPrompt))
+                messages.Add(new ChatMessage(ChatRole.System, Options.SystemPrompt));
+
+            int start = 0;
+            if (Options.MaxHistory is int max && max > 0)
+            {
+                int completed = 0;
+                for (int index = _turns.Count - 1; index >= 0; index--)
+                {
+                    if (_turns[index].IsStreaming) continue;
+                    completed++;
+                    if (completed == max)
+                    {
+                        start = index;
+                        break;
+                    }
+                }
+            }
+
+            for (int index = start; index < _turns.Count; index++)
+            {
+                OmniChatTurn turn = _turns[index];
+                if (turn.IsStreaming) continue;
+                messages.Add(new ChatMessage(ToRole(turn.Role), turn.Content));
+            }
+            return messages;
         }
-        return messages;
     }
 
     private static ChatRole ToRole(MessageRole role) => role switch
@@ -171,31 +241,115 @@ public sealed class OmniChatClient : IAsyncDisposable, IDisposable
 
     private void Raise() => Changed?.Invoke();
 
+    private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
+
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+    private void PublishTurnSnapshot()
+        => Volatile.Write(ref _turnSnapshot, [.. _turns]);
+
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
-        _cts?.Dispose();
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+        if (_disposeClient) Volatile.Write(ref _disposeClientPending, 1);
+
+        CancellationTokenSource? active;
+        lock (_stateSync)
+        {
+            active = _cts;
+            _cts = null;
+            Changed = null;
+        }
+        CancelSafely(active);
+
         // Only dispose the client when this instance exclusively owns it — a shared /
-        // DI-managed IChatClient must outlive the conversation.
-        if (_disposeClient) _client.Dispose();
+        // DI-managed IChatClient must outlive the conversation. When a send is active,
+        // its finally block performs disposal after releasing the send gate.
+        if (_disposeClient && active is null) DisposeOwnedClient();
+        GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) return;
-        _disposed = true;
-        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
-        _cts?.Dispose();
+        if (Interlocked.Exchange(ref _disposeState, 1) == 0)
+        {
+            CancellationTokenSource? active;
+            lock (_stateSync)
+            {
+                active = _cts;
+                _cts = null;
+                Changed = null;
+            }
+            CancelSafely(active);
+        }
+
         if (_disposeClient)
         {
-            if (_client is IAsyncDisposable asyncDisposable)
-                await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-            else
-                _client.Dispose();
+            await _sendGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await DisposeOwnedClientAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                _sendGate.Release();
+            }
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    private void DisposeOwnedClient()
+    {
+        if (!_disposeClient
+            || Interlocked.Exchange(ref _ownedClientDisposeState, 1) != 0)
+        {
+            return;
+        }
+
+        _client.Dispose();
+    }
+
+    private void DisposeOwnedClientAfterSend()
+    {
+        try
+        {
+            DisposeOwnedClient();
+        }
+        catch (Exception exception)
+        {
+            // Synchronous Dispose already returned, so there is no caller to receive
+            // a deferred cleanup exception. Observe it without faulting the send task.
+            Debug.WriteLine(exception);
+        }
+    }
+
+    private async ValueTask DisposeOwnedClientAsync()
+    {
+        if (!_disposeClient
+            || Interlocked.Exchange(ref _ownedClientDisposeState, 1) != 0)
+        {
+            return;
+        }
+
+        if (_client is IAsyncDisposable asyncDisposable)
+            await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+        else
+            _client.Dispose();
+    }
+
+    private static void CancelSafely(CancellationTokenSource? source)
+    {
+        if (source is null) return;
+
+        try
+        {
+            source.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The active send owns disposal and may have completed concurrently.
         }
     }
 }

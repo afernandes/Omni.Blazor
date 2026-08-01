@@ -254,7 +254,7 @@
         if (_initialApplied && Auto && !ReferenceEquals(Data, _lastData))
         {
             _lastData = Data;
-            _ = InvokeAsync(EmitAsync);
+            ObserveTask(InvokeAsync(EmitAsync), "OmniDataFilter.Emit");
         }
     }
 
@@ -429,7 +429,8 @@
 
     void IOmniDataFilterOwner.UnregisterProperty(OmniFilterPropertyInfo info)
     {
-        if (_properties.Remove(info)) { try { _ = InvokeAsync(StateHasChanged); } catch { } }
+        if (_properties.Remove(info))
+            ObserveTask(InvokeAsync(StateHasChanged), "OmniDataFilter.UnregisterProperty");
     }
 
     OmniFilterPropertyInfo? IOmniDataFilterOwner.FindProperty(string? name) =>

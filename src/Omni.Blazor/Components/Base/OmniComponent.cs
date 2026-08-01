@@ -1,6 +1,8 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Localization;
 using Omni.Blazor.State;
+using Omni.Blazor.Utilities;
 
 namespace Omni.Blazor.Components;
 
@@ -27,8 +29,31 @@ public abstract class OmniComponent : ComponentBase
     /// <summary>Reference to the root DOM element.</summary>
     public ElementReference Element { get; protected set; }
 
-    /// <summary>Auto-generated stable id, available for ARIA labels and JS targeting.</summary>
-    public string Id => _id ??= "omni-" + Guid.NewGuid().ToString("N")[..8];
+    /// <summary>
+    /// Stable DOM id used by ARIA relationships and JS targeting. A consumer
+    /// supplied <c>id</c> in <see cref="Attributes"/> wins; otherwise an id is
+    /// generated once for this component instance.
+    /// </summary>
+    public string Id
+    {
+        get
+        {
+            if (Attributes is not null)
+            {
+                foreach (KeyValuePair<string, object> attribute in Attributes)
+                {
+                    if (!string.Equals(attribute.Key, "id", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    string? explicitId = Convert.ToString(attribute.Value, CultureInfo.InvariantCulture);
+                    if (!string.IsNullOrWhiteSpace(explicitId)) return explicitId;
+                    break;
+                }
+            }
+
+            return _id ??= "omni-" + Guid.NewGuid().ToString("N")[..8];
+        }
+    }
 
     [Inject] private IServiceProvider? ServiceProvider { get; set; }
 
@@ -54,6 +79,17 @@ public abstract class OmniComponent : ComponentBase
     /// <summary>Convenience: <c>ParameterScope.RegisterParameter&lt;T&gt;(...)</c>.</summary>
     protected ParameterStateBuilder<T> RegisterParameter<T>(string name)
         => ParameterScope.RegisterParameter<T>(name);
+
+    /// <summary>
+    /// Observes deliberately detached component work and routes failures through
+    /// Blazor's normal exception boundary.
+    /// </summary>
+    protected void ObserveTask(Task task, string? operation = null)
+        => TaskObserver.Observe(task, DispatchExceptionAsync, operation);
+
+    /// <summary>ValueTask overload of <see cref="ObserveTask(Task,string?)"/>.</summary>
+    protected void ObserveTask(ValueTask task, string? operation = null)
+        => TaskObserver.Observe(task, DispatchExceptionAsync, operation);
 
     /// <inheritdoc />
     public override async Task SetParametersAsync(ParameterView parameters)

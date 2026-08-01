@@ -82,8 +82,9 @@
     {
         if (_expanded == value) return;
         _expanded = value;
-        InvokeAsync(StateHasChanged);
-        if (ExpandedChanged.HasDelegate) _ = ExpandedChanged.InvokeAsync(value);
+        ObserveTask(InvokeAsync(StateHasChanged), "OmniAccordionItem.Render");
+        if (ExpandedChanged.HasDelegate)
+            ObserveTask(ExpandedChanged.InvokeAsync(value), "OmniAccordionItem.ExpandedChanged");
     }
 
     private async Task ToggleAsync()

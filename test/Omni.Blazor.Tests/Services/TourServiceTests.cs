@@ -102,4 +102,18 @@ public class TourServiceTests : TestContextBase
         Assert.Equal("omni.tour.dismissed.demo", inv.Arguments[0]);
         Assert.Equal("1", inv.Arguments[1]);
     }
+
+    [Fact]
+    public async Task Dispose_completes_active_tour_as_not_completed()
+    {
+        var svc = Svc;
+        var task = svc.StartAsync(Steps(1));
+
+        svc.Dispose();
+
+        Assert.False(await task);
+        Assert.False(svc.IsActive);
+        await Assert.ThrowsAsync<ObjectDisposedException>(
+            () => svc.StartAsync(Steps(1)));
+    }
 }

@@ -45,11 +45,11 @@
     {
         _specState = RegisterParameter<string?>("Spec")
             .WithParameter(ComputeSpec)
-            .WithChangeHandler(args => _ = ReRegisterAsync(args.Value))
+            .WithChangeHandler(args => ReRegisterAsync(args.Value))
             .Attach();
         _disabledState = RegisterParameter<bool>(nameof(Disabled))
             .WithParameter(() => Disabled)
-            .WithChangeHandler(args => _ = ApplyDisabledAsync(args.Value))
+            .WithChangeHandler(args => ApplyDisabledAsync(args.Value))
             .Attach();
     }
 

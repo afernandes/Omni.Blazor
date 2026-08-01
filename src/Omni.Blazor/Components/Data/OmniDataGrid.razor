@@ -2,13 +2,17 @@
 @typeparam TItem
 @inherits OmniComponent
 @implements IDisposable
-@inject IJSRuntime JS
+@inject FileDownloadService Downloads
+@inject DataGridInteropService GridInterop
 @using Omni.Blazor.Utilities
 
-@* Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via LoadData. *@
+@* Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via DataProvider. *@
 
 <CascadingValue Value="this" IsFixed="true">
-    <div class="@RootCss" style="@RootInlineStyle" @attributes="Attributes">
+    <div class="@RootCss"
+         style="@RootInlineStyle"
+         aria-busy="@(IsHierarchyMode ? IsHierarchyLoading : _loading)"
+         @attributes="Attributes">
         @if (!Embed && (ToolbarContent is not null || AllowSearch || AllowExport || AllowColumnVisibility))
         {
             <div class="omni-grid-toolbar">
@@ -48,7 +52,7 @@
                 @if (AllowExport)
                 {
                     <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm" Icon="download"
-                                 Text="Exportar" OnClick="ExportCsvAsync" />
+                                 Text="Exportar" Disabled="@IsExporting" OnClick="ExportCsvAsync" />
                 }
             </div>
         }
@@ -56,7 +60,7 @@
         @* Hidden column registration *@
         <div style="display:none">@Columns</div>
 
-        @if (AllowGrouping)
+        @if (AllowGrouping && !IsHierarchyMode)
         {
             <div class="omni-grid-group-panel" @ondragover:preventDefault="true" @ondrop="OnGroupPanelDropAsync">
                 @if (_groupCols.Count == 0)
@@ -92,7 +96,10 @@
                     @LoadingTemplate
                 </div>
             }
-            <table class="@TableCss">
+            <table class="@TableCss"
+                   role="@(IsHierarchyMode ? "treegrid" : null)"
+                   aria-label="@(IsHierarchyMode ? HierarchyAriaLabel : null)"
+                   aria-rowcount="@(IsHierarchyMode ? HierarchyRows.Count : null)">
                 <colgroup>
                     @if (AllowMultiSelection) { <col style="width:36px" /> }
                     @if (DetailTemplate is not null) { <col style="width:36px" /> }
@@ -190,7 +197,7 @@
                 <tbody>
                     @{
                         var anchorCol = HierarchyAnchorColumn;
-                        var totalRows = IsHierarchyMode ? _flatView.Count : _view.Count;
+                        var totalRows = IsHierarchyMode ? HierarchyRows.Count : _view.Count;
                     }
                     @if (_loading && LoadingSkeleton && LoadingTemplate is null)
                     {
@@ -207,7 +214,7 @@
                     {
                         @if (Virtualize)
                         {
-                            <OmniVirtualize TItem="TreeRow" Items="@_flatView" SpacerElement="tr"
+                            <OmniVirtualize TItem="HierarchyRow<TItem>" Items="@HierarchyRowsCollection" SpacerElement="tr"
                                              ItemSize="@RowHeight" OverscanCount="@OverscanCount">
                                 <ItemContent Context="treeRow">
                                     @RenderTreeRowFragment(treeRow)
@@ -216,7 +223,7 @@
                         }
                         else
                         {
-                            foreach (var treeRow in _flatView)
+                            foreach (var treeRow in HierarchyRows)
                             {
                                 @RenderTreeRowFragment(treeRow)
                             }
@@ -277,6 +284,13 @@
             </table>
         </div>
 
+        @if (IsHierarchyMode && HierarchyLimitReached)
+        {
+            <div class="omni-tree-grid-limit" role="status">
+                @string.Format(HierarchyLimitReachedText, MaxVisibleRows)
+            </div>
+        }
+
         @if (EffectivePaging && _totalCount > PageSize)
         {
             <div class="omni-grid-footer">
@@ -297,19 +311,19 @@
 
 @code {
     // ——— Data source ————————————————————————————————————————————————————
-    /// <summary>Fonte de dados in-memory. Ignorado se <see cref="LoadData"/> for setado.</summary>
+    /// <summary>Fonte de dados in-memory. Ignorado se <see cref="DataProvider"/> for setado.</summary>
     [Parameter] public IEnumerable<TItem>? Data { get; set; }
 
     /// <summary>
     /// Callback server-side. Quando setado, o DataGrid delega filter/sort/page
     /// ao consumidor. O retorno é a janela de items a renderizar + total count.
     /// </summary>
-    [Parameter] public Func<GridState<TItem>, Task<GridLoadResult<TItem>>>? LoadData { get; set; }
+    [Parameter] public GridDataProvider<TItem>? DataProvider { get; set; }
 
     /// <summary>Override do total quando server-side (caso o consumidor não preencha <c>TotalCount</c> no resultado).</summary>
     [Parameter] public int? Count { get; set; }
 
-    /// <summary>Debounce (ms) entre keystrokes na busca antes de chamar <c>LoadData</c>.</summary>
+    /// <summary>Debounce (ms) entre keystrokes na busca antes de chamar <c>DataProvider</c>.</summary>
     [Parameter] public int DebounceMs { get; set; } = 300;
 
     /// <summary>Definição das colunas (<c>&lt;OmniDataGridColumn&gt;</c>). Registradas via cascading.</summary>
@@ -354,7 +368,7 @@
     /// <summary>Fired when the user confirms an inline edit (clicks check). Use to persist changes.</summary>
     [Parameter] public EventCallback<TItem> RowUpdated { get; set; }
 
-    /// <summary>Shows a "Exportar" button in the toolbar that downloads visible rows as CSV.</summary>
+    /// <summary>Shows an export action that streams the filtered dataset as a bounded CSV.</summary>
     [Parameter] public bool AllowExport { get; set; }
 
     /// <summary>Nome do arquivo gerado pelo export CSV. Default <c>"export.csv"</c>.</summary>
@@ -425,34 +439,6 @@
     /// <summary>Emitido quando uma linha é colapsada.</summary>
     [Parameter] public EventCallback<TItem> OnRowCollapse { get; set; }
 
-    // ——— Hierarquia / Tree-grid ———————————————————————————————————————
-    /// <summary>
-    /// Função síncrona que retorna os filhos de um item. Quando setada, o grid
-    /// vira tree-grid: cada linha pode expandir mostrando filhos com indentação.
-    /// Multi-nível recursivo.
-    /// </summary>
-    [Parameter] public Func<TItem, IEnumerable<TItem>?>? ChildrenSelector { get; set; }
-
-    /// <summary>
-    /// Callback assíncrono que carrega os filhos sob demanda. Disparado na primeira
-    /// expansão de cada nó. Resultado é cacheado. Mutuamente exclusivo com <see cref="ChildrenSelector"/>;
-    /// se ambos estiverem setados, <c>ChildrenSelector</c> tem prioridade.
-    /// </summary>
-    [Parameter] public Func<TItem, Task<IEnumerable<TItem>?>>? LoadChildren { get; set; }
-
-    /// <summary>
-    /// Predicado opcional que decide se uma linha tem filhos (mostra o chevron).
-    /// Útil em modo <see cref="LoadChildren"/> onde a contagem só é conhecida após o load.
-    /// Default: assume <c>true</c> quando <c>LoadChildren</c> está setado.
-    /// </summary>
-    [Parameter] public Func<TItem, bool>? HasChildren { get; set; }
-
-    /// <summary>Pixels de indentação por nível. Default 20.</summary>
-    [Parameter] public int IndentSize { get; set; } = 20;
-
-    /// <summary>Quando true, expande todos os nós no primeiro render. Default false.</summary>
-    [Parameter] public bool InitiallyExpanded { get; set; }
-
     /// <summary>
     /// Função opcional que retorna classes CSS extras por linha — útil para destacar
     /// linhas específicas (ex: "linha atual", "registro com pendência"). Aplicado em
@@ -512,9 +498,10 @@
     private TItem? _editingRow;
     private bool _colMenuOpen;
     private bool _loading;
-    private System.Threading.Timer? _searchDebounceTimer;
+    private CancellationTokenSource? _searchDebounceCts;
     private CancellationTokenSource? _loadCts;
     private int _loadSeq;
+    private int _disposeState;
     private IReadOnlyDictionary<string, object?>? _serverAggregates;
     private readonly Dictionary<OmniDataGridColumn<TItem>, FilterDescriptor> _filters = new();
     private readonly HashSet<TItem> _selectedInternal = new();
@@ -538,21 +525,8 @@
         IReadOnlyList<TItem> Items,
         IReadOnlyList<GroupNode>? Children);
 
-    // Tree-grid state
-    private readonly HashSet<TItem> _treeExpanded = new();
-#pragma warning disable CS8714 // TItem may not satisfy 'notnull' — usuário garante chaves não-nulas via ChildrenSelector/LoadChildren
-    private readonly Dictionary<TItem, List<TItem>> _treeChildrenCache = new();
-#pragma warning restore CS8714
-    private readonly HashSet<TItem> _treeLoading = new();
-    private List<TreeRow> _flatView = new();
-    private bool _initiallyExpandedApplied;
-
-    private bool IsHierarchyMode => ChildrenSelector is not null || LoadChildren is not null;
-
     /// <summary>True when at least one column is grouped (and not in tree mode).</summary>
     private bool IsGroupMode => _groupCols.Count > 0 && !IsHierarchyMode;
-
-    private sealed record TreeRow(TItem Item, int Level, bool HasChildren);
 
     // Frozen column inline styles (recomputed when visible columns / widths change)
     private readonly Dictionary<OmniDataGridColumn<TItem>, (string Css, string Style)> _frozenStyles = new();
@@ -594,9 +568,21 @@
 
     internal void Register(OmniDataGridColumn<TItem> col)
     {
-        if (!_columns.Contains(col)) { _columns.Add(col); _ = ApplyAndRenderAsync(); }
+        if (!_columns.Contains(col))
+        {
+            _columns.Add(col);
+            ObserveTask(ApplyAndRenderAsync(), "OmniDataGrid.RegisterColumn");
+        }
     }
     internal void Unregister(OmniDataGridColumn<TItem> col) => _columns.Remove(col);
+
+    /// <summary>
+    /// Chamado por uma coluna cujo <c>Visible</c> mudou depois da montagem. O cabeçalho
+    /// e as células são desenhados aqui, então sem este aviso o estado da coluna muda e
+    /// a tabela continua exatamente como estava. Mesmo efeito de <see cref="ToggleColumn"/>,
+    /// que é o caminho do menu embutido.
+    /// </summary>
+    internal void NotifyColumnsChanged() => StateHasChanged();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -607,7 +593,7 @@
     {
         _search = value;
         _page = 0;
-        if (LoadData is not null && DebounceMs > 0)
+        if (DataProvider is not null && DebounceMs > 0)
         {
             ScheduleDebouncedApply();
         }
@@ -619,11 +605,49 @@
 
     private void ScheduleDebouncedApply()
     {
-        _searchDebounceTimer?.Dispose();
-        _searchDebounceTimer = new System.Threading.Timer(async _ =>
+        var next = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _searchDebounceCts, next);
+        CancelSafely(previous);
+        ObserveTask(ApplyAfterDebounceAsync(next), "OmniDataGrid.SearchDebounce");
+    }
+
+    private async Task ApplyAfterDebounceAsync(CancellationTokenSource debounceCts)
+    {
+        var token = debounceCts.Token;
+        try
         {
+            await Task.Delay(DebounceMs, token);
+            token.ThrowIfCancellationRequested();
             await InvokeAsync(ApplyAndRenderAsync);
-        }, null, DebounceMs, System.Threading.Timeout.Infinite);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Superseded search or component disposal.
+        }
+        catch (ObjectDisposedException) when (Volatile.Read(ref _disposeState) != 0)
+        {
+            // Renderer and component lifetime ended while the debounce resumed.
+        }
+        catch (InvalidOperationException) when (Volatile.Read(ref _disposeState) != 0)
+        {
+            // Renderer and component lifetime ended while the debounce resumed.
+        }
+        catch (Exception exception)
+        {
+            try
+            {
+                await DispatchExceptionAsync(exception);
+            }
+            catch when (Volatile.Read(ref _disposeState) != 0)
+            {
+                // The renderer was released while reporting the original failure.
+            }
+        }
+        finally
+        {
+            Interlocked.CompareExchange(ref _searchDebounceCts, null, debounceCts);
+            debounceCts.Dispose();
+        }
     }
 
     private async Task OnPrevPageAsync()
@@ -642,7 +666,7 @@
 
     private async Task ApplyAndRenderAsync()
     {
-        if (LoadData is not null)
+        if (DataProvider is not null)
         {
             await ApplyServerSideAsync();
         }
@@ -653,12 +677,11 @@
 
         if (IsHierarchyMode)
         {
-            if (InitiallyExpanded && !_initiallyExpandedApplied)
-            {
-                _initiallyExpandedApplied = true;
-                foreach (var root in _view) await WalkExpandAsync(root);
-            }
-            await FlattenTreeAsync();
+            await PrepareHierarchyAsync();
+        }
+        else
+        {
+            await DisableHierarchyAsync();
         }
 
         BuildGroups();
@@ -697,10 +720,11 @@
     private async Task ApplyServerSideAsync()
     {
         // Cancel previous in-flight load — só o último request vale.
-        _loadCts?.Cancel();
-        _loadCts = new CancellationTokenSource();
-        var token = _loadCts.Token;
-        var seq = ++_loadSeq;
+        var currentCts = new CancellationTokenSource();
+        var previousCts = Interlocked.Exchange(ref _loadCts, currentCts);
+        CancelSafely(previousCts);
+        var token = currentCts.Token;
+        var seq = Interlocked.Increment(ref _loadSeq);
 
         var sorts = _sorts
             .Where(s => s.Dir != SortDirection.None)
@@ -723,13 +747,15 @@
         GridLoadResult<TItem>? result = null;
         try
         {
-            result = await LoadData!(state);
-            if (token.IsCancellationRequested || seq != _loadSeq) return;
+            result = await DataProvider!(state, token);
+            if (token.IsCancellationRequested || seq != Volatile.Read(ref _loadSeq)) return;
         }
         catch (OperationCanceledException) { return; }
         finally
         {
-            if (seq == _loadSeq) _loading = false;
+            if (seq == Volatile.Read(ref _loadSeq)) _loading = false;
+            Interlocked.CompareExchange(ref _loadCts, null, currentCts);
+            currentCts.Dispose();
         }
 
         if (result is null) { _view = new(); _totalCount = 0; _serverAggregates = null; return; }
@@ -884,113 +910,6 @@
         StateHasChanged();
     }
 
-    // ——— Tree-grid (hierarquia) ————————————————————————————————————————
-    private OmniDataGridColumn<TItem>? HierarchyAnchorColumn =>
-        IsHierarchyMode
-            ? (VisibleColumns.FirstOrDefault(c => c.IsHierarchyAnchor) ?? VisibleColumns.FirstOrDefault())
-            : null;
-
-    private async Task FlattenTreeAsync()
-    {
-        _flatView.Clear();
-        foreach (var root in _view)
-        {
-            await AppendTreeNodeAsync(root, level: 0);
-        }
-    }
-
-    private async Task AppendTreeNodeAsync(TItem item, int level)
-    {
-        var children = await ResolveChildrenAsync(item, loadIfNeeded: false);
-        bool hasChildren = ResolveHasChildren(item, children);
-        _flatView.Add(new TreeRow(item, level, hasChildren));
-
-        if (_treeExpanded.Contains(item) && hasChildren)
-        {
-            var loaded = await ResolveChildrenAsync(item, loadIfNeeded: true);
-            if (loaded is not null)
-            {
-                foreach (var c in loaded) await AppendTreeNodeAsync(c, level + 1);
-            }
-        }
-    }
-
-    private async Task<List<TItem>?> ResolveChildrenAsync(TItem item, bool loadIfNeeded)
-    {
-        if (ChildrenSelector is not null)
-        {
-            var children = ChildrenSelector(item);
-            return children?.ToList();
-        }
-        if (LoadChildren is not null)
-        {
-            if (_treeChildrenCache.TryGetValue(item, out var cached)) return cached;
-            if (!loadIfNeeded) return null;
-            _treeLoading.Add(item);
-            try
-            {
-                var loaded = (await LoadChildren(item))?.ToList() ?? new();
-                _treeChildrenCache[item] = loaded;
-                return loaded;
-            }
-            finally
-            {
-                _treeLoading.Remove(item);
-            }
-        }
-        return null;
-    }
-
-    private bool ResolveHasChildren(TItem item, IReadOnlyList<TItem>? children)
-    {
-        if (HasChildren is not null) return HasChildren(item);
-        if (children is not null) return children.Count > 0;
-        // Lazy: assume true antes do primeiro load
-        return LoadChildren is not null;
-    }
-
-    /// <summary>Expande todos os nós cujos filhos sejam conhecidos.</summary>
-    public async Task ExpandAllAsync()
-    {
-        if (!IsHierarchyMode) return;
-        foreach (var root in _view) await WalkExpandAsync(root);
-        await ApplyAndRenderAsync();
-    }
-
-    private async Task WalkExpandAsync(TItem item)
-    {
-        _treeExpanded.Add(item);
-        var children = await ResolveChildrenAsync(item, loadIfNeeded: true);
-        if (children is null) return;
-        foreach (var c in children) await WalkExpandAsync(c);
-    }
-
-    /// <summary>Recolhe todos os nós.</summary>
-    public async Task CollapseAllAsync()
-    {
-        _treeExpanded.Clear();
-        await ApplyAndRenderAsync();
-    }
-
-    private async Task ToggleTreeAsync(TItem row)
-    {
-        if (_treeExpanded.Contains(row))
-        {
-            _treeExpanded.Remove(row);
-        }
-        else
-        {
-            _treeExpanded.Add(row);
-            // Lazy: força carregamento e cacheia
-            if (LoadChildren is not null && !_treeChildrenCache.ContainsKey(row))
-            {
-                StateHasChanged(); // mostra spinner inline
-                await ResolveChildrenAsync(row, loadIfNeeded: true);
-            }
-        }
-        await ApplyAndRenderAsync();
-    }
-
     // ——— Frozen column offsets ————————————————————————————————————————
     private void RecomputeFrozenStyles()
     {
@@ -1111,40 +1030,6 @@
         StateHasChanged();
     }
 
-    private async Task ExportCsvAsync()
-    {
-        var cols = VisibleColumns.ToList();
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine(string.Join(",", cols.Select(c => CsvEscape(c.Title ?? ""))));
-        // Server-side: pega tudo via LoadData(Top=int.MaxValue) — pode ser caro mas é o que o usuário pediu
-        IReadOnlyList<TItem> rows;
-        if (LoadData is not null)
-        {
-            var sorts = _sorts
-                .Where(s => s.Dir != SortDirection.None)
-                .Select(s => new SortDescriptor(s.Col.ResolvedPropertyName, s.Dir))
-                .ToList();
-            var state = new GridState<TItem>(
-                0, int.MaxValue,
-                string.IsNullOrWhiteSpace(_search) ? null : _search!.Trim(),
-                sorts,
-                _filters.Values.ToList(),
-                Array.Empty<string>());
-            var r = await LoadData(state);
-            rows = r.Items;
-        }
-        else
-        {
-            rows = ApplyFilterAndSort((Data ?? Enumerable.Empty<TItem>()).ToList());
-        }
-        foreach (var item in rows)
-        {
-            sb.AppendLine(string.Join(",", cols.Select(c => CsvEscape(c.GetCellText(item) ?? ""))));
-        }
-        try { await JS.InvokeVoidAsync("omniBlazor.downloadFile", ExportFilename, sb.ToString(), "text/csv;charset=utf-8"); }
-        catch { /* prerender */ }
-    }
-
     private List<TItem> ApplyFilterAndSort(List<TItem> rows)
     {
         IEnumerable<TItem> src = rows;
@@ -1171,7 +1056,7 @@
             _filters[col] = new FilterDescriptor(col.ResolvedPropertyName, FilterOperator.Contains, value);
         }
         _page = 0;
-        if (LoadData is not null && DebounceMs > 0) ScheduleDebouncedApply();
+        if (DataProvider is not null && DebounceMs > 0) ScheduleDebouncedApply();
         else await ApplyAndRenderAsync();
     }
 
@@ -1243,7 +1128,7 @@
         if (col.Aggregate is null) return null;
 
         // Server-side: usar valor pré-calculado pelo consumidor (se houver)
-        if (LoadData is not null)
+        if (DataProvider is not null)
         {
             if (_serverAggregates is not null &&
                 _serverAggregates.TryGetValue(col.ResolvedPropertyName, out var v))
@@ -1406,13 +1291,6 @@
         };
     }
 
-    private static string CsvEscape(string value)
-    {
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
-            return "\"" + value.Replace("\"", "\"\"") + "\"";
-        return value;
-    }
-
     /// <summary>
     /// Inline style aplicado no root <c>.omni-grid</c>. Quando <see cref="Virtualize"/>
     /// está ativo, aplica altura fixa no root (o flex column distribui pra toolbar/scroller
@@ -1433,25 +1311,47 @@
         }
     }
 
-    private RenderFragment RenderTreeRowFragment(TreeRow tr) => __builder =>
+    private RenderFragment RenderTreeRowFragment(HierarchyRow<TItem> tr) => __builder =>
     {
         var row = tr.Item;
         var level = tr.Level;
         var hasChildren = tr.HasChildren;
         var isEditing = _editingRow is not null && ReferenceEquals(_editingRow, row);
         var isSelected = AllowMultiSelection && Selection.Contains(row);
+        var isDetailExpanded = DetailTemplate is not null && _expanded.Contains(row);
         var anchorCol = HierarchyAnchorColumn;
-        <tr class="@RowCss(row, isEditing, isSelected)" @onclick="@(() => HandleRowClick(row))">
+        <tr @key="tr.Key"
+            class="@RowCss(row, isEditing, isSelected)"
+            role="row"
+            aria-level="@(level + 1)"
+            aria-expanded="@HierarchyExpandedAria(tr)"
+            aria-selected="@HierarchySelectedAria(row)"
+            tabindex="@HierarchyRowTabIndex(tr)"
+            @onclick="@(() => HandleHierarchyRowClickAsync(tr))"
+            @ondblclick="@(() => HandleHierarchyRowDoubleClickAsync(tr))"
+            @onkeydown="@(args => HandleHierarchyKeyDownAsync(tr, args))">
             @if (AllowMultiSelection)
             {
                 <td class="omni-grid-td-select" @onclick:stopPropagation>
                     <OmniCheckBox Value="isSelected" ValueChanged="@(v => OnRowSelectChangedAsync(row, v))" />
                 </td>
             }
+            @if (DetailTemplate is not null)
+            {
+                <td class="omni-grid-td-expand" @onclick:stopPropagation>
+                    <button type="button"
+                            class="@($"omni-grid-expand-btn {(isDetailExpanded ? "omni-active" : "")}")"
+                            aria-label="@(isDetailExpanded ? "Colapsar" : "Expandir")"
+                            aria-expanded="@isDetailExpanded"
+                            @onclick="@(_ => ToggleExpandAsync(row))">
+                        <OmniIcon Name="@(isDetailExpanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
+                    </button>
+                </td>
+            }
             @foreach (var c in VisibleColumns)
             {
                 var isAnchor = c == anchorCol;
-                <td class="@CellCss(c)" style="@CellStyle(c)">
+                <td role="gridcell" class="@CellCss(c)" style="@CellStyle(c)">
                     @if (isAnchor)
                     {
                         <div class="omni-grid-tree-anchor">
@@ -1459,17 +1359,18 @@
                             @if (hasChildren)
                             {
                                 <button type="button" class="omni-grid-tree-chevron"
-                                        aria-label="@(_treeExpanded.Contains(row) ? "Colapsar" : "Expandir")"
-                                        aria-expanded="@_treeExpanded.Contains(row)"
+                                        aria-label="@(_hierarchy.IsExpanded(tr.Key) ? CollapseText : ExpandText)"
+                                        aria-expanded="@_hierarchy.IsExpanded(tr.Key)"
+                                        disabled="@_hierarchy.IsNodeLoading(tr.Key)"
                                         @onclick:stopPropagation
-                                        @onclick="@(_ => ToggleTreeAsync(row))">
-                                    @if (_treeLoading.Contains(row))
+                                        @onclick="@(_ => ToggleHierarchyItemAsync(row))">
+                                    @if (_hierarchy.IsNodeLoading(tr.Key))
                                     {
                                         <OmniSpinner Size="ComponentSize.Sm" />
                                     }
                                     else
                                     {
-                                        <OmniIcon Name="@(_treeExpanded.Contains(row) ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
+                                        <OmniIcon Name="@(_hierarchy.IsExpanded(tr.Key) ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
                                     }
                                 </button>
                             }
@@ -1511,6 +1412,24 @@
             }
             @if (HasFillerColumn) { <td class="omni-grid-td-filler"></td> }
         </tr>
+        @if (isDetailExpanded)
+        {
+            <tr class="omni-grid-detail-row">
+                <td colspan="@FullColSpan">
+                    @DetailTemplate!(row)
+                </td>
+            </tr>
+        }
+        @if (_hierarchy.TryGetError(tr.Key, out var hierarchyError))
+        {
+            <tr @key="HierarchyErrorRowKey(tr.Key)" class="omni-tree-grid-error-row">
+                <td colspan="@FullColSpan">
+                    <span>@HierarchyLoadErrorText</span>
+                    <button type="button" @onclick="@(() => RetryHierarchyAsync(row))">@HierarchyRetryText</button>
+                    <span class="omni-visually-hidden">@hierarchyError</span>
+                </td>
+            </tr>
+        }
     };
 
     private RenderFragment RenderFlatRowFragment(TItem row) => __builder =>
@@ -1696,7 +1615,7 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.gridStartColumnResize",
+            await GridInterop.StartColumnResizeAsync(
                 ColUid(visibleIndex), _selfRef, visibleIndex, e.ClientX, 48);
         }
         catch { /* SSR / JS not ready */ }
@@ -1718,12 +1637,30 @@
 
     public void Dispose()
     {
-        _searchDebounceTimer?.Dispose();
-        _searchDebounceTimer = null;
-        _loadCts?.Cancel();
-        _loadCts?.Dispose();
-        _loadCts = null;
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+
+        var debounce = Interlocked.Exchange(ref _searchDebounceCts, null);
+        CancelSafely(debounce);
+        var load = Interlocked.Exchange(ref _loadCts, null);
+        CancelSafely(load);
+        CancelExport();
+        _hierarchy.Dispose();
         _selfRef?.Dispose();
         _selfRef = null;
+        GC.SuppressFinalize(this);
+    }
+
+    private static void CancelSafely(CancellationTokenSource? source)
+    {
+        if (source is null) return;
+
+        try
+        {
+            source.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The operation owns disposal and may have completed concurrently.
+        }
     }
 }

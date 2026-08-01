@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Omni.Blazor.Utilities;
 
@@ -12,18 +13,37 @@ namespace Omni.Blazor.Utilities;
 /// </summary>
 internal static class SchedulerReflection
 {
-    private static readonly ConcurrentDictionary<(Type, string), PropertyInfo?> _cache = new();
+    // A global (Type, string) dictionary permanently roots collectible/dynamic
+    // types and grows for arbitrary invalid property names. The weak type key
+    // releases whole per-type caches, and only real properties are retained.
+    private static readonly ConditionalWeakTable<Type, ConcurrentDictionary<string, PropertyInfo>> Cache = new();
 
     /// <summary>Read a property value by name (cached). Returns null if the property doesn't exist.</summary>
-    public static object? GetValue(object item, string propertyName)
+    public static object? GetValue(object? item, string propertyName)
     {
-        var pi = _cache.GetOrAdd((item.GetType(), propertyName),
-            static key => key.Item1.GetProperty(key.Item2));
-        return pi?.GetValue(item);
+        if (item is null) return null;
+
+        Type type = item.GetType();
+        ConcurrentDictionary<string, PropertyInfo> properties = Cache.GetValue(
+            type,
+            static _ => new ConcurrentDictionary<string, PropertyInfo>(StringComparer.Ordinal));
+
+        if (!properties.TryGetValue(propertyName, out PropertyInfo? property))
+        {
+            property = type.GetProperty(propertyName);
+            if (property is not null) properties.TryAdd(propertyName, property);
+        }
+
+        return property?.GetValue(item);
     }
 
+    internal static int CachedPropertyCount(Type type)
+        => Cache.TryGetValue(type, out ConcurrentDictionary<string, PropertyInfo>? properties)
+            ? properties.Count
+            : 0;
+
     /// <summary>Read a property as a <see cref="DateTime"/>, coercing <see cref="DateTimeOffset"/>/strings.</summary>
-    public static DateTime GetDateTime(object item, string propertyName)
+    public static DateTime GetDateTime(object? item, string propertyName)
     {
         var value = GetValue(item, propertyName);
         return value switch

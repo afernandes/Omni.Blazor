@@ -48,18 +48,55 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Restore
+        run: dotnet restore Omni.Blazor.slnx
+
       - name: Resolve version (MinVer)
         id: minver
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=$(dotnet msbuild ${{ env.PROJECT }} -t:MinVer -getProperty:PackageVersion | tail -n1)
+          fi
+          test -n "$VERSION" || { echo "::error::Could not resolve package version"; exit 1; }
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Releasing Omni.Blazor v$VERSION"
+          echo "Validating Omni.Blazor v$VERSION"
 
-      - name: Restore
-        run: dotnet restore ${{ env.PROJECT }}
+      - name: NuGet vulnerability gate
+        run: |
+          dotnet list Omni.Blazor.slnx package --vulnerable --include-transitive \
+            --format json --output-version 1 > vulnerable-packages.json
+          python3 scripts/check_vulnerable_packages.py vulnerable-packages.json
 
       - name: Build (Release)
-        run: dotnet build ${{ env.PROJECT }} --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+        run: dotnet build Omni.Blazor.slnx --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+
+      - name: Test release binaries
+        run: |
+          for proj in \
+            test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj \
+            test/Omni.Blazor.ManifestGen.Tests/Omni.Blazor.ManifestGen.Tests.csproj \
+            test/Omni.Blazor.Mcp.Tests/Omni.Blazor.Mcp.Tests.csproj; do
+            dotnet test "$proj" --configuration Release --no-build
+          done
+
+      - name: Install Chromium
+        run: pwsh test/Omni.Blazor.BrowserTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Test DataForm in Chromium
+        run: dotnet test test/Omni.Blazor.BrowserTests/Omni.Blazor.BrowserTests.csproj --configuration Release --no-build
+
+      - name: Source quality gates
+        run: |
+          python3 scripts/check_template_code.py
+          python3 scripts/check_async_safety.py
+
+      - name: Manifest is up to date
+        run: |
+          dotnet run --project tools/Omni.Blazor.ManifestGen --configuration Release --no-build
+          git diff --exit-code -- docs/components.json llms.txt llms-full.txt \
+            || { echo "::error::Manifest artifacts are stale"; exit 1; }
 
       - name: Pack
         run: |
@@ -88,6 +125,7 @@ jobs:
           set -e
           dotnet pack tools/Omni.Blazor.Mcp/Omni.Blazor.Mcp.csproj \
             --configuration Release \
+            --no-build \
             --output ${{ env.ARTIFACTS }} \
             -p:ContinuousIntegrationBuild=true
           # Same version guard as the library: the packed tool MUST match the tag,
@@ -101,12 +139,16 @@ jobs:
           set -e
           dotnet pack src/Omni.Blazor.Ai/Omni.Blazor.Ai.csproj \
             --configuration Release \
+            --no-build \
             --output ${{ env.ARTIFACTS }} \
             -p:ContinuousIntegrationBuild=true
           # Same version guard: the packed AI package MUST match the tag, else
           # `dotnet nuget push --skip-duplicate` could silently no-op a mismatch.
           EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.Ai.${{ steps.minver.outputs.version }}.nupkg"
           test -f "$EXPECTED" || { echo "::error::AI package version != tag — esperado $EXPECTED"; exit 1; }
+
+      - name: Smoke test exact packed artifacts
+        run: python3 scripts/smoke_packages.py ${{ env.ARTIFACTS }} ${{ steps.minver.outputs.version }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

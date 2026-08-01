@@ -9,15 +9,21 @@ public class ManifestBuilderTests
     private static readonly System.Reflection.Assembly Lib = typeof(OmniComponent).Assembly;
 
     // Only types with a source entry are treated as components — so we drive Build
-    // with a controlled two-component map and assert the reflected shape.
+    // with a controlled map and assert the reflected shape.
     private static List<ComponentInfo> Build(
         Dictionary<string, string>? docs = null,
         Dictionary<string, string>? desc = null)
     {
-        var cats = new Dictionary<string, string> { ["OmniButton"] = "Buttons", ["OmniTextBox"] = "Inputs" };
+        var cats = new Dictionary<string, string>
+        {
+            ["OmniButton"] = "Buttons",
+            ["OmniForm"] = "Forms",
+            ["OmniTextBox"] = "Inputs",
+        };
         var src = new Dictionary<string, string>
         {
             ["OmniButton"] = "src/Omni.Blazor/Components/Buttons/OmniButton.razor",
+            ["OmniForm"] = "src/Omni.Blazor/Components/Forms/OmniForm.razor",
             ["OmniTextBox"] = "src/Omni.Blazor/Components/Inputs/OmniTextBox.razor",
         };
         return ManifestBuilder.Build(Lib, docs ?? [], cats, src, desc ?? []);
@@ -27,9 +33,10 @@ public class ManifestBuilderTests
     public void Build_includes_only_sourced_components_sorted()
     {
         var comps = Build();
-        Assert.Equal(2, comps.Count);
+        Assert.Equal(3, comps.Count);
         Assert.Equal("OmniButton", comps[0].Name);   // Buttons < Inputs
-        Assert.Equal("OmniTextBox", comps[1].Name);
+        Assert.Equal("OmniForm", comps[1].Name);
+        Assert.Equal("OmniTextBox", comps[2].Name);
     }
 
     [Fact]
@@ -57,6 +64,17 @@ public class ManifestBuilderTests
         ComponentInfo tb = Build().Single(c => c.Name == "OmniTextBox");
         Assert.True(tb.IsInput);
         Assert.Equal("FormComponent<T>", tb.BaseType);
+    }
+
+    [Fact]
+    public void Build_includes_direct_ComponentBase_component()
+    {
+        ComponentInfo form = Build().Single(c => c.Name == "OmniForm");
+
+        Assert.Equal("ComponentBase", form.BaseType);
+        Assert.True(form.HasChildContent);
+        Assert.False(form.IsInput);
+        Assert.Single(form.Parameters, p => p.Name == "Model");
     }
 
     [Fact]

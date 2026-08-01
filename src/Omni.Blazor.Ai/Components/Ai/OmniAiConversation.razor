@@ -82,6 +82,7 @@
 
     private string _draft = "";
     private bool _shouldScroll;
+    private int _disposeState;
     private string LogId => $"{Id}-log";
     private OmniChatClient? _subscribedClient;
 
@@ -101,8 +102,39 @@
 
     private void OnClientChanged()
     {
-        _shouldScroll = true;
-        InvokeAsync(StateHasChanged);
+        ObserveTask(RefreshFromClientAsync(), "OmniAiConversation.Refresh");
+    }
+
+    private async Task RefreshFromClientAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (IsDisposed) return;
+                _shouldScroll = true;
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException) when (IsDisposed)
+        {
+            // A final streamed update raced with component disposal.
+        }
+        catch (InvalidOperationException) when (IsDisposed)
+        {
+            // Renderer was released during disposal.
+        }
+        catch (Exception exception)
+        {
+            try
+            {
+                await DispatchExceptionAsync(exception);
+            }
+            catch when (IsDisposed)
+            {
+                // The renderer was released while reporting the original failure.
+            }
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -140,6 +172,11 @@
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
         if (_subscribedClient is not null) _subscribedClient.Changed -= OnClientChanged;
+        _subscribedClient = null;
+        GC.SuppressFinalize(this);
     }
+
+    private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
 }

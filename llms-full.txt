@@ -1,6 +1,6 @@
 # Omni.Blazor — full API reference
 
-> 174 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 198 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
 
@@ -134,7 +134,7 @@ Events:
 
 ### OmniFabMenu
 FAB com menu expansível — clique no botão principal pra mostrar/esconder itens (OmniFabMenuItem).
-_base: OmniComponent · source: src/Omni.Blazor/Components/Buttons/OmniFabMenu.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Buttons/OmniFabMenu.razor_
 
 Parameters:
 - `Animation`: FabMenuAnimation {Stagger | Linear | None} = Stagger — Modo de animação de abertura. Default Stagger (pop-in cascading, padrão Material). Linear = fade simples estilo Radzen. None = sem animação.
@@ -339,37 +339,54 @@ Parameters:
 - `Type`: ColumnFilterType {Text | Number | Date | Boolean | Select} = Text — UI/operator family. Default Text.
 
 ### OmniDataGrid
-Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via LoadData.
+Rich data grid with sorting, filtering, grouping, editing, virtualization and optional hierarchical rows.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniDataGrid.razor_
 
 Parameters:
 - `AllowColumnFilter`: bool — Habilita uma linha de filtros por coluna abaixo do header. Só colunas com Filterable exibem o input.
 - `AllowColumnResize`: bool — Lets the user resize columns by dragging the right edge of a header cell.
 - `AllowColumnVisibility`: bool — Shows the column visibility menu in the toolbar.
-- `AllowExport`: bool — Shows a "Exportar" button in the toolbar that downloads visible rows as CSV.
+- `AllowExport`: bool — Shows an export action that streams the filtered dataset as a bounded CSV.
 - `AllowGrouping`: bool — Enables row grouping. Shows a drop panel above the grid; drag a column's grip there (column must be Groupable) — or call GroupByAsync — to group rows by that column. Multiple columns nest.
 - `AllowMultiSelection`: bool — Habilita uma coluna de checkbox à esquerda para seleção múltipla.
 - `AllowPaging`: bool — Liga a paginação no rodapé. Default true. Ignorado quando Virtualize está ativo.
 - `AllowSearch`: bool — Mostra o campo de busca textual na toolbar. Default false.
 - `AllowSorting`: bool — Permite ordenar clicando no header das colunas Sortable. Default true.
-- `ChildrenSelector`: Func<TItem, IEnumerable<TItem>> — Função síncrona que retorna os filhos de um item. Quando setada, o grid vira tree-grid: cada linha pode expandir mostrando filhos com indentação. Multi-nível recursivo.
+- `Children`: Func<TItem, IEnumerable<TItem>> — Synchronous child selector that enables hierarchy mode for in-memory trees.
+- `ChildrenProvider`: HierarchyChildrenProvider<TItem> — Asynchronous, cancellable child source that enables lazy hierarchy mode.
+- `CollapseText`: string — Accessible label for collapsing a hierarchy row.
 - `Count`: int — Override do total quando server-side (caso o consumidor não preencha TotalCount no resultado).
-- `Data`: IEnumerable<TItem> — Fonte de dados in-memory. Ignorado se LoadData for setado.
-- `DebounceMs`: int — Debounce (ms) entre keystrokes na busca antes de chamar LoadData.
+- `Data`: IEnumerable<TItem> — Fonte de dados in-memory. Ignorado se DataProvider for setado.
+- `DataProvider`: GridDataProvider<TItem> — Callback server-side. Quando setado, o DataGrid delega filter/sort/page ao consumidor. O retorno é a janela de items a renderizar + total count.
+- `DebounceMs`: int — Debounce (ms) entre keystrokes na busca antes de chamar DataProvider.
 - `EditMode`: DataGridEditMode {None | Cell | Row} — Enables inline editing. Each column needs an EditTemplate to be editable.
 - `Embed`: bool — When true, renders without outer border/radius and stretches to fill its parent (flex:1 + min-height:0). Internal toolbar is hidden — render your own OmniPaneHeader/OmniPaneToolbar above.
 - `EmptyText`: string — Texto exibido quando não há registros. Default "Nenhum registro encontrado.".
 - `ExpandMode`: ExpandMode {Single | Multi} — Single = apenas uma linha expandida por vez; Multi = quantas o usuário quiser.
+- `ExpandText`: string — Accessible label for expanding a hierarchy row.
+- `ExpandedKeys`: IReadOnlyCollection<object> — Externally controlled expanded key set. Replace the collection when updating it.
+- `ExportBatchSize`: int — Page size used while exporting through DataProvider.
 - `ExportFilename`: string — Nome do arquivo gerado pelo export CSV. Default "export.csv".
+- `ExportProvider`: GridExportProvider<TItem> — Optional streaming source used only by CSV export. When omitted, the grid pages through DataProvider or exports its in-memory source.
 - `GroupPanelText`: string — Placeholder text shown in the (empty) group panel.
-- `HasChildren`: Func<TItem, bool> — Predicado opcional que decide se uma linha tem filhos (mostra o chevron). Útil em modo LoadChildren onde a contagem só é conhecida após o load. Default: assume true quando LoadChildren está setado.
+- `HasChildren`: Func<TItem, bool> — Predicate indicating whether a hierarchy item can be expanded.
 - `Height`: string — Altura do scroller. Obrigatória quando virtualize ativo (default 520px é aplicado automaticamente se não setado).
 - `HideGroupedColumn`: bool — Hides a column from the table once it is used as a grouping key (its value shows in the group header instead).
-- `IndentSize`: int — Pixels de indentação por nível. Default 20.
-- `InitiallyExpanded`: bool — Quando true, expande todos os nós no primeiro render. Default false.
-- `LoadChildren`: Func<TItem, Task<IEnumerable<TItem>>> — Callback assíncrono que carrega os filhos sob demanda. Disparado na primeira expansão de cada nó. Resultado é cacheado. Mutuamente exclusivo com ChildrenSelector; se ambos estiverem setados, ChildrenSelector tem prioridade.
-- `LoadData`: Func<GridState<TItem>, Task<GridLoadResult<TItem>>> — Callback server-side. Quando setado, o DataGrid delega filter/sort/page ao consumidor. O retorno é a janela de items a renderizar + total count.
+- `HierarchyAriaLabel`: string — Accessible label used when the table is rendered as a tree grid.
+- `HierarchyLimitReachedText`: string — Message displayed when the configured hierarchy row limit is reached.
+- `HierarchyLoadErrorText`: string — Message displayed when lazy child loading fails.
+- `HierarchyRetryText`: string — Label for retrying a failed lazy hierarchy load.
+- `IndentSize`: int — Pixels of indentation per hierarchy level.
+- `InitiallyExpanded`: Func<TItem, bool> — Optional predicate applied once when the hierarchy source changes.
+- `KeySelector`: Func<TItem, object> — Stable unique key selector used by hierarchy expansion, cache and loading state.
 - `LoadingSkeleton`: bool — Quando true e LoadingTemplate não está setado, renderiza linhas de OmniSkeleton em vez do spinner — mais elegante para listas longas.
+- `MaxCachedItems`: int — Maximum total lazy-loaded child items retained in the LRU cache.
+- `MaxCachedNodes`: int — Maximum lazy-loaded parent nodes retained in the LRU cache.
+- `MaxChildrenPerNode`: int — Maximum children retained from one lazy-load response.
+- `MaxConcurrentLoads`: int — Maximum number of lazy child requests executed concurrently.
+- `MaxDepth`: int — Maximum hierarchy depth traversed, protecting against cycles and pathological input.
+- `MaxExportRows`: int — Hard cap applied to every export, including custom streaming providers.
+- `MaxVisibleRows`: int — Maximum hierarchy rows flattened before rendering or virtualization.
 - `OverscanCount`: int — Linhas extras renderizadas fora do viewport. Default 4.
 - `PageSize`: int — Quantidade de linhas por página. Default 10.
 - `RowClass`: Func<TItem, string> — Função opcional que retorna classes CSS extras por linha — útil para destacar linhas específicas (ex: "linha atual", "registro com pendência"). Aplicado em conjunto com as classes internas (selecionado, edição, etc.).
@@ -381,7 +398,11 @@ Parameters:
 - `Virtualize`: bool — Liga a virtualização do <tbody>: somente as linhas visíveis (e um overscan pequeno) são montadas no DOM. **Ignora AllowPaging** — paging e virtualize são mutuamente exclusivos. Requer Height definido (default 520px). Implementação via OmniVirtualize com SpacerElement="tr".
 Events:
 - `ColumnResized`: EventCallback<DataGridColumnResizedEventArgs> — Fired after a column is resized (drag of the header handle finished).
+- `ExpandedKeysChanged`: EventCallback<IReadOnlyCollection<object>> — Raised with an immutable snapshot after hierarchy expansion changes.
+- `ExportFailed`: EventCallback<Exception> — Raised when an uncancelled export fails.
+- `ExportTruncated`: EventCallback<int> — Raised when an export reaches MaxExportRows.
 - `Grouped`: EventCallback<IReadOnlyList<string>> — Fired whenever the grouping changes; carries the ordered grouped property names.
+- `HierarchyLoadFailed`: EventCallback<Exception> — Raised when an uncancelled lazy hierarchy load fails.
 - `OnRowClick`: EventCallback<TItem> — Emitido quando uma linha é clicada (fora do modo edição).
 - `OnRowCollapse`: EventCallback<TItem> — Emitido quando uma linha é colapsada.
 - `OnRowExpand`: EventCallback<TItem> — Emitido quando uma linha é expandida.
@@ -436,7 +457,7 @@ Parameters:
 
 ### OmniDiagramCanvas
 OmniDiagramCanvas — generic infinite graph editor: pan/zoom, dotted grid, nodes with named ports, bezier edges, drag-to-connect, marquee selection, minimap, zoom controls and auto-layout.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Diagram/OmniDiagramCanvas.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Data/Diagram/OmniDiagramCanvas.razor_
 
 Parameters:
 - `AutoLayoutText`: string = Auto-layout (organizar) — Tooltip text for the auto-layout button.
@@ -498,9 +519,57 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniDropZoneItem
 Parameters:
 - `ItemAttributes`: IReadOnlyDictionary<string, object> — ItemAttributes contributed by the container's ItemRender hook.
 
+### OmniFileManager
+Provider-backed file manager with bounded loading, navigation and guarded mutations.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniFileManager.razor_
+
+Parameters:
+- `AriaLabel`: string = Gerenciador de arquivos — Accessible label for the component.
+- `BreadcrumbLabel`: string = Localização — Accessible label for breadcrumb navigation.
+- `CancelText`: string = Cancelar — Label for cancelling a pending action.
+- `Capabilities`: FileManagerCapabilities {Browse | CreateFolder | Rename | Delete | Upload | Download | All} = Browse — Enabled optional operations. Browse is always available.
+- `ConfirmText`: string = Confirmar — Label for confirming deletion.
+- `DeleteConfirmationText`: string = Excluir “{0}”? — Delete confirmation template. Placeholder zero receives the entry name.
+- `DeleteText`: string = Excluir — Label for the delete action.
+- `DownloadText`: string = Baixar — Label for the download action.
+- `EmptyText`: string = Esta pasta está vazia. — Message shown when the directory is empty.
+- `ErrorText`: string = Não foi possível concluir a operação. — Message shown after a provider failure.
+- `GridViewText`: string = Exibição em grade — Label for grid view.
+- `ItemsCountText`: string = {0} de {1} itens — Footer template for visible and total item counts.
+- `LimitText`: string = Limite de {0} itens — Footer template shown when the configured item limit was reached.
+- `ListViewText`: string = Exibição em lista — Label for list view.
+- `LoadingText`: string = Carregando arquivos... — Message shown while the initial listing loads.
+- `MaxItems`: int = 1000 — Maximum entries requested, retained and rendered per directory.
+- `MaxUploadFiles`: int = 20 — Maximum files accepted in one upload selection.
+- `NewFolderPlaceholder`: string = Nome da pasta — Placeholder for a new folder name.
+- `NewFolderText`: string = Nova pasta — Label for the create-folder action.
+- `Path`: string = / — Current logical path for two-way binding. Paths use forward slashes.
+- `Provider`: IOmniFileManagerProvider *required* — Backend responsible for browsing and optional mutations.
+- `RefreshText`: string = Atualizar — Label for the refresh action.
+- `RenamePlaceholder`: string = Novo nome — Placeholder for a new entry name.
+- `RenameText`: string = Renomear — Label for the rename action.
+- `SaveText`: string = Salvar — Label for saving an inline edit.
+- `SearchDebounce`: int = 250 — Delay before provider-side text searches, in milliseconds.
+- `SearchPlaceholder`: string = Buscar nesta pasta — Provider-side search placeholder.
+- `SearchText`: string =  — Current provider-side search text for two-way binding.
+- `SelectedItem`: FileManagerEntry — Currently selected entry for two-way binding.
+- `UploadText`: string = Enviar — Label for the upload action.
+- `View`: FileManagerView {List | Grid} = List — Current list or grid layout for two-way binding.
+Events:
+- `DirectoryOpened`: EventCallback<FileManagerEntry> — Raised after a directory is opened and its path changes.
+- `DownloadRequested`: EventCallback<FileManagerEntry> — Raised when the user requests download of a file.
+- `ItemsChanged`: EventCallback — Raised after a provider operation changes the directory contents.
+- `OperationFailed`: EventCallback<Exception> — Raised when an uncancelled provider operation fails.
+- `PathChanged`: EventCallback<string> — Raised when Path changes.
+- `SearchTextChanged`: EventCallback<string> — Raised when SearchText changes.
+- `SelectedItemChanged`: EventCallback<FileManagerEntry> — Raised when SelectedItem changes.
+- `ViewChanged`: EventCallback<FileManagerView> — Raised when View changes.
+Slots:
+- `ItemTemplate`: RenderFragment<FileManagerEntry> (context: FileManagerEntry) — Optional custom renderer for each entry.
+
 ### OmniGantt
 OmniGantt — project timeline inspired by RadzenGantt.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Gantt/OmniGantt.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Data/Gantt/OmniGantt.razor_
 
 Parameters:
 - `AllowColumnResize`: bool — Lets the user resize left-pane columns by dragging the right edge of a header cell. Default true.
@@ -558,7 +627,7 @@ Slots:
 - `Template`: RenderFragment<TItem> (context: TItem) — Optional custom cell template (overrides Property).
 
 ### OmniHtmlEditor
-_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditor.razor_
+_base: FormComponent<T> · accepts ChildContent · form input · source: src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditor.razor_
 
 Parameters:
 - `Height`: string = 320px — Height of the editor surface (CSS). Default 320px.
@@ -569,6 +638,17 @@ Events:
 - `Input`: EventCallback<string> — Fired on every content change in design mode (per keystroke).
 Slots:
 - `ChildContent`: RenderFragment — Custom toolbar content (OmniHtmlEditorButton tools). When null, a default toolbar renders.
+
+### OmniHtmlEditorButton
+A toolbar tool for OmniHtmlEditor.
+_base: ComponentBase · source: src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditorButton.razor_
+
+Parameters:
+- `Command`: string *required* =  — The execCommand name (e.g. bold, justifyCenter, insertOrderedList).
+- `Icon`: string *required* =  — Icon name (Omni icon library).
+- `Shortcut`: string — Optional keyboard shortcut (e.g. Ctrl+B) registered with the editor.
+- `Title`: string — Tooltip / accessible title.
+- `Value`: string — Optional command value (e.g. a color, or a block tag for formatBlock).
 
 ### OmniKanban
 OmniKanban — quadro de colunas com cards arrastáveis.
@@ -650,6 +730,13 @@ Parameters:
 - `Text`: string = Multi-dias — Label shown on this view's switch tab. Default "Multi-dias".
 - `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
 
+### OmniPivotColumn
+A column dimension of an OmniPivotGrid`1. Multiple nest.
+_base: OmniPivotFieldBase<TItem> · source: src/Omni.Blazor/Components/Data/Pivot/OmniPivotColumn.cs_
+
+Parameters:
+- `Width`: string — Optional fixed width for the value columns under this group.
+
 ### OmniPivotGrid
 OmniPivotGrid — pivot table (RadzenPivotDataGrid port).
 _base: OmniComponent · source: src/Omni.Blazor/Components/Data/Pivot/OmniPivotGrid.razor_
@@ -667,9 +754,25 @@ Slots:
 - `Rows`: RenderFragment — Row dimension declarations (OmniPivotRow).
 - `Values`: RenderFragment — Value/measure declarations (OmniPivotValue).
 
+### OmniPivotRow
+A row dimension of an OmniPivotGrid`1. Multiple nest.
+_base: OmniPivotFieldBase<TItem> · source: src/Omni.Blazor/Components/Data/Pivot/OmniPivotRow.cs_
+
+
+### OmniPivotValue
+A value/measure of an OmniPivotGrid`1 — an aggregate (AggregateFunction) of a property computed at each row×column intersection. Multiple values render side-by-side under every column group.
+_base: OmniPivotFieldBase<TItem> · source: src/Omni.Blazor/Components/Data/Pivot/OmniPivotValue.cs_
+
+Parameters:
+- `Aggregate`: AggregateFunction {Sum | Average | Count | Min | Max} — Aggregate function. Default Sum.
+- `Align`: string — CSS text-align for the value cells. Default right.
+- `FormatString`: string — Composite format string for the cell value (e.g. "{0:C}", "{0:P0}").
+Slots:
+- `Template`: RenderFragment<object> (context: object) — Optional cell template (receives the aggregated value).
+
 ### OmniScheduler
 OmniScheduler — calendar/agenda component inspired by RadzenScheduler.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniScheduler.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniScheduler.razor_
 
 Parameters:
 - `AppointmentRender`: Action<SchedulerAppointmentRenderEventArgs<TItem>> — Sync per-appointment render hook (add CSS classes / styles / data-* attributes).
@@ -708,7 +811,7 @@ Slots:
 
 ### OmniTree
 OmniTree — hierarchical tree view (RadzenTree port).
-_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Tree/OmniTree.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Data/Tree/OmniTree.razor_
 
 Parameters:
 - `AllowCheckChildren`: bool = true — When checking a node also checks all its descendants. Default true.
@@ -727,9 +830,61 @@ Events:
 Slots:
 - `ChildContent`: RenderFragment — Inline content: OmniTreeItem and/or OmniTreeLevel.
 
+### OmniTreeGrid
+Accessible hierarchical data table with bounded lazy loading and selection.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniTreeGrid.razor_
+
+Parameters:
+- `AriaLabel`: string — Accessible label for the tree grid.
+- `Children`: Func<TItem, IEnumerable<TItem>> — Synchronous child selector for fully in-memory trees.
+- `ChildrenProvider`: HierarchyChildrenProvider<TItem> — Asynchronous, cancellable lazy child source.
+- `CollapseText`: string — Accessible label for collapsing a row.
+- `EmptyText`: string — Empty-state text.
+- `ExpandOnRowDoubleClick`: bool — Whether a row double-click toggles its expansion state.
+- `ExpandText`: string — Accessible label for expanding a row.
+- `ExpandedKeys`: IReadOnlyCollection<object> — Externally controlled expanded key set. Replace the collection when updating it.
+- `HasChildren`: Func<TItem, bool> — Predicate indicating whether an item can be expanded.
+- `IndentSize`: int — Indentation per hierarchy level in CSS pixels.
+- `InitiallyExpanded`: Func<TItem, bool> — Optional predicate applied once when a data source is reset.
+- `Items`: IEnumerable<TItem> — Root items in the hierarchy.
+- `KeySelector`: Func<TItem, object> — Stable unique key selector. Keys identify expansion, cache and loading state; changing an item's key requires ReloadAsync.
+- `LimitReachedText`: string — Template shown when the visible-row limit is reached.
+- `LoadErrorText`: string — Message shown when lazy child loading fails.
+- `MaxCachedItems`: int — Maximum total lazy-loaded child items retained in the LRU cache.
+- `MaxCachedNodes`: int — Maximum lazy-loaded parent nodes retained in the LRU cache.
+- `MaxChildrenPerNode`: int — Maximum children retained from a single lazy-load response.
+- `MaxConcurrentLoads`: int — Maximum number of lazy child requests executed concurrently.
+- `MaxDepth`: int — Maximum traversed hierarchy depth, protecting against cycles and pathological input.
+- `MaxVisibleRows`: int — Maximum rows flattened and rendered at once.
+- `RetryText`: string — Label for retrying a failed lazy load.
+- `RowClass`: Func<TItem, string> — Optional row CSS class selector.
+- `SelectedItem`: TItem — Currently selected row item for two-way binding.
+Events:
+- `ExpandedKeysChanged`: EventCallback<IReadOnlyCollection<object>> — Raised with an immutable snapshot after expansion changes.
+- `LoadFailed`: EventCallback<Exception> — Raised when an uncancelled lazy-load operation fails.
+- `RowSelected`: EventCallback<TItem> — Raised after a row is selected.
+- `SelectedItemChanged`: EventCallback<TItem> — Raised when SelectedItem changes.
+Slots:
+- `Columns`: RenderFragment — Declarative OmniTreeGridColumn definitions.
+- `EmptyTemplate`: RenderFragment — Optional empty-state content.
+
+### OmniTreeGridColumn
+Declarative column definition registered with a parent OmniTreeGrid.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniTreeGridColumn.razor_
+
+Parameters:
+- `Align`: TreeGridColumnAlign {Start | Center | End} — Horizontal cell alignment.
+- `IsHierarchyAnchor`: bool — Marks this column as the hierarchy indentation/expansion anchor.
+- `Property`: Func<TItem, object> — Raw value selector used by the default cell renderer.
+- `TextSelector`: Func<TItem, string> — Text selector overriding Property formatting.
+- `Title`: string — Column header text.
+- `Width`: string — CSS width such as 240px or 30%.
+Slots:
+- `Template`: RenderFragment<TItem> (context: TItem) — Custom cell template receiving the row item.
+
 ### OmniTreeItem
 A single node of an OmniTree.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Tree/OmniTreeItem.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Data/Tree/OmniTreeItem.razor_
 
 Parameters:
 - `Checkable`: bool = true — Whether this node's checkbox is enabled. Default true.
@@ -742,6 +897,24 @@ Parameters:
 Slots:
 - `ChildContent`: RenderFragment — Nested child nodes (inline) or data-bound children render fragment.
 - `Template`: RenderFragment<OmniTreeItem> (context: OmniTreeItem) — Custom template (receives this item — use context.Value/context.Text).
+
+### OmniTreeLevel
+Declarative binding for one depth of a data-bound OmniTree.
+_base: ComponentBase · source: src/Omni.Blazor/Components/Data/Tree/OmniTreeLevel.razor_
+
+Parameters:
+- `Checkable`: Func<object, bool> — Whether a node's checkbox is enabled. Default: all checkable.
+- `Children`: Func<object, IEnumerable> — Explicit children selector (wins over ChildrenProperty).
+- `ChildrenProperty`: string — Property name whose value (an IEnumerable) holds the children.
+- `Expanded`: Func<object, bool> — Whether a node starts expanded.
+- `HasChildren`: Func<object, bool> — Whether a node has children (controls the chevron). Defaults to "children non-empty".
+- `Icon`: Func<object, string> — Explicit icon selector (wins over IconProperty).
+- `IconProperty`: string — Property name read for each node's leading icon.
+- `Selected`: Func<object, bool> — Whether a node starts selected.
+- `Text`: Func<object, string> — Explicit text selector (wins over TextProperty).
+- `TextProperty`: string — Property name read for each node's text.
+Slots:
+- `Template`: RenderFragment<OmniTreeItem> (context: OmniTreeItem) — Per-node template (receives the OmniTreeItem; use context.Value/context.Text).
 
 ### OmniVirtualize
 Thin wrapper over Blazor's built-in <Virtualize TItem="...">.
@@ -967,7 +1140,7 @@ Events:
 
 ### OmniCarouselItem
 OmniCarouselItem — a single slide inside an <OmniCarousel>.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniCarouselItem.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniCarouselItem.razor_
 
 Slots:
 - `ChildContent`: RenderFragment — The slide content.
@@ -1091,7 +1264,7 @@ Events:
 
 ### OmniMarkdown
 OmniMarkdown — renders CommonMark-ish Markdown as HTML (RadzenMarkdown port).
-_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniMarkdown.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniMarkdown.razor_
 
 Parameters:
 - `AllowHtml`: bool = false — When true, embedded raw HTML is sanitized and rendered; when false (default) it is escaped and shown literally. Only enable for trusted content — the sanitizer is best-effort.
@@ -1238,7 +1411,7 @@ Parameters:
 
 ### OmniStatusBadge
 Pílula compacta de status — primitivo do design system para indicar estado operacional (caixa aberto, API online, sincronizando, fila vazia, etc.).
-_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniStatusBadge.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniStatusBadge.razor_
 
 Parameters:
 - `AriaLabel`: string — Sinaliza ao screen-reader o significado do estado.
@@ -1260,7 +1433,7 @@ Parameters:
 
 ### OmniTimelineItem
 A single event on an <OmniTimeline>.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniTimelineItem.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Display/OmniTimelineItem.razor_
 
 Parameters:
 - `Label`: string — Opposite-side text shorthand (rendered after LabelContent).
@@ -1274,6 +1447,126 @@ Slots:
 - `PointContent`: RenderFragment — Content rendered inside the dot (icon, letter, avatar…).
 
 ## Forms
+
+### OmniCompareValidator
+Compara o valor de um campo com outro campo (lookup por nome) OU com um valor literal. Caso clássico: "confirmar senha". Cuidado especial: revalida automaticamente quando o campo de referência muda (não só quando o próprio campo muda). <OmniTextBox Name="password" @bind-Value="model.Password" /> <OmniTextBox Name="confirm" @bind-Value="model.Confirm" /> <OmniCompareValidator Component="confirm" Value="@model.Password" Text="Senhas não conferem." />
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniCompareValidator.cs_
+
+Parameters:
+- `Operator`: CompareOperator {Equal | NotEqual | LessThan | LessThanEqual | GreaterThan | GreaterThanEqual} = Equal — Operador. Default Equal.
+- `OtherComponent`: string — Nome de OUTRO componente cujo valor será comparado.
+- `Value`: object — Valor literal a comparar. Use Value OU OtherComponent, não ambos.
+
+### OmniCustomValidator
+Validator custom com delegate Func`2 tipado. Diferença pro RadzenCustomValidator: Radzen usa Func<bool> (sem o valor), forçando closure sobre o model. Aqui o delegate recebe o valor atual do campo já tipado, fica mais reutilizável e testável. <OmniCustomValidator TValue="string" Component="username" Validator="@IsAvailable" Text="Usuário já existe." /> @code { bool IsAvailable(string? value) => !usedNames.Contains(value); } Pra lógica assíncrona (consulta server), prefira o Validation do FormComponent per-input que aceita Func<T, Task<string?>>.
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniCustomValidator.cs_
+
+Parameters:
+- `Validator`: Func<TValue, bool> *required* — Função de validação. Retorna true = OK, false = inválido.
+
+### OmniDataAnnotationValidator
+Valida um único campo do model contra TODOS os ValidationAttributes declarados na propriedade ([Required], [StringLength], [EmailAddress], etc.). Diferente do <DataAnnotationsValidator /> nativo do Blazor (que valida o model inteiro), este focaliza um único campo — útil quando você está montando regras campo a campo no markup, junto com outros validators irmãos.<OmniDataAnnotationValidator Component="email" Property="@(() => model.Email)" />O OmniForm já tem AddDataAnnotationsValidator=true por default — você raramente precisa deste validator individual. Use quando quiser desligar o DataAnnotationsValidator global e ter controle fino por campo.
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniDataAnnotationValidator.cs_
+
+Parameters:
+- `MessageSeparator`: string = ;  — Separador quando múltiplos atributos falham. Default "; ".
+- `Property`: Expression<Func<object>> — Caminho do model.Property — usado para descobrir os atributos declarados via reflection. Quando null, usa o FieldIdentifier do target.
+
+### OmniDataForm
+Metadata-driven form that composes a reusable strongly typed field schema, generated Omni inputs, Blazor's EditContext and data annotation validators.
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Forms/OmniDataForm.razor_
+
+Parameters:
+- `AddDataAnnotationsValidator`: bool — Auto-attaches a DataAnnotationsValidator. Default true.
+- `Columns`: int — Optional root column override. When null, the schema responsive layout is used. Values are clamped from 1 to 12.
+- `Disabled`: bool — Disables every generated editor and the default submit button.
+- `EditContext`: EditContext — Existing Blazor edit context. Supply either EditContext or Model, never both. Its model must be a TModel instance.
+- `FocusFirstInvalidOnSubmit`: bool — Scrolls to and focuses the first invalid generated field after submit. Default true.
+- `IsTouched`: bool — Whether any generated field has changed since the last touched reset.
+- `Model`: TModel — Model instance edited by the generated fields. Supply either Model or EditContext, never both.
+- `ReadOnly`: bool — Makes every generated editor read-only.
+- `RenderFormElement`: bool — Renders the semantic HTML form element. Disable for an embedded collection item subform to avoid nested forms. Default true.
+- `Schema`: DataFormSchema<TModel> — Immutable, reusable field schema. When omitted, every supported model property is inferred from its type and data annotations.
+- `ShowDiagnostics`: bool — Shows schema diagnostics in the rendered form. Intended for development. Default false.
+- `ShowSubmitButton`: bool — Shows the built-in submit button when Actions is null. Default true.
+- `ShowValidationSummary`: bool — Shows OmniValidationSummary above the fields. Default true.
+- `SubmitText`: string — Text displayed by the built-in submit button. Null uses the localized OmniTexts value.
+- `Submitting`: bool — Displays the loading state on the built-in submit button.
+- `Validation`: Action<EditContext, ValidationMessageStore> — Synchronous cross-field validation delegated to the underlying OmniForm.
+- `ValidationAsync`: Func<EditContext, ValidationMessageStore, Task> — Asynchronous validation delegated to the underlying OmniForm.
+- `ValidationAsyncWithCancellation`: Func<EditContext, ValidationMessageStore, CancellationToken, Task> — Preferred cancellable asynchronous validation callback.
+- `ValidationDelay`: int — Debounce in milliseconds for validation caused by field changes.
+- `ValidationSummaryTitle`: string — Heading used by the generated validation summary. Null uses the localized OmniTexts value.
+Events:
+- `DiagnosticsChanged`: EventCallback<IReadOnlyList<DataFormDiagnostic>> — Invoked after schema diagnostics are rebuilt.
+- `FieldChanged`: EventCallback<DataFormFieldChangedEventArgs<TModel>> — Invoked after a generated editor writes a property value.
+- `FieldStateChanged`: EventCallback<DataFormFieldStateChangedEventArgs<TModel>> — Invoked with an immutable snapshot when one generated field state changes.
+- `IsTouchedChanged`: EventCallback<bool> — Callback for two-way binding of IsTouched.
+- `OnInvalidSubmit`: EventCallback<EditContext> — Invoked when the underlying OmniForm submission is invalid.
+- `OnValidSubmit`: EventCallback<EditContext> — Invoked when the underlying OmniForm submission is valid.
+- `ValidationStateChanged`: EventCallback<DataFormValidationStateChangedEventArgs<TModel>> — Invoked with the aggregate validation state after any field or message change.
+Slots:
+- `Actions`: RenderFragment — Custom action area. When supplied, it replaces the built-in submit button.
+- `ChildContent`: RenderFragment — Additional content rendered inside the underlying form after generated fields.
+- `DiagnosticsTemplate`: RenderFragment<IReadOnlyList<DataFormDiagnostic>> (context: IReadOnlyList<DataFormDiagnostic>) — Custom renderer for schema diagnostics.
+
+### OmniEmailValidator
+Valida e-mail usando o mesmo motor do EmailAddressAttribute (suficientemente permissivo, RFC 5322 simplificado — o que [EmailAddress] usa). Vazio passa. <OmniEmailValidator Component="email" Text="E-mail inválido." />
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniEmailValidator.cs_
+
+
+### OmniForm
+Async validation and submission orchestration for OmniForm`1. Kept out of the Razor file so cancellation, latest-wins and exception-safety invariants remain reviewable independently from the markup.
+_base: ComponentBase · accepts ChildContent · source: src/Omni.Blazor/Components/Forms/OmniForm.razor_
+
+Parameters:
+- `AddDataAnnotationsValidator`: bool — Auto-attach a DataAnnotationsValidator inside the form. Default true.
+- `EditContext`: EditContext — Existing Blazor edit context. Supply either EditContext or Model, never both. Its model must be a TModel instance.
+- `IsTouched`: bool — Fired the first time a field changes; stays true until reset. Bound parameter — write a backing field with @bind-IsTouched.
+- `Model`: TModel — Model instance edited by the form. Supply either Model or EditContext, never both.
+- `RenderFormElement`: bool — Renders the semantic HTML form element. Disable only when composing an embedded subform inside another form. Default true.
+- `SnapshotOptions`: JsonSerializerOptions — Opções JSON usadas pelo Snapshot/Restore. Default cobre POCOs comuns. Override quando o model precisar de converters custom (ex: DateOnly em .NET 6).
+- `Validation`: Action<EditContext, ValidationMessageStore> — Synchronous custom validation. Invoked on submit and on every field change (subject to ValidationDelay). Add messages to ValidationMessageStore directly, keyed by FieldIdentifier.
+- `ValidationAsync`: Func<EditContext, ValidationMessageStore, Task> — Async custom validation — typically a server round-trip. Runs in the same lifecycle as Validation but awaited. On submit it is awaited fully before deciding valid/invalid; during field-change debounce, it runs on the trailing edge.
+- `ValidationAsyncWithCancellation`: Func<EditContext, ValidationMessageStore, CancellationToken, Task> — Preferred cancellable async validation callback. It receives a token that is cancelled when a newer validation supersedes the current pass or when the form is disposed.
+- `ValidationDelay`: int — Debounce (ms) applied to custom-validation firings caused by OnFieldChanged. Default 0 = no debounce (current behavior). Submits and explicit ValidateAsync calls bypass the delay.
+Events:
+- `IsTouchedChanged`: EventCallback<bool> — Callback for two-way binding of IsTouched.
+- `OnInvalidSubmit`: EventCallback<EditContext> — Invoked when the form is submitted but validation fails.
+- `OnValidSubmit`: EventCallback<EditContext> — Invoked when the form is submitted and passes validation.
+Slots:
+- `ChildContent`: RenderFragment — Form content — inputs, validators, and submit controls.
+
+### OmniLengthValidator
+Valida comprimento de string (ou tamanho de coleção ICollection). Vazio passa — componha com OmniRequiredValidator quando ambos forem necessários. <OmniLengthValidator Component="cnpj" Min="14" Max="14" Text="CNPJ deve ter 14 dígitos." />
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniLengthValidator.cs_
+
+Parameters:
+- `Max`: int — Comprimento máximo (inclusive). Null = sem limite superior.
+- `Min`: int — Comprimento mínimo (inclusive). Null = sem limite inferior.
+
+### OmniRangeValidator
+Valida faixa numérica (int / double / decimal / DateTime). Aceita qualquer tipo que implemente IComparable. Vazio passa — componha com Required quando precisar. <OmniRangeValidator Component="idade" Min="18" Max="120" Text="Idade entre 18 e 120." />
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniRangeValidator.cs_
+
+Parameters:
+- `Max`: object — Valor máximo (inclusive).
+- `Min`: object — Valor mínimo (inclusive).
+
+### OmniRegexValidator
+Valida string contra um padrão regex. Vazio passa. <OmniRegexValidator Component="cep" Pattern="^\\d{5}-\\d{3}$" Text="CEP deve ser 00000-000." />
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniRegexValidator.cs_
+
+Parameters:
+- `Options`: RegexOptions {None | IgnoreCase | Multiline | ExplicitCapture | Compiled | Singleline | IgnorePatternWhitespace | RightToLeft | ECMAScript | CultureInvariant | NonBacktracking} = None — Opções do regex. Default None.
+- `Pattern`: string *required* =  — Pattern regex. .NET regex syntax (não JS).
+
+### OmniRequiredValidator
+Falha quando o campo está vazio. Verifica via HasValue — que cobre null, string vazia, e default(T) pra structs. <OmniRequiredValidator Component="email" Text="Informe o e-mail." />
+_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniRequiredValidator.cs_
+
+Parameters:
+- `DefaultValue`: object — Valor "default" customizado. Útil quando você quer que 0 seja válido pra um campo numérico (default), mas -1 não.
 
 ### OmniValidationMessage
 Per-field error display.
@@ -1293,20 +1586,29 @@ Parameters:
 ## Inputs
 
 ### OmniAutoComplete
+Search-as-you-type selection with bounded local or cancellable server-side data.
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniAutoComplete.razor_
 
 Parameters:
-- `Clearable`: bool — Show a clear (×) button when a value is selected. Default true.
-- `DebounceMs`: int — Debounce window for async LoadData calls. Default 220ms.
-- `EmptyText`: string — Text shown in the dropdown when no results match. Default "Nenhum resultado.".
-- `Items`: IEnumerable<TItem> — Synchronous item source. Use this OR LoadData, not both.
-- `LoadData`: Func<string, Task<IEnumerable<TItem>>> — Async item source — called whenever the search text changes (debounced).
-- `MinSearchLength`: int — Minimum characters before searching. Default 0 (show all on focus).
-- `Placeholder`: string — Placeholder text shown in the search input. Default "Buscar...".
-- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Visual size of the input. Default Md.
-- `TextSelector`: Func<TItem, string> *required* — Required: how to extract the display text from an item.
+- `Clearable`: bool — Whether to show a clear button when a value is selected.
+- `DebounceMs`: int — Debounce window applied to asynchronous searches.
+- `EmptyText`: string — Text shown when no option matches.
+- `Items`: IEnumerable<TItem> — Synchronous option source. Mutually exclusive with ItemsProvider.
+- `ItemsProvider`: OmniItemsProvider<TItem> — Asynchronous, cancellable and paged option source.
+- `LoadErrorText`: string — Text shown when the asynchronous provider fails.
+- `LoadMoreText`: string — Text of the action that requests the next provider page.
+- `LoadingText`: string — Text shown while an asynchronous page is loading.
+- `MaxProviderItems`: int — Hard limit for options retained from one provider search.
+- `MinSearchLength`: int — Minimum characters required before searching.
+- `Placeholder`: string — Placeholder text shown in the search input.
+- `ProviderPageSize`: int — Maximum number of options requested per provider page.
+- `RetryText`: string — Text of the provider retry action.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Visual size of the input.
+- `TextSelector`: Func<TItem, string> *required* — Required mapping from an option to its display text.
+Events:
+- `ItemsProviderFailed`: EventCallback<Exception> — Raised when an uncancelled provider request fails.
 Slots:
-- `ItemTemplate`: RenderFragment<TItem> (context: TItem) — Optional template rendered for each option in the dropdown.
+- `ItemTemplate`: RenderFragment<TItem> (context: TItem) — Optional option template.
 
 ### OmniCalendar
 Calendar grid.
@@ -1339,7 +1641,7 @@ Slots:
 - `Footer`: RenderFragment — Slot rendered below the day grid (e.g. a "Today" button).
 
 ### OmniCheckBox
-_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniCheckBox.razor_
+_base: FormComponent<T> · accepts ChildContent · form input · source: src/Omni.Blazor/Components/Inputs/OmniCheckBox.razor_
 
 Parameters:
 - `Label`: string — Text label shown next to the checkbox when no ChildContent is provided.
@@ -1347,7 +1649,7 @@ Slots:
 - `ChildContent`: RenderFragment — Custom label content; rendered instead of Label when provided.
 
 ### OmniCheckBoxList
-_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniCheckBoxList.razor_
+_base: FormComponent<T> · accepts ChildContent · form input · source: src/Omni.Blazor/Components/Inputs/OmniCheckBoxList.razor_
 
 Parameters:
 - `AriaLabel`: string — aria-label do grupo.
@@ -1400,7 +1702,7 @@ Slots:
 
 ### OmniDateRangePicker
 Date range picker with a single combined input.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniDateRangePicker.razor_
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniDateRangePicker.razor_
 
 Parameters:
 - `ApplyText`: string — Label for the apply button (shown when AutoApply is off). Default "Aplicar".
@@ -1429,7 +1731,7 @@ Events:
 
 ### OmniFileUpload
 Drag-and-drop file uploader.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniFileUpload.razor_
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniFileUpload.razor_
 
 Parameters:
 - `Accept`: string — HTML accept filter passed to the file input (e.g. "image/*", ".pdf").
@@ -1487,28 +1789,37 @@ Parameters:
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Visual size of the input. Default Md.
 
 ### OmniMultiSelect
-Select múltiplo no estilo de chips dentro de um campo + popup com a lista de opções.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniMultiSelect.razor_
+Multiple selection with chips and bounded local or cancellable server-side options.
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniMultiSelect.razor_
 
 Parameters:
-- `DescriptionSelector`: Func<TValue, string> — Texto auxiliar opcional de cada item na lista.
-- `Disabled`: bool — Desabilita o campo (sem abrir popover nem remover chips). Default false.
-- `DisabledSelector`: Func<TValue, bool> — Item-by-item: retorne true para desabilitar este item específico.
-- `IconSelector`: Func<TValue, string> — Nome do ícone exibido à esquerda de cada item na lista.
-- `Items`: IEnumerable<TValue> — Itens disponíveis para seleção.
-- `Name`: string — Nome lógico — registra com OmniForm para validators irmãos (<OmniRequiredValidator Component="..." />).
-- `Placeholder`: string — Texto exibido no campo quando nada está selecionado.
-- `PopoverMaxHeight`: string — Altura máxima da lista dentro do popover.
-- `PopoverWidth`: string — Largura do popover. Default vazio = mesma do trigger.
-- `SearchPlaceholder`: string — Placeholder do campo de busca. Default "Buscar...".
-- `Searchable`: bool — Habilita campo de busca dentro do popover.
-- `ShowClearAll`: bool — Mostra botão "Limpar seleção (N)" no rodapé do popover.
-- `TextSelector`: Func<TValue, string> — Texto principal de cada item. Default = item.ToString().
-- `ValueSelector`: Func<TValue, TValue> — Extrai o valor de bind de cada item. Default = o próprio item (identidade).
-- `Values`: IEnumerable<TValue> — Coleção selecionada (two-way via @bind-Values).
-- `ValuesExpression`: Expression<Func<IEnumerable<TValue>>> — Expression pra integração com EditContext (validators irmãos).
+- `DebounceMs`: int — Debounce applied to provider-backed searches.
+- `DescriptionSelector`: Func<TValue, string> — Maps an option to secondary text.
+- `Disabled`: bool — Whether the component is disabled.
+- `DisabledSelector`: Func<TValue, bool> — Determines whether an option is disabled.
+- `IconSelector`: Func<TValue, string> — Maps an option to an icon name.
+- `Items`: IEnumerable<TValue> — Synchronous options. Mutually exclusive with ItemsProvider.
+- `ItemsProvider`: OmniItemsProvider<TValue> — Asynchronous, cancellable and paged option source.
+- `LoadErrorText`: string — Text shown when the provider fails.
+- `LoadMoreText`: string — Action text for requesting another provider page.
+- `LoadingText`: string — Text shown while options are loading.
+- `MaxProviderItems`: int — Hard limit for options retained from one provider search.
+- `Name`: string — Logical form-component name.
+- `Placeholder`: string — Text displayed when nothing is selected.
+- `PopoverMaxHeight`: string — Maximum list height.
+- `PopoverWidth`: string — Popover width.
+- `ProviderPageSize`: int — Maximum options requested per provider page.
+- `RetryText`: string — Provider retry action text.
+- `SearchPlaceholder`: string — Search input placeholder.
+- `Searchable`: bool — Whether to display a search input.
+- `ShowClearAll`: bool — Whether to display the clear-all action.
+- `TextSelector`: Func<TValue, string> — Maps an option to primary text.
+- `ValueSelector`: Func<TValue, TValue> — Extracts the bound value from an option.
+- `Values`: IEnumerable<TValue> — Selected values.
+- `ValuesExpression`: Expression<Func<IEnumerable<TValue>>> — Expression used for EditContext integration.
 Events:
-- `ValuesChanged`: EventCallback<IEnumerable<TValue>> — Disparado quando a seleção muda.
+- `ItemsProviderFailed`: EventCallback<Exception> — Raised when an uncancelled provider request fails.
+- `ValuesChanged`: EventCallback<IEnumerable<TValue>> — Raised when Values changes.
 
 ### OmniNumeric
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniNumeric.razor_
@@ -1602,7 +1913,7 @@ Parameters:
 - `Value`: TValue *required* — Value this radio represents; the group is selected when it equals the group's bound value. Required.
 
 ### OmniRadioGroup
-_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniRadioGroup.razor_
+_base: FormComponent<T> · accepts ChildContent · form input · source: src/Omni.Blazor/Components/Inputs/OmniRadioGroup.razor_
 
 Parameters:
 - `Orientation`: Orientation {Horizontal | Vertical} — Layout direction of the radios. Default Vertical.
@@ -1634,18 +1945,51 @@ Parameters:
 - `Type`: SecurityCodeType {Text | Numeric | Password} = Text — Input type: Text (any char), Numeric (digits only) or Password (masked).
 
 ### OmniSelect
+Single-choice select with bounded local or cancellable server-side options.
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSelect.razor_
 
 Parameters:
-- `Clearable`: bool — Show a clear (×) button when a value is selected. Default false.
-- `EmptyText`: string — Text shown when there are no items.
-- `Items`: IEnumerable<TValue> — Options to choose from.
-- `Placeholder`: string — Text shown in the trigger when nothing is selected.
-- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Control height/typography. Default Md (matches the other inputs).
-- `TextSelector`: Func<TValue, string> — Maps an item to its display text. Default = item.ToString().
-- `ValueSelector`: Func<TValue, TValue> — Extracts the bound value from an item. Default = the item itself.
+- `Clearable`: bool — Whether a selected value can be cleared.
+- `EmptyText`: string — Text shown when there are no options.
+- `Items`: IEnumerable<TValue> — Synchronous options. Mutually exclusive with ItemsProvider.
+- `ItemsProvider`: OmniItemsProvider<TValue> — Asynchronous, cancellable and paged option source.
+- `LoadErrorText`: string — Text shown when the provider fails.
+- `LoadMoreText`: string — Action text for requesting another provider page.
+- `LoadingText`: string — Text shown while options are loading.
+- `MaxProviderItems`: int — Hard limit for options retained from the provider.
+- `Placeholder`: string — Text shown when no value is selected.
+- `ProviderPageSize`: int — Maximum options requested per provider page.
+- `ProviderVersion`: long — Explicit provider invalidation version. Changing it cancels the current request and clears retained provider items.
+- `RetryText`: string — Provider retry action text.
+- `Size`: ComponentSize {Sm | Md | Lg | Xl} — Visual size of the input.
+- `TextSelector`: Func<TValue, string> — Maps an option to display text.
+- `ValueSelector`: Func<TValue, TValue> — Extracts the bound value from an option.
+Events:
+- `ItemsProviderFailed`: EventCallback<Exception> — Raised when an uncancelled provider request fails.
 Slots:
-- `ChildContent`: RenderFragment — Kept for API compatibility. Prefer Items + selectors.
+- `EmptyTemplate`: RenderFragment — Custom content shown when the provider has no options.
+- `ErrorTemplate`: RenderFragment<OmniItemsProviderErrorContext> (context: OmniItemsProviderErrorContext) — Custom retry-capable content shown after a provider failure.
+- `LoadingTemplate`: RenderFragment — Custom content shown while the first provider page is loading.
+
+### OmniSignaturePad
+Canvas-based signature input with undo, clear and PNG/JPEG/SVG export.
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSignaturePad.razor_
+
+Parameters:
+- `AriaLabel`: string = Área para assinatura — Accessible label announced for the drawing canvas.
+- `BackgroundColor`: string = #ffffff — Canvas background color.
+- `ClearText`: string = Limpar — Label for the clear action.
+- `EmptyText`: string = Aguardando assinatura — Status text shown while no signature has been captured.
+- `Format`: SignaturePadFormat {Png | Jpeg | Svg} = Png — Format used by the bound Value and ExportAsync.
+- `Height`: int = 220 — Canvas height in CSS pixels.
+- `Quality`: double = 0.92 — JPEG quality between 0 and 1. Ignored by PNG and SVG.
+- `ShowToolbar`: bool = true — Shows the built-in undo, clear and status toolbar.
+- `SignedText`: string = Assinatura capturada — Status text shown after at least one stroke is captured.
+- `StrokeColor`: string = #111827 — Stroke color accepted by the browser canvas API.
+- `StrokeWidth`: double = 2 — Stroke width in CSS pixels.
+- `UndoText`: string = Desfazer — Label for the undo action.
+Events:
+- `StrokeCompleted`: EventCallback<string> — Raised after the user completes, removes or clears a stroke.
 
 ### OmniSlider
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSlider.razor_
@@ -1666,6 +2010,25 @@ Parameters:
 Events:
 - `ValueEndChanged`: EventCallback<double> — Disparado quando o thumb final (end) muda. Two-way via @bind-ValueEnd.
 - `ValueStartChanged`: EventCallback<double> — Disparado quando o thumb inicial (start) muda. Two-way via @bind-ValueStart.
+
+### OmniSpeechToText
+Wrapper headless da Web Speech API (SpeechRecognition + webkit variant).
+_base: ComponentBase · accepts ChildContent · source: src/Omni.Blazor/Components/Inputs/OmniSpeechToText.razor_
+
+Parameters:
+- `Continuous`: bool = true — Quando true (default), continua reconhecendo até o user parar. false = para automaticamente após o primeiro silêncio longo.
+- `InterimResults`: bool = false — Quando true, dispara OnResult com resultados parciais (IsFinal=false) enquanto o user fala. Útil pra mostrar texto "ao vivo" enquanto fala. Default false — só resultados finais.
+- `Language`: string — BCP-47 language code: "pt-BR", "en-US", "es-ES", etc. Null = browser default.
+- `MaxAlternatives`: int = 1 — Quantas alternativas pedir do motor por trecho. Default 1.
+Events:
+- `OnEnd`: EventCallback — Disparado quando o reconhecimento termina (user parou, silêncio longo em modo non-continuous, ou erro). Use pra resetar UI.
+- `OnError`: EventCallback<string> — Disparado em erro. Códigos comuns: "not-allowed" (permissão negada), "no-speech", "audio-capture", "network", "aborted", "start-timeout" (browser não respondeu), "invalid-state" (instância prévia travada). Use pra mostrar feedback ao user.
+- `OnResult`: EventCallback<SpeechRecognitionResult> — Disparado a cada onresult do motor. Recebe transcript + IsFinal + confidence.
+- `OnStart`: EventCallback — Disparado quando o reconhecimento começa (após permissão de mic).
+- `OnStateChange`: EventCallback<SpeechRecognitionState> — Disparado a cada transição de estado da state machine (Idle ↔ Connecting ↔ Recording ↔ Stopping ↔ Error). Use pra UI avançada (spinner em transição, badge de erro, etc).
+- `OnUnsupported`: EventCallback — Disparado quando o browser NÃO suporta Web Speech API (Firefox, alguns embedded webviews). Use pra esconder o botão de mic ou mostrar mensagem alternativa.
+Slots:
+- `ChildContent`: RenderFragment<SpeechContext> (context: SpeechContext) — Render-prop que recebe um SpeechContext tipado para você desenhar o próprio botão/UI.
 
 ### OmniSpeechToTextButton
 Botão pronto pra falar — wrapper visual de conveniência por cima do headless OmniSpeechToText.
@@ -1701,7 +2064,7 @@ Events:
 - `OnStateChange`: EventCallback<SpeechRecognitionState> — Disparado a cada transição da state machine de reconhecimento.
 
 ### OmniSwitch
-_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSwitch.razor_
+_base: FormComponent<T> · accepts ChildContent · form input · source: src/Omni.Blazor/Components/Inputs/OmniSwitch.razor_
 
 Parameters:
 - `Label`: string — Text label shown next to the switch when no ChildContent is provided.
@@ -1710,7 +2073,7 @@ Slots:
 
 ### OmniTagInput
 OmniTagInput — entrada de múltiplos valores de texto livre (tags, e-mails, escopos, rótulos).
-_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniTagInput.razor_
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniTagInput.razor_
 
 Parameters:
 - `AllowCustom`: bool = true — Permite criar valores livres (fora das Suggestions). Default true. Quando false, só valores presentes em Suggestions são aceitos.
@@ -1759,7 +2122,7 @@ Events:
 
 ### OmniTimePicker
 Time picker.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniTimePicker.razor_
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniTimePicker.razor_
 
 Parameters:
 - `HourFormat`: string = 24 — "24" (default) or "12" — adds AM/PM toggle inline with the hour.
@@ -1989,6 +2352,20 @@ Parameters:
 - `Gap`: int = 16 — Espaçamento entre colunas e entre itens (px). Default 16.
 - `MinColumnWidth`: int — Largura mínima da coluna em px. Quando definido, usa column-width — a contagem de colunas reage à largura do container, sem breakpoints — e Columns é ignorado.
 
+### OmniMediaQuery
+Componente "headless" (sem render visual próprio) que escuta uma CSS media query e dispara um callback / two-way bind quando o estado muda. Equivalente ao RadzenMediaQuery, mas com APIs adicionais:Two-way @bind-Matches além do Change callback.Atalho Breakpoint que traduz para (min-width: …) usando os mesmos thresholds do OmniHidden/BreakpointService.ChildContent como render-prop opcional — recebe o bool atual pra você renderizar condicionalmente sem precisar de um campo no @code.Usage — callback: <OmniMediaQuery Query="(max-width: 768px)" Change="OnMobileChange" /> @code { void OnMobileChange(bool isMobile) { _isMobile = isMobile; } } Usage — two-way bind: <OmniMediaQuery Query="(prefers-color-scheme: dark)" @bind-Matches="_isDark" /> Usage — render-prop: <OmniMediaQuery Breakpoint="Breakpoint.Md" Context="atMd"> @if (atMd) { <DesktopNav /> } else { <MobileNav /> } </OmniMediaQuery>
+_base: ComponentBase · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniMediaQuery.cs_
+
+Parameters:
+- `Breakpoint`: Breakpoint {Xs | Sm | Md | Lg | Xl | Xxl} — Atalho conveniente: traduz para (min-width: Npx) usando os mesmos thresholds dos outros componentes (sm=576, md=768, lg=992, xl=1200, xxl=1400). Útil quando você quer "viewport ≥ Md". Ignorado quando Query está definido.
+- `Matches`: bool = false — Two-way bind do resultado: true quando a query corresponde, false caso contrário. Use junto com @bind-Matches em vez do callback Change quando você só precisa do valor declarativamente.
+- `Query`: string — Media query CSS literal. Exemplo: "(max-width: 768px)", "(prefers-color-scheme: dark)", "(orientation: portrait)". Tem precedência sobre Breakpoint quando ambos estão definidos.
+Events:
+- `Change`: EventCallback<bool> — Callback opcional disparado quando o resultado da query muda. Recebe o novo valor (true = corresponde). Fora do bind: serve pra rodar side effects (logging, scroll lock, etc.) quando o estado muda.
+- `MatchesChanged`: EventCallback<bool> — Disparado quando o Matches muda (escrita do two-way bind).
+Slots:
+- `ChildContent`: RenderFragment<bool> (context: bool) — Render-prop opcional: quando definido, o conteúdo é renderizado recebendo o bool atual via Context. Sem ChildContent, o componente é totalmente headless (zero DOM).
+
 ### OmniPaneHeader
 Fixed (non-scrolling) header band at the top of a pane — typically a
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniPaneHeader.razor_
@@ -2044,7 +2421,7 @@ Parameters:
 
 ### OmniSplitView
 Generic master/detail layout primitive: an aside (sub-navigation) + main content column inside a positioned parent (usually a <OmniMain>).
-_base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniSplitView.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniSplitView.razor_
 
 Parameters:
 - `AsideRight`: bool = false — Place the aside on the right instead of the default left.
@@ -2113,6 +2490,14 @@ Events:
 - `OnSwipeEnd`: EventCallback<SwipeEventArgs> — Disparado UMA vez no pointerup, se a distância arrastada (no eixo dominante) ultrapassou Sensitivity.
 - `OnSwipeLeave`: EventCallback<PointerEventArgs> — Disparado quando o ponteiro SAI da área durante o arraste. Não reseta o estado automaticamente — o consumidor pode chamar Cancel se quiser abortar o gesto em curso.
 - `OnSwipeMove`: EventCallback<MultiDimensionSwipeEventArgs> — Disparado A CADA pointermove durante o arraste. Inclui delta + direção em AMBOS os eixos (x e y). Ignora Sensitivity.
+
+### OmniTheme
+Theme bootstrap — drop into the <head> of your App.razor.
+_base: ComponentBase · source: src/Omni.Blazor/Components/Layout/OmniTheme.razor_
+
+Parameters:
+- `Accent`: string = amber — Initial accent. 12 cores suportadas: amber (default), emerald, blue, violet, crimson, rose, orange, teal, cyan, indigo, fuchsia, lime. Unknown values fall back to amber.
+- `Dark`: bool = false — Start in dark mode. Default false.
 
 ### OmniThemePicker
 Dropdown pronto para trocar accent + dark/light/system.
@@ -2189,6 +2574,34 @@ Parameters:
 - `Title`: string = Sair sem salvar? — Title of the confirmation dialog (DialogService path only).
 - `UseNativePrompt`: bool = false — When true, uses the browser's native window.confirm instead of the Omni DialogService for in-app navigation. Default false.
 - `When`: Func<bool> — Predicate that gates the prompt: navigation is intercepted only while it returns true. When null, the prompt is always active.
+
+### OmniGlobalSearch
+Embedded global search surface with local/remote providers and keyboard navigation.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniGlobalSearch.razor_
+
+Parameters:
+- `AriaLabel`: string = Busca global — Accessible label for the search landmark.
+- `ClearText`: string = Limpar busca — Accessible label for the clear-query action.
+- `Debounce`: int = 250 — Delay before invoking SearchProvider, in milliseconds.
+- `EmptyText`: string = Nenhum resultado encontrado. — Message shown when no result matches.
+- `ErrorText`: string = Não foi possível concluir a busca. — Message shown when the provider fails.
+- `HintText`: string = Digite para buscar — Hint shown before the minimum query length is reached.
+- `Items`: IEnumerable<GlobalSearchResult> — Optional in-memory result source, combined with provider results.
+- `LoadingText`: string = Buscando... — Message shown while the provider is running.
+- `MaxResults`: int = 50 — Maximum number of combined results retained and rendered.
+- `MinQueryLength`: int = 2 — Minimum trimmed query length required to search.
+- `NavigateOnSelect`: bool = true — Navigates to a selected result's URL after raising ResultSelected.
+- `Placeholder`: string = Buscar em todo o sistema... — Search input placeholder.
+- `Query`: string — Current query for two-way binding.
+- `SearchProvider`: GlobalSearchProvider — Optional asynchronous, cancellable server-side result source.
+- `ShowAllWhenEmpty`: bool = false — Shows all local items when the query is empty.
+Events:
+- `QueryChanged`: EventCallback<string> — Raised when Query changes.
+- `ResultSelected`: EventCallback<GlobalSearchResult> — Raised when the user chooses a result.
+- `SearchFailed`: EventCallback<Exception> — Raised when a provider throws an uncancelled exception.
+Slots:
+- `InitialContent`: RenderFragment — Optional content displayed before the minimum query length is reached.
+- `ResultTemplate`: RenderFragment<GlobalSearchResult> (context: GlobalSearchResult) — Optional custom result renderer.
 
 ### OmniHotkey
 Drop-in keyboard shortcut.
@@ -2299,7 +2712,7 @@ Events:
 
 ### OmniStep
 A single step inside an OmniStepper; renders no markup itself and registers with the parent stepper, which draws its header and body.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniStep.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniStep.razor_
 
 Parameters:
 - `Description`: string — Optional secondary line shown under the title in the header.
@@ -2326,7 +2739,7 @@ Events:
 
 ### OmniTabItem
 A single tab inside an OmniTabs; renders no markup itself and registers with the parent, which draws the tab button and shows its body when active.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniTabItem.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniTabItem.razor_
 
 Parameters:
 - `Icon`: string — Optional icon name shown before the title on the tab button.
@@ -2359,7 +2772,7 @@ Parameters:
 
 ### OmniBottomSheet
 Material 3 Bottom Sheet — surface slides up from the bottom edge with optional drag handle + snap points.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniBottomSheet.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniBottomSheet.razor_
 
 Parameters:
 - `Adaptive`: BottomSheetAdaptive {Always | DrawerOnDesktop | DialogOnDesktop} = Always — Comportamento em desktop. Default Always (sempre bottom). DrawerOnDesktop/DialogOnDesktop = adapta em telas largas (M3 desaconselha bottom sheet em desktop).
@@ -2456,7 +2869,7 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniNotificat
 
 ### OmniOverlay
 Componente standalone de overlay/backdrop reutilizável.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniOverlay.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniOverlay.razor_
 
 Parameters:
 - `Absolute`: bool = false — Position absolute em vez de fixed. Use quando o overlay deve preencher um container específico (não a viewport). O container precisa ter position: relative. Quando true, LockScroll é ignorado (não faz sentido bloquear scroll do body num overlay local).
@@ -2473,9 +2886,14 @@ Events:
 Slots:
 - `ChildContent`: RenderFragment — Conteúdo opcional renderizado centrado dentro do overlay. Quando null, o overlay é puro scrim (sem nada visível além do backdrop).
 
+### OmniOverlayHosts
+Conveniência: monta de uma vez os 4 hosts de overlay da lib (Dialog, Notification, Tooltip, ContextMenu).
+_base: ComponentBase · source: src/Omni.Blazor/Components/Overlay/OmniOverlayHosts.razor_
+
+
 ### OmniPopover
 Interactive popover — like Tooltip but with arbitrary content (links, forms, menus).
-_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniPopover.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniPopover.razor_
 
 Parameters:
 - `AlignEnd`: bool = false — Alinha o popover ao FIM (direita) do trigger ao invés do começo (esquerda). Útil para split buttons cujo trigger fica à direita: AlignEnd=true faz o popover crescer para a esquerda, evitando overflow no canto direito da tela.
@@ -2518,7 +2936,7 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniTourHost.
 
 ### OmniTourStep
 Passo declarativo de um <OmniTour>.
-_base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniTourStep.razor_
+_base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniTourStep.razor_
 
 Parameters:
 - `Position`: TourPosition {Auto | Top | Bottom | Left | Right} = Auto — Lado preferido do coachmark. Default Auto.

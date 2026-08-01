@@ -1,0 +1,87 @@
+@page "/showcase/global-search"
+@attribute [ShowcaseInfo(Title = "Global Search", Category = Cat.Navigation, Icon = "search", New = true, Featured = true, Aliases = "busca global,search,provider,async,command")]
+@layout ShowcaseLayout
+
+<PageTitle>Global Search — Showcase</PageTitle>
+
+<ShowcasePage Title="Global Search"
+              Subtitle="Busca embutível para páginas inteiras, com resultados locais e remotos, debounce, cancelamento e navegação por teclado.">
+    <Overview>
+        <p>
+            <code>OmniGlobalSearch</code> complementa a paleta de comandos: ocupa uma área da
+            própria página e pesquisa destinos, registros e conteúdo. O provider assíncrono recebe
+            um <code>CancellationToken</code>; uma consulta mais nova cancela a anterior e resultados
+            atrasados nunca substituem o estado atual.
+        </p>
+    </Overview>
+
+    <ChildContent>
+        <ShowcaseSection Title="LOCAL + PROVIDER ASSÍNCRONO"
+                         Description="Resultados locais aparecem imediatamente e o provider remoto é combinado após o debounce."
+                         Code="@(@"<OmniGlobalSearch Items=""@itens""
+                  SearchProvider=""SearchAsync""
+                  ResultSelected=""OnSelected"" />")">
+            <div style="max-width:780px;">
+                <OmniGlobalSearch Items="@_localItems"
+                                  SearchProvider="SearchAsync"
+                                  ResultSelected="OnSelected"
+                                  NavigateOnSelect="false" />
+                @if (_selected is not null)
+                {
+                    <p class="omni-muted" style="margin-top:10px;">Selecionado: <strong>@_selected.Title</strong></p>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="BROWSE SEM CONSULTA"
+                         Description="ShowAllWhenEmpty transforma a busca em um diretório navegável antes da digitação.">
+            <div style="max-width:780px;">
+                <OmniGlobalSearch Items="@_localItems"
+                                  ShowAllWhenEmpty
+                                  NavigateOnSelect="false"
+                                  Placeholder="Explore os módulos..." />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniGlobalSearch">
+            <ShowcaseApiRow Name="Items" Type="IEnumerable&lt;GlobalSearchResult&gt;?" Default="null" Description="Fonte local pesquisável." />
+            <ShowcaseApiRow Name="SearchProvider" Type="GlobalSearchProvider?" Default="null" Description="Fonte remota cancelável e latest-wins." />
+            <ShowcaseApiRow Name="Query / QueryChanged" Type="string?" Default="null" Description="Consulta com two-way binding." />
+            <ShowcaseApiRow Name="Debounce / MinQueryLength" Type="int" Default="250 / 2" Description="Controle de frequência e limiar da busca." />
+            <ShowcaseApiRow Name="MaxResults" Type="int" Default="50" Description="Limite da lista combinada." />
+            <ShowcaseApiRow Name="ResultTemplate" Type="RenderFragment&lt;GlobalSearchResult&gt;?" Default="null" Description="Renderização customizada." />
+            <ShowcaseApiRow Name="ResultSelected" Type="EventCallback&lt;GlobalSearchResult&gt;" Default="—" Description="Resultado escolhido por clique ou teclado." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private GlobalSearchResult? _selected;
+
+    private readonly GlobalSearchResult[] _localItems =
+    [
+        new("customers", "Clientes") { Description = "Cadastro e relacionamento", Category = "Cadastros", Icon = "users" },
+        new("orders", "Pedidos de venda") { Description = "Consulta e faturamento", Category = "Vendas", Icon = "shopping-cart" },
+        new("products", "Produtos") { Description = "Catálogo e preços", Category = "Cadastros", Icon = "package" }
+    ];
+
+    private async ValueTask<IReadOnlyList<GlobalSearchResult>> SearchAsync(
+        GlobalSearchRequest request,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(450, cancellationToken);
+        return
+        [
+            new($"report-{request.Query}", $"Relatório contendo “{request.Query}”")
+            {
+                Description = "Resultado simulado do servidor",
+                Category = "Relatórios",
+                Icon = "bar-chart"
+            }
+        ];
+    }
+
+    private void OnSelected(GlobalSearchResult result) => _selected = result;
+}

@@ -2,9 +2,9 @@
     botão de cadastro inline (stub). *@
 <div class="fs-pdv-cust-pop">
     <div class="fs-pdv-cust-pop-label">Buscar cliente</div>
-    <OmniAutoComplete TValue="Customer"
+    <OmniAutoComplete TItem="Customer"
                        Placeholder="Nome ou telefone (mínimo 3 dígitos)…"
-                       LoadData="Search"
+                       ItemsProvider="Search"
                        TextSelector="@(c => c?.Name ?? "")"
                        @bind-Value="_picked"
                        @bind-Value:after="OnAcChange">
@@ -35,10 +35,14 @@
 
     private Customer? _picked;
 
-    private Task<IEnumerable<Customer?>> Search(string q)
+    private ValueTask<OmniItemsPage<Customer>> Search(
+        OmniItemsRequest request,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        var q = request.Search;
         var qn = (q ?? "").Trim();
-        IEnumerable<Customer?> results;
+        IEnumerable<Customer> results;
         if (string.IsNullOrEmpty(qn))
         {
             results = PdvMockData.Customers;
@@ -52,7 +56,10 @@
                 : PdvMockData.Customers.Where(c =>
                     c.Name.Contains(qn, StringComparison.OrdinalIgnoreCase));
         }
-        return Task.FromResult(results);
+        var materialized = results.ToList();
+        return ValueTask.FromResult(new OmniItemsPage<Customer>(
+            materialized.Skip(request.Skip).Take(request.Take).ToList(),
+            materialized.Count));
     }
 
     private async Task OnAcChange()

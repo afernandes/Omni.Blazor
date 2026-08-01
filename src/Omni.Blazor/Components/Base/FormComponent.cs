@@ -33,7 +33,11 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
     private EditContext? _editContext;
     private ValidationMessageStore? _messageStore;
     private bool _isDirty;
-    private bool _validateInProgress;
+    private bool _notifyingOwnFieldChange;
+    private int _disposeState;
+    private readonly object _validationSync = new();
+    private CancellationTokenSource? _validationCts;
+    private long _validationVersion;
 
     /// <summary>EditContext cascateado pelo <c>&lt;EditForm&gt;</c> / <c>OmniForm</c> mais próximo.</summary>
     [CascadingParameter]
@@ -65,6 +69,13 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
     /// Default = nome da propriedade extraído do <see cref="ValueExpression"/>.</summary>
     [Parameter] public string? Name { get; set; }
 
+    /// <summary>
+    /// Stable HTML id applied to the actual focusable input element. Composite
+    /// controls without a single native input apply it to their focus root.
+    /// Wrapper elements continue to receive unmatched component attributes.
+    /// </summary>
+    [Parameter] public string? InputId { get; set; }
+
     // ─── Validação per-input (estilo MudBlazor) ────────────────────────────
 
     /// <summary>Marca o campo como obrigatório — valor default/vazio dispara <see cref="RequiredError"/>.</summary>
@@ -81,6 +92,8 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
     ///   <item><c>Func&lt;TValue?, IEnumerable&lt;string&gt;&gt;</c> — múltiplas mensagens.</item>
     ///   <item><c>Func&lt;TValue?, Task&lt;string?&gt;&gt;</c> — async (uniqueness check em server, etc.).</item>
     ///   <item><c>Func&lt;TValue?, Task&lt;IEnumerable&lt;string&gt;&gt;&gt;</c> — async multi.</item>
+    ///   <item><c>Func&lt;TValue?, CancellationToken, Task&lt;string?&gt;&gt;</c> — async cancelável.</item>
+    ///   <item><c>Func&lt;TValue?, CancellationToken, Task&lt;IEnumerable&lt;string&gt;&gt;&gt;</c> — async multi cancelável.</item>
     ///   <item><see cref="ValidationAttribute"/> — reusa <c>[Range]</c>, <c>[EmailAddress]</c>, etc.</item>
     /// </list>
     /// </summary>
@@ -158,7 +171,21 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
         _isDirty = true;
 
         if (ValueChanged.HasDelegate) await ValueChanged.InvokeAsync(value);
-        if (HasFieldIdentifier) EditContext?.NotifyFieldChanged(FieldId);
+        if (HasFieldIdentifier)
+        {
+            // NotifyFieldChanged invokes subscribers synchronously. The guard
+            // prevents our own handler from starting a duplicate validation;
+            // SetValueAsync awaits the canonical pass immediately below.
+            _notifyingOwnFieldChange = true;
+            try
+            {
+                EditContext?.NotifyFieldChanged(FieldId);
+            }
+            finally
+            {
+                _notifyingOwnFieldChange = false;
+            }
+        }
 
         // Sincronicamente roda os validators per-input do MudBlazor-style.
         // (DataAnnotationsValidator e sibling validators rodam via OnFieldChanged.)
@@ -168,59 +195,147 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
     /// <summary>
     /// Roda <see cref="Required"/> + <see cref="Validation"/> e empurra/limpa mensagens
     /// no <see cref="EditContext"/>. Idempotente. Pode ser chamado externamente.
+    /// Se outra validação começar antes desta terminar, somente o resultado mais
+    /// recente é publicado.
     /// </summary>
-    public async Task ValidateAsync()
+    public Task ValidateAsync() => ValidateAsync(CancellationToken.None);
+
+    /// <summary>
+    /// Cancellable validation overload. Cancellation prevents the result from
+    /// being published and is propagated to validators that accept a token.
+    /// </summary>
+    public async Task ValidateAsync(CancellationToken cancellationToken)
     {
-        if (_validateInProgress) return;
         if (!HasFieldIdentifier || _editContext is null || _messageStore is null) return;
         if (OnlyValidateIfDirty && !_isDirty) return;
 
-        _validateInProgress = true;
-        try
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        CancellationTokenSource? previous;
+        long version;
+        lock (_validationSync)
         {
-            _messageStore.Clear(FieldId);
-
-            // 1. Required check (corre primeiro, semelhante ao MudBlazor)
-            if (Required && !((IOmniFormComponent)this).HasValue)
+            if (IsDisposed)
             {
-                _messageStore.Add(FieldId, RequiredError);
-                _editContext.NotifyValidationStateChanged();
+                cts.Dispose();
                 return;
             }
 
-            // 2. Polymorphic Validation
-            if (Validation is not null)
+            version = ++_validationVersion;
+            previous = _validationCts;
+            _validationCts = cts;
+        }
+        CancelSafely(previous);
+
+        var context = _editContext;
+        var store = _messageStore;
+        var field = FieldId;
+        var value = Value;
+        IReadOnlyList<string> errors;
+
+        try
+        {
+            if (Required && !HasValue(value))
             {
-                var errors = await DispatchValidationAsync(Validation, Value);
-                foreach (var err in errors)
-                {
-                    if (!string.IsNullOrEmpty(err)) _messageStore.Add(FieldId, err);
-                }
+                errors = [RequiredError];
+            }
+            else if (Validation is not null)
+            {
+                errors = await DispatchValidationAsync(Validation, value, cts.Token);
+            }
+            else
+            {
+                errors = [];
             }
 
-            _editContext.NotifyValidationStateChanged();
+            bool isCurrent;
+            lock (_validationSync)
+            {
+                isCurrent = !IsDisposed
+                    && version == _validationVersion
+                    && ReferenceEquals(_validationCts, cts);
+            }
+
+            if (!isCurrent
+                || cts.IsCancellationRequested
+                || !ReferenceEquals(context, _editContext)
+                || !ReferenceEquals(store, _messageStore)
+                || !field.Equals(FieldId))
+            {
+                return;
+            }
+
+            store.Clear(field);
+            foreach (string error in errors)
+            {
+                if (!string.IsNullOrWhiteSpace(error)) store.Add(field, error);
+            }
+            context.NotifyValidationStateChanged();
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            // Superseded validation: latest-wins by design.
         }
         finally
         {
-            _validateInProgress = false;
+            lock (_validationSync)
+            {
+                if (ReferenceEquals(_validationCts, cts)) _validationCts = null;
+            }
+            cts.Dispose();
         }
     }
 
-    private async Task<IEnumerable<string>> DispatchValidationAsync(object validation, TValue? value)
+    private async Task<IReadOnlyList<string>> DispatchValidationAsync(
+        object validation,
+        TValue? value,
+        CancellationToken cancellationToken)
     {
-        // Pattern-match em todas as formas suportadas. Igual MudBlazor (MudFormComponent ValidateValue).
-        return validation switch
-        {
-            Func<TValue?, bool> fb            => fb(value) ? Array.Empty<string>() : new[] { "Inválido." },
-            Func<TValue?, string?> fs         => Single(fs(value)),
-            Func<TValue?, IEnumerable<string>> fmany => fmany(value)?.Where(s => !string.IsNullOrEmpty(s)) ?? Array.Empty<string>(),
-            Func<TValue?, Task<string?>> fas  => Single(await fas(value)),
-            Func<TValue?, Task<IEnumerable<string>>> famany => (await famany(value))?.Where(s => !string.IsNullOrEmpty(s)) ?? Array.Empty<string>(),
-            ValidationAttribute attr          => RunAttribute(attr, value),
-            _                                  => Array.Empty<string>(),
-        };
+        cancellationToken.ThrowIfCancellationRequested();
 
-        static IEnumerable<string> Single(string? s) => string.IsNullOrEmpty(s) ? Array.Empty<string>() : new[] { s };
+        switch (validation)
+        {
+            case Func<TValue?, bool> validate:
+                return validate(value) ? [] : ["Inválido."];
+            case Func<TValue?, string?> validate:
+                return Single(validate(value));
+            case Func<TValue?, IEnumerable<string>> validate:
+                return Materialize(validate(value));
+            case Func<TValue?, Task<string?>> validate:
+                return Single(await validate(value));
+            case Func<TValue?, Task<IEnumerable<string>>> validate:
+                return Materialize(await validate(value));
+            case Func<TValue?, CancellationToken, Task<string?>> validate:
+                return Single(await validate(value, cancellationToken));
+            case Func<TValue?, CancellationToken, Task<IEnumerable<string>>> validate:
+                return Materialize(await validate(value, cancellationToken));
+            case ValidationAttribute attribute:
+                return Materialize(RunAttribute(attribute, value));
+            default:
+                return [];
+        }
+
+        static IReadOnlyList<string> Single(string? message)
+            => string.IsNullOrWhiteSpace(message) ? [] : [message];
+
+        static IReadOnlyList<string> Materialize(IEnumerable<string>? source)
+        {
+            if (source is null) return [];
+
+            List<string>? result = null;
+            foreach (string message in source)
+            {
+                if (string.IsNullOrWhiteSpace(message)) continue;
+                (result ??= []).Add(message);
+            }
+            return result ?? [];
+        }
+    }
+
+    private static bool HasValue(TValue? value)
+    {
+        if (value is null) return false;
+        if (value is string text) return !string.IsNullOrEmpty(text);
+        return !EqualityComparer<TValue?>.Default.Equals(value, default);
     }
 
     private IEnumerable<string> RunAttribute(ValidationAttribute attr, TValue? value)
@@ -255,17 +370,63 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
     }
 
     private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
-        => InvokeAsync(StateHasChanged);
+        => ObserveTask(RenderAfterValidationAsync(), "FormComponent.ValidationRender");
 
-    private async void OnFieldChanged(object? sender, FieldChangedEventArgs e)
+    private void OnFieldChanged(object? sender, FieldChangedEventArgs e)
     {
         // Quando OUTRO campo muda (ex: confirma-senha em CompareValidator),
         // alguns inputs precisam revalidar. Default: revalida apenas se for
         // o próprio campo (já feito em SetValueAsync). Subclasses podem
         // overridar pra revalidar em mudanças cross-field.
-        if (HasFieldIdentifier && e.FieldIdentifier.Equals(FieldId))
+        if (!_notifyingOwnFieldChange
+            && HasFieldIdentifier
+            && e.FieldIdentifier.Equals(FieldId))
         {
-            await ValidateAsync();
+            ObserveTask(ValidateFromEventAsync(), "FormComponent.ValidationEvent");
+        }
+    }
+
+    private async Task ValidateFromEventAsync()
+    {
+        try
+        {
+            await InvokeAsync(ValidateAsync);
+        }
+        catch (OperationCanceledException)
+        {
+            // Component disposal or a newer validation cancelled this pass.
+        }
+        catch (Exception exception)
+        {
+            await ReportExceptionSafelyAsync(exception);
+        }
+    }
+
+    private async Task RenderAfterValidationAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException) when (IsDisposed)
+        {
+            // A late EditContext notification raced with component disposal.
+        }
+        catch (InvalidOperationException) when (IsDisposed)
+        {
+            // The renderer is already gone.
+        }
+    }
+
+    private async Task ReportExceptionSafelyAsync(Exception exception)
+    {
+        try
+        {
+            await DispatchExceptionAsync(exception);
+        }
+        catch when (IsDisposed)
+        {
+            // The renderer was released while reporting the original failure.
         }
     }
 
@@ -277,8 +438,35 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
 
     public virtual void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+
+        CancellationTokenSource? validation;
+        lock (_validationSync)
+        {
+            ++_validationVersion;
+            validation = _validationCts;
+            _validationCts = null;
+        }
+        CancelSafely(validation);
+
         FormRegistry?.UnregisterComponent(this);
         DetachContext();
         GC.SuppressFinalize(this);
+    }
+
+    private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
+
+    private static void CancelSafely(CancellationTokenSource? source)
+    {
+        if (source is null) return;
+
+        try
+        {
+            source.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The validation operation owns disposal and may have completed concurrently.
+        }
     }
 }

@@ -33,11 +33,12 @@
 
     @if (_mode == HtmlEditorMode.Source)
     {
-        <textarea class="omni-he-source" spellcheck="false" disabled="@Disabled"
+        <textarea id="@InputId" class="omni-he-source" spellcheck="false" disabled="@Disabled"
                   value="@_html" @onchange="OnSourceChangedAsync"></textarea>
     }
 
-    <div class="omni-he-content" @ref="_contentRef" contenteditable="@((!Disabled).ToString().ToLowerInvariant())"
+    <div id="@(_mode == HtmlEditorMode.Design ? InputId : null)"
+         class="omni-he-content" @ref="_contentRef" contenteditable="@((!Disabled).ToString().ToLowerInvariant())"
          hidden="@(_mode != HtmlEditorMode.Design)" @onblur="OnBlurAsync"></div>
 </div>
 
@@ -243,7 +244,9 @@
         base.Dispose();
         if (_created)
         {
-            try { _ = JS.InvokeVoidAsync("omniBlazor.htmlEditorDestroy", _contentRef); } catch { }
+            TaskObserver.Observe(
+                JS.InvokeVoidAsync("omniBlazor.htmlEditorDestroy", _contentRef),
+                operation: "OmniHtmlEditor.Dispose");
         }
         _selfRef?.Dispose();
         _selfRef = null;

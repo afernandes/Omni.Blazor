@@ -6,7 +6,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![CI](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml/badge.svg)](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml)
 
-> Modern Blazor component library for .NET 10 — **174 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
+> Modern Blazor component library for .NET 10 — **198 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
 
 ```xml
 <PackageReference Include="AndersonN.Omni.Blazor" Version="*" />
@@ -16,7 +16,7 @@
 
 ## Highlights
 
-- **174 components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
+- **198 components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
 - **Single CSS bundle** (~295 KB) — no Bootstrap, no Tailwind, no runtime CSS-in-JS
 - **Design tokens** in CSS custom properties (`--omni-*`) — restyleable without recompiling
 - **Light / Dark / System** appearance toggle out of the box
@@ -120,30 +120,30 @@ base package — only the `IChatClient`-backed orchestration lives in `.Ai`.
 
 ## Component catalog
 
-_174 components — generated from [`docs/components.json`](docs/components.json). Run `dotnet run --project tools/Omni.Blazor.ManifestGen` after changing the public surface._
+_198 components — generated from [`docs/components.json`](docs/components.json). Run `dotnet run --project tools/Omni.Blazor.ManifestGen` after changing the public surface._
 
 <details>
-<summary><strong>Layout</strong> (30)</summary>
+<summary><strong>Layout</strong> (32)</summary>
 
-OmniAppBar, OmniAppearanceToggle, OmniAuthLayout, OmniBanner, OmniBento, OmniBentoItem, OmniBrand, OmniBreakpointProvider, OmniCol, OmniContainer, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniHidden, OmniLayout, OmniMain, OmniMasonry, OmniPaneHeader, OmniPaneToolbar, OmniParallax, OmniParallaxLayer, OmniRow, OmniSplitAsideLabel, OmniSplitView, OmniSplitter, OmniSplitterPane, OmniStack, OmniSwipeArea, OmniThemePicker, OmniToolBar
+OmniAppBar, OmniAppearanceToggle, OmniAuthLayout, OmniBanner, OmniBento, OmniBentoItem, OmniBrand, OmniBreakpointProvider, OmniCol, OmniContainer, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniHidden, OmniLayout, OmniMain, OmniMasonry, OmniMediaQuery, OmniPaneHeader, OmniPaneToolbar, OmniParallax, OmniParallaxLayer, OmniRow, OmniSplitAsideLabel, OmniSplitView, OmniSplitter, OmniSplitterPane, OmniStack, OmniSwipeArea, OmniTheme, OmniThemePicker, OmniToolBar
 </details>
 
 <details>
-<summary><strong>Navigation</strong> (14)</summary>
+<summary><strong>Navigation</strong> (15)</summary>
 
-OmniBreadcrumb, OmniExitPrompt, OmniHotkey, OmniMenuBar, OmniMenuBarItem, OmniPagination, OmniPanelMenu, OmniPanelMenuItem, OmniPanelMenuSection, OmniSegmentedControl, OmniStep, OmniStepper, OmniTabItem, OmniTabs
+OmniBreadcrumb, OmniExitPrompt, OmniGlobalSearch, OmniHotkey, OmniMenuBar, OmniMenuBarItem, OmniPagination, OmniPanelMenu, OmniPanelMenuItem, OmniPanelMenuSection, OmniSegmentedControl, OmniStep, OmniStepper, OmniTabItem, OmniTabs
 </details>
 
 <details>
-<summary><strong>Inputs</strong> (29)</summary>
+<summary><strong>Inputs</strong> (31)</summary>
 
-OmniAutoComplete, OmniCalendar, OmniCheckBox, OmniCheckBoxList, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniFileUpload, OmniFormField, OmniListBox, OmniMaskedTextBox, OmniMultiSelect, OmniNumeric, OmniPassword, OmniPasswordStrength, OmniPickList, OmniQtyStepper, OmniRadio, OmniRadioGroup, OmniRating, OmniSecurityCode, OmniSelect, OmniSlider, OmniSpeechToTextButton, OmniSwitch, OmniTagInput, OmniTextArea, OmniTextBox, OmniTimePicker
+OmniAutoComplete, OmniCalendar, OmniCheckBox, OmniCheckBoxList, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniFileUpload, OmniFormField, OmniListBox, OmniMaskedTextBox, OmniMultiSelect, OmniNumeric, OmniPassword, OmniPasswordStrength, OmniPickList, OmniQtyStepper, OmniRadio, OmniRadioGroup, OmniRating, OmniSecurityCode, OmniSelect, OmniSignaturePad, OmniSlider, OmniSpeechToText, OmniSpeechToTextButton, OmniSwitch, OmniTagInput, OmniTextArea, OmniTextBox, OmniTimePicker
 </details>
 
 <details>
-<summary><strong>Forms</strong> (2)</summary>
+<summary><strong>Forms</strong> (11)</summary>
 
-OmniValidationMessage, OmniValidationSummary
+OmniCompareValidator, OmniCustomValidator, OmniDataAnnotationValidator, OmniEmailValidator, OmniForm, OmniLengthValidator, OmniRangeValidator, OmniRegexValidator, OmniRequiredValidator, OmniValidationMessage, OmniValidationSummary
 </details>
 
 <details>
@@ -159,15 +159,15 @@ OmniAccordion, OmniAccordionItem, OmniAlert, OmniAvatar, OmniAvatarGroup, OmniBa
 </details>
 
 <details>
-<summary><strong>Data</strong> (26)</summary>
+<summary><strong>Data</strong> (34)</summary>
 
-OmniChat, OmniDataFilter, OmniDataFilterItem, OmniDataFilterProperty, OmniDataGrid, OmniDataGridColumn, OmniDayView, OmniDiagramCanvas, OmniDropZone, OmniDropZoneContainer, OmniDropZoneItem, OmniGantt, OmniGanttColumn, OmniHtmlEditor, OmniKanban, OmniMonthView, OmniMultiDayView, OmniPivotGrid, OmniScheduler, OmniTree, OmniTreeItem, OmniVirtualize, OmniWeekView, OmniYearPlannerView, OmniYearTimelineView, OmniYearView
+OmniChat, OmniDataFilter, OmniDataFilterItem, OmniDataFilterProperty, OmniDataGrid, OmniDataGridColumn, OmniDayView, OmniDiagramCanvas, OmniDropZone, OmniDropZoneContainer, OmniDropZoneItem, OmniFileManager, OmniGantt, OmniGanttColumn, OmniHtmlEditor, OmniHtmlEditorButton, OmniKanban, OmniMonthView, OmniMultiDayView, OmniPivotColumn, OmniPivotGrid, OmniPivotRow, OmniPivotValue, OmniScheduler, OmniTree, OmniTreeGrid, OmniTreeGridColumn, OmniTreeItem, OmniTreeLevel, OmniVirtualize, OmniWeekView, OmniYearPlannerView, OmniYearTimelineView, OmniYearView
 </details>
 
 <details>
-<summary><strong>Overlays &amp; feedback</strong> (17)</summary>
+<summary><strong>Overlays &amp; feedback</strong> (18)</summary>
 
-AlertDialog, ConfirmDialog, OmniBottomSheet, OmniCommandPalette, OmniConfirmPrompt, OmniContextMenuHost, OmniDialogHost, OmniMenu, OmniMenuItem, OmniMenuSeparator, OmniNotificationHost, OmniOverlay, OmniPopover, OmniTooltipHost, OmniTour, OmniTourHost, OmniTourStep
+AlertDialog, ConfirmDialog, OmniBottomSheet, OmniCommandPalette, OmniConfirmPrompt, OmniContextMenuHost, OmniDialogHost, OmniMenu, OmniMenuItem, OmniMenuSeparator, OmniNotificationHost, OmniOverlay, OmniOverlayHosts, OmniPopover, OmniTooltipHost, OmniTour, OmniTourHost, OmniTourStep
 </details>
 
 <details>

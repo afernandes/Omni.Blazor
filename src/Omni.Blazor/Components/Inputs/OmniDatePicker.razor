@@ -21,7 +21,7 @@
 
 @if (Inline)
 {
-    <div class="@RootCss omni-datepicker-inline" style="@Style" @attributes="Attributes">
+    <div id="@InputId" class="@RootCss omni-datepicker-inline" style="@Style" @attributes="Attributes">
         @if (!IsTimeOnlyMode)
         {
             <OmniCalendar Selected="@_selected"
@@ -50,6 +50,7 @@ else
 {
     <div class="@RootCss" style="@Style" data-omni-dpid="@_id" @attributes="Attributes">
         <input class="omni-input omni-datepicker-input"
+               id="@InputId"
                type="text"
                value="@_textValue"
                placeholder="@(Placeholder ?? EffectivePlaceholder)"
@@ -395,7 +396,7 @@ else
         if (_open) { await CloseAsync(); } else { await OpenAsync(); }
     }
 
-    private void Open() => _ = OpenAsync();
+    private void Open() => ObserveTask(OpenAsync(), "OmniDatePicker.Open");
 
     private async Task OpenAsync()
     {
@@ -430,7 +431,7 @@ else
     public override void Dispose()
     {
         base.Dispose();
-        _ = UnregisterOutsideAsync();
+        TaskObserver.Observe(UnregisterOutsideAsync(), operation: "OmniDatePicker.Dispose");
         _dotnetRef?.Dispose();
     }
 

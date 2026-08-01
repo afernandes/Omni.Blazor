@@ -483,7 +483,8 @@
         _query = e.Value?.ToString() ?? "";
         _highlightedIndex = 0;
         Recompute();
-        if (CommandSource is not null) _ = TriggerSearchAsync();
+        if (CommandSource is not null)
+            ObserveTask(TriggerSearchAsync(), "OmniCommandPalette.Search");
     }
 
     private async Task TriggerSearchAsync()

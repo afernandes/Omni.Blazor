@@ -1232,10 +1232,15 @@
 
   // Focus an element by id — used by OmniKanban to keep focus on a card after a
   // keyboard move re-renders the board. No-op if the element is gone.
-  ns.focusElement = function (id) {
+  ns.focusElement = function (id, preventScroll) {
     if (!id) return;
-    const el = document.getElementById(id);
-    if (el) { try { el.focus(); } catch {} }
+    const root = document.getElementById(id);
+    if (!root) return;
+    const selector = 'input:not([disabled]),textarea:not([disabled]),select:not([disabled]),button:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const el = typeof root.focus === 'function' && root.matches(selector)
+      ? root
+      : root.querySelector(selector);
+    if (el) { try { el.focus({ preventScroll: preventScroll !== false }); } catch {} }
   };
 
   // OmniKanban — horizontal auto-scroll while dragging a card near the board
@@ -1351,6 +1356,21 @@
     a.href = url; a.download = filename || 'download.txt';
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+  };
+
+  // Trigger a browser download from a .NET stream. The stream is consumed
+  // incrementally across interop, avoiding a second managed string/byte[] copy.
+  ns.downloadStream = async function (filename, contentStreamReference, mime) {
+    const arrayBuffer = await contentStreamReference.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: mime || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    try {
+      a.href = url; a.download = filename || 'download.bin';
+      document.body.appendChild(a); a.click();
+    } finally {
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    }
   };
 
   // Copy text to the clipboard. Returns true on success. Falls back to a
@@ -2939,5 +2959,287 @@
     }
 
     return { supportsNative: supportsNative, create: create };
+  })();
+
+  omniBlazor.signaturePad = (function () {
+    function create(canvas, dotNet, options) {
+      if (!canvas) return null;
+
+      var state = {
+        canvas: canvas,
+        context: canvas.getContext('2d'),
+        dotNet: dotNet,
+        options: options || {},
+        strokes: [],
+        activeStroke: null,
+        initialImage: null,
+        baseValue: options && options.initialValue ? options.initialValue : null,
+        currentValue: options && options.initialValue ? options.initialValue : null,
+        loadGeneration: 0,
+        disposed: false
+      };
+
+      function resize() {
+        if (state.disposed) return;
+        var rect = canvas.getBoundingClientRect();
+        var ratio = Math.max(1, window.devicePixelRatio || 1);
+        var width = Math.max(1, Math.round(rect.width * ratio));
+        var height = Math.max(1, Math.round(rect.height * ratio));
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        state.context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        render();
+      }
+
+      function render() {
+        var context = state.context;
+        var width = canvas.clientWidth || 1;
+        var height = canvas.clientHeight || 1;
+        context.clearRect(0, 0, width, height);
+        context.fillStyle = state.options.backgroundColor || '#ffffff';
+        context.fillRect(0, 0, width, height);
+
+        if (state.initialImage) {
+          context.drawImage(state.initialImage, 0, 0, width, height);
+        }
+
+        context.strokeStyle = state.options.strokeColor || '#111827';
+        context.fillStyle = context.strokeStyle;
+        context.lineWidth = Math.max(0.5, Number(state.options.strokeWidth) || 2);
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+
+        for (var i = 0; i < state.strokes.length; i++) {
+          drawStroke(context, state.strokes[i]);
+        }
+        if (state.activeStroke) drawStroke(context, state.activeStroke);
+      }
+
+      function drawStroke(context, stroke) {
+        if (!stroke || stroke.length === 0) return;
+        if (stroke.length === 1) {
+          context.beginPath();
+          context.arc(stroke[0].x, stroke[0].y, context.lineWidth / 2, 0, Math.PI * 2);
+          context.fill();
+          return;
+        }
+
+        context.beginPath();
+        context.moveTo(stroke[0].x, stroke[0].y);
+        for (var i = 1; i < stroke.length; i++) {
+          context.lineTo(stroke[i].x, stroke[i].y);
+        }
+        context.stroke();
+      }
+
+      function point(event) {
+        var rect = canvas.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      }
+
+      function canDraw(event) {
+        return !state.disposed
+          && !state.options.disabled
+          && !state.options.readOnly
+          && (event.isPrimary !== false);
+      }
+
+      function onPointerDown(event) {
+        if (!canDraw(event)) return;
+        event.preventDefault();
+        state.activeStroke = [point(event)];
+        canvas.setPointerCapture(event.pointerId);
+        render();
+      }
+
+      function onPointerMove(event) {
+        if (!state.activeStroke || !canDraw(event)) return;
+        event.preventDefault();
+        state.activeStroke.push(point(event));
+        render();
+      }
+
+      function finishStroke(event) {
+        if (!state.activeStroke) return;
+        if (canDraw(event)) state.activeStroke.push(point(event));
+        state.strokes.push(state.activeStroke);
+        state.activeStroke = null;
+        render();
+        notify();
+      }
+
+      function onPointerCancel() {
+        state.activeStroke = null;
+        render();
+      }
+
+      function hasContent() {
+        return !!state.initialImage || state.strokes.length > 0;
+      }
+
+      function escapeXml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function exportSvg() {
+        var width = canvas.clientWidth || 1;
+        var height = canvas.clientHeight || 1;
+        var background = escapeXml(state.options.backgroundColor || '#ffffff');
+        var stroke = escapeXml(state.options.strokeColor || '#111827');
+        var strokeWidth = Math.max(0.5, Number(state.options.strokeWidth) || 2);
+        var parts = [
+          '<svg xmlns="http://www.w3.org/2000/svg" width="', width,
+          '" height="', height, '" viewBox="0 0 ', width, ' ', height, '">',
+          '<rect width="100%" height="100%" fill="', background, '"/>'
+        ];
+
+        if (state.baseValue) {
+          parts.push('<image href="', escapeXml(state.baseValue),
+            '" width="100%" height="100%" preserveAspectRatio="none"/>');
+        }
+
+        for (var i = 0; i < state.strokes.length; i++) {
+          var current = state.strokes[i];
+          if (current.length === 1) {
+            parts.push('<circle cx="', current[0].x, '" cy="', current[0].y,
+              '" r="', strokeWidth / 2, '" fill="', stroke, '"/>');
+            continue;
+          }
+          var points = [];
+          for (var j = 0; j < current.length; j++) {
+            points.push(current[j].x + ',' + current[j].y);
+          }
+          parts.push('<polyline points="', points.join(' '), '" fill="none" stroke="',
+            stroke, '" stroke-width="', strokeWidth,
+            '" stroke-linecap="round" stroke-linejoin="round"/>');
+        }
+        parts.push('</svg>');
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(parts.join(''));
+      }
+
+      function snapshot() {
+        if (!hasContent()) {
+          state.currentValue = null;
+          return { value: null, isEmpty: true };
+        }
+        var format = Number(state.options.format);
+        var value = format === 2
+          ? exportSvg()
+          : canvas.toDataURL(format === 1 ? 'image/jpeg' : 'image/png',
+              Math.max(0, Math.min(1, Number(state.options.quality) || 0.92)));
+        state.currentValue = value;
+        return { value: value, isEmpty: false };
+      }
+
+      function notify() {
+        var current = snapshot();
+        if (state.dotNet) {
+          state.dotNet.invokeMethodAsync('OnSignatureChangedAsync', current.value, current.isEmpty)
+            .catch(function () {});
+        }
+        return current;
+      }
+
+      function clear() {
+        state.strokes.length = 0;
+        state.activeStroke = null;
+        state.initialImage = null;
+        state.baseValue = null;
+        state.currentValue = null;
+        state.options.initialValue = null;
+        render();
+        return { value: null, isEmpty: true };
+      }
+
+      function undo() {
+        if (state.strokes.length > 0) state.strokes.pop();
+        else {
+          state.initialImage = null;
+          state.baseValue = null;
+          state.currentValue = null;
+          state.options.initialValue = null;
+        }
+        render();
+        return snapshot();
+      }
+
+      function update(nextOptions) {
+        if (!nextOptions) return;
+        var incomingValue = nextOptions.initialValue || null;
+        var isExternalValue = incomingValue !== state.currentValue;
+        state.options = nextOptions;
+        // A value equal to our last export is the normal Blazor binding echo.
+        // Only a genuinely external value replaces the captured strokes.
+        if (isExternalValue) {
+          state.strokes.length = 0;
+          state.activeStroke = null;
+          state.initialImage = null;
+          state.baseValue = incomingValue;
+          state.currentValue = incomingValue;
+          loadInitial(incomingValue);
+        }
+        state.options.initialValue = state.baseValue;
+        render();
+      }
+
+      function loadInitial(value) {
+        var generation = ++state.loadGeneration;
+        if (!value) {
+          state.initialImage = null;
+          render();
+          return;
+        }
+        var image = new Image();
+        image.onload = function () {
+          if (state.disposed || generation !== state.loadGeneration) return;
+          state.initialImage = image;
+          render();
+        };
+        image.src = value;
+      }
+
+      canvas.addEventListener('pointerdown', onPointerDown);
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerup', finishStroke);
+      canvas.addEventListener('pointercancel', onPointerCancel);
+      var resizeObserver = typeof ResizeObserver === 'function'
+        ? new ResizeObserver(resize)
+        : null;
+      if (resizeObserver) resizeObserver.observe(canvas);
+      window.addEventListener('resize', resize, { passive: true });
+      loadInitial(state.options.initialValue);
+      resize();
+
+      return {
+        update: update,
+        clear: clear,
+        undo: undo,
+        exportValue: snapshot,
+        dispose: function () {
+          if (state.disposed) return;
+          state.disposed = true;
+          canvas.removeEventListener('pointerdown', onPointerDown);
+          canvas.removeEventListener('pointermove', onPointerMove);
+          canvas.removeEventListener('pointerup', finishStroke);
+          canvas.removeEventListener('pointercancel', onPointerCancel);
+          window.removeEventListener('resize', resize, { passive: true });
+          if (resizeObserver) resizeObserver.disconnect();
+          state.strokes.length = 0;
+          state.activeStroke = null;
+          state.initialImage = null;
+          state.baseValue = null;
+          state.currentValue = null;
+          state.dotNet = null;
+        }
+      };
+    }
+
+    return { create: create };
   })();
 })();

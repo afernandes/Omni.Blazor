@@ -1,0 +1,456 @@
+@page "/showcase/data-form"
+@attribute [ShowcaseInfo(Title = "Data Form", Category = Cat.Forms, Icon = "edit", New = true, Featured = true, Aliases = "formulario,metadata,editcontext,dataannotations,crud")]
+@layout ShowcaseLayout
+@using System.ComponentModel
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject NotificationService Toast
+
+<PageTitle>Data Form — Showcase</PageTitle>
+
+@if (_interactiveReady)
+{
+    <span data-testid="data-form-interactive" aria-hidden="true"></span>
+}
+
+<ShowcasePage Title="Data Form"
+              Subtitle="Formulários declarativos gerados por metadados, com inputs Omni, EditContext e validação completa.">
+    <Overview>
+        <p>
+            <code>OmniDataForm&lt;TModel&gt;</code> lê tipos e DataAnnotations do modelo para escolher
+            <code>OmniTextBox</code>, <code>OmniNumeric</code>, <code>OmniDatePicker</code>,
+            <code>OmniSelect</code>, <code>OmniSwitch</code> e outros editores. Cada input mantém
+            <code>ValueExpression</code>, portanto mensagens, estado modificado e validadores usam
+            o mesmo <code>EditContext</code> do <code>OmniForm</code> interno.
+        </p>
+        <p>
+            Um <code>DataFormSchema&lt;TModel&gt;</code> imutável complementa os atributos do modelo com
+            seletores fortemente tipados: define grupos aninhados, layout responsivo, propriedades
+            aninhadas, regras condicionais, validators e providers sem strings ou dicionários de
+            parâmetros. O formulário aceita <code>Model</code> ou um
+            <code>EditContext</code> criado pela aplicação.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Cadastros e edições CRUD com muitos campos convencionais.</li>
+            <li>Telas administrativas cuja forma é definida por metadados.</li>
+            <li>Formulários que precisam compartilhar padrões de layout e validação.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Experiências altamente editoriais, com layout específico por campo.</li>
+            <li>Wizards longos ou fluxos em etapas — combine <code>OmniForm</code> com <code>OmniStepper</code>.</li>
+            <li>Filtros simples sem submissão — componha os inputs diretamente.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="GERAÇÃO POR DATA ANNOTATIONS"
+                         Description="Display define rótulo, dica, placeholder e ordem; DataType escolhe o editor; Required, StringLength e Range são processados pelo EditContext. O schema fluent aplica apenas os overrides necessários."
+                         Code="@BasicExample">
+            <OmniDataForm TModel="CadastroCliente"
+                          EditContext="@_editContext"
+                          Schema="@CadastroSchema"
+                          ValidationDelay="350"
+                          OnValidSubmit="@SalvarAsync"
+                          FieldChanged="@AoAlterarCampo"
+                          SubmitText="Salvar cliente"
+                          Submitting="@_salvando"
+                          @bind-IsTouched="@_alterado"
+                          @ref="_form" />
+
+            <div class="omni-row omni-row-gap-8" style="margin-top:12px;align-items:center;flex-wrap:wrap;">
+                <OmniChip Variant="@(_alterado ? BadgeVariant.Warn : BadgeVariant.Plain)">
+                    @(_alterado ? "Alterado" : "Sem alterações")
+                </OmniChip>
+                <OmniChip Variant="@(_form?.IsValid == true ? BadgeVariant.Good : BadgeVariant.Plain)">
+                    @(_form?.IsValid == true ? "Válido" : "Aguardando validação")
+                </OmniChip>
+                @if (!string.IsNullOrEmpty(_ultimoCampo))
+                {
+                    <span class="omni-muted" style="font-size:12px;">Último campo: @_ultimoCampo</span>
+                }
+                <OmniButton Text="Restaurar snapshot"
+                            Variant="ButtonVariant.Ghost"
+                            Size="ComponentSize.Sm"
+                            OnClick="@(_ => RestaurarAsync())" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="METADADOS CONDICIONAIS"
+                         Description="Ao trocar Tipo para Pessoa jurídica, o callback FieldChanged provoca nova avaliação de VisibleWhen e o campo Razão social aparece. A definição continua tipada e o modelo segue sendo a única fonte de dados.">
+            <div class="omni-alert omni-alert-info" role="note">
+                <div class="omni-alert-body">
+                    <div class="omni-alert-title">Experimente</div>
+                    <div>Abra <strong>Tipo de pessoa</strong>, escolha <strong>Pessoa jurídica</strong> e observe o campo condicional.</div>
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LOOKUPS DEPENDENTES E COLEÇÕES"
+                         Description="Item e valor do lookup têm tipos distintos; DependsOn invalida o provider e limpa valores obsoletos. Collection compõe subforms sem forms HTML aninhados, com limites e reordenação. O grid responde à largura do próprio container.">
+            <div data-testid="data-form-browser" style="width:520px;max-width:100%;padding:12px;border:1px solid var(--omni-border);border-radius:var(--omni-radius-lg);">
+                <OmniDataForm TModel="CadastroAvancado"
+                              Model="@_cadastroAvancado"
+                              Schema="@CadastroAvancadoSchema"
+                              ShowValidationSummary="false"
+                              ShowSubmitButton="false" />
+                <button type="button"
+                        class="omni-btn omni-btn-ghost omni-btn-sm"
+                        data-testid="replace-data-form-model"
+                        style="margin-top:12px;"
+                        @onclick="SubstituirCadastroAvancado">Substituir modelo</button>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="EXTENSIBILIDADE POR DI"
+                         Description="Tipos de domínio podem receber um editor padrão global; resolvers contextuais também podem considerar propriedade, caminho e annotations. O contrato exige Value, ValueChanged e ValueExpression, preservando o EditContext."
+                         Code="@ExtensibilityExample">
+            <div class="omni-alert omni-alert-info" role="note">
+                <div class="omni-alert-body">
+                    <div class="omni-alert-title">Sem reflection por render</div>
+                    <div>Os registrations são convertidos em uma resolução imutável por escopo; o contrato do componente é validado quando o schema é resolvido.</div>
+                </div>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniDataForm&lt;TModel&gt;">
+            <ShowcaseApiRow Name="Model / EditContext" Type="TModel? / EditContext?" Default="mutuamente exclusivos" Description="Use o modelo para criação automática do contexto ou forneça um contexto existente." />
+            <ShowcaseApiRow Name="Schema" Type="DataFormSchema&lt;TModel&gt;?" Default="null" Description="Definição imutável e reutilizável criada pelo fluent builder." />
+            <ShowcaseApiRow Name="Columns" Type="int?" Default="null" Description="Override simples; quando ausente, usa o layout responsivo do schema." />
+            <ShowcaseApiRow Name="Validation / ValidationAsyncWithCancellation" Type="delegates" Default="null" Description="Regras cross-field e remotas herdadas do OmniForm." />
+            <ShowcaseApiRow Name="FieldChanged" Type="EventCallback" Default="—" Description="Notifica a escrita feita por um editor gerado." />
+            <ShowcaseApiRow Name="FieldStateChanged / ValidationStateChanged" Type="EventCallback" Default="—" Description="Snapshots imutáveis para dirty, touched, pending, valid e erros." />
+            <ShowcaseApiRow Name="ValidateFieldAsync" Type="Task&lt;DataFormValidationResult&gt;" Default="—" Description="Distingue Valid, Invalid, Canceled e Superseded." />
+            <ShowcaseApiRow Name="Actions / ChildContent" Type="RenderFragment" Default="null" Description="Ações customizadas e validators adicionais." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="DataFormSchema&lt;TModel&gt; / Fluent Builder">
+            <ShowcaseApiRow Name="Field" Type="Expression&lt;Func&lt;TModel,TValue&gt;&gt;" Default="—" Description="Seleciona uma propriedade com validação de rename pelo compilador." />
+            <ShowcaseApiRow Name="AutoGenerateFields" Type="bool" Default="true" Description="Inclui propriedades suportadas que não foram configuradas explicitamente." />
+            <ShowcaseApiRow Name="Text / Numeric / Date / Select / ..." Type="builders tipados" Default="Auto" Description="Escolhe o editor e expõe somente suas opções válidas." />
+            <ShowcaseApiRow Name="Group / Layout" Type="builders tipados" Default="—" Description="Grupos semânticos aninhados e grids mobile-first por breakpoint." />
+            <ShowcaseApiRow Name="Span / VisibleWhen / EnabledWhen / RequiredWhen" Type="fluent" Default="inferred" Description="Layout e regras condicionais reavaliados contra o modelo." />
+            <ShowcaseApiRow Name="ValidateAsync / ItemsProvider" Type="delegates canceláveis" Default="null" Description="Validação por campo e opções remotas com latest-wins e limites explícitos." />
+            <ShowcaseApiRow Name="Select&lt;TItem&gt; / DependsOn" Type="lookup tipado" Default="—" Description="Separa item e valor, invalida dependências e usa cache LRU limitado." />
+            <ShowcaseApiRow Name="Collection&lt;TItem&gt;" Type="builder tipado" Default="—" Description="Subforms, add/remove/reorder, chaves estáveis e validação indexada." />
+            <ShowcaseApiRow Name="Include / Override / Apply / ConventionFor" Type="composição" Default="—" Description="Fragments, profiles e convenções reutilizáveis por tipo ou atributo." />
+            <ShowcaseApiRow Name="Template" Type="RenderFragment&lt;DataFormFieldContext&lt;TModel,TValue&gt;&gt;" Default="null" Description="Binding customizado com Value, ValueChanged, ValueExpression e EditContext tipados." />
+            <ShowcaseApiRow Name="AddOmniDataFormEditor" Type="extensão de IServiceCollection" Default="—" Description="Substitui a inferência por tipo ou por um IDataFormEditorResolver contextual." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private bool _interactiveReady;
+    private OmniDataForm<CadastroCliente>? _form;
+    private CadastroCliente _cliente = new();
+    private CadastroAvancado _cadastroAvancado = new();
+    private EditContext _editContext = default!;
+    private bool _alterado;
+    private bool _salvando;
+    private bool _snapshotCapturado;
+    private string? _ultimoCampo;
+
+    private static readonly DataFormSchema<CadastroCliente> CadastroSchema =
+        DataFormSchema<CadastroCliente>.Create(form => form
+            .AutoGenerateFields(false)
+            .Layout(layout => layout.Columns(1).Columns(Breakpoint.Md, 2).RowGap("18px"))
+            .Group("Identificação", group => group
+                .Id("identificacao")
+                .Description("Dados principais e regras dependentes do tipo de pessoa.")
+                .Layout(layout => layout.Columns(1).Columns(Breakpoint.Md, 2))
+                .Field(model => model.Nome, field => field
+                    .Span(Breakpoint.Md, 2)
+                    .Text(editor => editor.Autocomplete("name").Clearable()))
+                .Field(model => model.Email, field => field
+                    .Email(editor => editor.Autocomplete("email")))
+                .Field(model => model.Documento, field => field
+                    .HintRight("CPF/CNPJ")
+                    .Text(editor => editor.MaxLength(18))
+                    .ValidateAsync(ValidarDocumentoCampoAsync))
+                .Field(model => model.Tipo)
+                .Field(model => model.RazaoSocial, field => field
+                    .VisibleWhen(model => model.Tipo == TipoPessoa.Juridica)
+                    .RequiredWhen(model => model.Tipo == TipoPessoa.Juridica,
+                        "Informe a razão social para pessoa jurídica.")))
+            .Group("Endereço", group => group
+                .Id("endereco")
+                .Layout(layout => layout.Columns(1).Columns(Breakpoint.Md, 2))
+                .Field(model => model.Endereco.Cidade)
+                .Field(model => model.Endereco.Cep))
+            .Group("Dados comerciais", group => group
+                .Id("comercial")
+                .Layout(layout => layout.Columns(1).Columns(Breakpoint.Md, 3))
+                .Field(model => model.DataCadastro)
+                .Field(model => model.LimiteCredito, field => field
+                    .Numeric(editor => editor.Prefix("R$").Decimals(2).Step(100m)))
+                .Field(model => model.Ativo)
+                .Field(model => model.Segmento, field => field
+                    .Span(Breakpoint.Md, 2)
+                    .Select(editor => editor.ItemsProvider(CarregarSegmentosAsync, pageSize: 10, maxItems: 50)))
+                .Field(model => model.Observacoes, field => field
+                    .Span(Breakpoint.Md, 3)
+                    .TextArea(editor => editor.Rows(3).MaxLength(300)))));
+
+    private static readonly DataFormSchema<ContatoAvancado> ContatoSchema =
+        DataFormSchema<ContatoAvancado>.Create(form => form
+            .AutoGenerateFields(false)
+            .Layout(layout => layout.Columns(1))
+            .Field(model => model.Valor, field => field
+                .Label("Contato")
+                .Telephone(editor => editor.Autocomplete("tel"))));
+
+    private static readonly DataFormSchema<CadastroAvancado> CadastroAvancadoSchema =
+        DataFormSchema<CadastroAvancado>.Create(form => form
+            .AutoGenerateFields(false)
+            .Layout(layout => layout.Columns(1).Columns(Breakpoint.Sm, 2))
+            .Field(model => model.PaisId, field => field
+                .Label("País")
+                .Select(select => select
+                    .Option(1, "Brasil")
+                    .Option(2, "Argentina")))
+            .Field(model => model.EstadoId, field => field
+                .Label("Estado/província")
+                .Select<EstadoOpcao>(
+                    item => item.Id,
+                    item => item.Nome,
+                    lookup => lookup
+                        .DependsOn(model => model.PaisId)
+                        .CacheEntries(4)
+                        .ItemsProvider(CarregarEstadosAsync, pageSize: 20, maxItems: 40)))
+            .Field(model => model.Contatos, field => field
+                .Label("Contatos")
+                .Span(Breakpoint.Sm, 2)
+                .Collection<ContatoAvancado>(collection => collection
+                    .ItemSchema(ContatoSchema)
+                    .CreateItem(() => new ContatoAvancado())
+                    .Bounds(1, 4)
+                    .Reorderable())));
+
+    protected override void OnInitialized()
+    {
+        _editContext = new EditContext(_cliente);
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        if (!_snapshotCapturado && _form is not null)
+        {
+            _form.Snapshot();
+            _snapshotCapturado = true;
+        }
+
+        _interactiveReady = true;
+        StateHasChanged();
+    }
+
+    private Task AoAlterarCampo(DataFormFieldChangedEventArgs<CadastroCliente> args)
+    {
+        _ultimoCampo = args.Property;
+        return Task.CompletedTask;
+    }
+
+    private static async ValueTask<string?> ValidarDocumentoCampoAsync(
+        string? valor,
+        CadastroCliente cliente,
+        CancellationToken cancellationToken)
+    {
+        string documento = new(valor?.Where(char.IsDigit).ToArray() ?? []);
+        if (documento.Length == 0) return null;
+
+        await Task.Delay(250, cancellationToken);
+        int tamanhoEsperado = cliente.Tipo == TipoPessoa.Fisica ? 11 : 14;
+        return documento.Length == tamanhoEsperado
+            ? null
+            : $"O documento precisa ter {tamanhoEsperado} dígitos.";
+    }
+
+    private static ValueTask<OmniItemsPage<string?>> CarregarSegmentosAsync(
+        OmniItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        string?[] items = ["Varejo", "Atacado", "Serviços", "Indústria"];
+        IReadOnlyList<string?> page = items.Skip(request.Skip).Take(request.Take).ToArray();
+        return ValueTask.FromResult(new OmniItemsPage<string?>(page, items.Length));
+    }
+
+    private static async ValueTask<OmniItemsPage<EstadoOpcao>> CarregarEstadosAsync(
+        DataFormLookupRequest<CadastroAvancado> request,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(120, cancellationToken);
+        EstadoOpcao[] items = request.Model.PaisId == 2
+            ? [new(21, "Buenos Aires"), new(22, "Córdoba")]
+            : [new(11, "Paraná"), new(12, "São Paulo")];
+        IReadOnlyList<EstadoOpcao> page = items
+            .Skip(request.ItemsRequest.Skip)
+            .Take(request.ItemsRequest.Take)
+            .ToArray();
+        return new OmniItemsPage<EstadoOpcao>(page, items.Length);
+    }
+
+    private void SubstituirCadastroAvancado()
+        => _cadastroAvancado = new CadastroAvancado
+        {
+            PaisId = _cadastroAvancado.PaisId == 1 ? 2 : 1
+        };
+
+    private async Task SalvarAsync(EditContext _)
+    {
+        _salvando = true;
+        try
+        {
+            await Task.Delay(450);
+            Toast.Success("Cliente salvo", _cliente.Nome);
+            if (_form is not null) await _form.ResetTouchedAsync();
+        }
+        finally
+        {
+            _salvando = false;
+        }
+    }
+
+    private async Task RestaurarAsync()
+    {
+        if (_form is null) return;
+        await _form.ResetAsync();
+        _ultimoCampo = null;
+    }
+
+    public sealed class CadastroCliente
+    {
+        [Required(ErrorMessage = "Informe o nome do cliente.")]
+        [StringLength(80, MinimumLength = 3, ErrorMessage = "Use entre 3 e 80 caracteres.")]
+        [Display(Name = "Nome", Prompt = "Nome completo", Description = "Nome usado em documentos e buscas.", Order = 1)]
+        public string? Nome { get; set; }
+
+        [Required(ErrorMessage = "Informe um e-mail.")]
+        [EmailAddress(ErrorMessage = "E-mail inválido.")]
+        [Display(Name = "E-mail", Prompt = "cliente@empresa.com", Order = 2)]
+        public string? Email { get; set; }
+
+        [Required(ErrorMessage = "Informe o documento.")]
+        [Display(Name = "Documento", Prompt = "Somente números", Order = 3)]
+        public string? Documento { get; set; }
+
+        [Display(Name = "Tipo de pessoa", Order = 4)]
+        public TipoPessoa Tipo { get; set; }
+
+        [Display(Name = "Razão social", Prompt = "Razão social da empresa", Order = 5)]
+        public string? RazaoSocial { get; set; }
+
+        [DataType(DataType.Date)]
+        [Display(Name = "Data de cadastro", Order = 6)]
+        public DateOnly DataCadastro { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+
+        [Range(typeof(decimal), "0", "1000000", ErrorMessage = "O limite deve ficar entre zero e um milhão.")]
+        [Display(Name = "Limite de crédito", Order = 7)]
+        public decimal LimiteCredito { get; set; } = 1000m;
+
+        [Display(Name = "Cliente ativo", Order = 8)]
+        public bool Ativo { get; set; } = true;
+
+        [Display(Name = "Segmento", Prompt = "Selecione um segmento", Order = 9)]
+        public string? Segmento { get; set; }
+
+        public EnderecoCliente Endereco { get; set; } = new();
+
+        [DataType(DataType.MultilineText)]
+        [Display(Name = "Observações", Description = "Informações úteis para o atendimento.", Order = 10)]
+        public string? Observacoes { get; set; }
+
+        [ScaffoldColumn(false)]
+        public Guid Id { get; set; } = Guid.NewGuid();
+    }
+
+    public sealed class EnderecoCliente
+    {
+        [Display(Name = "Cidade", Prompt = "Cidade")]
+        public string? Cidade { get; set; }
+
+        [Display(Name = "CEP", Prompt = "00000-000")]
+        public string? Cep { get; set; }
+    }
+
+    public sealed class CadastroAvancado
+    {
+        public int PaisId { get; set; } = 1;
+        public int? EstadoId { get; set; }
+        public List<ContatoAvancado> Contatos { get; set; } = [new()];
+    }
+
+    public sealed class ContatoAvancado
+    {
+        [Required(ErrorMessage = "Informe o contato.")]
+        public string? Valor { get; set; }
+    }
+
+    public sealed record EstadoOpcao(int Id, string Nome);
+
+    public enum TipoPessoa
+    {
+        [Display(Name = "Pessoa física")]
+        Fisica,
+
+        [Display(Name = "Pessoa jurídica")]
+        Juridica
+    }
+
+    private const string BasicExample = @"<OmniDataForm TModel=""CadastroCliente""
+              EditContext=""@editContext""
+              Schema=""@schema""
+              OnValidSubmit=""@SalvarAsync""
+              @bind-IsTouched=""@alterado"" />
+
+@code {
+    public sealed class CadastroCliente
+    {
+        [Required, StringLength(80, MinimumLength = 3)]
+        [Display(Name = ""Nome"", Prompt = ""Nome completo"", Order = 1)]
+        public string? Nome { get; set; }
+
+        [EmailAddress]
+        public string? Email { get; set; }
+    }
+
+    EditContext editContext = new(cliente);
+
+    static readonly DataFormSchema<CadastroCliente> schema =
+        DataFormSchema<CadastroCliente>.Create(form => form
+            .AutoGenerateFields(false)
+            .Layout(layout => layout.Columns(1).Columns(Breakpoint.Md, 2))
+            .Group(""Identificação"", group => group
+                .Id(""identificacao"")
+                .Layout(layout => layout.Columns(1).Columns(Breakpoint.Md, 2))
+                .Field(model => model.Nome, field => field
+                    .Span(Breakpoint.Md, 2)
+                    .Text(editor => editor.Autocomplete(""name"").Clearable()))
+                .Field(model => model.Endereco.Cidade))));
+}";
+
+    private const string ExtensibilityExample = @"// Program.cs
+builder.Services
+    .AddOmniComponents()
+    .AddOmniDataFormEditor<Money, OmniMoneyInput>()
+    .AddOmniDataFormEditorResolver<DomainEditorResolver>();
+
+// Um resolver pode usar context.ValueType, context.PropertyPath,
+// context.Property e context.GetAttributes<TAttribute>().
+public sealed class DomainEditorResolver : IDataFormEditorResolver
+{
+    public Type? Resolve(DataFormEditorResolverContext context)
+        => context.Property.IsDefined(typeof(CurrencyAttribute), inherit: true)
+            ? typeof(OmniMoneyInput)
+            : null;
+}";
+}

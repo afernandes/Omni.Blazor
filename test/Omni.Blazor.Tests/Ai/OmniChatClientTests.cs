@@ -14,7 +14,7 @@ public class OmniChatClientTests
     {
         await using var client = new OmniChatClient(new FakeChatClient("Hel", "lo ", "world"));
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(2, client.Turns.Count);
         Assert.Equal(MessageRole.User, client.Turns[0].Role);
@@ -32,7 +32,7 @@ public class OmniChatClientTests
     {
         await using var client = new OmniChatClient(new FakeChatClient("ok"));
 
-        await client.SendAsync("  spaced  ");
+        await client.SendAsync("  spaced  ", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal("spaced", client.Turns[0].Content);
     }
@@ -45,7 +45,7 @@ public class OmniChatClientTests
     {
         await using var client = new OmniChatClient(new FakeChatClient("ok"));
 
-        await client.SendAsync(input!);
+        await client.SendAsync(input!, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Empty(client.Turns);
     }
@@ -57,7 +57,7 @@ public class OmniChatClientTests
         int changes = 0;
         client.Changed += () => changes++;
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         // user turn + assistant turn + start + 3 tokens + finish ⇒ comfortably > tokens
         Assert.True(changes >= 3, $"expected several Changed raises, got {changes}");
@@ -69,7 +69,7 @@ public class OmniChatClientTests
         var fake = new FakeChatClient("ok");
         await using var client = new OmniChatClient(fake, new OmniChatOptions { SystemPrompt = "You are Omni." });
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(fake.LastMessages);
         Assert.Equal(ChatRole.System, fake.LastMessages![0].Role);
@@ -83,7 +83,7 @@ public class OmniChatClientTests
         var fake = new FakeChatClient("ok");
         await using var client = new OmniChatClient(fake);
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Single(fake.LastMessages!);
         Assert.Equal(ChatRole.User, fake.LastMessages![0].Role);
@@ -98,7 +98,7 @@ public class OmniChatClientTests
         client.AddTurn(new OmniChatTurn(MessageRole.User, "q"));
         client.AddTurn(new OmniChatTurn(MessageRole.Assistant, "a"));
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         // seeded System, User, Assistant + the new User turn (streaming assistant turn excluded)
         Assert.Equal(4, fake.LastMessages!.Count);
@@ -114,7 +114,7 @@ public class OmniChatClientTests
         var fake = new FakeChatClient("ok");
         await using var client = new OmniChatClient(fake);
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         // only the user turn is sent — never the empty streaming assistant turn
         Assert.Single(fake.LastMessages!);
@@ -129,7 +129,7 @@ public class OmniChatClientTests
         client.AddTurn(new OmniChatTurn(MessageRole.Assistant, "old-2"));
         client.AddTurn(new OmniChatTurn(MessageRole.User, "recent"));
 
-        await client.SendAsync("now");
+        await client.SendAsync("now", Xunit.TestContext.Current.CancellationToken);
 
         // window of 2 over completed turns: [recent, now] (old-1/old-2 dropped)
         Assert.Equal(2, fake.LastMessages!.Count);
@@ -144,7 +144,7 @@ public class OmniChatClientTests
         var fake = new FakeChatClient("ok");
         await using var client = new OmniChatClient(fake, new OmniChatOptions { ChatOptions = options });
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Same(options, fake.LastOptions);
     }
@@ -155,7 +155,7 @@ public class OmniChatClientTests
         var fake = new FakeChatClient("ignored") { ThrowOnStream = new InvalidOperationException("boom") };
         await using var client = new OmniChatClient(fake);
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         OmniChatTurn assistant = client.Turns[1];
         Assert.True(assistant.IsError);
@@ -170,7 +170,7 @@ public class OmniChatClientTests
         var fake = new FakeChatClient("ignored") { ThrowOnStream = new InvalidOperationException("boom") };
         await using var client = new OmniChatClient(fake, new OmniChatOptions { ErrorMessage = "Algo deu errado." });
 
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal("Algo deu errado.", client.Turns[1].Content);
         Assert.True(client.Turns[1].IsError);
@@ -182,18 +182,80 @@ public class OmniChatClientTests
         var gated = new GatedChatClient();
         await using var client = new OmniChatClient(gated);
 
-        Task first = client.SendAsync("first");
+        Task first = client.SendAsync("first", Xunit.TestContext.Current.CancellationToken);
         await gated.FirstYielded;
         Assert.True(client.IsStreaming);
         int countWhileStreaming = client.Turns.Count;
 
-        await client.SendAsync("second"); // guarded — must not add turns or start a stream
+        await client.SendAsync("second", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(countWhileStreaming, client.Turns.Count);
 
         gated.Release();
         await first;
         Assert.Equal("partial-rest", client.Turns[1].Content);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_during_stream_cancels_without_racing_token_disposal()
+    {
+        var gated = new GatedChatClient();
+        var client = new OmniChatClient(gated);
+
+        Task send = client.SendAsync("first", Xunit.TestContext.Current.CancellationToken);
+        await gated.FirstYielded;
+
+        await client.DisposeAsync();
+        await send;
+
+        Assert.False(client.IsStreaming);
+        Assert.Equal("partial", client.Turns[1].Content);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_waits_for_the_active_send_before_disposing_owned_client()
+    {
+        var gated = new GatedChatClient();
+        var client = new OmniChatClient(gated, disposeClient: true);
+        Task send = client.SendAsync("first", Xunit.TestContext.Current.CancellationToken);
+        await gated.FirstYielded;
+
+        await client.DisposeAsync();
+        await send;
+
+        Assert.True(gated.Disposed);
+        Assert.False(client.IsStreaming);
+    }
+
+    [Fact]
+    public async Task Dispose_defers_owned_client_disposal_until_the_active_send_finishes()
+    {
+        var gated = new GatedChatClient();
+        var client = new OmniChatClient(gated, disposeClient: true);
+        Task send = client.SendAsync("first", Xunit.TestContext.Current.CancellationToken);
+        await gated.FirstYielded;
+
+        client.Dispose();
+        await send;
+
+        Assert.True(gated.Disposed);
+        Assert.False(client.IsStreaming);
+    }
+
+    [Fact]
+    public async Task Changed_handler_can_reenter_client_without_deadlock()
+    {
+        await using var client = new OmniChatClient(new FakeChatClient("ok"));
+        var cleared = 0;
+        client.Changed += () =>
+        {
+            if (Interlocked.Exchange(ref cleared, 1) == 0) client.Clear();
+        };
+
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, cleared);
+        Assert.Empty(client.Turns);
     }
 
     [Fact]
@@ -219,7 +281,7 @@ public class OmniChatClientTests
     public async Task Clear_empties_the_conversation_and_raises_Changed()
     {
         await using var client = new OmniChatClient(new FakeChatClient("ok"));
-        await client.SendAsync("hi");
+        await client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
         Assert.NotEmpty(client.Turns);
         bool raised = false;
         client.Changed += () => raised = true;
@@ -291,7 +353,8 @@ public class OmniChatClientTests
     {
         var client = new OmniChatClient(new FakeChatClient("ok"));
         await client.DisposeAsync();
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => client.SendAsync("hi"));
+        await Assert.ThrowsAsync<ObjectDisposedException>(
+            () => client.SendAsync("hi", Xunit.TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -333,7 +396,7 @@ public class OmniChatClientTests
         var fast = new OmniChatClient(new FakeChatClient(tokens)) { NowTicks = () => { fastClock += second; return fastClock; } };
         int fastRaises = 0;
         fast.Changed += () => fastRaises++;
-        await fast.SendAsync("hi");
+        await fast.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
         await fast.DisposeAsync();
 
         // Frozen clock → all tokens land within one frame → coalesced to far fewer raises.
@@ -341,7 +404,7 @@ public class OmniChatClientTests
         var slow = new OmniChatClient(new FakeChatClient(tokens)) { NowTicks = () => frozen };
         int coalescedRaises = 0;
         slow.Changed += () => coalescedRaises++;
-        await slow.SendAsync("hi");
+        await slow.SendAsync("hi", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal("abcdefgh", slow.Turns[1].Content); // content fully preserved
         Assert.True(coalescedRaises < fastRaises,
