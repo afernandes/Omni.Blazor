@@ -2,6 +2,7 @@ using Bunit;
 using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
+using Omni.Blazor.Utilities;
 
 namespace Omni.Blazor.Tests.Components.Data;
 
@@ -714,5 +715,515 @@ public class OmniDataGridTests : TestContextBase
         List<HierarchyNode>? ChildNodes = null)
     {
         public List<HierarchyNode> Children { get; } = ChildNodes ?? [];
+    }
+
+    // ── Agrupamento hierárquico por data ────────────────────────────────────────
+    //
+    // Uma coluna de data agrupada pelo valor exato rende um grupo por linha. Estes
+    // testes cobrem o desdobramento em Ano › Mês › Dia a partir de um único arrasto.
+
+    private record Evento(DateTime Quando, string Texto);
+
+    private static readonly Evento[] Eventos =
+    {
+        new(new DateTime(2026, 7, 31, 22, 44, 16), "a"),
+        new(new DateTime(2026, 7, 31, 10, 0, 0), "b"),   // mesmo dia, hora diferente
+        new(new DateTime(2026, 7, 15, 8, 0, 0), "c"),    // mesmo mês, outro dia
+        new(new DateTime(2026, 3, 2, 8, 0, 0), "d"),     // outro mês
+        new(new DateTime(2025, 12, 31, 23, 0, 0), "e"),  // outro ano
+    };
+
+    private static RenderFragment EventoColumns(IReadOnlyList<DateGroupInterval>? hierarquia) => b =>
+    {
+        b.OpenComponent<OmniDataGridColumn<Evento>>(0);
+        b.AddAttribute(1, nameof(OmniDataGridColumn<Evento>.Title), "Quando");
+        b.AddAttribute(2, nameof(OmniDataGridColumn<Evento>.PropertyName), "Quando");
+        b.AddAttribute(3, nameof(OmniDataGridColumn<Evento>.Property), (Func<Evento, object?>)(e => e.Quando));
+        b.AddAttribute(4, nameof(OmniDataGridColumn<Evento>.Groupable), true);
+        b.AddAttribute(5, nameof(OmniDataGridColumn<Evento>.GroupHierarchy), hierarquia);
+        b.CloseComponent();
+
+        b.OpenComponent<OmniDataGridColumn<Evento>>(10);
+        b.AddAttribute(11, nameof(OmniDataGridColumn<Evento>.Title), "Texto");
+        b.AddAttribute(12, nameof(OmniDataGridColumn<Evento>.PropertyName), "Texto");
+        b.AddAttribute(13, nameof(OmniDataGridColumn<Evento>.Property), (Func<Evento, object?>)(e => e.Texto));
+        b.CloseComponent();
+    };
+
+    private IRenderedComponent<OmniDataGrid<Evento>> RenderEventosGrid(IReadOnlyList<DateGroupInterval>? hierarquia)
+        => Render<OmniDataGrid<Evento>>(p =>
+        {
+            p.Add(c => c.Data, Eventos);
+            p.Add(c => c.AllowGrouping, true);
+            p.Add(c => c.AllowPaging, false);
+            p.Add(c => c.Columns, EventoColumns(hierarquia));
+        });
+
+    [Fact]
+    public async Task Without_a_hierarchy_a_date_column_groups_by_the_exact_value()
+    {
+        // Comportamento anterior, preservado: 5 instantes distintos → 5 grupos, que é
+        // exatamente o problema que a hierarquia resolve.
+        var cut = RenderEventosGrid(null);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        Assert.Equal(5, cut.FindAll(".omni-grid-group-row").Count);
+    }
+
+    [Fact]
+    public async Task A_date_hierarchy_turns_one_drag_into_year_month_day_levels()
+    {
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        // 2 anos + 3 meses (jul/26, mar/26, dez/25) + 4 dias (31/07, 15/07, 02/03, 31/12).
+        Assert.Equal(9, cut.FindAll(".omni-grid-group-row").Count);
+
+        // Um chip por nível: cada um removível por conta própria.
+        Assert.Equal(3, cut.FindAll(".omni-grid-group-chip").Count);
+    }
+
+    [Fact]
+    public async Task The_deepest_level_holds_the_rows_that_share_the_day()
+    {
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        // 31/07 tem dois eventos; o contador do grupo mais profundo precisa dizer 2.
+        var contadores = cut.FindAll(".omni-grid-group-count").Select(e => e.TextContent.Trim()).ToList();
+        Assert.Contains("2", contadores);
+    }
+
+    [Fact]
+    public async Task Group_labels_are_the_truncated_key_and_not_the_cell_text()
+    {
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        var rotulos = cut.FindAll(".omni-grid-group-key").Select(e => e.TextContent.Trim()).ToList();
+        var julho = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(7);
+
+        Assert.Contains("2026", rotulos);
+        // Sob o ano, o mês vem sozinho — sem repetir "2026".
+        Assert.Contains(julho, rotulos);
+        // E sob o mês, o dia é só o número.
+        Assert.Contains("31", rotulos);
+        // Nenhum rótulo carrega o instante da célula: é a chave truncada que nomeia o grupo.
+        Assert.DoesNotContain(rotulos, r => r.Contains("22:44"));
+    }
+
+    [Fact]
+    public async Task Each_chip_names_the_column_and_its_unit()
+    {
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        var chips = cut.FindAll(".omni-grid-group-chip").Select(c => c.TextContent.Trim()).ToList();
+
+        // "Quando (Ano)", "Quando (Mês)", "Quando (Dia)": dois campos de data agrupados
+        // dariam dois chips "Ano" indistinguíveis sem o nome da coluna.
+        Assert.All(chips, c => Assert.Contains("Quando", c));
+        Assert.Contains(chips, c => c.Contains(DateGrouping.IntervalName(DateGroupInterval.Year)));
+        Assert.Contains(chips, c => c.Contains(DateGrouping.IntervalName(DateGroupInterval.Day)));
+    }
+
+    [Fact]
+    public async Task Removing_one_chip_keeps_the_other_levels()
+    {
+        // O ponto da refatoração: tirar o "Dia" não pode desmontar Ano › Mês.
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        var xDoDia = cut.FindAll(".omni-grid-group-chip-x")[2];
+        await cut.InvokeAsync(() => xDoDia.Click());
+
+        Assert.Equal(2, cut.FindAll(".omni-grid-group-chip").Count);
+        // 2 anos + 3 meses, sem o nível de dia.
+        Assert.Equal(5, cut.FindAll(".omni-grid-group-row").Count);
+    }
+
+    [Fact]
+    public async Task Removing_a_middle_level_stops_shortening_the_label_below_it()
+    {
+        // Sem o mês acima, "31" sozinho não identifica mais nada: o dia volta à data cheia.
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        var xDoMes = cut.FindAll(".omni-grid-group-chip-x")[1];
+        await cut.InvokeAsync(() => xDoMes.Click());
+
+        var rotulos = cut.FindAll(".omni-grid-group-key").Select(e => e.TextContent.Trim()).ToList();
+        Assert.DoesNotContain("31", rotulos);
+        Assert.Contains(rotulos, r => r.Contains("31") && r.Length > 2);
+    }
+
+    [Fact]
+    public async Task Removing_every_level_clears_the_grouping()
+    {
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        for (var i = 0; i < 3; i++)
+        {
+            await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-chip-x")[0].Click());
+        }
+
+        Assert.Empty(cut.FindAll(".omni-grid-group-chip"));
+        Assert.Empty(cut.FindAll(".omni-grid-group-row"));
+        Assert.NotNull(cut.Find(".omni-grid-group-panel-hint"));
+    }
+
+    [Fact]
+    public async Task UngroupByAsync_still_removes_the_whole_column()
+    {
+        // A API pública continua falando em coluna: quem chama não conhece os níveis.
+        var cut = RenderEventosGrid(DateGroupHierarchy.YearMonthDay);
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+        await cut.InvokeAsync(() => cut.Instance.UngroupByAsync("Quando"));
+
+        Assert.Empty(cut.FindAll(".omni-grid-group-chip"));
+    }
+
+    [Fact]
+    public async Task A_single_interval_groups_without_nesting()
+    {
+        var cut = RenderEventosGrid(new[] { DateGroupInterval.Month });
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        // jul/26, mar/26, dez/25.
+        Assert.Equal(3, cut.FindAll(".omni-grid-group-row").Count);
+    }
+
+    // ── Agrupamento × paginação ─────────────────────────────────────────────────
+
+    // 4 registros em 2 dias, alternando: se o grid agrupasse a PÁGINA, cada página de 2
+    // linhas mostraria os dois dias, e cada dia apareceria duas vezes no total — com
+    // contador 1 em cada aparição. É o cenário que fatia um grupo entre páginas.
+    private static readonly Evento[] Alternados =
+    {
+        new(new DateTime(2026, 1, 1, 9, 0, 0), "a"),
+        new(new DateTime(2026, 1, 5, 9, 0, 0), "b"),
+        new(new DateTime(2026, 1, 1, 10, 0, 0), "c"),
+        new(new DateTime(2026, 1, 5, 10, 0, 0), "d"),
+    };
+
+    private IRenderedComponent<OmniDataGrid<Evento>> RenderPaginadoAgrupado() =>
+        Render<OmniDataGrid<Evento>>(p =>
+        {
+            p.Add(c => c.Data, Alternados);
+            p.Add(c => c.AllowGrouping, true);
+            p.Add(c => c.AllowPaging, true);
+            p.Add(c => c.PageSize, 2);
+            p.Add(c => c.Columns, EventoColumns(new[] { DateGroupInterval.Day }));
+        });
+
+    [Fact]
+    public async Task Grouping_runs_over_the_whole_set_and_never_splits_a_group_across_pages()
+    {
+        var cut = RenderPaginadoAgrupado();
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        // Dois grupos (01/01 e 05/01), cada um COMPLETO — com os 2 itens do dia, mesmo os
+        // que a página de 2 linhas não conteria.
+        var contadores = cut.FindAll(".omni-grid-group-count").Select(e => e.TextContent.Trim()).ToList();
+        Assert.Equal(new[] { "2", "2" }, contadores);
+    }
+
+    [Fact]
+    public async Task Paging_slices_groups_and_not_rows_when_grouped()
+    {
+        // PageSize 2 com 2 grupos: os dois cabem na primeira página, e o rodapé some.
+        var cut = RenderPaginadoAgrupado();
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+
+        Assert.Equal(2, cut.FindAll(".omni-grid-group-row").Count);
+        // As 4 linhas de dados vêm junto: paginar grupos traz os itens inteiros deles.
+        Assert.Equal(4, cut.FindAll("tbody tr:not(.omni-grid-group-row):not(.omni-grid-group-footer)").Count);
+    }
+
+    [Fact]
+    public async Task Ungrouping_restores_row_paging()
+    {
+        var cut = RenderPaginadoAgrupado();
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Quando"));
+        await cut.InvokeAsync(() => cut.Instance.UngroupByAsync("Quando"));
+
+        // Sem agrupamento, a página volta a contar linhas: 2 de 4.
+        Assert.Empty(cut.FindAll(".omni-grid-group-row"));
+        Assert.Equal(2, cut.FindAll("tbody tr").Count);
+    }
+
+    // ── Modo agrupado achatado ──────────────────────────────────────────────────
+    //
+    // O <tbody> agrupado era um foreach RECURSIVO sobre a árvore de grupos que não
+    // consultava Virtualize: com o pacote real, agrupar 100 mil linhas emitia 1.800.258
+    // frames de render (18 por linha) e retinha 233 MB, contra 243 frames fixos do modo
+    // plano virtualizado. A árvore passou a ser achatada numa lista linear antes do
+    // render, e é essa lista que alimenta os dois ramos.
+
+    // Conjunto grande de propósito: é o volume que separa "virtualizou" de "não virtualizou".
+    private static Sale[] ManySales(int total, int regions) =>
+        Enumerable.Range(0, total)
+            .Select(i => new Sale($"R{i % regions:D4}", i % 2 == 0 ? "Web" : "Store", i))
+            .ToArray();
+
+    private IRenderedComponent<OmniDataGrid<Sale>> RenderManySalesGrid(
+        Sale[] data,
+        Action<ComponentParameterCollectionBuilder<OmniDataGrid<Sale>>>? extra = null)
+        => Render<OmniDataGrid<Sale>>(p =>
+        {
+            p.Add(c => c.Data, data);
+            p.Add(c => c.AllowGrouping, true);
+            p.Add(c => c.AllowPaging, false);
+            p.Add(c => c.Columns, SalesColumns());
+            extra?.Invoke(p);
+        });
+
+    private static List<string> BodyRowKinds<T>(IRenderedComponent<OmniDataGrid<T>> cut) =>
+        cut.FindAll("tbody tr")
+            .Select(tr => tr.ClassList.Contains("omni-grid-group-row") ? "header"
+                        : tr.ClassList.Contains("omni-grid-group-footer") ? "footer"
+                        : "data")
+            .ToList();
+
+    private async Task<int> GroupedBodyRowCount(int total, bool virtualize)
+    {
+        var cut = RenderManySalesGrid(ManySales(total, 4), p => p.Add(c => c.Virtualize, virtualize));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        Assert.Equal(total + 4, cut.Instance.VisibleGroupRowCount);
+        return cut.FindAll("tbody tr").Count;
+    }
+
+    [Fact]
+    public async Task Virtualized_grouping_stops_putting_the_whole_set_in_the_DOM()
+    {
+        // O ramo agrupado não olhava Virtualize: montava um <tr> por linha do conjunto, que
+        // é exatamente o que o ramo NÃO virtualizado ainda faz. A comparação abaixo é a
+        // medida antes/depois.
+        var semVirtualize = await GroupedBodyRowCount(20_000, virtualize: false);
+        var comVirtualize = await GroupedBodyRowCount(20_000, virtualize: true);
+
+        Assert.Equal(20_004, semVirtualize);
+        Assert.True(comVirtualize < 200,
+            $"O <tbody> virtualizado montou {comVirtualize} linhas.");
+    }
+
+    [Fact]
+    public async Task The_virtualized_group_viewport_does_not_grow_with_the_set()
+    {
+        // A propriedade que interessa não é "é menor", é "não depende de N".
+        var pequeno = await GroupedBodyRowCount(2_000, virtualize: true);
+        var grande = await GroupedBodyRowCount(20_000, virtualize: true);
+
+        Assert.Equal(pequeno, grande);
+    }
+
+    [Fact]
+    public async Task Collapsing_a_group_while_virtualized_reaches_the_rendered_body()
+    {
+        // A lista achatada é mutada no lugar (Clear + refill preserva o array de apoio) e a
+        // MESMA instância segue ligada ao Virtualize. Se a mutação não propagasse, o clique
+        // no cabeçalho não mudaria nada na tela.
+        var cut = RenderManySalesGrid(ManySales(2_000, 4), p => p.Add(c => c.Virtualize, true));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        var cabecalhosAntes = cut.FindAll(".omni-grid-group-toggle").Count;
+
+        await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-toggle")[0].Click());
+
+        // O primeiro grupo tem 500 linhas: fechá-lo tira exatamente essas 500 da lista.
+        Assert.Equal(1_504, cut.Instance.VisibleGroupRowCount);
+        // E o DOM acompanhou — com 500 linhas a menos na frente, mais grupos couberam na janela.
+        Assert.True(cut.FindAll(".omni-grid-group-toggle").Count > cabecalhosAntes);
+    }
+
+    [Fact]
+    public async Task Non_virtualized_grouping_still_renders_every_flattened_row()
+    {
+        // O ajuste da verificação adversarial: a lista achatada alimenta OS DOIS ramos.
+        // Sem Virtualize o comportamento visível não muda — todas as linhas continuam lá.
+        var cut = RenderSalesGrid();
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+
+        // 2 cabeçalhos + 3 linhas de dados.
+        Assert.Equal(5, cut.Instance.VisibleGroupRowCount);
+        Assert.Equal(5, cut.FindAll("tbody tr").Count);
+    }
+
+    [Fact]
+    public async Task Collapsing_a_group_removes_its_whole_subtree_from_the_flattened_list()
+    {
+        var cut = RenderSalesGrid();
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Channel"));
+
+        // North › {Web, Store} e South › {Web}: 2 + 3 cabeçalhos + 3 linhas = 8.
+        Assert.Equal(8, cut.Instance.VisibleGroupRowCount);
+
+        // Fechar "North" leva junto os subgrupos e as linhas dele.
+        await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-toggle")[0].Click());
+
+        // Sobram: North (fechado), South, South›Web e a linha do South.
+        Assert.Equal(4, cut.Instance.VisibleGroupRowCount);
+        Assert.Equal(new[] { "header", "header", "header", "data" }, BodyRowKinds(cut));
+    }
+
+    [Fact]
+    public async Task Expanding_a_group_again_only_brings_back_that_group()
+    {
+        var cut = RenderSalesGrid();
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+
+        // Fecha os dois, reabre só o primeiro.
+        await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-toggle")[0].Click());
+        await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-toggle")[1].Click());
+        Assert.Equal(2, cut.Instance.VisibleGroupRowCount);
+
+        await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-toggle")[0].Click());
+
+        // North volta com suas 2 linhas; South continua fechado.
+        Assert.Equal(4, cut.Instance.VisibleGroupRowCount);
+        Assert.Equal(new[] { "header", "data", "data", "header" }, BodyRowKinds(cut));
+    }
+
+    [Fact]
+    public async Task Group_footers_keep_the_post_order_of_the_recursive_renderer()
+    {
+        // O rodapé fica DENTRO do grupo aberto e DEPOIS dos filhos — o do pai vem depois
+        // dos dos filhos. Um achatamento que emitisse o rodapé junto ao cabeçalho passaria
+        // no teste de contagem e quebraria a leitura da tabela.
+        var cut = RenderSalesGrid(p => p.Add(c => c.ShowGroupFooters, true));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Channel"));
+
+        Assert.Equal(
+            new[]
+            {
+                "header",                       // North
+                "header", "data", "footer",     // North › Web
+                "header", "data", "footer",     // North › Store
+                "footer",                       // North (depois dos filhos)
+                "header",                       // South
+                "header", "data", "footer",     // South › Web
+                "footer"                        // South
+            },
+            BodyRowKinds(cut));
+    }
+
+    [Fact]
+    public async Task A_collapsed_group_has_no_footer()
+    {
+        var cut = RenderSalesGrid(p => p.Add(c => c.ShowGroupFooters, true));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-toggle")[0].Click());
+
+        // North fechado: nem linhas, nem rodapé. South intacto.
+        Assert.Equal(new[] { "header", "header", "data", "footer" }, BodyRowKinds(cut));
+    }
+
+    [Fact]
+    public async Task Groups_start_collapsed_above_the_auto_collapse_threshold()
+    {
+        // OnGroupsChangedAsync limpava os colapsados, então o primeiro render depois de
+        // arrastar a coluna era sempre o conjunto inteiro aberto.
+        var cut = RenderManySalesGrid(
+            ManySales(600, 200),
+            p => p.Add(c => c.AutoCollapseGroupsThreshold, 100));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+
+        // 200 grupos, todos fechados: só os cabeçalhos entram na lista achatada.
+        Assert.Equal(200, cut.Instance.VisibleGroupRowCount);
+        Assert.Equal(200, cut.FindAll(".omni-grid-group-row").Count);
+        Assert.Empty(cut.FindAll("tbody tr:not(.omni-grid-group-row)"));
+    }
+
+    [Fact]
+    public async Task Below_the_threshold_groups_still_start_open()
+    {
+        var cut = RenderManySalesGrid(
+            ManySales(600, 20),
+            p => p.Add(c => c.AutoCollapseGroupsThreshold, 100));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+
+        Assert.Equal(620, cut.Instance.VisibleGroupRowCount);
+    }
+
+    [Fact]
+    public async Task Auto_collapse_does_not_close_groups_the_user_reopened()
+    {
+        // O auto-colapso é decisão de UMA passada. Reavaliá-lo a cada BuildGroups fecharia
+        // de volta o grupo no render seguinte a qualquer mudança de parâmetro.
+        var cut = RenderManySalesGrid(
+            ManySales(600, 200),
+            p => p.Add(c => c.AutoCollapseGroupsThreshold, 100));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        await cut.InvokeAsync(() => cut.FindAll(".omni-grid-group-toggle")[0].Click());
+        Assert.Equal(203, cut.Instance.VisibleGroupRowCount);
+
+        // Qualquer re-render (aqui, uma mudança de parâmetro qualquer) refaz os grupos.
+        cut.Render(p => p.Add(c => c.Class, "recalcula"));
+
+        Assert.Equal(203, cut.Instance.VisibleGroupRowCount);
+    }
+
+    [Fact]
+    public async Task MaxGroups_truncates_the_tree_and_warns()
+    {
+        // Caso degenerado: agrupar por uma coluna quase-única renderia um grupo por linha.
+        var cut = RenderManySalesGrid(
+            ManySales(500, 500),
+            p =>
+            {
+                p.Add(c => c.MaxGroups, 10);
+                p.Add(c => c.AutoCollapseGroupsThreshold, 0);
+            });
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+
+        Assert.True(cut.Instance.GroupLimitReached);
+        Assert.Equal(10, cut.FindAll(".omni-grid-group-row").Count);
+        Assert.Contains("10", cut.Find(".omni-grid-group-limit").TextContent);
+    }
+
+    [Fact]
+    public async Task The_group_limit_warning_disappears_when_the_grouping_is_cleared()
+    {
+        var cut = RenderManySalesGrid(
+            ManySales(500, 500),
+            p => p.Add(c => c.MaxGroups, 10));
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        Assert.NotNull(cut.Find(".omni-grid-group-limit"));
+
+        await cut.InvokeAsync(() => cut.Instance.ClearGroupingAsync());
+
+        Assert.False(cut.Instance.GroupLimitReached);
+        Assert.Empty(cut.FindAll(".omni-grid-group-limit"));
+    }
+
+    [Fact]
+    public async Task Virtualized_grouping_publishes_the_row_height_so_group_rows_match_it()
+    {
+        // O Virtualize usa UM ItemSize para todas as linhas; cabeçalho de grupo é mais baixo
+        // que uma linha de dados, e sem igualar as alturas a rolagem mente proporcionalmente
+        // à razão cabeçalhos:linhas.
+        var cut = RenderManySalesGrid(
+            ManySales(200, 4),
+            p =>
+            {
+                p.Add(c => c.Virtualize, true);
+                p.Add(c => c.RowHeight, 52);
+            });
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+
+        var style = cut.Find("div.omni-grid").GetAttribute("style") ?? "";
+        Assert.Contains("--omni-grid-row-h: 52px", style);
+    }
+
+    [Fact]
+    public void Without_virtualize_the_row_height_variable_is_not_published()
+    {
+        // Modo paginado mantém a altura natural das linhas de grupo, como sempre teve.
+        var cut = RenderSalesGrid();
+
+        var style = cut.Find("div.omni-grid").GetAttribute("style") ?? "";
+        Assert.DoesNotContain("--omni-grid-row-h", style);
     }
 }

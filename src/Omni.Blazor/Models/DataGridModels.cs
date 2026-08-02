@@ -79,3 +79,32 @@ public delegate ValueTask<GridLoadResult<TItem>> GridDataProvider<TItem>(
 public delegate IAsyncEnumerable<TItem> GridExportProvider<TItem>(
     GridState<TItem> state,
     CancellationToken cancellationToken);
+
+/// <summary>
+/// Hierarquias de data prontas para <c>OmniDataGridColumn.GroupHierarchy</c>. Existem
+/// para o caso comum ficar legível na marcação —
+/// <c>GroupHierarchy="@DateGroupHierarchy.YearMonthDay"</c> em vez de um array literal
+/// de três elementos. Qualquer outra combinação continua válida: o parâmetro aceita
+/// qualquer sequência de <see cref="DateGroupInterval"/>.
+/// </summary>
+public static class DateGroupHierarchy
+{
+    // Array.AsReadOnly, e não o array cru: um `IReadOnlyList<T>` que por baixo É um
+    // array pode ser convertido de volta e mutado pelo consumidor — e como estes são
+    // estáticos, a alteração valeria para todos os grids do processo.
+    /// <summary>Ano › Mês › Dia — o desdobramento mais comum de uma coluna de data.</summary>
+    public static readonly IReadOnlyList<DateGroupInterval> YearMonthDay =
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Month, DateGroupInterval.Day });
+
+    /// <summary>Ano › Mês.</summary>
+    public static readonly IReadOnlyList<DateGroupInterval> YearMonth =
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Month });
+
+    /// <summary>Ano › Trimestre › Mês — o desdobramento que o Excel aplica em tabelas dinâmicas.</summary>
+    public static readonly IReadOnlyList<DateGroupInterval> YearQuarterMonth =
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Quarter, DateGroupInterval.Month });
+
+    /// <summary>Ano › Mês › Dia › Hora — para logs e telemetria, onde o dia ainda é grande demais.</summary>
+    public static readonly IReadOnlyList<DateGroupInterval> YearMonthDayHour =
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Month, DateGroupInterval.Day, DateGroupInterval.Hour });
+}

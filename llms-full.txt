@@ -352,6 +352,7 @@ Parameters:
 - `AllowPaging`: bool — Liga a paginação no rodapé. Default true. Ignorado quando Virtualize está ativo.
 - `AllowSearch`: bool — Mostra o campo de busca textual na toolbar. Default false.
 - `AllowSorting`: bool — Permite ordenar clicando no header das colunas Sortable. Default true.
+- `AutoCollapseGroupsThreshold`: int — Acima de quantos grupos de primeiro nível o agrupamento nasce COLAPSADO. Default 100. Sem isso, o primeiro render depois de arrastar uma coluna é sempre o conjunto inteiro aberto — agrupar 200 mil linhas por dia significa achatar as 200 mil de uma vez só para o usuário fechar tudo em seguida. Valores <= 0 desligam o auto-colapso.
 - `Children`: Func<TItem, IEnumerable<TItem>> — Synchronous child selector that enables hierarchy mode for in-memory trees.
 - `ChildrenProvider`: HierarchyChildrenProvider<TItem> — Asynchronous, cancellable child source that enables lazy hierarchy mode.
 - `CollapseText`: string — Accessible label for collapsing a hierarchy row.
@@ -368,6 +369,7 @@ Parameters:
 - `ExportBatchSize`: int — Page size used while exporting through DataProvider.
 - `ExportFilename`: string — Nome do arquivo gerado pelo export CSV. Default "export.csv".
 - `ExportProvider`: GridExportProvider<TItem> — Optional streaming source used only by CSV export. When omitted, the grid pages through DataProvider or exports its in-memory source.
+- `GroupLimitReachedText`: string — Aviso exibido quando MaxGroups é atingido; {0} é o teto.
 - `GroupPanelText`: string — Placeholder text shown in the (empty) group panel.
 - `HasChildren`: Func<TItem, bool> — Predicate indicating whether a hierarchy item can be expanded.
 - `Height`: string — Altura do scroller. Obrigatória quando virtualize ativo (default 520px é aplicado automaticamente se não setado).
@@ -386,6 +388,7 @@ Parameters:
 - `MaxConcurrentLoads`: int — Maximum number of lazy child requests executed concurrently.
 - `MaxDepth`: int — Maximum hierarchy depth traversed, protecting against cycles and pathological input.
 - `MaxExportRows`: int — Hard cap applied to every export, including custom streaming providers.
+- `MaxGroups`: int — Teto de nós de grupo montados numa passada (todos os níveis somados). Default 10.000. Agrupar por uma coluna quase-única — um id, um timestamp com segundos — renderia um grupo por linha, e a árvore de grupos passaria a custar mais que os próprios dados. Ao estourar, a árvore é cortada e a UI avisa, no mesmo desenho do MaxVisibleRows da hierarquia. Valores <= 0 são tratados como 1.
 - `MaxVisibleRows`: int — Maximum hierarchy rows flattened before rendering or virtualization.
 - `OverscanCount`: int — Linhas extras renderizadas fora do viewport. Default 4.
 - `PageSize`: int — Quantidade de linhas por página. Default 10.
@@ -429,6 +432,7 @@ Parameters:
 - `FilterType`: ColumnFilterType {Text | Number | Date | Boolean | Select} — Tipo de UI/operadores oferecidos. Default: Text.
 - `Filterable`: bool — Liga o filtro por coluna nesta coluna. Requer AllowColumnFilter no DataGrid.
 - `Frozen`: FrozenPosition {Left | Right} — Congela esta coluna no scroll horizontal. null = não congelada.
+- `GroupHierarchy`: IReadOnlyList<DateGroupInterval> — Desdobra esta coluna em vários níveis de agrupamento por data. Agrupar uma coluna de data pelo valor exato rende um grupo por linha — o instante nunca se repete —, então aqui se declara a granularidade de cada nível: GroupHierarchy="@DateGroupHierarchy.YearMonthDay" dá Ano › Mês › Dia com um único arrasto. Um nível só (new[] { DateGroupInterval.Month }) agrupa por mês, sem hierarquia. null (padrão) mantém o agrupamento pelo valor exato, e itens cujo valor não é uma data caem num grupo vazio.
 - `Groupable`: bool — Permite arrastar esta coluna para a group zone do DataGrid.
 - `IsHierarchyAnchor`: bool — Marca esta coluna como o "âncora" da hierarquia — receberá o chevron de expand/collapse + indentação por nível. Quando nenhuma coluna marca, o grid usa a primeira coluna visível.
 - `Property`: Func<TItem, object> — Selector for the column's raw value — used for cell text, sorting, and filtering.

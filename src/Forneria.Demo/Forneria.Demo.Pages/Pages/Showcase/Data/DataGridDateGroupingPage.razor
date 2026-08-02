@@ -1,0 +1,265 @@
+@page "/showcase/datagrid-date-grouping"
+@attribute [ShowcaseInfo(Title = "DataGrid · Agrupamento por data", Category = Cat.Data, Icon = "calendar", New = true, Aliases = "group,agrupar,data,hierarquia,ano,mes,dia")]
+@layout ShowcaseLayout
+@using Forneria.Demo.Pages.Services
+@inject FakeOrderService Orders
+
+<PageTitle>Agrupamento por data — Showcase</PageTitle>
+
+<ShowcasePage Title="Agrupamento hierárquico por data"
+              Subtitle="Uma coluna de data agrupada pelo valor exato rende um grupo por linha. GroupHierarchy desdobra a mesma coluna em Ano › Mês › Dia com um único arrasto.">
+
+    <Overview>
+        <p>
+            Arrastar uma coluna para a barra de agrupamento junta as linhas que têm o
+            <strong>mesmo valor</strong>. Isso funciona para status, canal, cliente — e
+            <strong>falha para datas</strong>: <code>31/07/2026 22:44:16</code> e
+            <code>31/07/2026 22:44:17</code> são valores diferentes, então cada linha vira
+            seu próprio grupo. O usuário arrasta a coluna, vê mil cabeçalhos de grupo com
+            contador 1, e desiste do recurso.
+        </p>
+        <p>
+            <code>GroupHierarchy</code> resolve declarando a <strong>granularidade de cada
+            nível</strong>. O grid trunca a data até aquela unidade antes de comparar, então
+            todas as linhas do mesmo dia caem no mesmo grupo — e um arrasto só produz a
+            árvore inteira:
+        </p>
+        <pre class="omni-code"><code>&lt;OmniDataGridColumn TItem="Order" Title="Quando" Groupable
+                    Property="@@(o =&gt; o.QuandoUtc)"
+                    GroupHierarchy="@@DateGroupHierarchy.YearMonthDay" /&gt;</code></pre>
+        <p>
+            Os rótulos se ajustam ao nível: sob <em>2026</em> o mês aparece como
+            <em>julho</em>, e sob <em>julho</em> o dia é só <em>31</em> — repetir o ano em
+            cada linha da árvore é ruído. É o mesmo enxugamento que o Excel faz numa tabela
+            dinâmica.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Qualquer coluna de data/hora que o usuário possa querer agrupar.</li>
+            <li>Logs e telemetria — <code>YearMonthDayHour</code> quando o dia ainda é grande demais.</li>
+            <li>Relatórios financeiros — <code>YearQuarterMonth</code>, o recorte contábil.</li>
+            <li>Quando o valor exato não se repete: agrupar por ele nunca junta nada.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Colunas de data que <strong>já vêm truncadas</strong> (só a data, sem hora, com poucos valores distintos) — agrupar pelo valor exato já resolve.</li>
+            <li>Quando a pergunta é "quantos por mês", e não "quais": um <code>OmniPivotGrid</code> responde melhor.</li>
+            <li>Colunas que não são data — o parâmetro só afeta valores <code>DateTime</code>, <code>DateTimeOffset</code> e <code>DateOnly</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+
+        <ShowcaseSection Title="Ano › Mês › Dia"
+                         Description="Arraste a coluna 'Quando' para a barra acima da tabela. Um arrasto cria os três níveis, cada um com seu próprio chip: dá para remover só o 'Dia' e ficar com Ano › Mês."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_pedidos"" AllowGrouping AllowPaging PageSize=""8"">
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Quando"" Groupable
+                            Property=""@(o => o.QuandoUtc)""
+                            TextSelector=""@(o => o.QuandoUtc.ToString(""dd/MM/yyyy HH:mm""))""
+                            GroupHierarchy=""@DateGroupHierarchy.YearMonthDay"" />
+        <OmniDataGridColumn TItem=""Order"" Title=""Cliente"" Property=""@(o => o.Cliente)"" />
+        <OmniDataGridColumn TItem=""Order"" Title=""Total"" Property=""@(o => o.Total)""
+                            Aggregate=""AggregateFunction.Sum"" />
+    </Columns>
+</OmniDataGrid>")">
+            @* Arrastar é o gesto natural, mas pouco descoberto numa página de documentação:
+               os botões mostram o resultado sem exigir que o leitor adivinhe o gesto. *@
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <OmniButton Text="Agrupar por data" Icon="calendar" Size="ComponentSize.Sm"
+                            Variant="ButtonVariant.Primary" OnClick="AgruparPorData" />
+                <OmniButton Text="Limpar agrupamento" Icon="x" Size="ComponentSize.Sm"
+                            Variant="ButtonVariant.Ghost" OnClick="LimparAgrupamento" />
+            </div>
+            <OmniDataGrid @ref="_gridHierarquia" TItem="Order" Data="@_pedidos" AllowGrouping AllowPaging PageSize="8" ShowGroupFooters>
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Quando" Groupable
+                                        PropertyName="QuandoUtc"
+                                        Property="@(o => o.QuandoUtc)"
+                                        TextSelector="@(o => o.QuandoUtc.ToString("dd/MM/yyyy HH:mm"))"
+                                        GroupHierarchy="@DateGroupHierarchy.YearMonthDay"
+                                        Width="180px" />
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" Property="@(o => o.Canal)" Groupable />
+                    <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => o.Total)"
+                                        Aggregate="AggregateFunction.Sum"
+                                        AggregateFormat="@(v => $"R$ {v:N2}")" Width="120px" />
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Um nível só"
+                         Description="A hierarquia é opcional: um único intervalo agrupa por mês sem aninhar. Sem o ano acima para dar contexto, o rótulo o inclui — 'julho 2026', e não 'julho'."
+                         Code="@(@"<OmniDataGridColumn TItem=""Order"" Title=""Quando"" Groupable
+                    Property=""@(o => o.QuandoUtc)""
+                    GroupHierarchy=""@(new[] { DateGroupInterval.Month })"" />")">
+            <OmniDataGrid TItem="Order" Data="@_pedidos" AllowGrouping AllowPaging PageSize="8">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Quando" Groupable
+                                        PropertyName="QuandoUtc"
+                                        Property="@(o => o.QuandoUtc)"
+                                        TextSelector="@(o => o.QuandoUtc.ToString("dd/MM/yyyy HH:mm"))"
+                                        GroupHierarchy="@_porMes"
+                                        Width="180px" />
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Status" Property="@(o => o.Status)" />
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Sem GroupHierarchy: o problema"
+                         Description="A mesma coluna, sem o parâmetro. Arraste 'Quando' para a barra: cada pedido vira um grupo de um item — é o comportamento que a hierarquia existe para corrigir."
+                         Code="@(@"<!-- Sem GroupHierarchy: o grid agrupa pelo valor exato do DateTime -->
+<OmniDataGridColumn TItem=""Order"" Title=""Quando"" Groupable
+                    Property=""@(o => o.QuandoUtc)"" />")">
+            <OmniDataGrid TItem="Order" Data="@_pedidos" AllowGrouping AllowPaging PageSize="6">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Quando" Groupable
+                                        PropertyName="QuandoUtc"
+                                        Property="@(o => o.QuandoUtc)"
+                                        TextSelector="@(o => o.QuandoUtc.ToString("dd/MM/yyyy HH:mm"))"
+                                        Width="180px" />
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Hierarquias prontas"
+                         Description="DateGroupHierarchy nomeia os recortes usuais. O parâmetro aceita qualquer sequência de DateGroupInterval — os presets só evitam um array literal na marcação."
+                         Padded="true">
+            <table class="omni-api-table">
+                <thead>
+                    <tr><th>Preset</th><th>Níveis</th><th>Quando</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>YearMonthDay</code></td>
+                        <td>Ano › Mês › Dia</td>
+                        <td>O desdobramento mais comum de uma coluna de data.</td>
+                    </tr>
+                    <tr>
+                        <td><code>YearMonth</code></td>
+                        <td>Ano › Mês</td>
+                        <td>Séries longas, em que o dia é detalhe demais.</td>
+                    </tr>
+                    <tr>
+                        <td><code>YearQuarterMonth</code></td>
+                        <td>Ano › Trimestre › Mês</td>
+                        <td>Relatórios contábeis — o recorte que o Excel aplica sozinho.</td>
+                    </tr>
+                    <tr>
+                        <td><code>YearMonthDayHour</code></td>
+                        <td>Ano › Mês › Dia › Hora</td>
+                        <td>Logs e telemetria, onde um dia ainda tem milhares de linhas.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Intervalos disponíveis" Padded="true">
+            <table class="omni-api-table">
+                <thead>
+                    <tr><th><code>DateGroupInterval</code></th><th>Chave do grupo</th><th>Rótulo (pt-BR)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>Year</code></td><td>1º de janeiro do ano</td><td><code>2026</code></td></tr>
+                    <tr><td><code>Quarter</code></td><td>1º dia do trimestre</td><td><code>T3</code> · <code>T3 2026</code> solto</td></tr>
+                    <tr><td><code>Month</code></td><td>1º dia do mês</td><td><code>julho</code> · <code>julho 2026</code> solto</td></tr>
+                    <tr><td><code>Week</code></td><td>1º dia da semana na cultura corrente</td><td><code>Semana de 26/07/2026</code></td></tr>
+                    <tr><td><code>Day</code></td><td>meia-noite do dia</td><td><code>31</code> · <code>31/07/2026</code> solto</td></tr>
+                    <tr><td><code>Hour</code></td><td>hora cheia</td><td><code>22:00</code></td></tr>
+                </tbody>
+            </table>
+            <p class="omni-section-desc">
+                O rótulo curto vale quando o nível acima já mostra a unidade maior. Semana
+                nunca encurta: uma semana cruza a virada de mês, então "semana de 30/06" sob
+                "julho" seria falso.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Agrupamento e paginação" Padded="true">
+            <p class="omni-section-desc">
+                Agrupar é uma operação sobre o <strong>conjunto</strong>, nunca sobre a
+                janela. Se o grid agrupasse apenas as linhas da página, o grupo
+                <em>01/01/2026</em> apareceria na página 1 com contador 3, e de novo na
+                página 4 com contador 2 — o mesmo dia partido, e nenhum cabeçalho dizendo a
+                verdade sobre o total.
+            </p>
+            <p class="omni-section-desc">
+                Por isso, com <code>AllowPaging</code> ligado e alguma coluna agrupada, a
+                paginação passa a recortar <strong>grupos de primeiro nível</strong>: um
+                grupo nunca fica dividido entre páginas, e o rodapé conta grupos (por isso
+                ele diz "de 37 grupos"). Ao desagrupar, a paginação volta a contar linhas.
+            </p>
+            <p class="omni-section-desc">
+                Em modo <strong>server-side</strong> (<code>DataProvider</code>) o grid só
+                enxerga a janela que o provider devolveu, então não há árvore completa para
+                paginar — o agrupamento vale para aquela janela. Quem precisa de grupos
+                fechados sobre a base inteira devolve <code>GridLoadResult.Groups</code> já
+                calculados no servidor.
+            </p>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="Como outras bibliotecas resolvem" Padded="true">
+            <table class="omni-api-table">
+                <thead>
+                    <tr><th>Biblioteca</th><th>API</th><th>Diferença</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>DevExpress</td>
+                        <td><code>GridColumn.GroupInterval</code></td>
+                        <td>Um intervalo por coluna. Para hierarquia, a mesma coluna entra várias vezes no agrupamento.</td>
+                    </tr>
+                    <tr>
+                        <td>AG Grid (34.2+)</td>
+                        <td><code>groupHierarchy: ['year','month']</code></td>
+                        <td>Array de níveis numa coluna — o modelo que <code>GroupHierarchy</code> segue.</td>
+                    </tr>
+                    <tr>
+                        <td>Excel (tabela dinâmica)</td>
+                        <td>automático</td>
+                        <td>Aplica Ano › Trimestre › Mês sem perguntar, com opção de desligar.</td>
+                    </tr>
+                    <tr>
+                        <td>Omni</td>
+                        <td><code>GroupHierarchy</code></td>
+                        <td>Explícito por coluna; um arrasto cria um chip por nível, cada um removível, com rótulos que encurtam conforme o nível.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="omni-section-desc">
+                A escolha por <strong>opt-in explícito</strong> (e não pelo automático do
+                Excel) é deliberada: o grid recebe <code>Func&lt;TItem, object?&gt;</code>,
+                não um tipo de coluna, então "isto é uma data" só se sabe em tempo de
+                execução — ligar a hierarquia sozinho mudaria o comportamento de grids
+                existentes na primeira linha que devolvesse um <code>DateTime</code>.
+            </p>
+        </ShowcaseSection>
+
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private IReadOnlyList<Order> _pedidos = Array.Empty<Order>();
+    private OmniDataGrid<Order>? _gridHierarquia;
+
+    // GroupByAsync/ClearGroupingAsync são a API pública do agrupamento — o mesmo caminho
+    // que o arrasto percorre.
+    private Task AgruparPorData() =>
+        _gridHierarquia?.GroupByAsync("QuandoUtc") ?? Task.CompletedTask;
+
+    private Task LimparAgrupamento() =>
+        _gridHierarquia?.ClearGroupingAsync() ?? Task.CompletedTask;
+
+    // Um recorte pequeno o bastante para a árvore caber na tela, e espalhado por meses
+    // suficientes para os três níveis aparecerem.
+    protected override void OnInitialized() =>
+        _pedidos = Orders.AllOrders.Take(120).OrderByDescending(o => o.QuandoUtc).ToList();
+
+    private static readonly IReadOnlyList<DateGroupInterval> _porMes = new[] { DateGroupInterval.Month };
+}

@@ -4,6 +4,7 @@
 @implements IDisposable
 @inject FileDownloadService Downloads
 @inject DataGridInteropService GridInterop
+@using System.Globalization
 @using Omni.Blazor.Utilities
 
 @* Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via DataProvider. *@
@@ -63,18 +64,30 @@
         @if (AllowGrouping && !IsHierarchyMode)
         {
             <div class="omni-grid-group-panel" @ondragover:preventDefault="true" @ondrop="OnGroupPanelDropAsync">
-                @if (_groupCols.Count == 0)
+                @if (_groupLevels.Count == 0)
                 {
                     <span class="omni-grid-group-panel-hint">@GroupPanelText</span>
                 }
                 else
                 {
-                    @foreach (var gc in _groupCols)
+                    @* Um chip por NÍVEL, e não por coluna: uma coluna com hierarquia de
+                       data ocupa três, e o usuário precisa poder tirar só o "Dia" sem
+                       desmontar o agrupamento inteiro. Entre eles, um separador mostra
+                       que a ordem é uma hierarquia, não uma lista. *@
+                    @for (var i = 0; i < _groupLevels.Count; i++)
                     {
-                        <span class="omni-grid-group-chip" @key="gc">
-                            <span class="omni-grid-group-chip-text">@gc.Title</span>
+                        var indice = i;
+                        var nivel = _groupLevels[i];
+                        if (indice > 0)
+                        {
+                            <span class="omni-grid-group-sep" aria-hidden="true">
+                                <OmniIcon Name="chevron-right" Size="ComponentSize.Sm" />
+                            </span>
+                        }
+                        <span class="omni-grid-group-chip" @key="@($"{nivel.Column.Id}:{nivel.Interval}")">
+                            <span class="omni-grid-group-chip-text">@GroupChipText(nivel)</span>
                             <button type="button" class="omni-grid-group-chip-x" aria-label="@Texts.RemoveGrouping"
-                                    @onclick="@(() => UngroupAsync(gc))">
+                                    @onclick="@(() => UngroupLevelAsync(indice))">
                                 <OmniIcon Name="x" Size="ComponentSize.Sm" />
                             </button>
                         </span>
@@ -231,9 +244,26 @@
                     }
                     else if (IsGroupMode)
                     {
-                        foreach (var node in _groups)
+                        @* A lista já vem achatada (cabeçalho, dados e rodapé numa sequência
+                           linear), então os dois ramos varrem a MESMA coleção — o virtualizado
+                           recorta o viewport, o outro percorre inteira. Antes daqui havia um
+                           foreach recursivo sobre a árvore que ignorava Virtualize e emitia
+                           todos os grupos abertos de uma vez. *@
+                        @if (Virtualize)
                         {
-                            @RenderGroupNodeFragment(node, "")
+                            <OmniVirtualize TItem="GroupRow" Items="@_flatGroupRows" SpacerElement="tr"
+                                             ItemSize="@RowHeight" OverscanCount="@OverscanCount">
+                                <ItemContent Context="groupRow">
+                                    @RenderGroupRowFragment(groupRow)
+                                </ItemContent>
+                            </OmniVirtualize>
+                        }
+                        else
+                        {
+                            foreach (var groupRow in _flatGroupRows)
+                            {
+                                @RenderGroupRowFragment(groupRow)
+                            }
                         }
                     }
                     else
@@ -291,10 +321,19 @@
             </div>
         }
 
+        @if (IsGroupMode && _groupLimitReached)
+        {
+            <div class="omni-grid-group-limit" role="status">
+                @string.Format(GroupLimitReachedText, MaxGroups)
+            </div>
+        }
+
         @if (EffectivePaging && _totalCount > PageSize)
         {
             <div class="omni-grid-footer">
-                <span>@_pageStart–@_pageEnd de @_totalCount</span>
+                @* No modo agrupado a paginação recorta grupos, não linhas — dizer só
+                   "1–10 de 37" faria o usuário ler 37 registros onde há 37 grupos. *@
+                <span>@_pageStart–@_pageEnd de @_totalCount @(IsGroupMode && _allGroups is not null ? Texts.Groups : null)</span>
                 <div class="omni-grid-pager">
                     <OmniButton Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" IconOnly Icon="chevron-left"
                                  Disabled="@(_page == 0)"
@@ -398,6 +437,26 @@
 
     /// <summary>Placeholder text shown in the (empty) group panel.</summary>
     [Parameter] public string GroupPanelText { get; set; } = "Arraste o cabeçalho de uma coluna aqui para agrupar";
+
+    /// <summary>
+    /// Teto de nós de grupo montados numa passada (todos os níveis somados). Default 10.000.
+    /// Agrupar por uma coluna quase-única — um id, um timestamp com segundos — renderia um
+    /// grupo por linha, e a árvore de grupos passaria a custar mais que os próprios dados.
+    /// Ao estourar, a árvore é cortada e a UI avisa, no mesmo desenho do
+    /// <see cref="MaxVisibleRows"/> da hierarquia. Valores &lt;= 0 são tratados como 1.
+    /// </summary>
+    [Parameter] public int MaxGroups { get; set; } = 10_000;
+
+    /// <summary>Aviso exibido quando <see cref="MaxGroups"/> é atingido; <c>{0}</c> é o teto.</summary>
+    [Parameter] public string GroupLimitReachedText { get; set; } = "Exibindo no máximo {0} grupos.";
+
+    /// <summary>
+    /// Acima de quantos grupos de primeiro nível o agrupamento nasce COLAPSADO. Default 100.
+    /// Sem isso, o primeiro render depois de arrastar uma coluna é sempre o conjunto inteiro
+    /// aberto — agrupar 200 mil linhas por dia significa achatar as 200 mil de uma vez só para
+    /// o usuário fechar tudo em seguida. Valores &lt;= 0 desligam o auto-colapso.
+    /// </summary>
+    [Parameter] public int AutoCollapseGroupsThreshold { get; set; } = 100;
 
     /// <summary>Fired whenever the grouping changes; carries the ordered grouped property names.</summary>
     [Parameter] public EventCallback<IReadOnlyList<string>> Grouped { get; set; }
@@ -509,11 +568,29 @@
 
     private HashSet<TItem> Selection => SelectedItems ?? _selectedInternal;
 
-    // Grouping state
-    private readonly List<OmniDataGridColumn<TItem>> _groupCols = new();
+    // Grouping state. A lista é de NÍVEIS, e não de colunas: uma coluna com
+    // GroupHierarchy entra com um nível por intervalo, e cada nível é removível
+    // separadamente — tirar o "Dia" de Ano › Mês › Dia não deve desfazer o resto.
+    private readonly List<GroupLevelSpec> _groupLevels = new();
     private List<GroupNode> _groups = new();
+
+    // Todos os grupos de primeiro nível do conjunto filtrado (in-memory). Null em modo
+    // server-side, onde só a janela devolvida pelo DataProvider está disponível.
+    private List<GroupNode>? _allGroups;
     private readonly HashSet<string> _collapsedGroups = new();
     private OmniDataGridColumn<TItem>? _draggingGroupCol;
+
+    // A árvore de grupos reserializada como lista linear — é ELA que o <tbody> percorre.
+    // Nunca troque a instância: o Clear() preserva o array de apoio, e recriar a lista a
+    // cada expandir/colapsar mandaria megabytes para a LOH num conjunto grande (mesmo
+    // motivo do _rows.Clear() em HierarchyState.RebuildRows).
+    private readonly List<GroupRow> _flatGroupRows = new();
+    private int _groupBudget;
+    private bool _groupLimitReached;
+
+    // Auto-colapso é decisão de UMA passada — a de logo depois que o agrupamento muda.
+    // Reavaliar a cada BuildGroups fecharia de volta tudo que o usuário acabou de abrir.
+    private bool _autoCollapsePending;
 
     // A single grouped node: all items under it, plus nested subgroups (null at
     // the deepest grouping level, where the items render as data rows).
@@ -523,16 +600,45 @@
         int Count,
         int Level,
         IReadOnlyList<TItem> Items,
-        IReadOnlyList<GroupNode>? Children);
+        IReadOnlyList<GroupNode>? Children,
+        DateGroupInterval? Interval = null,
+        bool NestedInLarger = false);
+
+    // Um nível de agrupamento. Normalmente é 1:1 com a coluna arrastada; uma coluna com
+    // GroupHierarchy entra com um nível por intervalo declarado.
+    private readonly record struct GroupLevelSpec(
+        OmniDataGridColumn<TItem> Column,
+        DateGroupInterval? Interval);
+
+    /// <summary>O que uma entrada da lista achatada representa.</summary>
+    private enum GroupRowKind { Header, Data, Footer }
+
+    // Uma linha do modo agrupado depois do achatamento. Struct porque a lista chega a ter
+    // uma entrada por linha do conjunto: como classe, 200 mil linhas seriam 200 mil objetos
+    // no heap só para descrever o que já está descrito na árvore.
+    private readonly record struct GroupRow(
+        GroupRowKind Kind,
+        GroupNode? Node,
+        string Path,
+        TItem? Item);
 
     /// <summary>True when at least one column is grouped (and not in tree mode).</summary>
-    private bool IsGroupMode => _groupCols.Count > 0 && !IsHierarchyMode;
+    private bool IsGroupMode => _groupLevels.Count > 0 && !IsHierarchyMode;
+
+    /// <summary>
+    /// Linhas atualmente achatadas no modo agrupado (cabeçalhos + dados + rodapés dos grupos
+    /// abertos). É o tamanho da lista entregue à virtualização, não a contagem no DOM.
+    /// </summary>
+    public int VisibleGroupRowCount => _flatGroupRows.Count;
+
+    /// <summary>Whether the last grouping pass hit <see cref="MaxGroups"/>.</summary>
+    public bool GroupLimitReached => _groupLimitReached;
 
     // Frozen column inline styles (recomputed when visible columns / widths change)
     private readonly Dictionary<OmniDataGridColumn<TItem>, (string Css, string Style)> _frozenStyles = new();
 
     private IEnumerable<OmniDataGridColumn<TItem>> VisibleColumns =>
-        _columns.Where(c => c.VisibleInternal && !(HideGroupedColumn && _groupCols.Contains(c)));
+        _columns.Where(c => c.VisibleInternal && !(HideGroupedColumn && _groupLevels.Any(l => l.Column == c)));
 
     private int TotalColCount =>
         VisibleColumns.Count()
@@ -701,6 +807,18 @@
         src = ApplyColumnFilters(src);
         src = ApplyMultiSort(src);
         var list = src.ToList();
+
+        // Agrupar é uma operação sobre o CONJUNTO, nunca sobre a janela: recortar a página
+        // antes agruparia só as linhas visíveis, e o mesmo grupo ("01/01/2026") reapareceria
+        // em várias páginas, cada uma com um contador parcial. Por isso a paginação, no modo
+        // agrupado, recorta GRUPOS de primeiro nível — nunca linhas.
+        if (IsGroupMode)
+        {
+            ApplyInMemoryGrouped(list);
+            return;
+        }
+
+        _allGroups = null;
         _totalCount = list.Count;
         if (EffectivePaging)
         {
@@ -714,6 +832,35 @@
             _view = list;
             _pageStart = list.Count == 0 ? 0 : 1;
             _pageEnd = list.Count;
+        }
+    }
+
+    /// <summary>
+    /// Monta a árvore de grupos sobre a lista inteira e, se a paginação estiver ligada,
+    /// pagina os grupos de primeiro nível. Um grupo nunca fica partido entre páginas, e o
+    /// contador do cabeçalho sempre reflete o total do grupo.
+    /// </summary>
+    private void ApplyInMemoryGrouped(List<TItem> list)
+    {
+        var groups = BuildGroupTree(list);
+        _allGroups = groups;
+        _totalCount = groups.Count;
+
+        if (EffectivePaging)
+        {
+            _page = Math.Min(_page, Math.Max(0, TotalPages - 1));
+            var pagina = groups.Skip(_page * PageSize).Take(PageSize).ToList();
+            _pageStart = _totalCount == 0 ? 0 : _page * PageSize + 1;
+            _pageEnd = Math.Min(_totalCount, (_page + 1) * PageSize);
+            // _view alimenta a seleção "todos da página" e a contagem de linhas: são os
+            // itens dos grupos exibidos, e não a lista inteira.
+            _view = pagina.SelectMany(g => g.Items).ToList();
+        }
+        else
+        {
+            _pageStart = groups.Count == 0 ? 0 : 1;
+            _pageEnd = groups.Count;
+            _view = list;
         }
     }
 
@@ -757,6 +904,11 @@
             Interlocked.CompareExchange(ref _loadCts, null, currentCts);
             currentCts.Dispose();
         }
+
+        // Server-side: só existe a janela devolvida pelo provider, então não há árvore
+        // completa para paginar — o agrupamento vale para a página, e quem quiser grupos
+        // fechados devolve GridLoadResult.Groups já calculados no servidor.
+        _allGroups = null;
 
         if (result is null) { _view = new(); _totalCount = 0; _serverAggregates = null; return; }
         _view = result.Items.ToList();
@@ -1177,26 +1329,175 @@
     }
 
     // ─── Grouping ─────────────────────────────────────────────────────────
-    private void BuildGroups() => _groups = IsGroupMode ? BuildGroupLevel(_view, 0) : new();
+    /// <summary>
+    /// Publica os grupos a exibir. In-memory, a árvore já foi montada sobre o conjunto
+    /// inteiro em <see cref="ApplyInMemoryGrouped"/> — aqui só se recorta a página. No modo
+    /// server-side o consumidor manda a janela, então o agrupamento é sobre ela mesmo.
+    /// </summary>
+    private void BuildGroups()
+    {
+        if (!IsGroupMode)
+        {
+            _groups = new();
+            _flatGroupRows.Clear();
+            _groupLimitReached = false;
+            return;
+        }
+
+        if (_allGroups is { } todos)
+        {
+            _groups = EffectivePaging
+                ? todos.Skip(_page * PageSize).Take(PageSize).ToList()
+                : todos;
+        }
+        else
+        {
+            _groups = BuildGroupTree(_view);
+        }
+
+        ApplyAutoCollapse();
+        RebuildFlatGroupRows();
+    }
+
+    /// <summary>
+    /// Fecha os grupos de primeiro nível quando eles passam de
+    /// <see cref="AutoCollapseGroupsThreshold"/>, e só na passada imediatamente posterior à
+    /// mudança de agrupamento — depois disso quem manda é o usuário.
+    /// </summary>
+    private void ApplyAutoCollapse()
+    {
+        if (!_autoCollapsePending) return;
+        _autoCollapsePending = false;
+        if (AutoCollapseGroupsThreshold <= 0) return;
+
+        // Semear a partir do conjunto inteiro, e não da página: com paginação ligada,
+        // _groups é só a fatia atual, e as outras páginas nasceriam abertas.
+        var todos = _allGroups ?? _groups;
+        if (todos.Count <= AutoCollapseGroupsThreshold) return;
+        foreach (var node in todos)
+        {
+            _collapsedGroups.Add(GroupPath("", node));
+        }
+    }
+
+    /// <summary>
+    /// Reserializa a árvore de grupos numa lista linear em profundidade — cabeçalho, o que
+    /// estiver aberto abaixo dele, rodapé — pulando a subárvore INTEIRA de um grupo colapsado.
+    /// É esse achatamento que permite entregar o modo agrupado ao <c>OmniVirtualize</c>: a
+    /// recursão anterior acontecia dentro do render e emitia todas as linhas de todos os
+    /// grupos abertos num único batch (medido: 18 frames por linha, 1,8 milhão de frames a
+    /// 100 mil linhas). Mesmo desenho do <c>HierarchyState.RebuildRows</c>.
+    /// </summary>
+    private void RebuildFlatGroupRows()
+    {
+        _flatGroupRows.Clear();
+        if (!IsGroupMode) return;
+
+        var comRodape = ShowGroupFooters && _columns.Any(c => c.Aggregate.HasValue);
+        foreach (var node in _groups)
+        {
+            FlattenGroup(node, "", comRodape);
+        }
+    }
+
+    private void FlattenGroup(GroupNode node, string parentPath, bool comRodape)
+    {
+        var path = GroupPath(parentPath, node);
+        _flatGroupRows.Add(new GroupRow(GroupRowKind.Header, node, path, default));
+        if (_collapsedGroups.Contains(path)) return;
+
+        if (node.Children is not null)
+        {
+            foreach (var child in node.Children)
+            {
+                FlattenGroup(child, path, comRodape);
+            }
+        }
+        else
+        {
+            foreach (var item in node.Items)
+            {
+                _flatGroupRows.Add(new GroupRow(GroupRowKind.Data, null, path, item));
+            }
+        }
+
+        // Pós-ordem e só em grupo aberto, como no render recursivo: o rodapé do pai vem
+        // DEPOIS dos rodapés dos filhos, e grupo fechado não tem rodapé nenhum.
+        if (comRodape)
+        {
+            _flatGroupRows.Add(new GroupRow(GroupRowKind.Footer, node, path, default));
+        }
+    }
+
+    /// <summary>
+    /// Monta a árvore inteira com o orçamento de <see cref="MaxGroups"/> zerado. Todo
+    /// caminho que reconstrói a árvore passa por aqui — é o único lugar que reseta o teto.
+    /// </summary>
+    private List<GroupNode> BuildGroupTree(IReadOnlyList<TItem> items)
+    {
+        _groupBudget = Math.Max(1, MaxGroups);
+        _groupLimitReached = false;
+        return BuildGroupLevel(items, 0);
+    }
+
+    /// <summary>
+    /// Diz se o nível pode usar o rótulo curto ("julho" em vez de "julho 2026"): só quando
+    /// o nível IMEDIATAMENTE acima é da mesma coluna e cobre a unidade maior. Calculado
+    /// sobre a lista atual, e não sobre o <c>GroupHierarchy</c> declarado — remover o
+    /// "Mês" de Ano › Mês › Dia deixa o dia direto sob o ano, onde "31" sozinho não
+    /// identificaria mais nada.
+    /// </summary>
+    private bool IsNestedLevel(int level)
+    {
+        if (level == 0) return false;
+        var atual = _groupLevels[level];
+        var anterior = _groupLevels[level - 1];
+        return atual.Column == anterior.Column
+            && atual.Interval is { } inner
+            && anterior.Interval is { } outer
+            && DateGrouping.IsNestedIn(inner, outer);
+    }
 
     private List<GroupNode> BuildGroupLevel(IReadOnlyList<TItem> items, int level)
     {
-        var col = _groupCols[level];
-        var isLeaf = level == _groupCols.Count - 1;
-        return items
-            .GroupBy(it => col.GetSortValue(it))
-            .Select(g =>
+        var spec = _groupLevels[level];
+        var isLeaf = level == _groupLevels.Count - 1;
+        var nested = IsNestedLevel(level);
+        var nodes = new List<GroupNode>();
+        foreach (var g in items.GroupBy(it => GroupKeyOf(spec, it)))
+        {
+            // O orçamento é global à árvore, e não por nível: agrupar por uma coluna
+            // quase-única estoura no primeiro nível, mas Ano › Mês › Dia estoura na soma.
+            if (_groupBudget <= 0)
             {
-                var groupItems = g.ToList();
-                return new GroupNode(
-                    Column: col,
-                    Key: g.Key,
-                    Count: groupItems.Count,
-                    Level: level,
-                    Items: groupItems,
-                    Children: isLeaf ? null : BuildGroupLevel(groupItems, level + 1));
-            })
-            .ToList();
+                _groupLimitReached = true;
+                break;
+            }
+            _groupBudget--;
+
+            var groupItems = g.ToList();
+            nodes.Add(new GroupNode(
+                Column: spec.Column,
+                Key: g.Key,
+                Count: groupItems.Count,
+                Level: level,
+                Items: groupItems,
+                Children: isLeaf ? null : BuildGroupLevel(groupItems, level + 1),
+                Interval: spec.Interval,
+                NestedInLarger: nested));
+        }
+        return nodes;
+    }
+
+    /// <summary>
+    /// Chave do grupo: o valor da coluna, truncado até o intervalo quando o nível é de
+    /// data. Truncar aqui (e não no <c>Property</c> do consumidor) é o que permite a mesma
+    /// coluna alimentar célula, ordenação e vários níveis de agrupamento ao mesmo tempo.
+    /// </summary>
+    private static object? GroupKeyOf(GroupLevelSpec spec, TItem item)
+    {
+        var value = spec.Column.GetSortValue(item);
+        return spec.Interval is { } interval ? DateGrouping.Truncate(value, interval) : value;
     }
 
     // Stable identity for a group across renders = path of keys from the root.
@@ -1205,33 +1506,96 @@
 
     private string GroupKeyText(GroupNode node)
     {
+        // Nível de data: o rótulo vem da CHAVE (já truncada), não da célula do primeiro
+        // item — a célula mostra o instante completo, que é justamente o que o grupo
+        // deixou de considerar.
+        if (node.Interval is { } interval)
+        {
+            return node.Key is DateTime key
+                ? DateGrouping.Label(key, interval, node.NestedInLarger, CultureInfo.CurrentCulture, Texts)
+                : "(vazio)";
+        }
+
         var txt = node.Items.Count > 0 ? node.Column.GetCellText(node.Items[0]) : node.Key?.ToString();
         return string.IsNullOrEmpty(txt) ? "(vazio)" : txt;
     }
 
+    /// <summary>
+    /// Nome do nível no cabeçalho do grupo. Com hierarquia de data, repetir o título da
+    /// coluna em Ano, Mês e Dia é ruído — a unidade é a informação que muda.
+    /// </summary>
+    private string GroupTitleText(GroupNode node) =>
+        node.Interval is { } interval
+            ? DateGrouping.IntervalName(interval, Texts)
+            : node.Column.Title ?? string.Empty;
+
+    /// <summary>
+    /// Rótulo do chip: "Data/hora (Ano)" num nível de data, ou só o título da coluna
+    /// quando o agrupamento é pelo valor. A coluna vem junto porque dois campos de data
+    /// agrupados dariam dois chips "Ano" indistinguíveis.
+    /// </summary>
+    private string GroupChipText(GroupLevelSpec level) =>
+        level.Interval is { } interval
+            ? $"{level.Column.Title} ({DateGrouping.IntervalName(interval, Texts)})"
+            : level.Column.Title ?? string.Empty;
+
     private void ToggleGroup(string path)
     {
         if (!_collapsedGroups.Remove(path)) _collapsedGroups.Add(path);
+        // Antes o render recursivo consultava _collapsedGroups na hora e o re-render bastava.
+        // Agora quem descreve o <tbody> é a lista achatada, então ela é que precisa mudar.
+        RebuildFlatGroupRows();
     }
 
     private async Task AddGroupColumnAsync(OmniDataGridColumn<TItem> col)
     {
-        if (col is null || !col.Groupable || _groupCols.Contains(col)) return;
-        _groupCols.Add(col);
+        if (col is null || !col.Groupable) return;
+        if (_groupLevels.Any(l => l.Column == col)) return;
+
+        // Uma coluna com hierarquia entra com todos os seus níveis de uma vez — o arrasto
+        // é um só. A partir daí cada nível vive por conta própria e pode ser removido.
+        if (col.GroupHierarchy is { Count: > 0 } hierarquia)
+        {
+            foreach (var intervalo in hierarquia)
+            {
+                _groupLevels.Add(new GroupLevelSpec(col, intervalo));
+            }
+        }
+        else
+        {
+            _groupLevels.Add(new GroupLevelSpec(col, null));
+        }
+
         await OnGroupsChangedAsync();
     }
 
+    /// <summary>Remove TODOS os níveis de uma coluna do agrupamento.</summary>
     internal async Task UngroupAsync(OmniDataGridColumn<TItem> col)
     {
-        if (_groupCols.Remove(col)) await OnGroupsChangedAsync();
+        if (_groupLevels.RemoveAll(l => l.Column == col) > 0) await OnGroupsChangedAsync();
+    }
+
+    /// <summary>
+    /// Remove um único nível — o "x" de um chip. Tirar "Mês" de Ano › Mês › Dia deixa
+    /// Ano › Dia de pé, em vez de desfazer o agrupamento inteiro.
+    /// </summary>
+    private async Task UngroupLevelAsync(int index)
+    {
+        if (index < 0 || index >= _groupLevels.Count) return;
+        _groupLevels.RemoveAt(index);
+        await OnGroupsChangedAsync();
     }
 
     private async Task OnGroupsChangedAsync()
     {
         _collapsedGroups.Clear();
+        _autoCollapsePending = true;
         await ApplyAndRenderAsync();
         if (Grouped.HasDelegate)
-            await Grouped.InvokeAsync(_groupCols.Select(c => c.ResolvedPropertyName).ToList());
+            // Distinct: uma coluna com hierarquia ocupa vários níveis, mas para quem
+            // escuta o evento (persistência de layout, server-side) ela é uma só.
+            await Grouped.InvokeAsync(
+                _groupLevels.Select(l => l.Column.ResolvedPropertyName).Distinct().ToList());
     }
 
     /// <summary>Programmatically groups by the column with the given resolved property name.</summary>
@@ -1251,8 +1615,8 @@
     /// <summary>Clears all grouping.</summary>
     public Task ClearGroupingAsync()
     {
-        if (_groupCols.Count == 0) return Task.CompletedTask;
-        _groupCols.Clear();
+        if (_groupLevels.Count == 0) return Task.CompletedTask;
+        _groupLevels.Clear();
         return OnGroupsChangedAsync();
     }
 
@@ -1305,6 +1669,16 @@
             {
                 var h = string.IsNullOrEmpty(Height) ? "520px" : Height;
                 heightPart = $"height: {h}; max-height: {h};";
+            }
+            if (Virtualize)
+            {
+                // O Virtualize calcula a rolagem com UM ItemSize para todas as linhas, mas
+                // cabeçalho (~41px) e rodapé (~33px) de grupo são mais baixos que uma linha
+                // de dados. Publicar a altura como custom property é o que deixa o CSS
+                // igualar os três — e só com Virtualize ligado, para o modo paginado manter
+                // a altura natural que sempre teve.
+                var rowHeight = RowHeight.ToString(CultureInfo.InvariantCulture);
+                heightPart = $"{heightPart}--omni-grid-row-h: {rowHeight}px;";
             }
             if (string.IsNullOrEmpty(heightPart)) return Style;
             return string.IsNullOrEmpty(Style) ? heightPart : $"{Style?.TrimEnd(';')}; {heightPart}";
@@ -1493,11 +1867,19 @@
         }
     };
 
-    // Recursive group renderer: a collapsible header row, then either nested
-    // group rows or leaf data rows, then (optionally) a per-group aggregate row.
-    private RenderFragment RenderGroupNodeFragment(GroupNode node, string parentPath) => __builder =>
+    // Despacho por tipo de linha da lista achatada. Substituiu o renderer recursivo:
+    // a ordem das linhas (cabeçalho › filhos/dados › rodapé) agora está no achatamento,
+    // e aqui só sobra desenhar UMA linha — que é o que a virtualização precisa.
+    private RenderFragment RenderGroupRowFragment(GroupRow row) => row.Kind switch
     {
-        var path = GroupPath(parentPath, node);
+        GroupRowKind.Header => RenderGroupHeaderFragment(row.Node!, row.Path),
+        GroupRowKind.Footer => RenderGroupFooterFragment(row.Node!),
+        _ => RenderFlatRowFragment(row.Item!)
+    };
+
+    // Cabeçalho colapsável de um grupo.
+    private RenderFragment RenderGroupHeaderFragment(GroupNode node, string path) => __builder =>
+    {
         var collapsed = _collapsedGroups.Contains(path);
         var indent = node.Level * 18;
         <tr class="omni-grid-group-row" @key="path">
@@ -1508,33 +1890,12 @@
                             @onclick="@(() => ToggleGroup(path))">
                         <OmniIcon Name="@(collapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
                     </button>
-                    <span class="omni-grid-group-title">@node.Column.Title</span>
+                    <span class="omni-grid-group-title">@GroupTitleText(node)</span>
                     <span class="omni-grid-group-key">@GroupKeyText(node)</span>
                     <span class="omni-grid-group-count">@node.Count</span>
                 </div>
             </td>
         </tr>
-        @if (!collapsed)
-        {
-            if (node.Children is not null)
-            {
-                foreach (var child in node.Children)
-                {
-                    @RenderGroupNodeFragment(child, path)
-                }
-            }
-            else
-            {
-                foreach (var item in node.Items)
-                {
-                    @RenderFlatRowFragment(item)
-                }
-            }
-            if (ShowGroupFooters && _columns.Any(c => c.Aggregate.HasValue))
-            {
-                @RenderGroupFooterFragment(node)
-            }
-        }
     };
 
     private RenderFragment RenderGroupFooterFragment(GroupNode node) => __builder =>

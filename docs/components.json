@@ -2887,6 +2887,13 @@
           "summary": "Permite ordenar clicando no header das colunas Sortable. Default true."
         },
         {
+          "name": "AutoCollapseGroupsThreshold",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Acima de quantos grupos de primeiro nível o agrupamento nasce COLAPSADO. Default 100. Sem isso, o primeiro render depois de arrastar uma coluna é sempre o conjunto inteiro aberto — agrupar 200 mil linhas por dia significa achatar as 200 mil de uma vez só para o usuário fechar tudo em seguida. Valores <= 0 desligam o auto-colapso."
+        },
+        {
           "name": "Children",
           "kind": "parameter",
           "type": "Func<TItem, IEnumerable<TItem>>",
@@ -3073,6 +3080,13 @@
           "summary": "Raised when an export reaches MaxExportRows."
         },
         {
+          "name": "GroupLimitReachedText",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Aviso exibido quando MaxGroups é atingido; {0} é o teto."
+        },
+        {
           "name": "GroupPanelText",
           "kind": "parameter",
           "type": "string",
@@ -3218,6 +3232,13 @@
           "type": "int",
           "required": false,
           "summary": "Hard cap applied to every export, including custom streaming providers."
+        },
+        {
+          "name": "MaxGroups",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Teto de nós de grupo montados numa passada (todos os níveis somados). Default 10.000. Agrupar por uma coluna quase-única — um id, um timestamp com segundos — renderia um grupo por linha, e a árvore de grupos passaria a custar mais que os próprios dados. Ao estourar, a árvore é cortada e a UI avisa, no mesmo desenho do MaxVisibleRows da hierarquia. Valores <= 0 são tratados como 1."
         },
         {
           "name": "MaxVisibleRows",
@@ -3490,6 +3511,13 @@
           ],
           "required": false,
           "summary": "Congela esta coluna no scroll horizontal. null = não congelada."
+        },
+        {
+          "name": "GroupHierarchy",
+          "kind": "parameter",
+          "type": "IReadOnlyList<DateGroupInterval>",
+          "required": false,
+          "summary": "Desdobra esta coluna em vários níveis de agrupamento por data. Agrupar uma coluna de data pelo valor exato rende um grupo por linha — o instante nunca se repete —, então aqui se declara a granularidade de cada nível: GroupHierarchy=\"@DateGroupHierarchy.YearMonthDay\" dá Ano › Mês › Dia com um único arrasto. Um nível só (new[] { DateGroupInterval.Month }) agrupa por mês, sem hierarquia. null (padrão) mantém o agrupamento pelo valor exato, e itens cujo valor não é uma data caem num grupo vazio."
         },
         {
           "name": "Groupable",
