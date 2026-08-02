@@ -122,6 +122,27 @@ public class OmniTexts
     /// <summary>Remove a grouping chip (data grid). Default "Remover agrupamento".</summary>
     public string RemoveGrouping { get; set; } = "Remover agrupamento";
 
+    // ── Date grouping (data grid) ────────────────────────────────────────
+    // Nomes das unidades: compõem o chip de agrupamento ("Data (Ano › Mês › Dia)").
+    /// <summary>Year interval name. Default "Ano".</summary>
+    public string Year { get; set; } = "Ano";
+    /// <summary>Quarter interval name. Default "Trimestre".</summary>
+    public string Quarter { get; set; } = "Trimestre";
+    /// <summary>Month interval name. Default "Mês".</summary>
+    public string Month { get; set; } = "Mês";
+    /// <summary>Week interval name. Default "Semana".</summary>
+    public string Week { get; set; } = "Semana";
+    /// <summary>Day interval name. Default "Dia".</summary>
+    public string Day { get; set; } = "Dia";
+    /// <summary>Hour interval name. Default "Hora".</summary>
+    public string Hour { get; set; } = "Hora";
+    /// <summary>Pager unit when the grid is grouped (it pages groups, not rows). Default "grupos".</summary>
+    public string Groups { get; set; } = "grupos";
+    /// <summary>Quarter group label; <c>{0}</c> is the quarter number. Default "T{0}".</summary>
+    public string QuarterAbbreviation { get; set; } = "T{0}";
+    /// <summary>Week group label; <c>{0}</c> is the first day of the week. Default "Semana de {0}".</summary>
+    public string WeekOf { get; set; } = "Semana de {0}";
+
     // ── Chat ─────────────────────────────────────────────────────────────
     /// <summary>Chat composer placeholder. Default "Digite uma mensagem...".</summary>
     public string MessagePlaceholder { get; set; } = "Digite uma mensagem...";
@@ -179,6 +200,15 @@ public class OmniTexts
         NoResults = "No results.",
         NoRecords = "No records found.",
         RemoveGrouping = "Remove grouping",
+        Year = "Year",
+        Quarter = "Quarter",
+        Month = "Month",
+        Week = "Week",
+        Day = "Day",
+        Hour = "Hour",
+        Groups = "groups",
+        QuarterAbbreviation = "Q{0}",
+        WeekOf = "Week of {0}",
         MessagePlaceholder = "Type a message...",
         NoMessages = "No messages yet. Start the conversation!",
     };

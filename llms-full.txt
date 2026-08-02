@@ -429,6 +429,7 @@ Parameters:
 - `FilterType`: ColumnFilterType {Text | Number | Date | Boolean | Select} — Tipo de UI/operadores oferecidos. Default: Text.
 - `Filterable`: bool — Liga o filtro por coluna nesta coluna. Requer AllowColumnFilter no DataGrid.
 - `Frozen`: FrozenPosition {Left | Right} — Congela esta coluna no scroll horizontal. null = não congelada.
+- `GroupHierarchy`: IReadOnlyList<DateGroupInterval> — Desdobra esta coluna em vários níveis de agrupamento por data. Agrupar uma coluna de data pelo valor exato rende um grupo por linha — o instante nunca se repete —, então aqui se declara a granularidade de cada nível: GroupHierarchy="@DateGroupHierarchy.YearMonthDay" dá Ano › Mês › Dia com um único arrasto. Um nível só (new[] { DateGroupInterval.Month }) agrupa por mês, sem hierarquia. null (padrão) mantém o agrupamento pelo valor exato, e itens cujo valor não é uma data caem num grupo vazio.
 - `Groupable`: bool — Permite arrastar esta coluna para a group zone do DataGrid.
 - `IsHierarchyAnchor`: bool — Marca esta coluna como o "âncora" da hierarquia — receberá o chevron de expand/collapse + indentação por nível. Quando nenhuma coluna marca, o grid usa a primeira coluna visível.
 - `Property`: Func<TItem, object> — Selector for the column's raw value — used for cell text, sorting, and filtering.

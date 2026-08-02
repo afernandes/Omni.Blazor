@@ -1069,3 +1069,24 @@ public enum MessageRole
     /// <summary>System / instruction message.</summary>
     System
 }
+
+/// <summary>
+/// Granularidade de um nível de agrupamento por data no <c>OmniDataGrid</c>. Agrupar
+/// datas pelo valor exato rende um grupo por linha — o instante nunca se repete —,
+/// então o grid trunca a data até esta unidade antes de comparar.
+/// </summary>
+public enum DateGroupInterval
+{
+    /// <summary>Ano civil.</summary>
+    Year,
+    /// <summary>Trimestre civil (T1 = janeiro a março).</summary>
+    Quarter,
+    /// <summary>Mês.</summary>
+    Month,
+    /// <summary>Semana, começando no primeiro dia de semana da cultura corrente.</summary>
+    Week,
+    /// <summary>Dia.</summary>
+    Day,
+    /// <summary>Hora cheia.</summary>
+    Hour
+}

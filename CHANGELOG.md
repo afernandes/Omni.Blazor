@@ -9,6 +9,10 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 ## [Unreleased]
 
 ### Added
+- `OmniDataGrid.MaxGroups` (default 10 000) caps how many group nodes one grouping pass builds, with an on-screen notice when the cap is hit — the twin of `MaxVisibleRows` for hierarchies. Grouping by a near-unique column (an id, a timestamp with seconds) used to build one group per row, so the group tree cost more than the data it described. `GroupLimitReachedText` customizes the notice and `GroupLimitReached` exposes the state.
+- `OmniDataGrid.AutoCollapseGroupsThreshold` (default 100): grouping starts collapsed when the first-level group count goes above it. Changing the grouping cleared the collapsed set, so the first render after dragging a column was always the whole set expanded. Set to `0` to disable.
+- `OmniDataGrid.VisibleGroupRowCount`: number of currently flattened group rows (headers + rows of open groups + footers).
+- `OmniDataGridColumn.GroupHierarchy`: hierarchical date grouping. One drag on a date column expands into Year › Month › Day (or any sequence of `DateGroupInterval`), with ready-made hierarchies in `DateGroupHierarchy`. Each level gets its own chip in the group panel and can be removed on its own — dropping "Day" leaves Year › Month standing. Group labels shorten under their parent level ("julho", not "julho 2026") and go back to the full form when that parent is removed.
 - Initial public release scaffolding (`Directory.Build.props`, `Directory.Packages.props`, MinVer, Source Link, central package management).
 - GitHub Actions CI + release pipeline targeting NuGet.org.
 - Governance docs: `LICENSE`, `CHANGELOG`, `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`, issue & PR templates, Dependabot.
@@ -27,6 +31,7 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 - Clean-package smoke tests that compile Blazor Server/WASM consumers and execute the installed MCP tool.
 
 ### Changed
+- `OmniDataGrid` in-memory grouping now runs over the whole filtered set instead of the current page, and paging slices **first-level groups** rather than rows. Previously a group could be split across pages, each page showing a partial count for the same key. The pager labels the unit ("… de 37 grupos") while grouped. Server-side (`DataProvider`) is unchanged: only the returned window is available, so grouping still applies to it.
 - Renamed library and namespace `Totvs.Blazor → Omni.Blazor` (project, components, CSS classes, JS namespace, design tokens).
 - Replaced Bootstrap (full bundle, ~150 KB pre-gzip) with a minimal forked reset in `Themes/_reset.scss`. Compiled CSS now **~295 KB** (down from 438 KB, **-33 %**).
 - Solution file `ClaudeBlazor.slnx → Omni.Blazor.slnx`.
@@ -42,6 +47,7 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 - Made the release workflow run vulnerability, test, manifest, async and real-package smoke gates before publishing.
 
 ### Fixed
+- `OmniDataGrid` grouped mode now honours `Virtualize`. The grouped `<tbody>` was a recursive walk over the group tree that never consulted `Virtualize`, so every row of every expanded group was mounted in one batch while the flat mode next to it virtualized normally. The tree is now flattened into a linear row list (header / data / footer) before rendering, and that single list feeds both branches — virtualized and not. Measured with 20 000 rows in 4 groups: 20 004 `<tr>` before, 110 after, and the count no longer grows with the row count. Group headers and footers are pinned to `RowHeight` while virtualizing (via `--omni-grid-row-h`) so the scrollbar doesn't drift with the header-to-row ratio; paged mode keeps its natural heights.
 - Prevented stale async validation, overlapping server loads and timer callbacks from overwriting newer state.
 - Made notification, tour, carousel, chat and AI conversation cleanup idempotent and cancellation-aware.
 - Prevented reflection caches from permanently rooting dynamic types or invalid property names.
