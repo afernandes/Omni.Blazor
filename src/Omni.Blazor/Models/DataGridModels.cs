@@ -89,19 +89,22 @@ public delegate IAsyncEnumerable<TItem> GridExportProvider<TItem>(
 /// </summary>
 public static class DateGroupHierarchy
 {
+    // Array.AsReadOnly, e não o array cru: um `IReadOnlyList<T>` que por baixo É um
+    // array pode ser convertido de volta e mutado pelo consumidor — e como estes são
+    // estáticos, a alteração valeria para todos os grids do processo.
     /// <summary>Ano › Mês › Dia — o desdobramento mais comum de uma coluna de data.</summary>
     public static readonly IReadOnlyList<DateGroupInterval> YearMonthDay =
-        new[] { DateGroupInterval.Year, DateGroupInterval.Month, DateGroupInterval.Day };
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Month, DateGroupInterval.Day });
 
     /// <summary>Ano › Mês.</summary>
     public static readonly IReadOnlyList<DateGroupInterval> YearMonth =
-        new[] { DateGroupInterval.Year, DateGroupInterval.Month };
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Month });
 
     /// <summary>Ano › Trimestre › Mês — o desdobramento que o Excel aplica em tabelas dinâmicas.</summary>
     public static readonly IReadOnlyList<DateGroupInterval> YearQuarterMonth =
-        new[] { DateGroupInterval.Year, DateGroupInterval.Quarter, DateGroupInterval.Month };
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Quarter, DateGroupInterval.Month });
 
     /// <summary>Ano › Mês › Dia › Hora — para logs e telemetria, onde o dia ainda é grande demais.</summary>
     public static readonly IReadOnlyList<DateGroupInterval> YearMonthDayHour =
-        new[] { DateGroupInterval.Year, DateGroupInterval.Month, DateGroupInterval.Day, DateGroupInterval.Hour };
+        Array.AsReadOnly(new[] { DateGroupInterval.Year, DateGroupInterval.Month, DateGroupInterval.Day, DateGroupInterval.Hour });
 }
