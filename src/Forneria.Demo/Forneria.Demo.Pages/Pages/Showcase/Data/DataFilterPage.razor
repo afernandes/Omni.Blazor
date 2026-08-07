@@ -4,6 +4,11 @@
 
 <PageTitle>DataFilter — Showcase</PageTitle>
 
+@if (_interactiveReady)
+{
+    <span data-testid="data-filter-interactive" aria-hidden="true"></span>
+}
+
 <ShowcasePage Title="DataFilter"
               Subtitle="Construtor visual de consultas — condições e grupos aninhados (E/OU) que geram um predicado em memória.">
 
@@ -204,6 +209,8 @@ IQueryable<Person> filtered = query.Apply(source, Schema);")">
 @code {
     public record Person(string Name, int Age, string City, bool Active, DateTime JoinDate);
 
+    private bool _interactiveReady;
+
     private readonly List<Person> _people = new()
     {
         new("Ana Souza", 28, "São Paulo", true, new DateTime(2021, 3, 14)),
@@ -279,5 +286,12 @@ IQueryable<Person> filtered = query.Apply(source, Schema);")">
         _view2 = _people;
         _view3 = _people;
         _typedView = _typedQuery.Apply(_people, _typedSchema).ToList();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
     }
 }

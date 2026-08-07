@@ -15,6 +15,8 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
         List<string> errors = [];
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/datafilter");
+        await page.GetByTestId("data-filter-interactive").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
         ILocator filter = page.GetByTestId("typed-data-filter");
         await filter.WaitForAsync();
 
