@@ -35,7 +35,7 @@ internal static class QRCodeEncoder
         var codewords = AddEccAndInterleave(bb.ToBytes(), version, eccIdx);
 
         int size = version * 4 + 17;
-        var modules  = new bool[size, size];
+        var modules = new bool[size, size];
         var reserved = new bool[size, size];
 
         DrawFunctionPatterns(modules, reserved, version);
@@ -107,10 +107,10 @@ internal static class QRCodeEncoder
 
     private static int MapEcc(QRCodeEcc ecc) => ecc switch
     {
-        QRCodeEcc.Low      => 0,
-        QRCodeEcc.Medium   => 1,
+        QRCodeEcc.Low => 0,
+        QRCodeEcc.Medium => 1,
         QRCodeEcc.Quartile => 2,
-        QRCodeEcc.High     => 3,
+        QRCodeEcc.High => 3,
         _ => 1,
     };
 
@@ -132,11 +132,11 @@ internal static class QRCodeEncoder
 
     private static byte[] AddEccAndInterleave(byte[] data, int v, int eccIdx)
     {
-        int numBlocks      = NumEccBlocks[eccIdx, v];
-        int blockEccLen    = EccCodewordsPerBlock[eccIdx, v];
-        int rawCodewords   = NumRawDataModules(v) / 8;
+        int numBlocks = NumEccBlocks[eccIdx, v];
+        int blockEccLen = EccCodewordsPerBlock[eccIdx, v];
+        int rawCodewords = NumRawDataModules(v) / 8;
         int numShortBlocks = numBlocks - rawCodewords % numBlocks;
-        int shortBlockLen  = rawCodewords / numBlocks;
+        int shortBlockLen = rawCodewords / numBlocks;
 
         var blocks = new byte[numBlocks][];
         var divisor = ReedSolomonDivisor(blockEccLen);

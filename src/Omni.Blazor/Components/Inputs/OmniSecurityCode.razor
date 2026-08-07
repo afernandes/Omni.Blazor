@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits FormComponent<string>
 @implements IDisposable
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule JS
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
 
@@ -66,21 +66,21 @@
         if (firstRender || _lastCount != Count)
         {
             if (_created && _lastCount != Count)
-                await JS.InvokeVoidAsync("omniBlazor.securityCodeDestroy", _container);
+                await JS.InvokeVoidAsync("securityCodeDestroy", _container);
 
             _selfRef ??= DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("omniBlazor.securityCodeInit", _container, _selfRef,
+            await JS.InvokeVoidAsync("securityCodeInit", _container, _selfRef,
                 Type == SecurityCodeType.Numeric);
             _created = true;
             _lastCount = Count;
             _value = Value ?? "";
-            await JS.InvokeVoidAsync("omniBlazor.securityCodeSet", _container, _value);
+            await JS.InvokeVoidAsync("securityCodeSet", _container, _value);
         }
         else if (_pushPending)
         {
             _pushPending = false;
             _value = Value ?? "";
-            await JS.InvokeVoidAsync("omniBlazor.securityCodeSet", _container, _value);
+            await JS.InvokeVoidAsync("securityCodeSet", _container, _value);
         }
     }
 
@@ -93,7 +93,7 @@
     }
 
     /// <summary>Moves focus to the first empty (or first) cell.</summary>
-    public ValueTask FocusAsync() => JS.InvokeVoidAsync("omniBlazor.securityCodeFocus", _container);
+    public ValueTask FocusAsync() => JS.InvokeVoidAsync("securityCodeFocus", _container);
 
     public override void Dispose()
     {
@@ -101,7 +101,7 @@
         if (_created)
         {
             TaskObserver.Observe(
-                JS.InvokeVoidAsync("omniBlazor.securityCodeDestroy", _container),
+                JS.InvokeVoidAsync("securityCodeDestroy", _container),
                 operation: "OmniSecurityCode.Dispose");
         }
         _selfRef?.Dispose();

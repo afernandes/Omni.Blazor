@@ -45,8 +45,8 @@ public class OmniProgressTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(BadgeVariant.Good,   "omni-progress-good")]
-    [InlineData(BadgeVariant.Warn,   "omni-progress-warn")]
+    [InlineData(BadgeVariant.Good, "omni-progress-good")]
+    [InlineData(BadgeVariant.Warn, "omni-progress-warn")]
     [InlineData(BadgeVariant.Danger, "omni-progress-danger")]
     public void Applies_variant_modifier(BadgeVariant variant, string expected)
     {

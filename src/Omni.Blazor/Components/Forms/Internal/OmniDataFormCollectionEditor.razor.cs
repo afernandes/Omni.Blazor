@@ -1,24 +1,33 @@
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Omni.Blazor.Models;
+using Omni.Blazor.Utilities;
 
 namespace Omni.Blazor.Components;
 
 /// <summary>Internal bounded collection and embedded-subform editor.</summary>
-public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
+public partial class OmniDataFormCollectionEditor<TModel, TCollection,
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TItem>
     where TModel : class
     where TItem : class
 {
     private readonly List<ItemRuntime> _items = [];
+    private readonly CancellationTokenSource _lifetime = new();
     private EditContext? _subscribedParent;
+    private IOmniFormValidationParticipantRegistry? _subscribedValidationRegistry;
     private ValidationMessageStore? _parentStore;
     private TCollection? _workingValue;
     private TCollection? _factoryValue;
     private bool _validatingParent;
     private bool _initializedFromFactory;
     private int _disposeState;
+    private IDictionary<string, object>? _gridParameters;
+    private IDataFormCollectionGridDefinition<TItem>? _gridParameterDefinition;
 
     [CascadingParameter] private EditContext? ParentEditContext { get; set; }
+    [CascadingParameter] private IOmniFormValidationParticipantRegistry? ValidationParticipantRegistry { get; set; }
 
     /// <summary>Root model owning the collection property.</summary>
     [Parameter, EditorRequired] public TModel Model { get; set; } = default!;
@@ -83,10 +92,10 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
                 InvokeAsync(PublishFactoryValueAsync),
                 "OmniDataFormCollection.Initialize");
         }
-        if (_workingValue is null && TypedDefinition.ItemFactory is not null)
+        if (_workingValue is null && (TypedDefinition.ItemFactory is not null || TypedDefinition.Grid is not null))
         {
             throw new InvalidOperationException(
-                $"DataForm collection '{PropertyPath}' is null. Configure CreateCollection before enabling item creation.");
+                $"DataForm collection '{PropertyPath}' is null. Configure CreateCollection before enabling item creation or grid rendering.");
         }
 
         SynchronizeItems();
@@ -101,6 +110,12 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
     {
         base.OnAfterRender(firstRender);
         if (Volatile.Read(ref _disposeState) != 0) return;
+        if (!ReferenceEquals(_subscribedValidationRegistry, ValidationParticipantRegistry))
+        {
+            _subscribedValidationRegistry?.UnregisterValidationParticipant(this);
+            _subscribedValidationRegistry = ValidationParticipantRegistry;
+            _subscribedValidationRegistry?.RegisterValidationParticipant(this);
+        }
         if (ReferenceEquals(_subscribedParent, ParentEditContext)) return;
         DetachParent();
         _subscribedParent = ParentEditContext;
@@ -119,6 +134,57 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
 
     private bool CollectionIsReadOnly
         => _workingValue is not IList<TItem> { IsReadOnly: false };
+
+    private IDictionary<string, object> GridParameters
+    {
+        get
+        {
+            IDataFormCollectionGridDefinition<TItem> grid = TypedDefinition.Grid
+                ?? throw new InvalidOperationException("Collection grid definition is unavailable.");
+            if (!ReferenceEquals(_gridParameterDefinition, grid))
+            {
+                _gridParameters = BuildGridParameters(grid);
+                _gridParameterDefinition = grid;
+            }
+            IDictionary<string, object> parameters = _gridParameters!;
+            parameters["Items"] = GetCollection();
+            parameters["Disabled"] = Disabled;
+            parameters["ReadOnly"] = ReadOnly || CollectionIsReadOnly;
+            parameters["MinimumItems"] = TypedDefinition.MinimumItems;
+            parameters["MaximumItems"] = TypedDefinition.MaximumItems;
+            parameters["AllowDelete"] = TypedDefinition.AllowRemove;
+            parameters["AllowReorder"] = TypedDefinition.AllowReorder;
+            return parameters;
+        }
+    }
+
+    private IDictionary<string, object> BuildGridParameters(IDataFormCollectionGridDefinition<TItem> grid)
+    {
+        Dictionary<string, object> parameters = new(11, StringComparer.Ordinal)
+        {
+            ["Schema"] = grid.Schema,
+            ["Items"] = GetCollection(),
+            ["ItemsChanged"] = EventCallback.Factory.Create<IList<TItem>>(this, OnGridItemsChangedAsync),
+            ["Disabled"] = Disabled,
+            ["ReadOnly"] = ReadOnly || CollectionIsReadOnly,
+            ["MinimumItems"] = TypedDefinition.MinimumItems,
+            ["MaximumItems"] = TypedDefinition.MaximumItems,
+            ["AllowDelete"] = TypedDefinition.AllowRemove,
+            ["AllowReorder"] = TypedDefinition.AllowReorder,
+            ["RenderEditorFormElement"] = false
+        };
+        if (TypedDefinition.EmptyTemplate is not null)
+            parameters["EmptyTemplate"] = TypedDefinition.EmptyTemplate;
+        return parameters;
+    }
+
+    private async Task OnGridItemsChangedAsync(IList<TItem> items)
+    {
+        if (!ReferenceEquals(items, _workingValue))
+            throw new InvalidOperationException("DataForm collection grid replaced the collection instance unexpectedly.");
+        SynchronizeItems();
+        await NotifyCollectionChangedAsync();
+    }
 
     private async Task AddAsync()
     {
@@ -280,8 +346,18 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
 
             foreach (ItemRuntime runtime in _items)
             {
-                if (validateChildren) runtime.Context.Validate();
-                foreach (string message in runtime.Context.GetValidationMessages())
+                IEnumerable<string> messages;
+                if (TypedDefinition.Grid is not null)
+                {
+                    if (validateChildren) ValidateGridItem(runtime);
+                    messages = runtime.GridMessages;
+                }
+                else
+                {
+                    if (validateChildren) runtime.Context.Validate();
+                    messages = runtime.Context.GetValidationMessages();
+                }
+                foreach (string message in messages)
                     store.Add(FieldIdentifier, $"Item {runtime.Index + 1}: {message}");
             }
             parent.NotifyValidationStateChanged();
@@ -290,6 +366,96 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
         {
             _validatingParent = false;
         }
+    }
+
+    private void ValidateGridItem(ItemRuntime runtime)
+    {
+        runtime.GridMessages.Clear();
+        DataFormSchema<TItem> schema = TypedDefinition.Grid!.FormSchema;
+        foreach (DataFormField<TItem> field in schema.Fields)
+        {
+            if (!field.Visible || (field.VisibleWhen is not null && !field.VisibleWhen(runtime.Item)))
+                continue;
+            object? value = field.PropertyPath.GetValue(runtime.Item);
+            List<ValidationResult> annotations = [];
+            DataAnnotationsValidation.ValidateProperty(
+                field.PropertyPath.GetOwner(runtime.Item),
+                field.PropertyPath.Leaf,
+                value,
+                annotations);
+            foreach (ValidationResult result in annotations)
+            {
+                if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                    AddGridMessage(runtime, result.ErrorMessage);
+            }
+            if (field.IsRequired(runtime.Item) && IsMissing(value))
+                AddGridMessage(runtime, field.RequiredError ?? Texts.Required);
+            foreach (IDataFormFieldValidator<TItem> validator in field.Validators)
+            {
+                if (!validator.IsSynchronous) continue;
+                string? message = validator.Validate(runtime.Item, value);
+                if (!string.IsNullOrWhiteSpace(message)) AddGridMessage(runtime, message);
+            }
+        }
+
+        if (runtime.Item is IValidatableObject validatable)
+        {
+            ValidationContext context = new(runtime.Item, typeof(TItem).Name, serviceProvider: null, items: null);
+            foreach (ValidationResult result in validatable.Validate(context))
+            {
+                if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                    AddGridMessage(runtime, result.ErrorMessage);
+            }
+        }
+    }
+
+    async ValueTask IOmniFormValidationParticipant.ValidateAsync(
+        EditContext context,
+        ValidationMessageStore store,
+        CancellationToken cancellationToken)
+    {
+        if (Volatile.Read(ref _disposeState) != 0 || !ReferenceEquals(context, _subscribedParent)) return;
+        using CancellationTokenSource operation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _lifetime.Token);
+        CancellationToken token = operation.Token;
+        DataFormSchema<TItem>? schema = TypedDefinition.Grid?.FormSchema ?? TypedDefinition.ItemSchema;
+        if (schema is null) return;
+        try
+        {
+            foreach (ItemRuntime runtime in _items)
+            {
+                token.ThrowIfCancellationRequested();
+                foreach (DataFormField<TItem> field in schema.Fields)
+                {
+                    if (!field.Visible || (field.VisibleWhen is not null && !field.VisibleWhen(runtime.Item)))
+                        continue;
+                    object? value = field.PropertyPath.GetValue(runtime.Item);
+                    foreach (IDataFormFieldValidator<TItem> validator in field.Validators)
+                    {
+                        if (validator.IsSynchronous) continue;
+                        token.ThrowIfCancellationRequested();
+                        string? message = await validator.ValidateAsync(runtime.Item, value, token);
+                        token.ThrowIfCancellationRequested();
+                        if (!string.IsNullOrWhiteSpace(message))
+                            store.Add(FieldIdentifier, $"Item {runtime.Index + 1}: {message}");
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // A newer parent validation or disposal superseded this participant.
+        }
+    }
+
+    private static bool IsMissing(object? value)
+        => value is null || value is string text && string.IsNullOrWhiteSpace(text);
+
+    private static void AddGridMessage(ItemRuntime runtime, string message)
+    {
+        if (!runtime.GridMessages.Contains(message, StringComparer.Ordinal))
+            runtime.GridMessages.Add(message);
     }
 
     private void DetachParent()
@@ -307,9 +473,13 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+        _lifetime.Cancel();
+        _subscribedValidationRegistry?.UnregisterValidationParticipant(this);
+        _subscribedValidationRegistry = null;
         DetachParent();
         ReleaseItems([]);
         _items.Clear();
+        _lifetime.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -318,6 +488,7 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection, TItem>
         public TItem Item { get; } = item;
         public object Key { get; } = key;
         public EditContext Context { get; } = context;
+        public List<string> GridMessages { get; } = [];
         public int Index { get; set; }
     }
 }

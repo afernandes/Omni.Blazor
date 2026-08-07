@@ -1,29 +1,61 @@
 @inherits LayoutComponentBase
+@inject ThemeService Theme
 
-<div class="omni-mk-shell">
-    <div class="omni-mk-nav">
-        <OmniBrand Initial="F" Name="Forneria" Href="/" />
-        <div class="omni-mk-nav-links">
-            <a href="/showcase/buttons">Componentes</a>
-            <a href="#features">Recursos</a>
-            <a href="#pricing">Preços</a>
-            <OmniButton Text="Entrar" Variant="ButtonVariant.Ghost"
-                         OnClick="@(_ => { Nav.NavigateTo("/login"); return Task.CompletedTask; })" />
-            <OmniButton Text="Começar grátis" Variant="ButtonVariant.Primary"
-                         OnClick="@(_ => { Nav.NavigateTo("/signup"); return Task.CompletedTask; })" />
+<a class="demo-skip-link" href="#demo-main">Skip to content</a>
+
+<div class="demo-marketing-shell">
+    <header class="demo-marketing-header">
+        <OmniBrand Initial="O" Name="Omni.Blazor" Href="/" />
+
+        <nav class="demo-marketing-nav" aria-label="Primary navigation">
+            <a href="/showcase">Components</a>
+            <a href="/showcase/get-started">Get started</a>
+            <a href="/#quality">Quality</a>
+            <a href="/#examples">Examples</a>
+        </nav>
+
+        <div class="demo-marketing-actions">
+            <a class="demo-github-link" href="https://github.com/afernandes/Omni.Blazor" aria-label="Omni.Blazor on GitHub">
+                <OmniIcon Name="git-branch" Size="ComponentSize.Sm" />
+                <span>GitHub</span>
+            </a>
+            <OmniThemePicker Title="Appearance" />
+            <a class="demo-header-cta" href="/showcase">Open catalog</a>
         </div>
-    </div>
+    </header>
 
-    <main>@Body</main>
+    <main id="demo-main">@Body</main>
 
-    <footer class="omni-mk-foot">
-        <span>© 2026 FORNERIA</span>
-        <span>FEITO COM OMNI.BLAZOR</span>
+    <footer class="demo-marketing-footer">
+        <div>
+            <OmniBrand Initial="O" Name="Omni.Blazor" Href="/" />
+            <p>Production-minded Blazor components for .NET 10.</p>
+        </div>
+        <div class="demo-footer-links">
+            <a href="/showcase">Components</a>
+            <a href="/showcase/get-started">Documentation</a>
+            <a href="https://www.nuget.org/packages/AndersonN.Omni.Blazor">NuGet</a>
+            <a href="https://github.com/afernandes/Omni.Blazor/tree/main/src/FoodService">FoodService sample</a>
+        </div>
+        <span class="demo-footer-meta">BUILT WITH OMNI.BLAZOR</span>
     </footer>
 </div>
 
 <OmniOverlayHosts />
 
 @code {
-    [Inject] NavigationManager Nav { get; set; } = default!;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Theme.IsInitialized) return;
+
+        try
+        {
+            await Theme.InitializeAsync();
+            StateHasChanged();
+        }
+        catch
+        {
+            // Theme persistence must never block the demo landing page.
+        }
+    }
 }

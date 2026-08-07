@@ -1,7 +1,7 @@
 // omni-diagram.js — high-frequency interaction module for OmniDiagramCanvas.
 //
-// Lazy ES module (imported via IJSObjectReference), deliberately OUTSIDE the
-// global Omni.js bundle: pan/zoom/drag/connect run pointer loops that must
+// Lazy ES module (imported via IJSObjectReference), deliberately separate from
+// the shared Omni module: pan/zoom/drag/connect run pointer loops that must
 // never round-trip through the Blazor Server circuit. JS owns every gesture;
 // .NET is notified only on COMMIT (mouse-up / debounced wheel):
 //   JsCommitViewport(x, y, zoom)

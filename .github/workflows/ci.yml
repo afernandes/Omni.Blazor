@@ -138,10 +138,47 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
+  native-aot:
+    name: Native AOT + trimming
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore Native AOT smoke consumer
+        run: dotnet restore test/Omni.Blazor.AotSmoke/Omni.Blazor.AotSmoke.csproj --runtime linux-x64
+
+      - name: Publish Native AOT smoke consumer
+        run: |
+          dotnet publish test/Omni.Blazor.AotSmoke/Omni.Blazor.AotSmoke.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            --no-restore \
+            --output ./artifacts/aot
+
+      - name: Run Native AOT smoke consumer
+        run: ./artifacts/aot/Omni.Blazor.AotSmoke
+
   browser:
-    name: Browser tests (Chromium)
+    name: Browser tests (${{ matrix.host }}, Chromium)
     runs-on: ubuntu-latest
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: server
+            project: src/Forneria.Demo/Forneria.Demo/Forneria.Demo.csproj
+          - host: wasm
+            project: src/Forneria.Demo/Forneria.Demo.Wasm/Forneria.Demo.Wasm.csproj
 
     steps:
       - name: Checkout
@@ -159,11 +196,14 @@ jobs:
 
       - name: Build browser tests and showcase
         run: |
-          dotnet build src/Forneria.Demo/Forneria.Demo/Forneria.Demo.csproj --configuration Release --no-restore
+          dotnet build ${{ matrix.project }} --configuration Release --no-restore
           dotnet build test/Omni.Blazor.BrowserTests/Omni.Blazor.BrowserTests.csproj --configuration Release --no-restore
 
       - name: Install Chromium
         run: pwsh test/Omni.Blazor.BrowserTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
 
       - name: Run browser tests
+        env:
+          OMNI_BROWSER_HOST: ${{ matrix.host }}
+          OMNI_BROWSER_CONFIGURATION: Release
         run: dotnet test test/Omni.Blazor.BrowserTests/Omni.Blazor.BrowserTests.csproj --configuration Release --no-build

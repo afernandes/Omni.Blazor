@@ -61,7 +61,7 @@ public static class OmniBoxParser
                 : (PizzaSize?)null;
             var f1 = pizzaMatch.Groups["f1"].Value;
             var f2 = pizzaMatch.Groups["f2"].Success ? pizzaMatch.Groups["f2"].Value : null;
-            var b  = pizzaMatch.Groups["borda"].Success
+            var b = pizzaMatch.Groups["borda"].Success
                 ? pizzaMatch.Groups["borda"].Value.ToUpperInvariant()
                 : null;
             return new OmniBoxCommand.AddPizza(size, f1, f2, b);
@@ -83,14 +83,14 @@ public static class OmniBoxParser
     {
         'B' => PizzaSize.Broto,
         'F' => PizzaSize.Familia,
-        _   => PizzaSize.Grande,
+        _ => PizzaSize.Grande,
     };
 
     public static char SizeToLetter(PizzaSize s) => s switch
     {
-        PizzaSize.Broto   => 'B',
+        PizzaSize.Broto => 'B',
         PizzaSize.Familia => 'F',
-        _                 => 'G',
+        _ => 'G',
     };
 
     public static BordaOption? ResolveBorda(string? bordaCode)
@@ -103,7 +103,7 @@ public static class OmniBoxParser
             "K" => "cheddar",
             "X" => "chocolate",
             "R" => "cream",
-            _   => null,
+            _ => null,
         };
         return id is null
             ? null

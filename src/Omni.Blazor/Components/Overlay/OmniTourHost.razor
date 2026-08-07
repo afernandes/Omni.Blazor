@@ -2,7 +2,7 @@
 @inherits OmniComponent
 @implements IAsyncDisposable
 @inject TourService Tour
-@inject IJSRuntime JS
+@inject IOmniOverlayJsModule JS
 @inject Omni.Blazor.Services.ScrollManager Scroll
 @using Microsoft.AspNetCore.Components.Web
 @using Omni.Blazor.Models
@@ -89,7 +89,7 @@
                 // autofocus do setupOverlay cair num elemento já visível/posicionado.
                 await PositionAsync();
                 await _overlay!.ActivateAsync(_self!, nameof(OnEscape));
-                try { await JS.InvokeVoidAsync("omniBlazor.tourRegister"); } catch { }
+                try { await JS.InvokeVoidAsync("tourRegister"); } catch { }
             }
             else if (_lastStep != Tour.CurrentStepIndex)
             {
@@ -101,7 +101,7 @@
         {
             _wasActive = false;
             _lastStep = -1;
-            try { await JS.InvokeVoidAsync("omniBlazor.tourUnregister"); } catch { }
+            try { await JS.InvokeVoidAsync("tourUnregister"); } catch { }
             await _overlay!.DeactivateAsync();
         }
     }
@@ -110,7 +110,7 @@
     {
         var step = Tour.CurrentStep;
         if (step is null) return;
-        try { await JS.InvokeVoidAsync("omniBlazor.tourPosition", step.Target, Side(step.Position), 6, true); }
+        try { await JS.InvokeVoidAsync("tourPosition", step.Target, Side(step.Position), 6, true); }
         catch { /* SSR / JS gone */ }
     }
 
@@ -137,7 +137,7 @@
         Tour.OnChange -= Refresh;
         if (_wasActive)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.tourUnregister"); } catch { }
+            try { await JS.InvokeVoidAsync("tourUnregister"); } catch { }
         }
         if (_overlay is not null) await _overlay.DisposeAsync();
         _self?.Dispose();

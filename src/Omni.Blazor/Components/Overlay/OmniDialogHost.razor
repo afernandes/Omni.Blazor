@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @inject DialogService Dialog
-@inject IJSRuntime JS
+@inject IOmniOverlayJsModule JS
 @inject Omni.Blazor.Services.ScrollManager Scroll
 @implements IAsyncDisposable
 
@@ -125,7 +125,7 @@
             await Scroll.LockScrollAsync("html");
             // Focus trap + Esc handler. We only invoke OnEscape from JS if
             // the dialog opts in (CloseDialogOnEsc=true, default).
-            await JS.InvokeAsync<bool>("omniBlazor.setupOverlay",
+            await JS.InvokeAsync<bool>("setupOverlay",
                 d.Id, "#" + d.Id,
                 d.Options.CloseDialogOnEsc
                     ? new { dotnet = _selfRef, method = nameof(OnEscape) }
@@ -138,7 +138,7 @@
     {
         _activeOverlays.Remove(id);
         _overlayRefs.Remove(id);
-        try { await JS.InvokeAsync<bool>("omniBlazor.teardownOverlay", id); } catch { }
+        try { await JS.InvokeAsync<bool>("teardownOverlay", id); } catch { }
         try { await Scroll.UnlockScrollAsync("html"); } catch { }
     }
 

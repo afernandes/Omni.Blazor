@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniNavigationJsModule JS
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
 
@@ -253,7 +253,7 @@
         {
             if (_isOpen)
             {
-                await JS.InvokeVoidAsync("omniBlazor.fabMenuOpen", _el, _selfRef, new
+                await JS.InvokeVoidAsync("fabMenuOpen", _el, _selfRef, new
                 {
                     closeOnOutsideClick = CloseOnOutsideClick,
                     closeOnEsc = CloseOnEsc,
@@ -262,7 +262,7 @@
             }
             else
             {
-                await JS.InvokeVoidAsync("omniBlazor.fabMenuClose", _el);
+                await JS.InvokeVoidAsync("fabMenuClose", _el);
                 _jsListenersActive = false;
             }
         }
@@ -273,7 +273,7 @@
     {
         // Cleanup sempre, mesmo que _jsListenersActive seja false — defensivo
         // contra circuit drops onde o estado JS pode ter divergido.
-        try { await JS.InvokeVoidAsync("omniBlazor.fabMenuClose", _el); } catch { }
+        try { await JS.InvokeVoidAsync("fabMenuClose", _el); } catch { }
         _jsListenersActive = false;
         _selfRef?.Dispose();
         _selfRef = null;

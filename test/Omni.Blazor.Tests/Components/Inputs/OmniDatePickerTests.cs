@@ -6,7 +6,7 @@ namespace Omni.Blazor.Tests.Components.Inputs;
 /// <summary>
 /// Behavioural contract for <see cref="OmniDatePicker{TValue}"/>: input
 /// rendering with placeholder, trigger button, and the cross-cutting splat.
-/// Popover open/close runs through JS interop and isn't exercised here.
+/// Popover open/close uses the shared top-layer floating-popover lifecycle.
 /// </summary>
 public class OmniDatePickerTests : TestContextBase
 {
@@ -64,6 +64,25 @@ public class OmniDatePickerTests : TestContextBase
             .AddUnmatched("data-testid", "dp"));
 
         Assert.Equal("dp", cut.Find("div.omni-datepicker").GetAttribute("data-testid"));
+    }
+
+    [Fact]
+    public async Task Open_promotes_the_calendar_through_the_floating_popover_lifecycle()
+    {
+        var cut = Render<OmniDatePicker<DateOnly?>>();
+
+        await cut.Find("button.omni-datepicker-trigger").ClickAsync(new());
+
+        var popover = cut.Find(".omni-datepicker-popover");
+        Assert.Equal("manual", popover.GetAttribute("popover"));
+        Assert.Equal("dialog", popover.GetAttribute("role"));
+        Assert.Equal(popover.Id, cut.Find(".omni-datepicker-input").GetAttribute("aria-controls"));
+        JSInterop.VerifyInvoke("omniBlazor.floatingPopoverOpen");
+
+        await cut.InvokeAsync(cut.Instance.OnClickOutsideAsync);
+
+        Assert.Empty(cut.FindAll(".omni-datepicker-popover"));
+        JSInterop.VerifyInvoke("omniBlazor.floatingPopoverClose");
     }
 
     // ── ParameterState: derived state recomputes only when Value changes ──

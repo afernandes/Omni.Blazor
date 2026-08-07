@@ -23,8 +23,8 @@ public class OmniSwipeAreaTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(SwipeAreaLiveTransform.X,    true)]
-    [InlineData(SwipeAreaLiveTransform.Y,    true)]
+    [InlineData(SwipeAreaLiveTransform.X, true)]
+    [InlineData(SwipeAreaLiveTransform.Y, true)]
     [InlineData(SwipeAreaLiveTransform.Both, true)]
     [InlineData(SwipeAreaLiveTransform.None, false)]
     public void LiveTransform_applies_modifier_class(SwipeAreaLiveTransform mode, bool expected)

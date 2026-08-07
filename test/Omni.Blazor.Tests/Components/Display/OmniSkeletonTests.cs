@@ -22,8 +22,8 @@ public class OmniSkeletonTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(SkeletonVariant.Text,   "omni-skeleton-text")]
-    [InlineData(SkeletonVariant.Rect,   "omni-skeleton-rect")]
+    [InlineData(SkeletonVariant.Text, "omni-skeleton-text")]
+    [InlineData(SkeletonVariant.Rect, "omni-skeleton-rect")]
     [InlineData(SkeletonVariant.Circle, "omni-skeleton-circle")]
     public void Applies_variant_class(SkeletonVariant variant, string expected)
     {

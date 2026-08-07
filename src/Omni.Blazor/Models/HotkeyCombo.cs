@@ -54,9 +54,9 @@ public readonly record struct HotkeyCombo(string Key, Modifier Modifiers)
 
     private static Modifier? ParseModifier(string token) => token.ToLowerInvariant() switch
     {
-        "ctrl" or "control"      => Modifier.Ctrl,
-        "alt"  or "option"       => Modifier.Alt,
-        "shift"                  => Modifier.Shift,
+        "ctrl" or "control" => Modifier.Ctrl,
+        "alt" or "option" => Modifier.Alt,
+        "shift" => Modifier.Shift,
         "meta" or "cmd" or "win" or "⌘" => Modifier.Meta,
         _ => null
     };

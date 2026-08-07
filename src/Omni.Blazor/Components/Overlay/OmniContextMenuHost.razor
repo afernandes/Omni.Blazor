@@ -1,29 +1,48 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @inject ContextMenuService Menu
-@inject IJSRuntime JS
+@inject ContextMenuInteropService Interop
 @implements IAsyncDisposable
 
-@* Portal host that renders the right-click/programmatic context menu driven by ContextMenuService; place once in the root layout. *@
+@* Portal host for pointer or trigger-anchored menus with keyboard navigation and deterministic listener cleanup. *@
 
 @if (Menu.IsOpen)
 {
-    <div @ref="_root" id="@_id" class="omni-context-menu" style="visibility:hidden; left:0; top:0;" @oncontextmenu:preventDefault>
+    <div @ref="_root"
+         id="@Menu.Id"
+         class="omni-context-menu"
+         style="visibility:hidden; left:0; top:0;"
+         @oncontextmenu:preventDefault>
         <OmniMenu>
-            @foreach (var item in Menu.Items)
+            @{ string? previousGroup = null; }
+            @foreach (ContextMenuItem item in Menu.Items)
             {
+                if (!string.Equals(previousGroup, item.Group, StringComparison.Ordinal))
+                {
+                    if (previousGroup is not null)
+                    {
+                        <OmniMenuSeparator />
+                    }
+                    previousGroup = item.Group;
+                    if (!string.IsNullOrWhiteSpace(item.Group))
+                    {
+                        <div class="omni-menu-group-label" role="presentation">@item.Group</div>
+                    }
+                }
                 if (item.IsSeparator)
                 {
                     <OmniMenuSeparator />
                 }
                 else
                 {
-                    var captured = item;
+                    ContextMenuItem captured = item;
                     <OmniMenuItem Text="@captured.Text"
-                                   Icon="@captured.Icon"
-                                   Shortcut="@captured.Shortcut"
-                                   IsDanger="captured.IsDanger"
-                                   OnClick="@(async _ => await Activate(captured))" />
+                                  Icon="@captured.Icon"
+                                  Shortcut="@captured.Shortcut"
+                                  Description="@captured.Description"
+                                  IsDanger="captured.IsDanger"
+                                  Disabled="captured.Disabled"
+                                  OnClick="@(async _ => await ActivateAsync(captured))" />
                 }
             }
         </OmniMenu>
@@ -31,11 +50,11 @@
 }
 
 @code {
-    private readonly string _id = $"omni-ctx-{Guid.NewGuid():N}";
     private ElementReference _root;
     private DotNetObjectReference<OmniContextMenuHost>? _self;
     private bool _wasOpen;
-    private bool _listenersBound;
+    private int _positionedRevision = -1;
+    private int _disposeState;
 
     protected override void OnInitialized()
     {
@@ -45,51 +64,59 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (Menu.IsOpen && !_wasOpen)
+        if (Menu.IsOpen && Menu.Revision != _positionedRevision && _self is not null)
         {
             _wasOpen = true;
-            // Position first, then attach close-listeners (so the opening click
-            // doesn't immediately count as "click outside").
-            await JS.InvokeVoidAsync("omniBlazor.positionContextMenu", $"#{_id}", Menu.X, Menu.Y);
-            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside", _id, $"#{_id}", _self, nameof(OnClickOutside));
-            await JS.InvokeVoidAsync("omniBlazor.registerEsc", _id, _self, nameof(OnEsc));
-            _listenersBound = true;
+            _positionedRevision = Menu.Revision;
+            await Interop.OpenAsync(
+                Menu.Id,
+                _root,
+                Menu.X,
+                Menu.Y,
+                Menu.PositionMode,
+                Menu.AlignEnd,
+                _self);
         }
         else if (!Menu.IsOpen && _wasOpen)
         {
             _wasOpen = false;
-            if (_listenersBound)
-            {
-                await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
-                await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
-                _listenersBound = false;
-            }
+            await Interop.CloseAsync(Menu.Id, Menu.RestoreFocusOnClose);
         }
     }
 
-    [JSInvokable] public void OnClickOutside() => Menu.Close();
-    [JSInvokable] public void OnEsc() => Menu.Close();
+    [JSInvokable]
+    public void OnClickOutside() => Menu.Close(restoreFocus: false);
 
-    private void Refresh() => InvokeAsync(StateHasChanged);
+    [JSInvokable]
+    public void OnTab() => Menu.Close(restoreFocus: false);
 
-    private async Task Activate(ContextMenuItem it)
+    [JSInvokable]
+    public void OnEsc() => Menu.Close(restoreFocus: true);
+
+    private void Refresh()
     {
-        Menu.Close();
-        if (it.OnClick is not null) await it.OnClick();
+        if (Volatile.Read(ref _disposeState) != 0) return;
+        ObserveTask(InvokeAsync(StateHasChanged), "OmniContextMenuHost.Refresh");
+    }
+
+    private async Task ActivateAsync(ContextMenuItem item)
+    {
+        Menu.Close(restoreFocus: true);
+        if (item.OnClick is not null) await item.OnClick();
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
         Menu.OnChange -= Refresh;
-        if (_listenersBound)
+        try
         {
-            try
-            {
-                await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
-                await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
-            }
-            catch { }
+            await Interop.CloseAsync(Menu.Id, restoreFocus: false);
         }
-        _self?.Dispose();
+        catch { /* circuit already gone */ }
+        finally
+        {
+            Interlocked.Exchange(ref _self, null)?.Dispose();
+        }
     }
 }

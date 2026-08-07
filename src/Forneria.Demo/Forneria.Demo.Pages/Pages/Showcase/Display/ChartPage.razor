@@ -5,14 +5,14 @@
 <PageTitle>Chart — Showcase</PageTitle>
 
 <ShowcasePage Title="Chart"
-              Subtitle="Gráficos SVG full-featured: Line, Area, Column, Bar, Pie, Donut e Waterfall. Múltiplas séries, eixos, legenda e tooltip.">
+              Subtitle="Gráficos SVG full-featured: cartesianos, empilhados, dispersão, radar, gauge, pizza e waterfall — sem dependências externas.">
 
     <Overview>
         <p>
             O <code>OmniChart</code> é um componente único que aceita uma coleção de
             <code>ChartSeries</code> e renderiza tudo em SVG puro — sem D3, sem Chart.js, sem
-            dependências externas. Suporta sete tipos de série (Line/Area/Column/Bar
-            simultâneos no mesmo chart; Pie/Donut/Waterfall isolados, uma série cada).
+            dependências externas. Suporta tipos cartesianos, empilhados, Scatter/Bubble,
+            Radar, Gauge, Pie/Donut e Waterfall com uma API única e schema tipado.
         </p>
         <p>
             Cada série tem <code>Title</code>, <code>Type</code>, <code>Color</code> (opcional —
@@ -42,6 +42,18 @@
     </WhenNotToUse>
 
     <ChildContent>
+        <ShowcaseSection Title="FLUENT SCHEMA TIPADO"
+                         Description="Projeta qualquer modelo por expressões compiladas uma única vez e cria um snapshot imutável das séries. O render não reenumera a fonte original."
+                         Code="@(@"private static readonly ChartSchema RevenueSchema = ChartSchema.Create(chart => chart
+    .Series(""Receita"", metrics, item => item.Day, item => item.Value,
+        series => series.Type(ChartSeriesType.Area).Line(showMarkers: true))
+    .Size(""240px"")
+    .Labels(ariaLabel: ""Receita semanal""));
+
+<OmniChart Schema=""@RevenueSchema"" />")">
+            <OmniChart Schema="@_typedChartSchema" />
+        </ShowcaseSection>
+
         <ShowcaseSection Title="LINE — TENDÊNCIA SIMPLES"
                          Description="Uma série temporal de receita semanal."
                          Code="@(@"<OmniChart Series=""@_revenueLine"" Height=""240px"" />
@@ -146,6 +158,35 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
                         DonutCenterValue="R$ 89k" />
         </ShowcaseSection>
 
+        <ShowcaseSection Title="COLUMN E BAR EMPILHADOS"
+                         Description="StackedColumn e StackedBar acumulam séries por categoria, inclusive valores positivos e negativos."
+                         Code="@(@"new ChartSeries { Type = ChartSeriesType.StackedColumn, ... }")">
+            <div class="omni-grid-2">
+                <OmniChart Series="@_stackedColumns" Height="260px" />
+                <OmniChart Series="@_stackedBars" Height="260px" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SCATTER E BUBBLE"
+                         Description="X cria um eixo numérico real; Size controla o raio limitado das bolhas."
+                         Code="@(@"new ChartDataPoint { Category = ""Produto A"", X = 12, Value = 18, Size = 24 }")">
+            <OmniChart Series="@_bubbles" Height="300px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="RADAR"
+                         Description="Compare perfis multidimensionais usando as mesmas categorias em todas as séries."
+                         Code="@(@"new ChartSeries { Type = ChartSeriesType.Radar, Points = ... }")">
+            <OmniChart Series="@_radar" Height="340px" />
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="GAUGE"
+                         Description="Gauge apresenta um KPI dentro de um intervalo explícito e validado."
+                         Code="@(@"new ChartSeries { Type = ChartSeriesType.Gauge, GaugeMinimum = 0, GaugeMaximum = 100, Points = ... }")">
+            <div style="max-width:620px">
+                <OmniChart Series="@_gauge" Height="280px" ValueFormatter="@(value => $"{value:0.0}%")" />
+            </div>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="ESQUEMAS DE COR"
                          Description="Palette (default), Accent (monocromático), Pastel, Semantic."
                          Code="@(@"<OmniChart Series=""@series"" ColorScheme=""ChartColorScheme.Palette"" />
@@ -183,6 +224,8 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
 
     <Api>
         <ShowcaseApiTable Title="OmniChart">
+            <ShowcaseApiRow Name="Schema" Type="ChartSchema?" Default="null"
+                            Description="Séries projetadas por expressões e apresentação em um snapshot Fluent imutável." />
             <ShowcaseApiRow Name="Series" Type="IEnumerable<ChartSeries>" Default="empty"
                             Description="Coleção de séries (obrigatório)." />
             <ShowcaseApiRow Name="Height" Type="string" Default="&quot;260px&quot;"
@@ -211,7 +254,7 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
             <ShowcaseApiRow Name="Title" Type="string" Default="&quot;&quot;"
                             Description="Nome exibido na legenda/tooltip." />
             <ShowcaseApiRow Name="Type" Type="ChartSeriesType" Default="Line"
-                            Description="Line | Area | Column | Bar | Pie | Donut | Waterfall." />
+                            Description="Line | Area | Column | Bar | StackedColumn | StackedBar | Scatter | Bubble | Radar | Gauge | Pie | Donut | Waterfall." />
             <ShowcaseApiRow Name="Color" Type="string?" Default="null"
                             Description="Override de cor; quando nulo, puxa do ColorScheme." />
             <ShowcaseApiRow Name="Points" Type="IEnumerable<ChartDataPoint>" Default="empty"
@@ -224,6 +267,8 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
                             Description="Mostra círculos nos pontos (Line/Area)." />
             <ShowcaseApiRow Name="AreaOpacity" Type="double" Default="0.18"
                             Description="Opacidade do preenchimento (Area)." />
+            <ShowcaseApiRow Name="GaugeMinimum / GaugeMaximum" Type="double" Default="0 / 100"
+                            Description="Intervalo explícito do Gauge." />
         </ShowcaseApiTable>
 
         <ShowcaseApiTable Title="ChartDataPoint">
@@ -235,6 +280,10 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
                             Description="Cor opcional (Pie/Donut — override por fatia)." />
             <ShowcaseApiRow Name="IsTotal" Type="bool" Default="false"
                             Description="Waterfall: marca o ponto como total absoluto (barra a partir do zero). Quando false, é um delta que flutua a partir do acumulado." />
+            <ShowcaseApiRow Name="X" Type="double?" Default="null"
+                            Description="Coordenada numérica no eixo X para Scatter e Bubble." />
+            <ShowcaseApiRow Name="Size" Type="double?" Default="null"
+                            Description="Magnitude da bolha, normalizada para um raio visual limitado." />
         </ShowcaseApiTable>
     </Api>
 
@@ -242,6 +291,23 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
 
 @code {
     // ─── Sample data ─────────────────────────────────────────────────────
+
+    private sealed record RevenueMetric(string Day, double Value);
+
+    private static readonly ChartSchema _typedChartSchema = ChartSchema.Create(chart => chart
+        .Series(
+            "Receita",
+            new RevenueMetric[]
+            {
+                new("Seg", 8_200), new("Ter", 9_100), new("Qua", 8_750),
+                new("Qui", 10_400), new("Sex", 11_200), new("Sáb", 9_800)
+            },
+            item => item.Day,
+            item => item.Value,
+            series => series.Type(ChartSeriesType.Area)
+                .Line(ChartInterpolation.Smooth, showMarkers: true, areaOpacity: 0.22))
+        .Size("240px")
+        .Labels(ariaLabel: "Receita semanal"));
 
     private List<ChartSeries> _revenueLine = new()
     {
@@ -444,6 +510,45 @@ new ChartSeries { Type = ChartSeriesType.Line,   Title = ""Receita médio (R$)""
             }
         }
     };
+
+    private readonly List<ChartSeries> _stackedColumns =
+    [
+        new() { Title = "Assinaturas", Type = ChartSeriesType.StackedColumn, Points = [new() { Category = "Jan", Value = 38 }, new() { Category = "Fev", Value = 44 }, new() { Category = "Mar", Value = 51 }] },
+        new() { Title = "Serviços", Type = ChartSeriesType.StackedColumn, Points = [new() { Category = "Jan", Value = 22 }, new() { Category = "Fev", Value = 25 }, new() { Category = "Mar", Value = 29 }] }
+    ];
+
+    private readonly List<ChartSeries> _stackedBars =
+    [
+        new() { Title = "Concluído", Type = ChartSeriesType.StackedBar, Points = [new() { Category = "Produto", Value = 42 }, new() { Category = "Design", Value = 31 }, new() { Category = "Qualidade", Value = 25 }] },
+        new() { Title = "Pendente", Type = ChartSeriesType.StackedBar, Points = [new() { Category = "Produto", Value = 8 }, new() { Category = "Design", Value = 12 }, new() { Category = "Qualidade", Value = 6 }] }
+    ];
+
+    private readonly List<ChartSeries> _bubbles =
+    [
+        new()
+        {
+            Title = "Portfólio",
+            Type = ChartSeriesType.Bubble,
+            Points =
+            [
+                new() { Category = "OmniDataGrid", X = 82, Value = 91, Size = 70 },
+                new() { Category = "OmniDataForm", X = 75, Value = 95, Size = 54 },
+                new() { Category = "Workflow", X = 58, Value = 78, Size = 35 },
+                new() { Category = "Charts", X = 68, Value = 72, Size = 42 }
+            ]
+        }
+    ];
+
+    private readonly List<ChartSeries> _radar =
+    [
+        new() { Title = "Omni", Type = ChartSeriesType.Radar, Points = [new() { Category = "DX", Value = 95 }, new() { Category = "A11y", Value = 88 }, new() { Category = "Performance", Value = 91 }, new() { Category = "Temas", Value = 94 }, new() { Category = "Extensão", Value = 96 }] },
+        new() { Title = "Meta", Type = ChartSeriesType.Radar, Points = [new() { Category = "DX", Value = 90 }, new() { Category = "A11y", Value = 90 }, new() { Category = "Performance", Value = 90 }, new() { Category = "Temas", Value = 90 }, new() { Category = "Extensão", Value = 90 }] }
+    ];
+
+    private readonly List<ChartSeries> _gauge =
+    [
+        new() { Title = "Cobertura do P2", Type = ChartSeriesType.Gauge, GaugeMinimum = 0, GaugeMaximum = 100, Points = [new() { Category = "Atual", Value = 92.5 }] }
+    ];
 
     private List<ChartSeries> _schemeDemo = new()
     {

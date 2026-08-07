@@ -13,14 +13,14 @@
 
         <OmniPivotGrid Data="@sales" TItem="Sale" ShowRowTotals ShowColumnTotals>
             <Rows>
-                <OmniPivotRow TItem="Sale" Property="Category" Title="Categoria" />
-                <OmniPivotRow TItem="Sale" Property="Product" Title="Produto" />
+                <OmniPivotRow TItem="Sale" Value="@(sale => sale.Category)" Title="Categoria" />
+                <OmniPivotRow TItem="Sale" Value="@(sale => sale.Product)" Title="Produto" />
             </Rows>
             <Columns>
-                <OmniPivotColumn TItem="Sale" Property="Year" Title="Ano" />
+                <OmniPivotColumn TItem="Sale" Value="@(sale => sale.Year)" Title="Ano" />
             </Columns>
             <Values>
-                <OmniPivotValue TItem="Sale" Property="Total" Aggregate="AggregateFunction.Sum" FormatString="{0:C}" />
+                <OmniPivotValue TItem="Sale" Value="@(sale => sale.Total)" Aggregate="AggregateFunction.Sum" FormatString="{0:C}" />
             </Values>
         </OmniPivotGrid>
 

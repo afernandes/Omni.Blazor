@@ -15,7 +15,7 @@ public class OmniTextAreaTests : TestContextBase
         var cut = Render<OmniTextArea>();
 
         var ta = cut.Find("textarea");
-        Assert.Contains("omni-input",    ta.ClassName);
+        Assert.Contains("omni-input", ta.ClassName);
         Assert.Contains("omni-textarea", ta.ClassName);
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Omni.Blazor.Models;
@@ -19,14 +20,14 @@ public sealed record SignaturePadOptions(
 public sealed record SignaturePadSnapshot(string? Value, bool IsEmpty);
 
 /// <summary>
-/// Typed façade over <c>window.omniBlazor.signaturePad</c>. Components use this
+/// Typed façade over the isolated Omni signature-pad module. Components use this
 /// service instead of depending directly on <see cref="IJSRuntime"/>.
 /// </summary>
 public sealed class SignaturePadService
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniDisplayJsModule _js;
 
-    public SignaturePadService(IJSRuntime js) => _js = js;
+    internal SignaturePadService(IOmniDisplayJsModule js) => _js = js;
 
     /// <summary>Attaches the capture engine to a canvas and returns its lifetime handle.</summary>
     public async ValueTask<SignaturePadHandle?> AttachAsync(
@@ -37,7 +38,7 @@ public sealed class SignaturePadService
         try
         {
             var reference = await _js.InvokeAsync<IJSObjectReference>(
-                "omniBlazor.signaturePad.create",
+                "signaturePad.create",
                 canvas,
                 callback,
                 options);
@@ -127,7 +128,10 @@ public sealed class SignaturePadHandle : IAsyncDisposable
         }
     }
 
-    private async ValueTask<T?> InvokeAsync<T>(string method)
+    private async ValueTask<T?> InvokeAsync<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors |
+                                    DynamicallyAccessedMemberTypes.PublicFields |
+                                    DynamicallyAccessedMemberTypes.PublicProperties)] T>(string method)
     {
         var reference = Volatile.Read(ref _reference);
         if (reference is null) return default;
@@ -146,4 +150,3 @@ public sealed class SignaturePadHandle : IAsyncDisposable
         }
     }
 }
-

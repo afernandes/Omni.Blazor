@@ -2,7 +2,7 @@
 @typeparam TModel where TModel : class
 @implements IAsyncDisposable
 @implements IOmniFormRegistry
-@using System.Text.Json
+@implements IOmniFormValidationParticipantRegistry
 @using Microsoft.AspNetCore.Components.Forms
 @using Omni.Blazor.Utilities
 
@@ -131,11 +131,18 @@ else if (_ctx is not null)
         builder.AddComponentParameter(3, "IsFixed", true);
         builder.AddComponentParameter(4, "ChildContent", (RenderFragment)(nestedBuilder =>
         {
-            nestedBuilder.OpenComponent<CascadingValue<IOmniFormRegistry>>(0);
-            nestedBuilder.AddComponentParameter(1, "Value", (IOmniFormRegistry)this);
-            nestedBuilder.AddComponentParameter(2, "IsFixed", true);
-            nestedBuilder.AddComponentParameter(3, "ChildContent", ChildContent);
-            nestedBuilder.CloseComponent();
+        nestedBuilder.OpenComponent<CascadingValue<IOmniFormRegistry>>(0);
+        nestedBuilder.AddComponentParameter(1, "Value", (IOmniFormRegistry)this);
+        nestedBuilder.AddComponentParameter(2, "IsFixed", true);
+        nestedBuilder.AddComponentParameter(3, "ChildContent", (RenderFragment)(validationBuilder =>
+        {
+            validationBuilder.OpenComponent<CascadingValue<IOmniFormValidationParticipantRegistry>>(0);
+            validationBuilder.AddComponentParameter(1, "Value", (IOmniFormValidationParticipantRegistry)this);
+            validationBuilder.AddComponentParameter(2, "IsFixed", true);
+            validationBuilder.AddComponentParameter(3, "ChildContent", ChildContent);
+            validationBuilder.CloseComponent();
+        }));
+        nestedBuilder.CloseComponent();
         }));
         builder.CloseComponent();
     };
@@ -154,21 +161,13 @@ else if (_ctx is not null)
     public bool Validate() => _ctx?.Validate() ?? true;
 
     /// <summary>
-    /// Reset completo: restaura valores do snapshot (se houve <see cref="Snapshot"/>),
-    /// limpa IsTouched e o store de mensagens de validação. Use depois de cancelar
-    /// edição ou após save bem-sucedido.
-    ///
-    /// <para>Se <see cref="Snapshot"/> nunca foi chamado, esta função só limpa
-    /// erros/touched — os valores ficam como estão. Para garantir restore total,
-    /// chame Snapshot() no OnInitialized do componente pai.</para>
+    /// Restores the last snapshot, clears validation messages and resets touched state.
+    /// If no snapshot exists, only validation and touched state are reset.
     /// </summary>
     public async Task ResetAsync()
     {
-        // 1. Restaura valores do snapshot (se existir)
         Restore();
-        // 2. Limpa erros de validação
         ResetValidation();
-        // 3. Reseta IsTouched
         await ResetTouchedAsync();
     }
 
@@ -186,77 +185,6 @@ else if (_ctx is not null)
         if (!IsTouched) return;
         IsTouched = false;
         if (IsTouchedChanged.HasDelegate) await IsTouchedChanged.InvokeAsync(false);
-    }
-
-    // ─── Snapshot / Restore — clone via JSON round-trip ────────────────────
-    // Salva o estado do Model num momento conhecido (tipicamente no
-    // OnInitialized do componente pai) para depois poder restaurar via
-    // ResetAsync(). Clone é via JsonSerializer (deep copy automático,
-    // funciona pra POCO + records + nested classes sem cyclic refs).
-    //
-    // Requisito do TModel: ser JSON-serializable. POCOs com props públicas
-    // funcionam out-of-the-box. Records também. Se houver caminho
-    // necessitar Converter custom, passe via JsonSerializerOptions.
-
-    private string? _snapshotJson;
-
-    /// <summary>
-    /// Opções JSON usadas pelo Snapshot/Restore. Default cobre POCOs comuns.
-    /// Override quando o model precisar de converters custom (ex: DateOnly em .NET 6).
-    /// </summary>
-    [Parameter] public JsonSerializerOptions? SnapshotOptions { get; set; }
-
-    /// <summary>
-    /// Captura o estado atual do <see cref="Model"/> via JSON serialize.
-    /// Use no <c>OnInitialized</c> do componente pai pra garantir que ResetAsync()
-    /// volte aos valores originais.
-    ///
-    /// <code>protected override void OnInitialized() { form?.Snapshot(); }</code>
-    /// </summary>
-    public void Snapshot()
-    {
-        TModel? model = CurrentModel;
-        if (model is null)
-        {
-            _snapshotJson = null;
-            return;
-        }
-
-        try { _snapshotJson = JsonSerializer.Serialize(model, SnapshotOptions); }
-        catch { _snapshotJson = null; }
-    }
-
-    /// <summary>
-    /// Restaura o Model pro último snapshot. Faz copia das propriedades via JSON
-    /// roundtrip (não substitui a instância de Model — preserva referência pra
-    /// não quebrar bindings). No-op se <see cref="Snapshot"/> nunca foi chamado.
-    /// </summary>
-    public void Restore()
-    {
-        if (_snapshotJson is null) return;
-        try
-        {
-            var restored = JsonSerializer.Deserialize<TModel>(_snapshotJson, SnapshotOptions);
-            TModel? model = CurrentModel;
-            if (restored is null || model is null) return;
-            // Copia property-by-property pra manter a MESMA referência de Model
-            // (importante: bindings @bind-Value="model.X" usam ref equality).
-            CopyProperties(restored, model);
-            _ctx?.NotifyValidationStateChanged();
-        }
-        catch { /* shape changed since snapshot — keep current state */ }
-    }
-
-    private static void CopyProperties(TModel src, TModel dst)
-    {
-        var props = typeof(TModel).GetProperties(
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.Instance);
-        foreach (var p in props)
-        {
-            if (!p.CanRead || !p.CanWrite || p.GetIndexParameters().Length != 0) continue;
-            try { p.SetValue(dst, p.GetValue(src)); } catch { }
-        }
     }
 
     /// <inheritdoc />
@@ -435,6 +363,8 @@ else if (_ctx is not null)
     // (O(1) lookup) ao invés da List linear que o RadzenTemplateForm usa.
 
     private readonly Dictionary<string, IOmniFormComponent> _components = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<IOmniFormValidationParticipant> _validationParticipants =
+        new(ReferenceEqualityComparer.Instance);
 
     void IOmniFormRegistry.RegisterComponent(IOmniFormComponent component)
     {
@@ -454,6 +384,22 @@ else if (_ctx is not null)
     IOmniFormComponent? IOmniFormRegistry.FindComponent(string name)
         => _components.TryGetValue(name, out var c) ? c : null;
 
+    void IOmniFormValidationParticipantRegistry.RegisterValidationParticipant(
+        IOmniFormValidationParticipant participant)
+    {
+        ArgumentNullException.ThrowIfNull(participant);
+        lock (_validationSync)
+        {
+            if (!IsDisposed) _validationParticipants.Add(participant);
+        }
+    }
+
+    void IOmniFormValidationParticipantRegistry.UnregisterValidationParticipant(
+        IOmniFormValidationParticipant participant)
+    {
+        lock (_validationSync) _validationParticipants.Remove(participant);
+    }
+
     public ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposeState, 1) != 0)
@@ -466,6 +412,7 @@ else if (_ctx is not null)
         _syncStore?.Clear();
         _asyncStore?.Clear();
         _components.Clear();
+        lock (_validationSync) _validationParticipants.Clear();
         _ctx = null;
         _ownedContext = null;
         _ownedModel = null;

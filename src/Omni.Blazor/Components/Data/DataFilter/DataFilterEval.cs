@@ -1,16 +1,20 @@
 using System.Globalization;
 using Omni.Blazor.Models;
 
-namespace Omni.Blazor.Components;
+namespace Omni.Blazor.Models;
 
 /// <summary>
 /// In-memory evaluation of a single <c>OmniDataFilter</c> condition. Coerces the
 /// actual member value and the edited value to a common comparable form so the
 /// operators behave sensibly across strings, numbers, dates, bools and enums.
 /// </summary>
-internal static class DataFilterEval
+internal static class DataFilterEvaluator
 {
-    public static bool Matches(object? actual, FilterOperator op, object? expected)
+    public static bool Matches(
+        object? actual,
+        FilterOperator op,
+        object? expected,
+        object? upper = null)
     {
         switch (op)
         {
@@ -18,6 +22,14 @@ internal static class DataFilterEval
                 return actual is null || (actual is string es && es.Length == 0);
             case FilterOperator.IsNotEmpty:
                 return !(actual is null || (actual is string ns && ns.Length == 0));
+        }
+
+        if (op is FilterOperator.Between or FilterOperator.NotBetween)
+        {
+            int? lowerComparison = Compare(actual, expected);
+            int? upperComparison = Compare(actual, upper);
+            bool inside = lowerComparison >= 0 && upperComparison <= 0;
+            return op == FilterOperator.Between ? inside : !inside;
         }
 
         // String family — compare as text, case-insensitive.

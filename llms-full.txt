@@ -1,6 +1,6 @@
 # Omni.Blazor — full API reference
 
-> 198 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 206 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
 
@@ -282,8 +282,8 @@ Slots:
 - `MessageTemplate`: RenderFragment<OmniChatMessage> (context: OmniChatMessage) — Custom render template for a message bubble. Receives the OmniChatMessage.
 
 ### OmniDataFilter
-OmniDataFilter — a visual query builder (RadzenDataFilter port).
-_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilter.razor_
+OmniDataFilter — a typed visual query builder.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilter.razor_
 
 Parameters:
 - `AddFilterText`: string — Label of the "add condition" button. Default "Adicionar condição".
@@ -301,8 +301,10 @@ Parameters:
 - `FieldsLabel`: string — Label preceding the available-fields chips in SQL mode. Default "Campos".
 - `Logic`: FilterLogic {And | Or} — Logic combining the root rules. Two-way bindable.
 - `OrOperatorText`: string — Label of the OR logic toggle. Default "OU".
+- `Query`: DataFilterQuery<TItem> — Immutable, versioned query snapshot.
 - `RemoveFilterText`: string — Title/aria-label of the remove-condition button. Default "Remover".
 - `Rules`: List<OmniFilterRule> — Root list of rules. Two-way bindable.
+- `Schema`: DataFilterSchema<TItem> *required* — Immutable strongly typed field schema used by the visual builder and query serialization.
 - `ShowSqlPreview`: bool — Show a read-only "generated SQL" disclosure under the visual builder. Default false.
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} — Height/typography of every field (selects, inputs, date & list editors). Default Sm.
 - `SqlModeText`: string — Label of the SQL-mode toggle. Default "SQL".
@@ -314,6 +316,7 @@ Parameters:
 Events:
 - `Filter`: EventCallback<IEnumerable<TItem>> — Raised with the filtered items (Auto mode, or when ApplyFilterAsync runs).
 - `LogicChanged`: EventCallback<FilterLogic> — Fired when the root logic changes (paired with Logic for two-way binding).
+- `QueryChanged`: EventCallback<DataFilterQuery<TItem>> — Raised with a fresh immutable query after a visual edit.
 - `RulesChanged`: EventCallback<List<OmniFilterRule>> — Fired when the rule tree changes (paired with Rules for two-way binding).
 - `ViewChanged`: EventCallback<IEnumerable<TItem>> — Raised with the filtered items alongside Filter (binding-friendly).
 
@@ -325,18 +328,6 @@ Parameters:
 - `IsRoot`: bool = false — True for the top-level group (hides the remove button, no group border).
 - `ParentRules`: List<OmniFilterRule> — The list that contains Rule (so it can remove itself). Null at the root.
 - `Rule`: OmniFilterRule *required* — The rule this item renders (condition or group).
-
-### OmniDataFilterProperty
-OmniDataFilterProperty — declares one filterable field inside an
-_base: OmniComponent · source: src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilterProperty.razor_
-
-Parameters:
-- `Operators`: IEnumerable<FilterOperator> — Override the available operators (otherwise derived from Type).
-- `OptionText`: Func<object, string> — Renders an option's label (Select). Defaults to ToString().
-- `Options`: IEnumerable<object> — Selectable values when Type is Select.
-- `Property`: string *required* =  — Member name on the item type (used for reflection).
-- `Title`: string — Label shown in the property dropdown. Defaults to Property.
-- `Type`: ColumnFilterType {Text | Number | Date | Boolean | Select} = Text — UI/operator family. Default Text.
 
 ### OmniDataGrid
 Rich data grid with sorting, filtering, grouping, editing, virtualization and optional hierarchical rows.
@@ -357,7 +348,7 @@ Parameters:
 - `ChildrenProvider`: HierarchyChildrenProvider<TItem> — Asynchronous, cancellable child source that enables lazy hierarchy mode.
 - `CollapseText`: string — Accessible label for collapsing a hierarchy row.
 - `Count`: int — Override do total quando server-side (caso o consumidor não preencha TotalCount no resultado).
-- `Data`: IEnumerable<TItem> — Fonte de dados in-memory. Ignorado se DataProvider for setado.
+- `Data`: IEnumerable<TItem> — Fonte de dados in-memory. Ignorado se DataProvider for setado. Filtro/ordenação/agrupamento são memoizados por referência e contagem: trocar a coleção ou acrescentar itens reprocessa sozinho; para itens MUTADOS no lugar (mesma coleção, mesma contagem), chame RefreshAsync().
 - `DataProvider`: GridDataProvider<TItem> — Callback server-side. Quando setado, o DataGrid delega filter/sort/page ao consumidor. O retorno é a janela de items a renderizar + total count.
 - `DebounceMs`: int — Debounce (ms) entre keystrokes na busca antes de chamar DataProvider.
 - `EditMode`: DataGridEditMode {None | Cell | Row} — Enables inline editing. Each column needs an EditTemplate to be editable.
@@ -392,12 +383,15 @@ Parameters:
 - `MaxVisibleRows`: int — Maximum hierarchy rows flattened before rendering or virtualization.
 - `OverscanCount`: int — Linhas extras renderizadas fora do viewport. Default 4.
 - `PageSize`: int — Quantidade de linhas por página. Default 10.
+- `PersistKey`: string — Optional stable local-storage key for automatic view-state restore. Column PropertyName values must be unique and stable. Null disables browser persistence.
 - `RowClass`: Func<TItem, string> — Função opcional que retorna classes CSS extras por linha — útil para destacar linhas específicas (ex: "linha atual", "registro com pendência"). Aplicado em conjunto com as classes internas (selecionado, edição, etc.).
 - `RowHeight`: float — Altura fixa (px) por linha quando virtualize ativo. Default 44.
+- `Schema`: DataGridSchema<TItem> — Optional immutable typed schema. Schema columns are rendered before declarative Columns and its structural feature defaults take precedence while supplied.
 - `SearchPlaceholder`: string — Placeholder do campo de busca. Default "Buscar...".
 - `SelectedItems`: HashSet<TItem> — Itens selecionados. Quando setado pelo consumidor (via @bind-SelectedItems), o DataGrid usa essa referência diretamente.
 - `ShowAggregateRow`: bool — Renderiza uma linha de agregação (<tfoot>) somando/contando/etc. colunas que definam Aggregate. Em modo server-side, valores vêm de Aggregates; client-side, calculados sobre o dataset filtrado completo (não só a página atual).
 - `ShowGroupFooters`: bool — Renders a per-group aggregate footer row (reuses each column's Aggregate). Requires aggregated columns.
+- `ViewState`: DataGridViewState — Controlled view preferences. Replace the record instance when changing it; row data, selection and hierarchy expansion are intentionally outside this state.
 - `Virtualize`: bool — Liga a virtualização do <tbody>: somente as linhas visíveis (e um overscan pequeno) são montadas no DOM. **Ignora AllowPaging** — paging e virtualize são mutuamente exclusivos. Requer Height definido (default 520px). Implementação via OmniVirtualize com SpacerElement="tr".
 Events:
 - `ColumnResized`: EventCallback<DataGridColumnResizedEventArgs> — Fired after a column is resized (drag of the header handle finished).
@@ -411,6 +405,7 @@ Events:
 - `OnRowExpand`: EventCallback<TItem> — Emitido quando uma linha é expandida.
 - `RowUpdated`: EventCallback<TItem> — Fired when the user confirms an inline edit (clicks check). Use to persist changes.
 - `SelectedItemsChanged`: EventCallback<HashSet<TItem>> — Emitido quando a seleção muda. O argumento é o set atual.
+- `ViewStateChanged`: EventCallback<DataGridViewState> — Raised with a normalized snapshot after a user changes persisted view preferences.
 Slots:
 - `Columns`: RenderFragment — Definição das colunas (<OmniDataGridColumn>). Registradas via cascading.
 - `DetailTemplate`: RenderFragment<TItem> (context: TItem) — Template renderizado abaixo da linha quando ela está expandida.
@@ -447,6 +442,77 @@ Slots:
 - `EditTemplate`: RenderFragment<TItem> (context: TItem) — Editor render fragment used when the row/cell is in edit mode. If null, the column is treated as read-only even when EditMode is active.
 - `Template`: RenderFragment<TItem> (context: TItem) — Custom cell render template. Receives the row item as @context. Falls back to the cell text.
 
+### OmniDataGridForm
+Coordinates a generated OmniDataGrid`1, detached OmniDataForm`1 drafts and cancellable CRUD persistence.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniDataGridForm.razor_
+
+Parameters:
+- `ActionsFrozen`: FrozenPosition {Left | Right} — Optionally freezes the generated row-actions column on the left or right edge.
+- `ActionsMenuAriaLabel`: string — Accessible label for the row overflow-menu button.
+- `ActionsMenuIcon`: string — Optional runtime icon override for the row overflow-menu button.
+- `ActionsMenuText`: string — Optional visible label for the row overflow-menu button. The default is icon-only.
+- `ActionsResizable`: bool — Optional runtime override for the generated row-actions column resizer.
+- `ActionsWidth`: string — Optional runtime width override for the generated row-actions column.
+- `AllowCreate`: bool — Allows the schema-defined create workflow. Default true.
+- `AllowDelete`: bool — Allows the schema-defined delete workflow. Default true.
+- `AllowEdit`: bool — Allows the schema-defined edit workflow. Default true.
+- `AllowReorder`: bool — Shows move-up and move-down actions in local-list mode.
+- `ConfirmDiscardChanges`: bool — Asks for confirmation before closing a modified generated editor. Default true.
+- `Disabled`: bool — Disables every generated operation and editor.
+- `GuardNavigationWithUnsavedChanges`: bool — Protects route changes and browser unload while the generated editor is modified. Default true.
+- `Items`: IList<TItem> — Mutable local source. Use either Items or Provider, never both. Local create/edit/delete operations mutate this list only after validation succeeds.
+- `MaximumItems`: int — Maximum local item count enforced before creation. Default unlimited.
+- `MaximumSelectedItems`: int — Maximum items accepted in one bulk-action snapshot. Default 1,000.
+- `MinimumItems`: int — Minimum local item count enforced before deletion. Default zero.
+- `PersistViewStateKey`: string — Optional stable local-storage key used to restore generated DataGrid preferences.
+- `Provider`: IDataGridFormProvider<TItem, TKey> — Cancellable server-side source and CRUD persistence provider.
+- `ReadOnly`: bool — Makes data read-only while preserving grid navigation and inspection.
+- `RenderEditorFormElement`: bool — Renders the semantic editor form element. Disable when this component is embedded inside another form to avoid nested HTML forms. Default true.
+- `ReorderActionsPlacement`: DataGridFormActionPlacement {Inline | Menu | Auto} — Optionally overrides generated move-up and move-down action placement.
+- `Schema`: DataGridFormSchema<TItem, TKey> *required* — Immutable form, grid and operation schema.
+- `SelectedItems`: HashSet<TItem> — Externally controlled selected-item set used by schema-defined bulk actions.
+- `ShowOperationErrors`: bool — Shows operation failures in the component. Default true.
+- `ViewState`: DataGridViewState — Controlled DataGrid layout, sort, filter, grouping and search preferences.
+Events:
+- `ItemsChanged`: EventCallback<IList<TItem>> — Raised after a local collection mutation.
+- `OperationCompleted`: EventCallback<DataGridFormOperationEventArgs<TItem, TKey>> — Raised after create, edit, delete or custom action success.
+- `OperationFailed`: EventCallback<DataGridFormOperationFailedEventArgs<TItem, TKey>> — Raised after a handled operation failure.
+- `SelectedItemsChanged`: EventCallback<HashSet<TItem>> — Raised after the DataGrid selection or a bulk action clears the selected set.
+- `ViewStateChanged`: EventCallback<DataGridViewState> — Raised after the generated DataGrid view preferences change.
+Slots:
+- `EmptyTemplate`: RenderFragment — Custom empty-state content.
+- `LoadingTemplate`: RenderFragment — Custom DataGrid loading content.
+- `OperationErrorTemplate`: RenderFragment<DataGridFormOperationFailedEventArgs<TItem, TKey>> (context: DataGridFormOperationFailedEventArgs<TItem, TKey>) — Custom renderer for the latest structured operation failure.
+- `ToolbarContent`: RenderFragment — Additional content rendered in the DataGrid toolbar.
+
+### OmniDataImport
+Reads bounded delimited text incrementally, maps it to a typed schema and exposes only validated snapshots to cancellable persistence handlers.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniDataImport.razor_
+
+Parameters:
+- `Accept`: string — HTML file input accept filter.
+- `AllowPartialImport`: bool — Allows valid rows to be imported while other rows are invalid.
+- `ClearText`: string — Overrides the clear action text.
+- `Culture`: CultureInfo — Culture used by built-in numeric and date parsers. Defaults to current culture.
+- `Disabled`: bool — Disables file selection, mapping and import.
+- `Handler`: DataImportHandler<TItem> — Optional cancellable destination for accepted typed rows.
+- `ImportText`: string — Overrides the import action text.
+- `MappingTitle`: string — Overrides the mapping section title.
+- `MaxFileSize`: long — Maximum input size in bytes. Default 5 MB.
+- `MaximumCellLength`: int — Maximum characters accepted in one cell. Default 32,768.
+- `MaximumColumns`: int — Maximum source columns per row. Default 256.
+- `MaximumRows`: int — Maximum data rows retained in memory. Default 10,000.
+- `PreviewRowCount`: int — Maximum processed rows rendered in the preview. Default 25.
+- `PreviewTitle`: string — Overrides the preview section title.
+- `Schema`: DataImportSchema<TItem> *required* — Immutable target schema containing typed property mappings and parsers.
+- `UploadText`: string — Overrides the file-selection text.
+Events:
+- `Failed`: EventCallback<Exception> — Raised after an observed load, conversion or persistence failure.
+- `Imported`: EventCallback<DataImportCompletedEventArgs<TItem>> — Raised after Handler succeeds, or directly when no Handler is supplied.
+Slots:
+- `LoadingTemplate`: RenderFragment — Custom loading content.
+- `RowTemplate`: RenderFragment<DataImportRow<TItem>> (context: DataImportRow<TItem>) — Custom preview row cells. The fragment must render cells matching the component header structure.
+
 ### OmniDayView
 Single-day view with time slots.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniDayView.razor_
@@ -472,6 +538,7 @@ Parameters:
 - `Nodes`: IReadOnlyList<DiagramNode> — Graph nodes (world coordinates).
 - `ReadOnly`: bool = false — Disables editing gestures (drag, connect, marquee, delete, drop). Pan/zoom stay enabled.
 - `RunState`: DiagramRunState — Optional execution overlay (current/done/faulted/taken edges...).
+- `Schema`: DiagramSchema — Optional immutable fluent schema for graph structure and canvas defaults.
 - `Selection`: DiagramSelection — Current selection. Two-way bindable.
 - `ShowAutoLayout`: bool = true — Shows the auto-layout button inside the controls.
 - `ShowControls`: bool = true — Shows the zoom control group (bottom-left).
@@ -577,29 +644,18 @@ _base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Componen
 
 Parameters:
 - `AllowColumnResize`: bool — Lets the user resize left-pane columns by dragging the right edge of a header cell. Default true.
-- `BaselineEndProperty`: string — Name of the baseline-end property (used with BaselineStartProperty).
-- `BaselineStartProperty`: string — Name of the baseline-start property — draws a baseline bar under the task.
 - `Data`: IEnumerable<TItem> — The task source.
-- `Dependencies`: IEnumerable<GanttDependency<TItem>> — Typed task dependencies (rendered as arrows). Alternative to DependencyData.
-- `DependencyData`: IEnumerable<object> — Raw dependency objects, resolved via the Dependency*Property names.
-- `DependencyFromProperty`: string — On DependencyData, the property holding the predecessor task id.
-- `DependencyToProperty`: string — On DependencyData, the property holding the successor task id.
-- `DependencyTypeProperty`: string — On DependencyData, the property holding the dependency type. Default Finish-to-Start.
-- `EndProperty`: string — Name of the task end DateTime property. Equal to start = milestone.
-- `IdProperty`: string — Name of each task's unique id property (enables the hierarchy + dependencies).
+- `Dependencies`: IEnumerable<GanttDependency<TItem>> — Typed task dependencies rendered as arrows.
 - `LeftPaneWidth`: string — Fallback width for the left task pane when no columns are declared. When columns exist the pane auto-sizes to the sum of their (effective) widths, so a column never overflows into the timeline.
 - `Markers`: IEnumerable<GanttMarker> — Optional vertical date markers (e.g. deadlines) drawn on the timeline.
 - `NonWorkingDays`: IEnumerable<DayOfWeek> — Which days count as non-working (shaded). Default Saturday + Sunday.
-- `ParentIdProperty`: string — Name of the parent-id property used to build the task tree. Null = flat list.
-- `ProgressProperty`: string — Name of the progress property (0–100), drawn as a fill inside the bar.
 - `RowHeightPx`: int — Height (px) of each task row. Default 34.
+- `Schema`: GanttSchema<TItem> *required* — Immutable typed task projection and presentation schema.
 - `ShowCriticalPath`: bool — Computes and highlights the critical path (CPM). Requires dependencies. Default false.
 - `ShowNavigation`: bool — Shows the top navigation bar (title + zoom controls). Default true.
 - `ShowTodayLine`: bool — Draws a vertical line at the current date/time. Default true.
 - `ShowWeekends`: bool — Shades non-working days (see NonWorkingDays) on the timeline. Default true.
-- `StartProperty`: string — Name of the task start DateTime property.
 - `TaskRender`: Action<GanttBarRenderEventArgs<TItem>> — Per-bar render hook (CSS class / inline style).
-- `TextProperty`: string — Name of the task display-text property (shown on the bar label).
 - `ViewEnd`: DateTime — Forces the timeline end date. Null = auto from the latest task.
 - `ViewStart`: DateTime — Forces the timeline start date. Null = auto from the earliest task.
 - `ZoomLevel`: GanttZoomLevel {Day | Week | Month | Year} — Timeline granularity (Day/Week/Month/Year). Default Week.
@@ -629,6 +685,36 @@ Parameters:
 - `Width`: string — CSS width of the column (e.g. "200px"). Default "140px".
 Slots:
 - `Template`: RenderFragment<TItem> (context: TItem) — Optional custom cell template (overrides Property).
+
+### OmniGanttForm
+CRUD-enabled Gantt that edits detached tasks through OmniDataForm and the shared headless entity coordinator.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Gantt/OmniGanttForm.razor_
+
+Parameters:
+- `Disabled`: bool — Disables generated entity operations.
+- `EditorSchema`: EntityEditorSchema<TItem, TKey> *required* — Reusable DataForm and CRUD definition.
+- `GanttClass`: string — Additional CSS class applied directly to the Gantt.
+- `GanttSchema`: GanttSchema<TItem> *required* — Strongly typed task projection and Gantt defaults.
+- `GanttStyle`: string — Additional inline styles applied directly to the Gantt.
+- `Items`: IList<TItem> *required* — Mutable task snapshot rendered by the Gantt.
+- `MaximumItems`: int — Maximum local task count.
+- `MinimumItems`: int — Minimum local task count.
+- `Provider`: IOmniEntityMutationProvider<TItem, TKey> — Optional persistence provider.
+- `ReadOnly`: bool — Makes generated entity operations read-only.
+Events:
+- `ColumnResized`: EventCallback<GanttColumnResizedEventArgs> — Raised after a Gantt column resize.
+- `ItemsChanged`: EventCallback<IList<TItem>> — Raised after a successful local mutation.
+- `OperationCompleted`: EventCallback<EntityEditorOperationEventArgs<TItem, TKey>> — Raised after a successful generated CRUD operation.
+- `OperationFailed`: EventCallback<EntityEditorOperationFailedEventArgs<TItem, TKey>> — Raised after a handled generated CRUD failure.
+- `RefreshRequested`: EventCallback — Requests that the owner reload provider-backed Items.
+- `RowClick`: EventCallback<TItem> — Raised after a left-pane row is selected.
+- `TaskClick`: EventCallback<TItem> — Raised after a task bar is selected.
+- `TaskMove`: EventCallback<GanttTaskMovedEventArgs<TItem>> — Raised after a task move gesture.
+- `TaskResize`: EventCallback<GanttTaskMovedEventArgs<TItem>> — Raised after a task resize gesture.
+Slots:
+- `Columns`: RenderFragment — Declarative left-pane Gantt columns.
+- `TaskTemplate`: RenderFragment<TItem> (context: TItem) — Typed task-bar content.
+- `ToolbarContent`: RenderFragment — Additional generated toolbar content.
 
 ### OmniHtmlEditor
 _base: FormComponent<T> · accepts ChildContent · form input · source: src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditor.razor_
@@ -677,14 +763,15 @@ Parameters:
 - `CardSubtasks`: Func<TCard, ValueTuple<int, int>> — Progresso de subtarefas (concluídas, total) — badge ✓ d/t.
 - `CardTitle`: Func<TCard, string> — Card → título exibido no card padrão. Default: ToString() do card.
 - `Collapsible`: bool — Permite recolher colunas. Default true.
-- `ColumnSelector`: Func<TCard, string> *required* — Card → Id da coluna (obrigatório).
+- `ColumnSelector`: Func<TCard, string> — Card → Id da coluna (obrigatório).
 - `ColumnSetter`: Action<TCard, string> — Grava a nova coluna no card ao mover entre colunas.
 - `ColumnWidth`: string — Largura CSS de cada coluna (define --omni-kanban-col-w). Null = largura padrão.
-- `Columns`: IEnumerable<KanbanColumn> *required* — Definição das colunas (ordem = ordem de exibição).
+- `Columns`: IEnumerable<KanbanColumn> — Definição das colunas (ordem = ordem de exibição).
 - `DragDisabled`: bool — Desabilita o drag-and-drop (mouse e teclado). Default false.
 - `DueDateFormat`: string — Formato do prazo. Default "dd MMM".
 - `Items`: IEnumerable<TCard> — Lista plana de cards. Two-way (@bind-Items) — reordenada ao mover.
 - `QuickFilters`: IEnumerable<KanbanQuickFilter<TCard>> — Chips de filtro rápido (combinam em E). Cards que falham num filtro ativo são ocultados.
+- `Schema`: KanbanSchema<TCard> — Optional immutable typed board schema.
 - `SearchPlaceholder`: string — Placeholder da busca.
 - `SearchSelector`: Func<TCard, string> — Texto a pesquisar por card. Default = título do card.
 - `ShowCardAge`: bool — Exibe o indicador de envelhecimento (pontos).
@@ -708,6 +795,34 @@ Slots:
 - `ColumnFooterTemplate`: RenderFragment<KanbanColumn> (context: KanbanColumn) — Template do rodapé da coluna (substitui o botão "adicionar card"). Recebe a KanbanColumn.
 - `ColumnHeaderTemplate`: RenderFragment<KanbanColumn> (context: KanbanColumn) — Template do cabeçalho da coluna. Recebe a KanbanColumn.
 - `EmptyColumnTemplate`: RenderFragment — Conteúdo exibido numa coluna sem cards. Default: "Sem cards".
+
+### OmniKanbanForm
+CRUD-enabled Kanban that edits detached cards through OmniDataForm and the shared headless entity coordinator.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniKanbanForm.razor_
+
+Parameters:
+- `BoardClass`: string — Additional CSS class applied directly to the board.
+- `BoardStyle`: string — Additional inline styles applied directly to the board.
+- `ColumnFactory`: Func<KanbanColumn, TItem> — Creates a prefilled card for the selected Kanban column.
+- `Disabled`: bool — Disables generated entity operations.
+- `EditorSchema`: EntityEditorSchema<TItem, TKey> *required* — Reusable DataForm and CRUD definition.
+- `Items`: IList<TItem> *required* — Mutable card snapshot rendered by the Kanban.
+- `KanbanSchema`: KanbanSchema<TItem> *required* — Strongly typed board and card schema.
+- `MaximumItems`: int — Maximum local card count.
+- `MinimumItems`: int — Minimum local card count.
+- `Provider`: IOmniEntityMutationProvider<TItem, TKey> — Optional persistence provider.
+- `ReadOnly`: bool — Makes generated entity operations read-only.
+Events:
+- `AddCard`: EventCallback<KanbanColumn> — Raised after a column add action is requested.
+- `CardClick`: EventCallback<TItem> — Raised after a card is selected for editing.
+- `CardMoved`: EventCallback<KanbanCardMovedEventArgs<TItem>> — Raised after a card is moved between board positions.
+- `ItemsChanged`: EventCallback<IList<TItem>> — Raised after CRUD or board movement changes the local source.
+- `OperationCompleted`: EventCallback<EntityEditorOperationEventArgs<TItem, TKey>> — Raised after a successful generated CRUD operation.
+- `OperationFailed`: EventCallback<EntityEditorOperationFailedEventArgs<TItem, TKey>> — Raised after a handled generated CRUD failure.
+- `RefreshRequested`: EventCallback — Requests that the owner reload provider-backed Items.
+Slots:
+- `CardTemplate`: RenderFragment<TItem> (context: TItem) — Custom card content.
+- `ToolbarContent`: RenderFragment — Additional generated toolbar content.
 
 ### OmniMonthView
 Month grid (6 weeks × 7 days).
@@ -781,20 +896,18 @@ _base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Componen
 Parameters:
 - `AppointmentRender`: Action<SchedulerAppointmentRenderEventArgs<TItem>> — Sync per-appointment render hook (add CSS classes / styles / data-* attributes).
 - `Culture`: CultureInfo — Culture for date formatting and first-day-of-week. Default CurrentCulture.
-- `Data`: IEnumerable<TItem> — The appointment source. Use together with StartProperty/EndProperty.
+- `Data`: IEnumerable<TItem> — The appointment source.
 - `Date`: DateTime — Initial date shown. Two-way bindable via DateChanged. Default today.
-- `EndProperty`: string — Name of the DateTime property holding each item's end.
 - `Height`: string — CSS height of the scheduler. Default "600px".
 - `NextText`: string — Title/aria-label for the next-range arrow. Default "Próximo".
 - `PrevText`: string — Title/aria-label for the previous-range arrow. Default "Anterior".
+- `Schema`: SchedulerSchema<TItem> *required* — Immutable typed appointment projection and presentation schema.
 - `SelectedIndex`: int — Index of the initially selected view. Default 0.
 - `ShowDateTitle`: bool — Shows the current-range title in the header. Default true.
 - `ShowHeader`: bool — Shows the navigation/view-switch header bar. Default true.
 - `ShowNavigationButtons`: bool — Shows the prev/next arrow buttons in the header. Default true.
 - `ShowTodayButton`: bool — Shows the "today" button in the header. Default true.
 - `SlotRender`: Action<SchedulerSlotRenderEventArgs> — Sync per-slot render hook.
-- `StartProperty`: string — Name of the DateTime property holding each item's start.
-- `TextProperty`: string — Name of the property holding each item's display text.
 - `TodayText`: string — Label for the "today" button. Default "Hoje".
 Events:
 - `AppointmentMouseEnter`: EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> — Fires when the pointer enters an appointment. Wiring it enables hover handling.
@@ -812,6 +925,44 @@ Slots:
 - `ChildContent`: RenderFragment — The views (e.g. <OmniDayView/> <OmniWeekView/> <OmniMonthView/>).
 - `NavigationTemplate`: RenderFragment — Replaces the entire built-in navigation bar.
 - `Template`: RenderFragment<TItem> (context: TItem) — Custom appointment content. Receives the original TItem. Falls back to the projected text.
+
+### OmniSchedulerForm
+CRUD-enabled Scheduler that edits detached drafts through OmniDataForm and the shared headless entity coordinator.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniSchedulerForm.razor_
+
+Parameters:
+- `AppointmentRender`: Action<SchedulerAppointmentRenderEventArgs<TItem>> — Per-appointment render hook.
+- `Date`: DateTime — Current Scheduler date.
+- `Disabled`: bool — Disables generated entity operations.
+- `EditorSchema`: EntityEditorSchema<TItem, TKey> *required* — Reusable DataForm and CRUD definition.
+- `Items`: IList<TItem> *required* — Mutable appointment snapshot rendered by the Scheduler.
+- `MaximumItems`: int — Maximum local appointment count.
+- `MinimumItems`: int — Minimum local appointment count.
+- `Provider`: IOmniEntityMutationProvider<TItem, TKey> — Optional persistence provider. The owner refreshes Items when requested.
+- `ReadOnly`: bool — Makes generated entity operations read-only.
+- `SchedulerClass`: string — Additional CSS class applied directly to the Scheduler.
+- `SchedulerSchema`: SchedulerSchema<TItem> *required* — Strongly typed appointment projection and Scheduler defaults.
+- `SchedulerStyle`: string — Additional inline styles applied directly to the Scheduler.
+- `SelectedIndex`: int — Initially selected Scheduler view index.
+- `SlotFactory`: Func<SchedulerSlotSelectEventArgs, TItem> — Creates a prefilled draft from an empty Scheduler slot.
+- `SlotRender`: Action<SchedulerSlotRenderEventArgs> — Per-slot render hook.
+Events:
+- `AppointmentMouseEnter`: EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> — Raised when the pointer enters an appointment.
+- `AppointmentMouseLeave`: EventCallback<SchedulerAppointmentMouseEventArgs<TItem>> — Raised when the pointer leaves an appointment.
+- `AppointmentMove`: EventCallback<SchedulerAppointmentMoveEventArgs> — Raised when an appointment is moved.
+- `AppointmentSelect`: EventCallback<SchedulerAppointmentSelectEventArgs<TItem>> — Raised after an appointment is selected for editing.
+- `DateChanged`: EventCallback<DateTime> — Raised when Scheduler navigation changes the date.
+- `ItemsChanged`: EventCallback<IList<TItem>> — Raised after a successful local mutation.
+- `LoadData`: EventCallback<SchedulerLoadDataEventArgs> — Raised when the visible Scheduler range changes.
+- `OperationCompleted`: EventCallback<EntityEditorOperationEventArgs<TItem, TKey>> — Raised after a successful generated CRUD operation.
+- `OperationFailed`: EventCallback<EntityEditorOperationFailedEventArgs<TItem, TKey>> — Raised after a handled generated CRUD failure.
+- `RefreshRequested`: EventCallback — Requests that the owner reload provider-backed Items.
+- `SlotSelect`: EventCallback<SchedulerSlotSelectEventArgs> — Raised after an empty slot is selected.
+Slots:
+- `AppointmentTemplate`: RenderFragment<TItem> (context: TItem) — Typed appointment content.
+- `NavigationTemplate`: RenderFragment — Custom Scheduler navigation content.
+- `ToolbarContent`: RenderFragment — Additional editor toolbar content.
+- `Views`: RenderFragment — Scheduler view declarations. Day, Week and Month are generated when omitted.
 
 ### OmniTree
 OmniTree — hierarchical tree view (RadzenTree port).
@@ -908,15 +1059,12 @@ _base: ComponentBase · source: src/Omni.Blazor/Components/Data/Tree/OmniTreeLev
 
 Parameters:
 - `Checkable`: Func<object, bool> — Whether a node's checkbox is enabled. Default: all checkable.
-- `Children`: Func<object, IEnumerable> — Explicit children selector (wins over ChildrenProperty).
-- `ChildrenProperty`: string — Property name whose value (an IEnumerable) holds the children.
+- `Children`: Func<object, IEnumerable> — Selector for the enumerable that holds each node's children.
 - `Expanded`: Func<object, bool> — Whether a node starts expanded.
 - `HasChildren`: Func<object, bool> — Whether a node has children (controls the chevron). Defaults to "children non-empty".
-- `Icon`: Func<object, string> — Explicit icon selector (wins over IconProperty).
-- `IconProperty`: string — Property name read for each node's leading icon.
+- `Icon`: Func<object, string> — Leading-icon selector for each node.
 - `Selected`: Func<object, bool> — Whether a node starts selected.
-- `Text`: Func<object, string> — Explicit text selector (wins over TextProperty).
-- `TextProperty`: string — Property name read for each node's text.
+- `Text`: Func<object, string> — Text selector for each node. Falls back to ToString().
 Slots:
 - `Template`: RenderFragment<OmniTreeItem> (context: OmniTreeItem) — Per-node template (receives the OmniTreeItem; use context.Value/context.Text).
 
@@ -949,6 +1097,51 @@ Parameters:
 - `StartTime`: TimeSpan — First time slot of the day. Default 08:00.
 - `Text`: string = Semana — Label shown on this view's switch tab. Default "Semana".
 - `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
+
+### OmniWorkflowDesigner
+Workflow composition surface with Diagram editing, bounded undo/redo, graph validation and a typed PropertyGrid inspector.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Data/Diagram/OmniWorkflowDesigner.razor_
+
+Parameters:
+- `CanvasClass`: string — Additional CSS class applied to the Diagram canvas.
+- `CanvasStyle`: string — Additional inline styles applied to the Diagram canvas.
+- `ConnectionFactory`: Func<DiagramConnectEventArgs, DiagramEdge> — Creates an edge for a completed connection. Omit to handle OnConnect externally.
+- `Edges`: IReadOnlyList<DiagramEdge> — Controlled workflow edge snapshot.
+- `FitOnMount`: bool — Fits the graph on first render.
+- `InspectorAriaLabel`: string — Accessible inspector label.
+- `InspectorEmptyText`: string — Inspector empty-state title.
+- `InspectorSchema`: DataFormSchema<TNode> — Typed inspector schema used when a selected node carries TNode data.
+- `InspectorTitle`: string — Inspector heading.
+- `MaximumHistory`: int — Maximum retained undo entries. Default 50, maximum 200.
+- `Nodes`: IReadOnlyList<DiagramNode> — Controlled workflow node snapshot.
+- `PaletteAriaLabel`: string — Accessible palette label.
+- `ReadOnly`: bool — Disables graph and inspector mutations.
+- `RedoText`: string — Redo action text.
+- `RunState`: DiagramRunState — Optional execution-state overlay.
+- `Selection`: DiagramSelection — Controlled Diagram selection.
+- `ShowAutoLayout`: bool — Shows the built-in auto-layout action.
+- `ShowControls`: bool — Shows viewport controls.
+- `ShowMinimap`: bool — Shows the canvas minimap.
+- `ToolbarAriaLabel`: string — Accessible toolbar label.
+- `UndoText`: string — Undo action text.
+- `UpdateNode`: Func<DiagramNode, TNode, DiagramNode> — Projects an edited typed payload back into its Diagram node.
+- `ValidationTitle`: string — Graph validation heading.
+- `Validator`: Func<IReadOnlyList<DiagramNode>, IReadOnlyList<DiagramEdge>, IReadOnlyList<string>> — Bounded synchronous graph validator.
+- `Viewport`: DiagramViewport — Controlled Diagram viewport.
+Events:
+- `EdgesChanged`: EventCallback<IReadOnlyList<DiagramEdge>> — Raised after workflow edges change.
+- `InspectorChanged`: EventCallback<PropertyGridChangedEventArgs<TNode>> — Raised when an inspector property changes.
+- `NodesChanged`: EventCallback<IReadOnlyList<DiagramNode>> — Raised after workflow nodes change.
+- `OnConnect`: EventCallback<DiagramConnectEventArgs> — Raised for every completed connection gesture.
+- `OnExternalDrop`: EventCallback<DiagramExternalDropEventArgs> — Raised for external canvas drops.
+- `SelectionChanged`: EventCallback<DiagramSelection> — Raised after selection changes.
+- `ViewportChanged`: EventCallback<DiagramViewport> — Raised after the viewport changes.
+Slots:
+- `EmptyContent`: RenderFragment — Content rendered when the workflow has no nodes.
+- `InspectorEmptyContent`: RenderFragment — Custom content shown when no typed node is selected.
+- `NodeTemplate`: RenderFragment<DiagramNode> (context: DiagramNode) — Custom Diagram node content.
+- `PaletteContent`: RenderFragment — Optional left-side workflow palette.
+- `ToolbarContent`: RenderFragment — Additional toolbar content.
 
 ### OmniYearPlannerView
 Year planner: 12 month rows × day columns with appointment bars (mirrors RadzenYearPlannerView).
@@ -1150,7 +1343,7 @@ Slots:
 - `ChildContent`: RenderFragment — The slide content.
 
 ### OmniChart
-SVG chart supporting Line, Area, Column, Bar, Pie and Donut series.
+SVG chart supporting cartesian, stacked, scatter, bubble, radar, gauge, pie, donut and waterfall series.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Display/OmniChart.razor_
 
 Parameters:
@@ -1160,7 +1353,8 @@ Parameters:
 - `DonutCenterValue`: string — Valor central de um chart Donut (linha inferior, grande).
 - `Height`: string = 260px — Altura CSS do chart. Default "260px".
 - `LegendPosition`: ChartLegendPosition {Top | Right | Bottom | Left | None} = Bottom — Posição da legenda. Default Bottom.
-- `Series`: IEnumerable<ChartSeries> *required* — As séries do chart. Para Pie/Donut, apenas a primeira é usada.
+- `Schema`: ChartSchema — Optional immutable fluent schema. When supplied, it provides series and presentation defaults.
+- `Series`: IEnumerable<ChartSeries> — As séries do chart. Para Pie/Donut, apenas a primeira é usada.
 - `ShowGrid`: bool = true — Mostra as linhas horizontais de grid. Default true.
 - `Title`: string — Título reservado para futuro header (atualmente não renderizado).
 - `ValueFormatter`: Func<double, string> — Formatador customizado para o eixo de valores. Default v.ToString("0.##").
@@ -1474,7 +1668,7 @@ _base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/
 
 Parameters:
 - `MessageSeparator`: string = ;  — Separador quando múltiplos atributos falham. Default "; ".
-- `Property`: Expression<Func<object>> — Caminho do model.Property — usado para descobrir os atributos declarados via reflection. Quando null, usa o FieldIdentifier do target.
+- `Property`: Expression<Func<object>> *required* — Expressão do campo que fornece, de forma trim-safe, a propriedade e os atributos declarados no modelo.
 
 ### OmniDataForm
 Metadata-driven form that composes a reusable strongly typed field schema, generated Omni inputs, Blazor's EditContext and data annotation validators.
@@ -1514,6 +1708,32 @@ Slots:
 - `ChildContent`: RenderFragment — Additional content rendered inside the underlying form after generated fields.
 - `DiagnosticsTemplate`: RenderFragment<IReadOnlyList<DataFormDiagnostic>> (context: IReadOnlyList<DataFormDiagnostic>) — Custom renderer for schema diagnostics.
 
+### OmniDataFormWizard
+Coordinates explicit DataForm schemas as validated steps over one shared EditContext and cancellable navigation state.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/OmniDataFormWizard.razor_
+
+Parameters:
+- `ActiveStepIndex`: int — Zero-based visible step index.
+- `AllowStepNavigation`: bool — Allows clicking accessible step navigation buttons. Default true.
+- `BackText`: string — Overrides the Back action text.
+- `CompleteText`: string — Overrides the Complete action text.
+- `Disabled`: bool — Disables generated fields and navigation actions.
+- `EditContext`: EditContext — Existing EditContext shared with the wizard. Supply EditContext or Model, never both.
+- `Linear`: bool — Prevents jumping ahead of the furthest validated step. Default true.
+- `Model`: TModel — Model used to create an owned EditContext. Supply Model or EditContext, never both.
+- `NavigationLabel`: string — Accessible label for the step navigation.
+- `NextText`: string — Overrides the Next action text.
+- `RenderFormElement`: bool — Whether the active DataForm emits a semantic form element. Default true.
+- `Schema`: DataFormWizardSchema<TModel> *required* — Immutable ordered wizard schema.
+- `ShowValidationSummary`: bool — Shows validation messages above the current step. Default true.
+Events:
+- `ActiveStepIndexChanged`: EventCallback<int> — Two-way binding callback for ActiveStepIndex.
+- `OnCompleted`: EventCallback<EditContext> — Raised after final synchronous, field and step validation succeeds.
+- `StepChanged`: EventCallback<DataFormWizardStepChangedEventArgs<TModel>> — Raised after a successful step transition.
+Slots:
+- `ActionsTemplate`: RenderFragment<DataFormWizardTemplateContext<TModel>> (context: DataFormWizardTemplateContext<TModel>) — Custom typed action area replacing Back, Next and Complete.
+- `HeaderTemplate`: RenderFragment<DataFormWizardTemplateContext<TModel>> (context: DataFormWizardTemplateContext<TModel>) — Custom typed current-step heading.
+
 ### OmniEmailValidator
 Valida e-mail usando o mesmo motor do EmailAddressAttribute (suficientemente permissivo, RFC 5322 simplificado — o que [EmailAddress] usa). Vazio passa. <OmniEmailValidator Component="email" Text="E-mail inválido." />
 _base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniEmailValidator.cs_
@@ -1529,7 +1749,8 @@ Parameters:
 - `IsTouched`: bool — Fired the first time a field changes; stays true until reset. Bound parameter — write a backing field with @bind-IsTouched.
 - `Model`: TModel — Model instance edited by the form. Supply either Model or EditContext, never both.
 - `RenderFormElement`: bool — Renders the semantic HTML form element. Disable only when composing an embedded subform inside another form. Default true.
-- `SnapshotOptions`: JsonSerializerOptions — Opções JSON usadas pelo Snapshot/Restore. Default cobre POCOs comuns. Override quando o model precisar de converters custom (ex: DateOnly em .NET 6).
+- `SnapshotFactory`: Func<TModel, TModel> — Optional AOT-safe deep-clone strategy used by Snapshot. Without it, OmniForm captures a shallow snapshot of writable public properties.
+- `SnapshotRestorer`: Action<TModel, TModel> — Optional restore strategy paired with SnapshotFactory. It receives the current model first and the captured snapshot second.
 - `Validation`: Action<EditContext, ValidationMessageStore> — Synchronous custom validation. Invoked on submit and on every field change (subject to ValidationDelay). Add messages to ValidationMessageStore directly, keyed by FieldIdentifier.
 - `ValidationAsync`: Func<EditContext, ValidationMessageStore, Task> — Async custom validation — typically a server round-trip. Runs in the same lifecycle as Validation but awaited. On submit it is awaited fully before deciding valid/invalid; during field-change debounce, it runs on the trailing edge.
 - `ValidationAsyncWithCancellation`: Func<EditContext, ValidationMessageStore, CancellationToken, Task> — Preferred cancellable async validation callback. It receives a token that is cancelled when a newer validation supersedes the current pass or when the form is disposed.
@@ -1548,6 +1769,28 @@ _base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/
 Parameters:
 - `Max`: int — Comprimento máximo (inclusive). Null = sem limite superior.
 - `Min`: int — Comprimento mínimo (inclusive). Null = sem limite inferior.
+
+### OmniPropertyGrid
+Compact metadata-driven property inspector built on OmniDataForm and its typed schema extensibility.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/OmniPropertyGrid.razor_
+
+Parameters:
+- `AddDataAnnotationsValidator`: bool — Adds DataAnnotations validation to the inspector.
+- `Disabled`: bool — Disables every generated property editor.
+- `EditContext`: EditContext — Optional externally owned editing context.
+- `Editable`: bool — Whether property editors are interactive. Default false.
+- `Model`: TModel *required* — Inspected model.
+- `RenderFormElement`: bool — Renders the semantic form element. Default false for inspector embedding.
+- `Schema`: DataFormSchema<TModel> — Optional reusable DataForm schema. Metadata inference is used when omitted.
+- `ShowValidationSummary`: bool — Shows the generated validation summary.
+- `Title`: string — Optional inspector heading.
+Events:
+- `OnInvalidSubmit`: EventCallback<EditContext> — Raised after an invalid explicit submission.
+- `OnValidSubmit`: EventCallback<EditContext> — Raised after a valid explicit submission.
+- `PropertyChanged`: EventCallback<PropertyGridChangedEventArgs<TModel>> — Raised for each property change observed through the active EditContext.
+Slots:
+- `Actions`: RenderFragment — Optional generated-form actions.
+- `HeaderContent`: RenderFragment — Content rendered beside the heading.
 
 ### OmniRangeValidator
 Valida faixa numérica (int / double / decimal / DateTime). Aceita qualquer tipo que implemente IComparable. Vazio passa — componha com Required quando precisar. <OmniRangeValidator Component="idade" Min="18" Max="120" Text="Idade entre 18 e 120." />
@@ -1648,6 +1891,7 @@ Slots:
 _base: FormComponent<T> · accepts ChildContent · form input · source: src/Omni.Blazor/Components/Inputs/OmniCheckBox.razor_
 
 Parameters:
+- `AriaLabel`: string — Accessible input name used when the checkbox has no visible label.
 - `Label`: string — Text label shown next to the checkbox when no ChildContent is provided.
 Slots:
 - `ChildContent`: RenderFragment — Custom label content; rendered instead of Label when provided.
@@ -1732,6 +1976,39 @@ Parameters:
 Events:
 - `FromChanged`: EventCallback<DateOnly> — Fires when the range start changes. Two-way via @bind-From.
 - `ToChanged`: EventCallback<DateOnly> — Fires when the range end changes. Two-way via @bind-To.
+
+### OmniEntityPicker
+Selects a local or server-side entity through OmniDataGrid`1 while binding only its stable key to the surrounding EditContext.
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniEntityPicker.razor_
+
+Parameters:
+- `AllowClear`: bool — Whether the selected value can be cleared. Default true.
+- `AllowPaging`: bool — Whether the entity grid exposes paging. Default true.
+- `AllowSearch`: bool — Whether the entity grid exposes search. Default true.
+- `ClearText`: string — Overrides the clear action text.
+- `CloseText`: string — Overrides the close action text.
+- `ColumnTitle`: string — Generated default column title.
+- `DataProvider`: GridDataProvider<TItem> — Cancellable server-side DataGrid source. Supply either DataProvider or Items.
+- `EmptyKey`: Func<TKey, bool> — Determines whether a key represents no selection. Defaults to default(TKey).
+- `EmptyText`: string — DataGrid empty-state text.
+- `GridSchema`: DataGridSchema<TItem> — Optional reusable typed schema for the embedded entity DataGrid.
+- `Items`: IEnumerable<TItem> — Local entity source. Supply either Items or DataProvider.
+- `KeySelector`: Func<TItem, TKey> *required* — Stable key selector stored by the form-bound value.
+- `PageSize`: int — Entity grid page size. Default ten.
+- `Placeholder`: string — Text shown when no entity is selected.
+- `Presentation`: EntityPickerPresentation {Dialog | Drawer} — Dialog or drawer presentation.
+- `ResolveItem`: EntityPickerResolver<TItem, TKey> — Resolves an externally supplied key not present in local Items.
+- `SearchPlaceholder`: string — DataGrid search placeholder.
+- `SelectedItem`: TItem — Optional externally supplied entity corresponding to Value.
+- `TextSelector`: Func<TItem, string> *required* — Human-readable selected entity text.
+- `Title`: string — Selection dialog title.
+- `Width`: string — Picker panel width.
+Events:
+- `ResolveFailed`: EventCallback<Exception> — Raised after an observed entity-resolution failure.
+- `SelectedItemChanged`: EventCallback<TItem> — Raised after a user selects or clears an entity.
+Slots:
+- `Columns`: RenderFragment — Custom typed DataGrid columns. A text column is generated when omitted.
+- `LoadingTemplate`: RenderFragment — Custom DataGrid loading content.
 
 ### OmniFileUpload
 Drag-and-drop file uploader.
@@ -1953,6 +2230,7 @@ Single-choice select with bounded local or cancellable server-side options.
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSelect.razor_
 
 Parameters:
+- `AriaLabel`: string — Accessible name applied to the combobox trigger. When omitted, the component falls back to Name, Placeholder or the selected option text, in that order.
 - `Clearable`: bool — Whether a selected value can be cleared.
 - `EmptyText`: string — Text shown when there are no options.
 - `Items`: IEnumerable<TValue> — Synchronous options. Mutually exclusive with ItemsProvider.
@@ -2834,7 +3112,7 @@ Events:
 - `OnConfirm`: EventCallback — Fires when the user confirms (button only enabled once the phrase matches).
 
 ### OmniContextMenuHost
-Portal host that renders the right-click/programmatic context menu driven by ContextMenuService; place once in the root layout.
+Portal host for pointer or trigger-anchored menus with keyboard navigation and deterministic listener cleanup.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/OmniContextMenuHost.razor_
 
 
@@ -2853,6 +3131,7 @@ A single clickable row inside an <OmniMenu>: optional icon, label, and keyboard-
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Overlay/OmniMenuItem.razor_
 
 Parameters:
+- `Description`: string — Optional secondary description rendered below the label.
 - `Disabled`: bool = false — Disables the item (no click, dimmed). Default false.
 - `Icon`: string — Optional leading icon name.
 - `IsDanger`: bool = false — Styles the item as a destructive action (danger color). Default false.
@@ -2948,6 +3227,1047 @@ Parameters:
 - `Title`: string — Título do passo.
 Slots:
 - `ChildContent`: RenderFragment — Corpo do coachmark.
+
+## Fluent configuration APIs
+
+Typed schemas, builders and providers used by advanced components:
+
+### DataFilterField<TItem>
+Immutable metadata and typed accessors for one schema field.
+_class · source: src/Omni.Blazor/Models/DataFilterSchema.cs_
+- `bool AllowsNull` — Whether the selected CLR member accepts null values.
+- `string Id` — Stable id stored in serialized queries.
+- `string MemberPath` — Compile-time validated member path selected by the schema.
+- `IReadOnlyList<FilterOperator> Operators` — Allowed operators.
+- `Func<object, string> OptionText` — Formats one select option.
+- `IReadOnlyList<object> Options` — Immutable select options.
+- `string Title` — Display label shown by the visual builder.
+- `ColumnFilterType Type` — Editor/operator family.
+- `Type ValueType` — CLR value type selected by the field expression.
+
+### DataFilterFieldBuilder<TItem, TValue>
+Strongly typed options for one filterable member.
+_class · source: src/Omni.Blazor/Models/DataFilterSchema.cs_
+- `DataFilterFieldBuilder<TItem, TValue> Id(string value)` — Overrides the stable id stored in serialized queries.
+- `DataFilterFieldBuilder<TItem, TValue> Operators(FilterOperator[] values)` — Restricts the operators available to this field.
+- `DataFilterFieldBuilder<TItem, TValue> Select(IEnumerable<TValue> values, Func<TValue, string> textSelector)` — Uses a typed select editor with deterministic option labels.
+- `DataFilterFieldBuilder<TItem, TValue> Title(string value)` — Overrides the field label shown in the property selector.
+- `DataFilterFieldBuilder<TItem, TValue> Type(ColumnFilterType value)` — Overrides the inferred editor/operator family.
+- `DataFilterFieldBuilder<TItem, TValue> ValueCodec(Func<TValue, string> serialize, Func<string, TValue> deserialize)` — Configures a stable invariant codec for custom value types. Primitive, enum, date, time and Guid values already have built-in codecs.
+
+### DataFilterGroupBuilder<TItem>
+Fluent builder for one AND/OR query group.
+_class · source: src/Omni.Blazor/Models/DataFilterQuery.cs_
+- `DataFilterGroupBuilder<TItem> Between<TValue>(Expression<Func<TItem, TValue>> field, TValue lower, TValue upper, bool negate)` — Adds an inclusive Between or exclusive NotBetween condition.
+- `DataFilterGroupBuilder<TItem> Condition<TValue>(Expression<Func<TItem, TValue>> field, FilterOperator operator)` — Adds a strongly typed condition with one value.
+- `DataFilterGroupBuilder<TItem> Condition<TValue>(Expression<Func<TItem, TValue>> field, FilterOperator operator, TValue value)` — Adds a strongly typed condition with one value.
+- `DataFilterGroupBuilder<TItem> Group(FilterLogic logic, Action<DataFilterGroupBuilder<TItem>> configure)` — Adds a nested group.
+
+### DataFilterQuery<TItem>
+Immutable, versioned and safely serializable query for one item type. Field expressions and codecs remain in the corresponding DataFilterSchema.
+_class · source: src/Omni.Blazor/Models/DataFilterQuery.cs_
+- `IEnumerable<TItem> Apply(IEnumerable<TItem> source, DataFilterSchema<TItem> schema)` — Filters an in-memory sequence without materializing it.
+- `IQueryable<TItem> Apply(IQueryable<TItem> source, DataFilterSchema<TItem> schema)` — Filters an in-memory sequence without materializing it.
+- `Func<TItem, bool> Compile(DataFilterSchema<TItem> schema)` — Builds an in-memory predicate with the schema's compiled typed accessors.
+- `static DataFilterQuery<TItem> Deserialize(string json, DataFilterSchema<TItem> schema)` — Deserializes and validates a query against an allow-listed schema.
+- `DataFilterQueryGroup Root` — Root query group.
+- `string Serialize()` — Serializes this immutable query using the stable versioned contract.
+- `Expression<Func<TItem, bool>> ToExpression(DataFilterSchema<TItem> schema)` — Builds an IQueryable-friendly expression. String comparison semantics follow the target LINQ provider/collation instead of forcing a client-side comparer.
+- `static bool TryDeserialize(string json, DataFilterSchema<TItem> schema, DataFilterQuery`1& query, String& error)` — Attempts to deserialize and validate a query without leaking expected parse failures.
+- `Void Validate(DataFilterSchema<TItem> schema)` — Validates field ids, operators, values, size and depth.
+- `int Version` — Serialized contract version.
+
+### DataFilterQueryGroup
+Immutable group in a typed DataFilter query tree.
+_class · source: src/Omni.Blazor/Models/DataFilterQuery.cs_
+- `DataFilterQueryGroup(FilterLogic logic, IReadOnlyList<DataFilterQueryRule> rules)` — Creates an immutable group snapshot.
+- `FilterLogic Logic` — How direct children are combined.
+- `IReadOnlyList<DataFilterQueryRule> Rules` — Immutable direct child conditions and groups.
+
+### DataFilterQueryRule
+Immutable condition or nested group in a typed DataFilter query.
+_class · source: src/Omni.Blazor/Models/DataFilterQuery.cs_
+- `DataFilterQueryRule(string field, FilterOperator operator, DataFilterValue value, DataFilterValue upperValue, DataFilterQueryGroup group)` — Creates one serialized query node.
+- `string Field` — Stable schema field id. Null for groups.
+- `DataFilterQueryGroup Group` — Nested group. Non-null marks this node as a group.
+- `bool IsGroup` — Whether this node contains a nested group.
+- `FilterOperator Operator` — Condition operator.
+- `DataFilterValue UpperValue` — Upper value used by Between and NotBetween.
+- `DataFilterValue Value` — Condition value.
+
+### DataFilterSchema<TItem>
+Immutable, strongly typed definition of the fields exposed by an OmniDataFilter. Reuse one schema across renders and filter instances.
+_class · source: src/Omni.Blazor/Models/DataFilterSchema.cs_
+- `static DataFilterSchemaBuilder<TItem> Builder()` — Creates a reusable schema builder.
+- `static DataFilterSchema<TItem> Create(Action<DataFilterSchemaBuilder<TItem>> configure)` — Creates and builds an immutable schema in one expression.
+- `DataFilterSchema<TItem> Extend(Action<DataFilterSchemaBuilder<TItem>> configure)` — Creates an immutable derived schema from this reusable base.
+- `IReadOnlyList<DataFilterField<TItem>> Fields` — Filterable fields in deterministic declaration order.
+- `int MaximumDepth` — Maximum accepted nested group depth. Default 16.
+- `int MaximumRules` — Maximum accepted condition and group count. Default 512.
+- `DataFilterQuery<TItem> Query(Action<DataFilterGroupBuilder<TItem>> configure, FilterLogic logic)` — Creates a typed query against this schema.
+- `bool TryGetField(string id, DataFilterField`1& field)` — Finds a field by its stable serialized id.
+
+### DataFilterSchemaBuilder<TItem>
+Fluent builder for an immutable DataFilterSchema`1.
+_class · source: src/Omni.Blazor/Models/DataFilterSchema.cs_
+- `DataFilterSchema<TItem> Build()` — Builds the immutable schema. A builder can be built only once.
+- `DataFilterSchemaBuilder<TItem> ClearFields()` — Removes inherited fields while preserving safety limits.
+- `DataFilterSchemaBuilder()`
+- `DataFilterSchemaBuilder<TItem> Field<TValue>(Expression<Func<TItem, TValue>> selector, Action<DataFilterFieldBuilder<TItem, TValue>> configure)` — Adds a strongly typed filterable member.
+- `DataFilterSchemaBuilder<TItem> Include(DataFilterSchema<TItem> schema)` — Includes fields and safety limits from an immutable schema.
+- `DataFilterSchemaBuilder<TItem> Limits(int maximumDepth, int maximumRules)` — Bounds deserialized and programmatically built query trees.
+- `DataFilterSchemaBuilder<TItem> OverrideField<TValue>(Expression<Func<TItem, TValue>> selector, Action<DataFilterFieldBuilder<TItem, TValue>> configure)` — Replaces an inherited field while preserving its selector position.
+
+### DataFilterValue
+Stable primitive representation used by serialized DataFilter conditions.
+_class · source: src/Omni.Blazor/Models/DataFilterQuery.cs_
+- `static DataFilterValue Custom(string text)` — Creates a value owned by a field-specific codec.
+- `DataFilterValue(DataFilterValueKind kind, string text)` — Creates a serialized value.
+- `static DataFilterValue From(object value)` — Converts one supported CLR primitive to its invariant representation.
+- `DataFilterValueKind Kind` — Serialized primitive family.
+- `DataFilterValue Null` — Canonical null value.
+- `string Text` — Invariant text payload. Null only for Null.
+
+### DataFilterValueKind
+Supported stable serialized value families.
+_enum · source: src/Omni.Blazor/Models/DataFilterQuery.cs_
+- `Boolean` — Boolean.
+- `Custom` — Payload owned by a field-specific codec.
+- `DateOnly` — Date without time.
+- `DateTime` — Date and time with DateTime semantics.
+- `DateTimeOffset` — Date and time with offset.
+- `Decimal` — Decimal number.
+- `Double` — Single or double precision number.
+- `Enum` — Enum member name.
+- `Guid` — Guid.
+- `Null` — Null.
+- `SignedInteger` — Signed integral number.
+- `String` — Unicode text or a character.
+- `TimeOnly` — Time without date.
+- `UnsignedInteger` — Unsigned integral number.
+
+### DataGridColumnBuilder<TItem, TValue>
+Strongly typed builder for one generated DataGrid column.
+_class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
+- `DataGridColumnBuilder<TItem, TValue> Aggregate(AggregateFunction function, Func<TItem, decimal> selector, Func<object, string> format)` — Configures an aggregate and optional formatter.
+- `DataGridColumnBuilder<TItem, TValue> EditTemplate(RenderFragment<TItem> template)` — Sets a typed inline edit template.
+- `DataGridColumnBuilder<TItem, TValue> FilterOptions(IEnumerable<TValue> options)` — Configures select options for a filterable column.
+- `DataGridColumnBuilder<TItem, TValue> Filterable(bool enabled, ColumnFilterType type, FilterOperator[] operators)` — Enables filtering with inferred or explicit editor type.
+- `DataGridColumnBuilder<TItem, TValue> Format(string format, IFormatProvider provider)` — Formats values using the current culture.
+- `DataGridColumnBuilder<TItem, TValue> Frozen(FrozenPosition position)` — Freezes the column at an edge.
+- `DataGridColumnBuilder<TItem, TValue> Groupable(bool enabled, DateGroupInterval[] hierarchy)` — Enables grouping with an optional date hierarchy.
+- `DataGridColumnBuilder<TItem, TValue> HierarchyAnchor(bool enabled)` — Marks this column as the hierarchy expansion anchor.
+- `DataGridColumnBuilder<TItem, TValue> Resizable(bool enabled)` — Enables or disables resizing.
+- `DataGridColumnBuilder<TItem, TValue> Sortable(bool enabled)` — Enables or disables sorting.
+- `DataGridColumnBuilder<TItem, TValue> Template(RenderFragment<TItem> template)` — Sets a typed cell template.
+- `DataGridColumnBuilder<TItem, TValue> Text(Func<TItem, string> selector)` — Sets an explicit display text selector.
+- `DataGridColumnBuilder<TItem, TValue> Title(string value)` — Overrides the inferred title.
+- `DataGridColumnBuilder<TItem, TValue> Visibility(bool visible, bool canHide)` — Sets visibility behavior.
+- `DataGridColumnBuilder<TItem, TValue> Width(string value)` — Sets the CSS width.
+
+### DataGridColumnDefinition<TItem>
+Immutable runtime definition for one generated DataGrid column.
+_class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
+- `AggregateFunction Aggregate` — Optional aggregate function.
+- `Func<object, string> AggregateFormat` — Optional aggregate formatter.
+- `Func<TItem, decimal> AggregateProperty` — Optional aggregate numeric selector.
+- `bool CanHide` — Whether the column can be hidden.
+- `RenderFragment<TItem> EditTemplate` — Optional inline edit template.
+- `IReadOnlyList<FilterOperator> FilterOperators` — Optional allowed filter operators.
+- `IReadOnlyList<object> FilterSelectOptions` — Optional select filter options.
+- `ColumnFilterType FilterType` — Filter editor family.
+- `bool Filterable` — Whether filtering is allowed.
+- `FrozenPosition Frozen` — Optional frozen edge.
+- `IReadOnlyList<DateGroupInterval> GroupHierarchy` — Optional date grouping hierarchy.
+- `bool Groupable` — Whether grouping is allowed.
+- `bool IsHierarchyAnchor` — Whether this is the hierarchy expander anchor.
+- `Func<TItem, object> Property` — Compiled boxed value selector.
+- `string PropertyName` — Stable member path used by sorting, filtering and persisted view state.
+- `bool Resizable` — Whether resizing is allowed.
+- `bool Sortable` — Whether sorting is allowed.
+- `RenderFragment<TItem> Template` — Optional cell template.
+- `Func<TItem, string> TextSelector` — Optional display text selector.
+- `string Title` — Column header text.
+- `bool Visible` — Initial visibility.
+- `string Width` — CSS width.
+
+### DataGridFormActionBuilder<TItem>
+Builder for a custom row action.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormActionBuilder<TItem> Auto()` — Lets the actions-column overflow policy place the action.
+- `DataGridFormActionBuilder<TItem> Confirm(Func<TItem, string> message)` — Requires confirmation using a message derived from the row.
+- `DataGridFormActionBuilder<TItem> DisabledWhen(Func<TItem, bool> predicate)` — Disables the action when the predicate returns true.
+- `DataGridFormActionBuilder<TItem> Display(string text, string icon)` — Overrides display text and icon.
+- `DataGridFormActionBuilder<TItem> Id(string value)` — Sets the stable action id used by operation events and busy state.
+- `DataGridFormActionBuilder<TItem> InMenu(bool enabled)` — Moves the action to the row overflow menu when enabled.
+- `DataGridFormActionBuilder<TItem> KeepInline()` — Pins the action inline even when automatic overflow is enabled.
+- `DataGridFormActionBuilder<TItem> MenuMetadata(string group, string shortcut, string description)` — Sets optional overflow-menu grouping, shortcut and description metadata.
+- `DataGridFormActionBuilder<TItem> Order(int value)` — Sets deterministic display order among custom row actions.
+- `DataGridFormActionBuilder<TItem> Placement(DataGridFormActionPlacement value)` — Sets whether the action is rendered inline or in the row overflow menu.
+- `DataGridFormActionBuilder<TItem> Priority(int value)` — Sets automatic-overflow priority; larger values stay inline first.
+- `DataGridFormActionBuilder<TItem> RequiresPolicy(string policy, DataGridFormUnauthorizedBehavior unauthorizedBehavior)` — Requires a named authorization policy before the action is exposed.
+- `DataGridFormActionBuilder<TItem> Variant(ButtonVariant value)` — Sets the button visual variant.
+- `DataGridFormActionBuilder<TItem> VisibleWhen(Func<TItem, bool> predicate)` — Shows the action only when the predicate returns true.
+
+### DataGridFormActionsColumnBuilder
+Fluent builder for the generated row-actions column.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormActionsColumnBuilder Frozen(FrozenPosition position)` — Freezes the column at the requested physical edge, or clears freezing with null.
+- `DataGridFormActionsColumnBuilder FrozenLeft()` — Freezes the actions column at the left edge.
+- `DataGridFormActionsColumnBuilder FrozenRight()` — Freezes the actions column at the right edge.
+- `DataGridFormActionsColumnBuilder Menu(string text, string icon, string ariaLabel)` — Configures the overflow-menu trigger.
+- `DataGridFormActionsColumnBuilder Overflow(DataGridFormActionOverflow value, int maximumInlineActions)` — Enables manual or priority-based automatic overflow.
+- `DataGridFormActionsColumnBuilder ReorderActions(DataGridFormActionPlacement placement)` — Places generated move actions inline, in the menu, or under automatic overflow.
+- `DataGridFormActionsColumnBuilder Resizable(bool enabled)` — Enables or disables the native DataGrid column resizer.
+- `DataGridFormActionsColumnBuilder Width(string value)` — Sets the generated column CSS width.
+
+### DataGridFormBulkActionBuilder<TItem>
+Builder for a custom selected-item action.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormBulkActionBuilder<TItem> Auto()` — Lets the selected-item overflow policy place the action.
+- `DataGridFormBulkActionBuilder<TItem> Confirm(Func<IReadOnlyList<TItem>, string> message)` — Requires confirmation using a message derived from the selected snapshot.
+- `DataGridFormBulkActionBuilder<TItem> DisabledWhen(Func<IReadOnlyList<TItem>, bool> predicate)` — Disables the action when the selected snapshot is rejected.
+- `DataGridFormBulkActionBuilder<TItem> Display(string text, string icon)` — Overrides display text and icon.
+- `DataGridFormBulkActionBuilder<TItem> Id(string value)` — Sets the stable action id used by operation events and busy state.
+- `DataGridFormBulkActionBuilder<TItem> InMenu(bool enabled)` — Moves the selected-item action to the overflow menu when enabled.
+- `DataGridFormBulkActionBuilder<TItem> KeepInline()` — Pins the selected-item action inline.
+- `DataGridFormBulkActionBuilder<TItem> MenuMetadata(string group, string shortcut, string description)` — Sets optional overflow-menu grouping, shortcut and description metadata.
+- `DataGridFormBulkActionBuilder<TItem> Order(int value)` — Sets deterministic display order among selected-item actions.
+- `DataGridFormBulkActionBuilder<TItem> Placement(DataGridFormActionPlacement value)` — Sets whether the selected-item action is inline, in-menu or automatic.
+- `DataGridFormBulkActionBuilder<TItem> Priority(int value)` — Sets automatic-overflow priority; larger values stay inline first.
+- `DataGridFormBulkActionBuilder<TItem> RequiresPolicy(string policy, DataGridFormUnauthorizedBehavior unauthorizedBehavior)` — Requires a named authorization policy before the action is exposed.
+- `DataGridFormBulkActionBuilder<TItem> Variant(ButtonVariant value)` — Sets the button visual variant.
+- `DataGridFormBulkActionBuilder<TItem> VisibleWhen(Func<IReadOnlyList<TItem>, bool> predicate)` — Shows the action only when the selected snapshot is accepted.
+
+### DataGridFormBulkActionsBuilder
+Fluent builder for selected-item action overflow.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormBulkActionsBuilder Menu(string text, string icon, string ariaLabel)` — Configures the selected-item overflow-menu trigger.
+- `DataGridFormBulkActionsBuilder Overflow(DataGridFormActionOverflow value, int maximumInlineActions)` — Enables manual or priority-based automatic overflow.
+
+### DataGridFormColumnBuilder<TItem, TValue>
+Strongly typed options for one generated DataGrid column.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormColumnBuilder<TItem, TValue> Filterable(bool value, ColumnFilterType type)` — Enables filtering with an optional explicit filter family.
+- `DataGridFormColumnBuilder<TItem, TValue> Groupable(bool value)` — Enables or disables grouping.
+- `DataGridFormColumnBuilder<TItem, TValue> Resizable(bool value)` — Enables or disables resizing.
+- `DataGridFormColumnBuilder<TItem, TValue> Sortable(bool value)` — Enables or disables sorting.
+- `DataGridFormColumnBuilder<TItem, TValue> Template(RenderFragment<TItem> template)` — Sets a typed custom cell template.
+- `DataGridFormColumnBuilder<TItem, TValue> Text(Func<TItem, string> selector)` — Sets a typed display-text selector.
+- `DataGridFormColumnBuilder<TItem, TValue> Title(string value)` — Overrides the generated column title.
+- `DataGridFormColumnBuilder<TItem, TValue> Visibility(bool visible, bool canHide)` — Controls the column visibility menu and initial visibility.
+- `DataGridFormColumnBuilder<TItem, TValue> Width(string value)` — Sets the CSS column width.
+
+### DataGridFormCreateBuilder<TItem>
+Builder for the generated create workflow.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormCreateBuilder<TItem> Button(string text, string icon)` — Sets button text and icon.
+- `DataGridFormCreateBuilder<TItem> DisabledWhen(Func<bool> policy)` — Disables creation when the policy returns true.
+- `DataGridFormCreateBuilder<TItem> Factory(Func<TItem> factory)` — Sets the draft factory. Required.
+- `DataGridFormCreateBuilder<TItem> Presentation(DataGridFormPresentation value, string width)` — Sets editor placement and width.
+- `DataGridFormCreateBuilder<TItem> RequiresPolicy(string policy, DataGridFormUnauthorizedBehavior unauthorizedBehavior)` — Requires a named authorization policy before creation is exposed.
+- `DataGridFormCreateBuilder<TItem> Title(string value)` — Sets the editor title.
+- `DataGridFormCreateBuilder<TItem> VisibleWhen(Func<bool> policy)` — Shows creation only when the policy returns true.
+
+### DataGridFormDeleteBuilder<TItem>
+Builder for confirmed deletion.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormDeleteBuilder<TItem> Auto()` — Lets the actions-column overflow policy place the delete action.
+- `DataGridFormDeleteBuilder<TItem> Button(string text, string icon)` — Sets button text and icon.
+- `DataGridFormDeleteBuilder<TItem> Confirm(Func<TItem, string> message, Func<TItem, string> title)` — Sets confirmation message and optional title selectors.
+- `DataGridFormDeleteBuilder<TItem> DisabledWhen(Func<TItem, bool> policy)` — Disables delete for rows accepted by the policy.
+- `DataGridFormDeleteBuilder<TItem> InMenu(bool enabled)` — Moves the delete action to the row overflow menu when enabled.
+- `DataGridFormDeleteBuilder<TItem> KeepInline()` — Pins the delete action inline even when automatic overflow is enabled.
+- `DataGridFormDeleteBuilder<TItem> MenuMetadata(string group, string shortcut, string description)` — Sets optional overflow-menu grouping, shortcut and description metadata.
+- `DataGridFormDeleteBuilder<TItem> Placement(DataGridFormActionPlacement value)` — Sets whether the delete action is rendered inline or in the row overflow menu.
+- `DataGridFormDeleteBuilder<TItem> Priority(int value)` — Sets automatic-overflow priority; larger values stay inline first.
+- `DataGridFormDeleteBuilder<TItem> RequiresPolicy(string policy, DataGridFormUnauthorizedBehavior unauthorizedBehavior)` — Requires a named authorization policy before deletion is exposed.
+- `DataGridFormDeleteBuilder<TItem> Texts(string confirm, string cancel)` — Sets confirmation and cancellation button labels.
+- `DataGridFormDeleteBuilder<TItem> VisibleWhen(Func<TItem, bool> policy)` — Shows delete only for rows accepted by the policy.
+
+### DataGridFormEditBuilder<TItem>
+Builder for safe copy-based editing.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormEditBuilder<TItem> Auto()` — Lets the actions-column overflow policy place the edit action.
+- `DataGridFormEditBuilder<TItem> Button(string text, string icon)` — Sets button text and icon.
+- `DataGridFormEditBuilder<TItem> Clone(Func<TItem, TItem> factory)` — Sets the required detached-draft factory used to make cancellation safe.
+- `DataGridFormEditBuilder<TItem> DisabledWhen(Func<TItem, bool> policy)` — Disables edit for rows accepted by the policy.
+- `DataGridFormEditBuilder<TItem> InMenu(bool enabled)` — Moves the edit action to the row overflow menu when enabled.
+- `DataGridFormEditBuilder<TItem> KeepInline()` — Pins the edit action inline even when automatic overflow is enabled.
+- `DataGridFormEditBuilder<TItem> MenuMetadata(string group, string shortcut, string description)` — Sets optional overflow-menu grouping, shortcut and description metadata.
+- `DataGridFormEditBuilder<TItem> Placement(DataGridFormActionPlacement value)` — Sets whether the edit action is rendered inline or in the row overflow menu.
+- `DataGridFormEditBuilder<TItem> Presentation(DataGridFormPresentation value, string width)` — Sets editor placement and width.
+- `DataGridFormEditBuilder<TItem> Priority(int value)` — Sets automatic-overflow priority; larger values stay inline first.
+- `DataGridFormEditBuilder<TItem> RequiresPolicy(string policy, DataGridFormUnauthorizedBehavior unauthorizedBehavior)` — Requires a named authorization policy before editing is exposed.
+- `DataGridFormEditBuilder<TItem> Title(Func<TItem, string> selector)` — Sets a title derived from the selected item.
+- `DataGridFormEditBuilder<TItem> VisibleWhen(Func<TItem, bool> policy)` — Shows edit only for rows accepted by the policy.
+
+### DataGridFormGridBuilder<TItem>
+Strongly typed DataGrid presentation builder.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormGridBuilder<TItem> AllowColumnFilter(bool enabled)` — Enables per-column filters.
+- `DataGridFormGridBuilder<TItem> AllowColumnResize(bool enabled)` — Enables column resize.
+- `DataGridFormGridBuilder<TItem> AllowColumnVisibility(bool enabled)` — Enables the column visibility menu.
+- `DataGridFormGridBuilder<TItem> AllowExport(bool enabled)` — Enables bounded CSV export.
+- `DataGridFormGridBuilder<TItem> AllowGrouping(bool enabled)` — Enables grouping for columns marked groupable.
+- `DataGridFormGridBuilder<TItem> AllowPaging(bool enabled, int pageSize)` — Enables paging and sets its page size.
+- `DataGridFormGridBuilder<TItem> AllowSearch(bool enabled)` — Shows or hides the grid search box. Default true.
+- `DataGridFormGridBuilder<TItem> AllowSorting(bool enabled)` — Enables or disables sorting. Default true.
+- `DataGridFormGridBuilder<TItem> AutoColumnsFromForm(bool enabled)` — Includes DataForm fields that were not explicitly configured as columns. Default true.
+- `DataGridFormGridBuilder<TItem> Column<TValue>(Expression<Func<TItem, TValue>> property, Action<DataGridFormColumnBuilder<TItem, TValue>> configure)` — Adds or overrides one DataGrid column with a typed selector.
+- `DataGridFormGridBuilder<TItem> Texts(string searchPlaceholder, string empty)` — Overrides search and empty-state text.
+- `DataGridFormGridBuilder<TItem> Virtualize(string height, float rowHeight)` — Enables row virtualization with a fixed height.
+
+### DataGridFormMutationResult<TItem>
+Typed provider mutation result. Expected validation, authorization and optimistic concurrency outcomes do not need exceptions; unexpected failures may retain one.
+_class · source: src/Omni.Blazor/Models/DataGridFormModels.cs_
+- `static DataGridFormMutationResult<TItem> Conflict(TItem currentItem, string message)` — Creates an optimistic concurrency conflict with the latest item when available.
+- `TItem CurrentItem` — Current server item supplied when optimistic concurrency detects a conflict.
+- `static DataGridFormMutationResult<TItem> Deleted()` — Creates a successful delete result.
+- `IReadOnlyList<string> Errors` — Domain validation messages. The collection is always non-null and immutable.
+- `Exception Exception` — Observed unexpected exception, when one exists.
+- `static DataGridFormMutationResult<TItem> Failure(string message, Exception exception)` — Creates an expected or unexpected persistence failure.
+- `static DataGridFormMutationResult<TItem> Forbidden(string message)` — Creates an authorization failure.
+- `TItem Item` — Authoritative persisted item for successful create or update operations.
+- `string Message` — Human-readable summary safe to present to the user.
+- `static DataGridFormMutationResult<TItem> NotFound(string message)` — Creates a not-found result.
+- `DataGridFormMutationStatus Status` — Structured mutation outcome.
+- `bool Succeeded` — Whether persistence completed successfully.
+- `static DataGridFormMutationResult<TItem> Success(TItem item)` — Creates a successful create or update result with its authoritative item.
+- `static DataGridFormMutationResult<TItem> ValidationFailed(IEnumerable<string> errors, string message)` — Creates a domain validation failure.
+
+### DataGridFormMutationStatus
+Outcome of a provider mutation, including expected domain and concurrency failures.
+_enum · source: src/Omni.Blazor/Models/DataGridFormModels.cs_
+- `Conflict` — The item changed after it was loaded and the submitted version is stale.
+- `Failure` — An expected persistence failure occurred.
+- `Forbidden` — The current user is not allowed to perform the operation.
+- `NotFound` — The target item no longer exists.
+- `RefreshFailed` — Persistence succeeded, but refreshing the grid failed.
+- `Success` — The persistence operation completed successfully.
+- `ValidationFailed` — The provider rejected one or more domain values.
+
+### DataGridFormSchema<TItem, TKey>
+Immutable CRUD composition schema shared by OmniDataGridForm instances. It reuses a DataFormSchema`1 for editors and owns only grid presentation and operation metadata.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `IReadOnlyList<DataGridFormAction<TItem, TKey>> Actions` — Additional strongly typed row actions.
+- `DataGridFormActionsColumnOptions ActionsColumn` — Generated row-actions column presentation and overflow policy.
+- `static DataGridFormSchemaBuilder<TItem, TKey> Builder()` — Creates a mutable builder for conditional schema construction.
+- `IReadOnlyList<DataGridFormBulkAction<TItem, TKey>> BulkActions` — Additional strongly typed selected-item actions.
+- `DataGridFormBulkActionsOptions BulkActionsBar` — Selected-item actions presentation and overflow policy.
+- `static DataGridFormSchema<TItem, TKey> Create(Action<DataGridFormSchemaBuilder<TItem, TKey>> configure)` — Creates and builds an immutable CRUD schema.
+- `DataGridFormCreateOptions<TItem> CreateOptions` — Create operation, or null when creation is disabled.
+- `DataGridFormDeleteOptions<TItem> DeleteOptions` — Delete operation, or null when deletion is disabled.
+- `DataGridFormEditOptions<TItem> EditOptions` — Edit operation, or null when editing is disabled.
+- `DataGridFormSchema<TItem, TKey> Extend(Action<DataGridFormSchemaBuilder<TItem, TKey>> configure)` — Creates an immutable derived CRUD schema from this reusable base.
+- `DataFormSchema<TItem> FormSchema` — DataForm schema used for create and edit drafts.
+- `DataGridFormGridOptions<TItem> Grid` — Generated DataGrid columns and feature options.
+- `Func<TItem, TKey> KeySelector` — Stable key selector used by row state and persistence.
+
+### DataGridFormSchemaBuilder<TItem, TKey>
+Strongly typed builder for a grid and DataForm CRUD composition.
+_class · source: src/Omni.Blazor/Models/DataGridFormSchema.cs_
+- `DataGridFormSchemaBuilder<TItem, TKey> Action(string text, string icon, Func<DataGridFormActionContext<TItem, TKey>, CancellationToken, ValueTask> execute, Action<DataGridFormActionBuilder<TItem>> configure)` — Adds an extra cancellable row action.
+- `DataGridFormSchemaBuilder<TItem, TKey> ActionsColumn(Action<DataGridFormActionsColumnBuilder> configure)` — Configures the generated row-actions column and its overflow menu.
+- `DataGridFormSchema<TItem, TKey> Build()` — Builds the immutable schema. A key selector is required.
+- `DataGridFormSchemaBuilder<TItem, TKey> BulkAction(string text, string icon, Func<DataGridFormBulkActionContext<TItem, TKey>, CancellationToken, ValueTask> execute, Action<DataGridFormBulkActionBuilder<TItem>> configure)` — Adds a cancellable action for the current selected-item snapshot.
+- `DataGridFormSchemaBuilder<TItem, TKey> BulkActions(Action<DataGridFormBulkActionsBuilder> configure)` — Configures selected-item action overflow and its menu trigger.
+- `DataGridFormSchemaBuilder<TItem, TKey> Create(Action<DataGridFormCreateBuilder<TItem>> configure)` — Enables creation through a generated DataForm draft.
+- `DataGridFormSchemaBuilder()` — Creates an empty CRUD schema builder.
+- `DataGridFormSchemaBuilder<TItem, TKey> Delete(Action<DataGridFormDeleteBuilder<TItem>> configure)` — Enables confirmed deletion.
+- `DataGridFormSchemaBuilder<TItem, TKey> Edit(Action<DataGridFormEditBuilder<TItem>> configure)` — Enables safe edit-through-copy through a generated DataForm draft.
+- `DataGridFormSchemaBuilder<TItem, TKey> Form(DataFormSchema<TItem> schema)` — Sets the reusable DataForm schema used for create and edit drafts.
+- `DataGridFormSchemaBuilder<TItem, TKey> Grid(Action<DataGridFormGridBuilder<TItem>> configure)` — Configures generated DataGrid columns and features.
+- `DataGridFormSchemaBuilder<TItem, TKey> Grid(DataGridSchema<TItem> schema)` — Configures generated DataGrid columns and features.
+- `DataGridFormSchemaBuilder<TItem, TKey> Include(DataGridFormSchema<TItem, TKey> schema)` — Includes form, grid and operation metadata from an immutable CRUD schema.
+- `DataGridFormSchemaBuilder<TItem, TKey> Key(Expression<Func<TItem, TKey>> selector)` — Sets the stable key used by persistence and per-row operation state.
+- `DataGridFormSchemaBuilder<TItem, TKey> RemoveAction(string id)` — Removes an inherited row action by stable id.
+- `DataGridFormSchemaBuilder<TItem, TKey> RemoveBulkAction(string id)` — Removes an inherited selected-item action by stable id.
+
+### DataGridHierarchyBuilder<TItem>
+Fluent builder for bounded DataGrid hierarchy behavior.
+_class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
+- `DataGridHierarchyBuilder<TItem> HasChildren(Func<TItem, bool> predicate)` — Sets an optional cheap child-existence predicate.
+- `DataGridHierarchyBuilder<TItem> Indent(int pixels)` — Sets indentation in CSS pixels.
+- `DataGridHierarchyBuilder<TItem> InitiallyExpanded(Func<TItem, bool> predicate)` — Sets an optional initial expansion predicate.
+- `DataGridHierarchyBuilder<TItem> Limits(int maximumDepth, int maximumVisibleRows, int maximumChildrenPerNode, int maximumCachedNodes, int maximumCachedItems, int maximumConcurrentLoads)` — Sets hard safety bounds for traversal, caches and concurrent lazy loads.
+
+### DataGridHierarchySchema<TItem>
+Immutable hierarchy portion of a DataGrid schema.
+_class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
+- `DataGridHierarchySchema<TItem> <Clone>$()`
+- `Func<TItem, IEnumerable<TItem>> Children`
+- `HierarchyChildrenProvider<TItem> ChildrenProvider`
+- `DataGridHierarchySchema(Func<TItem, IEnumerable<TItem>> Children, Func<TItem, bool> HasChildren, HierarchyChildrenProvider<TItem> ChildrenProvider, Func<TItem, bool> InitiallyExpanded, int IndentSize, int MaxChildrenPerNode, int MaxCachedNodes, int MaxCachedItems, int MaxVisibleRows, int MaxDepth, int MaxConcurrentLoads)` — Immutable hierarchy portion of a DataGrid schema.
+- `Void Deconstruct(Func`2& Children, Func`2& HasChildren, HierarchyChildrenProvider`1& ChildrenProvider, Func`2& InitiallyExpanded, Int32& IndentSize, Int32& MaxChildrenPerNode, Int32& MaxCachedNodes, Int32& MaxCachedItems, Int32& MaxVisibleRows, Int32& MaxDepth, Int32& MaxConcurrentLoads)`
+- `bool Equals(DataGridHierarchySchema<TItem> other)`
+- `bool Equals(object obj)`
+- `int GetHashCode()`
+- `Func<TItem, bool> HasChildren`
+- `int IndentSize`
+- `Func<TItem, bool> InitiallyExpanded`
+- `int MaxCachedItems`
+- `int MaxCachedNodes`
+- `int MaxChildrenPerNode`
+- `int MaxConcurrentLoads`
+- `int MaxDepth`
+- `int MaxVisibleRows`
+- `string ToString()`
+
+### DataGridSchema<TItem>
+Immutable, strongly typed structural configuration for an OmniDataGrid.
+_class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
+- `bool AllowColumnFilter` — Whether per-column filters are enabled.
+- `bool AllowColumnResize` — Whether columns can be resized.
+- `bool AllowColumnVisibility` — Whether column visibility can be customized.
+- `bool AllowExport` — Whether bounded CSV export is enabled.
+- `bool AllowGrouping` — Whether grouping is enabled.
+- `bool AllowMultiSelection` — Whether multi-selection is enabled.
+- `bool AllowPaging` — Whether paging is enabled.
+- `bool AllowSearch` — Whether search is enabled.
+- `bool AllowSorting` — Whether sorting is enabled.
+- `static DataGridSchemaBuilder<TItem> Builder()` — Creates a mutable one-shot schema builder.
+- `IReadOnlyList<DataGridColumnDefinition<TItem>> Columns` — Immutable generated column definitions.
+- `static DataGridSchema<TItem> Create(Action<DataGridSchemaBuilder<TItem>> configure)` — Creates an immutable schema through a strongly typed builder.
+- `string EmptyText` — Optional empty-state text.
+- `DataGridSchema<TItem> Extend(Action<DataGridSchemaBuilder<TItem>> configure)` — Creates an immutable derived schema from this reusable base.
+- `string Height` — Virtualized scroller height.
+- `DataGridHierarchySchema<TItem> Hierarchy` — Optional bounded hierarchy configuration.
+- `Func<TItem, object> KeySelector` — Stable item key used by hierarchy state.
+- `int OverscanCount` — Virtualization overscan row count.
+- `int PageSize` — Default page size.
+- `float RowHeight` — Fixed virtualized row height.
+- `string SearchPlaceholder` — Optional search placeholder.
+- `bool Virtualize` — Whether row virtualization is enabled.
+
+### DataGridSchemaBuilder<TItem>
+Strongly typed one-shot builder for DataGrid structure and behavior defaults.
+_class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
+- `DataGridSchema<TItem> Build()` — Builds the immutable schema.
+- `DataGridSchemaBuilder<TItem> ClearColumns()` — Removes all generated columns so a derived schema can declare a new projection.
+- `DataGridSchemaBuilder<TItem> ClearHierarchy()` — Removes inherited hierarchy behavior while preserving the stable key.
+- `DataGridSchemaBuilder<TItem> Column<TValue>(Expression<Func<TItem, TValue>> property, Action<DataGridColumnBuilder<TItem, TValue>> configure)` — Adds a compile-time checked column.
+- `DataGridSchemaBuilder<TItem> ColumnFilter(bool enabled)` — Enables or disables the per-column filter row.
+- `DataGridSchemaBuilder<TItem> ColumnResize(bool enabled)` — Enables or disables column resizing.
+- `DataGridSchemaBuilder<TItem> ColumnVisibility(bool enabled)` — Enables or disables the column visibility menu.
+- `DataGridSchemaBuilder()`
+- `DataGridSchemaBuilder<TItem> EmptyText(string text)` — Overrides empty-state text.
+- `DataGridSchemaBuilder<TItem> Export(bool enabled)` — Enables or disables bounded CSV export.
+- `DataGridSchemaBuilder<TItem> Grouping(bool enabled)` — Enables or disables row grouping.
+- `DataGridSchemaBuilder<TItem> Hierarchy<TKey>(Expression<Func<TItem, TKey>> key, Func<TItem, IEnumerable<TItem>> children, Action<DataGridHierarchyBuilder<TItem>> configure)` — Enables an in-memory hierarchy with bounded flattening and caching defaults.
+- `DataGridSchemaBuilder<TItem> Include(DataGridSchema<TItem> schema)` — Includes columns and defaults from an immutable schema.
+- `DataGridSchemaBuilder<TItem> Key<TKey>(Expression<Func<TItem, TKey>> selector)` — Sets the stable key used by hierarchy and expansion state.
+- `DataGridSchemaBuilder<TItem> LazyHierarchy<TKey>(Expression<Func<TItem, TKey>> key, HierarchyChildrenProvider<TItem> provider, Action<DataGridHierarchyBuilder<TItem>> configure)` — Enables a cancellable lazy hierarchy with bounded concurrency and caches.
+- `DataGridSchemaBuilder<TItem> MultiSelection(bool enabled)` — Enables or disables multi-selection.
+- `DataGridSchemaBuilder<TItem> OverrideColumn<TValue>(Expression<Func<TItem, TValue>> property, Action<DataGridColumnBuilder<TItem, TValue>> configure)` — Replaces a previously included or declared column while preserving its position.
+- `DataGridSchemaBuilder<TItem> Paging(int pageSize, bool enabled)` — Enables paging and sets its bounded page size.
+- `DataGridSchemaBuilder<TItem> Search(bool enabled, string placeholder)` — Enables or disables search.
+- `DataGridSchemaBuilder<TItem> Sorting(bool enabled)` — Enables or disables sorting.
+- `DataGridSchemaBuilder<TItem> Virtualization(string height, float rowHeight, int overscanCount)` — Enables fixed-row virtualization and disables paging.
+
+### DataImportColumnBuilder<TItem, TValue>
+Builder for one typed import target column.
+_class · source: src/Omni.Blazor/Models/DataImportModels.cs_
+- `DataImportColumnBuilder<TItem, TValue> Aliases(string[] values)` — Adds alternative source headers used by automatic mapping.
+- `DataImportColumnBuilder<TItem, TValue> Header(string value)` — Sets the preferred source header.
+- `DataImportColumnBuilder<TItem, TValue> Parse(DataImportTryParser<TValue> parser)` — Uses an allocation-free custom typed parser.
+- `DataImportColumnBuilder<TItem, TValue> Required(string error)` — Requires a mapped non-blank source value.
+- `DataImportColumnBuilder<TItem, TValue> Validate(Func<TValue, string> validator)` — Adds typed value validation after parsing.
+
+### DataImportSchema<TItem>
+Immutable typed tabular import schema.
+_class · source: src/Omni.Blazor/Models/DataImportModels.cs_
+- `static DataImportSchemaBuilder<TItem> Builder()` — Creates a mutable import schema builder.
+- `int Count` — Number of typed target columns.
+- `static DataImportSchema<TItem> Create(Action<DataImportSchemaBuilder<TItem>> configure)` — Creates and builds an immutable import schema.
+- `char Delimiter` — Default delimited-text separator. Default comma.
+- `bool HasHeader` — Whether the first row contains source headers. Default true.
+
+### DataImportSchemaBuilder<TItem>
+Strongly typed builder for bounded delimited-text imports.
+_class · source: src/Omni.Blazor/Models/DataImportModels.cs_
+- `DataImportSchema<TItem> Build()` — Builds the immutable import schema.
+- `DataImportSchemaBuilder<TItem> Column<TValue>(Expression<Func<TItem, TValue>> property, Action<DataImportColumnBuilder<TItem, TValue>> configure)` — Adds one rename-safe writable target property.
+- `DataImportSchemaBuilder()`
+- `DataImportSchemaBuilder<TItem> Delimiter(char delimiter)` — Sets the default delimiter.
+- `DataImportSchemaBuilder<TItem> Factory(Func<TItem> factory)` — Sets the item factory used only after one source row is read.
+- `DataImportSchemaBuilder<TItem> HasHeader(bool value)` — Controls whether the first row is interpreted as a header. Default true.
+
+### DelegateDataGridFormProvider<TItem, TKey>
+Delegate adapter for applications that do not need a provider class.
+_class · source: src/Omni.Blazor/Models/DataGridFormModels.cs_
+- `ValueTask<DataGridFormMutationResult<TItem>> CreateAsync(TItem item, CancellationToken cancellationToken)`
+- `DelegateDataGridFormProvider(GridDataProvider<TItem> load, Func<TItem, CancellationToken, ValueTask<DataGridFormMutationResult<TItem>>> create, Func<TKey, TItem, CancellationToken, ValueTask<DataGridFormMutationResult<TItem>>> update, Func<TKey, CancellationToken, ValueTask<DataGridFormMutationResult<TItem>>> delete)` — Creates a provider from four cancellable delegates.
+- `DelegateDataGridFormProvider(GridDataProvider<TItem> load, Func<TItem, CancellationToken, ValueTask<TItem>> create, Func<TKey, TItem, CancellationToken, ValueTask<TItem>> update, Func<TKey, CancellationToken, ValueTask> delete)` — Creates a provider from four cancellable delegates.
+- `ValueTask<DataGridFormMutationResult<TItem>> DeleteAsync(TKey key, CancellationToken cancellationToken)`
+- `ValueTask<GridLoadResult<TItem>> LoadAsync(GridState<TItem> state, CancellationToken cancellationToken)`
+- `ValueTask<DataGridFormMutationResult<TItem>> UpdateAsync(TKey key, TItem item, CancellationToken cancellationToken)`
+
+### DiagramNodeBuilder
+Builder for one diagram node and its output ports.
+_class · source: src/Omni.Blazor/Models/DiagramSchema.cs_
+- `DiagramNodeBuilder Appearance(string icon, string color)` — Sets the optional icon and accent color.
+- `DiagramNodeBuilder Input(bool enabled)` — Controls whether the implicit input port is available.
+- `DiagramNodeBuilder Output(string name, DiagramPortKind kind)` — Adds a named output port.
+- `DiagramNodeBuilder Position(double x, double y)` — Sets the world-space position.
+- `DiagramNodeBuilder Text(string title, string subtitle)` — Sets the primary and secondary labels.
+
+### DiagramSchema
+Immutable graph and canvas metadata for OmniDiagramCanvas.
+_class · source: src/Omni.Blazor/Models/DiagramSchema.cs_
+- `string AutoLayoutText` — Auto-layout action text.
+- `static DiagramSchemaBuilder Builder()` — Creates a mutable one-shot diagram builder.
+- `static DiagramSchema Create(Action<DiagramSchemaBuilder> configure)` — Creates an immutable diagram schema.
+- `string DropPayloadFormat` — Accepted HTML drag payload format.
+- `IReadOnlyList<DiagramEdge> Edges` — Immutable validated edge snapshot.
+- `DiagramSchema Extend(Action<DiagramSchemaBuilder> configure)` — Creates an immutable derived schema from this reusable base.
+- `bool FitOnMount` — Whether the graph is fitted once after mounting.
+- `string FitText` — Fit-to-view action text.
+- `IReadOnlyList<DiagramNode> Nodes` — Immutable node snapshot.
+- `bool ReadOnly` — Whether graph editing is disabled.
+- `bool ShowAutoLayout` — Whether the auto-layout control is visible.
+- `bool ShowControls` — Whether viewport controls are visible.
+- `bool ShowMinimap` — Whether the minimap is visible.
+- `DiagramViewport Viewport` — Initial canvas viewport.
+- `string ZoomInText` — Zoom-in action text.
+- `string ZoomOutText` — Zoom-out action text.
+
+### DiagramSchemaBuilder
+Strongly typed one-shot builder for graph structure and canvas behavior.
+_class · source: src/Omni.Blazor/Models/DiagramSchema.cs_
+- `DiagramSchemaBuilder AutoLayout(double columnWidth, double rowHeight, double originX, double originY)` — Applies the built-in left-to-right layout once while building the schema.
+- `DiagramSchemaBuilder Behavior(bool readOnly, bool fitOnMount, bool showMinimap, bool showControls, bool showAutoLayout, string dropPayloadFormat)` — Configures editing and canvas controls.
+- `DiagramSchema Build()` — Builds and validates the immutable graph.
+- `DiagramSchemaBuilder ClearGraph()` — Removes inherited graph structure while preserving canvas defaults.
+- `DiagramSchemaBuilder Connect(string id, string source, string sourcePort, string target, string targetPort)` — Adds a directed edge and validates it when the schema is built.
+- `DiagramSchemaBuilder()`
+- `DiagramSchemaBuilder Include(DiagramSchema schema)` — Includes graph structure and canvas defaults from an immutable schema.
+- `DiagramSchemaBuilder Labels(string autoLayout, string zoomIn, string zoomOut, string fit)` — Configures localized action labels.
+- `DiagramSchemaBuilder Node(string id, Action<DiagramNodeBuilder> configure)` — Adds a graph node.
+- `DiagramSchemaBuilder Node<TData>(string id, TData data, Action<DiagramNodeBuilder> configure)` — Adds a graph node.
+- `DiagramSchemaBuilder OverrideConnection(string id, string source, string sourcePort, string target, string targetPort)` — Replaces an inherited edge while preserving its declaration position.
+- `DiagramSchemaBuilder OverrideNode<TData>(string id, TData data, Action<DiagramNodeBuilder> configure)` — Replaces an inherited node while preserving its graph position.
+- `DiagramSchemaBuilder Viewport(double x, double y, double zoom)` — Configures the initial viewport.
+
+### GanttDependencySchema<TItem>
+Immutable typed Gantt dependency metadata.
+_class · source: src/Omni.Blazor/Models/GanttSchema.cs_
+- `GanttDependencySchema<TItem> <Clone>$()`
+- `Void Deconstruct(TItem& From, TItem& To, GanttDependencyType& Type)`
+- `bool Equals(GanttDependencySchema<TItem> other)`
+- `bool Equals(object obj)`
+- `TItem From`
+- `GanttDependencySchema(TItem From, TItem To, GanttDependencyType Type)` — Immutable typed Gantt dependency metadata.
+- `int GetHashCode()`
+- `TItem To`
+- `string ToString()`
+- `GanttDependencyType Type`
+
+### GanttMarkerSchema
+Immutable Gantt timeline marker metadata.
+_class · source: src/Omni.Blazor/Models/GanttSchema.cs_
+- `GanttMarkerSchema <Clone>$()`
+- `string Color`
+- `DateTime Date`
+- `Void Deconstruct(DateTime& Date, String& Label, String& Color)`
+- `bool Equals(GanttMarkerSchema other)`
+- `bool Equals(object obj)`
+- `GanttMarkerSchema(DateTime Date, string Label, string Color)` — Immutable Gantt timeline marker metadata.
+- `int GetHashCode()`
+- `string Label`
+- `string ToString()`
+
+### GanttSchema<TItem>
+Immutable strongly typed task projection and presentation defaults for OmniGantt.
+_class · source: src/Omni.Blazor/Models/GanttSchema.cs_
+- `Func<TItem, DateTime> BaselineEnd` — Optional baseline end selector.
+- `Func<TItem, DateTime> BaselineStart` — Optional baseline start selector.
+- `static GanttSchemaBuilder<TItem> Builder()` — Creates a mutable one-shot builder.
+- `static GanttSchema<TItem> Create(Action<GanttSchemaBuilder<TItem>> configure)` — Creates an immutable typed Gantt schema.
+- `IReadOnlyList<GanttDependencySchema<TItem>> Dependencies` — Immutable typed task dependencies.
+- `Func<TItem, DateTime> End` — Task end selector.
+- `GanttSchema<TItem> Extend(Action<GanttSchemaBuilder<TItem>> configure)` — Creates an immutable derived schema from this reusable base.
+- `Func<TItem, object> Key` — Optional stable task key selector.
+- `string LeftPaneWidth` — Fallback left pane width.
+- `IReadOnlyList<GanttMarkerSchema> Markers` — Immutable timeline markers.
+- `IReadOnlyList<DayOfWeek> NonWorkingDays` — Immutable non-working weekdays.
+- `Func<TItem, object> ParentKey` — Optional parent task key selector.
+- `Func<TItem, double> Progress` — Optional progress selector in the zero-to-one-hundred range.
+- `int RowHeight` — Task row height in pixels.
+- `bool ShowCriticalPath` — Whether the critical path is highlighted.
+- `bool ShowNavigation` — Whether navigation is shown.
+- `bool ShowTodayLine` — Whether the current time line is shown.
+- `bool ShowWeekends` — Whether non-working days are shaded.
+- `Func<TItem, DateTime> Start` — Task start selector.
+- `Func<TItem, string> Text` — Optional task label selector.
+- `GanttZoomLevel ZoomLevel` — Default zoom level.
+
+### GanttSchemaBuilder<TItem>
+Strongly typed one-shot builder for Gantt task metadata.
+_class · source: src/Omni.Blazor/Models/GanttSchema.cs_
+- `GanttSchemaBuilder<TItem> Baseline(Expression<Func<TItem, DateTime>> start, Expression<Func<TItem, DateTime>> end)` — Maps optional baseline dates.
+- `GanttSchema<TItem> Build()` — Builds the immutable schema.
+- `GanttSchemaBuilder<TItem> Dependencies(IEnumerable<GanttDependency<TItem>> values)` — Sets a typed immutable dependency snapshot.
+- `GanttSchemaBuilder()`
+- `GanttSchemaBuilder<TItem> Hierarchy<TKey, TParentKey>(Expression<Func<TItem, TKey>> key, Expression<Func<TItem, TParentKey>> parentKey)` — Maps stable and optional parent keys using compile-time checked expressions.
+- `GanttSchemaBuilder<TItem> Include(GanttSchema<TItem> schema)` — Includes task projection and presentation defaults from an immutable schema.
+- `GanttSchemaBuilder<TItem> Key<TKey>(Expression<Func<TItem, TKey>> selector)` — Maps a stable key without enabling hierarchy.
+- `GanttSchemaBuilder<TItem> Markers(IEnumerable<GanttMarker> values)` — Sets an immutable marker snapshot.
+- `GanttSchemaBuilder<TItem> NonWorkingDays(DayOfWeek[] days)` — Sets immutable non-working weekdays.
+- `GanttSchemaBuilder<TItem> Progress(Expression<Func<TItem, double>> selector)` — Maps task progress.
+- `GanttSchemaBuilder<TItem> Task(Expression<Func<TItem, string>> text, Expression<Func<TItem, DateTime>> start, Expression<Func<TItem, DateTime>> end)` — Maps task label, start and end values.
+- `GanttSchemaBuilder<TItem> Timeline(GanttZoomLevel zoom, int rowHeight, string leftPaneWidth, bool showNavigation, bool showTodayLine, bool showWeekends, bool showCriticalPath)` — Sets timeline presentation defaults.
+
+### IDataGridFormProvider<TItem, TKey>
+Cancellable CRUD source used by OmniDataGridForm. Implementations own persistence and authorization; the component owns interaction state and validation.
+_interface · source: src/Omni.Blazor/Models/DataGridFormModels.cs_
+- `ValueTask<DataGridFormMutationResult<TItem>> CreateAsync(TItem item, CancellationToken cancellationToken)` — Persists a new validated item and returns its structured outcome.
+- `ValueTask<DataGridFormMutationResult<TItem>> DeleteAsync(TKey key, CancellationToken cancellationToken)` — Deletes one item by its stable key and returns its structured outcome.
+- `ValueTask<GridLoadResult<TItem>> LoadAsync(GridState<TItem> state, CancellationToken cancellationToken)` — Loads one grid window using the DataGrid server-side state.
+- `ValueTask<DataGridFormMutationResult<TItem>> UpdateAsync(TKey key, TItem item, CancellationToken cancellationToken)` — Persists a validated edit and returns its structured outcome.
+
+### KanbanCardBuilder<TCard>
+Strongly typed builder for the default Kanban card.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `KanbanCardBuilder<TCard> Actions(Func<TCard, IEnumerable<KanbanCardAction>> selector)` — Maps card overflow actions.
+- `KanbanCardBuilder<TCard> Age(Expression<Func<TCard, int>> selector, int warningDays, int staleDays)` — Maps card age and warning thresholds.
+- `KanbanCardBuilder<TCard> Assignee(Expression<Func<TCard, string>> selector, Expression<Func<TCard, string>> avatar)` — Maps assignee and optional avatar URL.
+- `KanbanCardBuilder<TCard> Color(Expression<Func<TCard, string>> selector)` — Maps a CSS accent color.
+- `KanbanCardBuilder<TCard> DueDate(Expression<Func<TCard, DateTime>> selector)` — Maps a due date.
+- `KanbanCardBuilder<TCard> Estimate(Expression<Func<TCard, string>> selector)` — Maps an estimate label.
+- `KanbanCardBuilder<TCard> Fields(Func<TCard, IEnumerable<KanbanField>> selector)` — Maps extra card fields.
+- `KanbanCardBuilder<TCard> Priority(Expression<Func<TCard, KanbanPriority>> selector)` — Maps card priority.
+- `KanbanCardBuilder<TCard> Subtasks(Func<TCard, ValueTuple<int, int>> selector)` — Maps subtask progress.
+- `KanbanCardBuilder<TCard> Title(Expression<Func<TCard, string>> selector)` — Maps the primary card title.
+
+### KanbanCardSchema<TCard>
+Immutable typed card presentation selectors.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `KanbanCardSchema<TCard> <Clone>$()`
+- `Func<TCard, IEnumerable<KanbanCardAction>> Actions`
+- `Func<TCard, int> Age`
+- `int AgeStaleDays`
+- `int AgeWarnDays`
+- `Func<TCard, string> Assignee`
+- `Func<TCard, string> Avatar`
+- `Func<TCard, string> Color`
+- `Void Deconstruct(Func`2& Title, Func`2& Assignee, Func`2& Avatar, Func`2& DueDate, Func`2& Priority, Func`2& Subtasks, Func`2& Estimate, Func`2& Fields, Func`2& Color, Func`2& Age, Func`2& Actions, Boolean& ShowAge, Int32& AgeWarnDays, Int32& AgeStaleDays)`
+- `Func<TCard, DateTime> DueDate`
+- `bool Equals(KanbanCardSchema<TCard> other)`
+- `bool Equals(object obj)`
+- `Func<TCard, string> Estimate`
+- `Func<TCard, IEnumerable<KanbanField>> Fields`
+- `int GetHashCode()`
+- `KanbanCardSchema(Func<TCard, string> Title, Func<TCard, string> Assignee, Func<TCard, string> Avatar, Func<TCard, DateTime> DueDate, Func<TCard, KanbanPriority> Priority, Func<TCard, ValueTuple<int, int>> Subtasks, Func<TCard, string> Estimate, Func<TCard, IEnumerable<KanbanField>> Fields, Func<TCard, string> Color, Func<TCard, int> Age, Func<TCard, IEnumerable<KanbanCardAction>> Actions, bool ShowAge, int AgeWarnDays, int AgeStaleDays)` — Immutable typed card presentation selectors.
+- `Func<TCard, KanbanPriority> Priority`
+- `bool ShowAge`
+- `Func<TCard, ValueTuple<int, int>> Subtasks`
+- `Func<TCard, string> Title`
+- `string ToString()`
+
+### KanbanColumnBuilder
+Fluent builder for one Kanban column.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `KanbanColumnBuilder Appearance(string icon, CardTone tone)` — Sets header icon and tone.
+- `KanbanColumnBuilder State(int wipLimit, bool collapsed)` — Sets an optional WIP limit and initial collapsed state.
+
+### KanbanColumnSchema
+Immutable Kanban column metadata.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `KanbanColumnSchema <Clone>$()`
+- `bool Collapsed`
+- `Void Deconstruct(String& Id, String& Title, String& Icon, CardTone& Tone, Nullable`1& WipLimit, Boolean& Collapsed)`
+- `bool Equals(KanbanColumnSchema other)`
+- `bool Equals(object obj)`
+- `int GetHashCode()`
+- `string Icon`
+- `string Id`
+- `KanbanColumnSchema(string Id, string Title, string Icon, CardTone Tone, int WipLimit, bool Collapsed)` — Immutable Kanban column metadata.
+- `string Title`
+- `string ToString()`
+- `CardTone Tone`
+- `int WipLimit`
+
+### KanbanQuickFilterSchema<TCard>
+Immutable typed Kanban quick-filter metadata.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `KanbanQuickFilterSchema<TCard> <Clone>$()`
+- `Void Deconstruct(String& Label, Func`2& Predicate, String& Icon)`
+- `bool Equals(KanbanQuickFilterSchema<TCard> other)`
+- `bool Equals(object obj)`
+- `int GetHashCode()`
+- `string Icon`
+- `KanbanQuickFilterSchema(string Label, Func<TCard, bool> Predicate, string Icon)` — Immutable typed Kanban quick-filter metadata.
+- `string Label`
+- `Func<TCard, bool> Predicate`
+- `string ToString()`
+
+### KanbanSchema<TCard>
+Immutable strongly typed board, card and workflow metadata for OmniKanban.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `bool AllowAddCard` — Whether add-card actions are shown.
+- `bool AllowColumnReorder` — Whether columns can be reordered.
+- `static KanbanSchemaBuilder<TCard> Builder()` — Creates a mutable one-shot builder.
+- `KanbanCardSchema<TCard> Card` — Typed card presentation selectors.
+- `Func<TCard, object> CardId` — Optional stable card key selector.
+- `bool Collapsible` — Whether columns can be collapsed.
+- `Func<TCard, string> ColumnSelector` — Compiled card-to-column selector.
+- `Action<TCard, string> ColumnSetter` — Optional card column mutation delegate.
+- `string ColumnWidth` — Optional CSS column width.
+- `IReadOnlyList<KanbanColumnSchema> Columns` — Immutable board column snapshot.
+- `static KanbanSchema<TCard> Create(Action<KanbanSchemaBuilder<TCard>> configure)` — Creates an immutable typed Kanban schema.
+- `bool DragDisabled` — Whether card movement is disabled.
+- `KanbanSchema<TCard> Extend(Action<KanbanSchemaBuilder<TCard>> configure)` — Creates an immutable derived schema from this reusable base.
+- `IReadOnlyList<KanbanQuickFilterSchema<TCard>> QuickFilters` — Immutable quick-filter snapshot.
+- `Func<TCard, string> SearchSelector` — Optional searchable text selector.
+- `bool ShowCount` — Whether card counts are shown.
+- `bool ShowSearch` — Whether board search is shown.
+- `Func<TCard, string> SwimlaneSelector` — Optional card-to-swimlane selector.
+- `Action<TCard, string> SwimlaneSetter` — Optional card swimlane mutation delegate.
+- `IReadOnlyList<KanbanSwimlaneSchema> Swimlanes` — Immutable swimlane snapshot.
+- `bool SwimlanesCollapsible` — Whether swimlanes can be collapsed.
+- `WipLimitMode WipLimitMode` — How WIP limits are enforced.
+
+### KanbanSchemaBuilder<TCard>
+Strongly typed one-shot builder for Kanban workflow and presentation metadata.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `KanbanSchemaBuilder<TCard> Behavior(bool showCount, bool collapsible, bool swimlanesCollapsible, bool allowAddCard, bool allowColumnReorder, bool dragDisabled, WipLimitMode wipLimitMode, string columnWidth)` — Configures board behavior defaults.
+- `KanbanSchema<TCard> Build()` — Builds the immutable schema.
+- `KanbanSchemaBuilder<TCard> Card(Action<KanbanCardBuilder<TCard>> configure)` — Configures typed default-card selectors.
+- `KanbanSchemaBuilder<TCard> ClearColumns()` — Removes inherited columns so a derived schema can declare a new workflow.
+- `KanbanSchemaBuilder<TCard> ClearQuickFilters()` — Removes inherited quick filters.
+- `KanbanSchemaBuilder<TCard> ClearSwimlanes()` — Removes inherited swimlanes.
+- `KanbanSchemaBuilder<TCard> Column(string id, string title, Action<KanbanColumnBuilder> configure)` — Adds one immutable board column.
+- `KanbanSchemaBuilder<TCard> ColumnState(Expression<Func<TCard, string>> selector, Action<TCard, string> setter)` — Maps card column state and its optional mutation delegate.
+- `KanbanSchemaBuilder<TCard> Include(KanbanSchema<TCard> schema)` — Includes workflow, card and presentation defaults from an immutable schema.
+- `KanbanSchemaBuilder()` — Creates an empty builder.
+- `KanbanSchemaBuilder<TCard> Key<TKey>(Expression<Func<TCard, TKey>> selector)` — Sets a stable card key.
+- `KanbanSchemaBuilder<TCard> OverrideColumn(string id, string title, Action<KanbanColumnBuilder> configure)` — Replaces an inherited column while preserving its board position.
+- `KanbanSchemaBuilder<TCard> QuickFilter(string label, Func<TCard, bool> predicate, string icon)` — Adds a typed quick filter.
+- `KanbanSchemaBuilder<TCard> Search(Expression<Func<TCard, string>> selector, bool enabled)` — Enables board search with a typed text selector.
+- `KanbanSchemaBuilder<TCard> Swimlane(string id, string title, string icon, bool collapsed)` — Adds one immutable swimlane.
+- `KanbanSchemaBuilder<TCard> SwimlaneState(Expression<Func<TCard, string>> selector, Action<TCard, string> setter)` — Maps optional swimlane state and its mutation delegate.
+
+### KanbanSwimlaneSchema
+Immutable Kanban swimlane metadata.
+_class · source: src/Omni.Blazor/Models/KanbanSchema.cs_
+- `KanbanSwimlaneSchema <Clone>$()`
+- `bool Collapsed`
+- `Void Deconstruct(String& Id, String& Title, String& Icon, Boolean& Collapsed)`
+- `bool Equals(KanbanSwimlaneSchema other)`
+- `bool Equals(object obj)`
+- `int GetHashCode()`
+- `string Icon`
+- `string Id`
+- `KanbanSwimlaneSchema(string Id, string Title, string Icon, bool Collapsed)` — Immutable Kanban swimlane metadata.
+- `string Title`
+- `string ToString()`
+
+### SchedulerSchema<TItem>
+Immutable strongly typed appointment projection and presentation defaults for OmniScheduler.
+_class · source: src/Omni.Blazor/Models/SchedulerSchema.cs_
+- `static SchedulerSchemaBuilder<TItem> Builder()` — Creates a mutable one-shot builder.
+- `static SchedulerSchema<TItem> Create(Action<SchedulerSchemaBuilder<TItem>> configure)` — Creates an immutable scheduler schema.
+- `CultureInfo Culture` — Optional formatting culture.
+- `Func<TItem, DateTime> End` — Compiled appointment end selector.
+- `SchedulerSchema<TItem> Extend(Action<SchedulerSchemaBuilder<TItem>> configure)` — Creates an immutable derived schema from this reusable base.
+- `string Height` — Scheduler CSS height.
+- `int SelectedViewIndex` — Initial selected scheduler view index.
+- `bool ShowDateTitle` — Whether the current range title is shown.
+- `bool ShowHeader` — Whether the complete header is shown.
+- `bool ShowNavigationButtons` — Whether previous and next actions are shown.
+- `bool ShowTodayButton` — Whether the today action is shown.
+- `Func<TItem, DateTime> Start` — Compiled appointment start selector.
+- `Func<TItem, string> Text` — Optional compiled appointment label selector.
+
+### SchedulerSchemaBuilder<TItem>
+Strongly typed one-shot builder for Scheduler appointment metadata.
+_class · source: src/Omni.Blazor/Models/SchedulerSchema.cs_
+- `SchedulerSchema<TItem> Build()` — Builds the immutable schema.
+- `SchedulerSchemaBuilder<TItem> Culture(CultureInfo value)` — Sets the scheduler formatting culture.
+- `SchedulerSchemaBuilder<TItem> Header(bool visible, bool navigationButtons, bool todayButton, bool dateTitle)` — Configures header visibility.
+- `SchedulerSchemaBuilder<TItem> Height(string value)` — Sets the scheduler CSS height.
+- `SchedulerSchemaBuilder<TItem> Include(SchedulerSchema<TItem> schema)` — Includes projection and presentation defaults from an immutable schema.
+- `SchedulerSchemaBuilder<TItem> Range(Expression<Func<TItem, DateTime>> start, Expression<Func<TItem, DateTime>> end)` — Maps the appointment start and end using compile-time checked expressions.
+- `SchedulerSchemaBuilder()`
+- `SchedulerSchemaBuilder<TItem> SelectedView(int index)` — Sets the initial selected view index.
+- `SchedulerSchemaBuilder<TItem> Text(Expression<Func<TItem, string>> selector)` — Maps the appointment display text.
+
+### ChartDataPointSchema
+Immutable point metadata produced by a typed chart schema.
+_class · source: src/Omni.Blazor/Models/ChartSchema.cs_
+- `ChartDataPointSchema <Clone>$()`
+- `string Category`
+- `ChartDataPointSchema(string Category, double Value, string Color, bool IsTotal, double X, double Size)` — Immutable point metadata produced by a typed chart schema.
+- `string Color`
+- `Void Deconstruct(String& Category, Double& Value, String& Color, Boolean& IsTotal, Nullable`1& X, Nullable`1& Size)`
+- `bool Equals(ChartDataPointSchema other)`
+- `bool Equals(object obj)`
+- `int GetHashCode()`
+- `bool IsTotal`
+- `double Size`
+- `string ToString()`
+- `double Value`
+- `double X`
+
+### ChartSchema
+Immutable chart data and presentation metadata for OmniChart.
+_class · source: src/Omni.Blazor/Models/ChartSchema.cs_
+- `string AriaLabel` — Optional accessible SVG label.
+- `static ChartSchemaBuilder Builder()` — Creates a mutable one-shot chart builder.
+- `ChartColorScheme ColorScheme` — Fallback color scheme.
+- `static ChartSchema Create(Action<ChartSchemaBuilder> configure)` — Creates an immutable chart schema.
+- `string DonutCenterLabel` — Optional donut center label.
+- `string DonutCenterValue` — Optional donut center value.
+- `ChartSchema Extend(Action<ChartSchemaBuilder> configure)` — Creates an immutable derived schema from this reusable base.
+- `string Height` — Chart CSS height.
+- `ChartLegendPosition LegendPosition` — Legend position.
+- `IReadOnlyList<ChartSeriesSchema> Series` — Immutable series snapshot.
+- `bool ShowGrid` — Whether horizontal grid lines are visible.
+- `string Title` — Optional accessible chart title.
+- `Func<double, string> ValueFormatter` — Optional value-axis formatter.
+- `int ValueTicks` — Requested value-axis tick count.
+- `string Width` — Chart CSS width.
+
+### ChartSchemaBuilder
+Strongly typed one-shot builder for chart series and presentation metadata.
+_class · source: src/Omni.Blazor/Models/ChartSchema.cs_
+- `ChartSchemaBuilder Appearance(ChartColorScheme colorScheme, ChartLegendPosition legendPosition, bool showGrid)` — Configures legend, colors and grid visibility.
+- `ChartSchema Build()` — Builds the immutable schema and seals this builder.
+- `ChartSchemaBuilder()`
+- `ChartSchemaBuilder ClearSeries()` — Removes inherited series so a derived schema can declare a new dataset.
+- `ChartSchemaBuilder DonutCenter(string label, string value)` — Configures donut center content.
+- `ChartSchemaBuilder Include(ChartSchema schema)` — Includes series and presentation defaults from an immutable schema.
+- `ChartSchemaBuilder Labels(string title, string ariaLabel, Func<double, string> valueFormatter, int valueTicks)` — Configures title, accessibility and axis formatting.
+- `ChartSchemaBuilder OverrideSeries<TItem>(string title, IEnumerable<TItem> items, Expression<Func<TItem, string>> category, Expression<Func<TItem, double>> value, Action<ChartSeriesBuilder<TItem>> configure)` — Replaces an inherited series while preserving its legend position.
+- `ChartSchemaBuilder Series(string title, IEnumerable<ChartDataPoint> points, Action<ChartSeriesBuilder<ChartDataPoint>> configure)` — Adds a series from an immutable snapshot of existing chart points.
+- `ChartSchemaBuilder Series<TItem>(string title, IEnumerable<TItem> items, Expression<Func<TItem, string>> category, Expression<Func<TItem, double>> value, Action<ChartSeriesBuilder<TItem>> configure)` — Adds a series from an immutable snapshot of existing chart points.
+- `ChartSchemaBuilder Size(string height, string width)` — Configures chart dimensions.
+
+### ChartSeriesBuilder<TItem>
+Strongly typed builder for one chart series.
+_class · source: src/Omni.Blazor/Models/ChartSchema.cs_
+- `ChartSeriesBuilder<TItem> BubbleSize(Expression<Func<TItem, double>> selector)` — Maps the relative size used by Bubble series.
+- `ChartSeriesBuilder<TItem> Color(string color)` — Sets an optional CSS series color.
+- `ChartSeriesBuilder<TItem> GaugeRange(double minimum, double maximum)` — Configures the accepted Gauge range.
+- `ChartSeriesBuilder<TItem> Line(ChartInterpolation interpolation, double strokeWidth, bool showMarkers, double areaOpacity)` — Configures line or area rendering.
+- `ChartSeriesBuilder<TItem> PointColor(Expression<Func<TItem, string>> selector)` — Maps an optional color for each point.
+- `ChartSeriesBuilder<TItem> TotalWhen(Expression<Func<TItem, bool>> predicate)` — Maps waterfall total points.
+- `ChartSeriesBuilder<TItem> Type(ChartSeriesType type)` — Sets the visual series type.
+- `ChartSeriesBuilder<TItem> X(Expression<Func<TItem, double>> selector)` — Maps the numeric X coordinate used by Scatter and Bubble series.
+
+### ChartSeriesSchema
+Immutable series metadata produced by a typed chart schema.
+_class · source: src/Omni.Blazor/Models/ChartSchema.cs_
+- `double AreaOpacity` — Area fill opacity.
+- `string Color` — Optional CSS color override.
+- `double GaugeMaximum` — Maximum Gauge value.
+- `double GaugeMinimum` — Minimum Gauge value.
+- `ChartInterpolation Interpolation` — Line interpolation mode.
+- `IReadOnlyList<ChartDataPointSchema> Points` — Immutable point snapshot.
+- `bool ShowMarkers` — Whether point markers are visible.
+- `double StrokeWidth` — Line stroke width in SVG pixels.
+- `string Title` — Legend and tooltip title.
+- `ChartSeriesType Type` — Visual series type.
+
+### DataFormCollectionEditorBuilder<TModel, TCollection, TItem>
+Strongly typed configuration for a bounded editable collection field.
+_class · source: src/Omni.Blazor/Models/DataFormCollectionModels.cs_
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Bounds(int minimum, int maximum, string minimumError, string maximumError)` — Sets inclusive item-count bounds. Maximum is capped at 1,000.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> CreateCollection(Func<TCollection> factory)` — Creates a collection when the bound property is initially null.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> CreateItem(Func<TItem> factory)` — Enables adding items through a factory.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Grid<TKey>(DataGridFormSchema<TItem, TKey> schema)` — Renders the collection through OmniDataGridForm. The supplied CRUD schema owns columns, draft creation/editing, deletion and extra actions. Collection bounds, collection creation and reorder settings remain owned by this builder. Do not combine Grid with ItemSchema, CreateItem, Key, custom collection action texts or an item-header template.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> ItemSchema(DataFormSchema<TItem> schema)` — Sets the nested schema rendered for every item.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Key(Func<TItem, object> selector)` — Sets a stable item key. Object identity is used by default.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Removable(bool value)` — Allows or prevents removing items.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Reorderable(bool value)` — Shows keyboard-accessible move-up and move-down actions.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Templates(RenderFragment empty, RenderFragment<DataFormCollectionItemContext<TItem>> itemHeader)` — Sets custom empty-state and item-heading templates.
+- `DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Texts(string add, string remove, string moveUp, string moveDown)` — Sets localized collection action text.
+
+### DataFormConventionBuilder<TModel>
+Fluent defaults applied to fields selected by a type or attribute convention. Explicit field metadata always has precedence.
+_class · source: src/Omni.Blazor/Models/DataFormSchemaComposition.cs_
+- `DataFormConventionBuilder<TModel> Disabled(bool value)` — Disables matching fields by default.
+- `DataFormConventionBuilder<TModel> Hint(string value)` — Sets the default helper text.
+- `DataFormConventionBuilder<TModel> Label(Func<PropertyInfo, string> value)` — Sets a fixed label.
+- `DataFormConventionBuilder<TModel> Label(string value)` — Sets a fixed label.
+- `DataFormConventionBuilder<TModel> Order(int value)` — Sets the default display order.
+- `DataFormConventionBuilder<TModel> Placeholder(string value)` — Sets the default placeholder.
+- `DataFormConventionBuilder<TModel> ReadOnly(bool value)` — Makes matching fields read-only by default.
+- `DataFormConventionBuilder<TModel> Required(string error)` — Marks matching fields as required by default.
+- `DataFormConventionBuilder<TModel> Span(int value)` — Sets the default grid span.
+- `DataFormConventionBuilder<TModel> Visible(bool value)` — Sets default field visibility.
+
+### DataFormDateEditorBuilder
+Typed options shared by date and time editors.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormDateEditorBuilder Clearable(bool value)` — Shows or hides the clear action.
+- `DataFormDateEditorBuilder DisableWeekends(bool value)` — Enables or disables weekend dates.
+- `DataFormDateEditorBuilder Format(string value)` — Sets the displayed date format.
+- `DataFormDateEditorBuilder Max(DateOnly value)` — Sets the maximum selectable date.
+- `DataFormDateEditorBuilder Min(DateOnly value)` — Sets the minimum selectable date.
+
+### DataFormFieldBuilder<TModel, TValue>
+Strongly typed fluent configuration for one DataForm property. Editor-specific methods expose only typed values instead of parameter-name dictionaries.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormFieldBuilder<TModel, TValue> Auto()` — Preserves editor inference from the property and its annotations.
+- `DataFormFieldBuilder<TModel, TValue> CheckBox()` — Uses a boolean checkbox editor.
+- `DataFormFieldBuilder<TModel, TValue> Class(string value)` — Appends a CSS class to the field wrapper.
+- `DataFormFieldBuilder<TModel, TValue> Collection<TItem>(Action<DataFormCollectionEditorBuilder<TModel, TValue, TItem>> configure)` — Uses a bounded collection editor with nested item schemas.
+- `DataFormFieldBuilder<TModel, TValue> Date(Action<DataFormDateEditorBuilder> configure)` — Uses a date-only editor.
+- `DataFormFieldBuilder<TModel, TValue> DateTime(Action<DataFormDateEditorBuilder> configure)` — Uses a date-and-time editor.
+- `DataFormFieldBuilder<TModel, TValue> Disabled(bool value)` — Disables the editor.
+- `DataFormFieldBuilder<TModel, TValue> Email(Action<DataFormTextEditorBuilder> configure)` — Uses an e-mail text editor.
+- `DataFormFieldBuilder<TModel, TValue> EnabledWhen(Func<TModel, bool> predicate)` — Enables the editor only while the model predicate returns true.
+- `DataFormFieldBuilder<TModel, TValue> Hint(string value)` — Overrides the inferred helper text.
+- `DataFormFieldBuilder<TModel, TValue> HintRight(string value)` — Sets text displayed on the right side of the label.
+- `DataFormFieldBuilder<TModel, TValue> Label(string value)` — Overrides the inferred field label.
+- `DataFormFieldBuilder<TModel, TValue> Numeric(Action<DataFormNumericEditorBuilder> configure)` — Uses a culture-aware numeric editor.
+- `DataFormFieldBuilder<TModel, TValue> Order(int value)` — Overrides the inferred field order.
+- `DataFormFieldBuilder<TModel, TValue> Password(Action<DataFormPasswordEditorBuilder> configure)` — Uses a password editor.
+- `DataFormFieldBuilder<TModel, TValue> Placeholder(string value)` — Overrides the inferred editor placeholder.
+- `DataFormFieldBuilder<TModel, TValue> ReadOnly(bool value)` — Makes the editor read-only.
+- `DataFormFieldBuilder<TModel, TValue> ReadOnlyWhen(Func<TModel, bool> predicate)` — Makes the editor read-only while the model predicate returns true.
+- `DataFormFieldBuilder<TModel, TValue> Required(string error)` — Marks the field required and enables required-value validation.
+- `DataFormFieldBuilder<TModel, TValue> RequiredWhen(Func<TModel, bool> predicate, string error)` — Makes the field required while the model predicate returns true.
+- `DataFormFieldBuilder<TModel, TValue> Select(Action<DataFormSelectEditorBuilder<TValue>> configure)` — Uses a single-choice editor with optional strongly typed options.
+- `DataFormFieldBuilder<TModel, TValue> Select<TItem>(Func<TItem, TValue> valueSelector, Func<TItem, string> textSelector, Action<DataFormLookupEditorBuilder<TModel, TItem, TValue>> configure)` — Uses a single-choice editor with optional strongly typed options.
+- `DataFormFieldBuilder<TModel, TValue> Span(Breakpoint breakpoint, int columns)` — Sets the number of grid columns occupied by the field.
+- `DataFormFieldBuilder<TModel, TValue> Span(int columns)` — Sets the number of grid columns occupied by the field.
+- `DataFormFieldBuilder<TModel, TValue> Style(string value)` — Appends inline styles to the field wrapper.
+- `DataFormFieldBuilder<TModel, TValue> Switch()` — Uses a boolean switch editor.
+- `DataFormFieldBuilder<TModel, TValue> Telephone(Action<DataFormTextEditorBuilder> configure)` — Uses a telephone text editor.
+- `DataFormFieldBuilder<TModel, TValue> Template(RenderFragment<DataFormFieldContext<TModel, TValue>> content)` — Replaces the inferred editor with a strongly typed custom template while preserving the EditContext, ValueExpression and DataForm change pipeline.
+- `DataFormFieldBuilder<TModel, TValue> Text(Action<DataFormTextEditorBuilder> configure)` — Uses a single-line text editor.
+- `DataFormFieldBuilder<TModel, TValue> TextArea(Action<DataFormTextAreaEditorBuilder> configure)` — Uses a multi-line text editor.
+- `DataFormFieldBuilder<TModel, TValue> Time(Action<DataFormDateEditorBuilder> configure)` — Uses a time-only editor.
+- `DataFormFieldBuilder<TModel, TValue> Url(Action<DataFormTextEditorBuilder> configure)` — Uses a URL text editor.
+- `DataFormFieldBuilder<TModel, TValue> Validate(Func<TValue, TModel, string> validator)` — Adds a strongly typed synchronous field validator.
+- `DataFormFieldBuilder<TModel, TValue> ValidateAsync(Func<TValue, TModel, CancellationToken, ValueTask<string>> validator)` — Adds a strongly typed cancellable asynchronous field validator.
+- `DataFormFieldBuilder<TModel, TValue> Visible(bool value)` — Sets static field visibility.
+- `DataFormFieldBuilder<TModel, TValue> VisibleWhen(Func<TModel, bool> predicate)` — Shows the field only when the model predicate returns true.
+
+### DataFormGroupBuilder<TModel>
+Fluent builder for a semantic and responsive DataForm group.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormGroupBuilder<TModel> Description(string value)` — Sets descriptive text below the group legend.
+- `DataFormGroupBuilder<TModel> Field<TValue>(Expression<Func<TModel, TValue>> property, Action<DataFormFieldBuilder<TModel, TValue>> configure)` — Adds a strongly typed field to this group.
+- `DataFormGroupBuilder<TModel> Group(string title, Action<DataFormGroupBuilder<TModel>> configure)` — Adds a nested semantic group.
+- `DataFormGroupBuilder<TModel> Id(string value)` — Overrides the stable group identity.
+- `DataFormGroupBuilder<TModel> Layout(Action<DataFormLayoutBuilder> configure)` — Configures the group's own responsive grid.
+- `DataFormGroupBuilder<TModel> Order(int value)` — Sets the display order among sibling schema nodes.
+- `DataFormGroupBuilder<TModel> Visible(bool value)` — Sets static group visibility.
+- `DataFormGroupBuilder<TModel> VisibleWhen(Func<TModel, bool> predicate)` — Shows the group only while the model predicate returns true.
+
+### DataFormLayoutBuilder
+Fluent builder for a responsive DataForm grid.
+_class · source: src/Omni.Blazor/Models/DataFormAdvancedModels.cs_
+- `DataFormLayoutBuilder ColumnGap(string value)` — Sets the CSS column gap.
+- `DataFormLayoutBuilder Columns(Breakpoint breakpoint, int value)` — Sets the mobile-first base column count.
+- `DataFormLayoutBuilder Columns(int value)` — Sets the mobile-first base column count.
+- `DataFormLayoutBuilder RowGap(string value)` — Sets the CSS row gap.
+
+### DataFormLookupEditorBuilder<TModel, TItem, TValue>
+Strongly typed options for a DataForm lookup whose item and value types differ.
+_class · source: src/Omni.Blazor/Models/DataFormLookupModels.cs_
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> CacheEntries(int value)` — Sets the maximum LRU provider pages retained by one editor instance.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> ClearValueOnDependencyChange(bool value)` — Controls whether a dependency change clears the bound value.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> Clearable(bool value)` — Shows or hides the clear action.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> DependsOn<TDependency>(Expression<Func<TModel, TDependency>> property)` — Invalidates provider items when another model property changes. The dependent value is cleared by default.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> Items(IEnumerable<TItem> items, int maxItems)` — Uses bounded in-memory items.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> ItemsProvider(DataFormLookupProvider<TModel, TItem> provider, int pageSize, int maxItems)` — Uses a model-aware, cancellable and paged provider.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> ResolveItem(DataFormLookupResolver<TModel, TItem, TValue> resolver)` — Resolves the item represented by an initial or externally supplied value, allowing the editor to display human-readable text before opening its list.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> Templates(RenderFragment loading, RenderFragment empty, RenderFragment<OmniItemsProviderErrorContext> error)` — Sets loading, empty and retry-capable error templates.
+- `DataFormLookupEditorBuilder<TModel, TItem, TValue> Texts(string empty, string loading, string loadError, string retry, string loadMore)` — Sets localized provider status text.
+
+### DataFormNumericEditorBuilder
+Typed options for numeric editors.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormNumericEditorBuilder Decimals(int value)` — Sets the number of decimal places.
+- `DataFormNumericEditorBuilder Max(decimal value)` — Sets the maximum accepted value.
+- `DataFormNumericEditorBuilder Min(decimal value)` — Sets the minimum accepted value.
+- `DataFormNumericEditorBuilder Prefix(string value)` — Sets text before the numeric value.
+- `DataFormNumericEditorBuilder Step(decimal value)` — Sets the increment/decrement step.
+- `DataFormNumericEditorBuilder Suffix(string value)` — Sets text after the numeric value.
+
+### DataFormPasswordEditorBuilder
+Typed options for password editors.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormPasswordEditorBuilder Autocomplete(string value)` — Sets the HTML autocomplete token.
+- `DataFormPasswordEditorBuilder MinLength(int value)` — Sets the minimum password length.
+- `DataFormPasswordEditorBuilder ShowToggle(bool value)` — Shows or hides the password visibility toggle.
+
+### DataFormSchema<TModel>
+Immutable, reusable definition of the explicitly configured fields in an OmniDataForm. Create instances with Create or Builder and reuse them across renders and form instances.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `bool AutoGenerateFields` — Whether supported model properties not explicitly configured are generated. Conventional identifiers, key attributes and database-generated identities are excluded unless explicitly declared. Default true.
+- `static DataFormSchemaBuilder<TModel> Builder()` — Creates a builder for advanced or conditional schema construction.
+- `int Count` — Number of explicitly configured fields.
+- `static DataFormSchema<TModel> Create(Action<DataFormSchemaBuilder<TModel>> configure)` — Creates and builds an immutable schema in one expression.
+- `DataFormSchema<TModel> Extend(Action<DataFormSchemaBuilder<TModel>> configure)` — Creates an immutable derived schema from this reusable base.
+- `IReadOnlyList<DataFormGroup<TModel>> Groups` — Top-level semantic groups declared by the schema.
+- `DataFormLayout Layout` — Responsive root grid used by fields outside a group.
+
+### DataFormSchemaBuilder<TModel>
+Fluent builder for an immutable DataFormSchema`1.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormSchemaBuilder<TModel> Apply(IDataFormSchemaProfile<TModel> profile)` — Applies a reusable strongly typed schema profile.
+- `DataFormSchemaBuilder<TModel> AutoGenerateFields(bool enabled)` — Includes supported model properties that were not explicitly configured. Conventional identifiers, key attributes and database-generated identities are excluded unless explicitly declared. Default true.
+- `DataFormSchema<TModel> Build()` — Builds the schema. A builder can be built only once.
+- `DataFormSchemaBuilder<TModel> ConventionFor<TValue>(Action<DataFormConventionBuilder<TModel>> configure)` — Adds defaults for model properties with the exact value type.
+- `DataFormSchemaBuilder<TModel> ConventionForAttribute<TAttribute>(Action<DataFormConventionBuilder<TModel>> configure)` — Adds defaults for properties carrying an attribute.
+- `DataFormSchemaBuilder()` — Creates an empty fluent schema builder.
+- `DataFormSchemaBuilder<TModel> Field<TValue>(Expression<Func<TModel, TValue>> property, Action<DataFormFieldBuilder<TModel, TValue>> configure)` — Adds or overrides a model property using a strongly typed selector.
+- `DataFormSchemaBuilder<TModel> Group(string title, Action<DataFormGroupBuilder<TModel>> configure)` — Adds a semantic, nestable field group.
+- `DataFormSchemaBuilder<TModel> Include(DataFormSchema<TModel> schema)` — Includes fields, groups and conventions from an immutable schema. The receiving builder keeps its own layout and auto-generation policy.
+- `DataFormSchemaBuilder<TModel> IncludeFragment(Action<DataFormSchemaBuilder<TModel>> fragment)` — Applies a reusable schema fragment to this builder.
+- `DataFormSchemaBuilder<TModel> Layout(Action<DataFormLayoutBuilder> configure)` — Configures the responsive root grid.
+- `DataFormSchemaBuilder<TModel> Override<TValue>(Expression<Func<TModel, TValue>> property, Action<DataFormFieldBuilder<TModel, TValue>> configure)` — Replaces an included or locally declared field with a fresh strongly typed definition while preserving its declaration position.
+
+### DataFormSelectEditorBuilder<TValue>
+Typed options and local values for a single-choice editor.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormSelectEditorBuilder<TValue> Clearable(bool value)` — Shows or hides the clear action.
+- `DataFormSelectEditorBuilder<TValue> ItemsProvider(OmniItemsProvider<TValue> provider, int pageSize, int maxItems)` — Uses a cancellable and paged asynchronous option provider.
+- `DataFormSelectEditorBuilder<TValue> Option(TValue value, string text)` — Adds one strongly typed option.
+- `DataFormSelectEditorBuilder<TValue> Options(IEnumerable<TValue> values, Func<TValue, string> textSelector)` — Replaces the local options with strongly typed values.
+
+### DataFormTextAreaEditorBuilder
+Typed options for multi-line text editors.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormTextAreaEditorBuilder MaxLength(int value)` — Sets the maximum text length.
+- `DataFormTextAreaEditorBuilder Rows(int value)` — Sets the visible row count.
+
+### DataFormTextEditorBuilder
+Typed options for text, e-mail, telephone and URL editors.
+_class · source: src/Omni.Blazor/Models/DataFormSchema.cs_
+- `DataFormTextEditorBuilder Autocomplete(string value)` — Sets the HTML autocomplete token.
+- `DataFormTextEditorBuilder Clearable(bool value)` — Shows or hides the clear button.
+- `DataFormTextEditorBuilder MaxLength(int value)` — Sets the maximum text length.
+- `DataFormTextEditorBuilder MinLength(int value)` — Sets the minimum text length.
+
+### DataFormWizardSchema<TModel>
+Immutable ordered DataForm wizard schema.
+_class · source: src/Omni.Blazor/Models/DataFormWizardModels.cs_
+- `static DataFormWizardSchemaBuilder<TModel> Builder()` — Creates a mutable wizard schema builder.
+- `static DataFormWizardSchema<TModel> Create(Action<DataFormWizardSchemaBuilder<TModel>> configure)` — Creates and builds an immutable wizard schema.
+- `IReadOnlyList<DataFormWizardStep<TModel>> Steps` — Ordered immutable step definitions.
+
+### DataFormWizardSchemaBuilder<TModel>
+Strongly typed builder for ordered DataForm wizard steps.
+_class · source: src/Omni.Blazor/Models/DataFormWizardModels.cs_
+- `DataFormWizardSchema<TModel> Build()` — Builds the immutable wizard schema.
+- `DataFormWizardSchemaBuilder()`
+- `DataFormWizardSchemaBuilder<TModel> Step(string id, string title, DataFormSchema<TModel> schema, Action<DataFormWizardStepBuilder<TModel>> configure)` — Adds one step backed by an explicit DataForm schema.
+
+### DataFormWizardStepBuilder<TModel>
+Builder for one typed DataForm wizard step.
+_class · source: src/Omni.Blazor/Models/DataFormWizardModels.cs_
+- `DataFormWizardStepBuilder<TModel> CanEnter(Func<TModel, bool> predicate)` — Allows navigation into the step only when the model predicate returns true.
+- `DataFormWizardStepBuilder<TModel> Description(string value)` — Sets supporting step description text.
+- `DataFormWizardStepBuilder<TModel> Icon(string value)` — Sets an optional step icon.
+- `DataFormWizardStepBuilder<TModel> ValidateAsync(Func<TModel, CancellationToken, ValueTask<IReadOnlyList<string>>> validator)` — Adds cancellable step-level validation after field validation succeeds.
+- `DataFormWizardStepBuilder<TModel> VisibleWhen(Func<TModel, bool> predicate)` — Shows the step only when the model predicate returns true.
 
 ## Theme tokens
 

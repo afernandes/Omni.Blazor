@@ -1,0 +1,156 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@typeparam TKey where TKey : notnull
+@inherits OmniComponent
+@attribute [OmniCatalogIgnore]
+@implements IDisposable
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Internal reusable editor shell shared by scheduler, Kanban and Gantt adapters. *@
+
+<div class="@RootCss" style="@Style" aria-busy="@_saving" @attributes="Attributes">
+    @if (_failure is not null)
+    {
+        <div class="omni-alert omni-alert-danger omni-entity-editor-error" role="alert">
+            <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
+            <div class="omni-alert-body">
+                <div class="omni-alert-title">@Texts.DataGridFormOperationFailed</div>
+                <div>@FailureMessage</div>
+                @if (_failure.Errors.Count != 0)
+                {
+                    <ul>
+                        @foreach (string error in _failure.Errors)
+                        {
+                            <li @key="error">@error</li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Schema.CreateOptions is not null || ToolbarContent is not null)
+    {
+        <div class="omni-entity-editor-toolbar" role="toolbar">
+            @ToolbarContent
+            @if (Schema.CreateOptions is not null)
+            {
+                <OmniButton Class="omni-entity-editor-add"
+                            Text="@Texts.Add"
+                            Icon="plus"
+                            Size="ComponentSize.Sm"
+                            Variant="ButtonVariant.Primary"
+                            Disabled="@(!CanCreate)"
+                            OnClick="@(_ => BeginCreateAsync())" />
+            }
+        </div>
+    }
+
+    <div class="omni-entity-editor-surface">
+        @ChildContent
+    </div>
+
+    @if (_draft is not null && _operation is not null)
+    {
+        @if (EditorPresentation == EntityEditorPresentation.Inline)
+        {
+            <OmniDataGridFormEditor TItem="TItem"
+                                    Draft="@_draft"
+                                    Schema="@Schema.FormSchema"
+                                    Title="@EditorTitle"
+                                    Presentation="@DataGridFormPresentation.Inline"
+                                    Saving="@_saving"
+                                    Disabled="@(Disabled || ReadOnly)"
+                                    SaveText="@Texts.Save"
+                                    CancelText="@Texts.Cancel"
+                                    CloseText="@Texts.Close"
+                                    OnValidSubmit="@SaveAsync"
+                                    OnCancel="@CancelEditorAsync"
+                                    DirtyChanged="@DirtyChangedAsync">
+                <AdditionalActions>
+                    @if (CanDeleteDraft)
+                    {
+                        <OmniButton Text="@Texts.Remove"
+                                    Icon="trash"
+                                    Variant="ButtonVariant.Danger"
+                                    Disabled="@_saving"
+                                    OnClick="@(_ => RequestDeleteAsync())" />
+                    }
+                </AdditionalActions>
+            </OmniDataGridFormEditor>
+        }
+        else
+        {
+            <OmniOverlay Visible="true" AutoClose="false" CloseOnEsc="@(!_saving)" OnClosed="@CancelEditorAsync">
+                <OmniDataGridFormEditor TItem="TItem"
+                                        Class="@EditorCss"
+                                        Style="@EditorStyle"
+                                        Draft="@_draft"
+                                        Schema="@Schema.FormSchema"
+                                        Title="@EditorTitle"
+                                        Presentation="@LegacyPresentation"
+                                        Saving="@_saving"
+                                        Disabled="@(Disabled || ReadOnly)"
+                                        SaveText="@Texts.Save"
+                                        CancelText="@Texts.Cancel"
+                                        CloseText="@Texts.Close"
+                                        OnValidSubmit="@SaveAsync"
+                                        OnCancel="@CancelEditorAsync"
+                                        DirtyChanged="@DirtyChangedAsync">
+                    <AdditionalActions>
+                        @if (CanDeleteDraft)
+                        {
+                            <OmniButton Text="@Texts.Remove"
+                                        Icon="trash"
+                                        Variant="ButtonVariant.Danger"
+                                        Disabled="@_saving"
+                                        OnClick="@(_ => RequestDeleteAsync())" />
+                        }
+                    </AdditionalActions>
+                </OmniDataGridFormEditor>
+            </OmniOverlay>
+        }
+
+        @if (GuardNavigationWithUnsavedChanges)
+        {
+            <OmniExitPrompt When="@_unsavedChangesPredicate"
+                            Title="@Texts.DataGridFormUnsavedChangesTitle"
+                            Text="@Texts.DataGridFormUnsavedChangesMessage"
+                            ConfirmText="@Texts.DataGridFormDiscardChanges"
+                            CancelText="@Texts.DataGridFormContinueEditing" />
+        }
+    }
+
+    @if (_deleteConfirmationOpen && _sourceItem is not null)
+    {
+        <OmniOverlay Visible="true" AutoClose="false" CloseOnEsc="@(!_saving)" OnClosed="@CancelDeleteAsync">
+            <section class="omni-data-grid-form-confirm" role="alertdialog" aria-modal="true"
+                     aria-labelledby="@DeleteTitleId" aria-describedby="@DeleteMessageId">
+                <h2 id="@DeleteTitleId">@DeleteTitle</h2>
+                <p id="@DeleteMessageId">@DeleteMessage</p>
+                <div class="omni-data-grid-form-confirm-actions">
+                    <OmniButton Text="@Texts.Cancel" Disabled="@_saving" OnClick="@(_ => CancelDeleteAsync())" />
+                    <OmniButton Text="@Texts.Remove" Icon="trash" Variant="ButtonVariant.Danger"
+                                Loading="@_saving" OnClick="@(_ => ConfirmDeleteAsync())" />
+                </div>
+            </section>
+        </OmniOverlay>
+    }
+
+    @if (_discardConfirmationOpen)
+    {
+        <OmniOverlay Visible="true" AutoClose="false" CloseOnEsc="true" OnClosed="@CancelDiscardAsync">
+            <section class="omni-data-grid-form-confirm" role="alertdialog" aria-modal="true"
+                     aria-labelledby="@DiscardTitleId" aria-describedby="@DiscardMessageId">
+                <h2 id="@DiscardTitleId">@Texts.DataGridFormUnsavedChangesTitle</h2>
+                <p id="@DiscardMessageId">@Texts.DataGridFormUnsavedChangesMessage</p>
+                <div class="omni-data-grid-form-confirm-actions">
+                    <OmniButton Text="@Texts.DataGridFormContinueEditing" OnClick="@(_ => CancelDiscardAsync())" />
+                    <OmniButton Text="@Texts.DataGridFormDiscardChanges" Icon="trash" Variant="ButtonVariant.Danger"
+                                OnClick="@(_ => DiscardEditorAsync())" />
+                </div>
+            </section>
+        </OmniOverlay>
+    }
+</div>

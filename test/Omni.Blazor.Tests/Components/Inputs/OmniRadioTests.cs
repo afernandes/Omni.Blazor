@@ -42,7 +42,7 @@ public class OmniRadioTests : TestContextBase
             .Add(c => c.Label, "Ignored")
             .Add(c => c.ChildContent, b => b.AddContent(0, "Custom")));
 
-        Assert.Contains("Custom",  cut.Find("label").TextContent);
+        Assert.Contains("Custom", cut.Find("label").TextContent);
         Assert.DoesNotContain("Ignored", cut.Find("label").TextContent);
     }
 

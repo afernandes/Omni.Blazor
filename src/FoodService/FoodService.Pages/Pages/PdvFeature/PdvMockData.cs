@@ -113,7 +113,7 @@ public static class PdvMockData
 
     public static readonly string[] Waiters = { "Ricardo M.", "Felipe S.", "Ana P.", "Bruno A.", "Letícia O." };
     public static readonly string[] TabLocations = { "Salão", "Varanda", "Bar", "Mezanino" };
-    public static readonly int[]   PickupEtas    = { 15, 30, 45, 60 };
+    public static readonly int[] PickupEtas = { 15, 30, 45, 60 };
 
     // ─── Cupons válidos ────────────────────────────────────────────────
     public static readonly Coupon[] Coupons =

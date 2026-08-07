@@ -20,4 +20,22 @@ public sealed record ComponentInfo(
     [JsonIgnore] public string BlobUrl => $"https://github.com/afernandes/Omni.Blazor/blob/main/{Source}";
 }
 
-public sealed record Manifest(string Package, string Repository, int Count, ComponentInfo[] Components);
+public sealed record ApiMemberInfo(string Name, string Kind, string Signature, string? Summary);
+
+public sealed record ConfigurationApiInfo(
+    string Name,
+    string Category,
+    string Kind,
+    string? Summary,
+    string Source,
+    ApiMemberInfo[] Members)
+{
+    [JsonIgnore] public string BlobUrl => $"https://github.com/afernandes/Omni.Blazor/blob/main/{Source}";
+}
+
+public sealed record Manifest(
+    string Package,
+    string Repository,
+    int Count,
+    ComponentInfo[] Components,
+    ConfigurationApiInfo[] ConfigurationApis);

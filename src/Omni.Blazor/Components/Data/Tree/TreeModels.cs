@@ -39,16 +39,10 @@ public sealed class TreeItemSettings
     /// <summary>The child data items.</summary>
     public IEnumerable? Data { get; set; }
 
-    /// <summary>Property name read for each child's text.</summary>
-    public string? TextProperty { get; set; }
-
-    /// <summary>Explicit text selector (wins over <see cref="TextProperty"/>).</summary>
+    /// <summary>Text selector for each child.</summary>
     public Func<object, string?>? Text { get; set; }
 
-    /// <summary>Property name read for each child's leading icon.</summary>
-    public string? IconProperty { get; set; }
-
-    /// <summary>Explicit icon selector (wins over <see cref="IconProperty"/>).</summary>
+    /// <summary>Leading-icon selector for each child.</summary>
     public Func<object, string?>? Icon { get; set; }
 
     /// <summary>Whether a child has (further) children — controls the toggle chevron.</summary>

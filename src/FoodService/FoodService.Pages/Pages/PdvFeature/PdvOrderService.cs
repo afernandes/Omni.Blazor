@@ -379,19 +379,19 @@ public class PdvOrderService
     // ─── Helpers ───────────────────────────────────────────────────
     public static string PizzaSizeLabel(PizzaSize size) => size switch
     {
-        PizzaSize.Broto   => "Broto",
-        PizzaSize.Grande  => "Grande",
+        PizzaSize.Broto => "Broto",
+        PizzaSize.Grande => "Grande",
         PizzaSize.Familia => "Família",
-        _                 => "Grande",
+        _ => "Grande",
     };
 
     public static string ModeLabel(OrderMode m) => m switch
     {
-        OrderMode.Balcao   => "Balcão",
+        OrderMode.Balcao => "Balcão",
         OrderMode.Delivery => "Delivery",
         OrderMode.Retirada => "Retirada",
-        OrderMode.Mesa     => "Mesa",
-        OrderMode.Comanda  => "Comanda",
-        _                  => "Balcão",
+        OrderMode.Mesa => "Mesa",
+        OrderMode.Comanda => "Comanda",
+        _ => "Balcão",
     };
 }

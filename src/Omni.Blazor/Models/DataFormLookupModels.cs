@@ -17,6 +17,19 @@ public delegate ValueTask<OmniItemsPage<TItem>> DataFormLookupProvider<TModel, T
     CancellationToken cancellationToken)
     where TModel : class;
 
+/// <summary>Context supplied when resolving the item represented by a lookup value.</summary>
+public sealed record DataFormLookupResolveRequest<TModel, TValue>(
+    TModel Model,
+    TValue? Value,
+    IReadOnlyDictionary<string, object?> Dependencies)
+    where TModel : class;
+
+/// <summary>Resolves a lookup item from an initial or externally supplied bound value.</summary>
+public delegate ValueTask<TItem?> DataFormLookupResolver<TModel, TItem, TValue>(
+    DataFormLookupResolveRequest<TModel, TValue> request,
+    CancellationToken cancellationToken)
+    where TModel : class;
+
 /// <summary>Context rendered when an async items provider fails.</summary>
 public sealed record OmniItemsProviderErrorContext(
     Exception Exception,
@@ -31,6 +44,7 @@ public sealed class DataFormLookupEditorBuilder<TModel, TItem, TValue>
     private readonly Func<TItem, string> _textSelector;
     private IReadOnlyList<TItem> _items = [];
     private DataFormLookupProvider<TModel, TItem>? _provider;
+    private DataFormLookupResolver<TModel, TItem, TValue>? _resolver;
     private readonly List<DataFormPropertyPath> _dependencies = [];
     private bool _clearable;
     private bool _clearValueOnDependencyChange = true;
@@ -87,6 +101,19 @@ public sealed class DataFormLookupEditorBuilder<TModel, TItem, TValue>
         _items = [];
         _pageSize = pageSize;
         _maxItems = maxItems;
+        return this;
+    }
+
+    /// <summary>
+    /// Resolves the item represented by an initial or externally supplied value,
+    /// allowing the editor to display human-readable text before opening its list.
+    /// </summary>
+    public DataFormLookupEditorBuilder<TModel, TItem, TValue> ResolveItem(
+        DataFormLookupResolver<TModel, TItem, TValue> resolver)
+    {
+        _ensureMutable();
+        ArgumentNullException.ThrowIfNull(resolver);
+        _resolver = resolver;
         return this;
     }
 
@@ -165,6 +192,7 @@ public sealed class DataFormLookupEditorBuilder<TModel, TItem, TValue>
             _textSelector,
             _items,
             _provider,
+            _resolver,
             Array.AsReadOnly(_dependencies.ToArray()),
             _clearable,
             _clearValueOnDependencyChange,
@@ -193,6 +221,7 @@ internal sealed record DataFormLookupDefinition<TModel, TItem, TValue>(
     Func<TItem, string> TextSelector,
     IReadOnlyList<TItem> Items,
     DataFormLookupProvider<TModel, TItem>? Provider,
+    DataFormLookupResolver<TModel, TItem, TValue>? Resolver,
     IReadOnlyList<DataFormPropertyPath> Dependencies,
     bool Clearable,
     bool ClearValueOnDependencyChange,
@@ -210,6 +239,5 @@ internal sealed record DataFormLookupDefinition<TModel, TItem, TValue>(
     : IDataFormLookupDefinition<TModel>
     where TModel : class
 {
-    public Type EditorType { get; } = typeof(Omni.Blazor.Components.OmniDataFormLookupEditor<,,>)
-        .MakeGenericType(typeof(TModel), typeof(TItem), typeof(TValue));
+    public Type EditorType { get; } = typeof(Omni.Blazor.Components.OmniDataFormLookupEditor<TModel, TItem, TValue>);
 }

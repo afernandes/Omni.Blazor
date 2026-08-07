@@ -24,10 +24,10 @@ public class OmniStatusBadgeTests : TestContextBase
 
     [Theory]
     [InlineData(StatusBadgeKind.Neutral, "omni-status-neutral")]
-    [InlineData(StatusBadgeKind.Accent,  "omni-status-accent")]
-    [InlineData(StatusBadgeKind.Good,    "omni-status-good")]
-    [InlineData(StatusBadgeKind.Warn,    "omni-status-warn")]
-    [InlineData(StatusBadgeKind.Danger,  "omni-status-danger")]
+    [InlineData(StatusBadgeKind.Accent, "omni-status-accent")]
+    [InlineData(StatusBadgeKind.Good, "omni-status-good")]
+    [InlineData(StatusBadgeKind.Warn, "omni-status-warn")]
+    [InlineData(StatusBadgeKind.Danger, "omni-status-danger")]
     public void Applies_kind_class(StatusBadgeKind kind, string expected)
     {
         var cut = Render<OmniStatusBadge>(p => p

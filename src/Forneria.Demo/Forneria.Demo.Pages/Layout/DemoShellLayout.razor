@@ -1,0 +1,40 @@
+@inherits LayoutComponentBase
+@inject ThemeService Theme
+
+@* Catalog-only shell. Vertical product examples live in src/FoodService. *@
+<OmniLayout Class="demo-catalog-shell">
+    <OmniAppBar>
+        <div class="demo-catalog-bar">
+            <OmniBrand Initial="O" Name="Omni.Blazor" Href="/" />
+            <nav aria-label="Catalog navigation">
+                <NavLink href="/showcase" Match="NavLinkMatch.All">Components</NavLink>
+                <NavLink href="/showcase/get-started">Get started</NavLink>
+                <a href="https://github.com/afernandes/Omni.Blazor">GitHub</a>
+            </nav>
+            <OmniThemePicker Title="Appearance" />
+        </div>
+    </OmniAppBar>
+
+    <OmniMain NoPadding>
+        @Body
+    </OmniMain>
+</OmniLayout>
+
+<OmniOverlayHosts />
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Theme.IsInitialized) return;
+
+        try
+        {
+            await Theme.InitializeAsync();
+            StateHasChanged();
+        }
+        catch
+        {
+            // Theme persistence is optional and must not block component browsing.
+        }
+    }
+}

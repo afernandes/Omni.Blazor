@@ -68,7 +68,7 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
 
         _editContext = CurrentEditContext;
         _messageStore = new ValidationMessageStore(_editContext);
-        _editContext.OnFieldChanged        += OnFieldChanged;
+        _editContext.OnFieldChanged += OnFieldChanged;
         _editContext.OnValidationRequested += OnValidationRequested;
     }
 
@@ -134,7 +134,7 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
     {
         if (_editContext is not null)
         {
-            _editContext.OnFieldChanged        -= OnFieldChanged;
+            _editContext.OnFieldChanged -= OnFieldChanged;
             _editContext.OnValidationRequested -= OnValidationRequested;
             // IMPORTANTE: limpa as mensagens *deste* validator antes de sair
             // (senão sobra erro fantasma se o form for re-mountado).

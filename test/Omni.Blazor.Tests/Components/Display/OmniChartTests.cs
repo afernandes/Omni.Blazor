@@ -198,4 +198,79 @@ public class OmniChartTests : TestContextBase
 
         Assert.Equal("rebeccapurple", cut.FindAll("svg.omni-chart-svg rect")[1].GetAttribute("fill"));
     }
+
+    [Fact]
+    public void Stacked_column_renders_one_segment_per_series_point()
+    {
+        ChartSeries[] series =
+        [
+            new() { Title = "North", Type = ChartSeriesType.StackedColumn, Points = [new() { Category = "Q1", Value = 10 }, new() { Category = "Q2", Value = 20 }] },
+            new() { Title = "South", Type = ChartSeriesType.StackedColumn, Points = [new() { Category = "Q1", Value = 5 }, new() { Category = "Q2", Value = 8 }] }
+        ];
+
+        var cut = Render<OmniChart>(parameters => parameters.Add(component => component.Series, series));
+
+        Assert.Equal(4, cut.FindAll("svg.omni-chart-svg rect").Count);
+    }
+
+    [Fact]
+    public void Bubble_uses_numeric_x_and_bounded_size_for_markers()
+    {
+        ChartSeries series = new()
+        {
+            Title = "Portfolio",
+            Type = ChartSeriesType.Bubble,
+            Points =
+            [
+                new() { Category = "A", X = 12, Value = 18, Size = 3 },
+                new() { Category = "B", X = 30, Value = 9, Size = 50 }
+            ]
+        };
+
+        var cut = Render<OmniChart>(parameters => parameters.Add(component => component.Series, new[] { series }));
+
+        Assert.Equal(2, cut.FindAll("svg.omni-chart-svg circle").Count);
+        Assert.All(cut.FindAll("svg.omni-chart-svg circle"), circle =>
+            Assert.InRange(double.Parse(circle.GetAttribute("r")!, System.Globalization.CultureInfo.InvariantCulture), 3, 18));
+    }
+
+    [Fact]
+    public void Radar_renders_a_closed_polygon_for_each_series()
+    {
+        ChartSeries series = new()
+        {
+            Title = "Quality",
+            Type = ChartSeriesType.Radar,
+            Points =
+            [
+                new() { Category = "DX", Value = 9 },
+                new() { Category = "Speed", Value = 8 },
+                new() { Category = "A11y", Value = 7 }
+            ]
+        };
+
+        var cut = Render<OmniChart>(parameters => parameters.Add(component => component.Series, new[] { series }));
+
+        Assert.Contains(cut.FindAll("svg.omni-chart-svg path"), path =>
+            path.QuerySelector("title")?.TextContent == "Quality" && path.GetAttribute("d")!.EndsWith('Z'));
+    }
+
+    [Fact]
+    public void Gauge_renders_track_value_and_configured_range()
+    {
+        ChartSeries series = new()
+        {
+            Title = "Availability",
+            Type = ChartSeriesType.Gauge,
+            GaugeMinimum = 0,
+            GaugeMaximum = 100,
+            Points = [new() { Category = "Current", Value = 82 }]
+        };
+
+        var cut = Render<OmniChart>(parameters => parameters.Add(component => component.Series, new[] { series }));
+
+        Assert.Equal(2, cut.FindAll("svg.omni-chart-svg path").Count);
+        Assert.Contains("82", cut.Find(".omni-chart-gauge-value").TextContent);
+        Assert.Contains("Availability", cut.Find(".omni-chart-gauge-label").TextContent);
+    }
 }

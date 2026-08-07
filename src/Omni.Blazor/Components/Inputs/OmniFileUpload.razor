@@ -2,7 +2,7 @@
 @inherits OmniComponent
 @implements IOmniFormComponent
 @implements IDisposable
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule JS
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Linq.Expressions
 @using Omni.Blazor.Utilities
@@ -184,7 +184,7 @@
 
     private async Task ClearNativeInputAsync()
     {
-        try { await JS.InvokeVoidAsync("omniBlazor.clearFileInput", _id); }
+        try { await JS.InvokeVoidAsync("clearFileInput", _id); }
         catch { }
     }
 

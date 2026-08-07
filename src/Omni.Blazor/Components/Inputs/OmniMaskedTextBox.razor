@@ -1,6 +1,6 @@
 @namespace Omni.Blazor.Components
 @inherits FormComponent<string>
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule JS
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
 
@@ -92,7 +92,7 @@
         string formatted;
         try
         {
-            formatted = await JS.InvokeAsync<string>("omniBlazor.applyMask", _input, Mask);
+            formatted = await JS.InvokeAsync<string>("applyMask", _input, Mask);
         }
         catch
         {

@@ -37,8 +37,8 @@ public class OmniToggleButtonTests : TestContextBase
     [Theory]
     [InlineData(ToggleVariant.Default, null)]
     [InlineData(ToggleVariant.Primary, "omni-toggle-btn-primary")]
-    [InlineData(ToggleVariant.Accent,  "omni-toggle-btn-accent")]
-    [InlineData(ToggleVariant.Ghost,   "omni-toggle-btn-ghost")]
+    [InlineData(ToggleVariant.Accent, "omni-toggle-btn-accent")]
+    [InlineData(ToggleVariant.Ghost, "omni-toggle-btn-ghost")]
     public void Applies_variant_modifier(ToggleVariant variant, string? expectedClass)
     {
         var cut = Render<OmniToggleButton>(p => p

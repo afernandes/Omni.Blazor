@@ -14,13 +14,13 @@ public class DialogService
     internal IReadOnlyList<DialogReference> OpenDialogs => _openDialogs;
     internal DialogReference? OpenSideDialog => _openSideDialog;
 
-    public Task<dynamic?> OpenAsync<TComponent>(
+    public Task<object?> OpenAsync<TComponent>(
         string? title,
         Dictionary<string, object?>? parameters = null,
         DialogOptions? options = null) where TComponent : ComponentBase
         => OpenAsync(title, typeof(TComponent), parameters, options);
 
-    public Task<dynamic?> OpenAsync(
+    public Task<object?> OpenAsync(
         string? title,
         Type componentType,
         Dictionary<string, object?>? parameters = null,
@@ -32,7 +32,7 @@ public class DialogService
             ComponentType = componentType,
             Parameters = parameters,
             Options = options ?? new DialogOptions(),
-            Tcs = new TaskCompletionSource<dynamic?>(),
+            Tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously),
             Sequence = ++_sequence
         };
         _openDialogs.Add(dialog);
@@ -40,13 +40,13 @@ public class DialogService
         return dialog.Tcs.Task;
     }
 
-    public Task<dynamic?> OpenSideAsync<TComponent>(
+    public Task<object?> OpenSideAsync<TComponent>(
         string? title,
         Dictionary<string, object?>? parameters = null,
         SideDialogOptions? options = null) where TComponent : ComponentBase
         => OpenSideAsync(title, typeof(TComponent), parameters, options);
 
-    public Task<dynamic?> OpenSideAsync(
+    public Task<object?> OpenSideAsync(
         string? title,
         Type componentType,
         Dictionary<string, object?>? parameters = null,
@@ -59,7 +59,7 @@ public class DialogService
             ComponentType = componentType,
             Parameters = parameters,
             Options = options ?? new SideDialogOptions(),
-            Tcs = new TaskCompletionSource<dynamic?>(),
+            Tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously),
             IsSide = true,
             Sequence = ++_sequence
         };
@@ -117,7 +117,7 @@ public class DialogService
     /// <c>Dialog.Close(result)</c> sem saber se estão sendo renderizados num
     /// modal central ou num drawer lateral.
     /// </summary>
-    public void Close(dynamic? result = null)
+    public void Close(object? result = null)
     {
         var topmost = Topmost();
         if (topmost is null) return;
@@ -135,7 +135,7 @@ public class DialogService
 
     /// <summary>Fecha explicitamente o side dialog (independente de qual é o
     /// topmost). Útil para programatic close por código de fora do componente.</summary>
-    public void CloseSide(dynamic? result = null)
+    public void CloseSide(object? result = null)
     {
         if (_openSideDialog is null) return;
         var dlg = _openSideDialog;
@@ -156,7 +156,7 @@ public class DialogService
         return side.Sequence > lastMain.Sequence ? side : lastMain;
     }
 
-    public Task<dynamic?> OpenAsync(
+    public Task<object?> OpenAsync(
         string title,
         Type componentType,
         Dictionary<string, object?>? parameters,
@@ -175,7 +175,7 @@ internal class DialogReference
     public required Type ComponentType { get; set; }
     public Dictionary<string, object?>? Parameters { get; set; }
     public required DialogOptionsBase Options { get; set; }
-    public required TaskCompletionSource<dynamic?> Tcs { get; set; }
+    public required TaskCompletionSource<object?> Tcs { get; set; }
     public bool IsSide { get; set; }
 
     /// <summary>Monotonic open-order counter. Used by <c>Close()</c> to decide

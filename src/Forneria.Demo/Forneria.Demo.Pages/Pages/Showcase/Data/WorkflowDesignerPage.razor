@@ -1,0 +1,58 @@
+@page "/showcase/workflow-designer"
+@attribute [ShowcaseInfo(Title = "Workflow Designer", Category = Cat.Data, Icon = "workflow", New = true, Featured = true, Aliases = "diagram,designer,undo,inspector")]
+@layout ShowcaseLayout
+
+<PageTitle>Workflow Designer — Showcase</PageTitle>
+
+<ShowcasePage Title="Workflow Designer" Subtitle="Designer tipado com canvas, PropertyGrid, validação e histórico limitado de undo/redo.">
+    <Overview><p>O <code>OmniWorkflowDesigner</code> compõe o DiagramCanvas e o PropertyGrid em uma superfície controlada, sem impor um modelo de domínio.</p></Overview>
+    <WhenToUse><ul><li>Workflows, automações, pipelines e editores visuais com propriedades tipadas.</li></ul></WhenToUse>
+    <WhenNotToUse><ul><li>Diagrama apenas visual; use <code>OmniDiagramCanvas</code>.</li></ul></WhenNotToUse>
+    <ChildContent>
+        <ShowcaseSection Title="DESIGNER COM INSPECTOR" Description="Selecione o nó para editar o payload tipado; movimentos entram no histórico limitado." Code="@ExampleCode">
+            <OmniWorkflowDesigner TNode="Etapa"
+                                  Nodes="@_nos"
+                                  NodesChanged="@AtualizarNos"
+                                  Edges="@_arestas"
+                                  InspectorSchema="@InspectorSchema"
+                                  Validator="@Validar" />
+        </ShowcaseSection>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private IReadOnlyList<DiagramNode> _nos =
+    [
+        new() { Id = "inicio", X = 60, Y = 120, Title = "Início", Icon = "play", OutPorts = [new("Próximo", DiagramPortKind.Success)], Data = new Etapa { Nome = "Início", Responsavel = "Sistema" } },
+        new() { Id = "aprovar", X = 380, Y = 120, Title = "Aprovar pedido", Icon = "badge-check", OutPorts = [new("Aprovado", DiagramPortKind.Success), new("Rejeitado", DiagramPortKind.Failure)], Data = new Etapa { Nome = "Aprovar pedido", Responsavel = "Gestor" } }
+    ];
+    private readonly IReadOnlyList<DiagramEdge> _arestas = [new("e1", "inicio", "Próximo", "aprovar")];
+
+    private static readonly DataFormSchema<Etapa> InspectorSchema = DataFormSchema<Etapa>.Create(form => form
+        .AutoGenerateFields(false)
+        .Field(item => item.Nome, field => field.Label("Nome").Required())
+        .Field(item => item.Responsavel, field => field.Label("Responsável")));
+
+    private Task AtualizarNos(IReadOnlyList<DiagramNode> nos)
+    {
+        _nos = nos;
+        return Task.CompletedTask;
+    }
+
+    private static IReadOnlyList<string> Validar(IReadOnlyList<DiagramNode> nos, IReadOnlyList<DiagramEdge> arestas)
+        => nos.Count > 0 && arestas.Count == 0 ? ["Conecte as etapas do fluxo."] : [];
+
+    private const string ExampleCode = """
+<OmniWorkflowDesigner TNode="Etapa"
+                      Nodes="@nos" NodesChanged="@AtualizarNos"
+                      Edges="@arestas"
+                      InspectorSchema="@InspectorSchema"
+                      Validator="@Validar" />
+""";
+
+    private sealed class Etapa
+    {
+        public string Nome { get; set; } = string.Empty;
+        public string Responsavel { get; set; } = string.Empty;
+    }
+}

@@ -20,10 +20,10 @@ public class OmniFabMenuItemTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(FabMenuItemLabelPosition.Auto,  "omni-fab-item-label-auto")]
-    [InlineData(FabMenuItemLabelPosition.Left,  "omni-fab-item-label-left")]
+    [InlineData(FabMenuItemLabelPosition.Auto, "omni-fab-item-label-auto")]
+    [InlineData(FabMenuItemLabelPosition.Left, "omni-fab-item-label-left")]
     [InlineData(FabMenuItemLabelPosition.Right, "omni-fab-item-label-right")]
-    [InlineData(FabMenuItemLabelPosition.None,  "omni-fab-item-no-label")]
+    [InlineData(FabMenuItemLabelPosition.None, "omni-fab-item-no-label")]
     public void Applies_label_position_modifier(FabMenuItemLabelPosition lp, string expectedClass)
     {
         var cut = Render<OmniFabMenuItem>(p => p

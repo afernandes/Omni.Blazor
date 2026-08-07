@@ -157,7 +157,6 @@ public class FilterSqlConverterTests
     [InlineData("Idade = 'abc'", "numérico")]
     [InlineData("Nome = 'abc", "não terminada")]
     [InlineData("Idade 5", "operador")]
-    [InlineData("Nome BETWEEN 1 AND 2", "BETWEEN")]
     public void Parse_errors_are_reported(string sql, string fragment)
     {
         Assert.False(FilterSqlConverter.TryParse(sql, Props(), out var rules, out _, out var err));
@@ -254,5 +253,20 @@ public class FilterSqlConverterTests
     {
         Assert.False(FilterSqlConverter.TryParse("NOT Nome LIKE '%x%'", Props(), out _, out _, out var err));
         Assert.Contains("NOT", err);
+    }
+
+    [Theory]
+    [InlineData("Idade BETWEEN 18 AND 65", FilterOperator.Between)]
+    [InlineData("Idade NOT BETWEEN 18 AND 65", FilterOperator.NotBetween)]
+    public void Between_round_trips_with_both_bounds(string sql, FilterOperator expectedOperator)
+    {
+        Assert.True(FilterSqlConverter.TryParse(sql, Props(), out var rules, out var logic, out var error), error);
+        OmniFilterRule rule = Assert.Single(rules);
+        DataFilterRangeValue range = Assert.IsType<DataFilterRangeValue>(rule.Value);
+
+        Assert.Equal(expectedOperator, rule.Operator);
+        Assert.Equal(18m, range.Lower);
+        Assert.Equal(65m, range.Upper);
+        Assert.Equal(sql, FilterSqlConverter.ToSql(rules, logic, Props()));
     }
 }

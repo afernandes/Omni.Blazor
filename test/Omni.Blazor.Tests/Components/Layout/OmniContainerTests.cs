@@ -22,12 +22,12 @@ public class OmniContainerTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(ContainerMaxWidth.Sm,  "omni-container-sm")]
-    [InlineData(ContainerMaxWidth.Md,  "omni-container-md")]
-    [InlineData(ContainerMaxWidth.Lg,  "omni-container-lg")]
-    [InlineData(ContainerMaxWidth.Xl,  "omni-container-xl")]
+    [InlineData(ContainerMaxWidth.Sm, "omni-container-sm")]
+    [InlineData(ContainerMaxWidth.Md, "omni-container-md")]
+    [InlineData(ContainerMaxWidth.Lg, "omni-container-lg")]
+    [InlineData(ContainerMaxWidth.Xl, "omni-container-xl")]
     [InlineData(ContainerMaxWidth.Xxl, "omni-container-xxl")]
-    [InlineData(ContainerMaxWidth.Full,"omni-container-full")]
+    [InlineData(ContainerMaxWidth.Full, "omni-container-full")]
     public void Applies_maxwidth_modifier(ContainerMaxWidth max, string expected)
     {
         var cut = Render<OmniContainer>(p => p

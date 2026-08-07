@@ -1,0 +1,42 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@typeparam TKey where TKey : notnull
+@inherits OmniComponent
+@using Omni.Blazor.Models
+
+@* CRUD-enabled Gantt that edits detached tasks through OmniDataForm and the shared headless entity coordinator. *@
+
+<OmniEntityEditorHost TItem="TItem" TKey="TKey"
+                      @ref="_editor"
+                      Schema="@EditorSchema"
+                      Items="@Items"
+                      Provider="@Provider"
+                      Disabled="@Disabled"
+                      ReadOnly="@ReadOnly"
+                      MinimumItems="@MinimumItems"
+                      MaximumItems="@MaximumItems"
+                      ItemsChanged="@ItemsChanged"
+                      RefreshRequested="@RefreshRequested"
+                      OperationCompleted="@HandleOperationCompletedAsync"
+                      OperationFailed="@OperationFailed"
+                      Class="@Class"
+                      Style="@Style"
+                      Attributes="@Attributes">
+    <ToolbarContent>@ToolbarContent</ToolbarContent>
+    <ChildContent>
+        <OmniGantt TItem="TItem"
+                   @ref="_gantt"
+                   Data="@Items"
+                   Schema="@GanttSchema"
+                   TaskTemplate="@TaskTemplate"
+                   TaskClick="@HandleTaskClickAsync"
+                   RowClick="@HandleRowClickAsync"
+                   TaskMove="@TaskMove"
+                   TaskResize="@TaskResize"
+                   ColumnResized="@ColumnResized"
+                   Class="@GanttClass"
+                   Style="@GanttStyle">
+            @Columns
+        </OmniGantt>
+    </ChildContent>
+</OmniEntityEditorHost>

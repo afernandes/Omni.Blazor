@@ -1,0 +1,155 @@
+@page "/showcase/entity-picker"
+@attribute [ShowcaseInfo(Title = "Entity Picker", Category = Cat.Inputs, Icon = "search", New = true, Featured = true, Aliases = "lookup,entity,grid,selector,foreign-key")]
+@layout ShowcaseLayout
+
+<PageTitle>Entity Picker — Showcase</PageTitle>
+
+@if (_interactiveReady)
+{
+    <span data-testid="entity-picker-interactive" aria-hidden="true"></span>
+}
+
+<ShowcasePage Title="Entity Picker"
+              Subtitle="Seleciona entidades locais ou server-side em um OmniDataGrid pesquisável e mantém apenas a chave estável no EditContext.">
+    <Overview>
+        <p>
+            <code>OmniEntityPicker&lt;TItem,TKey&gt;</code> combina a DX de um lookup com os recursos
+            do DataGrid. O formulário persiste somente <code>TKey</code>; o componente resolve e
+            exibe a entidade, com cancelamento latest-wins quando a chave muda.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <li>Chaves estrangeiras com muitos registros ou várias colunas relevantes.</li>
+        <li>Seleção remota que precisa de busca, paginação e resolução por chave.</li>
+        <li>Quando um select ou autocomplete não oferece contexto suficiente.</li>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="FONTE LOCAL"
+                         Description="A entidade é encontrada sem I/O e o binding recebe somente o Guid do fornecedor."
+                         Code="@LocalExample">
+            <div data-testid="entity-picker-local" style="max-width:560px;">
+                <OmniLabel Text="Fornecedor" />
+                <OmniEntityPicker TItem="Fornecedor" TKey="Guid"
+                                  Items="@_fornecedores"
+                                  GridSchema="@FornecedorGridSchema"
+                                  KeySelector="@(fornecedor => fornecedor.Id)"
+                                  TextSelector="@(fornecedor => $"{fornecedor.Nome} — {fornecedor.Cidade}")"
+                                  @bind-Value="_fornecedorId"
+                                  Title="Selecionar fornecedor"
+                                  ColumnTitle="Fornecedor" />
+                <p class="omni-muted" style="font-size:12px;margin-top:8px;">Chave: @_fornecedorId</p>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PROVIDER E RESOLVER ASSÍNCRONOS"
+                         Description="DataProvider pagina e pesquisa; ResolveItem recupera a entidade quando o formulário recebe somente uma chave. Ambos recebem CancellationToken."
+                         Code="@ProviderExample">
+            <div data-testid="entity-picker-provider" style="max-width:620px;">
+                <OmniLabel Text="Produto" />
+                <OmniEntityPicker TItem="Produto" TKey="int"
+                                  DataProvider="@BuscarProdutosAsync"
+                                  ResolveItem="@ResolverProdutoAsync"
+                                  KeySelector="@(produto => produto.Id)"
+                                  TextSelector="@(produto => $"{produto.Codigo} — {produto.Descricao}")"
+                                  @bind-Value="_produtoId"
+                                  Presentation="EntityPickerPresentation.Drawer"
+                                  Title="Selecionar produto">
+                    <Columns>
+                        <OmniDataGridColumn TItem="Produto" Property="@(produto => produto.Codigo)" Title="Código" Width="140px" />
+                        <OmniDataGridColumn TItem="Produto" Property="@(produto => produto.Descricao)" Title="Produto" />
+                        <OmniDataGridColumn TItem="Produto" Property="@(produto => produto.Preco)" Title="Preço" Format="C2" Width="130px" />
+                    </Columns>
+                </OmniEntityPicker>
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniEntityPicker&lt;TItem,TKey&gt;">
+            <ShowcaseApiRow Name="Items / DataProvider" Type="IEnumerable&lt;TItem&gt; / GridDataProvider&lt;TItem&gt;" Default="mutuamente exclusivos" Description="Fonte local ou janela server-side cancelável." />
+            <ShowcaseApiRow Name="KeySelector / TextSelector" Type="Func" Default="obrigatórios" Description="Identidade persistida e texto da entidade resolvida." />
+            <ShowcaseApiRow Name="ResolveItem" Type="EntityPickerResolver" Default="—" Description="Recupera a entidade representada por uma chave externa, com latest-wins." />
+            <ShowcaseApiRow Name="Columns" Type="RenderFragment" Default="coluna de texto" Description="Colunas tipadas do OmniDataGrid de seleção." />
+            <ShowcaseApiRow Name="GridSchema" Type="DataGridSchema&lt;TItem&gt;?" Default="null" Description="Schema Fluent reutilizável com colunas e comportamento do grid interno." />
+            <ShowcaseApiRow Name="Presentation" Type="EntityPickerPresentation" Default="Dialog" Description="Dialog central ou drawer lateral." />
+            <ShowcaseApiRow Name="SelectedItemChanged" Type="EventCallback&lt;TItem?&gt;" Default="—" Description="Notifica a entidade escolhida sem mudar o binding por chave." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private bool _interactiveReady;
+    private Guid _fornecedorId = Guid.Parse("41000000-0000-0000-0000-000000000001");
+    private int _produtoId = 2;
+
+    private static readonly DataGridSchema<Fornecedor> FornecedorGridSchema =
+        DataGridSchema<Fornecedor>.Create(grid => grid
+            .Column(fornecedor => fornecedor.Nome, column => column.Title("Fornecedor"))
+            .Column(fornecedor => fornecedor.Cidade, column => column.Title("Cidade"))
+            .Search(placeholder: "Buscar fornecedor"));
+
+    private readonly Fornecedor[] _fornecedores =
+    [
+        new(Guid.Parse("41000000-0000-0000-0000-000000000001"), "Café Aurora", "Campinas"),
+        new(Guid.Parse("41000000-0000-0000-0000-000000000002"), "Padaria Central", "São Paulo"),
+        new(Guid.Parse("41000000-0000-0000-0000-000000000003"), "Fazenda Verde", "Jundiaí")
+    ];
+
+    private static readonly Produto[] Produtos =
+    [
+        new(1, "CAF-001", "Café especial 500 g", 34.90m),
+        new(2, "PAO-010", "Pão artesanal", 18.50m),
+        new(3, "CHA-020", "Chá verde", 22.00m),
+        new(4, "MEL-030", "Mel orgânico", 29.90m)
+    ];
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
+    }
+
+    private static async ValueTask<GridLoadResult<Produto>> BuscarProdutosAsync(
+        GridState<Produto> state,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(120, cancellationToken);
+        IEnumerable<Produto> query = Produtos;
+        if (!string.IsNullOrWhiteSpace(state.Search))
+            query = query.Where(produto => produto.Codigo.Contains(state.Search, StringComparison.OrdinalIgnoreCase)
+                                           || produto.Descricao.Contains(state.Search, StringComparison.CurrentCultureIgnoreCase));
+        Produto[] filtered = query.ToArray();
+        return new GridLoadResult<Produto>(filtered.Skip(state.Skip).Take(state.Top).ToArray(), filtered.Length);
+    }
+
+    private static async ValueTask<Produto?> ResolverProdutoAsync(int id, CancellationToken cancellationToken)
+    {
+        await Task.Delay(80, cancellationToken);
+        return Produtos.FirstOrDefault(produto => produto.Id == id);
+    }
+
+    private sealed record Fornecedor(Guid Id, string Nome, string Cidade);
+    private sealed record Produto(int Id, string Codigo, string Descricao, decimal Preco);
+
+    private const string LocalExample = """
+<OmniEntityPicker TItem="Fornecedor" TKey="Guid"
+                  Items="@fornecedores"
+                  GridSchema="@FornecedorGridSchema"
+                  KeySelector="@(x => x.Id)"
+                  TextSelector="@(x => x.Nome)"
+                  @bind-Value="fornecedorId" />
+""";
+
+    private const string ProviderExample = """
+<OmniEntityPicker TItem="Produto" TKey="int"
+                  DataProvider="@BuscarProdutosAsync"
+                  ResolveItem="@ResolverProdutoAsync"
+                  KeySelector="@(x => x.Id)"
+                  TextSelector="@(x => x.Descricao)"
+                  @bind-Value="produtoId"
+                  Presentation="EntityPickerPresentation.Drawer" />
+""";
+}

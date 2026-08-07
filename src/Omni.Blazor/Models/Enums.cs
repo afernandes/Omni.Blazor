@@ -448,15 +448,15 @@ public enum DataGridLayoutMode
 public enum Modifier
 {
     /// <summary>Nenhum modificador.</summary>
-    None  = 0,
+    None = 0,
     /// <summary>Tecla Control.</summary>
-    Ctrl  = 1 << 0,
+    Ctrl = 1 << 0,
     /// <summary>Tecla Alt (Option no macOS).</summary>
-    Alt   = 1 << 1,
+    Alt = 1 << 1,
     /// <summary>Tecla Shift.</summary>
     Shift = 1 << 2,
     /// <summary>Tecla Meta (Cmd no macOS, Win no Windows).</summary>
-    Meta  = 1 << 3
+    Meta = 1 << 3
 }
 
 // ===== Layout / wireframe ===================================================
@@ -766,7 +766,19 @@ public enum ChartSeriesType
     /// <summary>Donut (pizza com furo central).</summary>
     Donut,
     /// <summary>Waterfall (cascata de variações acumuladas).</summary>
-    Waterfall
+    Waterfall,
+    /// <summary>Vertically stacked columns.</summary>
+    StackedColumn,
+    /// <summary>Horizontally stacked bars.</summary>
+    StackedBar,
+    /// <summary>Numeric X/Y scatter points.</summary>
+    Scatter,
+    /// <summary>Numeric X/Y points with a third size dimension.</summary>
+    Bubble,
+    /// <summary>Radial category polygon.</summary>
+    Radar,
+    /// <summary>Single-value radial gauge.</summary>
+    Gauge
 }
 
 /// <summary>Posição da legenda do <c>OmniChart</c>.</summary>

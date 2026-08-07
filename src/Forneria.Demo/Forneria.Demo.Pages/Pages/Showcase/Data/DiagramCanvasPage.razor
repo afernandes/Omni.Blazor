@@ -43,6 +43,19 @@
     </WhenNotToUse>
 
     <ChildContent>
+        <ShowcaseSection Title="FLUENT SCHEMA VALIDADO"
+                         Description="O builder cria um snapshot imutável, rejeita IDs duplicados e conexões com nós ou portas inexistentes, e pode aplicar o auto-layout antes do primeiro render."
+                         Code="@(@"private static readonly DiagramSchema Schema = DiagramSchema.Create(diagram => diagram
+    .Node(""start"", node => node.Text(""Início"").Input(false).Output(""Done""))
+    .Node(""finish"", node => node.Text(""Concluído""))
+    .Connect(""flow"", ""start"", ""Done"", ""finish"")
+    .AutoLayout()
+    .Behavior(readOnly: true));
+
+<OmniDiagramCanvas Schema=""@Schema"" />")">
+            <OmniDiagramCanvas Schema="@_fluentDiagramSchema" Style="height:360px;" />
+        </ShowcaseSection>
+
         <ShowcaseSection Title="Editor interativo"
                          Description="Arraste nós, conecte arrastando de uma porta de saída até outro nó, selecione com clique/marquee (Shift = aditivo), Delete remove, Espaço+arrastar = pan, scroll = zoom. Arraste uma atividade do palette para criar um nó."
                          Code="@(@"<OmniDiagramCanvas Nodes=""_nodes"" Edges=""_edges""
@@ -108,6 +121,7 @@
         </ShowcaseSection>
 
         <ShowcaseApiTable>
+            <ShowcaseApiRow Name="Schema" Type="DiagramSchema?" Description="Grafo validado, viewport e comportamento do canvas em um snapshot Fluent imutável." />
             <ShowcaseApiRow Name="Nodes / Edges" Type="IReadOnlyList&lt;DiagramNode&gt; / &lt;DiagramEdge&gt;" Description="O grafo. Coordenadas em world-space; geometria em DiagramGeometry." />
             <ShowcaseApiRow Name="Selection" Type="DiagramSelection" Description="Seleção atual (nós + aresta). Two-way via SelectionChanged." />
             <ShowcaseApiRow Name="Viewport" Type="DiagramViewport" Description="Offset + zoom. Two-way via ViewportChanged (commit pós-gesto)." />
@@ -125,6 +139,23 @@
 </ShowcasePage>
 
 @code {
+    private static readonly DiagramSchema _fluentDiagramSchema = DiagramSchema.Create(diagram => diagram
+        .Node("start", node => node
+            .Text("Início", "Workflow")
+            .Appearance("play-line", "#7c3aed")
+            .Input(false)
+            .Output("Done", DiagramPortKind.Success))
+        .Node("review", node => node
+            .Text("Revisar pedido", "Operação")
+            .Appearance("search", "#0d9488")
+            .Output("Aprovar", DiagramPortKind.Success)
+            .Output("Rejeitar", DiagramPortKind.Failure))
+        .Node("finish", node => node.Text("Concluído", "Workflow").Appearance("check", "#16a34a"))
+        .Connect("flow-1", "start", "Done", "review")
+        .Connect("flow-2", "review", "Aprovar", "finish")
+        .AutoLayout()
+        .Behavior(readOnly: true));
+
     private sealed record PaletteItem(string Key, string Title, string Icon, string Color);
 
     private readonly List<PaletteItem> _palette =

@@ -3,7 +3,7 @@
 @using Omni.Blazor.Utilities
 @inherits OmniComponentWithChildren
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniOverlayJsModule JS
 @inject NavigationManager Nav
 
 @*  Horizontal navigation bar — tab-style root items with rich dropdowns.
@@ -113,9 +113,9 @@
             if (needed)
             {
                 _ref ??= DotNetObjectReference.Create(this);
-                await JS.InvokeVoidAsync("omniBlazor.registerClickOutside", Id, "#" + Id, _ref, "OnDismiss");
-                await JS.InvokeVoidAsync("omniBlazor.registerEsc", Id, _ref, "OnDismiss");
-                await JS.InvokeVoidAsync("omniBlazor.registerFlyoutFlip", Id, "#" + Id);
+                await JS.InvokeVoidAsync("registerClickOutside", Id, "#" + Id, _ref, "OnDismiss");
+                await JS.InvokeVoidAsync("registerEsc", Id, _ref, "OnDismiss");
+                await JS.InvokeVoidAsync("registerFlyoutFlip", Id, "#" + Id);
             }
             else
             {
@@ -130,9 +130,9 @@
 
     private async Task UnregisterListenersAsync()
     {
-        await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", Id);
-        await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", Id);
-        await JS.InvokeVoidAsync("omniBlazor.unregisterFlyoutFlip", Id);
+        await JS.InvokeVoidAsync("unregisterClickOutside", Id);
+        await JS.InvokeVoidAsync("unregisterEsc", Id);
+        await JS.InvokeVoidAsync("unregisterFlyoutFlip", Id);
     }
 
     public async ValueTask DisposeAsync()

@@ -74,17 +74,17 @@ public sealed class PageSettings
 
     private static int PageSizeWidth(string size) => size switch
     {
-        "A4"     => 794,   // 210mm @ 96dpi
+        "A4" => 794,   // 210mm @ 96dpi
         "Letter" => 816,   // 8.5in
-        "Legal"  => 816,
-        _        => 794,
+        "Legal" => 816,
+        _ => 794,
     };
     private static int PageSizeHeight(string size) => size switch
     {
-        "A4"     => 1123,  // 297mm @ 96dpi
+        "A4" => 1123,  // 297mm @ 96dpi
         "Letter" => 1056,  // 11in
-        "Legal"  => 1344,  // 14in
-        _        => 1123,
+        "Legal" => 1344,  // 14in
+        _ => 1123,
     };
 }
 
@@ -142,14 +142,14 @@ public sealed class ReportElement
     [JsonIgnore]
     public string DisplayLabel => Kind switch
     {
-        ElementKind.Label     => string.IsNullOrEmpty(Text) ? "Label" : $"Label · {Truncate(Text, 24)}",
-        ElementKind.TextBox   => string.IsNullOrEmpty(DataField) ? "TextBox" : $"[{DataField}]",
-        ElementKind.Line      => "Line",
+        ElementKind.Label => string.IsNullOrEmpty(Text) ? "Label" : $"Label · {Truncate(Text, 24)}",
+        ElementKind.TextBox => string.IsNullOrEmpty(DataField) ? "TextBox" : $"[{DataField}]",
+        ElementKind.Line => "Line",
         ElementKind.Rectangle => "Rectangle",
-        ElementKind.Image     => string.IsNullOrEmpty(Src) ? "Image" : $"Image · {Truncate(Src, 24)}",
-        ElementKind.Table     => $"Table {Rows}×{Columns}",
-        ElementKind.Barcode   => string.IsNullOrEmpty(Text) ? "Barcode" : $"Barcode · {Truncate(Text, 20)}",
-        _                     => Kind.ToString(),
+        ElementKind.Image => string.IsNullOrEmpty(Src) ? "Image" : $"Image · {Truncate(Src, 24)}",
+        ElementKind.Table => $"Table {Rows}×{Columns}",
+        ElementKind.Barcode => string.IsNullOrEmpty(Text) ? "Barcode" : $"Barcode · {Truncate(Text, 20)}",
+        _ => Kind.ToString(),
     };
 
     private static string Truncate(string s, int max) =>

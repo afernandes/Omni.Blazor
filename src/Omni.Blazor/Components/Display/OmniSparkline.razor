@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniScrollJsModule JS
 @using System.Globalization
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
@@ -184,7 +184,7 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.observeSparklineSize",
+            await JS.InvokeVoidAsync("observeSparklineSize",
                 _hostEl, _selfRef, nameof(OnSizeChangedInternal));
         }
         catch { /* SSR / JS gone */ }
@@ -373,7 +373,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("omniBlazor.unobserveSparklineSize", _hostEl); } catch { }
+        try { await JS.InvokeVoidAsync("unobserveSparklineSize", _hostEl); } catch { }
         _selfRef?.Dispose();
         _selfRef = null;
         GC.SuppressFinalize(this);

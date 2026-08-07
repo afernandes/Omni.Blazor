@@ -14,6 +14,42 @@ public sealed record SortDescriptor(string Property, SortDirection Direction);
 /// </summary>
 public sealed record DataGridColumnResizedEventArgs(string? PropertyName, double Width);
 
+/// <summary>Persistable presentation state for one uniquely named DataGrid column.</summary>
+public sealed record DataGridColumnViewState(
+    string Property,
+    int Order,
+    string? Width,
+    bool Visible,
+    FrozenPosition? Frozen);
+
+/// <summary>Persistable text filter state for one DataGrid column.</summary>
+public sealed record DataGridFilterViewState(
+    string Property,
+    FilterOperator Operator,
+    string? Value,
+    string? SecondValue = null);
+
+/// <summary>Persistable grouping level, including an optional date hierarchy interval.</summary>
+public sealed record DataGridGroupViewState(
+    string Property,
+    DateGroupInterval? Interval = null);
+
+/// <summary>
+/// Serializable DataGrid view preferences. Row data, selection and expansion are deliberately
+/// excluded so restoring a layout never revives stale business state.
+/// </summary>
+public sealed record DataGridViewState(
+    IReadOnlyList<DataGridColumnViewState> Columns,
+    IReadOnlyList<SortDescriptor> Sort,
+    IReadOnlyList<DataGridFilterViewState> Filters,
+    IReadOnlyList<DataGridGroupViewState> Groups,
+    string? Search = null,
+    int Version = DataGridViewState.CurrentVersion)
+{
+    /// <summary>Current serialized contract version.</summary>
+    public const int CurrentVersion = 1;
+}
+
 /// <summary>
 /// Critério de filtro aplicado a uma coluna. <c>SecondValue</c> é usado por
 /// operadores binários (<c>Between</c>, <c>NotBetween</c>); ignorado nos demais.

@@ -27,7 +27,7 @@ public class OmniAppBarTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(BarPosition.Top,    "omni-appbar-top",    "top")]
+    [InlineData(BarPosition.Top, "omni-appbar-top", "top")]
     [InlineData(BarPosition.Bottom, "omni-appbar-bottom", "bottom")]
     public void Applies_position_modifier(BarPosition pos, string expectedClass, string expectedAttr)
     {

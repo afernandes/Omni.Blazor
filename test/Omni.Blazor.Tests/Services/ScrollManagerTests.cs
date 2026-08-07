@@ -1,7 +1,7 @@
 namespace Omni.Blazor.Tests.Services;
 
 /// <summary>
-/// <see cref="ScrollManager"/> is a thin façade over <c>window.omniBlazor.*</c>
+/// <see cref="ScrollManager"/> is a thin façade over the isolated Omni JS module
 /// JS interop. Under bUnit's Loose JSInterop mode those calls are no-ops that
 /// return default, so these tests assert the *invocation contract* — the exact
 /// JS function name and the marshalled arguments — via <c>JSInterop.VerifyInvoke</c>,
@@ -10,7 +10,7 @@ namespace Omni.Blazor.Tests.Services;
 /// </summary>
 public class ScrollManagerTests : TestContextBase
 {
-    private ScrollManager Svc => new(JSInterop.JSRuntime);
+    private ScrollManager Svc => new(new TestJsModule(JSInterop.JSRuntime));
 
     [Fact]
     public async Task LockScroll_defaults_to_auto_selector()

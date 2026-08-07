@@ -43,21 +43,21 @@
         <ShowcaseSection Title="BÁSICO — CATEGORIA × ANO"
                          Description="Linhas = Categoria, Colunas = Ano, medida = Soma do total. Totais de linha e coluna ligados."
                          Code="@(@"<OmniPivotGrid Data=""@_sales"" TItem=""Sale"" ShowRowTotals ShowColumnTotals>
-    <Rows>    <OmniPivotRow TItem=""Sale"" Property=""Category"" Title=""Categoria"" /> </Rows>
-    <Columns> <OmniPivotColumn TItem=""Sale"" Property=""Year"" Title=""Ano"" />        </Columns>
-    <Values>  <OmniPivotValue TItem=""Sale"" Property=""Amount"" Title=""Total""
+    <Rows>    <OmniPivotRow TItem=""Sale"" Value=""@(x => x.Category)"" Title=""Categoria"" /> </Rows>
+    <Columns> <OmniPivotColumn TItem=""Sale"" Value=""@(x => x.Year)"" Title=""Ano"" />        </Columns>
+    <Values>  <OmniPivotValue TItem=""Sale"" Value=""@(x => x.Amount)"" Title=""Total""
                                Aggregate=""AggregateFunction.Sum"" FormatString=""{0:C0}"" /> </Values>
 </OmniPivotGrid>")">
             <div>
                 <OmniPivotGrid Data="@_sales" TItem="Sale" ShowRowTotals ShowColumnTotals>
                     <Rows>
-                        <OmniPivotRow TItem="Sale" Property="Category" Title="Categoria" />
+                        <OmniPivotRow TItem="Sale" Value="@(x => x.Category)" Title="Categoria" />
                     </Rows>
                     <Columns>
-                        <OmniPivotColumn TItem="Sale" Property="Year" Title="Ano" />
+                        <OmniPivotColumn TItem="Sale" Value="@(x => x.Year)" Title="Ano" />
                     </Columns>
                     <Values>
-                        <OmniPivotValue TItem="Sale" Property="Amount" Title="Total"
+                        <OmniPivotValue TItem="Sale" Value="@(x => x.Amount)" Title="Total"
                                         Aggregate="AggregateFunction.Sum" FormatString="{0:C0}" />
                     </Values>
                 </OmniPivotGrid>
@@ -68,33 +68,33 @@
                          Description="Linhas Categoria→Produto, Colunas Ano→Região, e 3 medidas (Soma R$, Soma Qtde, Preço médio). Clique nos chevrons para drill-down nos dois eixos."
                          Code="@(@"<OmniPivotGrid Data=""@_sales"" TItem=""Sale"" ShowRowTotals ShowColumnTotals>
     <Rows>
-        <OmniPivotRow TItem=""Sale"" Property=""Category"" Title=""Categoria"" />
-        <OmniPivotRow TItem=""Sale"" Property=""Product"" Title=""Produto"" />
+        <OmniPivotRow TItem=""Sale"" Value=""@(x => x.Category)"" Title=""Categoria"" />
+        <OmniPivotRow TItem=""Sale"" Value=""@(x => x.Product)"" Title=""Produto"" />
     </Rows>
     <Columns>
-        <OmniPivotColumn TItem=""Sale"" Property=""Year"" Title=""Ano"" />
-        <OmniPivotColumn TItem=""Sale"" Property=""Region"" Title=""Região"" />
+        <OmniPivotColumn TItem=""Sale"" Value=""@(x => x.Year)"" Title=""Ano"" />
+        <OmniPivotColumn TItem=""Sale"" Value=""@(x => x.Region)"" Title=""Região"" />
     </Columns>
     <Values>
-        <OmniPivotValue TItem=""Sale"" Property=""Amount"" Title=""Total"" Aggregate=""AggregateFunction.Sum"" FormatString=""{0:C0}"" />
-        <OmniPivotValue TItem=""Sale"" Property=""Qty"" Title=""Qtde"" Aggregate=""AggregateFunction.Sum"" FormatString=""{0:0}"" />
-        <OmniPivotValue TItem=""Sale"" Property=""UnitPrice"" Title=""Preço méd."" Aggregate=""AggregateFunction.Average"" FormatString=""{0:C2}"" />
+        <OmniPivotValue TItem=""Sale"" Value=""@(x => x.Amount)"" Title=""Total"" Aggregate=""AggregateFunction.Sum"" FormatString=""{0:C0}"" />
+        <OmniPivotValue TItem=""Sale"" Value=""@(x => x.Qty)"" Title=""Qtde"" Aggregate=""AggregateFunction.Sum"" FormatString=""{0:0}"" />
+        <OmniPivotValue TItem=""Sale"" Value=""@(x => x.UnitPrice)"" Title=""Preço méd."" Aggregate=""AggregateFunction.Average"" FormatString=""{0:C2}"" />
     </Values>
 </OmniPivotGrid>")">
             <div>
                 <OmniPivotGrid Data="@_sales" TItem="Sale" ShowRowTotals ShowColumnTotals Style="max-height:460px">
                     <Rows>
-                        <OmniPivotRow TItem="Sale" Property="Category" Title="Categoria" />
-                        <OmniPivotRow TItem="Sale" Property="Product" Title="Produto" />
+                        <OmniPivotRow TItem="Sale" Value="@(x => x.Category)" Title="Categoria" />
+                        <OmniPivotRow TItem="Sale" Value="@(x => x.Product)" Title="Produto" />
                     </Rows>
                     <Columns>
-                        <OmniPivotColumn TItem="Sale" Property="Year" Title="Ano" />
-                        <OmniPivotColumn TItem="Sale" Property="Region" Title="Região" />
+                        <OmniPivotColumn TItem="Sale" Value="@(x => x.Year)" Title="Ano" />
+                        <OmniPivotColumn TItem="Sale" Value="@(x => x.Region)" Title="Região" />
                     </Columns>
                     <Values>
-                        <OmniPivotValue TItem="Sale" Property="Amount" Title="Total" Aggregate="AggregateFunction.Sum" FormatString="{0:C0}" />
-                        <OmniPivotValue TItem="Sale" Property="Qty" Title="Qtde" Aggregate="AggregateFunction.Sum" FormatString="{0:0}" />
-                        <OmniPivotValue TItem="Sale" Property="UnitPrice" Title="Preço méd." Aggregate="AggregateFunction.Average" FormatString="{0:C2}" />
+                        <OmniPivotValue TItem="Sale" Value="@(x => x.Amount)" Title="Total" Aggregate="AggregateFunction.Sum" FormatString="{0:C0}" />
+                        <OmniPivotValue TItem="Sale" Value="@(x => x.Qty)" Title="Qtde" Aggregate="AggregateFunction.Sum" FormatString="{0:0}" />
+                        <OmniPivotValue TItem="Sale" Value="@(x => x.UnitPrice)" Title="Preço méd." Aggregate="AggregateFunction.Average" FormatString="{0:C2}" />
                     </Values>
                 </OmniPivotGrid>
             </div>

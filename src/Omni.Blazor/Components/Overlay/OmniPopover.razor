@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniOverlayJsModule JS
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
 
@@ -128,9 +128,9 @@
         StateHasChanged();
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+            await JS.InvokeVoidAsync("registerClickOutside",
                 _id, $"[data-omni-ppid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
-            await JS.InvokeVoidAsync("omniBlazor.registerEsc", _id, _dotnetRef, "OnEscAsync");
+            await JS.InvokeVoidAsync("registerEsc", _id, _dotnetRef, "OnEscAsync");
         }
         catch { }
     }
@@ -144,8 +144,8 @@
             _flipPending = false;
             try
             {
-                await JS.InvokeVoidAsync("omniBlazor.popoverRegister", _wrapRef);
-                await JS.InvokeVoidAsync("omniBlazor.popoverAutoFlip", _wrapRef);
+                await JS.InvokeVoidAsync("popoverRegister", _wrapRef);
+                await JS.InvokeVoidAsync("popoverAutoFlip", _wrapRef);
             }
             catch { }
         }
@@ -164,9 +164,9 @@
         if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(false);
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
-            await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
-            await JS.InvokeVoidAsync("omniBlazor.popoverUnregister", _wrapRef);
+            await JS.InvokeVoidAsync("unregisterClickOutside", _id);
+            await JS.InvokeVoidAsync("unregisterEsc", _id);
+            await JS.InvokeVoidAsync("popoverUnregister", _wrapRef);
         }
         catch { }
         StateHasChanged();
@@ -178,9 +178,9 @@
         _open = false;
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
-            await JS.InvokeVoidAsync("omniBlazor.unregisterEsc", _id);
-            await JS.InvokeVoidAsync("omniBlazor.popoverUnregister", _wrapRef);
+            await JS.InvokeVoidAsync("unregisterClickOutside", _id);
+            await JS.InvokeVoidAsync("unregisterEsc", _id);
+            await JS.InvokeVoidAsync("popoverUnregister", _wrapRef);
         }
         catch { /* circuit already gone */ }
         finally

@@ -23,10 +23,10 @@ public class OmniAlertTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(NotificationSeverity.Info,    "omni-alert-info")]
+    [InlineData(NotificationSeverity.Info, "omni-alert-info")]
     [InlineData(NotificationSeverity.Success, "omni-alert-success")]
     [InlineData(NotificationSeverity.Warning, "omni-alert-warn")]
-    [InlineData(NotificationSeverity.Error,   "omni-alert-danger")]
+    [InlineData(NotificationSeverity.Error, "omni-alert-danger")]
     public void Applies_severity_modifier(NotificationSeverity sev, string expected)
     {
         var cut = Render<OmniAlert>(p => p

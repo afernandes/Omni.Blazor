@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
 using Bunit;
 using Microsoft.AspNetCore.Components.Forms;
 using Omni.Blazor.Components;
@@ -9,7 +10,7 @@ namespace Omni.Blazor.Tests.Components.Forms.Validators;
 /// Unit-level contract for <see cref="OmniDataAnnotationValidator"/>: runs all
 /// <see cref="ValidationAttribute"/>s declared on a property and surfaces their
 /// messages into the EditContext. Uses the field's identifier (via stub) for
-/// reflection — the model class must own the property.
+/// a strongly typed property expression — the model class must own the property.
 /// </summary>
 public class OmniDataAnnotationValidatorTests : TestContextBase
 {
@@ -42,10 +43,17 @@ public class OmniDataAnnotationValidatorTests : TestContextBase
     {
         var ctx = new EditContext(model);
         var registry = new StubFormRegistry().Register(input);
+        Expression<Func<object?>> property = input.ResolvedName switch
+        {
+            nameof(Person.Name) => () => model.Name,
+            nameof(Person.Email) => () => model.Email,
+            _ => throw new ArgumentOutOfRangeException(nameof(input)),
+        };
         var cut = Render<OmniDataAnnotationValidator>(p => p
             .AddCascadingValue<EditContext>(ctx)
             .AddCascadingValue<IOmniFormRegistry>(registry)
-            .Add(c => c.Component, input.ResolvedName));
+            .Add(c => c.Component, input.ResolvedName)
+            .Add(c => c.Property, property));
         return (cut, ctx);
     }
 

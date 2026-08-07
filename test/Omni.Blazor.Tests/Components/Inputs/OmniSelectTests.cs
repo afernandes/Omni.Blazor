@@ -29,6 +29,15 @@ public class OmniSelectTests : TestContextBase
     }
 
     [Fact]
+    public void Applies_explicit_accessible_name_to_combobox_trigger()
+    {
+        var cut = Render<OmniSelect<string>>(parameters => parameters
+            .Add(component => component.AriaLabel, "Cidade"));
+
+        Assert.Equal("Cidade", cut.Find(".omni-select-trigger").GetAttribute("aria-label"));
+    }
+
+    [Fact]
     public void Closed_by_default_opens_on_trigger_click()
     {
         var cut = Render<OmniSelect<string>>(p => p.Add(c => c.Items, new[] { "a", "b" }));

@@ -18,6 +18,10 @@ public sealed class BrowserFixture : IAsyncLifetime
     {
         string repositoryRoot = FindRepositoryRoot();
         string configuration = Environment.GetEnvironmentVariable("OMNI_BROWSER_CONFIGURATION") ?? "Release";
+        string hostMode = Environment.GetEnvironmentVariable("OMNI_BROWSER_HOST") ?? "server";
+        string project = hostMode.Equals("wasm", StringComparison.OrdinalIgnoreCase)
+            ? "src/Forneria.Demo/Forneria.Demo.Wasm/Forneria.Demo.Wasm.csproj"
+            : "src/Forneria.Demo/Forneria.Demo/Forneria.Demo.csproj";
         int port = ReservePort();
         BaseUrl = $"http://127.0.0.1:{port}";
 
@@ -31,7 +35,7 @@ public sealed class BrowserFixture : IAsyncLifetime
         };
         startInfo.ArgumentList.Add("run");
         startInfo.ArgumentList.Add("--project");
-        startInfo.ArgumentList.Add("src/Forneria.Demo/Forneria.Demo/Forneria.Demo.csproj");
+        startInfo.ArgumentList.Add(project);
         startInfo.ArgumentList.Add("--configuration");
         startInfo.ArgumentList.Add(configuration);
         startInfo.ArgumentList.Add("--no-build");
@@ -170,5 +174,5 @@ public sealed class BrowserFixture : IAsyncLifetime
 [CollectionDefinition(Name)]
 public sealed class BrowserCollection : ICollectionFixture<BrowserFixture>
 {
-    public const string Name = "DataForm browser";
+    public const string Name = "Omni showcase browser";
 }

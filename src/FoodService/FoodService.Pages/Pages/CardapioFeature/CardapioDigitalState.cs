@@ -178,13 +178,13 @@ public sealed class CardapioDigitalState
     {
         Screen = Screen switch
         {
-            CardapioScreen.Sizes    => CardapioScreen.Home,
-            CardapioScreen.Flavors  => CardapioScreen.Sizes,
-            CardapioScreen.Preview  => CardapioScreen.Flavors,
-            CardapioScreen.Cart     => CardapioScreen.Home,
+            CardapioScreen.Sizes => CardapioScreen.Home,
+            CardapioScreen.Flavors => CardapioScreen.Sizes,
+            CardapioScreen.Preview => CardapioScreen.Flavors,
+            CardapioScreen.Cart => CardapioScreen.Home,
             CardapioScreen.Checkout => CardapioScreen.Cart,
             CardapioScreen.Tracking => CardapioScreen.Home,
-            _                       => CardapioScreen.Home,
+            _ => CardapioScreen.Home,
         };
         Notify();
     }
@@ -228,8 +228,8 @@ public sealed class CardapioDigitalState
 
     // ─── Checkout setters ──────────────────────────────────────────────────
     public void SetPayMethod(CdPayMethod m) { PayMethod = m; Notify(); }
-    public void SetTroco(string v)          { Troco = v ?? ""; Notify(); }
-    public void SetMesa(string v)           { Mesa = v ?? ""; Notify(); }
+    public void SetTroco(string v) { Troco = v ?? ""; Notify(); }
+    public void SetMesa(string v) { Mesa = v ?? ""; Notify(); }
 
     public void SetCategory(string id)
     {

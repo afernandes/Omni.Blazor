@@ -23,10 +23,10 @@ public class OmniScrollToTopButtonTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(FabPosition.BottomLeft,   "omni-fab-bottom-left")]
-    [InlineData(FabPosition.TopRight,     "omni-fab-top-right")]
+    [InlineData(FabPosition.BottomLeft, "omni-fab-bottom-left")]
+    [InlineData(FabPosition.TopRight, "omni-fab-top-right")]
     [InlineData(FabPosition.BottomCenter, "omni-fab-bottom-center")]
-    [InlineData(FabPosition.Static,       "omni-fab-static")]
+    [InlineData(FabPosition.Static, "omni-fab-static")]
     public void Applies_position_modifier(FabPosition pos, string expectedClass)
     {
         var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.Position, pos));
@@ -37,8 +37,8 @@ public class OmniScrollToTopButtonTests : TestContextBase
     [Theory]
     [InlineData(ButtonVariant.Default, "omni-stt-variant-default")]
     [InlineData(ButtonVariant.Primary, "omni-stt-variant-primary")]
-    [InlineData(ButtonVariant.Ghost,   "omni-stt-variant-ghost")]
-    [InlineData(ButtonVariant.Danger,  "omni-stt-variant-danger")]
+    [InlineData(ButtonVariant.Ghost, "omni-stt-variant-ghost")]
+    [InlineData(ButtonVariant.Danger, "omni-stt-variant-danger")]
     public void Applies_variant_modifier(ButtonVariant variant, string expectedClass)
     {
         var cut = Render<OmniScrollToTopButton>(p => p.Add(c => c.Variant, variant));

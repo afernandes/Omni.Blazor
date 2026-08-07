@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+@inject ThemeService Theme
+
+<div class="fs-sample-layout">
+    @Body
+</div>
+
+<OmniOverlayHosts />
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Theme.IsInitialized) return;
+
+        try
+        {
+            await Theme.InitializeAsync();
+            StateHasChanged();
+        }
+        catch
+        {
+            // Prefer the default theme when persistence is unavailable.
+        }
+    }
+}

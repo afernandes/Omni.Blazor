@@ -32,7 +32,8 @@
         <p>
             O <code>OmniScheduler&lt;TItem&gt;</code> oferece views de Dia, Semana, Multi-dias,
             Mês, Ano, Planner e Timeline declaradas como conteúdo filho. Appointments
-            são projetados de <code>Data</code> via <code>StartProperty</code>/<code>EndProperty</code>/<code>TextProperty</code>.
+            são projetados de <code>Data</code> preferencialmente por um <code>SchedulerSchema&lt;TItem&gt;</code>
+            com expressões tipadas; os parâmetros de nomes de propriedade continuam disponíveis.
             Slots, eventos, dias e meses disparam callbacks tipados; <code>SlotRender</code> e
             <code>AppointmentRender</code> permitem estilizar slots/eventos; e há drag-and-drop
             nativo e tooltips on-hover.
@@ -59,9 +60,15 @@
         @* ─────────────────────────── 1. DAY / WEEK / MONTH ─────────────────────────── *@
         <ShowcaseSection Title="DIA, SEMANA E MÊS"
                          Description="Clique num slot vazio para adicionar, num evento para editar, e arraste para mover. SlotRender destaca horário comercial (Dia/Semana) e o dia de hoje (Mês). 'Birthday' é pintado de vermelho via AppointmentRender."
-                         Code="@(@"<OmniScheduler @ref=""_sched1"" TItem=""SchedulerAppointment"" Data=""@_main""
-               StartProperty=""Start"" EndProperty=""End"" TextProperty=""Text""
-               SelectedIndex=""2"" ShowHeader=""@_showHeader""
+                         Code="@(@"private static readonly SchedulerSchema<SchedulerAppointment> Schema =
+    SchedulerSchema<SchedulerAppointment>.Create(scheduler => scheduler
+        .Range(item => item.Start, item => item.End)
+        .Text(item => item.Text)
+        .SelectedView(2)
+        .Height(""720px""));
+
+<OmniScheduler @ref=""_sched1"" Data=""@_main"" Schema=""@Schema""
+               ShowHeader=""@_showHeader""
                SlotRender=""OnSlotRender"" SlotSelect=""OnSlotSelect""
                AppointmentSelect=""OnAppointmentSelect"" AppointmentRender=""OnAppointmentRender""
                DaySelect=""OnDaySelect"" AppointmentMove=""OnMove"">
@@ -73,8 +80,7 @@
                 <OmniSwitch @bind-Value="_showHeader" Label="Show header" />
             </div>
             <OmniScheduler @ref="_sched1" TItem="SchedulerAppointment" Data="@_main"
-                           StartProperty="Start" EndProperty="End" TextProperty="Text"
-                           SelectedIndex="2" Height="720px" ShowHeader="_showHeader"
+                           Schema="@_schedulerSchema" ShowHeader="_showHeader"
                            SlotRender="OnSlotRender"
                            SlotSelect="@(e => AddAppointmentAsync(e, _main, _sched1, _console1))"
                            AppointmentSelect="@(e => EditAppointmentAsync(e, _main, _sched1, _console1))"
@@ -91,8 +97,7 @@
         @* ─────────────────────── 2. YEAR PLANNER & TIMELINE ─────────────────────── *@
         <ShowcaseSection Title="YEAR PLANNER E TIMELINE"
                          Description="Planeje o ano inteiro com Planner e Timeline. SlotRender colore cada dia conforme a quantidade de eventos. O mês inicial (fiscal) é configurável."
-                         Code="@(@"<OmniScheduler TItem=""SchedulerAppointment"" Data=""@_year"" SelectedIndex=""1""
-               StartProperty=""Start"" EndProperty=""End"" TextProperty=""Text""
+                         Code="@(@"<OmniScheduler TItem=""SchedulerAppointment"" Data=""@_year"" Schema=""@YearSchema""
                SlotRender=""OnYearSlotRender"" MonthSelect=""OnMonthSelect"" ...>
     <OmniMonthView />
     <OmniYearPlannerView StartMonth=""@_startMonth"" />
@@ -105,8 +110,7 @@
                             TextSelector="@(m => MonthName(m))" Style="width:160px" />
             </div>
             <OmniScheduler @ref="_sched2" TItem="SchedulerAppointment" Data="@_year"
-                           StartProperty="Start" EndProperty="End" TextProperty="Text"
-                           SelectedIndex="1" Height="760px"
+                           Schema="@_yearSchedulerSchema"
                            SlotRender="OnYearSlotRender"
                            SlotSelect="@(e => AddAppointmentAsync(e, _year, _sched2, _console2))"
                            AppointmentSelect="@(e => EditAppointmentAsync(e, _year, _sched2, _console2))"
@@ -123,7 +127,7 @@
         @* ─────────────────────────────── 3. TOOLTIPS ─────────────────────────────── *@
         <ShowcaseSection Title="TOOLTIPS AO PASSAR O MOUSE"
                          Description="Use AppointmentMouseEnter/Leave + TooltipService para mostrar detalhes do evento ao passar o mouse."
-                         Code="@(@"<OmniScheduler TItem=""SchedulerAppointment"" Data=""@_tips"" SelectedIndex=""2""
+                         Code="@(@"<OmniScheduler TItem=""SchedulerAppointment"" Data=""@_tips"" Schema=""@TipsSchema""
                AppointmentMouseEnter=""OnApptEnter"" AppointmentMouseLeave=""OnApptLeave"">
     <OmniDayView /> <OmniWeekView /> <OmniMonthView /> <OmniYearView />
 </OmniScheduler>
@@ -135,8 +139,7 @@
         => Tooltip.Close();
 }")">
             <OmniScheduler TItem="SchedulerAppointment" Data="@_tips"
-                           StartProperty="Start" EndProperty="End" TextProperty="Text"
-                           SelectedIndex="2" Height="680px"
+                           Schema="@_tipsSchedulerSchema"
                            AppointmentMouseEnter="OnApptEnter"
                            AppointmentMouseLeave="OnApptLeave">
                 <OmniDayView />
@@ -160,8 +163,7 @@
                 <span style="font-size:13px;color:var(--omni-fg)">@((int)_advanceDays)</span>
             </div>
             <OmniScheduler @ref="_sched4" TItem="SchedulerAppointment" Data="@_multi"
-                           StartProperty="Start" EndProperty="End" TextProperty="Text"
-                           SelectedIndex="2" Height="720px"
+                           Schema="@_multiSchedulerSchema"
                            SlotRender="OnSlotRender"
                            SlotSelect="@(e => AddAppointmentAsync(e, _multi, _sched4, _console4))"
                            AppointmentSelect="@(e => EditAppointmentAsync(e, _multi, _sched4, _console4))"
@@ -201,8 +203,10 @@
 
     <Api>
         <ShowcaseApiTable Title="OmniScheduler&lt;TItem&gt;">
-            <ShowcaseApiRow Name="Data / StartProperty / EndProperty / TextProperty" Type="—" Default="null"
-                            Description="Fonte e projeção dos appointments." />
+            <ShowcaseApiRow Name="Schema" Type="SchedulerSchema&lt;TItem&gt;" Default="required"
+                            Description="Projeção tipada de intervalo/texto e defaults de apresentação." />
+            <ShowcaseApiRow Name="Data" Type="IEnumerable&lt;TItem&gt;?" Default="null"
+                            Description="Fonte dos appointments projetados pelo schema." />
             <ShowcaseApiRow Name="SelectedIndex" Type="int" Default="0" Description="Índice da view inicial." />
             <ShowcaseApiRow Name="ShowHeader" Type="bool" Default="true" Description="Mostra/esconde a barra de navegação." />
             <ShowcaseApiRow Name="Culture" Type="CultureInfo?" Default="CurrentCulture" Description="Formatação + 1º dia da semana." />
@@ -227,6 +231,29 @@
 
 @code {
     private OmniScheduler<SchedulerAppointment>? _sched1;
+    private static readonly SchedulerSchema<SchedulerAppointment> _schedulerSchema =
+        SchedulerSchema<SchedulerAppointment>.Create(scheduler => scheduler
+            .Range(item => item.Start, item => item.End)
+            .Text(item => item.Text)
+            .SelectedView(2)
+            .Height("720px"));
+
+    private static readonly SchedulerSchema<SchedulerAppointment> _yearSchedulerSchema =
+        CreateSchedulerSchema(selectedView: 1, height: "760px");
+
+    private static readonly SchedulerSchema<SchedulerAppointment> _tipsSchedulerSchema =
+        CreateSchedulerSchema(selectedView: 2, height: "680px");
+
+    private static readonly SchedulerSchema<SchedulerAppointment> _multiSchedulerSchema =
+        CreateSchedulerSchema(selectedView: 2, height: "720px");
+
+    private static SchedulerSchema<SchedulerAppointment> CreateSchedulerSchema(int selectedView, string height)
+        => SchedulerSchema<SchedulerAppointment>.Create(scheduler => scheduler
+            .Range(item => item.Start, item => item.End)
+            .Text(item => item.Text)
+            .SelectedView(selectedView)
+            .Height(height));
+
     private OmniScheduler<SchedulerAppointment>? _sched2;
     private OmniScheduler<SchedulerAppointment>? _sched4;
     private SchedulerEventConsole? _console1;

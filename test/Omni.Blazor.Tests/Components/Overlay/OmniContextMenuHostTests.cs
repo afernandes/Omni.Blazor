@@ -35,5 +35,17 @@ public class OmniContextMenuHostTests : TestContextBase
         Assert.NotNull(cut.Find(".omni-context-menu"));
         // Inner OmniMenu emits role="menu"
         Assert.NotNull(cut.Find(".omni-context-menu .omni-menu"));
+        Assert.Equal("Rename", cut.Find(".omni-menu-item").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public async Task Propagates_disabled_state_to_menu_items()
+    {
+        var menu = Services.GetRequiredService<ContextMenuService>();
+        var cut = Render<OmniContextMenuHost>();
+        menu.Open(10, 20, new[] { new ContextMenuItem { Text = "Unavailable", Disabled = true } });
+        await cut.InvokeAsync(() => { });
+
+        Assert.True(cut.Find(".omni-menu-item").HasAttribute("disabled"));
     }
 }

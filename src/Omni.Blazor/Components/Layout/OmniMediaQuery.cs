@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Omni.Blazor.Models;
+using Omni.Blazor.Services;
 
 namespace Omni.Blazor.Components;
 
@@ -47,7 +48,7 @@ namespace Omni.Blazor.Components;
 /// </remarks>
 public class OmniMediaQuery : ComponentBase, IAsyncDisposable
 {
-    [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private IOmniResponsiveJsModule JS { get; set; } = default!;
 
     /// <summary>
     /// Media query CSS literal. Exemplo: <c>"(max-width: 768px)"</c>,
@@ -97,12 +98,12 @@ public class OmniMediaQuery : ComponentBase, IAsyncDisposable
 
     private static int BreakpointPx(Breakpoint bp) => bp switch
     {
-        Models.Breakpoint.Sm  => 576,
-        Models.Breakpoint.Md  => 768,
-        Models.Breakpoint.Lg  => 992,
-        Models.Breakpoint.Xl  => 1200,
+        Models.Breakpoint.Sm => 576,
+        Models.Breakpoint.Md => 768,
+        Models.Breakpoint.Lg => 992,
+        Models.Breakpoint.Xl => 1200,
         Models.Breakpoint.Xxl => 1400,
-        _                      => 0,    // Xs = sempre verdadeiro
+        _ => 0,    // Xs = sempre verdadeiro
     };
 
     /// <inheritdoc />
@@ -131,7 +132,7 @@ public class OmniMediaQuery : ComponentBase, IAsyncDisposable
             try
             {
                 var initial = await JS.InvokeAsync<bool>(
-                    "omniBlazor.subscribeMediaQuery",
+                    "subscribeMediaQuery",
                     _id, resolved, _selfRef, nameof(OnMediaQueryChanged));
                 _initialized = true;
 
@@ -167,7 +168,7 @@ public class OmniMediaQuery : ComponentBase, IAsyncDisposable
     {
         if (_initialized)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.unsubscribeMediaQuery", _id); }
+            try { await JS.InvokeVoidAsync("unsubscribeMediaQuery", _id); }
             catch { /* circuito morto durante navegação */ }
         }
         _selfRef?.Dispose();

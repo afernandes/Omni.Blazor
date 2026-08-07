@@ -46,8 +46,8 @@ public class OmniNumericTests : TestContextBase
             .Add(c => c.Prefix, "R$")
             .Add(c => c.Suffix, "%"));
 
-        Assert.Contains("R$",  cut.Find(".omni-numeric-prefix").TextContent);
-        Assert.Contains("%",   cut.Find(".omni-numeric-suffix").TextContent);
+        Assert.Contains("R$", cut.Find(".omni-numeric-prefix").TextContent);
+        Assert.Contains("%", cut.Find(".omni-numeric-suffix").TextContent);
     }
 
     [Fact]

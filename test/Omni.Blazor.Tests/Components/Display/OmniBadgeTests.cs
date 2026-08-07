@@ -22,13 +22,13 @@ public class OmniBadgeTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(BadgeVariant.Good,   "omni-badge-good")]
-    [InlineData(BadgeVariant.Warn,   "omni-badge-warn")]
+    [InlineData(BadgeVariant.Good, "omni-badge-good")]
+    [InlineData(BadgeVariant.Warn, "omni-badge-warn")]
     [InlineData(BadgeVariant.Danger, "omni-badge-danger")]
-    [InlineData(BadgeVariant.Info,   "omni-badge-info")]
+    [InlineData(BadgeVariant.Info, "omni-badge-info")]
     [InlineData(BadgeVariant.Accent, "omni-badge-accent")]
-    [InlineData(BadgeVariant.Plain,  "omni-badge-plain")]
-    [InlineData(BadgeVariant.Solid,  "omni-badge-solid")]
+    [InlineData(BadgeVariant.Plain, "omni-badge-plain")]
+    [InlineData(BadgeVariant.Solid, "omni-badge-solid")]
     public void Applies_variant_class(BadgeVariant variant, string expected)
     {
         var cut = Render<OmniBadge>(p => p

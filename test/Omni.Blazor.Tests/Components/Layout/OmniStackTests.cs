@@ -24,7 +24,7 @@ public class OmniStackTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(StackDirection.Row,    "omni-stack-row")]
+    [InlineData(StackDirection.Row, "omni-stack-row")]
     [InlineData(StackDirection.Column, "omni-stack-column")]
     public void Applies_direction_modifier(StackDirection dir, string expected)
     {
@@ -36,8 +36,8 @@ public class OmniStackTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(StackAlign.Center,   "omni-stack-align-center")]
-    [InlineData(StackAlign.End,      "omni-stack-align-end")]
+    [InlineData(StackAlign.Center, "omni-stack-align-center")]
+    [InlineData(StackAlign.End, "omni-stack-align-end")]
     [InlineData(StackAlign.Baseline, "omni-stack-align-baseline")]
     public void Applies_align_items_modifier(StackAlign align, string expected)
     {
@@ -50,8 +50,8 @@ public class OmniStackTests : TestContextBase
 
     [Theory]
     [InlineData(StackJustify.Between, "omni-stack-justify-between")]
-    [InlineData(StackJustify.Center,  "omni-stack-justify-center")]
-    [InlineData(StackJustify.Evenly,  "omni-stack-justify-evenly")]
+    [InlineData(StackJustify.Center, "omni-stack-justify-center")]
+    [InlineData(StackJustify.Evenly, "omni-stack-justify-evenly")]
     public void Applies_justify_modifier(StackJustify justify, string expected)
     {
         var cut = Render<OmniStack>(p => p

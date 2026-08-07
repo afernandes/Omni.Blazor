@@ -2,7 +2,7 @@
 @typeparam TValue
 @inherits FormComponent<TValue>
 @implements IDisposable
-@inject IJSRuntime JS
+@inject IOmniOverlayJsModule JS
 @using System.Globalization
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
@@ -48,7 +48,7 @@
 }
 else
 {
-    <div class="@RootCss" style="@Style" data-omni-dpid="@_id" @attributes="Attributes">
+    <div @ref="_anchorRef" class="@RootCss" style="@Style" data-omni-dpid="@_id" @attributes="Attributes">
         <input class="omni-input omni-datepicker-input"
                id="@InputId"
                type="text"
@@ -57,6 +57,9 @@ else
                disabled="@Disabled"
                readonly="@ReadOnly"
                name="@Name"
+               aria-haspopup="dialog"
+               aria-expanded="@_open"
+               aria-controls="@PopoverId"
                @oninput="OnInput"
                @onblur="OnBlur"
                @onfocus="@(_ => Open())" />
@@ -77,6 +80,9 @@ else
                     tabindex="-1"
                     disabled="@Disabled"
                     aria-label="Abrir calendário"
+                    aria-haspopup="dialog"
+                    aria-expanded="@_open"
+                    aria-controls="@PopoverId"
                     @onclick="Toggle">
                 <OmniIcon Name="@TriggerIcon" Size="ComponentSize.Sm" />
             </button>
@@ -84,7 +90,13 @@ else
 
         @if (_open)
         {
-            <div class="omni-datepicker-popover" @onclick:stopPropagation>
+            <div @ref="_popoverRef"
+                 id="@PopoverId"
+                 class="omni-datepicker-popover"
+                 popover="manual"
+                 role="dialog"
+                 aria-modal="false"
+                 @onclick:stopPropagation>
                 @if (!IsTimeOnlyMode)
                 {
                     <OmniCalendar Selected="@_selected"
@@ -95,7 +107,7 @@ else
                                     InitialViewDate="@InitialViewDate"
                                     ShowWeekNumbers="@ShowWeekNumbers"
                                     FirstDayOfWeek="@FirstDayOfWeek"
-                                    AutoFocus="true"
+                                    AutoFocus="false"
                                     Footer="@CombinedFooter"
                                     OnDateSelected="OnDateSelected"
                                     OnEscape="CloseAsync" />
@@ -170,8 +182,13 @@ else
     private DateOnly? _selected;
     private TimeOnly _time = TimeOnly.MinValue;
     private string _textValue = "";
-    private string _id = $"dp-{Guid.NewGuid():N}";
+    private readonly string _id = $"dp-{Guid.NewGuid():N}";
     private DotNetObjectReference<OmniDatePicker<TValue>>? _dotnetRef;
+    private ElementReference _anchorRef;
+    private ElementReference _popoverRef;
+    private bool _positionPending;
+    private bool _floatingRegistered;
+    private int _floatingGeneration;
 
     // ParameterState fires only on consumer-driven Value changes. User edits
     // go through SetValueAsync, which mutates Value before the next detect
@@ -201,6 +218,7 @@ else
 
     private bool IsTimeOnlyMode => ShowTimeOnly || IsTimeOnlyType;
     private bool EffectiveShowTime => ShowTime || IsTimeOnlyMode || IsDateTimeType;
+    private string PopoverId => $"{_id}-popover";
 
     private string TriggerIcon => IsTimeOnlyMode ? "clock" : "calendar";
     private bool HasValue => Value is not null;
@@ -319,8 +337,7 @@ else
         _textValue = FormatValue(Value);
         if (!EffectiveShowTime && !Inline)
         {
-            _open = false;
-            await UnregisterOutsideAsync();
+            await CloseAsync();
         }
     }
 
@@ -386,6 +403,8 @@ else
         _time     = TimeOnly.MinValue;
         _textValue = "";
         _open = false;
+        _positionPending = false;
+        _floatingGeneration++;
         await UnregisterOutsideAsync();
         await SetValueAsync(default);
     }
@@ -402,13 +421,50 @@ else
     {
         if (Disabled || ReadOnly || _open) return;
         _open = true;
+        _positionPending = true;
+        _floatingGeneration++;
+        int generation = _floatingGeneration;
         StateHasChanged();
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+            await JS.InvokeVoidAsync("registerClickOutside",
                 _id, $"[data-omni-dpid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
+            if (!_open || generation != _floatingGeneration)
+                await JS.InvokeVoidAsync("unregisterClickOutside", _id);
         }
         catch { /* prerender */ }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_open || !_positionPending) return;
+
+        _positionPending = false;
+        int generation = _floatingGeneration;
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "floatingPopoverOpen",
+                _anchorRef,
+                _popoverRef,
+                4,
+                IsTimeOnlyMode ? null : ".omni-calendar-grid");
+
+            // Blazor lifecycle methods are re-entrant across awaits. A close
+            // may have happened while JS was promoting the node; retire that
+            // stale registration instead of leaking its observers/listeners.
+            if (!_open || generation != _floatingGeneration)
+            {
+                await JS.InvokeVoidAsync("floatingPopoverClose", _popoverRef);
+                return;
+            }
+            _floatingRegistered = true;
+        }
+        catch
+        {
+            // Static SSR, prerender or a disconnected circuit. Direct text
+            // entry remains available and a later open can retry positioning.
+        }
     }
 
     [JSInvokable]
@@ -418,18 +474,28 @@ else
     {
         if (!_open) return;
         _open = false;
+        _positionPending = false;
+        _floatingGeneration++;
         await UnregisterOutsideAsync();
         StateHasChanged();
     }
 
     private async Task UnregisterOutsideAsync()
     {
-        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
-        catch { /* ignore */ }
+        try { await JS.InvokeVoidAsync("unregisterClickOutside", _id); }
+        catch { /* prerender or disconnected circuit */ }
+
+        if (!_floatingRegistered) return;
+        _floatingRegistered = false;
+        try { await JS.InvokeVoidAsync("floatingPopoverClose", _popoverRef); }
+        catch { /* prerender or disconnected circuit */ }
     }
 
     public override void Dispose()
     {
+        _open = false;
+        _positionPending = false;
+        _floatingGeneration++;
         base.Dispose();
         TaskObserver.Observe(UnregisterOutsideAsync(), operation: "OmniDatePicker.Dispose");
         _dotnetRef?.Dispose();

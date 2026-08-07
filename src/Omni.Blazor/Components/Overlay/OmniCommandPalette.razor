@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniScrollJsModule JS
 @inject Omni.Blazor.Services.HotkeyService Hotkeys
 @inject Omni.Blazor.Services.CommandHistoryService History
 @using System.Linq
@@ -234,7 +234,7 @@
         if (_scrollPending)
         {
             _scrollPending = false;
-            try { await JS.InvokeVoidAsync("omniBlazor.scrollIntoView", $"#{_id}-item-{_highlightedIndex}", "nearest"); }
+            try { await JS.InvokeVoidAsync("scrollIntoView", $"#{_id}-item-{_highlightedIndex}", "nearest"); }
             catch { }
         }
     }

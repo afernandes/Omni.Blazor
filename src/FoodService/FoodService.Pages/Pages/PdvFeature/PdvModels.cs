@@ -36,10 +36,10 @@ public record PizzaSizePrices(decimal Broto, decimal Grande, decimal Familia)
 {
     public decimal For(PizzaSize size) => size switch
     {
-        PizzaSize.Broto   => Broto,
-        PizzaSize.Grande  => Grande,
+        PizzaSize.Broto => Broto,
+        PizzaSize.Grande => Grande,
         PizzaSize.Familia => Familia,
-        _                 => Grande,
+        _ => Grande,
     };
 }
 

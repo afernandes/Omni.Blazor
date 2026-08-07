@@ -1,0 +1,79 @@
+@page "/showcase/scheduler-form"
+@attribute [ShowcaseInfo(Title = "Scheduler Form", Category = Cat.Data, Icon = "calendar-plus", New = true, Aliases = "agenda,crud,appointment,dataform")]
+@layout ShowcaseLayout
+
+<PageTitle>Scheduler Form — Showcase</PageTitle>
+
+@if (_interactiveReady)
+{
+    <span data-testid="scheduler-form-interactive" aria-hidden="true"></span>
+}
+
+<ShowcasePage Title="Scheduler Form"
+              Subtitle="Agenda com criação e edição segura por drafts tipados do OmniDataForm.">
+    <Overview>
+        <p>
+            <code>OmniSchedulerForm</code> combina o Scheduler com o coordenador CRUD headless.
+            Clique em um compromisso para editar ou use Adicionar; a coleção só muda após uma submissão válida.
+        </p>
+    </Overview>
+    <WhenToUse><ul><li>Agendamentos locais ou persistidos por um <code>IOmniEntityMutationProvider</code>.</li></ul></WhenToUse>
+    <WhenNotToUse><ul><li>Visualização sem edição; use <code>OmniScheduler</code>.</li></ul></WhenNotToUse>
+    <ChildContent>
+        <ShowcaseSection Title="AGENDA CRUD TIPADA" Description="O EntityEditorSchema define chave, formulário, clone e apresentação uma única vez." Code="@ExampleCode">
+            <OmniSchedulerForm TItem="Compromisso" TKey="int"
+                               Items="@_compromissos"
+                               SchedulerSchema="@SchedulerSchema"
+                               EditorSchema="@EditorSchema" />
+        </ShowcaseSection>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private bool _interactiveReady;
+    private readonly List<Compromisso> _compromissos =
+    [
+        new() { Id = 1, Titulo = "Planejamento do produto", Inicio = DateTime.Today.AddHours(9), Fim = DateTime.Today.AddHours(10) },
+        new() { Id = 2, Titulo = "Revisão de acessibilidade", Inicio = DateTime.Today.AddHours(14), Fim = DateTime.Today.AddHours(15) }
+    ];
+
+    private static readonly SchedulerSchema<Compromisso> SchedulerSchema = SchedulerSchema<Compromisso>.Create(scheduler => scheduler
+        .Range(item => item.Inicio, item => item.Fim)
+        .Text(item => item.Titulo)
+        .Height("540px"));
+
+    private static readonly DataFormSchema<Compromisso> FormSchema = DataFormSchema<Compromisso>.Create(form => form
+        .AutoGenerateFields(false)
+        .Field(item => item.Titulo, field => field.Label("Título").Required())
+        .Field(item => item.Inicio, field => field.Label("Início"))
+        .Field(item => item.Fim, field => field.Label("Fim")));
+
+    private static readonly EntityEditorSchema<Compromisso, int> EditorSchema = EntityEditorSchema<Compromisso, int>.Create(editor => editor
+        .Key(item => item.Id)
+        .Form(FormSchema)
+        .Create(() => new Compromisso { Id = Random.Shared.Next(100, 10_000), Inicio = DateTime.Today.AddHours(8), Fim = DateTime.Today.AddHours(9) }, "Novo compromisso")
+        .Edit(item => item with { }, item => $"Editar {item.Titulo}")
+        .Delete(item => $"Remover o compromisso {item.Titulo}?"));
+
+    private const string ExampleCode = """
+<OmniSchedulerForm TItem="Compromisso" TKey="int"
+                   Items="@compromissos"
+                   SchedulerSchema="@SchedulerSchema"
+                   EditorSchema="@EditorSchema" />
+""";
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
+    }
+
+    private sealed record Compromisso
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = string.Empty;
+        public DateTime Inicio { get; set; }
+        public DateTime Fim { get; set; }
+    }
+}

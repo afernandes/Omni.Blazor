@@ -1,7 +1,8 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponentWithChildren
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniCoreJsModule CoreJS
+@inject IOmniOverlayJsModule OverlayJS
 @inject Microsoft.AspNetCore.Components.NavigationManager Nav
 @inject Omni.Blazor.Services.BreakpointService Breakpoints
 @inject Omni.Blazor.Services.ScrollManager Scroll
@@ -214,7 +215,7 @@
         {
             try
             {
-                await JS.InvokeVoidAsync("omniBlazor.registerPanelMenuFlyout", Id, "#" + Id);
+                await OverlayJS.InvokeVoidAsync("registerPanelMenuFlyout", Id, "#" + Id);
                 _jsRegistered = true;
             }
             catch { /* SSR / disconnected — JS will reregister on next render */ }
@@ -227,7 +228,7 @@
             _persistLoaded = true;
             try
             {
-                var saved = await JS.InvokeAsync<string?>("omniBlazor.storageGet", PersistStorageKey);
+                var saved = await CoreJS.InvokeAsync<string?>("storageGet", PersistStorageKey);
                 if (!string.IsNullOrEmpty(saved))
                 {
                     var newOpen = saved == "1" || saved == "true";
@@ -247,7 +248,7 @@
         // returns to in-grid mode), release them. OverlayLifecycle helper centraliza
         // a lógica de lock/unlock+setupOverlay/teardownOverlay reusada por
         // OmniOverlay/Dialog/SplitView.
-        _overlay ??= new Omni.Blazor.Services.OverlayLifecycle(JS, Scroll, Id);
+        _overlay ??= new Omni.Blazor.Services.OverlayLifecycle(OverlayJS, Scroll, Id);
         var shouldBeActive = IsOverlayMode && IsOpen;
         if (shouldBeActive && !_overlay.IsActive)
         {
@@ -298,7 +299,7 @@
     private async Task SavePersistedStateAsync()
     {
         if (!Persist || !_persistLoaded) return;
-        try { await JS.InvokeVoidAsync("omniBlazor.storageSet", PersistStorageKey, Open ? "1" : "0"); }
+        try { await CoreJS.InvokeVoidAsync("storageSet", PersistStorageKey, Open ? "1" : "0"); }
         catch { /* storage blocked */ }
     }
 
@@ -324,7 +325,7 @@
         }
         if (_jsRegistered)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.unregisterPanelMenuFlyout", Id); } catch { }
+            try { await OverlayJS.InvokeVoidAsync("unregisterPanelMenuFlyout", Id); } catch { }
         }
         _selfRef?.Dispose();
         _selfRef = null;

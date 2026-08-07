@@ -28,6 +28,14 @@ public partial class OmniDataGrid<TItem>
     private readonly object _exportSync = new();
     private CancellationTokenSource? _exportCts;
     private int _exporting;
+    private readonly SemaphoreSlim _viewStatePersistGate = new(1, 1);
+    private DataGridViewState? _initialViewState;
+    private DataGridViewState? _pendingViewState;
+    private DataGridViewState? _lastViewStateParameter;
+    private string? _lastPersistKeyParameter;
+    private bool _viewStateInitialized;
+    private bool _applyingViewState;
+    private int _viewStatePersistSequence;
 
     /// <summary>Initializes the grid and its owned hierarchy state.</summary>
     public OmniDataGrid()
@@ -167,11 +175,217 @@ public partial class OmniDataGrid<TItem>
     public Task ReloadHierarchyAsync(TItem item, CancellationToken cancellationToken = default)
         => _hierarchy.ReloadAsync(item, cancellationToken);
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (ChildrenProvider is not null && Volatile.Read(ref _disposeState) == 0)
             ObserveHierarchyTask(_hierarchy.LoadPendingExpandedAsync());
-        return Task.CompletedTask;
+        await InitializeOrApplyViewStateAsync();
+    }
+
+    private async Task InitializeOrApplyViewStateAsync()
+    {
+        if (Volatile.Read(ref _disposeState) != 0 || _columns.Count == 0) return;
+        if (ViewState is null
+            && _pendingViewState is null
+            && string.IsNullOrWhiteSpace(PersistKey)
+            && !ViewStateChanged.HasDelegate)
+            return;
+        _initialViewState ??= CaptureViewState();
+
+        if (_pendingViewState is { } controlled)
+        {
+            _pendingViewState = null;
+            _viewStateInitialized = true;
+            await ApplyViewStateCoreAsync(controlled);
+            return;
+        }
+        if (_viewStateInitialized) return;
+        _viewStateInitialized = true;
+        if (ViewState is not null || string.IsNullOrWhiteSpace(PersistKey)) return;
+
+        string persistKey = PersistKey;
+        DataGridViewState? persisted = await StateStorage.LoadAsync(persistKey);
+        if (persisted is not null
+            && Volatile.Read(ref _disposeState) == 0
+            && ViewState is null
+            && _pendingViewState is null
+            && string.Equals(persistKey, PersistKey, StringComparison.Ordinal))
+            await ApplyViewStateCoreAsync(persisted);
+    }
+
+    /// <summary>Captures normalized column, sort, filter, grouping and search preferences.</summary>
+    public DataGridViewState CaptureViewState()
+    {
+        _ = BuildColumnMap();
+        var columnStates = new DataGridColumnViewState[_columns.Count];
+        for (int index = 0; index < _columns.Count; index++)
+        {
+            OmniDataGridColumn<TItem> column = _columns[index];
+            columnStates[index] = new DataGridColumnViewState(
+                column.ResolvedPropertyName,
+                index,
+                column.EffectiveWidth,
+                column.VisibleInternal,
+                column.EffectiveFrozen);
+        }
+
+        SortDescriptor[] sorts = [.. _sorts.Select(sort =>
+            new SortDescriptor(sort.Col.ResolvedPropertyName, sort.Dir))];
+        DataGridFilterViewState[] filters = [.. _filters.Select(filter =>
+            new DataGridFilterViewState(
+                filter.Key.ResolvedPropertyName,
+                filter.Value.Operator,
+                Convert.ToString(filter.Value.Value, System.Globalization.CultureInfo.InvariantCulture),
+                Convert.ToString(filter.Value.SecondValue, System.Globalization.CultureInfo.InvariantCulture)))];
+        DataGridGroupViewState[] groups = [.. _groupLevels.Select(group =>
+            new DataGridGroupViewState(group.Column.ResolvedPropertyName, group.Interval))];
+        return new DataGridViewState(columnStates, sorts, filters, groups, _search);
+    }
+
+    /// <summary>Applies a view state and raises <see cref="ViewStateChanged"/>.</summary>
+    public async Task ApplyViewStateAsync(DataGridViewState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _initialViewState ??= CaptureViewState();
+        await ApplyViewStateCoreAsync(state);
+        await NotifyViewStateChangedAsync();
+    }
+
+    /// <summary>Restores the initial declared layout and optionally clears browser persistence.</summary>
+    public async Task ResetViewStateAsync(bool clearPersisted = true)
+    {
+        if (_columns.Count == 0) return;
+        _initialViewState ??= CaptureViewState();
+        await ApplyViewStateCoreAsync(_initialViewState);
+        if (clearPersisted && !string.IsNullOrWhiteSpace(PersistKey))
+            await StateStorage.RemoveAsync(PersistKey);
+        if (ViewStateChanged.HasDelegate)
+            await ViewStateChanged.InvokeAsync(CaptureViewState());
+    }
+
+    private async Task ApplyViewStateCoreAsync(DataGridViewState state)
+    {
+        if (_applyingViewState || Volatile.Read(ref _disposeState) != 0) return;
+        if (state.Version != DataGridViewState.CurrentVersion)
+            throw new ArgumentOutOfRangeException(
+                nameof(state),
+                state.Version,
+                $"Unsupported DataGrid view-state version. Expected {DataGridViewState.CurrentVersion}.");
+        Dictionary<string, OmniDataGridColumn<TItem>> columns = BuildColumnMap();
+        var originalOrder = new Dictionary<OmniDataGridColumn<TItem>, int>(_columns.Count);
+        for (int index = 0; index < _columns.Count; index++) originalOrder.Add(_columns[index], index);
+
+        var requestedOrder = new Dictionary<OmniDataGridColumn<TItem>, int>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (DataGridColumnViewState columnState in state.Columns)
+        {
+            if (!seen.Add(columnState.Property))
+                throw new InvalidOperationException($"DataGrid view state contains duplicate column '{columnState.Property}'.");
+            if (!columns.TryGetValue(columnState.Property, out OmniDataGridColumn<TItem>? column)) continue;
+            column.SetWidth(columnState.Width);
+            column.SetFrozen(columnState.Frozen);
+            column.VisibleInternal = !column.CanHide || columnState.Visible;
+            requestedOrder[column] = columnState.Order;
+        }
+        _columns.Sort((left, right) =>
+        {
+            int leftOrder = requestedOrder.TryGetValue(left, out int leftRequested)
+                ? leftRequested
+                : int.MaxValue;
+            int rightOrder = requestedOrder.TryGetValue(right, out int rightRequested)
+                ? rightRequested
+                : int.MaxValue;
+            int comparison = leftOrder.CompareTo(rightOrder);
+            return comparison != 0 ? comparison : originalOrder[left].CompareTo(originalOrder[right]);
+        });
+
+        _sorts.Clear();
+        foreach (SortDescriptor sort in state.Sort)
+        {
+            if (sort.Direction == SortDirection.None
+                || !columns.TryGetValue(sort.Property, out OmniDataGridColumn<TItem>? column)
+                || !column.Sortable)
+                continue;
+            _sorts.Add((column, sort.Direction));
+        }
+
+        _filters.Clear();
+        foreach (DataGridFilterViewState filter in state.Filters)
+        {
+            if (!columns.TryGetValue(filter.Property, out OmniDataGridColumn<TItem>? column)
+                || !column.Filterable
+                || string.IsNullOrWhiteSpace(filter.Value))
+                continue;
+            _filters[column] = new FilterDescriptor(
+                filter.Property,
+                filter.Operator,
+                filter.Value,
+                filter.SecondValue);
+        }
+
+        _groupLevels.Clear();
+        if (!IsHierarchyMode)
+        {
+            foreach (DataGridGroupViewState group in state.Groups)
+            {
+                if (columns.TryGetValue(group.Property, out OmniDataGridColumn<TItem>? column)
+                    && column.Groupable)
+                    _groupLevels.Add(new GroupLevelSpec(column, group.Interval));
+            }
+        }
+        _search = state.Search;
+        _page = 0;
+        _shapeMutation++;
+        _hasShape = false;
+        _collapsedGroups.Clear();
+        _autoCollapsePending = true;
+        _applyingViewState = true;
+        try
+        {
+            await ApplyAndRenderAsync();
+        }
+        finally
+        {
+            _applyingViewState = false;
+        }
+    }
+
+    private Dictionary<string, OmniDataGridColumn<TItem>> BuildColumnMap()
+    {
+        var columns = new Dictionary<string, OmniDataGridColumn<TItem>>(_columns.Count, StringComparer.Ordinal);
+        foreach (OmniDataGridColumn<TItem> column in _columns)
+        {
+            string property = column.ResolvedPropertyName;
+            if (string.IsNullOrWhiteSpace(property))
+                throw new InvalidOperationException(
+                    "DataGrid view state requires a stable PropertyName on every column.");
+            if (!columns.TryAdd(property, column))
+                throw new InvalidOperationException(
+                    $"DataGrid view state requires unique PropertyName values; '{property}' is duplicated.");
+        }
+        return columns;
+    }
+
+    private async Task NotifyViewStateChangedAsync()
+    {
+        if (_applyingViewState || Volatile.Read(ref _disposeState) != 0) return;
+        DataGridViewState state = CaptureViewState();
+        string? persistKey = PersistKey;
+        if (ViewStateChanged.HasDelegate) await ViewStateChanged.InvokeAsync(state);
+        if (string.IsNullOrWhiteSpace(persistKey)) return;
+
+        int sequence = Interlocked.Increment(ref _viewStatePersistSequence);
+        await _viewStatePersistGate.WaitAsync();
+        try
+        {
+            if (sequence == Volatile.Read(ref _viewStatePersistSequence)
+                && Volatile.Read(ref _disposeState) == 0)
+                await StateStorage.SaveAsync(persistKey, state);
+        }
+        finally
+        {
+            _viewStatePersistGate.Release();
+        }
     }
 
     private async Task PrepareHierarchyAsync()

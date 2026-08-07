@@ -1,6 +1,6 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponentWithChildren
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule JS
 @implements IAsyncDisposable
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
@@ -104,9 +104,9 @@
             try
             {
                 if (_preventDefaultDesired)
-                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaAttachPreventDefault", Id);
+                    await JS.InvokeVoidAsync("swipeAreaAttachPreventDefault", Id);
                 else
-                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachPreventDefault", Id);
+                    await JS.InvokeVoidAsync("swipeAreaDetachPreventDefault", Id);
                 _preventDefaultAttached = _preventDefaultDesired;
             }
             catch { /* SSR / JS gone */ }
@@ -118,7 +118,7 @@
             try
             {
                 if (_liveTransformAttached != SwipeAreaLiveTransform.None)
-                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachLiveTransform", Id);
+                    await JS.InvokeVoidAsync("swipeAreaDetachLiveTransform", Id);
                 if (LiveTransform != SwipeAreaLiveTransform.None)
                 {
                     var axes = LiveTransform switch
@@ -128,7 +128,7 @@
                         SwipeAreaLiveTransform.Both => "both",
                         _                           => "none",
                     };
-                    await JS.InvokeVoidAsync("omniBlazor.swipeAreaAttachLiveTransform", Id, axes);
+                    await JS.InvokeVoidAsync("swipeAreaAttachLiveTransform", Id, axes);
                 }
                 _liveTransformAttached = LiveTransform;
             }
@@ -245,12 +245,12 @@
     {
         if (_preventDefaultAttached)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachPreventDefault", Id); }
+            try { await JS.InvokeVoidAsync("swipeAreaDetachPreventDefault", Id); }
             catch { /* JS gone */ }
         }
         if (_liveTransformAttached != SwipeAreaLiveTransform.None)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.swipeAreaDetachLiveTransform", Id); }
+            try { await JS.InvokeVoidAsync("swipeAreaDetachLiveTransform", Id); }
             catch { /* JS gone */ }
         }
     }

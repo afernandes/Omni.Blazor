@@ -33,6 +33,13 @@ public partial class OmniSelect<TValue>
     /// <summary>Text shown when no value is selected.</summary>
     [Parameter] public string? Placeholder { get; set; }
 
+    /// <summary>
+    /// Accessible name applied to the combobox trigger. When omitted, the
+    /// component falls back to <c>Name</c>, <see cref="Placeholder"/>
+    /// or the selected option text, in that order.
+    /// </summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
     /// <summary>Synchronous options. Mutually exclusive with <see cref="ItemsProvider"/>.</summary>
     [Parameter] public IEnumerable<TValue>? Items { get; set; }
 
@@ -143,6 +150,9 @@ public partial class OmniSelect<TValue>
             return TextOf(Value);
         }
     }
+
+    private string EffectiveAriaLabel =>
+        AriaLabel ?? Name ?? Placeholder ?? SelectedText ?? Texts.SelectOption;
 
     private Task ToggleAsync()
     {

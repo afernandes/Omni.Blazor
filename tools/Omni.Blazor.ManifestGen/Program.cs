@@ -52,11 +52,25 @@ foreach (Assembly a in assemblies)
 components = [.. components.OrderBy(c => c.Category, StringComparer.Ordinal).ThenBy(c => c.Name, StringComparer.Ordinal)];
 Console.WriteLine($"[manifest-gen] components: {components.Count}");
 
+Dictionary<string, string> apiSourceByName = ScanCSharpTypes(
+    Path.Combine(repoRoot, "src", "Omni.Blazor", "Models"),
+    repoRoot);
+List<ConfigurationApiInfo> configurationApis = ConfigurationApiBuilder.Build(
+    typeof(OmniComponent).Assembly,
+    docs,
+    apiSourceByName);
+Console.WriteLine($"[manifest-gen] configuration APIs: {configurationApis.Count}");
+
 string tokensScss = Path.Combine(repoRoot, "src", "Omni.Blazor", "Themes", "_tokens.scss");
 string[] tokens = File.Exists(tokensScss) ? RazorScan.Tokens(File.ReadAllText(tokensScss)) : [];
 
 // ---- Write components.json ----
-var manifest = new Manifest("AndersonN.Omni.Blazor", repository, components.Count, components.ToArray());
+var manifest = new Manifest(
+    "AndersonN.Omni.Blazor",
+    repository,
+    components.Count,
+    components.ToArray(),
+    configurationApis.ToArray());
 string docsDir = Path.Combine(repoRoot, "docs");
 Directory.CreateDirectory(docsDir);
 var jsonOpts = new JsonSerializerOptions
@@ -72,7 +86,7 @@ Console.WriteLine("[manifest-gen] wrote docs/components.json");
 // ---- Write llms.txt / llms-full.txt ----
 File.WriteAllText(Path.Combine(repoRoot, "llms.txt"), Writers.LlmsIndex(components));
 Console.WriteLine("[manifest-gen] wrote llms.txt");
-File.WriteAllText(Path.Combine(repoRoot, "llms-full.txt"), Writers.LlmsFull(components, tokens));
+File.WriteAllText(Path.Combine(repoRoot, "llms-full.txt"), Writers.LlmsFull(components, tokens, configurationApis));
 Console.WriteLine("[manifest-gen] wrote llms-full.txt");
 
 Console.WriteLine("[manifest-gen] done.");
@@ -132,4 +146,20 @@ static (Dictionary<string, string> category, Dictionary<string, string> source, 
         }
     }
     return (category, source, description);
+}
+
+static Dictionary<string, string> ScanCSharpTypes(string directory, string repoRoot)
+{
+    var sources = new Dictionary<string, string>(StringComparer.Ordinal);
+    if (!Directory.Exists(directory)) return sources;
+    var declaration = new System.Text.RegularExpressions.Regex(
+        @"\b(?:class|interface|enum|record(?:\s+class)?)\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    foreach (string file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
+    {
+        string relative = Path.GetRelativePath(repoRoot, file).Replace('\\', '/');
+        foreach (System.Text.RegularExpressions.Match match in declaration.Matches(File.ReadAllText(file)))
+            sources.TryAdd(match.Groups["name"].Value, relative);
+    }
+    return sources;
 }

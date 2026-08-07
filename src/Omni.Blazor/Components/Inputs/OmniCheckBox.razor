@@ -11,6 +11,7 @@
            checked="@Value"
            disabled="@Disabled"
            name="@Name"
+           aria-label="@AriaLabel"
            @onchange="OnChange" />
     @if (ChildContent is not null) { <span class="omni-check-label">@ChildContent</span> }
     else if (!string.IsNullOrEmpty(Label)) { <span class="omni-check-label">@Label</span> }
@@ -21,6 +22,8 @@
     [Parameter] public string? Label { get; set; }
     /// <summary>Custom label content; rendered instead of <see cref="Label"/> when provided.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Accessible input name used when the checkbox has no visible label.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-check")
         .AddClass(Class)

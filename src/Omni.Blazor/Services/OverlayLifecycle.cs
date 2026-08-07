@@ -57,9 +57,9 @@ namespace Omni.Blazor.Services;
 ///   <item>Criar o DotNetObjectReference — componente cria, helper só usa</item>
 /// </list>
 /// </summary>
-public sealed class OverlayLifecycle : IAsyncDisposable
+internal sealed class OverlayLifecycle : IAsyncDisposable
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniOverlayJsModule _js;
     private readonly ScrollManager _scroll;
     private readonly string _id;
     private readonly string _selector;
@@ -78,7 +78,7 @@ public sealed class OverlayLifecycle : IAsyncDisposable
     /// <param name="scrollTarget">Elemento alvo do scroll lock. Default <c>"html"</c>
     /// (correto pra overlays viewport-level). Use <c>"body"</c> ou um selector
     /// específico se o overlay é local.</param>
-    public OverlayLifecycle(IJSRuntime js, ScrollManager scroll, string id,
+    internal OverlayLifecycle(IOmniOverlayJsModule js, ScrollManager scroll, string id,
         string? selector = null, string scrollTarget = "html")
     {
         _js = js ?? throw new ArgumentNullException(nameof(js));
@@ -112,7 +112,7 @@ public sealed class OverlayLifecycle : IAsyncDisposable
 
         try
         {
-            await _js.InvokeAsync<bool>("omniBlazor.setupOverlay", _id, _selector,
+            await _js.InvokeAsync<bool>("setupOverlay", _id, _selector,
                 new { dotnet = dotnetRef, method = escMethod });
         }
         catch { /* SSR / JS gone */ }
@@ -128,7 +128,7 @@ public sealed class OverlayLifecycle : IAsyncDisposable
         if (!_isActive) return;
         _isActive = false;
 
-        try { await _js.InvokeAsync<bool>("omniBlazor.teardownOverlay", _id); }
+        try { await _js.InvokeAsync<bool>("teardownOverlay", _id); }
         catch { /* SSR / JS gone */ }
 
         if (unlockScroll)

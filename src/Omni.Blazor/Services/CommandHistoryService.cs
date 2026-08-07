@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.JSInterop;
+using Omni.Blazor.Serialization;
 
 namespace Omni.Blazor.Services;
 
@@ -15,13 +16,13 @@ namespace Omni.Blazor.Services;
 /// </summary>
 public sealed class CommandHistoryService
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniCoreJsModule _js;
 
     // key -> (command label -> recency rank; larger = more recent)
     private readonly Dictionary<string, Dictionary<string, long>> _cache = new();
     private readonly Dictionary<string, long> _counter = new();
 
-    public CommandHistoryService(IJSRuntime js) => _js = js;
+    internal CommandHistoryService(IOmniCoreJsModule js) => _js = js;
 
     private static string StorageKey(string ns) => $"omni-cmdk-mru:{ns}";
 
@@ -33,10 +34,12 @@ public sealed class CommandHistoryService
         var map = new Dictionary<string, long>();
         try
         {
-            var json = await _js.InvokeAsync<string?>("omniBlazor.storageGet", StorageKey(ns));
+            var json = await _js.InvokeAsync<string?>("storageGet", StorageKey(ns));
             if (!string.IsNullOrEmpty(json))
             {
-                var parsed = JsonSerializer.Deserialize<Dictionary<string, long>>(json);
+                var parsed = JsonSerializer.Deserialize(
+                    json,
+                    OmniJsonSerializerContext.Default.DictionaryStringInt64);
                 if (parsed is not null) map = parsed;
             }
         }
@@ -57,7 +60,13 @@ public sealed class CommandHistoryService
         _counter[ns] = next;
         map[label] = next;
 
-        try { await _js.InvokeVoidAsync("omniBlazor.storageSet", StorageKey(ns), JsonSerializer.Serialize(map)); }
+        try
+        {
+            string json = JsonSerializer.Serialize(
+                map,
+                OmniJsonSerializerContext.Default.DictionaryStringInt64);
+            await _js.InvokeVoidAsync("storageSet", StorageKey(ns), json);
+        }
         catch { /* best-effort */ }
     }
 
@@ -66,7 +75,7 @@ public sealed class CommandHistoryService
     {
         _cache[ns] = new();
         _counter[ns] = 0;
-        try { await _js.InvokeVoidAsync("omniBlazor.storageRemove", StorageKey(ns)); }
+        try { await _js.InvokeVoidAsync("storageRemove", StorageKey(ns)); }
         catch { /* best-effort */ }
     }
 }

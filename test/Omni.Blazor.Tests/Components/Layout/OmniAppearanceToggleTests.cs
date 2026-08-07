@@ -15,7 +15,9 @@ public class OmniAppearanceToggleTests : TestContextBase
 {
     public OmniAppearanceToggleTests()
     {
-        Services.AddSingleton<ThemeService>(sp => new ThemeService(sp.GetRequiredService<IJSRuntime>()));
+        Services.AddSingleton<ThemeService>(sp => new ThemeService(
+            sp.GetRequiredService<IOmniCoreJsModule>(),
+            sp.GetRequiredService<IOmniResponsiveJsModule>()));
     }
 
     [Fact]

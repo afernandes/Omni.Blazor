@@ -6,7 +6,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![CI](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml/badge.svg)](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml)
 
-> Modern Blazor component library for .NET 10 — **198 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
+> Modern Blazor component library for .NET 10 — **206 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
 
 ```xml
 <PackageReference Include="AndersonN.Omni.Blazor" Version="*" />
@@ -16,15 +16,17 @@
 
 ## Highlights
 
-- **198 components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
+- **206 components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
 - **Single CSS bundle** (~295 KB) — no Bootstrap, no Tailwind, no runtime CSS-in-JS
 - **Design tokens** in CSS custom properties (`--omni-*`) — restyleable without recompiling
 - **Light / Dark / System** appearance toggle out of the box
-- **Runtime accent swap** — pick amber, crimson, emerald, blue, or violet via `[data-accent]`
+- **Runtime accent swap** — 12 accessible palettes via `[data-accent]`
 - **Cream + amber** default palette (Forneria design language)
 - **Source Link** + portable PDBs + `.snupkg` — step into the library while debugging
-- **Static Web Assets** — CSS/JS shipped via `_content/Omni.Blazor/...` (no extra build step)
+- **Static Web Assets** — CSS plus independently lazy-loaded JS feature modules; no manual `<script>` tag
+- **Native AOT + trimming** — package analyzers are enabled and a published native consumer is exercised in CI
 - **AI-ready** — `llms.txt` + `llms-full.txt` + a machine-readable [`docs/components.json`](docs/components.json) manifest and an [`AGENTS.md`](AGENTS.md) runbook, so coding agents (Claude Code, Cursor, Copilot) generate correct code
+- **Typed data workflows** — reusable Fluent schemas for DataGrid, Gantt, Scheduler, Kanban, Chart and Diagram, plus metadata-driven DataForm, CRUD DataGridForm, import, wizard and a serializable DataFilter query builder
 - **MIT licensed**
 
 ## Installation
@@ -118,9 +120,46 @@ base package — only the `IChatClient`-backed orchestration lives in `.Ai`.
 </OmniDataGrid>
 ```
 
+For reusable, refactor-safe configuration, move the structural API to an immutable schema:
+
+```razor
+<OmniDataGrid TItem="Order" Data="@orders" Schema="@OrderGrid" />
+
+@code {
+    private static readonly DataGridSchema<Order> OrderGrid =
+        DataGridSchema<Order>.Create(grid => grid
+            .Key(order => order.Id)
+            .Column(order => order.Id, column => column.Title("#").Width("90px"))
+            .Column(order => order.Total, column => column.Title("Total").Format("C2"))
+            .Column(order => order.Status, column => column.Filterable())
+            .Search()
+            .ColumnResize()
+            .Paging(20));
+}
+```
+
+The same `DataGridSchema<TItem>` can configure `OmniDataGridForm` and the embedded grid in `OmniEntityPicker`.
+
+### Native AOT and trimming
+
+`Omni.Blazor` declares `IsAotCompatible` and treats trim/AOT diagnostics as build
+errors. For Native AOT consumers, declare reflection-sensitive workflows with the
+typed schemas and disable DataForm auto-generation:
+
+```csharp
+DataFormSchema<Contact> schema = DataFormSchema<Contact>.Create(form => form
+    .AutoGenerateFields(false)
+    .Field(contact => contact.Name)
+    .Field(contact => contact.Email));
+```
+
+`OmniDataImport` also requires an explicit `.Factory(...)`. Runtime DataForm field
+generation remains available to JIT applications, but intentionally fails with an
+actionable message when dynamic code isn't supported.
+
 ## Component catalog
 
-_198 components — generated from [`docs/components.json`](docs/components.json). Run `dotnet run --project tools/Omni.Blazor.ManifestGen` after changing the public surface._
+_206 components — generated from [`docs/components.json`](docs/components.json). Run `dotnet run --project tools/Omni.Blazor.ManifestGen` after changing the public surface._
 
 <details>
 <summary><strong>Layout</strong> (32)</summary>
@@ -135,15 +174,15 @@ OmniBreadcrumb, OmniExitPrompt, OmniGlobalSearch, OmniHotkey, OmniMenuBar, OmniM
 </details>
 
 <details>
-<summary><strong>Inputs</strong> (31)</summary>
+<summary><strong>Inputs</strong> (32)</summary>
 
-OmniAutoComplete, OmniCalendar, OmniCheckBox, OmniCheckBoxList, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniFileUpload, OmniFormField, OmniListBox, OmniMaskedTextBox, OmniMultiSelect, OmniNumeric, OmniPassword, OmniPasswordStrength, OmniPickList, OmniQtyStepper, OmniRadio, OmniRadioGroup, OmniRating, OmniSecurityCode, OmniSelect, OmniSignaturePad, OmniSlider, OmniSpeechToText, OmniSpeechToTextButton, OmniSwitch, OmniTagInput, OmniTextArea, OmniTextBox, OmniTimePicker
+OmniAutoComplete, OmniCalendar, OmniCheckBox, OmniCheckBoxList, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniEntityPicker, OmniFileUpload, OmniFormField, OmniListBox, OmniMaskedTextBox, OmniMultiSelect, OmniNumeric, OmniPassword, OmniPasswordStrength, OmniPickList, OmniQtyStepper, OmniRadio, OmniRadioGroup, OmniRating, OmniSecurityCode, OmniSelect, OmniSignaturePad, OmniSlider, OmniSpeechToText, OmniSpeechToTextButton, OmniSwitch, OmniTagInput, OmniTextArea, OmniTextBox, OmniTimePicker
 </details>
 
 <details>
-<summary><strong>Forms</strong> (11)</summary>
+<summary><strong>Forms</strong> (13)</summary>
 
-OmniCompareValidator, OmniCustomValidator, OmniDataAnnotationValidator, OmniEmailValidator, OmniForm, OmniLengthValidator, OmniRangeValidator, OmniRegexValidator, OmniRequiredValidator, OmniValidationMessage, OmniValidationSummary
+OmniCompareValidator, OmniCustomValidator, OmniDataAnnotationValidator, OmniDataForm, OmniDataFormWizard, OmniEmailValidator, OmniForm, OmniLengthValidator, OmniRangeValidator, OmniRegexValidator, OmniRequiredValidator, OmniValidationMessage, OmniValidationSummary
 </details>
 
 <details>
@@ -159,9 +198,9 @@ OmniAccordion, OmniAccordionItem, OmniAlert, OmniAvatar, OmniAvatarGroup, OmniBa
 </details>
 
 <details>
-<summary><strong>Data</strong> (34)</summary>
+<summary><strong>Data</strong> (36)</summary>
 
-OmniChat, OmniDataFilter, OmniDataFilterItem, OmniDataFilterProperty, OmniDataGrid, OmniDataGridColumn, OmniDayView, OmniDiagramCanvas, OmniDropZone, OmniDropZoneContainer, OmniDropZoneItem, OmniFileManager, OmniGantt, OmniGanttColumn, OmniHtmlEditor, OmniHtmlEditorButton, OmniKanban, OmniMonthView, OmniMultiDayView, OmniPivotColumn, OmniPivotGrid, OmniPivotRow, OmniPivotValue, OmniScheduler, OmniTree, OmniTreeGrid, OmniTreeGridColumn, OmniTreeItem, OmniTreeLevel, OmniVirtualize, OmniWeekView, OmniYearPlannerView, OmniYearTimelineView, OmniYearView
+OmniChat, OmniDataFilter, OmniDataFilterItem, OmniDataGrid, OmniDataGridColumn, OmniDataGridForm, OmniDataImport, OmniDayView, OmniDiagramCanvas, OmniDropZone, OmniDropZoneContainer, OmniDropZoneItem, OmniFileManager, OmniGantt, OmniGanttColumn, OmniHtmlEditor, OmniHtmlEditorButton, OmniKanban, OmniMonthView, OmniMultiDayView, OmniPivotColumn, OmniPivotGrid, OmniPivotRow, OmniPivotValue, OmniScheduler, OmniTree, OmniTreeGrid, OmniTreeGridColumn, OmniTreeItem, OmniTreeLevel, OmniVirtualize, OmniWeekView, OmniYearPlannerView, OmniYearTimelineView, OmniYearView
 </details>
 
 <details>
@@ -220,7 +259,7 @@ All visual tokens are CSS custom properties:
   --omni-bg:           oklch(0.985 0.004 60);
   --omni-fg:           oklch(0.18 0.01 60);
   --omni-accent:       #d97706;  /* amber by default */
-  --omni-accent-hover: #b45309;
+  --omni-accent-hover: #f59e0b;
   --omni-radius:       10px;
   /* ...80+ tokens; see Themes/_tokens.scss */
 }
@@ -229,7 +268,7 @@ All visual tokens are CSS custom properties:
 Swap accents at runtime:
 
 ```html
-<html data-accent="emerald">  <!-- amber | crimson | emerald | blue | violet -->
+<html data-accent="emerald">  <!-- amber | crimson | emerald | blue | violet | teal | cyan | indigo | fuchsia | lime | orange | rose -->
 ```
 
 Or set dark mode:
@@ -252,8 +291,8 @@ The `<OmniAppearanceToggle />` component does both, persists to `localStorage`, 
 
 The repository ships two reference apps:
 
-- **`src/Forneria.Demo`** — full showcase + landing + auth + 50+ component pages. The default demo.
-- **`src/FoodService`** — POS-style real-world layout consuming the library.
+- **`src/Forneria.Demo`** — the default component showcase, with an animated product landing, searchable catalog and Server/WASM hosts.
+- **`src/FoodService`** — an independent vertical sample with its own landing, operational POS and customer-facing digital menu.
 
 To run locally:
 

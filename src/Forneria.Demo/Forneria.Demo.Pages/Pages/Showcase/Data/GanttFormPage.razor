@@ -1,0 +1,204 @@
+@page "/showcase/gantt-form"
+@attribute [ShowcaseInfo(Title = "Gantt Form", Category = Cat.Data, Icon = "gantt-chart", New = true, Aliases = "timeline,crud,task,dataform")]
+@layout ShowcaseLayout
+
+<PageTitle>Gantt Form — Showcase</PageTitle>
+
+@if (_interactiveReady)
+{
+    <span data-testid="gantt-form-interactive" aria-hidden="true"></span>
+}
+
+<ShowcasePage Title="Gantt Form" Subtitle="Cronograma tipado com edição por cópia, validação e exclusão confirmada.">
+    <Overview>
+        <p>
+            <code>OmniGanttForm</code> aplica o mesmo contrato CRUD headless usado por Grid, Scheduler e Kanban.
+            Identificadores permanecem internos; a hierarquia é editada escolhendo a tarefa pai pelo título.
+        </p>
+    </Overview>
+    <WhenToUse><ul><li>Planejamento de tarefas com formulário de detalhes e persistência.</li></ul></WhenToUse>
+    <WhenNotToUse><ul><li>Cronograma sem edição; use <code>OmniGantt</code>.</li></ul></WhenNotToUse>
+    <ChildContent>
+        <ShowcaseSection Title="CRONOGRAMA EDITÁVEL" Description="Clique em uma tarefa para editar seus dados em um draft isolado e selecione a tarefa pai por nome." Code="@ExampleCode">
+            <OmniGanttForm TItem="Tarefa" TKey="int" Items="@_tarefas" GanttSchema="@GanttSchema" EditorSchema="@_editorSchema">
+                <Columns>
+                    <OmniGanttColumn TItem="Tarefa" Title="Tarefa" Property="@(item => item.Titulo)" Width="240px" />
+                </Columns>
+            </OmniGanttForm>
+        </ShowcaseSection>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private readonly List<Tarefa> _tarefas =
+    [
+        new() { Id = 1, Titulo = "Entrega P2", Inicio = DateTime.Today, Fim = DateTime.Today.AddDays(6) },
+        new() { Id = 2, TarefaPaiId = 1, Titulo = "Testes e documentação", Inicio = DateTime.Today.AddDays(2), Fim = DateTime.Today.AddDays(5) },
+        new() { Id = 3, Titulo = "Publicação do pacote", Inicio = DateTime.Today.AddDays(5), Fim = DateTime.Today.AddDays(7) }
+    ];
+    private bool _interactiveReady;
+    private EntityEditorSchema<Tarefa, int> _editorSchema = default!;
+    private int _proximoId = 3;
+
+    private static readonly GanttSchema<Tarefa> GanttSchema = GanttSchema<Tarefa>.Create(gantt => gantt
+        .Hierarchy(item => item.Id, item => item.TarefaPaiId)
+        .Task(item => item.Titulo, item => item.Inicio, item => item.Fim)
+        .Timeline(showNavigation: true));
+
+    protected override void OnInitialized()
+    {
+        DataFormSchema<Tarefa> formSchema = DataFormSchema<Tarefa>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(item => item.Titulo, field => field.Label("Título").Required())
+            .Field(item => item.TarefaPaiId, field => field
+                .Label("Tarefa pai")
+                .Select<Tarefa>(
+                    item => (int?)item.Id,
+                    item => item.Titulo,
+                    lookup => lookup
+                        .ItemsProvider(CarregarTarefasPaiAsync, pageSize: 20, maxItems: 200)
+                        .ResolveItem(ResolverTarefaPaiAsync)
+                        .Clearable()
+                        .Texts(
+                            empty: "Nenhuma tarefa disponível.",
+                            loading: "Carregando tarefas...",
+                            loadError: "Não foi possível carregar as tarefas."))
+                .Validate(ValidarTarefaPai))
+            .Field(item => item.Inicio, field => field.Label("Início"))
+            .Field(item => item.Fim, field => field.Label("Fim")));
+
+        _editorSchema = EntityEditorSchema<Tarefa, int>.Create(editor => editor
+            .Key(item => item.Id)
+            .Form(formSchema)
+            .Create(CriarTarefa, "Nova tarefa")
+            .Edit(
+                item => new Tarefa
+                {
+                    Id = item.Id,
+                    TarefaPaiId = item.TarefaPaiId,
+                    Titulo = item.Titulo,
+                    Inicio = item.Inicio,
+                    Fim = item.Fim
+                },
+                item => $"Editar {item.Titulo}")
+            .Delete(item => $"Remover a tarefa {item.Titulo}?"));
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
+    }
+
+    private Tarefa CriarTarefa()
+        => new()
+        {
+            Id = ++_proximoId,
+            Inicio = DateTime.Today,
+            Fim = DateTime.Today.AddDays(1)
+        };
+
+    private ValueTask<OmniItemsPage<Tarefa>> CarregarTarefasPaiAsync(
+        DataFormLookupRequest<Tarefa> request,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        OmniItemsRequest itemsRequest = request.ItemsRequest;
+        List<Tarefa> pagina = new(Math.Min(itemsRequest.Take, _tarefas.Count));
+        int total = 0;
+
+        foreach (Tarefa candidata in _tarefas)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (EhTarefaOuDescendente(candidata, request.Model)) continue;
+            if (!string.IsNullOrWhiteSpace(itemsRequest.Search)
+                && !candidata.Titulo.Contains(itemsRequest.Search, StringComparison.CurrentCultureIgnoreCase))
+            {
+                continue;
+            }
+
+            if (total >= itemsRequest.Skip && pagina.Count < itemsRequest.Take) pagina.Add(candidata);
+            total++;
+        }
+
+        return ValueTask.FromResult(new OmniItemsPage<Tarefa>(pagina, total));
+    }
+
+    private ValueTask<Tarefa?> ResolverTarefaPaiAsync(
+        DataFormLookupResolveRequest<Tarefa, int?> request,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(request.Value is int id ? LocalizarTarefa(id) : null);
+    }
+
+    private string? ValidarTarefaPai(int? tarefaPaiId, Tarefa tarefa)
+    {
+        if (tarefaPaiId is null) return null;
+        Tarefa? candidata = LocalizarTarefa(tarefaPaiId.Value);
+        if (candidata is null) return "A tarefa pai selecionada não existe mais.";
+        return EhTarefaOuDescendente(candidata, tarefa)
+            ? "Uma tarefa não pode ser filha dela mesma nem de uma descendente."
+            : null;
+    }
+
+    private bool EhTarefaOuDescendente(Tarefa candidata, Tarefa tarefa)
+    {
+        int idAtual = candidata.Id;
+        for (int restante = _tarefas.Count + 1; restante > 0; restante--)
+        {
+            if (idAtual == tarefa.Id) return true;
+            Tarefa? atual = LocalizarTarefa(idAtual);
+            if (atual?.TarefaPaiId is not int tarefaPaiId) return false;
+            idAtual = tarefaPaiId;
+        }
+
+        return true;
+    }
+
+    private Tarefa? LocalizarTarefa(int id)
+    {
+        for (int indice = 0; indice < _tarefas.Count; indice++)
+        {
+            Tarefa tarefa = _tarefas[indice];
+            if (tarefa.Id == id) return tarefa;
+        }
+
+        return null;
+    }
+
+    private const string ExampleCode = """
+<OmniGanttForm TItem="Tarefa" TKey="int"
+               Items="@tarefas"
+               GanttSchema="@GanttSchema"
+               EditorSchema="@EditorSchema">
+    <Columns>
+        <OmniGanttColumn TItem="Tarefa" Title="Tarefa"
+                         Property="@(item => item.Titulo)" />
+    </Columns>
+</OmniGanttForm>
+
+DataFormSchema<Tarefa> formSchema = DataFormSchema<Tarefa>.Create(form => form
+    .AutoGenerateFields(false)
+    .Field(item => item.Titulo, field => field.Label("Título").Required())
+    .Field(item => item.TarefaPaiId, field => field
+        .Label("Tarefa pai")
+        .Select<Tarefa>(
+            item => (int?)item.Id,
+            item => item.Titulo,
+            lookup => lookup
+                .ItemsProvider(CarregarTarefasPaiAsync)
+                .ResolveItem(ResolverTarefaPaiAsync)
+                .Clearable())));
+""";
+
+    private sealed class Tarefa
+    {
+        public int Id { get; set; }
+        public int? TarefaPaiId { get; set; }
+        public string Titulo { get; set; } = string.Empty;
+        public DateTime Inicio { get; set; }
+        public DateTime Fim { get; set; }
+    }
+}

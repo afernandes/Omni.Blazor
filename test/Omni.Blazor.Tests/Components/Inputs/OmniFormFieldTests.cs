@@ -176,7 +176,7 @@ public class OmniFormFieldTests : TestContextBase
     public void Recompute_fires_when_ValidationFor_changes()
     {
         var model = new Model();
-        System.Linq.Expressions.Expression<Func<object?>> first  = () => model.A;
+        System.Linq.Expressions.Expression<Func<object?>> first = () => model.A;
         System.Linq.Expressions.Expression<Func<object?>> second = () => model.B;
 
         var cut = Render<OmniFormField>(p => p

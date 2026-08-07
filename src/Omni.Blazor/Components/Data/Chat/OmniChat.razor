@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IDisposable
-@inject IJSRuntime JS
+@inject IOmniDataJsModule JS
 @inject Omni.Blazor.Services.ScrollManager Scroll
 @using System.Globalization
 @using Omni.Blazor.Models
@@ -294,7 +294,7 @@
         if (firstRender)
         {
             _selfRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("omniBlazor.chatEnterToSend", _inputRef, _selfRef);
+            await JS.InvokeVoidAsync("chatEnterToSend", _inputRef, _selfRef);
             _created = true;
             await ScrollToBottomAsync();
             _lastCount = _messages.Count;
@@ -447,7 +447,7 @@
     {
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.chatDetach", _inputRef);
+            await JS.InvokeVoidAsync("chatDetach", _inputRef);
         }
         catch
         {

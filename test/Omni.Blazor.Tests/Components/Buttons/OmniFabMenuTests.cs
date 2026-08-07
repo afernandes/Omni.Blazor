@@ -19,12 +19,12 @@ public class OmniFabMenuTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(FabPosition.BottomRight,  "omni-fab-bottom-right")]
-    [InlineData(FabPosition.BottomLeft,   "omni-fab-bottom-left")]
-    [InlineData(FabPosition.TopRight,     "omni-fab-top-right")]
-    [InlineData(FabPosition.TopLeft,      "omni-fab-top-left")]
+    [InlineData(FabPosition.BottomRight, "omni-fab-bottom-right")]
+    [InlineData(FabPosition.BottomLeft, "omni-fab-bottom-left")]
+    [InlineData(FabPosition.TopRight, "omni-fab-top-right")]
+    [InlineData(FabPosition.TopLeft, "omni-fab-top-left")]
     [InlineData(FabPosition.BottomCenter, "omni-fab-bottom-center")]
-    [InlineData(FabPosition.Static,       "omni-fab-static")]
+    [InlineData(FabPosition.Static, "omni-fab-static")]
     public void Applies_position_modifier(FabPosition pos, string expectedClass)
     {
         var cut = Render<OmniFabMenu>(p => p.Add(c => c.Position, pos));
@@ -33,9 +33,9 @@ public class OmniFabMenuTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(FabMenuDirection.Up,    "omni-fab-dir-up")]
-    [InlineData(FabMenuDirection.Down,  "omni-fab-dir-down")]
-    [InlineData(FabMenuDirection.Left,  "omni-fab-dir-left")]
+    [InlineData(FabMenuDirection.Up, "omni-fab-dir-up")]
+    [InlineData(FabMenuDirection.Down, "omni-fab-dir-down")]
+    [InlineData(FabMenuDirection.Left, "omni-fab-dir-left")]
     [InlineData(FabMenuDirection.Right, "omni-fab-dir-right")]
     public void Applies_direction_modifier(FabMenuDirection dir, string expectedClass)
     {
@@ -46,8 +46,8 @@ public class OmniFabMenuTests : TestContextBase
 
     [Theory]
     [InlineData(FabMenuAnimation.Stagger, "omni-fab-anim-stagger")]
-    [InlineData(FabMenuAnimation.Linear,  "omni-fab-anim-linear")]
-    [InlineData(FabMenuAnimation.None,    "omni-fab-anim-none")]
+    [InlineData(FabMenuAnimation.Linear, "omni-fab-anim-linear")]
+    [InlineData(FabMenuAnimation.None, "omni-fab-anim-none")]
     public void Applies_animation_modifier(FabMenuAnimation anim, string expectedClass)
     {
         var cut = Render<OmniFabMenu>(p => p.Add(c => c.Animation, anim));

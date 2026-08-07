@@ -10,7 +10,7 @@ namespace Omni.Blazor.Tests.Services;
 /// </summary>
 public class BreakpointServiceTests : TestContextBase
 {
-    private BreakpointService NewService() => new(JSInterop.JSRuntime);
+    private BreakpointService NewService() => new(new TestJsModule(JSInterop.JSRuntime));
 
     [Fact]
     public void Current_defaults_to_Md_before_any_resize()

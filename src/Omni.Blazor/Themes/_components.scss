@@ -1961,14 +1961,19 @@ button.omni-datepicker-trigger:hover { background: var(--omni-bg-sunken); color:
 button.omni-datepicker-trigger:disabled { cursor: not-allowed; opacity: 0.5; }
 
 .omni-datepicker-popover {
-  position: absolute;
-  top: calc(100% + 4px); left: 0;
+  // The Popover API promotes this surface to the browser top layer without
+  // moving the Blazor-owned node. JS writes viewport-relative coordinates.
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  visibility: hidden;
   z-index: var(--omni-z-overlay);
   background: var(--omni-bg-elev);
   border: 1px solid var(--omni-line-strong);
   border-radius: var(--omni-radius);
   box-shadow: var(--omni-shadow-lg);
   padding: 12px;
+  overscroll-behavior: contain;
   animation: omni-fade-in 140ms ease-out;
 }
 
@@ -2313,9 +2318,10 @@ button.omni-calendar-year.omni-active { background: var(--omni-accent); color: v
 }
 
 .omni-daterange-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  visibility: hidden;
   z-index: var(--omni-z-overlay);
   display: flex;
   background: var(--omni-bg-elev);
@@ -2323,6 +2329,7 @@ button.omni-calendar-year.omni-active { background: var(--omni-accent); color: v
   border-radius: var(--omni-radius);
   box-shadow: var(--omni-shadow-lg);
   animation: omni-fade-in 140ms ease-out;
+  overscroll-behavior: contain;
   overflow: hidden;          // contains rounded corners across sidebar + body
 }
 
@@ -2457,6 +2464,41 @@ button.omni-select-option.omni-selected { color: var(--omni-accent); }
   font-size: 13px;
   justify-content: center;
 }
+button.omni-autocomplete-load-more,
+button.omni-select-load-more {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 0;
+  border-top: 1px solid var(--omni-line);
+  border-radius: 0 0 6px 6px;
+  background: transparent;
+  color: var(--omni-accent);
+  font: 600 12px/1.4 var(--omni-font-ui);
+  text-align: center;
+  cursor: pointer;
+  transition: background 80ms, color 80ms;
+}
+button.omni-autocomplete-load-more:hover:not(:disabled),
+button.omni-select-load-more:hover:not(:disabled) {
+  background: var(--omni-accent-soft);
+  color: var(--omni-accent-hover);
+}
+button.omni-autocomplete-load-more:focus-visible,
+button.omni-select-load-more:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: -2px;
+}
+button.omni-autocomplete-load-more:disabled,
+button.omni-select-load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 // ——— Form field wrapper ——————————————————————————————————————————————
 .omni-field { display: flex; flex-direction: column; gap: 6px; }
@@ -2546,6 +2588,372 @@ button.omni-select-option.omni-selected { color: var(--omni-accent); }
 .omni-data-form-collection-title { min-width: 0; font-size: 13px; font-weight: 650; }
 .omni-data-form-collection-actions { display: flex; align-items: center; gap: 4px; }
 .omni-data-form-collection-add { align-self: flex-start; }
+// DataGridForm composition keeps generated controls readable at WCAG AA contrast.
+.omni-data-grid-form { position: relative; min-width: 0; }
+.omni-data-grid-form-error { margin-bottom: 12px; }
+.omni-data-grid-form .omni-data-grid-form-create.omni-btn-primary,
+.omni-data-grid-form .omni-data-grid-form-editor .omni-btn-primary {
+  background: var(--omni-accent-hover);
+  border-color: var(--omni-accent-hover);
+}
+.omni-data-grid-form .omni-grid-table thead th { color: var(--omni-fg); }
+.omni-data-grid-form-bulk-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--omni-line);
+}
+.omni-data-grid-form-selected-count {
+  color: var(--omni-fg-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.omni-data-grid-form-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.omni-data-grid-form-row-actions .omni-btn { white-space: nowrap; }
+.omni-data-grid-form-more-actions { flex: 0 0 auto; }
+.omni-data-grid-form-editor {
+  width: min(720px, calc(100vw - 24px));
+  max-height: min(88vh, 920px);
+  overflow: hidden;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-elev);
+  box-shadow: var(--omni-shadow-lg);
+}
+.omni-data-grid-form-editor-inline {
+  width: 100%;
+  max-height: none;
+  margin-top: 16px;
+  box-shadow: none;
+}
+.omni-data-grid-form-editor-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(720px, 100vw);
+  max-height: none;
+  border-block: 0;
+  border-right: 0;
+  border-radius: var(--omni-radius-lg) 0 0 var(--omni-radius-lg);
+}
+.omni-data-grid-form-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-data-grid-form-editor-header h2,
+.omni-data-grid-form-confirm h2 { margin: 0; font-size: 16px; }
+.omni-data-grid-form-editor-body {
+  max-height: calc(min(88vh, 920px) - 57px);
+  padding: 18px;
+  overflow: auto;
+}
+.omni-data-grid-form-editor-drawer .omni-data-grid-form-editor-body {
+  max-height: calc(100vh - 57px);
+}
+.omni-data-grid-form-confirm {
+  width: min(440px, calc(100vw - 24px));
+  padding: 20px;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-elev);
+  box-shadow: var(--omni-shadow-lg);
+}
+.omni-data-grid-form-confirm p { margin: 12px 0 20px; color: var(--omni-fg-muted); }
+.omni-data-grid-form-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.omni-entity-editor { position: relative; min-width: 0; }
+.omni-entity-editor-error { margin-bottom: 12px; }
+.omni-entity-editor-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.omni-entity-editor-surface { min-width: 0; }
+
+.omni-property-grid {
+  min-width: 0;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  background: var(--omni-bg-elev);
+  overflow: hidden;
+}
+.omni-property-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-property-grid-header h2 { margin: 0; font-size: 14px; }
+.omni-property-grid .omni-data-form { padding: 14px; }
+.omni-property-grid .omni-data-form-grid { gap: 10px; }
+.omni-property-grid .omni-data-form-actions { margin-top: 12px; }
+
+// ——— Entity picker ———————————————————————————————————————————————————
+.omni-entity-picker {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.omni-entity-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--omni-line-strong);
+  border-radius: var(--omni-radius-md);
+  background: var(--omni-bg-elev);
+  color: var(--omni-fg);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.omni-entity-picker-trigger:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 2px;
+}
+.omni-entity-picker.omni-invalid .omni-entity-picker-trigger { border-color: var(--omni-danger); }
+.omni-entity-picker-trigger:disabled { cursor: not-allowed; opacity: .6; }
+.omni-entity-picker-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.omni-entity-picker-placeholder { color: var(--omni-fg-muted); }
+.omni-entity-picker-clear { flex: 0 0 auto; margin-inline-start: 4px; }
+.omni-entity-picker-error {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline: 0;
+  color: var(--omni-danger);
+  font-size: 12px;
+}
+.omni-entity-picker-panel {
+  max-height: min(86vh, 860px);
+  overflow: hidden;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-elev);
+  box-shadow: var(--omni-shadow-lg);
+}
+.omni-entity-picker-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  max-height: none;
+  border-block: 0;
+  border-inline-end: 0;
+  border-radius: var(--omni-radius-lg) 0 0 var(--omni-radius-lg);
+}
+.omni-entity-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-entity-picker-header h2 { margin: 0; font-size: 16px; }
+.omni-entity-picker-body { max-height: calc(min(86vh, 860px) - 57px); overflow: auto; }
+.omni-entity-picker-drawer .omni-entity-picker-body { max-height: calc(100vh - 57px); }
+
+// ——— DataForm wizard ————————————————————————————————————————————————
+.omni-data-form-wizard { min-width: 0; }
+.omni-data-form-wizard-nav { margin-bottom: 20px; overflow-x: auto; }
+.omni-data-form-wizard-nav ol {
+  display: flex;
+  min-width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.omni-data-form-wizard-step { position: relative; min-width: 180px; flex: 1 1 0; }
+.omni-data-form-wizard-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 17px;
+  inset-inline: 42px -4px;
+  height: 2px;
+  background: var(--omni-line);
+}
+.omni-data-form-wizard-step.omni-complete:not(:last-child)::after { background: var(--omni-accent); }
+.omni-data-form-wizard-step-button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 0 16px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--omni-fg-muted);
+  font: inherit;
+  text-align: start;
+}
+.omni-data-form-wizard-step-button:not(:disabled) { cursor: pointer; }
+.omni-data-form-wizard-step-button:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 3px; border-radius: var(--omni-radius-sm); }
+.omni-data-form-wizard-step-index {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--omni-line-strong);
+  border-radius: 50%;
+  background: var(--omni-bg-elev);
+  color: var(--omni-fg-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.omni-data-form-wizard-step.omni-active .omni-data-form-wizard-step-index,
+.omni-data-form-wizard-step.omni-complete .omni-data-form-wizard-step-index {
+  border-color: var(--omni-accent);
+  background: var(--omni-accent);
+  color: var(--omni-accent-fg);
+}
+.omni-data-form-wizard-step-copy { display: grid; gap: 2px; min-width: 0; padding-top: 1px; }
+.omni-data-form-wizard-step-title { color: var(--omni-fg); font-size: 13px; font-weight: 650; }
+.omni-data-form-wizard-step-description { max-width: 220px; font-size: 11px; line-height: 1.35; white-space: normal; }
+.omni-data-form-wizard-content {
+  padding: 20px;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-elev);
+}
+.omni-data-form-wizard-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; }
+.omni-data-form-wizard-header h2 { margin: 0; font-size: 18px; }
+.omni-data-form-wizard-header p { margin: 4px 0 0; color: var(--omni-fg-muted); font-size: 13px; }
+.omni-data-form-wizard-actions { display: flex; align-items: center; gap: 8px; width: 100%; }
+.omni-data-form-wizard-actions-spacer { flex: 1 1 auto; }
+
+@media (max-width: 640px) {
+  .omni-data-form-wizard-step { min-width: 150px; }
+  .omni-data-form-wizard-content { padding: 14px; }
+}
+
+// ——— Typed tabular import ————————————————————————————————————————————
+.omni-data-import {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.omni-data-import-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.omni-data-import-dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 76px;
+  padding: 14px 16px;
+  border: 1px dashed var(--omni-line-strong);
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-soft);
+  color: var(--omni-fg);
+  cursor: pointer;
+}
+.omni-data-import-dropzone:hover { border-color: var(--omni-accent); background: var(--omni-bg-hover); }
+.omni-data-import-dropzone:focus-within { outline: 2px solid var(--omni-accent); outline-offset: 2px; }
+.omni-data-import-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.omni-data-import-upload-copy { display: grid; gap: 3px; }
+.omni-data-import-upload-copy small { color: var(--omni-fg-muted); }
+.omni-data-import-disabled .omni-data-import-dropzone { cursor: not-allowed; opacity: .65; }
+.omni-data-import-loading { display: flex; align-items: center; gap: 8px; color: var(--omni-fg-muted); }
+.omni-data-import-alert { margin: 0; }
+.omni-data-import-section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-elev);
+}
+.omni-data-import-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.omni-data-import-section-title { margin: 0; color: var(--omni-fg); font-size: 16px; font-weight: 650; }
+.omni-data-import-section-heading p { margin: 4px 0 0; color: var(--omni-fg-muted); font-size: 12px; }
+.omni-data-import-file-name {
+  overflow: hidden;
+  max-width: 45%;
+  color: var(--omni-fg-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omni-data-import-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.omni-data-import-mapping { display: grid; gap: 5px; color: var(--omni-fg-muted); font-size: 12px; }
+.omni-data-import-mapping select {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid var(--omni-line-strong);
+  border-radius: var(--omni-radius-md);
+  background: var(--omni-bg-elev);
+  color: var(--omni-fg);
+  font: inherit;
+}
+.omni-data-import-mapping select:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 2px; }
+.omni-data-import-preview { max-width: 100%; overflow: auto; border: 1px solid var(--omni-line); border-radius: var(--omni-radius-md); }
+.omni-data-import-preview:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 2px; }
+.omni-data-import-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.omni-data-import-preview th,
+.omni-data-import-preview td { max-width: 280px; padding: 8px 10px; border-bottom: 1px solid var(--omni-line); text-align: start; vertical-align: top; }
+.omni-data-import-preview thead th { position: sticky; top: 0; z-index: 1; background: var(--omni-bg-soft); color: var(--omni-fg-muted); white-space: nowrap; }
+.omni-data-import-preview tbody tr:last-child > * { border-bottom: 0; }
+.omni-data-import-invalid { background: color-mix(in srgb, var(--omni-danger) 5%, transparent); }
+.omni-data-import-status { display: inline-flex; align-items: center; gap: 5px; color: var(--omni-fg); font-weight: 600; white-space: nowrap; }
+.omni-data-import-valid .omni-data-import-status svg { color: var(--omni-good); }
+.omni-data-import-invalid .omni-data-import-status svg { color: var(--omni-danger); }
+.omni-data-import-errors { min-width: 180px; margin: 0; padding-inline-start: 16px; color: var(--omni-fg); }
+.omni-data-import-errors li::marker { color: var(--omni-danger); }
+.omni-data-import-preview-limit { margin: 10px 0 0; color: var(--omni-fg-muted); font-size: 12px; }
+.omni-data-import-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; color: var(--omni-fg-muted); font-size: 12px; }
+
+@media (max-width: 640px) {
+  .omni-data-import-upload,
+  .omni-data-import-section-heading,
+  .omni-data-import-actions { align-items: stretch; flex-direction: column; }
+  .omni-data-import-file-name { max-width: 100%; }
+}
 .omni-data-form-validation-summary { margin-bottom: 16px; }
 .omni-data-form-validation-link {
   padding: 0;
@@ -2683,6 +3091,9 @@ button.omni-select-option.omni-selected { color: var(--omni-accent); }
   white-space: nowrap;
 }
 .omni-select-placeholder { color: var(--omni-fg-soft); }
+// An empty placeholder still needs one typographic line; otherwise the button
+// collapses to border + padding and becomes shorter than the other inputs.
+.omni-select-placeholder:empty::before { content: "\00a0"; }
 
 // ——— Chip ————————————————————————————————————————————————————————————
 .omni-chip {
@@ -3029,7 +3440,7 @@ button.omni-select-option.omni-selected { color: var(--omni-accent); }
   position: sticky; top: 0; z-index: 2;
   text-align: left;
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--omni-fg-soft); font-weight: 600;
+  color: var(--omni-fg); font-weight: 600;
   font-family: var(--omni-font-mono);
   background: var(--omni-bg-sunken);
   padding: 10px 14px;
@@ -3169,8 +3580,14 @@ body.omni-grid-resizing * { cursor: col-resize !important; }
 }
 
 // Multi-selection + Row expand (master-detail)
-.omni-grid-th-select,
-.omni-grid-td-select { text-align: center; vertical-align: middle; }
+.omni-grid-table thead th.omni-grid-th-select,
+.omni-grid-table tbody td.omni-grid-td-select {
+  padding-inline: 0;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: clip;
+  vertical-align: middle;
+}
 .omni-grid-th-select .omni-check,
 .omni-grid-td-select .omni-check { display: inline-flex; margin: 0; padding: 0; }
 
@@ -4184,16 +4601,28 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   text-align: left;
 }
 .omni-menu-item:hover:not(:disabled) { background: var(--omni-bg-sunken); }
+.omni-menu-item:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: -2px; }
 .omni-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
-.omni-menu-item-label { flex: 1 1 auto; min-width: 0; }
+.omni-menu-item-content { display: flex; flex: 1 1 auto; min-width: 0; flex-direction: column; gap: 2px; }
+.omni-menu-item-label { min-width: 0; }
+.omni-menu-item-description { color: var(--omni-fg-muted); font-size: 11px; line-height: 1.3; }
 .omni-menu-item-kbd { margin-left: auto; }
 .omni-menu-item-danger { color: var(--omni-danger); }
 .omni-menu-item-danger:hover:not(:disabled) { background: color-mix(in oklab, var(--omni-danger) 10%, transparent); }
 .omni-menu-sep { height: 1px; background: var(--omni-line); margin: 4px 2px; }
+.omni-menu-group-label {
+  padding: 6px 10px 3px;
+  color: var(--omni-fg-muted);
+  font-family: var(--omni-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
 // ——— Context menu (positioning + chrome around .omni-menu) ———————————
 .omni-context-menu {
-  position: absolute;
+  position: fixed;
   z-index: var(--omni-z-context-menu);
   background: var(--omni-bg-elev);
   border: 1px solid var(--omni-line-strong);
@@ -5171,6 +5600,15 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 .omni-chart-donut-value {
   fill: var(--omni-fg);
   font: 700 22px/1 var(--omni-font-ui);
+}
+.omni-chart-gauge-value {
+  fill: var(--omni-fg);
+  font-size: 24px;
+  font-weight: 700;
+}
+.omni-chart-gauge-label {
+  fill: var(--omni-fg-muted);
+  font-size: 11px;
 }
 .omni-chart-legend {
   display: flex;
@@ -9517,7 +9955,7 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   appearance: none;
   border: none;
   background: transparent;
-  color: var(--omni-fg-soft);
+  color: var(--omni-fg);
   padding: 4px 16px;
   cursor: pointer;
   font: inherit;
@@ -9528,7 +9966,7 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
   transition: background .15s, color .15s;
 }
 .omni-datafilter-logic-btn:hover:not(:disabled) { color: var(--omni-fg); }
-.omni-datafilter-logic-btn.omni-active { background: var(--omni-accent); color: #fff; }
+.omni-datafilter-logic-btn.omni-active { background: var(--omni-accent); color: var(--omni-accent-fg); }
 
 // The rail: a spine the rows connect to.
 .omni-datafilter-list {
@@ -9611,6 +10049,15 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 // Embedded Omni editors (DatePicker / AutoComplete) for date & select values —
 // already .omni-input-sized; just give them comparable width in the row.
 .omni-datafilter-editor { min-width: 170px; flex: 0 1 240px; }
+.omni-datafilter-range {
+  display: flex;
+  flex: 1 1 360px;
+  align-items: center;
+  gap: 6px;
+  min-width: 240px;
+}
+.omni-datafilter-range > .omni-datafilter-editor,
+.omni-datafilter-range > .omni-datafilter-input { min-width: 120px; flex: 1 1 160px; }
 
 // Field size follows OmniDataFilter.Size (default Sm). Embedded Omni editors get
 // Size directly; the native selects/inputs are scaled here to the same metrics.
@@ -9700,11 +10147,11 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 .omni-datafilter-mode {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 5px 12px; font-size: 13px; line-height: 1.2;
-  border: 0; background: transparent; color: var(--omni-fg-soft); cursor: pointer;
+  border: 0; background: transparent; color: var(--omni-fg); cursor: pointer;
 }
 .omni-datafilter-mode + .omni-datafilter-mode { border-left: 1px solid var(--omni-line); }
 .omni-datafilter-mode:hover:not(:disabled) { background: var(--omni-bg-sunken); }
-.omni-datafilter-mode.omni-active { background: var(--omni-accent-soft); color: var(--omni-accent); font-weight: 600; }
+.omni-datafilter-mode.omni-active { background: var(--omni-accent-soft); color: var(--omni-fg); font-weight: 600; }
 .omni-datafilter-mode:disabled { cursor: default; }
 
 .omni-datafilter-sql { display: flex; flex-direction: column; gap: 8px; }
@@ -9828,6 +10275,54 @@ button.omni-upload-file-remove:hover { background: var(--omni-bg-sunken); color:
 // Infinite graph editor: grid, nodes with ports, bezier edges, minimap,
 // zoom controls, marquee, run-state overlay. Geometry constants live in
 // Models/DiagramModels.cs (DiagramGeometry) and wwwroot/js/omni-diagram.js.
+
+.omni-workflow-designer {
+  min-width: 0;
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-lg);
+  background: var(--omni-bg-elev);
+  overflow: hidden;
+}
+.omni-workflow-designer-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--omni-line);
+}
+.omni-workflow-designer-validation { margin: 10px; }
+.omni-workflow-designer-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  min-height: 520px;
+}
+.omni-workflow-designer-workspace.omni-workflow-designer-with-palette {
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) minmax(240px, 320px);
+}
+.omni-workflow-designer-palette,
+.omni-workflow-designer-inspector {
+  min-width: 0;
+  padding: 12px;
+  background: var(--omni-bg-soft);
+  overflow: auto;
+}
+.omni-workflow-designer-palette { border-right: 1px solid var(--omni-line); }
+.omni-workflow-designer-inspector { border-left: 1px solid var(--omni-line); }
+.omni-workflow-designer-canvas { min-width: 0; min-height: 520px; }
+.omni-workflow-designer-canvas > .omni-diagram { min-height: 520px; }
+@media (max-width: 900px) {
+  .omni-workflow-designer-workspace,
+  .omni-workflow-designer-workspace.omni-workflow-designer-with-palette {
+    grid-template-columns: 1fr;
+  }
+  .omni-workflow-designer-palette,
+  .omni-workflow-designer-inspector {
+    border: 0;
+    border-top: 1px solid var(--omni-line);
+  }
+  .omni-workflow-designer-canvas { order: -1; }
+}
 
 .omni-diagram {
   position: relative;
@@ -11402,3 +11897,14 @@ span.omni-citation { cursor: default; }
 .omni-muted { color: var(--omni-fg-muted); }
 .omni-soft { color: var(--omni-fg-soft); }
 .omni-flex-1 { flex: 1; min-width: 0; }
+.omni-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

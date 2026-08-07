@@ -5,10 +5,10 @@ namespace Omni.Blazor.Services;
 /// <summary>Typed browser-focus façade used by components without direct JS runtime access.</summary>
 public sealed class FocusManager
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniCoreJsModule _js;
 
     /// <summary>Creates a focus manager for the current Blazor scope.</summary>
-    public FocusManager(IJSRuntime js) => _js = js;
+    internal FocusManager(IOmniCoreJsModule js) => _js = js;
 
     /// <summary>
     /// Focuses an element by id, or the first focusable descendant when the id
@@ -19,7 +19,7 @@ public sealed class FocusManager
         if (string.IsNullOrWhiteSpace(elementId)) return;
         try
         {
-            await _js.InvokeVoidAsync("omniBlazor.focusElement", elementId, preventScroll);
+            await _js.InvokeVoidAsync("focusElement", elementId, preventScroll);
         }
         catch
         {
@@ -27,4 +27,3 @@ public sealed class FocusManager
         }
     }
 }
-

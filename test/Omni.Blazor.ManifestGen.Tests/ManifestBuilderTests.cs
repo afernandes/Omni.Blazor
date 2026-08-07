@@ -1,5 +1,6 @@
 using Omni.Blazor.Components;
 using Omni.Blazor.ManifestGen;
+using Omni.Blazor.Models;
 using Xunit;
 
 namespace Omni.Blazor.ManifestGen.Tests;
@@ -101,4 +102,72 @@ public class ManifestBuilderTests
         Assert.Equal("FormComponent", value.InheritedFrom);
         Assert.False(string.IsNullOrWhiteSpace(value.Summary));
     }
+
+    [Fact]
+    public void Configuration_apis_reflect_real_builders_providers_enums_and_xml_docs()
+    {
+        Dictionary<string, string> sources = new()
+        {
+            ["DataImportSchema"] = "src/Omni.Blazor/Models/DataImportModels.cs",
+            ["DataImportSchemaBuilder"] = "src/Omni.Blazor/Models/DataImportModels.cs",
+            ["DataImportColumnBuilder"] = "src/Omni.Blazor/Models/DataImportModels.cs",
+            ["DataFormWizardSchemaBuilder"] = "src/Omni.Blazor/Models/DataFormWizardModels.cs",
+            ["DataGridFormMutationStatus"] = "src/Omni.Blazor/Models/DataGridFormModels.cs",
+            ["IDataGridFormProvider"] = "src/Omni.Blazor/Models/DataGridFormModels.cs",
+            ["DelegateDataGridFormProvider"] = "src/Omni.Blazor/Models/DataGridFormModels.cs",
+        };
+        Dictionary<string, string> docs = XmlDocText.Load(Path.ChangeExtension(Lib.Location, ".xml"));
+
+        List<ConfigurationApiInfo> apis = ConfigurationApiBuilder.Build(Lib, docs, sources);
+
+        Assert.Equal(7, apis.Count);
+        Assert.Equal(apis.OrderBy(api => api.Category, StringComparer.Ordinal)
+            .ThenBy(api => api.Name, StringComparer.Ordinal), apis);
+
+        ConfigurationApiInfo import = Assert.Single(apis, api => api.Name == "DataImportSchemaBuilder<TItem>");
+        Assert.Equal("Data", import.Category);
+        Assert.Equal("class", import.Kind);
+        Assert.False(string.IsNullOrWhiteSpace(import.Summary));
+        Assert.Contains(import.Members, member => member.Kind == "constructor");
+        Assert.Contains(import.Members, member => member.Kind == "method"
+                                                  && member.Signature.Contains("Column<TValue>", StringComparison.Ordinal)
+                                                  && !string.IsNullOrWhiteSpace(member.Summary));
+
+        ConfigurationApiInfo wizard = Assert.Single(apis, api => api.Name == "DataFormWizardSchemaBuilder<TModel>");
+        Assert.Equal("Forms", wizard.Category);
+
+        ConfigurationApiInfo provider = Assert.Single(apis, api => api.Name == "IDataGridFormProvider<TItem, TKey>");
+        Assert.Equal("interface", provider.Kind);
+        Assert.Contains(provider.Members, member => member.Name == "CreateAsync");
+
+        ConfigurationApiInfo mutation = Assert.Single(apis, api => api.Name == nameof(DataGridFormMutationStatus));
+        Assert.Equal("enum", mutation.Kind);
+        Assert.Contains(mutation.Members, member => member.Kind == "enumValue" && member.Name == "Conflict");
+    }
+
+    [Fact]
+    public void Configuration_apis_support_value_types_and_require_a_source_entry()
+    {
+        Dictionary<string, string> sources = new()
+        {
+            [nameof(DataImportFixtureSchema)] = "fixture.cs",
+        };
+
+        ConfigurationApiInfo fixture = Assert.Single(ConfigurationApiBuilder.Build(
+            typeof(DataImportFixtureSchema).Assembly,
+            [],
+            sources));
+
+        Assert.Equal("valueType", fixture.Kind);
+        Assert.Equal("fixture.cs", fixture.Source);
+        Assert.Contains(fixture.Members, member => member.Kind == "property" && member.Name == nameof(DataImportFixtureSchema.Count));
+        Assert.Contains(fixture.Members, member => member.Kind == "method" && member.Signature.StartsWith("static ", StringComparison.Ordinal));
+        Assert.Empty(ConfigurationApiBuilder.Build(typeof(DataImportFixtureSchema).Assembly, [], new Dictionary<string, string>()));
+    }
+}
+
+public readonly struct DataImportFixtureSchema
+{
+    public int Count { get; init; }
+    public static DataImportFixtureSchema Create() => new();
 }

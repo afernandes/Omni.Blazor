@@ -17,11 +17,17 @@ public sealed class ComponentCatalog
 
     private readonly Manifest _manifest;
     private readonly Dictionary<string, Component> _byName;
+    private readonly IReadOnlyList<ConfigurationApi> _configurationApis;
+    private readonly Dictionary<string, ConfigurationApi> _configurationApiByName;
 
     private ComponentCatalog(Manifest manifest)
     {
         _manifest = manifest;
         _byName = manifest.Components.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
+        _configurationApis = manifest.ConfigurationApis ?? [];
+        _configurationApiByName = _configurationApis.ToDictionary(
+            api => api.Name,
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>Parse a catalog from manifest JSON.</summary>
@@ -56,6 +62,9 @@ public sealed class ComponentCatalog
     /// <summary>Total component count.</summary>
     public int Count => _manifest.Components.Count;
 
+    /// <summary>Total fluent configuration API count.</summary>
+    public int ConfigurationApiCount => _configurationApis.Count;
+
     /// <summary>All components, optionally filtered by category (case-insensitive).</summary>
     public IReadOnlyList<Component> List(string? category) =>
         string.IsNullOrWhiteSpace(category)
@@ -65,6 +74,33 @@ public sealed class ComponentCatalog
     /// <summary>Exact (case-insensitive) lookup by component name; null if absent.</summary>
     public Component? Get(string? name) =>
         name is not null && _byName.TryGetValue(name.Trim(), out Component? c) ? c : null;
+
+    /// <summary>Lists fluent schemas, builders and providers, optionally filtered by category.</summary>
+    public IReadOnlyList<ConfigurationApi> ListConfigurationApis(string? category) =>
+        string.IsNullOrWhiteSpace(category)
+            ? _configurationApis
+            : _configurationApis.Where(api => string.Equals(api.Category, category.Trim(), Ic)).ToList();
+
+    /// <summary>Exact case-insensitive configuration API lookup.</summary>
+    public ConfigurationApi? GetConfigurationApi(string? name) =>
+        name is not null && _configurationApiByName.TryGetValue(name.Trim(), out ConfigurationApi? api)
+            ? api
+            : null;
+
+    /// <summary>Searches configuration APIs by type name, member signature or summary.</summary>
+    public IReadOnlyList<ConfigurationApi> SearchConfigurationApis(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return [];
+        string value = query.Trim();
+        return _configurationApis
+            .Where(api => api.Name.Contains(value, Ic)
+                          || (api.Summary?.Contains(value, Ic) ?? false)
+                          || api.Members.Any(member => member.Signature.Contains(value, Ic)
+                                                       || (member.Summary?.Contains(value, Ic) ?? false)))
+            .OrderByDescending(api => api.Name.Contains(value, Ic))
+            .ThenBy(api => api.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 
     /// <summary>Fuzzy search over name, category and summary; name matches rank first.</summary>
     public IReadOnlyList<Component> Search(string? query)
@@ -155,6 +191,52 @@ public sealed class ComponentCatalog
         sb.AppendLine().AppendLine("Plus the common Omni surface: Class, Style and HTML attributes splat on every component"
             + (c.IsInput ? "; inputs also expose Value/ValueChanged/Disabled/ReadOnly/Name." : "."));
         return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Compact fluent configuration API list for MCP responses.</summary>
+    public string ListConfigurationApisText(string? category)
+    {
+        IReadOnlyList<ConfigurationApi> items = ListConfigurationApis(category);
+        return items.Count == 0
+            ? "No fluent configuration APIs."
+            : string.Join("\n", items.Select(api =>
+                $"- {api.Name} [{api.Category}/{api.Kind}]" +
+                (string.IsNullOrEmpty(api.Summary) ? string.Empty : $": {api.Summary}")));
+    }
+
+    /// <summary>Full method/property surface of one fluent configuration API.</summary>
+    public string DescribeConfigurationApi(string name)
+    {
+        ConfigurationApi? api = GetConfigurationApi(name);
+        if (api is null)
+        {
+            string suggestions = string.Join(", ", SearchConfigurationApis(name).Take(5).Select(item => item.Name));
+            return suggestions.Length == 0
+                ? $"Configuration API '{name}' not found."
+                : $"Configuration API '{name}' not found. Did you mean: {suggestions}?";
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("# ").AppendLine(api.Name);
+        if (!string.IsNullOrEmpty(api.Summary)) sb.AppendLine(api.Summary);
+        sb.Append(api.Kind).Append(" · ").Append(api.Category).Append(" · source: ").AppendLine(api.Source);
+        sb.AppendLine();
+        foreach (ApiMember member in api.Members)
+        {
+            sb.Append("- ").Append(member.Signature);
+            if (!string.IsNullOrEmpty(member.Summary)) sb.Append(" — ").Append(member.Summary);
+            sb.AppendLine();
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Search result text for fluent configuration APIs.</summary>
+    public string SearchConfigurationApisText(string query)
+    {
+        IReadOnlyList<ConfigurationApi> items = SearchConfigurationApis(query);
+        return items.Count == 0
+            ? $"No fluent configuration APIs match '{query}'."
+            : string.Join("\n", items.Select(api => $"- {api.Name} [{api.Category}/{api.Kind}]"));
     }
 
     private static string Bullets(IEnumerable<Component> items) =>

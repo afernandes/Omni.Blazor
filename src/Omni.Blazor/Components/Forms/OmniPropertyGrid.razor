@@ -1,0 +1,127 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel where TModel : class
+@inherits OmniComponent
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Compact metadata-driven property inspector built on OmniDataForm and its typed schema extensibility. *@
+
+<div class="@RootCss" style="@Style" @attributes="Attributes">
+    @if (!string.IsNullOrWhiteSpace(Title))
+    {
+        <header class="omni-property-grid-header">
+            <h2>@Title</h2>
+            @HeaderContent
+        </header>
+    }
+    <OmniDataForm TModel="TModel"
+                  @ref="_form"
+                  Model="@(EditContext is null ? Model : null)"
+                  EditContext="@EditContext"
+                  Schema="@Schema"
+                  Disabled="@Disabled"
+                  ReadOnly="@(!Editable)"
+                  ShowValidationSummary="@ShowValidationSummary"
+                  ShowSubmitButton="false"
+                  AddDataAnnotationsValidator="@AddDataAnnotationsValidator"
+                  RenderFormElement="@RenderFormElement"
+                  OnValidSubmit="@OnValidSubmit"
+                  OnInvalidSubmit="@OnInvalidSubmit">
+        <Actions>@Actions</Actions>
+    </OmniDataForm>
+</div>
+
+@code {
+    private OmniDataForm<TModel>? _form;
+    private EditContext? _subscribedContext;
+
+    /// <summary>Inspected model.</summary>
+    [Parameter, EditorRequired] public TModel Model { get; set; } = default!;
+
+    /// <summary>Optional externally owned editing context.</summary>
+    [Parameter] public EditContext? EditContext { get; set; }
+
+    /// <summary>Optional reusable DataForm schema. Metadata inference is used when omitted.</summary>
+    [Parameter] public DataFormSchema<TModel>? Schema { get; set; }
+
+    /// <summary>Optional inspector heading.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Whether property editors are interactive. Default false.</summary>
+    [Parameter] public bool Editable { get; set; }
+
+    /// <summary>Disables every generated property editor.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Shows the generated validation summary.</summary>
+    [Parameter] public bool ShowValidationSummary { get; set; } = true;
+
+    /// <summary>Adds DataAnnotations validation to the inspector.</summary>
+    [Parameter] public bool AddDataAnnotationsValidator { get; set; } = true;
+
+    /// <summary>Renders the semantic form element. Default false for inspector embedding.</summary>
+    [Parameter] public bool RenderFormElement { get; set; }
+
+    /// <summary>Content rendered beside the heading.</summary>
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+
+    /// <summary>Optional generated-form actions.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Raised for each property change observed through the active EditContext.</summary>
+    [Parameter] public EventCallback<PropertyGridChangedEventArgs<TModel>> PropertyChanged { get; set; }
+
+    /// <summary>Raised after a valid explicit submission.</summary>
+    [Parameter] public EventCallback<EditContext> OnValidSubmit { get; set; }
+
+    /// <summary>Raised after an invalid explicit submission.</summary>
+    [Parameter] public EventCallback<EditContext> OnInvalidSubmit { get; set; }
+
+    /// <summary>The active generated or externally owned editing context.</summary>
+    public EditContext? CurrentEditContext => _form?.CurrentEditContext;
+
+    /// <summary>Runs synchronous and asynchronous DataForm validation.</summary>
+    public Task<bool> ValidateAsync(CancellationToken cancellationToken = default)
+        => _form?.ValidateAsync(cancellationToken) ?? Task.FromResult(true);
+
+    /// <summary>Submits the generated DataForm.</summary>
+    public Task SubmitAsync(CancellationToken cancellationToken = default)
+        => _form?.SubmitAsync(cancellationToken) ?? Task.CompletedTask;
+
+    private string RootCss => CssBuilder.Default("omni-property-grid")
+        .AddClass("omni-property-grid-editable", Editable)
+        .AddClass(Class)
+        .Build();
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        EditContext? context = _form?.CurrentEditContext;
+        if (ReferenceEquals(context, _subscribedContext)) return;
+        if (_subscribedContext is not null)
+            _subscribedContext.OnFieldChanged -= HandleFieldChanged;
+        _subscribedContext = context;
+        if (_subscribedContext is not null)
+            _subscribedContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    private void HandleFieldChanged(object? sender, FieldChangedEventArgs args)
+    {
+        if (!PropertyChanged.HasDelegate || _subscribedContext is null) return;
+        ObserveTask(
+            PropertyChanged.InvokeAsync(
+                new PropertyGridChangedEventArgs<TModel>(Model, args.FieldIdentifier, _subscribedContext.IsModified())),
+            "OmniPropertyGrid.PropertyChanged");
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedContext is not null)
+        {
+            _subscribedContext.OnFieldChanged -= HandleFieldChanged;
+            _subscribedContext = null;
+        }
+        GC.SuppressFinalize(this);
+    }
+}

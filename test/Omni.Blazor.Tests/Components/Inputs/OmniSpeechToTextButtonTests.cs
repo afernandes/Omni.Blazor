@@ -30,8 +30,8 @@ public class OmniSpeechToTextButtonTests : TestContextBase
 
     [Theory]
     [InlineData(ButtonVariant.Primary, "omni-btn-primary")]
-    [InlineData(ButtonVariant.Ghost,   "omni-btn-ghost")]
-    [InlineData(ButtonVariant.Danger,  "omni-btn-danger")]
+    [InlineData(ButtonVariant.Ghost, "omni-btn-ghost")]
+    [InlineData(ButtonVariant.Danger, "omni-btn-danger")]
     public void Forwards_Variant_to_underlying_button(ButtonVariant variant, string expected)
     {
         var cut = Render<OmniSpeechToTextButton>(p => p.Add(c => c.Variant, variant));

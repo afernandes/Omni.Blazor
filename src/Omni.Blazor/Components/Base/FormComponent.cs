@@ -340,7 +340,8 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
 
     private IEnumerable<string> RunAttribute(ValidationAttribute attr, TValue? value)
     {
-        var ctx = new ValidationContext(EditContext?.Model ?? new object())
+        object model = EditContext?.Model ?? new object();
+        var ctx = new ValidationContext(model, Name ?? typeof(TValue).Name, serviceProvider: null, items: null)
         {
             MemberName = HasFieldIdentifier ? FieldId.FieldName : Name
         };

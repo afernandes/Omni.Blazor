@@ -12,8 +12,8 @@
         <p>
             O <code>OmniTree</code> renderiza hierarquias de duas formas: <strong>inline</strong>
             (você aninha <code>OmniTreeItem</code> à mão) ou <strong>data-bound</strong> (informe
-            <code>Data</code> + um ou mais <code>OmniTreeLevel</code> com <code>TextProperty</code>/
-            <code>ChildrenProperty</code>). Quando a árvore é mais profunda que o número de níveis
+            <code>Data</code> + um ou mais <code>OmniTreeLevel</code> com seletores <code>Text</code>/
+            <code>Children</code>). Quando a árvore é mais profunda que o número de níveis
             declarados, o <strong>último nível repete</strong> — ideal para hierarquias
             auto-referenciadas (organograma, sistema de arquivos).
         </p>
@@ -75,14 +75,14 @@
         <ShowcaseSection Title="DATA-BOUND + SELEÇÃO"
                          Description="Data + OmniTreeLevel por profundidade. O binding de Value (two-way) mantém o nó selecionado; SelectionChanged dispara ao clicar."
                          Code="@(@"<OmniTree Data=""@_cats"" @bind-Value=""_selected"">
-    <OmniTreeLevel TextProperty=""Name"" ChildrenProperty=""Children"" IconProperty=""Icon"" />
-    <OmniTreeLevel TextProperty=""Name"" IconProperty=""Icon"" HasChildren=""@(_ => false)"" />
+    <OmniTreeLevel Text=""@(o => ((MenuNode)o).Name)"" Children=""@(o => ((MenuNode)o).Children)"" Icon=""@(o => ((MenuNode)o).Icon)"" />
+    <OmniTreeLevel Text=""@(o => ((MenuNode)o).Name)"" Icon=""@(o => ((MenuNode)o).Icon)"" HasChildren=""@(_ => false)"" />
 </OmniTree>")">
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
                 <div style="border:1px solid var(--omni-line);border-radius:8px;background:var(--omni-bg-elev);padding:8px;min-width:320px;">
                     <OmniTree Data="@_cats" @bind-Value="_selected">
-                        <OmniTreeLevel TextProperty="Name" ChildrenProperty="Children" IconProperty="Icon" Expanded="@(_ => true)" />
-                        <OmniTreeLevel TextProperty="Name" IconProperty="Icon" HasChildren="@(_ => false)" />
+                        <OmniTreeLevel Text="@(o => ((MenuNode)o).Name)" Children="@(o => ((MenuNode)o).Children)" Icon="@(o => ((MenuNode)o).Icon)" Expanded="@(_ => true)" />
+                        <OmniTreeLevel Text="@(o => ((MenuNode)o).Name)" Icon="@(o => ((MenuNode)o).Icon)" HasChildren="@(_ => false)" />
                     </OmniTree>
                 </div>
                 <div style="color:var(--omni-fg-soft);font-size:13px;padding-top:8px;">
@@ -94,14 +94,14 @@
         <ShowcaseSection Title="CHECKBOXES (TRI-STATE, CASCATA)"
                          Description="AllowCheckboxes + binding de CheckedValues (two-way). Marcar um pai marca os filhos; marcar parte deixa o pai indeterminado (traço)."
                          Code="@(@"<OmniTree Data=""@_cats"" AllowCheckboxes @bind-CheckedValues=""_checked"">
-    <OmniTreeLevel TextProperty=""Name"" ChildrenProperty=""Children"" IconProperty=""Icon"" />
-    <OmniTreeLevel TextProperty=""Name"" IconProperty=""Icon"" HasChildren=""@(_ => false)"" />
+    <OmniTreeLevel Text=""@(o => ((MenuNode)o).Name)"" Children=""@(o => ((MenuNode)o).Children)"" Icon=""@(o => ((MenuNode)o).Icon)"" />
+    <OmniTreeLevel Text=""@(o => ((MenuNode)o).Name)"" Icon=""@(o => ((MenuNode)o).Icon)"" HasChildren=""@(_ => false)"" />
 </OmniTree>")">
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
                 <div style="border:1px solid var(--omni-line);border-radius:8px;background:var(--omni-bg-elev);padding:8px;min-width:320px;">
                     <OmniTree Data="@_cats" AllowCheckboxes @bind-CheckedValues="_checked">
-                        <OmniTreeLevel TextProperty="Name" ChildrenProperty="Children" IconProperty="Icon" Expanded="@(_ => true)" />
-                        <OmniTreeLevel TextProperty="Name" IconProperty="Icon" HasChildren="@(_ => false)" />
+                        <OmniTreeLevel Text="@(o => ((MenuNode)o).Name)" Children="@(o => ((MenuNode)o).Children)" Icon="@(o => ((MenuNode)o).Icon)" Expanded="@(_ => true)" />
+                        <OmniTreeLevel Text="@(o => ((MenuNode)o).Name)" Icon="@(o => ((MenuNode)o).Icon)" HasChildren="@(_ => false)" />
                     </OmniTree>
                 </div>
                 <div style="color:var(--omni-fg-soft);font-size:13px;padding-top:8px;">
@@ -112,7 +112,7 @@
         </ShowcaseSection>
 
         <ShowcaseSection Title="LAZY LOADING (ARQUIVOS E PASTAS)"
-                         Description="Sem ChildrenProperty: cada pasta marca HasChildren e carrega os filhos sob demanda no evento Expand."
+                         Description="Cada pasta marca HasChildren e carrega os filhos sob demanda no evento Expand."
                          Code="@(@"<OmniTree Data=""@_roots"" Expand=""OnExpand"">
     <OmniTreeLevel Text=""@(o => ((FsNode)o).Name)"" HasChildren=""@(o => ((FsNode)o).IsDir)""
                     Icon=""@(o => ((FsNode)o).IsDir ? ""folder"" : ""file"")"" />
@@ -137,7 +137,7 @@
 
         <ShowcaseSection Title="TEMPLATE POR NÍVEL"
                          Description="Template recebe o OmniTreeItem — use context.Value/context.Text para renderizar conteúdo rico (badges, contadores)."
-                         Code="@(@"<OmniTreeLevel TextProperty=""Name"" ChildrenProperty=""Children"">
+                         Code="@(@"<OmniTreeLevel Text=""@(o => ((MenuNode)o).Name)"" Children=""@(o => ((MenuNode)o).Children)"">
     <Template>
         <OmniIcon Name=""@(((MenuNode)context.Value!).Icon)"" Size=""ComponentSize.Sm"" />
         <strong>@context.Text</strong>
@@ -146,7 +146,7 @@
 </OmniTreeLevel>")">
             <div style="border:1px solid var(--omni-line);border-radius:8px;background:var(--omni-bg-elev);padding:8px;max-width:420px;">
                 <OmniTree Data="@_cats">
-                    <OmniTreeLevel TextProperty="Name" ChildrenProperty="Children" Expanded="@(_ => true)">
+                    <OmniTreeLevel Text="@(o => ((MenuNode)o).Name)" Children="@(o => ((MenuNode)o).Children)" Expanded="@(_ => true)">
                         <Template>
                             <OmniIcon Name="@(((MenuNode)context.Value!).Icon)" Size="ComponentSize.Sm" Class="omni-tree-icon" />
                             <span class="omni-tree-text" style="margin:0 6px;"><strong>@context.Text</strong></span>
@@ -156,7 +156,7 @@
                             }
                         </Template>
                     </OmniTreeLevel>
-                    <OmniTreeLevel TextProperty="Name" IconProperty="Icon" HasChildren="@(_ => false)" />
+                    <OmniTreeLevel Text="@(o => ((MenuNode)o).Name)" Icon="@(o => ((MenuNode)o).Icon)" HasChildren="@(_ => false)" />
                 </OmniTree>
             </div>
         </ShowcaseSection>
@@ -175,9 +175,9 @@
         </ShowcaseApiTable>
 
         <ShowcaseApiTable Title="Parâmetros — OmniTreeLevel">
-            <ShowcaseApiRow Name="TextProperty / Text" Type="string? / Func<object,string?>" Default="null" Description="Texto do nó." />
-            <ShowcaseApiRow Name="ChildrenProperty / Children" Type="string? / Func<object,IEnumerable?>" Default="null" Description="Filhos do nó." />
-            <ShowcaseApiRow Name="IconProperty / Icon" Type="string? / Func<object,string?>" Default="null" Description="Ícone do nó." />
+            <ShowcaseApiRow Name="Text" Type="Func<object,string?>" Default="null" Description="Texto do nó." />
+            <ShowcaseApiRow Name="Children" Type="Func<object,IEnumerable?>" Default="null" Description="Filhos do nó." />
+            <ShowcaseApiRow Name="Icon" Type="Func<object,string?>" Default="null" Description="Ícone do nó." />
             <ShowcaseApiRow Name="HasChildren / Expanded / Selected / Checkable" Type="Func<object,bool>" Default="—" Description="Predicados por nó." />
             <ShowcaseApiRow Name="Template" Type="RenderFragment<OmniTreeItem>?" Default="null" Description="Template por nó (context = item)." />
         </ShowcaseApiTable>

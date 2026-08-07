@@ -30,6 +30,12 @@
             parâmetros. O formulário aceita <code>Model</code> ou um
             <code>EditContext</code> criado pela aplicação.
         </p>
+        <p>
+            Chaves convencionais (<code>Id</code>, <code>*Id</code> e <code>*ID</code>),
+            <code>[Key]</code> e identidades geradas pelo banco permanecem internas por padrão.
+            Declare-as explicitamente apenas quando forem realmente parte da experiência; para
+            relacionamentos, prefira um lookup tipado que apresente o nome da entidade.
+        </p>
     </Overview>
 
     <WhenToUse>
@@ -133,7 +139,7 @@
 
         <ShowcaseApiTable Title="DataFormSchema&lt;TModel&gt; / Fluent Builder">
             <ShowcaseApiRow Name="Field" Type="Expression&lt;Func&lt;TModel,TValue&gt;&gt;" Default="—" Description="Seleciona uma propriedade com validação de rename pelo compilador." />
-            <ShowcaseApiRow Name="AutoGenerateFields" Type="bool" Default="true" Description="Inclui propriedades suportadas que não foram configuradas explicitamente." />
+            <ShowcaseApiRow Name="AutoGenerateFields" Type="bool" Default="true" Description="Inclui propriedades suportadas não configuradas, exceto identificadores; um Field explícito pode incluí-los quando necessário." />
             <ShowcaseApiRow Name="Text / Numeric / Date / Select / ..." Type="builders tipados" Default="Auto" Description="Escolhe o editor e expõe somente suas opções válidas." />
             <ShowcaseApiRow Name="Group / Layout" Type="builders tipados" Default="—" Description="Grupos semânticos aninhados e grids mobile-first por breakpoint." />
             <ShowcaseApiRow Name="Span / VisibleWhen / EnabledWhen / RequiredWhen" Type="fluent" Default="inferred" Description="Layout e regras condicionais reavaliados contra o modelo." />

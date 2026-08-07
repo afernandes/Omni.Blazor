@@ -1,0 +1,161 @@
+@page "/showcase/data-form-wizard"
+@attribute [ShowcaseInfo(Title = "DataForm Wizard", Category = Cat.Forms, Icon = "list", New = true, Featured = true, Aliases = "wizard,stepper,multistep,dataform,formulario,etapas")]
+@layout ShowcaseLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>DataForm Wizard — Showcase</PageTitle>
+
+@if (_interactiveReady)
+{
+    <span data-testid="data-form-wizard-interactive" aria-hidden="true"></span>
+}
+
+<ShowcasePage Title="DataForm Wizard"
+              Subtitle="Fluxo multi-etapas declarativo que preserva um único EditContext e valida campos assíncronos antes de avançar.">
+    <Overview>
+        <p>
+            <code>OmniDataFormWizard&lt;TModel&gt;</code> coordena schemas explícitos do DataForm.
+            Avançar valida somente os campos da etapa atual; voltar preserva valores, touched state e
+            mensagens no mesmo <code>EditContext</code>. Regras de etapa são canceláveis e aguardadas.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <li>Onboarding, checkout, propostas e cadastros extensos.</li>
+        <li>Etapas condicionais determinadas pelo próprio modelo.</li>
+        <li>Fluxos que precisam impedir avanço enquanto validações remotas estão pendentes.</li>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="CADASTRO EM ETAPAS"
+                         Description="Marque Pessoa jurídica para incluir dinamicamente a etapa Empresa. O e-mail é validado por uma regra assíncrona antes do avanço."
+                         Code="@WizardExample">
+            <div data-testid="data-form-wizard" style="max-width:920px;">
+                <OmniDataFormWizard TModel="CadastroConta"
+                                    Model="@_cadastro"
+                                    Schema="@CadastroWizardSchema"
+                                    OnCompleted="@ConcluirAsync" />
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_resultado))
+            {
+                <div class="omni-alert omni-alert-success" role="status" style="margin-top:12px;">
+                    <div class="omni-alert-body">@_resultado</div>
+                </div>
+            }
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniDataFormWizard&lt;TModel&gt;">
+            <ShowcaseApiRow Name="Schema" Type="DataFormWizardSchema&lt;TModel&gt;" Default="obrigatório" Description="Etapas imutáveis, ordenadas e com campos exclusivos." />
+            <ShowcaseApiRow Name="Model / EditContext" Type="TModel / EditContext" Default="mutuamente exclusivos" Description="O mesmo EditContext é preservado durante todo o fluxo." />
+            <ShowcaseApiRow Name="ActiveStepIndex" Type="int" Default="0" Description="Etapa visível atual com suporte a two-way binding." />
+            <ShowcaseApiRow Name="Linear" Type="bool" Default="true" Description="Impede saltos para etapas ainda não validadas." />
+            <ShowcaseApiRow Name="HeaderTemplate / ActionsTemplate" Type="RenderFragment&lt;DataFormWizardTemplateContext&gt;" Default="gerados" Description="Contextos tipados para customização completa." />
+            <ShowcaseApiRow Name="OnCompleted" Type="EventCallback&lt;EditContext&gt;" Default="—" Description="Só dispara após validação final síncrona e assíncrona." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="DataFormWizardSchema&lt;TModel&gt;">
+            <ShowcaseApiRow Name="Step" Type="id + title + DataFormSchema" Default="obrigatório" Description="Cada schema deve usar AutoGenerateFields(false)." />
+            <ShowcaseApiRow Name="VisibleWhen / CanEnter" Type="Func&lt;TModel,bool&gt;" Default="—" Description="Etapas condicionais e políticas de entrada reativas ao EditContext." />
+            <ShowcaseApiRow Name="ValidateAsync" Type="callback cancelável" Default="—" Description="Regra de negócio da etapa com mensagens estruturadas." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private bool _interactiveReady;
+    private readonly CadastroConta _cadastro = new();
+    private string? _resultado;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
+    }
+
+    private static readonly DataFormSchema<CadastroConta> ContaSchema =
+        DataFormSchema<CadastroConta>.Create(form => form
+            .AutoGenerateFields(false)
+            .Layout(layout => layout.Columns(1).Columns(Breakpoint.Sm, 2))
+            .Field(model => model.Nome, field => field.Label("Nome").Required("Informe o nome."))
+            .Field(model => model.Email, field => field.Label("E-mail").Email().Required("Informe o e-mail.")));
+
+    private static readonly DataFormSchema<CadastroConta> PerfilSchema =
+        DataFormSchema<CadastroConta>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(model => model.PessoaJuridica, field => field.Label("Pessoa jurídica").Switch()));
+
+    private static readonly DataFormSchema<CadastroConta> EmpresaSchema =
+        DataFormSchema<CadastroConta>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(model => model.RazaoSocial, field => field.Label("Razão social").Required("Informe a razão social.")));
+
+    private static readonly DataFormSchema<CadastroConta> ConfirmacaoSchema =
+        DataFormSchema<CadastroConta>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(model => model.Aceite, field => field.Label("Confirmo que os dados estão corretos").Required("Confirme os dados.")));
+
+    private static readonly DataFormWizardSchema<CadastroConta> CadastroWizardSchema =
+        DataFormWizardSchema<CadastroConta>.Create(wizard => wizard
+            .Step("conta", "Conta", ContaSchema, step => step
+                .Description("Identificação e acesso")
+                .Icon("user")
+                .ValidateAsync(ValidarContaAsync))
+            .Step("perfil", "Perfil", PerfilSchema, step => step
+                .Description("Tipo de cadastro"))
+            .Step("empresa", "Empresa", EmpresaSchema, step => step
+                .Description("Dados empresariais")
+                .VisibleWhen(model => model.PessoaJuridica))
+            .Step("confirmacao", "Confirmação", ConfirmacaoSchema, step => step
+                .Description("Revisão final")
+                .Icon("check")));
+
+    private static async ValueTask<IReadOnlyList<string>> ValidarContaAsync(
+        CadastroConta model,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(180, cancellationToken);
+        return string.Equals(model.Email, "usado@exemplo.com", StringComparison.OrdinalIgnoreCase)
+            ? ["Este e-mail já está em uso."]
+            : [];
+    }
+
+    private Task ConcluirAsync(EditContext context)
+    {
+        _resultado = $"Cadastro de {_cadastro.Nome} concluído com {context.GetValidationMessages().Count()} erro(s).";
+        return Task.CompletedTask;
+    }
+
+    private sealed class CadastroConta
+    {
+        [Required]
+        public string? Nome { get; set; }
+
+        [Required, EmailAddress]
+        public string? Email { get; set; }
+
+        public bool PessoaJuridica { get; set; }
+
+        public string? RazaoSocial { get; set; }
+
+        public bool Aceite { get; set; }
+    }
+
+    private const string WizardExample = """
+<OmniDataFormWizard TModel="CadastroConta"
+                    Model="@cadastro"
+                    Schema="@CadastroWizardSchema"
+                    OnCompleted="@ConcluirAsync" />
+
+static readonly DataFormWizardSchema<CadastroConta> CadastroWizardSchema =
+    DataFormWizardSchema<CadastroConta>.Create(wizard => wizard
+        .Step("conta", "Conta", ContaSchema,
+            step => step.ValidateAsync(ValidarContaAsync))
+        .Step("empresa", "Empresa", EmpresaSchema,
+            step => step.VisibleWhen(model => model.PessoaJuridica))
+        .Step("confirmacao", "Confirmação", ConfirmacaoSchema));
+""";
+}

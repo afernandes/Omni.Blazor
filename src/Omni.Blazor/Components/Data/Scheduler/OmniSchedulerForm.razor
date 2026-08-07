@@ -1,0 +1,58 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@typeparam TKey where TKey : notnull
+@inherits OmniComponent
+@using Omni.Blazor.Models
+
+@* CRUD-enabled Scheduler that edits detached drafts through OmniDataForm and the shared headless entity coordinator. *@
+
+<OmniEntityEditorHost TItem="TItem" TKey="TKey"
+                      @ref="_editor"
+                      Schema="@EditorSchema"
+                      Items="@Items"
+                      Provider="@Provider"
+                      Disabled="@Disabled"
+                      ReadOnly="@ReadOnly"
+                      MinimumItems="@MinimumItems"
+                      MaximumItems="@MaximumItems"
+                      ItemsChanged="@ItemsChanged"
+                      RefreshRequested="@RefreshRequested"
+                      OperationCompleted="@HandleOperationCompletedAsync"
+                      OperationFailed="@OperationFailed"
+                      Class="@Class"
+                      Style="@Style"
+                      Attributes="@Attributes">
+    <ToolbarContent>@ToolbarContent</ToolbarContent>
+    <ChildContent>
+        <OmniScheduler TItem="TItem"
+                       @ref="_scheduler"
+                       Data="@Items"
+                       Schema="@SchedulerSchema"
+                       Date="@Date"
+                       DateChanged="@DateChanged"
+                       SelectedIndex="@SelectedIndex"
+                       Template="@AppointmentTemplate"
+                       NavigationTemplate="@NavigationTemplate"
+                       SlotSelect="@HandleSlotSelectAsync"
+                       AppointmentSelect="@HandleAppointmentSelectAsync"
+                       AppointmentMove="@AppointmentMove"
+                       AppointmentMouseEnter="@AppointmentMouseEnter"
+                       AppointmentMouseLeave="@AppointmentMouseLeave"
+                       AppointmentRender="@AppointmentRender"
+                       SlotRender="@SlotRender"
+                       LoadData="@LoadData"
+                       Class="@SchedulerClass"
+                       Style="@SchedulerStyle">
+            @if (Views is not null)
+            {
+                @Views
+            }
+            else
+            {
+                <OmniDayView />
+                <OmniWeekView />
+                <OmniMonthView />
+            }
+        </OmniScheduler>
+    </ChildContent>
+</OmniEntityEditorHost>

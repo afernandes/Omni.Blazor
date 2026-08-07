@@ -24,11 +24,11 @@ public class OmniSparklineTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(SparklineVariant.Line,   "omni-sparkline-line")]
-    [InlineData(SparklineVariant.Area,   "omni-sparkline-area")]
+    [InlineData(SparklineVariant.Line, "omni-sparkline-line")]
+    [InlineData(SparklineVariant.Area, "omni-sparkline-area")]
     [InlineData(SparklineVariant.Column, "omni-sparkline-column")]
-    [InlineData(SparklineVariant.Bar,    "omni-sparkline-bar")]
-    [InlineData(SparklineVariant.Pie,    "omni-sparkline-pie")]
+    [InlineData(SparklineVariant.Bar, "omni-sparkline-bar")]
+    [InlineData(SparklineVariant.Pie, "omni-sparkline-pie")]
     public void Applies_variant_class(SparklineVariant variant, string expected)
     {
         var cut = Render<OmniSparkline>(p => p

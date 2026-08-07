@@ -49,9 +49,9 @@ internal static class ChartPalette
     {
         var palette = scheme switch
         {
-            ChartColorScheme.Palette  => PaletteHex,
-            ChartColorScheme.Accent   => AccentMix,
-            ChartColorScheme.Pastel   => PastelHex,
+            ChartColorScheme.Palette => PaletteHex,
+            ChartColorScheme.Accent => AccentMix,
+            ChartColorScheme.Pastel => PastelHex,
             ChartColorScheme.Semantic => Semantic,
             _ => PaletteHex,
         };

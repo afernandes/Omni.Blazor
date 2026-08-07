@@ -26,9 +26,9 @@ public class OmniButtonTests : TestContextBase
 
     [Theory]
     [InlineData(ButtonVariant.Primary, "omni-btn-primary")]
-    [InlineData(ButtonVariant.Ghost,   "omni-btn-ghost")]
-    [InlineData(ButtonVariant.Danger,  "omni-btn-danger")]
-    [InlineData(ButtonVariant.Link,    "omni-btn-link")]
+    [InlineData(ButtonVariant.Ghost, "omni-btn-ghost")]
+    [InlineData(ButtonVariant.Danger, "omni-btn-danger")]
+    [InlineData(ButtonVariant.Link, "omni-btn-link")]
     public void Applies_variant_modifier(ButtonVariant variant, string expectedClass)
     {
         var cut = Render<OmniButton>(p => p

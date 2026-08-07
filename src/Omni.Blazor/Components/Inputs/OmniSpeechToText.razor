@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits ComponentBase
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniSpeechJsModule JS
 @using Omni.Blazor.Models
 
 @*  Wrapper headless da Web Speech API (SpeechRecognition + webkit variant).
@@ -113,7 +113,7 @@
     public async ValueTask<bool> IsSupportedAsync()
     {
         if (_isSupportedCache is bool b) return b;
-        try { _isSupportedCache = await JS.InvokeAsync<bool>("omniBlazor.speechSupported"); }
+        try { _isSupportedCache = await JS.InvokeAsync<bool>("speechSupported"); }
         catch { _isSupportedCache = false; }
         return _isSupportedCache.Value;
     }
@@ -126,7 +126,7 @@
     /// </summary>
     public async ValueTask<string> EngineAsync()
     {
-        try { return await JS.InvokeAsync<string>("omniBlazor.speechEngine"); }
+        try { return await JS.InvokeAsync<string>("speechEngine"); }
         catch { return "other"; }
     }
 
@@ -145,7 +145,7 @@
             // "*Internal" pra evitar colisão de nome com os parâmetros EventCallback
             // (C# não permite property + method com mesmo nome). O JS aceita override
             // via opts.{start|end|result|error|unsupported|state}Method.
-            await JS.InvokeVoidAsync("omniBlazor.speechToggle", _selfRef, new
+            await JS.InvokeVoidAsync("speechToggle", _selfRef, new
             {
                 Language,
                 Continuous,
@@ -178,7 +178,7 @@
         if (_state != SpeechRecognitionState.Recording
          && _state != SpeechRecognitionState.Connecting) return;
         _selfRef ??= DotNetObjectReference.Create(this);
-        try { await JS.InvokeVoidAsync("omniBlazor.speechStop", _selfRef); }
+        try { await JS.InvokeVoidAsync("speechStop", _selfRef); }
         catch
         {
             try { _selfRef?.Dispose(); } catch { }

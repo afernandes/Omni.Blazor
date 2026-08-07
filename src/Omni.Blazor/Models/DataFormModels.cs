@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -71,7 +72,9 @@ public sealed class DataFormField<TModel> where TModel : class
         IReadOnlyList<IDataFormFieldValidator<TModel>> validators,
         IDataFormLookupDefinition<TModel>? lookup = null,
         IDataFormCollectionDefinition<TModel>? collection = null,
-        Type? customEditorType = null)
+        object? defaultValue = null,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type? rendererType = null,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type? customEditorType = null)
     {
         Property = property;
         PropertyPath = propertyPath;
@@ -104,6 +107,8 @@ public sealed class DataFormField<TModel> where TModel : class
         Validators = validators;
         Lookup = lookup;
         Collection = collection;
+        DefaultValue = defaultValue;
+        RendererType = rendererType;
         CustomEditorType = customEditorType;
     }
 
@@ -156,6 +161,10 @@ public sealed class DataFormField<TModel> where TModel : class
     internal IReadOnlyList<IDataFormFieldValidator<TModel>> Validators { get; }
     internal IDataFormLookupDefinition<TModel>? Lookup { get; }
     internal IDataFormCollectionDefinition<TModel>? Collection { get; }
+    internal object? DefaultValue { get; }
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+    internal Type? RendererType { get; }
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
     internal Type? CustomEditorType { get; }
 
     internal bool IsRequired(TModel model)

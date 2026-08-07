@@ -25,20 +25,25 @@ public class ThemeService : IAsyncDisposable
 {
     private const string StorageKey = "omni.theme";
 
-    private readonly IJSRuntime _js;
+    private readonly IOmniCoreJsModule _coreJs;
+    private readonly IOmniResponsiveJsModule _responsiveJs;
     private DotNetObjectReference<ThemeService>? _selfRef;
     private bool _colorSchemeSubscribed;
     private bool _userPicked;     // true when user explicitly chose (persists to localStorage)
     private bool _disposed;
 
     public string Accent { get; private set; } = "amber";
-    public bool   Dark   { get; private set; }
+    public bool Dark { get; private set; }
     public LayoutDensity Density { get; private set; } = LayoutDensity.Comfortable;
-    public bool   IsInitialized { get; private set; }
+    public bool IsInitialized { get; private set; }
 
     public event Action? OnChange;
 
-    public ThemeService(IJSRuntime js) { _js = js; }
+    internal ThemeService(IOmniCoreJsModule coreJs, IOmniResponsiveJsModule responsiveJs)
+    {
+        _coreJs = coreJs;
+        _responsiveJs = responsiveJs;
+    }
 
     /// <summary>
     /// Restore previously saved theme from localStorage and apply it. Safe to
@@ -50,7 +55,7 @@ public class ThemeService : IAsyncDisposable
 
         try
         {
-            var saved = await _js.InvokeAsync<string?>("omniBlazor.storageGet", StorageKey);
+            var saved = await _coreJs.InvokeAsync<string?>("storageGet", StorageKey);
             if (!string.IsNullOrEmpty(saved))
             {
                 _userPicked = true;
@@ -58,9 +63,9 @@ public class ThemeService : IAsyncDisposable
                 if (parts.Length >= 1 && !string.IsNullOrEmpty(parts[0])) Accent = parts[0];
                 if (parts.Length >= 2) Dark = parts[1] == "1";
                 if (parts.Length >= 3 && Enum.TryParse<LayoutDensity>(parts[2], true, out var d)) Density = d;
-                await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-accent", Accent);
-                await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-theme", Dark ? "dark" : null);
-                await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-density",
+                await _coreJs.InvokeVoidAsync("setAttr", "html", "data-accent", Accent);
+                await _coreJs.InvokeVoidAsync("setAttr", "html", "data-theme", Dark ? "dark" : null);
+                await _coreJs.InvokeVoidAsync("setAttr", "html", "data-density",
                     Density == LayoutDensity.Comfortable ? null : Density.ToString().ToLowerInvariant());
             }
             else
@@ -69,8 +74,8 @@ public class ThemeService : IAsyncDisposable
                 // Adopt whatever the inline script already applied (localStorage
                 // was empty, so the script used prefers-color-scheme). Reading
                 // back from DOM keeps the service in sync with the initial paint.
-                var domAccent = await _js.InvokeAsync<string?>("omniBlazor.getAttr", "html", "data-accent");
-                var domTheme  = await _js.InvokeAsync<string?>("omniBlazor.getAttr", "html", "data-theme");
+                var domAccent = await _coreJs.InvokeAsync<string?>("getAttr", "html", "data-accent");
+                var domTheme = await _coreJs.InvokeAsync<string?>("getAttr", "html", "data-theme");
                 if (!string.IsNullOrEmpty(domAccent)) Accent = domAccent;
                 Dark = domTheme == "dark";
 
@@ -97,7 +102,7 @@ public class ThemeService : IAsyncDisposable
         Accent = accent;
         _userPicked = true;
         await UnsubscribeColorSchemeAsync(); // Once user picks, stop following the OS.
-        await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-accent", accent);
+        await _coreJs.InvokeVoidAsync("setAttr", "html", "data-accent", accent);
         await PersistAsync();
         OnChange?.Invoke();
     }
@@ -107,7 +112,7 @@ public class ThemeService : IAsyncDisposable
         Dark = dark;
         _userPicked = true;
         await UnsubscribeColorSchemeAsync(); // Once user picks, stop following the OS.
-        await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-theme", dark ? "dark" : null);
+        await _coreJs.InvokeVoidAsync("setAttr", "html", "data-theme", dark ? "dark" : null);
         await PersistAsync();
         OnChange?.Invoke();
     }
@@ -123,7 +128,7 @@ public class ThemeService : IAsyncDisposable
         Density = density;
         _userPicked = true;
         var value = density == LayoutDensity.Comfortable ? null : density.ToString().ToLowerInvariant();
-        try { await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-density", value); }
+        try { await _coreJs.InvokeVoidAsync("setAttr", "html", "data-density", value); }
         catch { /* SSR */ }
         await PersistAsync();
         OnChange?.Invoke();
@@ -140,11 +145,11 @@ public class ThemeService : IAsyncDisposable
         try
         {
             _userPicked = false;
-            await _js.InvokeVoidAsync("omniBlazor.storageRemove", StorageKey);
+            await _coreJs.InvokeVoidAsync("storageRemove", StorageKey);
             // Read current OS preference and apply.
-            var prefersDark = await _js.InvokeAsync<bool>("omniBlazor.prefersColorSchemeDark");
+            var prefersDark = await _responsiveJs.InvokeAsync<bool>("prefersColorSchemeDark");
             Dark = prefersDark;
-            await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-theme", Dark ? "dark" : null);
+            await _coreJs.InvokeVoidAsync("setAttr", "html", "data-theme", Dark ? "dark" : null);
             await SubscribeColorSchemeAsync();
             OnChange?.Invoke();
         }
@@ -163,7 +168,7 @@ public class ThemeService : IAsyncDisposable
         if (_userPicked || _disposed) return;
         if (Dark == prefersDark) return;
         Dark = prefersDark;
-        try { await _js.InvokeVoidAsync("omniBlazor.setAttr", "html", "data-theme", Dark ? "dark" : null); }
+        try { await _coreJs.InvokeVoidAsync("setAttr", "html", "data-theme", Dark ? "dark" : null); }
         catch { /* JS gone */ }
         OnChange?.Invoke();
     }
@@ -174,7 +179,7 @@ public class ThemeService : IAsyncDisposable
         _selfRef ??= DotNetObjectReference.Create(this);
         try
         {
-            await _js.InvokeAsync<bool>("omniBlazor.subscribeColorScheme",
+            await _responsiveJs.InvokeAsync<bool>("subscribeColorScheme",
                 "themeService", _selfRef, nameof(OnColorSchemeChanged));
             _colorSchemeSubscribed = true;
         }
@@ -184,7 +189,7 @@ public class ThemeService : IAsyncDisposable
     private async Task UnsubscribeColorSchemeAsync()
     {
         if (!_colorSchemeSubscribed) return;
-        try { await _js.InvokeVoidAsync("omniBlazor.unsubscribeColorScheme", "themeService"); }
+        try { await _responsiveJs.InvokeVoidAsync("unsubscribeColorScheme", "themeService"); }
         catch { /* JS gone */ }
         _colorSchemeSubscribed = false;
     }
@@ -198,7 +203,7 @@ public class ThemeService : IAsyncDisposable
             // Density=Comfortable; gravações novas (3 partes) são lidas
             // corretamente pelo Parse no InitializeAsync.
             var value = $"{Accent}|{(Dark ? "1" : "0")}|{Density.ToString().ToLowerInvariant()}";
-            await _js.InvokeVoidAsync("omniBlazor.storageSet", StorageKey, value);
+            await _coreJs.InvokeVoidAsync("storageSet", StorageKey, value);
         }
         catch
         {

@@ -11,22 +11,22 @@ namespace Omni.Blazor.Services;
 public sealed record ParallaxOptions(bool Native, bool Mouse);
 
 /// <summary>
-/// Façade para o motor de parallax JS (<c>window.omniBlazor.parallax</c>), no mesmo
+/// Façade para o motor de parallax do módulo JS isolado, no mesmo
 /// espírito de <see cref="ScrollManager"/>: toda a interop fica aqui, não no componente.
 /// O caminho preferido é CSS scroll-driven nativo (zero JS); este serviço só entra como
 /// fallback (browsers sem suporte) e/ou para o parallax de mouse.
 /// </summary>
 public sealed class ParallaxService
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniDisplayJsModule _js;
 
-    public ParallaxService(IJSRuntime js) => _js = js;
+    internal ParallaxService(IOmniDisplayJsModule js) => _js = js;
 
     /// <summary>True quando o browser suporta CSS scroll-driven animations (animation-timeline: view()).
     /// Retorna false em SSR/prerender (sem JS), então nenhum loop JS é iniciado no servidor.</summary>
     public async ValueTask<bool> SupportsNativeAsync()
     {
-        try { return await _js.InvokeAsync<bool>("omniBlazor.parallax.supportsNative"); }
+        try { return await _js.InvokeAsync<bool>("parallax.supportsNative"); }
         catch { return false; }
     }
 
@@ -38,7 +38,7 @@ public sealed class ParallaxService
     {
         try
         {
-            var handle = await _js.InvokeAsync<IJSObjectReference>("omniBlazor.parallax.create", scene, options);
+            var handle = await _js.InvokeAsync<IJSObjectReference>("parallax.create", scene, options);
             return new ParallaxHandle(handle);
         }
         catch { return null; }

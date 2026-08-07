@@ -1,6 +1,6 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponentWithChildren
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule JS
 @implements IAsyncDisposable
 @using Omni.Blazor.Utilities
 
@@ -255,7 +255,7 @@
         if (_panes.Count == 0) return;
         try
         {
-            _containerSize = await JS.InvokeAsync<double>("omniBlazor.splitterMeasure", _rootEl, Orientation == Orientation.Horizontal);
+            _containerSize = await JS.InvokeAsync<double>("splitterMeasure", _rootEl, Orientation == Orientation.Horizontal);
         }
         catch { _containerSize = 0; }
         if (_containerSize <= 0) return;
@@ -326,8 +326,8 @@
 
         try
         {
-            _containerSize = await JS.InvokeAsync<double>("omniBlazor.splitterMeasure", _rootEl, Orientation == Orientation.Horizontal);
-            await JS.InvokeVoidAsync("omniBlazor.splitterCapture", BarId(barIdx), e.PointerId);
+            _containerSize = await JS.InvokeAsync<double>("splitterMeasure", _rootEl, Orientation == Orientation.Horizontal);
+            await JS.InvokeVoidAsync("splitterCapture", BarId(barIdx), e.PointerId);
         }
         catch { return; }
 
@@ -377,7 +377,7 @@
     private async Task OnBarUp(PointerEventArgs e, int barIdx)
     {
         if (!_isResizing || _activeBarIndex != barIdx) return;
-        try { await JS.InvokeVoidAsync("omniBlazor.splitterRelease", BarId(barIdx), e.PointerId); } catch { }
+        try { await JS.InvokeVoidAsync("splitterRelease", BarId(barIdx), e.PointerId); } catch { }
         _isResizing = false;
         _activeBarIndex = -1;
         StateHasChanged();
@@ -411,7 +411,7 @@
 
         if (_containerSize <= 0)
         {
-            try { _containerSize = await JS.InvokeAsync<double>("omniBlazor.splitterMeasure", _rootEl, Orientation == Orientation.Horizontal); }
+            try { _containerSize = await JS.InvokeAsync<double>("splitterMeasure", _rootEl, Orientation == Orientation.Horizontal); }
             catch { return; }
         }
 

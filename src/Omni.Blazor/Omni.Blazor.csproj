@@ -19,7 +19,15 @@
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>0.3.0</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>0.5.0</PackageValidationBaselineVersion>
+    <!-- Native AOT is a package contract, not a consumer opt-in guess. This
+         enables trim, single-file and AOT analyzers for every library build. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <!-- Razor currently emits IL2111 for DynamicComponent parameter assignment
+         even when every Type value is correctly annotated. Native AOT publish
+         smoke tests cover the actual closed component graph. -->
+    <NoWarn>$(NoWarn);IL2111</NoWarn>
     <DefaultItemExcludes>$(DefaultItemExcludes);artifacts\**</DefaultItemExcludes>
     <!-- The shipped library is kept warning-clean; treat warnings as errors here (only)
          so regressions can't creep into the package. NoWarn (CS1591/BL9991) still applies. -->
@@ -42,6 +50,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
     <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
     <!-- The optional AI layer (IChatClient orchestration) lives in the separate

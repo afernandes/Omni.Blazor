@@ -26,8 +26,8 @@ public class OmniSplitterTests : TestContextBase
 
     [Theory]
     [InlineData(SplitterVariant.Solid, "omni-splitter-variant-solid")]
-    [InlineData(SplitterVariant.Line,  "omni-splitter-variant-line")]
-    [InlineData(SplitterVariant.Gap,   "omni-splitter-variant-gap")]
+    [InlineData(SplitterVariant.Line, "omni-splitter-variant-line")]
+    [InlineData(SplitterVariant.Gap, "omni-splitter-variant-gap")]
     public void Applies_variant_class(SplitterVariant variant, string expected)
     {
         var cut = Render<OmniSplitter>(p => p.Add(c => c.Variant, variant));
@@ -36,7 +36,7 @@ public class OmniSplitterTests : TestContextBase
 
     [Theory]
     [InlineData(Orientation.Horizontal, "omni-splitter-horizontal")]
-    [InlineData(Orientation.Vertical,   "omni-splitter-vertical")]
+    [InlineData(Orientation.Vertical, "omni-splitter-vertical")]
     public void Applies_orientation_class(Orientation o, string expected)
     {
         var cut = Render<OmniSplitter>(p => p.Add(c => c.Orientation, o));

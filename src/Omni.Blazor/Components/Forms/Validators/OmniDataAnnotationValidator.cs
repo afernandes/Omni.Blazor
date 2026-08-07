@@ -1,6 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Omni.Blazor.Utilities;
 
 namespace Omni.Blazor.Components;
 
@@ -23,25 +26,25 @@ namespace Omni.Blazor.Components;
 public class OmniDataAnnotationValidator : OmniValidatorBase
 {
     /// <summary>
-    /// Caminho do model.Property — usado para descobrir os atributos
-    /// declarados via reflection. Quando null, usa o
-    /// <see cref="IOmniFormComponent.FieldIdentifier"/> do target.
+    /// Expressão do campo que fornece, de forma trim-safe, a propriedade e os
+    /// atributos declarados no modelo.
     /// </summary>
-    [Parameter] public System.Linq.Expressions.Expression<Func<object?>>? Property { get; set; }
+    [Parameter, EditorRequired] public Expression<Func<object?>> Property { get; set; } = default!;
 
     /// <summary>Separador quando múltiplos atributos falham. Default <c>"; "</c>.</summary>
     [Parameter] public string MessageSeparator { get; set; } = "; ";
 
     protected override bool Validate(IOmniFormComponent component)
     {
-        var fi = Property is not null ? FieldIdentifier.Create(Property) : component.FieldIdentifier;
-        var prop = fi.Model.GetType().GetProperty(fi.FieldName);
-        if (prop is null) return true;
+        FieldIdentifier field = FieldIdentifier.Create(Property);
+        MemberExpression? member = Property.Body as MemberExpression
+            ?? (Property.Body as UnaryExpression)?.Operand as MemberExpression;
+        if (member?.Member is not PropertyInfo property)
+            throw new InvalidOperationException("Property must select a model property.");
 
-        var value = prop.GetValue(fi.Model);
-        var ctx = new ValidationContext(fi.Model) { MemberName = fi.FieldName };
-        var results = new List<ValidationResult>();
-        var ok = Validator.TryValidateProperty(value, ctx, results);
+        object? value = property.GetValue(field.Model);
+        List<ValidationResult> results = [];
+        bool ok = DataAnnotationsValidation.ValidateProperty(field.Model, property, value, results);
 
         if (!ok)
         {

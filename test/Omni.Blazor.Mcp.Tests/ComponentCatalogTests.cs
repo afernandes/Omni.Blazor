@@ -5,6 +5,32 @@ namespace Omni.Blazor.Mcp.Tests;
 
 public class ComponentCatalogTests
 {
+    private const string ConfigurationApiFixture = """
+    {
+      "package": "AndersonN.Omni.Blazor",
+      "repository": "https://example/repo",
+      "count": 0,
+      "components": [],
+      "configurationApis": [
+        {
+          "name": "DataGridFormSchemaBuilder<TItem, TKey>",
+          "category": "Data",
+          "kind": "class",
+          "summary": "Builds a CRUD schema.",
+          "source": "src/Omni.Blazor/Models/DataGridFormSchema.cs",
+          "members": [
+            {
+              "name": "Collection",
+              "kind": "method",
+              "signature": "DataGridFormSchemaBuilder<TItem, TKey> Collection(Action configure)",
+              "summary": "Configures a collection."
+            }
+          ]
+        }
+      ]
+    }
+    """;
+
     // Small, stable manifest fixture exercising every kind/branch:
     // - OmniButton: ChildContent component, enum param, event, inherited slot.
     // - OmniTextBox: form input, no required params.
@@ -66,6 +92,19 @@ public class ComponentCatalogTests
     [Fact]
     public void FromJson_invalid_throws()
         => Assert.Throws<InvalidOperationException>(() => ComponentCatalog.FromJson("null"));
+
+    [Fact]
+    public void Fluent_configuration_apis_are_listed_searched_and_described()
+    {
+        ComponentCatalog catalog = ComponentCatalog.FromJson(ConfigurationApiFixture);
+
+        Assert.Equal(1, catalog.ConfigurationApiCount);
+        Assert.Single(catalog.ListConfigurationApis("data"));
+        Assert.Single(catalog.SearchConfigurationApis("Collection"));
+        Assert.Contains("Builds a CRUD schema.", catalog.ListConfigurationApisText(null));
+        Assert.Contains("Collection(Action configure)",
+            catalog.DescribeConfigurationApi("DataGridFormSchemaBuilder<TItem, TKey>"));
+    }
 
     [Fact]
     public void List_null_returns_all() => Assert.Equal(3, Catalog().List(null).Count);

@@ -12,11 +12,11 @@ namespace Omni.Blazor.Services;
 /// </summary>
 public sealed record KeyInterceptorOption(
     string Key,
-    bool? Ctrl  = null,
-    bool? Alt   = null,
+    bool? Ctrl = null,
+    bool? Alt = null,
     bool? Shift = null,
-    bool? Meta  = null,
-    bool PreventDefault  = false,
+    bool? Meta = null,
+    bool PreventDefault = false,
     bool StopPropagation = false);
 
 /// <summary>
@@ -36,12 +36,12 @@ public sealed record KeyInterceptorOption(
 /// </summary>
 public sealed class KeyInterceptorService : IAsyncDisposable
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniNavigationJsModule _js;
     private readonly Dictionary<string, Entry> _entries = new();
     private DotNetObjectReference<KeyInterceptorService>? _selfRef;
     private bool _disposed;
 
-    public KeyInterceptorService(IJSRuntime js) => _js = js;
+    internal KeyInterceptorService(IOmniNavigationJsModule js) => _js = js;
 
     /// <summary>Number of active interceptors (for leak tests).</summary>
     public int AttachmentCount => _entries.Count;
@@ -69,16 +69,16 @@ public sealed class KeyInterceptorService : IAsyncDisposable
 
         try
         {
-            await _js.InvokeVoidAsync("omniBlazor.attachKeyListener",
+            await _js.InvokeVoidAsync("attachKeyListener",
                 id, element, _selfRef, nameof(OnKeyAsync),
                 keyArray.Select(k => new
                 {
                     key = k.Key,
-                    ctrl  = k.Ctrl,
-                    alt   = k.Alt,
+                    ctrl = k.Ctrl,
+                    alt = k.Alt,
                     shift = k.Shift,
-                    meta  = k.Meta,
-                    preventDefault  = k.PreventDefault,
+                    meta = k.Meta,
+                    preventDefault = k.PreventDefault,
                     stopPropagation = k.StopPropagation
                 }));
         }
@@ -132,7 +132,7 @@ public sealed class KeyInterceptorService : IAsyncDisposable
     {
         if (!_entries.Remove(id)) return;
         if (_disposed) return;
-        try { await _js.InvokeVoidAsync("omniBlazor.detachKeyListener", id); }
+        try { await _js.InvokeVoidAsync("detachKeyListener", id); }
         catch { }
     }
 
@@ -145,7 +145,7 @@ public sealed class KeyInterceptorService : IAsyncDisposable
         foreach (var id in ids)
         {
             _entries.Remove(id);
-            try { await _js.InvokeVoidAsync("omniBlazor.detachKeyListener", id); }
+            try { await _js.InvokeVoidAsync("detachKeyListener", id); }
             catch { }
         }
 

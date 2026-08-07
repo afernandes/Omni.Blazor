@@ -31,6 +31,7 @@ public sealed class DataFormCollectionEditorBuilder<TModel, TCollection, TItem>
     private string? _maximumItemsError;
     private RenderFragment? _emptyTemplate;
     private RenderFragment<DataFormCollectionItemContext<TItem>>? _itemHeader;
+    private IDataFormCollectionGridDefinition<TItem>? _grid;
 
     internal DataFormCollectionEditorBuilder(Action ensureMutable)
         => _ensureMutable = ensureMutable;
@@ -135,12 +136,31 @@ public sealed class DataFormCollectionEditorBuilder<TModel, TCollection, TItem>
         return this;
     }
 
+    /// <summary>
+    /// Renders the collection through <c>OmniDataGridForm</c>. The supplied CRUD
+    /// schema owns columns, draft creation/editing, deletion and extra actions.
+    /// Collection bounds, collection creation and reorder settings remain owned
+    /// by this builder. Do not combine Grid with ItemSchema, CreateItem, Key,
+    /// custom collection action texts or an item-header template.
+    /// </summary>
+    public DataFormCollectionEditorBuilder<TModel, TCollection, TItem> Grid<TKey>(
+        DataGridFormSchema<TItem, TKey> schema)
+        where TKey : notnull
+    {
+        _ensureMutable();
+        ArgumentNullException.ThrowIfNull(schema);
+        _grid = new DataFormCollectionGridDefinition<TItem, TKey>(schema);
+        return this;
+    }
+
     internal DataFormCollectionDefinition<TModel, TCollection, TItem> Build()
-        => new(
-            _itemSchema,
-            _itemFactory,
+    {
+        ValidateGridComposition();
+        return new(
+            _grid?.FormSchema ?? _itemSchema,
+            _grid?.ItemFactory ?? _itemFactory,
             _collectionFactory,
-            _keySelector,
+            _grid?.KeySelector ?? _keySelector,
             _minItems,
             _maxItems,
             _allowRemove,
@@ -152,7 +172,52 @@ public sealed class DataFormCollectionEditorBuilder<TModel, TCollection, TItem>
             _minimumItemsError,
             _maximumItemsError,
             _emptyTemplate,
-            _itemHeader);
+            _itemHeader,
+            _grid);
+    }
+
+    private void ValidateGridComposition()
+    {
+        if (_grid is null) return;
+        if (_itemSchema is not null && !ReferenceEquals(_itemSchema, _grid.FormSchema))
+            throw new InvalidOperationException(
+                "Collection.Grid uses the DataGridForm schema's Form. Remove ItemSchema or pass the same schema instance.");
+        if (_itemFactory is not null && !Equals(_itemFactory, _grid.ItemFactory))
+            throw new InvalidOperationException(
+                "Collection.Grid uses the DataGridForm Create factory. Remove CreateItem or configure Create on the grid schema.");
+        if (_keySelector is not null)
+            throw new InvalidOperationException(
+                "Collection.Grid uses the DataGridForm stable key. Remove Collection.Key and configure Key on the grid schema.");
+        if (_itemHeader is not null)
+            throw new InvalidOperationException(
+                "Collection.Grid renders columns instead of item headers. Remove the itemHeader template.");
+        if (_addText is not null || _removeText is not null || _moveUpText is not null || _moveDownText is not null)
+            throw new InvalidOperationException(
+                "Collection.Grid action texts come from the DataGridForm schema and OmniTexts. Remove Collection.Texts.");
+    }
+}
+
+internal interface IDataFormCollectionGridDefinition<TItem> where TItem : class
+{
+    Type ComponentType { get; }
+    object Schema { get; }
+    DataFormSchema<TItem> FormSchema { get; }
+    Func<TItem>? ItemFactory { get; }
+    Func<TItem, object> KeySelector { get; }
+}
+
+internal sealed record DataFormCollectionGridDefinition<TItem, TKey>(
+    DataGridFormSchema<TItem, TKey> TypedSchema)
+    : IDataFormCollectionGridDefinition<TItem>
+    where TItem : class
+    where TKey : notnull
+{
+    public Type ComponentType { get; } = typeof(Omni.Blazor.Components.OmniDataGridForm<TItem, TKey>);
+
+    public object Schema => TypedSchema;
+    public DataFormSchema<TItem> FormSchema => TypedSchema.FormSchema;
+    public Func<TItem>? ItemFactory => TypedSchema.CreateOptions?.Factory;
+    public Func<TItem, object> KeySelector => item => TypedSchema.KeySelector(item);
 }
 
 internal interface IDataFormCollectionDefinition<TModel> where TModel : class
@@ -181,13 +246,13 @@ internal sealed record DataFormCollectionDefinition<TModel, TCollection, TItem>(
     string? MinimumItemsError,
     string? MaximumItemsError,
     RenderFragment? EmptyTemplate,
-    RenderFragment<DataFormCollectionItemContext<TItem>>? ItemHeader)
+    RenderFragment<DataFormCollectionItemContext<TItem>>? ItemHeader,
+    IDataFormCollectionGridDefinition<TItem>? Grid)
     : IDataFormCollectionDefinition<TModel>
     where TModel : class
     where TItem : class
 {
-    public Type EditorType { get; } = typeof(Omni.Blazor.Components.OmniDataFormCollectionEditor<,,>)
-        .MakeGenericType(typeof(TModel), typeof(TCollection), typeof(TItem));
+    public Type EditorType { get; } = typeof(Omni.Blazor.Components.OmniDataFormCollectionEditor<TModel, TCollection, TItem>);
 
     public int GetCount(object? value) => value is ICollection<TItem> items ? items.Count : 0;
 }

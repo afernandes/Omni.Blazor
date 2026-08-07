@@ -6,8 +6,8 @@ using Omni.Blazor.Models;
 namespace Omni.Blazor.Tests.Components.Data;
 
 /// <summary>
-/// Behavioural contract for <see cref="OmniDataFilter{TItem}"/> + its item/property
-/// pieces: rendering, adding/removing conditions and groups, the logic toggle,
+/// Behavioural contract for <see cref="OmniDataFilter{TItem}"/> and its typed schema:
+/// rendering, adding/removing conditions and groups, the logic toggle,
 /// type-aware value editors, and — most importantly — that the built predicate
 /// filters the data and raises <c>Filter</c>.
 /// </summary>
@@ -23,17 +23,23 @@ public class OmniDataFilterTests : TestContextBase
         new("Diego", 23, true),
     };
 
+    private static readonly DataFilterSchema<Person> Schema =
+        DataFilterSchema<Person>.Create(schema =>
+        {
+            schema.Field(person => person.Name, field => field.Title("Nome"));
+            schema.Field(person => person.Age, field => field.Title("Idade"));
+            schema.Field(person => person.Active, field => field.Title("Ativo"));
+        });
+
     private IRenderedComponent<OmniDataFilter<Person>> RenderFilter(
         Action<IEnumerable<Person>>? onFilter = null,
         Action<ComponentParameterCollectionBuilder<OmniDataFilter<Person>>>? extra = null)
         => Render<OmniDataFilter<Person>>(p =>
         {
             p.Add(c => c.Data, (IEnumerable<Person>)People);
+            p.Add(c => c.Schema, Schema);
             if (onFilter is not null)
                 p.Add(c => c.Filter, EventCallback.Factory.Create<IEnumerable<Person>>(this, onFilter));
-            p.AddChildContent<OmniDataFilterProperty>(pp => pp.Add(c => c.Property, "Name").Add(c => c.Title, "Nome"));
-            p.AddChildContent<OmniDataFilterProperty>(pp => pp.Add(c => c.Property, "Age").Add(c => c.Title, "Idade").Add(c => c.Type, ColumnFilterType.Number));
-            p.AddChildContent<OmniDataFilterProperty>(pp => pp.Add(c => c.Property, "Active").Add(c => c.Title, "Ativo").Add(c => c.Type, ColumnFilterType.Boolean));
             extra?.Invoke(p);
         });
 

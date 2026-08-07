@@ -5,9 +5,9 @@ namespace Omni.Blazor.Services;
 /// <summary>Typed ownership boundary for one global click-outside registration.</summary>
 public sealed class ClickOutsideService
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniOverlayJsModule _js;
 
-    public ClickOutsideService(IJSRuntime js) => _js = js;
+    internal ClickOutsideService(IOmniOverlayJsModule js) => _js = js;
 
     /// <summary>Registers a callback and returns an idempotent handle that unregisters it.</summary>
     public async ValueTask<IAsyncDisposable?> RegisterAsync<TReceiver>(
@@ -26,7 +26,7 @@ public sealed class ClickOutsideService
         try
         {
             await _js.InvokeVoidAsync(
-                "omniBlazor.registerClickOutside",
+                "registerClickOutside",
                 cancellationToken,
                 id,
                 selector,
@@ -48,10 +48,10 @@ public sealed class ClickOutsideService
 
     private sealed class Handle : IAsyncDisposable
     {
-        private IJSRuntime? _js;
+        private IOmniOverlayJsModule? _js;
         private readonly string _id;
 
-        internal Handle(IJSRuntime js, string id)
+        internal Handle(IOmniOverlayJsModule js, string id)
         {
             _js = js;
             _id = id;
@@ -64,7 +64,7 @@ public sealed class ClickOutsideService
 
             try
             {
-                await js.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id);
+                await js.InvokeVoidAsync("unregisterClickOutside", _id);
             }
             catch (JSDisconnectedException)
             {
