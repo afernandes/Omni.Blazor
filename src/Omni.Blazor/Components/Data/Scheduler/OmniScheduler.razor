@@ -12,8 +12,8 @@
 
     Declarative views (Day/Week/Month) are added as child content; each
     registers itself and the scheduler builds the view-switch tabs from them.
-    Appointments are projected from `Data` via `StartProperty`/`EndProperty`/
-    `TextProperty` (server-side loading via the `LoadData` callback). Slot,
+    Appointments are projected from `Data` via a strongly typed `Schema`
+    (server-side loading via the `LoadData` callback). Slot,
     appointment, day and month clicks raise typed callbacks; native HTML5
     drag-and-drop raises `AppointmentMove` when wired.
 *@
@@ -90,17 +90,11 @@
     /// <summary>Replaces the entire built-in navigation bar.</summary>
     [Parameter] public RenderFragment? NavigationTemplate { get; set; }
 
-    /// <summary>The appointment source. Use together with <see cref="StartProperty"/>/<see cref="EndProperty"/>.</summary>
+    /// <summary>The appointment source.</summary>
     [Parameter] public IEnumerable<TItem>? Data { get; set; }
 
-    /// <summary>Name of the <c>DateTime</c> property holding each item's start.</summary>
-    [Parameter] public string? StartProperty { get; set; }
-
-    /// <summary>Name of the <c>DateTime</c> property holding each item's end.</summary>
-    [Parameter] public string? EndProperty { get; set; }
-
-    /// <summary>Name of the property holding each item's display text.</summary>
-    [Parameter] public string? TextProperty { get; set; }
+    /// <summary>Immutable typed appointment projection and presentation schema.</summary>
+    [Parameter, EditorRequired] public SchedulerSchema<TItem> Schema { get; set; } = default!;
 
     /// <summary>Index of the initially selected view. Default 0.</summary>
     [Parameter] public int SelectedIndex { get; set; }
@@ -188,12 +182,34 @@
 
     private ParameterState<DateTime> _dateState = null!;
     private ParameterState<IEnumerable<TItem>?> _dataState = null!;
+    private ParameterState<SchedulerSchema<TItem>?> _schemaState = null!;
+    private bool _dataRebuiltDuringParameterSet;
+    private bool _selectedIndexWasSet;
+    private bool _heightWasSet;
+    private bool _cultureWasSet;
+    private bool _showHeaderWasSet;
+    private bool _showNavigationButtonsWasSet;
+    private bool _showTodayButtonWasSet;
+    private bool _showDateTitleWasSet;
 
     /// <summary>Test-only counter: increments every time appointments are re-projected from <see cref="Data"/>.</summary>
     internal int AppointmentsRebuildCount { get; private set; }
 
     /// <summary>Test-only view of the projected appointments.</summary>
     internal IReadOnlyList<OmniAppointmentData> AppointmentsInternal => _appointments;
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        _dataRebuiltDuringParameterSet = false;
+        _selectedIndexWasSet = parameters.TryGetValue<int>(nameof(SelectedIndex), out _);
+        _heightWasSet = parameters.TryGetValue<string>(nameof(Height), out _);
+        _cultureWasSet = parameters.TryGetValue<CultureInfo?>(nameof(Culture), out _);
+        _showHeaderWasSet = parameters.TryGetValue<bool>(nameof(ShowHeader), out _);
+        _showNavigationButtonsWasSet = parameters.TryGetValue<bool>(nameof(ShowNavigationButtons), out _);
+        _showTodayButtonWasSet = parameters.TryGetValue<bool>(nameof(ShowTodayButton), out _);
+        _showDateTitleWasSet = parameters.TryGetValue<bool>(nameof(ShowDateTitle), out _);
+        await base.SetParametersAsync(parameters);
+    }
 
     // ─── IOmniScheduler ───────────────────────────────────────────────────
 
@@ -221,6 +237,23 @@
             .WithParameter(() => Data)
             .WithChangeHandler(RebuildAppointments)
             .Attach();
+        _schemaState = RegisterParameter<SchedulerSchema<TItem>?>(nameof(Schema))
+            .WithParameter(() => Schema)
+            .WithChangeHandler(ApplySchema)
+            .Attach();
+    }
+
+    private void ApplySchema()
+    {
+        if (Schema is not { } schema) return;
+        if (!_selectedIndexWasSet) SelectedIndex = schema.SelectedViewIndex;
+        if (!_heightWasSet) Height = schema.Height;
+        if (!_cultureWasSet) Culture = schema.Culture;
+        if (!_showHeaderWasSet) ShowHeader = schema.ShowHeader;
+        if (!_showNavigationButtonsWasSet) ShowNavigationButtons = schema.ShowNavigationButtons;
+        if (!_showTodayButtonWasSet) ShowTodayButton = schema.ShowTodayButton;
+        if (!_showDateTitleWasSet) ShowDateTitle = schema.ShowDateTitle;
+        if (!_dataRebuiltDuringParameterSet) RebuildAppointments();
     }
 
     private void OnDateParamChanged()
@@ -294,9 +327,16 @@
     /// <summary>Force a re-projection of <see cref="Data"/> and a data reload for the current view.</summary>
     public async Task Reload()
     {
-        RebuildAppointments();
+        await ReprojectAsync();
         await InvokeLoadDataAsync();
+    }
+
+    /// <summary>Re-projects the current in-memory data without requesting another provider load.</summary>
+    internal Task ReprojectAsync()
+    {
+        RebuildAppointments();
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     // ─── Navigation ───────────────────────────────────────────────────────
@@ -343,21 +383,21 @@
 
     private void RebuildAppointments()
     {
+        _dataRebuiltDuringParameterSet = true;
         AppointmentsRebuildCount++;
         _appointments.Clear();
-        if (Data is null || string.IsNullOrEmpty(StartProperty) || string.IsNullOrEmpty(EndProperty))
-            return;
+        if (Data is null) return;
+        if (Schema is null)
+            throw new InvalidOperationException("OmniScheduler requires a typed SchedulerSchema when Data is supplied.");
 
         foreach (var item in Data)
         {
             if (item is null) continue;
             _appointments.Add(new OmniAppointmentData
             {
-                Start = SchedulerReflection.GetDateTime(item, StartProperty!),
-                End = SchedulerReflection.GetDateTime(item, EndProperty!),
-                Text = string.IsNullOrEmpty(TextProperty)
-                    ? null
-                    : SchedulerReflection.GetValue(item, TextProperty!)?.ToString(),
+                Start = Schema.Start(item),
+                End = Schema.End(item),
+                Text = Schema.Text?.Invoke(item),
                 Data = item,
             });
         }

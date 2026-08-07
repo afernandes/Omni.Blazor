@@ -1,8 +1,8 @@
 # Omni.Blazor
 
-> Modern Blazor component library for .NET 10 — 198 components, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap/Tailwind. Published on NuGet as `AndersonN.Omni.Blazor` (namespace `Omni.Blazor`).
+> Modern Blazor component library for .NET 10 — 206 components, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap/Tailwind. Published on NuGet as `AndersonN.Omni.Blazor` (namespace `Omni.Blazor`).
 
-Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.AddOmniComponents();`, put `<OmniTheme />` in `<head>`, and load the bundle from `_content/Omni.Blazor/css/omni.css` + `_content/Omni.Blazor/js/Omni.js`. CSS class prefix `omni-`, design-token prefix `--omni-`, JS namespace `window.omniBlazor`. Theme via `<html data-theme="light|dark">`, `data-accent="amber|crimson|emerald|blue|violet|teal|cyan|indigo|fuchsia|lime|orange|rose">`, `data-density="compact|comfortable|spacious">`.
+Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.AddOmniComponents();`, and put `<OmniTheme />` in `<head>`. The stylesheet is supplied by `OmniTheme`; isolated JavaScript modules load lazily with no consumer `<script>` tag or browser global. CSS class prefix `omni-`, design-token prefix `--omni-`. Theme via `<html data-theme="light|dark">`, `data-accent="amber|crimson|emerald|blue|violet|teal|cyan|indigo|fuchsia|lime|orange|rose">`, `data-density="compact|comfortable|spacious">`.
 
 ## Ai
 
@@ -28,11 +28,12 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 ## Data
 
 - [OmniChat](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Chat/OmniChat.razor): OmniChat — self-contained chat UI (RadzenChat port): header (title + roster + clear), a scrollable message list (avatar + bubble, aligned by author), and a comp…
-- [OmniDataFilter](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilter.razor): OmniDataFilter — a visual query builder (RadzenDataFilter port).
+- [OmniDataFilter](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilter.razor): OmniDataFilter — a typed visual query builder.
 - [OmniDataFilterItem](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilterItem.razor): OmniDataFilterItem — one node of an <OmniDataFilter> tree.
-- [OmniDataFilterProperty](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/DataFilter/OmniDataFilterProperty.razor): OmniDataFilterProperty — declares one filterable field inside an
 - [OmniDataGrid](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniDataGrid.razor): Rich data grid with sorting, filtering, grouping, editing, virtualization and optional hierarchical rows.
 - [OmniDataGridColumn](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniDataGridColumn.razor): Column definition for an <OmniDataGrid> — declares title, value selector, templates, sorting/filtering/aggregation/grouping/freezing behavior.
+- [OmniDataGridForm](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniDataGridForm.razor): Coordinates a generated OmniDataGrid`1, detached OmniDataForm`1 drafts and cancellable CRUD persistence.
+- [OmniDataImport](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniDataImport.razor): Reads bounded delimited text incrementally, maps it to a typed schema and exposes only validated snapshots to cancellable persistence handlers.
 - [OmniDayView](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniDayView.razor): Single-day view with time slots.
 - [OmniDiagramCanvas](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Diagram/OmniDiagramCanvas.razor): OmniDiagramCanvas — generic infinite graph editor: pan/zoom, dotted grid, nodes with named ports, bezier edges, drag-to-connect, marquee selection, minimap, zoo…
 - [OmniDropZone](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniDropZone.razor): A single drop bucket.
@@ -41,9 +42,11 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 - [OmniFileManager](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniFileManager.razor): Provider-backed file manager with bounded loading, navigation and guarded mutations.
 - [OmniGantt](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Gantt/OmniGantt.razor): OmniGantt — project timeline inspired by RadzenGantt.
 - [OmniGanttColumn](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Gantt/OmniGanttColumn.razor): Left-pane column for an OmniGantt.
+- [OmniGanttForm](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Gantt/OmniGanttForm.razor): CRUD-enabled Gantt that edits detached tasks through OmniDataForm and the shared headless entity coordinator.
 - [OmniHtmlEditor](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditor.razor)
 - [OmniHtmlEditorButton](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/HtmlEditor/OmniHtmlEditorButton.razor): A toolbar tool for OmniHtmlEditor.
 - [OmniKanban](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniKanban.razor): OmniKanban — quadro de colunas com cards arrastáveis.
+- [OmniKanbanForm](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniKanbanForm.razor): CRUD-enabled Kanban that edits detached cards through OmniDataForm and the shared headless entity coordinator.
 - [OmniMonthView](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniMonthView.razor): Month grid (6 weeks × 7 days).
 - [OmniMultiDayView](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniMultiDayView.razor): N consecutive days side-by-side with time slots (mirrors RadzenMultiDayView).
 - [OmniPivotColumn](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Pivot/OmniPivotColumn.cs): A column dimension of an OmniPivotGrid`1. Multiple nest.
@@ -51,6 +54,7 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 - [OmniPivotRow](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Pivot/OmniPivotRow.cs): A row dimension of an OmniPivotGrid`1. Multiple nest.
 - [OmniPivotValue](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Pivot/OmniPivotValue.cs): A value/measure of an OmniPivotGrid`1 — an aggregate (AggregateFunction) of a property computed at each row×column intersection. Multiple values render side-by-…
 - [OmniScheduler](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniScheduler.razor): OmniScheduler — calendar/agenda component inspired by RadzenScheduler.
+- [OmniSchedulerForm](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniSchedulerForm.razor): CRUD-enabled Scheduler that edits detached drafts through OmniDataForm and the shared headless entity coordinator.
 - [OmniTree](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Tree/OmniTree.razor): OmniTree — hierarchical tree view (RadzenTree port).
 - [OmniTreeGrid](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniTreeGrid.razor): Accessible hierarchical data table with bounded lazy loading and selection.
 - [OmniTreeGridColumn](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniTreeGridColumn.razor): Declarative column definition registered with a parent OmniTreeGrid.
@@ -58,6 +62,7 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 - [OmniTreeLevel](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Tree/OmniTreeLevel.razor): Declarative binding for one depth of a data-bound OmniTree.
 - [OmniVirtualize](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/OmniVirtualize.razor): Thin wrapper over Blazor's built-in <Virtualize TItem="...">.
 - [OmniWeekView](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniWeekView.razor): Seven-day week view with time slots.
+- [OmniWorkflowDesigner](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Diagram/OmniWorkflowDesigner.razor): Workflow composition surface with Diagram editing, bounded undo/redo, graph validation and a typed PropertyGrid inspector.
 - [OmniYearPlannerView](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniYearPlannerView.razor): Year planner: 12 month rows × day columns with appointment bars (mirrors RadzenYearPlannerView).
 - [OmniYearTimelineView](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniYearTimelineView.razor): Year timeline: 12 month rows × day columns, connected timeline styling (mirrors RadzenYearTimelineView).
 - [OmniYearView](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Data/Scheduler/OmniYearView.razor): Twelve mini-month calendars (mirrors RadzenYearView).
@@ -77,7 +82,7 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 - [OmniCardMedia](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniCardMedia.razor): Structural card part — a flush image / media block.
 - [OmniCarousel](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniCarousel.razor): OmniCarousel — a slideshow that cycles through <OmniCarouselItem> slides (RadzenCarousel port).
 - [OmniCarouselItem](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniCarouselItem.razor): OmniCarouselItem — a single slide inside an <OmniCarousel>.
-- [OmniChart](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniChart.razor): SVG chart supporting Line, Area, Column, Bar, Pie and Donut series.
+- [OmniChart](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniChart.razor): SVG chart supporting cartesian, stacked, scatter, bubble, radar, gauge, pie, donut and waterfall series.
 - [OmniChip](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniChip.razor): Compact pill/tag button — optional dot and icon, with active/accent/static visual states.
 - [OmniDescriptionItem](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniDescriptionItem.razor): A single term/value pair for OmniDescriptionList.
 - [OmniDescriptionList](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Display/OmniDescriptionList.razor): Read-only key/value detail layout (term + value pairs) — the standard "detail / review / summary" primitive for entity pages, settings summaries and review-befo…
@@ -108,9 +113,11 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 - [OmniCustomValidator](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/Validators/OmniCustomValidator.cs): Validator custom com delegate Func`2 tipado. Diferença pro RadzenCustomValidator: Radzen usa Func<bool> (sem o valor), forçando closure sobre o model. Aqui o de…
 - [OmniDataAnnotationValidator](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/Validators/OmniDataAnnotationValidator.cs): Valida um único campo do model contra TODOS os ValidationAttributes declarados na propriedade ([Required], [StringLength], [EmailAddress], etc.). Diferente do <…
 - [OmniDataForm](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/OmniDataForm.razor): Metadata-driven form that composes a reusable strongly typed field schema, generated Omni inputs, Blazor's EditContext and data annotation validators.
+- [OmniDataFormWizard](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/OmniDataFormWizard.razor): Coordinates explicit DataForm schemas as validated steps over one shared EditContext and cancellable navigation state.
 - [OmniEmailValidator](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/Validators/OmniEmailValidator.cs): Valida e-mail usando o mesmo motor do EmailAddressAttribute (suficientemente permissivo, RFC 5322 simplificado — o que [EmailAddress] usa). Vazio passa. <OmniEm…
 - [OmniForm](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/OmniForm.razor): Async validation and submission orchestration for OmniForm`1. Kept out of the Razor file so cancellation, latest-wins and exception-safety invariants remain rev…
 - [OmniLengthValidator](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/Validators/OmniLengthValidator.cs): Valida comprimento de string (ou tamanho de coleção ICollection). Vazio passa — componha com OmniRequiredValidator quando ambos forem necessários. <OmniLengthVa…
+- [OmniPropertyGrid](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/OmniPropertyGrid.razor): Compact metadata-driven property inspector built on OmniDataForm and its typed schema extensibility.
 - [OmniRangeValidator](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/Validators/OmniRangeValidator.cs): Valida faixa numérica (int / double / decimal / DateTime). Aceita qualquer tipo que implemente IComparable. Vazio passa — componha com Required quando precisar.…
 - [OmniRegexValidator](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/Validators/OmniRegexValidator.cs): Valida string contra um padrão regex. Vazio passa. <OmniRegexValidator Component="cep" Pattern="^\\d{5}-\\d{3}$" Text="CEP deve ser 00000-000." />
 - [OmniRequiredValidator](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Forms/Validators/OmniRequiredValidator.cs): Falha quando o campo está vazio. Verifica via HasValue — que cobre null, string vazia, e default(T) pra structs. <OmniRequiredValidator Component="email" Text="…
@@ -126,6 +133,7 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 - [OmniColorPicker](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Inputs/OmniColorPicker.razor)
 - [OmniDatePicker](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Inputs/OmniDatePicker.razor)
 - [OmniDateRangePicker](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Inputs/OmniDateRangePicker.razor): Date range picker with a single combined input.
+- [OmniEntityPicker](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Inputs/OmniEntityPicker.razor): Selects a local or server-side entity through OmniDataGrid`1 while binding only its stable key to the surrounding EditContext.
 - [OmniFileUpload](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Inputs/OmniFileUpload.razor): Drag-and-drop file uploader.
 - [OmniFormField](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Inputs/OmniFormField.razor): Field wrapper around an input.
 - [OmniListBox](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Inputs/OmniListBox.razor)
@@ -218,7 +226,7 @@ Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.
 - [OmniBottomSheet](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniBottomSheet.razor): Material 3 Bottom Sheet — surface slides up from the bottom edge with optional drag handle + snap points.
 - [OmniCommandPalette](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniCommandPalette.razor): ⌘K command palette — a global, searchable, keyboard-driven action menu.
 - [OmniConfirmPrompt](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniConfirmPrompt.razor): Destructive-action confirmation that requires the user to TYPE a matching phrase before the confirm button enables (GitHub/Stripe/AWS pattern).
-- [OmniContextMenuHost](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniContextMenuHost.razor): Portal host that renders the right-click/programmatic context menu driven by ContextMenuService; place once in the root layout.
+- [OmniContextMenuHost](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniContextMenuHost.razor): Portal host for pointer or trigger-anchored menus with keyboard navigation and deterministic listener cleanup.
 - [OmniDialogHost](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniDialogHost.razor): Portal host that renders modal and side dialogs opened via DialogService (stacked, with backdrop, focus trap, scroll lock and Esc); place once in the root layou…
 - [OmniMenu](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniMenu.razor): Reusable menu list — a panel of <OmniMenuItem>s (and optional separators).
 - [OmniMenuItem](https://github.com/afernandes/Omni.Blazor/blob/main/src/Omni.Blazor/Components/Overlay/OmniMenuItem.razor): A single clickable row inside an <OmniMenu>: optional icon, label, and keyboard-shortcut hint.

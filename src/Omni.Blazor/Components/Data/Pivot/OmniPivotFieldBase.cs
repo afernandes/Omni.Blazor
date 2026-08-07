@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Omni.Blazor.Utilities;
 
 namespace Omni.Blazor.Components;
 
@@ -13,16 +12,15 @@ public abstract class OmniPivotFieldBase<TItem> : ComponentBase, IDisposable
 {
     [CascadingParameter] internal OmniPivotGrid<TItem>? Grid { get; set; }
 
-    /// <summary>Name of the property this field reads from each data item.</summary>
-    [Parameter] public string? Property { get; set; }
+    /// <summary>Strongly typed value selector for this dimension or measure.</summary>
+    [Parameter, EditorRequired] public Func<TItem, object?> Value { get; set; } = default!;
 
-    /// <summary>Header text. Falls back to <see cref="Property"/>.</summary>
+    /// <summary>Header text.</summary>
     [Parameter] public string? Title { get; set; }
 
-    internal string GetTitle() => !string.IsNullOrEmpty(Title) ? Title! : (Property ?? "");
+    internal string GetTitle() => Title ?? string.Empty;
 
-    internal object? GetValue(TItem item)
-        => Property is null || item is null ? null : SchedulerReflection.GetValue(item, Property);
+    internal object? GetValue(TItem item) => item is null ? null : Value(item);
 
     /// <summary>Group-key text for a value (used in row/column headers).</summary>
     internal string KeyText(object? key) => key?.ToString() ?? "(vazio)";

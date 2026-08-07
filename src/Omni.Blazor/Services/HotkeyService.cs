@@ -24,12 +24,12 @@ namespace Omni.Blazor.Services;
 /// </summary>
 public sealed class HotkeyService : IAsyncDisposable
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniNavigationJsModule _js;
     private readonly Dictionary<string, Entry> _entries = new();
     private DotNetObjectReference<HotkeyService>? _selfRef;
     private bool _disposed;
 
-    public HotkeyService(IJSRuntime js) => _js = js;
+    internal HotkeyService(IOmniNavigationJsModule js) => _js = js;
 
     /// <summary>Number of active registrations (handy for leak tests).</summary>
     public int RegistrationCount => _entries.Count;
@@ -97,7 +97,7 @@ public sealed class HotkeyService : IAsyncDisposable
 
         try
         {
-            await _js.InvokeVoidAsync("omniBlazor.registerHotkey",
+            await _js.InvokeVoidAsync("registerHotkey",
                 id, _selfRef, nameof(OnHotkeyAsync),
                 combos.Select(ToJs),
                 sequences.Select(seq => seq.Select(ToJs)),
@@ -113,11 +113,11 @@ public sealed class HotkeyService : IAsyncDisposable
 
         static object ToJs(HotkeyCombo c) => new
         {
-            key   = c.Key,
-            ctrl  = c.Modifiers.HasFlag(Modifier.Ctrl),
-            alt   = c.Modifiers.HasFlag(Modifier.Alt),
+            key = c.Key,
+            ctrl = c.Modifiers.HasFlag(Modifier.Ctrl),
+            alt = c.Modifiers.HasFlag(Modifier.Alt),
             shift = c.Modifiers.HasFlag(Modifier.Shift),
-            meta  = c.Modifiers.HasFlag(Modifier.Meta)
+            meta = c.Modifiers.HasFlag(Modifier.Meta)
         };
     }
 
@@ -162,7 +162,7 @@ public sealed class HotkeyService : IAsyncDisposable
     {
         if (handle is Handle h && !h.Disposed && _entries.ContainsKey(h.Id))
         {
-            try { await _js.InvokeVoidAsync("omniBlazor.setHotkeyDisabled", h.Id, disabled); }
+            try { await _js.InvokeVoidAsync("setHotkeyDisabled", h.Id, disabled); }
             catch { }
         }
     }
@@ -181,7 +181,7 @@ public sealed class HotkeyService : IAsyncDisposable
     {
         if (!_entries.Remove(id)) return;
         if (_disposed) return;
-        try { await _js.InvokeVoidAsync("omniBlazor.unregisterHotkey", id); }
+        try { await _js.InvokeVoidAsync("unregisterHotkey", id); }
         catch { /* JS may already be gone during teardown */ }
     }
 
@@ -195,7 +195,7 @@ public sealed class HotkeyService : IAsyncDisposable
         foreach (var id in ids)
         {
             _entries.Remove(id);
-            try { await _js.InvokeVoidAsync("omniBlazor.unregisterHotkey", id); }
+            try { await _js.InvokeVoidAsync("unregisterHotkey", id); }
             catch { }
         }
 

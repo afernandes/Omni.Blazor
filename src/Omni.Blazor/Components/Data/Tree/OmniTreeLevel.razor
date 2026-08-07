@@ -1,6 +1,5 @@
 @namespace Omni.Blazor.Components
 @using System.Collections
-@using Omni.Blazor.Utilities
 
 @* Declarative binding for one depth of a data-bound OmniTree. Renders nothing —
    it just registers with the parent tree and tells it how to read each node at
@@ -11,22 +10,13 @@
 @code {
     [CascadingParameter] internal OmniTree? Tree { get; set; }
 
-    /// <summary>Property name read for each node's text.</summary>
-    [Parameter] public string? TextProperty { get; set; }
-
-    /// <summary>Explicit text selector (wins over <see cref="TextProperty"/>).</summary>
+    /// <summary>Text selector for each node. Falls back to <c>ToString()</c>.</summary>
     [Parameter] public Func<object, string?>? Text { get; set; }
 
-    /// <summary>Property name whose value (an <see cref="IEnumerable"/>) holds the children.</summary>
-    [Parameter] public string? ChildrenProperty { get; set; }
-
-    /// <summary>Explicit children selector (wins over <see cref="ChildrenProperty"/>).</summary>
+    /// <summary>Selector for the enumerable that holds each node's children.</summary>
     [Parameter] public Func<object, IEnumerable?>? Children { get; set; }
 
-    /// <summary>Property name read for each node's leading icon.</summary>
-    [Parameter] public string? IconProperty { get; set; }
-
-    /// <summary>Explicit icon selector (wins over <see cref="IconProperty"/>).</summary>
+    /// <summary>Leading-icon selector for each node.</summary>
     [Parameter] public Func<object, string?>? Icon { get; set; }
 
     /// <summary>Whether a node has children (controls the chevron). Defaults to "children non-empty".</summary>
@@ -47,17 +37,13 @@
     protected override void OnInitialized() => Tree?.AddLevel(this);
 
     internal string GetText(object node)
-        => Text?.Invoke(node)
-           ?? (TextProperty is not null ? SchedulerReflection.GetValue(node, TextProperty)?.ToString() : node?.ToString())
-           ?? "";
+        => Text?.Invoke(node) ?? node?.ToString() ?? "";
 
     internal IEnumerable? GetChildren(object node)
-        => Children?.Invoke(node)
-           ?? (ChildrenProperty is not null ? SchedulerReflection.GetValue(node, ChildrenProperty) as IEnumerable : null);
+        => Children?.Invoke(node);
 
     internal string? GetIcon(object node)
-        => Icon?.Invoke(node)
-           ?? (IconProperty is not null ? SchedulerReflection.GetValue(node, IconProperty)?.ToString() : null);
+        => Icon?.Invoke(node);
 
     internal bool GetHasChildren(object node)
     {

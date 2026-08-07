@@ -42,8 +42,8 @@ public class PdvOrderService
     public decimal LoyaltyDiscountAmount => LoyaltyCode?.Trim().ToUpperInvariant() switch
     {
         "BEM-VINDO15" => Math.Min(15m, Subtotal),
-        "PIZZA10"     => Math.Round(Subtotal * 0.10m, 2),
-        _             => 0m,
+        "PIZZA10" => Math.Round(Subtotal * 0.10m, 2),
+        _ => 0m,
     };
 
     /// <summary>Máximo desconto possível pelos pontos de fidelidade do cliente

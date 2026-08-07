@@ -23,10 +23,10 @@ public class OmniAvatarTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(AvatarSize.Sm,  "omni-avatar-sm")]
-    [InlineData(AvatarSize.Md,  "omni-avatar-md")]
-    [InlineData(AvatarSize.Lg,  "omni-avatar-lg")]
-    [InlineData(AvatarSize.Xl,  "omni-avatar-xl")]
+    [InlineData(AvatarSize.Sm, "omni-avatar-sm")]
+    [InlineData(AvatarSize.Md, "omni-avatar-md")]
+    [InlineData(AvatarSize.Lg, "omni-avatar-lg")]
+    [InlineData(AvatarSize.Xl, "omni-avatar-xl")]
     [InlineData(AvatarSize.XXl, "omni-avatar-2xl")]
     public void Applies_size_modifier(AvatarSize size, string expected)
     {

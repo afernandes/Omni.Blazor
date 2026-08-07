@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
@@ -30,7 +32,8 @@ public sealed class DataFormSchema<TModel> where TModel : class
 
     /// <summary>
     /// Whether supported model properties not explicitly configured are generated.
-    /// Default true.
+    /// Conventional identifiers, key attributes and database-generated identities are
+    /// excluded unless explicitly declared. Default true.
     /// </summary>
     public bool AutoGenerateFields { get; }
 
@@ -58,6 +61,23 @@ public sealed class DataFormSchema<TModel> where TModel : class
 
     /// <summary>Creates a builder for advanced or conditional schema construction.</summary>
     public static DataFormSchemaBuilder<TModel> Builder() => new();
+
+    /// <summary>Creates an immutable derived schema from this reusable base.</summary>
+    public DataFormSchema<TModel> Extend(Action<DataFormSchemaBuilder<TModel>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        DataFormSchemaBuilder<TModel> builder = new();
+        builder.Include(this);
+        builder.AutoGenerateFields(AutoGenerateFields);
+        builder.Layout(layout =>
+        {
+            layout.Columns(Layout.Columns).RowGap(Layout.RowGap).ColumnGap(Layout.ColumnGap);
+            foreach ((Breakpoint breakpoint, int columns) in Layout.ResponsiveColumns)
+                layout.Columns(breakpoint, columns);
+        });
+        configure(builder);
+        return builder.Build();
+    }
 }
 
 /// <summary>Fluent builder for an immutable <see cref="DataFormSchema{TModel}"/>.</summary>
@@ -78,7 +98,8 @@ public sealed class DataFormSchemaBuilder<TModel> where TModel : class
 
     /// <summary>
     /// Includes supported model properties that were not explicitly configured.
-    /// Default true.
+    /// Conventional identifiers, key attributes and database-generated identities are
+    /// excluded unless explicitly declared. Default true.
     /// </summary>
     public DataFormSchemaBuilder<TModel> AutoGenerateFields(bool enabled = true)
     {
@@ -88,7 +109,8 @@ public sealed class DataFormSchemaBuilder<TModel> where TModel : class
     }
 
     /// <summary>Adds or overrides a model property using a strongly typed selector.</summary>
-    public DataFormSchemaBuilder<TModel> Field<TValue>(
+    public DataFormSchemaBuilder<TModel> Field<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TValue>(
         Expression<Func<TModel, TValue>> property,
         Action<DataFormFieldBuilder<TModel, TValue>>? configure = null)
         => AddField(property, configure, groupId: null);
@@ -142,7 +164,8 @@ public sealed class DataFormSchemaBuilder<TModel> where TModel : class
     /// Replaces an included or locally declared field with a fresh strongly
     /// typed definition while preserving its declaration position.
     /// </summary>
-    public DataFormSchemaBuilder<TModel> Override<TValue>(
+    public DataFormSchemaBuilder<TModel> Override<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TValue>(
         Expression<Func<TModel, TValue>> property,
         Action<DataFormFieldBuilder<TModel, TValue>> configure)
     {
@@ -224,7 +247,8 @@ public sealed class DataFormSchemaBuilder<TModel> where TModel : class
             Array.AsReadOnly(_conventions.ToArray()));
     }
 
-    internal DataFormSchemaBuilder<TModel> AddField<TValue>(
+    internal DataFormSchemaBuilder<TModel> AddField<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TValue>(
         Expression<Func<TModel, TValue>> property,
         Action<DataFormFieldBuilder<TModel, TValue>>? configure,
         string? groupId)
@@ -401,7 +425,8 @@ public sealed class DataFormGroupBuilder<TModel> where TModel : class
     }
 
     /// <summary>Adds a strongly typed field to this group.</summary>
-    public DataFormGroupBuilder<TModel> Field<TValue>(
+    public DataFormGroupBuilder<TModel> Field<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TValue>(
         Expression<Func<TModel, TValue>> property,
         Action<DataFormFieldBuilder<TModel, TValue>>? configure = null)
     {
@@ -468,7 +493,9 @@ internal sealed class ImportedDataFormFieldBuilder<TModel>(DataFormField<TModel>
 /// Strongly typed fluent configuration for one DataForm property.
 /// Editor-specific methods expose only typed values instead of parameter-name dictionaries.
 /// </summary>
-public sealed class DataFormFieldBuilder<TModel, TValue> : IDataFormFieldBuilder<TModel>
+public sealed class DataFormFieldBuilder<TModel,
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TValue>
+    : IDataFormFieldBuilder<TModel>
     where TModel : class
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyParameters =
@@ -515,6 +542,7 @@ public sealed class DataFormFieldBuilder<TModel, TValue> : IDataFormFieldBuilder
         _propertyPath = propertyPath;
         _groupId = groupId;
         _ensureMutable = ensureMutable;
+        AddInferredOptions();
     }
 
     string IDataFormFieldBuilder<TModel>.PropertyPath => _propertyPath.Path;
@@ -878,7 +906,9 @@ public sealed class DataFormFieldBuilder<TModel, TValue> : IDataFormFieldBuilder
             _template,
             Array.AsReadOnly(_validators.ToArray()),
             _lookup,
-            _collection);
+            _collection,
+            default(TValue),
+            typeof(Omni.Blazor.Components.OmniDataFormFieldRenderer<TModel, TValue>));
     }
 
     private DataFormFieldBuilder<TModel, TValue> ConfigureDate(
@@ -910,6 +940,29 @@ public sealed class DataFormFieldBuilder<TModel, TValue> : IDataFormFieldBuilder
         _ensureMutable();
         target = value;
         return this;
+    }
+
+    private void AddInferredOptions()
+    {
+        Type declaredType = typeof(TValue);
+        Type enumType = declaredType.IsEnum
+            ? declaredType
+            : Nullable.GetUnderlyingType(declaredType) ?? declaredType;
+        if (!enumType.IsEnum) return;
+
+        Array values = Enum.GetValuesAsUnderlyingType(enumType);
+        foreach (object underlyingValue in values)
+        {
+            object value = Enum.ToObject(enumType, underlyingValue);
+            string name = Enum.GetName(enumType, value) ?? value.ToString()!;
+            string label = declaredType.IsEnum
+                ? declaredType.GetField(name, BindingFlags.Public | BindingFlags.Static)?
+                    .GetCustomAttributes<DisplayAttribute>(inherit: false)
+                    .FirstOrDefault()
+                    ?.GetName() ?? name
+                : name;
+            _options.Add(new DataFormOption(value, label));
+        }
     }
 
     private void EnsureStringEditor(string editor)

@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponentWithChildren
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniDisplayJsModule JS
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
 
@@ -349,7 +349,7 @@
             _timer = new System.Threading.Timer(OnAutoAdvance,
                 null, Auto ? total : Timeout.InfiniteTimeSpan, total);
 
-            try { _scrollSub = await JS.InvokeAsync<IJSObjectReference>("omniBlazor.carouselCreate", _itemsRef, _selfRef); }
+            try { _scrollSub = await JS.InvokeAsync<IJSObjectReference>("carouselCreate", _itemsRef, _selfRef); }
             catch { /* prerender */ }
 
             _created = true;

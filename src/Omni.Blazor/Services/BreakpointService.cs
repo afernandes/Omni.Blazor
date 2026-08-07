@@ -20,14 +20,14 @@ namespace Omni.Blazor.Services;
 /// </summary>
 public sealed class BreakpointService : IAsyncDisposable
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniResponsiveJsModule _js;
     private readonly Dictionary<string, Func<Breakpoint, Task>> _subscribers = new();
     private DotNetObjectReference<BreakpointService>? _selfRef;
     private Breakpoint _current = Breakpoint.Md;
     private bool _initialized;
     private bool _disposed;
 
-    public BreakpointService(IJSRuntime js) => _js = js;
+    internal BreakpointService(IOmniResponsiveJsModule js) => _js = js;
 
     /// <summary>Last known breakpoint. Defaults to Md until the first resize event.</summary>
     public Breakpoint Current => _current;
@@ -62,7 +62,7 @@ public sealed class BreakpointService : IAsyncDisposable
 
         try
         {
-            var bp = await _js.InvokeAsync<string>("omniBlazor.subscribeViewport",
+            var bp = await _js.InvokeAsync<string>("subscribeViewport",
                 "service", _selfRef, nameof(OnBreakpointChanged));
             _current = Parse(bp);
             _initialized = true;
@@ -94,13 +94,13 @@ public sealed class BreakpointService : IAsyncDisposable
 
     private static Breakpoint Parse(string name) => name switch
     {
-        "xs"  => Breakpoint.Xs,
-        "sm"  => Breakpoint.Sm,
-        "md"  => Breakpoint.Md,
-        "lg"  => Breakpoint.Lg,
-        "xl"  => Breakpoint.Xl,
+        "xs" => Breakpoint.Xs,
+        "sm" => Breakpoint.Sm,
+        "md" => Breakpoint.Md,
+        "lg" => Breakpoint.Lg,
+        "xl" => Breakpoint.Xl,
         "xxl" => Breakpoint.Xxl,
-        _     => Breakpoint.Md
+        _ => Breakpoint.Md
     };
 
     private async ValueTask RemoveAsync(string id)
@@ -108,7 +108,7 @@ public sealed class BreakpointService : IAsyncDisposable
         _subscribers.Remove(id);
         if (_subscribers.Count == 0 && _initialized && !_disposed)
         {
-            try { await _js.InvokeVoidAsync("omniBlazor.unsubscribeViewport", "service"); } catch { }
+            try { await _js.InvokeVoidAsync("unsubscribeViewport", "service"); } catch { }
             _initialized = false;
         }
     }
@@ -120,7 +120,7 @@ public sealed class BreakpointService : IAsyncDisposable
         _subscribers.Clear();
         if (_initialized)
         {
-            try { await _js.InvokeVoidAsync("omniBlazor.unsubscribeViewport", "service"); } catch { }
+            try { await _js.InvokeVoidAsync("unsubscribeViewport", "service"); } catch { }
             _initialized = false;
         }
         _selfRef?.Dispose();

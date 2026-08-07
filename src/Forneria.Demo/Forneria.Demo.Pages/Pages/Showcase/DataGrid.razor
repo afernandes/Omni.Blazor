@@ -52,6 +52,22 @@
     </WhenNotToUse>
 
     <ChildContent>
+        <ShowcaseSection Title="FLUENT SCHEMA TIPADO"
+                         Description="Colunas e recursos estruturais ficam em um schema imutável, reutilizável também no OmniDataGridForm e no OmniEntityPicker. Expressões substituem nomes de propriedades em string."
+                         Code="@(@"private static readonly DataGridSchema<Order> GridSchema =
+    DataGridSchema<Order>.Create(grid => grid
+        .Key(order => order.Numero)
+        .Column(order => order.Cliente, column => column.Title(""Cliente"").Width(""220px""))
+        .Column(order => order.Status, column => column.Filterable())
+        .Column(order => order.Total, column => column.Title(""Total"").Format(""C2""))
+        .Search(placeholder: ""Buscar pedidos"")
+        .ColumnResize()
+        .Paging(6));
+
+<OmniDataGrid Data=""@orders"" Schema=""@GridSchema"" />")">
+            <OmniDataGrid TItem="Order" Data="@_inMemory" Schema="@_fluentGridSchema" />
+        </ShowcaseSection>
+
         <ShowcaseSection Title="Básico (in-memory)"
                          Description="Pipeline client-side: sort em uma coluna, busca global, paginação de 6 em 6."
                          Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory"" AllowSearch AllowPaging PageSize=""6"">
@@ -557,6 +573,8 @@
 
     <Api>
         <ShowcaseApiTable Title="OmniDataGrid — Dados">
+            <ShowcaseApiRow Name="Schema" Type="DataGridSchema&lt;TItem&gt;?" Default="null"
+                            Description="Configuração Fluent tipada e reutilizável de colunas, hierarquia e comportamento estrutural." />
             <ShowcaseApiRow Name="Data" Type="IEnumerable&lt;TItem&gt;?" Default="null"
                             Description="Fonte de dados in-memory. Ignorado quando DataProvider é setado." />
             <ShowcaseApiRow Name="DataProvider" Type="GridDataProvider&lt;TItem&gt;?" Default="null"
@@ -697,6 +715,16 @@
 @code {
     private static readonly System.Globalization.CultureInfo _ptBr =
         System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
+
+    private static readonly DataGridSchema<Order> _fluentGridSchema =
+        DataGridSchema<Order>.Create(grid => grid
+            .Key(order => order.Numero)
+            .Column(order => order.Cliente, column => column.Title("Cliente").Width("220px"))
+            .Column(order => order.Status, column => column.Filterable())
+            .Column(order => order.Total, column => column.Title("Total").Format("C2", _ptBr))
+            .Search(placeholder: "Buscar pedidos")
+            .ColumnResize()
+            .Paging(6));
 
     private List<Order> _inMemory = new();
     private HashSet<Order> _selected = new();

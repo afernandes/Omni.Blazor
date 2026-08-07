@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniOverlayJsModule JS
 @inject Omni.Blazor.Services.ScrollManager Scroll
 @inject Omni.Blazor.Services.BreakpointService Breakpoints
 @using Omni.Blazor.Models
@@ -270,7 +270,7 @@
             {
                 try
                 {
-                    await JS.InvokeVoidAsync("omniBlazor.bottomSheetAttachDrag",
+                    await JS.InvokeVoidAsync("bottomSheetAttachDrag",
                         _handleEl, _selfRef, new { onSnap = nameof(OnDragEndInternal) });
                 }
                 catch { }
@@ -322,7 +322,7 @@
 
     private async Task<double> GetViewportHeightAsync()
     {
-        try { return await JS.InvokeAsync<double>("eval", "window.innerHeight"); }
+        try { return await JS.InvokeAsync<double>("viewportHeight"); }
         catch { return 0; }
     }
 
@@ -360,7 +360,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("omniBlazor.bottomSheetDetachDrag", _handleEl); } catch { }
+        try { await JS.InvokeVoidAsync("bottomSheetDetachDrag", _handleEl); } catch { }
         if (_lifecycle is not null)
         {
             try { await _lifecycle.DeactivateAsync(); } catch { }

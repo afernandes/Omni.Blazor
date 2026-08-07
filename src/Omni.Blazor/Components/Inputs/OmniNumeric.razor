@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @typeparam TValue
 @inherits FormComponent<TValue>
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule JS
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
 
@@ -37,8 +37,8 @@
            disabled="@Disabled"
            readonly="@ReadOnly"
            name="@Name"
-           onkeypress="omniBlazor.numericKeyPress(event, @IsIntegerType.ToString().ToLowerInvariant(), '@JsDecimalSeparator')"
-           onpaste="omniBlazor.numericOnPaste(event, @JsMin, @JsMax)"
+           onkeypress="numericKeyPress(event, @IsIntegerType.ToString().ToLowerInvariant(), '@JsDecimalSeparator')"
+           onpaste="numericOnPaste(event, @JsMin, @JsMax)"
            @onchange="OnChangeAsync"
            @onkeydown="OnKeyDownAsync" />
     @if (!string.IsNullOrEmpty(Suffix))
@@ -195,7 +195,7 @@
             // Commit the pending edit by re-parsing the current DOM value.
             try
             {
-                var raw = await JS.InvokeAsync<string>("omniBlazor.getInputValue", _input);
+                var raw = await JS.InvokeAsync<string>("getInputValue", _input);
                 await OnChangeAsync(new ChangeEventArgs { Value = raw });
             }
             catch { }
@@ -241,7 +241,7 @@
         // Blazor won't rewrite the value attribute when it matches the previous
         // render. Push the formatted text into the DOM via JS so blur-time
         // reformatting (e.g. "12" → "12,00") is visible to the user.
-        try { await JS.InvokeVoidAsync("omniBlazor.setInputValue", _input, value); }
+        try { await JS.InvokeVoidAsync("setInputValue", _input, value); }
         catch { }
     }
 

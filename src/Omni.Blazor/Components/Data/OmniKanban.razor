@@ -2,7 +2,8 @@
 @typeparam TCard
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniCoreJsModule CoreJS
+@inject IOmniNavigationJsModule NavigationJS
 @inject KeyInterceptorService KeyInterceptor
 @inject ContextMenuService ContextMenu
 @using System.Globalization
@@ -158,14 +159,17 @@
     /// <summary>Lista plana de cards. Two-way (<c>@bind-Items</c>) — reordenada ao mover.</summary>
     [Parameter] public IEnumerable<TCard>? Items { get; set; }
 
+    /// <summary>Optional immutable typed board schema.</summary>
+    [Parameter] public KanbanSchema<TCard>? Schema { get; set; }
+
     /// <summary>Disparado com a nova lista ao mover/reordenar cards (par de <c>@bind-Items</c>).</summary>
     [Parameter] public EventCallback<IEnumerable<TCard>> ItemsChanged { get; set; }
 
     /// <summary>Definição das colunas (ordem = ordem de exibição).</summary>
-    [Parameter, EditorRequired] public IEnumerable<KanbanColumn>? Columns { get; set; }
+    [Parameter] public IEnumerable<KanbanColumn>? Columns { get; set; }
 
     /// <summary>Card → Id da coluna (obrigatório).</summary>
-    [Parameter, EditorRequired] public Func<TCard, string>? ColumnSelector { get; set; }
+    [Parameter] public Func<TCard, string>? ColumnSelector { get; set; }
 
     /// <summary>Grava a nova coluna no card ao mover entre colunas.</summary>
     [Parameter] public Action<TCard, string>? ColumnSetter { get; set; }
@@ -325,6 +329,7 @@
     private readonly HashSet<string> _seenCols = new(StringComparer.Ordinal);
     private readonly HashSet<string> _seenLanes = new(StringComparer.Ordinal);
     private readonly HashSet<KanbanQuickFilter<TCard>> _activeFilters = new();
+    private KanbanSchema<TCard>? _lastSchema;
     private string? _pendingFocusId;
     private IAsyncDisposable? _keyHandle;
 
@@ -656,8 +661,69 @@
 
     protected override void OnParametersSet()
     {
+        if (!ReferenceEquals(_lastSchema, Schema))
+        {
+            _lastSchema = Schema;
+            ApplySchemaConfiguration();
+        }
         foreach (var col in Cols) if (_seenCols.Add(col.Id) && col.Collapsed) _collapsed.Add(col.Id);
         foreach (var lane in Lanes) if (_seenLanes.Add(lane.Id) && lane.Collapsed) _collapsedLanes.Add(lane.Id);
+    }
+
+    private void ApplySchemaConfiguration()
+    {
+        if (Schema is not { } schema) return;
+        Columns = schema.Columns.Select(static column => new KanbanColumn
+        {
+            Id = column.Id,
+            Title = column.Title,
+            Icon = column.Icon,
+            Tone = column.Tone,
+            WipLimit = column.WipLimit,
+            Collapsed = column.Collapsed
+        }).ToArray();
+        ColumnSelector = schema.ColumnSelector;
+        ColumnSetter = schema.ColumnSetter;
+        CardId = schema.CardId;
+        Swimlanes = schema.Swimlanes.Select(static lane => new KanbanSwimlane
+        {
+            Id = lane.Id,
+            Title = lane.Title,
+            Icon = lane.Icon,
+            Collapsed = lane.Collapsed
+        }).ToArray();
+        SwimlaneSelector = schema.SwimlaneSelector;
+        SwimlaneSetter = schema.SwimlaneSetter;
+        SearchSelector = schema.SearchSelector;
+        QuickFilters = schema.QuickFilters.Select(static filter => new KanbanQuickFilter<TCard>
+        {
+            Label = filter.Label,
+            Predicate = filter.Predicate,
+            Icon = filter.Icon
+        }).ToArray();
+        ShowSearch = schema.ShowSearch;
+        ShowCount = schema.ShowCount;
+        Collapsible = schema.Collapsible;
+        SwimlanesCollapsible = schema.SwimlanesCollapsible;
+        AllowAddCard = schema.AllowAddCard;
+        AllowColumnReorder = schema.AllowColumnReorder;
+        DragDisabled = schema.DragDisabled;
+        WipLimitMode = schema.WipLimitMode;
+        ColumnWidth = schema.ColumnWidth;
+        CardTitle = schema.Card.Title;
+        CardAssignee = schema.Card.Assignee;
+        CardAvatar = schema.Card.Avatar;
+        CardDueDate = schema.Card.DueDate;
+        CardPriority = schema.Card.Priority;
+        CardSubtasks = schema.Card.Subtasks;
+        CardEstimate = schema.Card.Estimate;
+        CardFields = schema.Card.Fields;
+        CardColor = schema.Card.Color;
+        CardAge = schema.Card.Age;
+        CardActions = schema.Card.Actions;
+        ShowCardAge = schema.Card.ShowAge;
+        AgeWarnDays = schema.Card.AgeWarnDays;
+        AgeStaleDays = schema.Card.AgeStaleDays;
     }
 
     // ── Filtros ────────────────────────────────────────────────────────────
@@ -888,8 +954,8 @@
         {
             try
             {
-                await JS.InvokeVoidAsync("omniBlazor.prepareDrag", _boardRef);
-                await JS.InvokeVoidAsync("omniBlazor.kanbanAutoScroll", _boardRef);
+                await NavigationJS.InvokeVoidAsync("prepareDrag", _boardRef);
+                await NavigationJS.InvokeVoidAsync("kanbanAutoScroll", _boardRef);
                 _keyHandle = await KeyInterceptor.AttachAsync(_boardRef, new[]
                 {
                     new KeyInterceptorOption("ArrowUp", PreventDefault: true),
@@ -905,7 +971,7 @@
         {
             var id = _pendingFocusId;
             _pendingFocusId = null;
-            try { await JS.InvokeVoidAsync("omniBlazor.focusElement", id); } catch { }
+            try { await CoreJS.InvokeVoidAsync("focusElement", id); } catch { }
         }
     }
 

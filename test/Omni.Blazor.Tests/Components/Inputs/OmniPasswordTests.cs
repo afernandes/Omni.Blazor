@@ -15,7 +15,7 @@ public class OmniPasswordTests : TestContextBase
     {
         var cut = Render<OmniPassword>();
         var input = cut.Find("input");
-        Assert.Equal("password",  input.GetAttribute("type"));
+        Assert.Equal("password", input.GetAttribute("type"));
         Assert.Contains("omni-input", input.ClassName);
     }
 

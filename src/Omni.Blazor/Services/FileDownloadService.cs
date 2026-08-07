@@ -5,9 +5,9 @@ namespace Omni.Blazor.Services;
 /// <summary>Typed browser-download boundary supporting incrementally produced streams.</summary>
 public sealed class FileDownloadService
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniCoreJsModule _js;
 
-    public FileDownloadService(IJSRuntime js) => _js = js;
+    internal FileDownloadService(IOmniCoreJsModule js) => _js = js;
 
     /// <summary>Downloads a stream without first materializing it as a managed string.</summary>
     public async ValueTask DownloadAsync(
@@ -22,7 +22,7 @@ public sealed class FileDownloadService
 
         using var reference = new DotNetStreamReference(content, leaveOpen: true);
         await _js.InvokeVoidAsync(
-            "omniBlazor.downloadStream",
+            "downloadStream",
             cancellationToken,
             filename,
             reference,

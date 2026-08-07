@@ -13,8 +13,7 @@ namespace Omni.Blazor.Components;
 /// <c>&lt; &gt; &lt;= &gt;=</c>, <c>LIKE</c>/<c>NOT LIKE</c>, <c>IS [NOT] NULL</c>,
 /// <c>AND</c>/<c>OR</c>, parentheses, <c>'strings'</c>, numbers and <c>TRUE</c>/<c>FALSE</c>.
 ///
-/// Round-trips cleanly for the operators the filter actually evaluates. Known
-/// limitations (documented): <c>Between</c>/<c>NotBetween</c> are not emitted/parsed;
+/// Round-trips cleanly for the operators the filter evaluates.
 /// <c>IsEmpty</c>/<c>IsNotEmpty</c> map to <c>IS NULL</c>/<c>IS NOT NULL</c> (the
 /// empty-string nuance of the in-memory eval is not represented); LIKE wildcards
 /// (<c>%</c>/<c>_</c>) inside a value are matched LITERALLY — the in-memory filter has no
@@ -72,6 +71,12 @@ public static class FilterSqlConverter
 
         // value-bearing operators: skip incomplete conditions (no value yet)
         if (r.Value is null || (r.Value is string es && es.Length == 0)) return "";
+        if (r.Value is DataFilterRangeValue range)
+        {
+            if (range.Lower is null || range.Upper is null) return "";
+            string between = $"{col} BETWEEN {FormatValue(range.Lower, type)} AND {FormatValue(range.Upper, type)}";
+            return r.Operator == FilterOperator.NotBetween ? $"{col} NOT BETWEEN {FormatValue(range.Lower, type)} AND {FormatValue(range.Upper, type)}" : between;
+        }
         var like = LikeCore(r.Value);
 
         return r.Operator switch
@@ -86,7 +91,7 @@ public static class FilterSqlConverter
             FilterOperator.GreaterOrEqual => $"{col} >= {FormatValue(r.Value, type)}",
             FilterOperator.LessThan => $"{col} < {FormatValue(r.Value, type)}",
             FilterOperator.LessOrEqual => $"{col} <= {FormatValue(r.Value, type)}",
-            _ => "" // Between / NotBetween: not supported
+            _ => ""
         };
     }
 
@@ -263,18 +268,26 @@ public static class FilterSqlConverter
             }
 
             // [NOT] LIKE 'pattern'
-            var negatedLike = false;
-            if (Is(K.Not)) { Next(); negatedLike = true; }
+            var negated = false;
+            if (Is(K.Not)) { Next(); negated = true; }
             if (Is(K.Like))
             {
                 Next();
                 var pat = Expect(K.Str, "um padrão entre aspas").Value as string ?? "";
-                ApplyLike(rule, pat, negatedLike);
+                ApplyLike(rule, pat, negated);
                 return rule;
             }
-            if (negatedLike) throw Err("esperado LIKE após NOT");
-
-            if (Is(K.Between)) throw Err("operador BETWEEN ainda não é suportado");
+            if (Is(K.Between))
+            {
+                Next();
+                object? lower = CoerceValue(ParseValue(), info, idTok.Text);
+                Expect(K.And, "AND no intervalo");
+                object? upper = CoerceValue(ParseValue(), info, idTok.Text);
+                rule.Operator = negated ? FilterOperator.NotBetween : FilterOperator.Between;
+                rule.Value = new DataFilterRangeValue(lower, upper);
+                return rule;
+            }
+            if (negated) throw Err("esperado LIKE ou BETWEEN após NOT");
 
             // comparison operator + value
             var op = Peek.Kind switch

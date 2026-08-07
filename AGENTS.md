@@ -7,18 +7,18 @@ see [CLAUDE.md](CLAUDE.md) (architecture deep-dive) and
 
 ## What this is
 
-**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. 198 components (authoritative count + full API: [`docs/components.json`](docs/components.json))
+**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. 206 components (authoritative count + full API: [`docs/components.json`](docs/components.json))
 across Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation and
-Overlay. One SCSS bundle, one JS file, all theming via CSS custom properties.
+Overlay. One SCSS bundle, isolated feature ES modules, all theming via CSS custom properties.
 
 | | |
 |---|---|
 | NuGet package id | `AndersonN.Omni.Blazor` |
 | Namespace / assembly | `Omni.Blazor` |
-| Static assets | `_content/Omni.Blazor/css/omni.css`, `_content/Omni.Blazor/js/Omni.js` |
+| Static assets | `_content/Omni.Blazor/css/omni.css`, lazily imported JS modules |
 | CSS class prefix | `omni-` |
 | Design-token prefix | `--omni-` |
-| JS namespace | `window.omniBlazor` |
+| JS interop | scoped typed services + isolated ES modules |
 
 ## Machine-readable surface — read these first
 
@@ -74,6 +74,7 @@ straight from source (no install): `dotnet run --project tools/Omni.Blazor.Mcp -
 // Program.cs
 builder.Services.AddOmniComponents();   // registers every Omni service
 ```
+No JavaScript `<script>` tag is required; browser helpers are imported lazily.
 ```html
 <!-- runtime theming -->
 <html data-theme="light|dark" data-accent="amber|crimson|emerald|blue|violet|teal|cyan|indigo|fuchsia|lime|orange|rose" data-density="compact|comfortable|spacious">
@@ -102,12 +103,11 @@ Template to copy: `src/Omni.Blazor/Components/Buttons/OmniButton.razor` (+ its t
    benefit; document non-obvious exceptions.
 6. **Inputs** inherit `FormComponent<TValue>`; write through `SetValueAsync` only — never re-implement two-way binding.
 7. **Reactive recompute** goes through `ParameterState<T>` registered in `OnInitialized`, not raw `OnParametersSet`.
-8. **JS via DI services** (`ScrollManager`, `HotkeyService`, `OverlayLifecycle`, …) — never inject `IJSRuntime` directly. New services register in `Extensions/ServiceCollectionExtensions.cs`.
+8. **JS via narrow DI capabilities** (`ScrollManager`, `HotkeyService`, `IOmniOverlayJsModule`, …) — never inject `IJSRuntime` directly and never add a central identifier-to-module resolver. Each ES module owns its import/lifetime through a feature-scoped interface registered in `Extensions/ServiceCollectionExtensions.cs`; components declare only the capabilities they consume.
 9. **Styles / JS**: reusable styles belong in the theme sources; isolated
-   implementation details may use `.razor.css`. Prefer typed DI services and
-   colocated/lazy JS modules for complex browser integrations. Keep
-   `window.omniBlazor` compatibility only where the existing bundle still owns
-   the feature.
+   implementation details may use `.razor.css`. JavaScript is an implementation
+   detail behind typed DI services and colocated/lazy ES modules; never add a
+   browser global or require consumers to add a `<script>` tag.
 10. **Document every public `[Parameter]`** with a `/// <summary>` and give the component a leading `@* one-sentence description *@` — both feed the AI manifest.
 11. **Test** at `test/Omni.Blazor.Tests/Components/<Category>/Omni<Name>Tests.cs` (base render + `Class`/`Style`/`Attributes` splat + behaviour) **and** a **showcase page** under `src/Forneria.Demo/Forneria.Demo.Pages/Pages/Showcase/<Category>/`.
 

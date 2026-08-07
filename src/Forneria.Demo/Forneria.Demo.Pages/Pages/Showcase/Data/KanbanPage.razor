@@ -63,25 +63,23 @@
 
         <ShowcaseSection Title="LAYOUT DE CARD + MENU DE AÇÕES"
                          Description="Sem CardTemplate, o card padrão monta — via seletores — prioridade, até 3 campos, e um rodapé com estimativa, subtarefas, prazo (vermelho se vencido) e avatar. Passe o mouse no card → botão '…' (atribuir, sinalizar, mover, excluir) num menu que escapa o overflow da coluna."
-                         Code="@(@"<OmniKanban ... CardTitle=""p => p.Cliente""
-            CardPriority=""p => p.Prioridade"" CardAssignee=""p => p.Responsavel""
-            CardDueDate=""p => p.Prazo"" CardEstimate=""p => p.Estimativa""
-            CardSubtasks=""SubsDoPedido"" CardFields=""CamposDoPedido"" />")">
+                         Code="@(@"private static readonly KanbanSchema<Pedido> Schema =
+    KanbanSchema<Pedido>.Create(board => board
+        .ColumnState(item => item.Status, (item, state) => item.Status = state)
+        .Key(item => item.Id)
+        .Column(""todo"", ""A fazer"")
+        .Column(""prep"", ""Em preparo"", column => column.State(wipLimit: 2))
+        .Column(""done"", ""Entregue"")
+        .Card(card => card
+            .Title(item => item.Cliente)
+            .Priority(item => item.Prioridade)
+            .Assignee(item => item.Responsavel)
+            .DueDate(item => item.Prazo)));
+
+<OmniKanban Items=""@pedidos"" Schema=""@Schema"" />")">
             <OmniKanban TCard="Pedido"
                         @bind-Items="_pedidosLayout"
-                        Columns="@_colunas2"
-                        ColumnSelector="p => p.Status"
-                        ColumnSetter="(p, s) => p.Status = s"
-                        CardId="p => p.Id"
-                        CardTitle="p => p.Cliente"
-                        CardPriority="p => p.Prioridade"
-                        CardAssignee="p => p.Responsavel"
-                        CardDueDate="p => p.Prazo"
-                        CardEstimate="p => p.Estimativa"
-                        CardSubtasks="SubsDoPedido"
-                        CardColor="p => TomCor(p.Tone)"
-                        CardFields="CamposDoPedido"
-                        CardActions="AcoesDoPedido"
+                        Schema="@_kanbanSchema"
                         CardAction="OnAcao"
                         Style="height: 440px;" />
         </ShowcaseSection>
@@ -152,6 +150,8 @@
 
     <Api>
         <ShowcaseApiTable Title="OmniKanban<TCard>">
+            <ShowcaseApiRow Name="Schema" Type="KanbanSchema&lt;TCard&gt;?" Default="null"
+                            Description="Workflow, colunas, filtros, swimlanes e apresentação de cards em uma configuração Fluent tipada." />
             <ShowcaseApiRow Name="Items / ItemsChanged" Type="IEnumerable&lt;TCard&gt;?" Default="null"
                             Description='@("Lista plana de cards. Two-way: @bind-Items (reordenada ao mover).")' />
             <ShowcaseApiRow Name="Columns" Type="IEnumerable&lt;KanbanColumn&gt;" Default="—"
@@ -246,8 +246,26 @@
         public string? Estimativa { get; set; }
     }
 
-    private (int, int)? SubsDoPedido(Pedido p) => p.SubTotal > 0 ? (p.SubFeitas, p.SubTotal) : null;
-    private IEnumerable<KanbanField>? CamposDoPedido(Pedido p) => new[]
+    private static readonly KanbanSchema<Pedido> _kanbanSchema =
+        KanbanSchema<Pedido>.Create(board => board
+            .ColumnState(item => item.Status, (item, state) => item.Status = state)
+            .Key(item => item.Id)
+            .Column("todo", "A fazer")
+            .Column("prep", "Em preparo", column => column.State(wipLimit: 2))
+            .Column("done", "Entregue")
+            .Card(card => card
+                .Title(item => item.Cliente)
+                .Priority(item => item.Prioridade)
+                .Assignee(item => item.Responsavel)
+                .DueDate(item => item.Prazo)
+                .Estimate(item => item.Estimativa)
+                .Subtasks(SubsDoPedido)
+                .Color(item => TomCor(item.Tone))
+                .Fields(CamposDoPedido)
+                .Actions(AcoesDoPedido)));
+
+    private static (int, int)? SubsDoPedido(Pedido p) => p.SubTotal > 0 ? (p.SubFeitas, p.SubTotal) : null;
+    private static IEnumerable<KanbanField>? CamposDoPedido(Pedido p) => new[]
     {
         new KanbanField { Label = "Total", Value = p.Total.ToString("C"), Icon = "dollar-sign" },
     };
@@ -348,7 +366,7 @@
 
     private void OnCardClick(Pedido p) => _ultimo = $"Clique: #{p.Id}";
 
-    private IEnumerable<KanbanCardAction> AcoesDoPedido(Pedido p) => new[]
+    private static IEnumerable<KanbanCardAction> AcoesDoPedido(Pedido p) => new[]
     {
         new KanbanCardAction { Id = "assign", Label = "Atribuir...", Icon = "user" },
         new KanbanCardAction { Id = "flag",   Label = p.Tone == CardTone.Danger ? "Remover sinalização" : "Sinalizar", Icon = "flag" },

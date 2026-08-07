@@ -1,6 +1,8 @@
 # FoodService
 
-PDV (Frente de Caixa) standalone construído sobre o design system **Omni.Blazor**.
+Exemplo vertical independente construído sobre o design system **Omni.Blazor**.
+Sua landing apresenta duas experiências completas: o PDV operacional e o cardápio
+digital voltado ao cliente.
 
 Projeto isolado e independente do `Forneria.Demo` — pode evoluir e ser publicado separadamente.
 
@@ -10,11 +12,15 @@ Projeto isolado e independente do `Forneria.Demo` — pode evoluir e ser publica
 src/FoodService/
 ├── FoodService.Pages/        ← RCL (Razor Class Library)
 │   ├── _Imports.razor        Imports globais (Omni.Blazor + namespaces locais)
-│   ├── Routes.razor          Router (default layout = AppShellPdv)
+│   ├── Routes.razor          Router das experiências FoodService
 │   ├── Layout/
-│   │   └── AppShellPdv.razor Top bar + sidebar (OmniPanelMenu) + body
+│   │   ├── FoodServiceLandingLayout.razor  Landing do exemplo
+│   │   ├── AppShellPdv.razor               Shell operacional do PDV
+│   │   └── AppShellCardapio.razor          Shell mobile-first do cardápio
 │   └── Pages/
-│       ├── Pdv.razor                    Página /(/pdv) — frente de caixa
+│       ├── FoodServiceHome.razor        Página / — seletor de experiências
+│       ├── Pdv.razor                    Página /pdv — frente de caixa
+│       ├── CardapioDigital.razor        Página /cardapio — jornada do cliente
 │       └── PdvFeature/
 │           ├── PdvModels.cs             OrderMode, Product, Customer, CartItem, PizzaHalf, ModeDetails
 │           ├── PdvMockData.cs           Catálogo, clientes, bairros, garçons
@@ -36,15 +42,16 @@ dotnet run --project src/FoodService/FoodService
 # Server: https://localhost:7301
 ```
 
-A rota raiz (`/`) renderiza diretamente o PDV.
+A rota raiz (`/`) apresenta o projeto. Use `/pdv` para a frente de caixa e
+`/cardapio` para a jornada mobile-first do cliente.
 
-## Por que separado do Forneria.Demo?
+## Por que separado do catálogo Omni.Blazor?
 
-- **Independência:** ambos podem evoluir em ritmos diferentes; ex.: FoodService pode receber
-  features de cozinha/expedição sem afetar o Forneria.
+- **Independência:** ambos podem evoluir em ritmos diferentes; o FoodService pode receber
+  features de cozinha/expedição sem afetar a documentação dos componentes.
 - **Mesmo design system:** ambos referenciam `Omni.Blazor` — todo CSS/componente é compartilhado
   via NuGet/ProjectReference, zero duplicação visual.
-- **Namespace isolado:** `FoodService.*` não colide com `Forneria.Demo.*`.
+- **Namespace isolado:** `FoodService.*` não colide com o host do catálogo.
 
 ## Convenções herdadas
 

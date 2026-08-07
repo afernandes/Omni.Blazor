@@ -42,7 +42,7 @@ public class OmniTimePickerTests : TestContextBase
         var btns = cut.FindAll("button.omni-time-ampm-btn");
         // At 13:30 the picker is in PM.
         Assert.DoesNotContain("omni-active", btns[0].ClassName);
-        Assert.Contains("omni-active",       btns[1].ClassName);
+        Assert.Contains("omni-active", btns[1].ClassName);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class OmniTimePickerTests : TestContextBase
     public void Recompute_fires_when_TimeExpression_changes()
     {
         var model = new Model();
-        System.Linq.Expressions.Expression<Func<TimeOnly>> first  = () => model.A;
+        System.Linq.Expressions.Expression<Func<TimeOnly>> first = () => model.A;
         System.Linq.Expressions.Expression<Func<TimeOnly>> second = () => model.B;
 
         var cut = Render<OmniTimePicker>(p => p.Add(c => c.TimeExpression, first));

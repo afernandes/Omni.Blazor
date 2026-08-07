@@ -2,7 +2,7 @@
 @inherits OmniComponent
 @implements IDisposable
 @implements IOmniFormComponent
-@inject IJSRuntime JS
+@inject IOmniOverlayJsModule JS
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Linq.Expressions
 @using Omni.Blazor.State
@@ -26,10 +26,13 @@
         <OmniDateRangePicker @bind-From="from" @bind-To="to" />
 *@
 
-<div class="@RootCss" style="@Style" data-omni-rpid="@_id" @attributes="Attributes">
+<div @ref="_anchorRef" class="@RootCss" style="@Style" data-omni-rpid="@_id" @attributes="Attributes">
     <button type="button"
             class="omni-daterange-input"
             disabled="@Disabled"
+            aria-haspopup="dialog"
+            aria-expanded="@_open"
+            aria-controls="@PopoverId"
             @onclick="ToggleAsync">
         @if (From is null && To is null)
         {
@@ -48,7 +51,13 @@
 
     @if (_open)
     {
-        <div class="omni-daterange-popover" @onclick:stopPropagation>
+        <div @ref="_popoverRef"
+             id="@PopoverId"
+             class="omni-daterange-popover"
+             popover="manual"
+             role="dialog"
+             aria-modal="false"
+             @onclick:stopPropagation>
             <aside class="omni-daterange-presets">
                 <div class="omni-daterange-presets-title">ATALHOS</div>
                 @foreach (var p in Presets)
@@ -204,6 +213,11 @@
     private readonly string _id = $"rp-{Guid.NewGuid():N}";
     private DotNetObjectReference<OmniDateRangePicker>? _dotnetRef;
     private bool _open;
+    private ElementReference _anchorRef;
+    private ElementReference _popoverRef;
+    private bool _positionPending;
+    private bool _floatingRegistered;
+    private int _floatingGeneration;
     private DateOnly? _pendingFrom;
     private DateOnly? _pendingTo;
     private DateOnly? _hover;
@@ -215,6 +229,8 @@
         .AddClass("omni-daterange-disabled", Disabled)
         .AddClass(Class)
         .Build();
+
+    private string PopoverId => $"{_id}-popover";
 
     private string RangeSummary
     {
@@ -288,6 +304,29 @@
         if (firstRender && !string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
         {
             FormRegistry?.RegisterComponent(this);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_open || !_positionPending) return;
+
+        _positionPending = false;
+        int generation = _floatingGeneration;
+        try
+        {
+            await JS.InvokeVoidAsync("floatingPopoverOpen", _anchorRef, _popoverRef, 6, null);
+            if (!_open || generation != _floatingGeneration)
+            {
+                await JS.InvokeVoidAsync("floatingPopoverClose", _popoverRef);
+                return;
+            }
+            _floatingRegistered = true;
+        }
+        catch
+        {
+            // Static SSR, prerender or a disconnected circuit. A later open
+            // transition can retry once JavaScript becomes available.
         }
     }
 
@@ -376,6 +415,9 @@
     {
         if (Disabled || _open) return;
         _open = true;
+        _positionPending = true;
+        _floatingGeneration++;
+        int generation = _floatingGeneration;
         _hover = null;
         // Sync the months we'll show to the current value when reopening.
         if (From.HasValue)
@@ -386,8 +428,10 @@
         StateHasChanged();
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+            await JS.InvokeVoidAsync("registerClickOutside",
                 _id, $"[data-omni-rpid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
+            if (!_open || generation != _floatingGeneration)
+                await JS.InvokeVoidAsync("unregisterClickOutside", _id);
         }
         catch { }
     }
@@ -399,21 +443,37 @@
     {
         if (!_open) return;
         _open = false;
+        _positionPending = false;
+        _floatingGeneration++;
         _hover = null;
         // Discard a half-completed selection: revert pending back to the
         // last committed range so re-opening shows the real state, not a
         // dangling start-without-end.
         _pendingFrom = From;
         _pendingTo   = To;
-        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
-        catch { }
+        await UnregisterOutsideAsync();
         StateHasChanged();
+    }
+
+    private async Task UnregisterOutsideAsync()
+    {
+        try { await JS.InvokeVoidAsync("unregisterClickOutside", _id); }
+        catch { }
+        if (_floatingRegistered)
+        {
+            _floatingRegistered = false;
+            try { await JS.InvokeVoidAsync("floatingPopoverClose", _popoverRef); }
+            catch { }
+        }
     }
 
     public void Dispose()
     {
         FormRegistry?.UnregisterComponent(this);
-        TaskObserver.Observe(CloseAsync(), operation: "OmniDateRangePicker.Dispose");
+        _open = false;
+        _positionPending = false;
+        _floatingGeneration++;
+        TaskObserver.Observe(UnregisterOutsideAsync(), operation: "OmniDateRangePicker.Dispose");
         _dotnetRef?.Dispose();
     }
 

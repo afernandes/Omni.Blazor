@@ -1,0 +1,38 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@typeparam TKey where TKey : notnull
+@inherits OmniComponent
+@using Omni.Blazor.Models
+
+@* CRUD-enabled Kanban that edits detached cards through OmniDataForm and the shared headless entity coordinator. *@
+
+<OmniEntityEditorHost TItem="TItem" TKey="TKey"
+                      @ref="_editor"
+                      Schema="@EditorSchema"
+                      Items="@Items"
+                      Provider="@Provider"
+                      Disabled="@Disabled"
+                      ReadOnly="@ReadOnly"
+                      MinimumItems="@MinimumItems"
+                      MaximumItems="@MaximumItems"
+                      ItemsChanged="@ItemsChanged"
+                      RefreshRequested="@RefreshRequested"
+                      OperationCompleted="@OperationCompleted"
+                      OperationFailed="@OperationFailed"
+                      Class="@Class"
+                      Style="@Style"
+                      Attributes="@Attributes">
+    <ToolbarContent>@ToolbarContent</ToolbarContent>
+    <ChildContent>
+        <OmniKanban TCard="TItem"
+                    Items="@Items"
+                    ItemsChanged="@HandleBoardItemsChangedAsync"
+                    Schema="@KanbanSchema"
+                    CardTemplate="@CardTemplate"
+                    CardClick="@HandleCardClickAsync"
+                    OnAddCard="@HandleAddCardAsync"
+                    CardMoved="@CardMoved"
+                    Class="@BoardClass"
+                    Style="@BoardStyle" />
+    </ChildContent>
+</OmniEntityEditorHost>

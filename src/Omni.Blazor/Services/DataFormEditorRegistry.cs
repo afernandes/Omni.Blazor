@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Models;
 
@@ -21,6 +22,7 @@ public sealed class DataFormEditorRegistry
         _resolvers = resolvers.ToArray();
     }
 
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
     internal Type? Resolve(DataFormEditorResolverContext context)
     {
         for (int index = _resolvers.Length - 1; index >= 0; index--)
@@ -39,27 +41,25 @@ public sealed class DataFormEditorRegistry
         return null;
     }
 
-    private static Type ValidateComponentType(Type componentType, Type valueType)
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+    private static Type ValidateComponentType(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type componentType,
+        Type valueType)
     {
-        Type resolved = componentType;
-        if (componentType.IsGenericTypeDefinition)
-        {
-            Type[] arguments = componentType.GetGenericArguments();
-            if (arguments.Length != 1)
-            {
-                throw new InvalidOperationException(
-                    $"DataForm editor '{componentType.Name}' must have exactly one generic type parameter.");
-            }
-            resolved = componentType.MakeGenericType(valueType);
-        }
-
-        if (!typeof(IComponent).IsAssignableFrom(resolved))
+        if (componentType.ContainsGenericParameters)
         {
             throw new InvalidOperationException(
-                $"DataForm editor '{resolved.FullName}' must implement {nameof(IComponent)}.");
+                $"DataForm editor '{componentType.Name}' must be a closed component type. " +
+                "Register each TValue/TComponent pair through AddOmniDataFormEditor<TValue, TComponent>().");
         }
 
-        HashSet<string> parameters = resolved.GetProperties()
+        if (!typeof(IComponent).IsAssignableFrom(componentType))
+        {
+            throw new InvalidOperationException(
+                $"DataForm editor '{componentType.FullName}' must implement {nameof(IComponent)}.");
+        }
+
+        HashSet<string> parameters = componentType.GetProperties()
             .Where(static property => property.IsDefined(typeof(ParameterAttribute), inherit: true))
             .Select(static property => property.Name)
             .ToHashSet(StringComparer.Ordinal);
@@ -69,14 +69,15 @@ public sealed class DataFormEditorRegistry
             if (!parameters.Contains(parameter))
             {
                 throw new InvalidOperationException(
-                    $"DataForm editor '{resolved.FullName}' must expose a [Parameter] named '{parameter}'.");
+                    $"DataForm editor '{componentType.FullName}' must expose a [Parameter] named '{parameter}'.");
             }
         }
 
-        return resolved;
+        return componentType;
     }
 }
 
 /// <summary>One immutable value-type to component mapping used by DataForm.</summary>
-public sealed record DataFormEditorRegistration(Type ValueType, Type ComponentType);
-
+public sealed record DataFormEditorRegistration(
+    Type ValueType,
+    [property: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type ComponentType);

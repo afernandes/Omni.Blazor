@@ -25,7 +25,7 @@
                 </div>
 
                 <OmniTree Data="@_perms" AllowCheckboxes @bind-CheckedValues="_checked">
-                    <OmniTreeLevel TextProperty="Name" ChildrenProperty="Children" IconProperty="Icon" Expanded="@(_ => true)" />
+                    <OmniTreeLevel Text="@(o => ((PermNode)o).Name)" Children="@(o => ((PermNode)o).Children)" Icon="@(o => ((PermNode)o).Icon)" Expanded="@(_ => true)" />
                     <OmniTreeLevel HasChildren="@(_ => false)">
                         <Template>
                             <span><strong>@(((PermNode)context.Value!).Name)</strong></span>
@@ -89,7 +89,7 @@
     private void ClearAll() => _checked = new List<object>();
 
     private const string _code = @"<OmniTree Data=""@perms"" AllowCheckboxes @bind-CheckedValues=""checked"">
-    <OmniTreeLevel TextProperty=""Name"" ChildrenProperty=""Children"" IconProperty=""Icon"" Expanded=""@(_ => true)"" />
+    <OmniTreeLevel Text=""@(o => ((PermNode)o).Name)"" Children=""@(o => ((PermNode)o).Children)"" Icon=""@(o => ((PermNode)o).Icon)"" Expanded=""@(_ => true)"" />
     <OmniTreeLevel HasChildren=""@(_ => false)"">
         <Template>
             <span><strong>@(((PermNode)context.Value!).Name)</strong></span>

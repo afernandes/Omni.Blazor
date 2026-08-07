@@ -1,6 +1,6 @@
 @namespace Omni.Blazor.Components
 @inherits FormComponent<double>
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule JS
 @using System.Globalization
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
@@ -331,9 +331,9 @@
         if (Disabled) return;
         try
         {
-            var size = await JS.InvokeAsync<double[]>("omniBlazor.sliderMeasure", _trackEl);
+            var size = await JS.InvokeAsync<double[]>("sliderMeasure", _trackEl);
             if (size is { Length: 2 }) { _trackLeft = size[0]; _trackPx = size[1]; }
-            await JS.InvokeVoidAsync("omniBlazor.splitterCapture", Id, e.PointerId);
+            await JS.InvokeVoidAsync("splitterCapture", Id, e.PointerId);
         }
         catch { return; }
 
@@ -365,7 +365,7 @@
     private async Task OnTrackPointerUp(PointerEventArgs e)
     {
         if (_activeThumb < 0) return;
-        try { await JS.InvokeVoidAsync("omniBlazor.splitterRelease", Id, e.PointerId); } catch { }
+        try { await JS.InvokeVoidAsync("splitterRelease", Id, e.PointerId); } catch { }
         _activeThumb = -1;
         StateHasChanged();
     }

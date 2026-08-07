@@ -5,9 +5,9 @@ namespace Omni.Blazor.Services;
 /// <summary>Typed JavaScript boundary for DataGrid browser interactions.</summary>
 public sealed class DataGridInteropService
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniDataJsModule _js;
 
-    public DataGridInteropService(IJSRuntime js) => _js = js;
+    internal DataGridInteropService(IOmniDataJsModule js) => _js = js;
 
     /// <summary>Starts one browser-owned column-resize gesture.</summary>
     public async ValueTask StartColumnResizeAsync<TGrid>(
@@ -20,7 +20,7 @@ public sealed class DataGridInteropService
         where TGrid : class
     {
         await _js.InvokeVoidAsync(
-            "omniBlazor.gridStartColumnResize",
+            "gridStartColumnResize",
             cancellationToken,
             columnId,
             receiver,

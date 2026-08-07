@@ -1,0 +1,187 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@inherits OmniComponent
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Bounded typed CSV/TSV importer with header mapping, preview, validation and cancellable persistence. *@
+
+<div @ref="Element"
+     class="@RootCss"
+     style="@Style"
+     aria-busy="@_busy"
+     @attributes="Attributes">
+    <div class="omni-data-import-upload">
+        <label class="omni-data-import-dropzone" for="@_inputId">
+            <InputFile id="@_inputId"
+                       class="omni-data-import-input"
+                       accept="@Accept"
+                       disabled="@Disabled"
+                       OnChange="OnFileSelectedAsync" />
+            <OmniIcon Name="upload" Size="ComponentSize.Lg" />
+            <span class="omni-data-import-upload-copy">
+                <strong>@(UploadText ?? Texts.DataImportUpload)</strong>
+                <small>@UploadHint</small>
+            </span>
+        </label>
+        @if (CanClear)
+        {
+            <OmniButton Text="@(ClearText ?? Texts.Clear)"
+                        Icon="x"
+                        Variant="ButtonVariant.Ghost"
+                        Size="ComponentSize.Sm"
+                        Disabled="@_busy"
+                        OnClick="@(_ => ClearAsync())" />
+        }
+    </div>
+
+    @if (_busy)
+    {
+        @if (LoadingTemplate is not null)
+        {
+            @LoadingTemplate
+        }
+        else
+        {
+            <div class="omni-data-import-loading" role="status">
+                <OmniSpinner Size="ComponentSize.Sm" />
+                <span>@Texts.DataImportProcessing</span>
+            </div>
+        }
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_failure))
+    {
+        <div class="omni-alert omni-alert-danger omni-data-import-alert" role="alert">
+            <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
+            <div class="omni-alert-body">@_failure</div>
+        </div>
+    }
+
+    @if (_headers.Count != 0)
+    {
+        <section class="omni-data-import-section" aria-labelledby="@MappingHeadingId">
+            <div class="omni-data-import-section-heading">
+                <div>
+                    <div id="@MappingHeadingId" class="omni-data-import-section-title">@(MappingTitle ?? Texts.DataImportMapping)</div>
+                    <p>@Texts.DataImportMappingHint</p>
+                </div>
+                <span class="omni-data-import-file-name">@_fileName</span>
+            </div>
+
+            <div class="omni-data-import-mapping-grid">
+                @foreach (IDataImportColumn<TItem> column in Schema.Columns)
+                {
+                    int sourceIndex = GetSourceIndex(column.Property);
+                    <label class="omni-data-import-mapping" @key="column.Property">
+                        <span>
+                            @column.Header
+                            @if (column.Required)
+                            {
+                                <span aria-hidden="true">*</span>
+                                <span class="omni-visually-hidden">@Texts.Required</span>
+                            }
+                        </span>
+                        <select value="@sourceIndex"
+                                disabled="@(_busy || Disabled)"
+                                @onchange="eventArgs => ChangeMappingAsync(column.Property, eventArgs.Value)">
+                            <option value="-1">@Texts.DataImportIgnoreColumn</option>
+                            @for (int index = 0; index < _headers.Count; index++)
+                            {
+                                <option value="@index">@_headers[index]</option>
+                            }
+                        </select>
+                    </label>
+                }
+            </div>
+        </section>
+    }
+
+    @if (_rows.Count != 0)
+    {
+        <section class="omni-data-import-section" aria-labelledby="@PreviewHeadingId">
+            <div class="omni-data-import-section-heading">
+                <div>
+                    <div id="@PreviewHeadingId" class="omni-data-import-section-title">@(PreviewTitle ?? Texts.DataImportPreview)</div>
+                    <p>@PreviewSummary</p>
+                </div>
+            </div>
+
+            <div class="omni-data-import-preview" tabindex="0">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">@Texts.DataImportRow</th>
+                            <th scope="col">@Texts.DataImportStatus</th>
+                            @for (int headerIndex = 0; headerIndex < _headers.Count; headerIndex++)
+                            {
+                                <th scope="col" @key="headerIndex">@_headers[headerIndex]</th>
+                            }
+                            <th scope="col">@Texts.DataImportErrors</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int rowIndex = 0; rowIndex < Math.Min(PreviewRowCount, _rows.Count); rowIndex++)
+                        {
+                            DataImportRow<TItem> row = _rows[rowIndex];
+                            <tr class="@(row.IsValid ? "omni-data-import-valid" : "omni-data-import-invalid")"
+                                @key="row.RowNumber">
+                                @if (RowTemplate is not null)
+                                {
+                                    @RowTemplate(row)
+                                }
+                                else
+                                {
+                                    <th scope="row">@row.RowNumber</th>
+                                    <td>
+                                        <span class="omni-data-import-status">
+                                            <OmniIcon Name="@(row.IsValid ? "check-circle" : "alert-circle")" Size="ComponentSize.Sm" />
+                                            @(row.IsValid ? Texts.DataImportValid : Texts.DataImportInvalid)
+                                        </span>
+                                    </td>
+                                    @for (int index = 0; index < _headers.Count; index++)
+                                    {
+                                        <td>@GetValue(row, index)</td>
+                                    }
+                                    <td>
+                                        @if (row.Errors.Count != 0)
+                                        {
+                                            <ul class="omni-data-import-errors">
+                                                @foreach (DataImportError error in row.Errors)
+                                                {
+                                                    <li @key="error">@error.Message</li>
+                                                }
+                                            </ul>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (_rows.Count > PreviewRowCount)
+            {
+                <p class="omni-data-import-preview-limit">
+                    @string.Format(Texts.DataImportPreviewLimit, PreviewRowCount, _rows.Count)
+                </p>
+            }
+        </section>
+    }
+
+    @if (_rows.Count != 0)
+    {
+        <div class="omni-data-import-actions">
+            <span>@ImportAvailabilityText</span>
+            <OmniButton Text="@(ImportText ?? Texts.DataImportImport)"
+                        Icon="check"
+                        Variant="ButtonVariant.Primary"
+                        Disabled="@(!CanImport)"
+                        Loading="@_importing"
+                        OnClick="@(_ => ImportAsync())" />
+        </div>
+    }
+</div>

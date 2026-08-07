@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Omni.Blazor.Models;
@@ -15,10 +18,16 @@ namespace Omni.Blazor.Components;
 /// Metadata-driven form that composes a reusable strongly typed field schema,
 /// generated Omni inputs, Blazor's <see cref="EditContext"/> and data annotation validators.
 /// </summary>
-public partial class OmniDataForm<TModel> where TModel : class
+public partial class OmniDataForm<
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
+    where TModel : class
 {
     private static readonly PropertyInfo[] ModelProperties = typeof(TModel)
         .GetProperties(BindingFlags.Instance | BindingFlags.Public);
+    private static readonly HashSet<string> IdentifierPropertyNames = ModelProperties
+        .Where(IsIdentifierProperty)
+        .Select(static property => property.Name)
+        .ToHashSet(StringComparer.Ordinal);
 
     private readonly ParameterState<DefinitionState> _definitionState;
     private IReadOnlyList<DataFormResolvedField<TModel>> _resolvedFields = [];
@@ -603,10 +612,7 @@ public partial class OmniDataForm<TModel> where TModel : class
                     if (!lookup.ClearValueOnDependencyChange) continue;
                     if (field.Metadata.PropertyPath.Leaf.SetMethod is null) continue;
                     object? current = field.GetValue(model);
-                    Type valueType = field.Metadata.PropertyPath.Leaf.PropertyType;
-                    object? cleared = valueType.IsValueType && Nullable.GetUnderlyingType(valueType) is null
-                        ? Activator.CreateInstance(valueType)
-                        : null;
+                    object? cleared = field.Metadata.DefaultValue;
                     if (Equals(current, cleared)) continue;
 
                     object owner = field.Metadata.PropertyPath.GetOwner(model);
@@ -861,6 +867,7 @@ public partial class OmniDataForm<TModel> where TModel : class
             }
             else if (autoGenerateFields && property.GetMethod is not null
                      && property.GetIndexParameters().Length == 0
+                     && !IdentifierPropertyNames.Contains(property.Name)
                      && property.GetCustomAttribute<ScaffoldColumnAttribute>() is not { Scaffold: false }
                      && property.GetCustomAttribute<DisplayAttribute>()?.GetAutoGenerateField() != false)
             {
@@ -1150,7 +1157,7 @@ public partial class OmniDataForm<TModel> where TModel : class
         PropertyInfo property,
         DataFormField<TModel>? configured,
         DataFormEditor editor,
-        Type? customEditorType,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type? customEditorType,
         int declarationOrder)
     {
         DisplayAttribute? display = property.GetCustomAttribute<DisplayAttribute>();
@@ -1159,7 +1166,7 @@ public partial class OmniDataForm<TModel> where TModel : class
         ReadOnlyAttribute? readOnly = property.GetCustomAttribute<ReadOnlyAttribute>();
         DataFormConventionDefaults convention = ResolveConventionDefaults(property);
 
-        DataFormPropertyPath propertyPath = configured?.PropertyPath ?? CreateDirectPropertyPath(property);
+        DataFormPropertyPath propertyPath = configured?.PropertyPath ?? ResolveRuntimePropertyPath(property);
         _ = propertyPath.GetOwner(model);
         DataFormField<TModel> effective = new(
             propertyPath.Path,
@@ -1196,12 +1203,14 @@ public partial class OmniDataForm<TModel> where TModel : class
                 || property.SetMethod is null,
             configured?.Class,
             configured?.Style,
-            configured?.Options ?? BuildEnumOptions(property.PropertyType),
+            ResolveOptions(configured, property.PropertyType),
             MergeEditorParameters(property, configured?.EditorParameters),
             configured?.Template,
             configured?.Validators ?? [],
             configured?.Lookup,
             configured?.Collection,
+            configured?.DefaultValue,
+            configured?.RendererType,
             customEditorType);
 
         string fieldId = CreateFieldId(Id, propertyPath.Path);
@@ -1225,7 +1234,7 @@ public partial class OmniDataForm<TModel> where TModel : class
         {
             Metadata = effective,
             Property = property,
-            RendererType = typeof(OmniDataFormFieldRenderer<,>).MakeGenericType(typeof(TModel), property.PropertyType),
+            RendererType = effective.RendererType ?? ResolveRuntimeRendererType(property),
             Order = effective.Order ?? declarationOrder,
             ColumnSpan = effective.ColumnSpan,
             RendererParameters = rendererParameters,
@@ -1234,6 +1243,22 @@ public partial class OmniDataForm<TModel> where TModel : class
             LookupVersion = 0
         };
     }
+
+    private static Type ResolveRuntimeRendererType(PropertyInfo property)
+    {
+        if (!RuntimeFeature.IsDynamicCodeSupported)
+        {
+            throw new InvalidOperationException(
+                $"O campo '{property.Name}' foi gerado automaticamente, mas Native AOT exige um " +
+                "DataFormSchema tipado. Configure o campo com schema.Field(model => model.Propriedade).");
+        }
+
+        return CreateRuntimeRendererType(property.PropertyType);
+    }
+
+    [RequiresDynamicCode("A geração automática de campos cria um renderer genérico em tempo de execução. Use DataFormSchema tipado em Native AOT.")]
+    private static Type CreateRuntimeRendererType(Type propertyType)
+        => typeof(OmniDataFormFieldRenderer<,>).MakeGenericType(typeof(TModel), propertyType);
 
     private DataFormConventionDefaults ResolveConventionDefaults(PropertyInfo property)
     {
@@ -1276,11 +1301,22 @@ public partial class OmniDataForm<TModel> where TModel : class
             readOnly);
     }
 
+    [RequiresDynamicCode("Automatic field expressions require runtime code generation. Use a typed DataFormSchema in Native AOT.")]
     private static DataFormPropertyPath CreateDirectPropertyPath(PropertyInfo property)
     {
         ParameterExpression model = Expression.Parameter(typeof(TModel), "model");
         MemberExpression access = Expression.Property(model, property);
         return new DataFormPropertyPath(property.Name, [property], Expression.Lambda(access, model));
+    }
+
+    private static DataFormPropertyPath ResolveRuntimePropertyPath(PropertyInfo property)
+    {
+        if (!RuntimeFeature.IsDynamicCodeSupported)
+        {
+            throw new InvalidOperationException(
+                $"O campo '{property.Name}' foi gerado automaticamente, mas Native AOT exige um DataFormSchema tipado.");
+        }
+        return CreateDirectPropertyPath(property);
     }
 
     private static string CreateFieldId(string formId, string propertyPath)
@@ -1373,9 +1409,27 @@ public partial class OmniDataForm<TModel> where TModel : class
     private static bool IsAutoGenerated(PropertyInfo property)
     {
         if (property.GetMethod is null || property.GetIndexParameters().Length != 0) return false;
+        if (IdentifierPropertyNames.Contains(property.Name)) return false;
         if (property.GetCustomAttribute<ScaffoldColumnAttribute>() is { Scaffold: false }) return false;
         if (property.GetCustomAttribute<DisplayAttribute>()?.GetAutoGenerateField() == false) return false;
         return InferEditor(property) != DataFormEditor.Auto;
+    }
+
+    private static bool IsIdentifierProperty(PropertyInfo property)
+    {
+        string name = property.Name;
+        if (name.Equals("Id", StringComparison.Ordinal)
+            || name.Equals("ID", StringComparison.Ordinal)
+            || name.EndsWith("Id", StringComparison.Ordinal)
+            || name.EndsWith("ID", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (property.IsDefined(typeof(KeyAttribute), inherit: true)) return true;
+
+        return property.GetCustomAttributes<DatabaseGeneratedAttribute>(inherit: true)
+            .Any(static attribute => attribute.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity);
     }
 
     private static void ValidateEditorCompatibility(
@@ -1472,22 +1526,41 @@ public partial class OmniDataForm<TModel> where TModel : class
         TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or
         TypeCode.Single or TypeCode.Double or TypeCode.Decimal;
 
-    private IReadOnlyList<DataFormOption>? BuildEnumOptions(Type propertyType)
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2070",
+        Justification = "This reflection path is only used by auto-generated fields, which are rejected under Native AOT. Typed schemas precompute enum options with rooted enum fields.")]
+    private IReadOnlyList<DataFormOption>? BuildRuntimeEnumOptions(Type propertyType)
     {
         Type type = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
         if (type == typeof(bool) && Nullable.GetUnderlyingType(propertyType) is not null)
             return [new(null, Texts.NotProvided), new(true, Texts.Yes), new(false, Texts.No)];
         if (!type.IsEnum) return null;
 
-        Array values = Enum.GetValues(type);
+        Array values = Enum.GetValuesAsUnderlyingType(type);
         List<DataFormOption> options = new(values.Length);
-        foreach (object value in values)
+        foreach (object underlyingValue in values)
         {
-            FieldInfo? member = type.GetField(value.ToString()!);
-            string text = member?.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? value.ToString()!;
-            options.Add(new DataFormOption(value, text));
+            object value = Enum.ToObject(type, underlyingValue);
+            string name = Enum.GetName(type, value) ?? value.ToString()!;
+            string label = type.GetField(name, BindingFlags.Public | BindingFlags.Static)?
+                .GetCustomAttributes<DisplayAttribute>(inherit: false)
+                .FirstOrDefault()
+                ?.GetName() ?? name;
+            options.Add(new DataFormOption(value, label));
         }
         return options;
+    }
+
+    private IReadOnlyList<DataFormOption>? ResolveOptions(
+        DataFormField<TModel>? configured,
+        Type propertyType)
+    {
+        if (configured is null) return BuildRuntimeEnumOptions(propertyType);
+        if (configured.Options is not null) return configured.Options;
+        return Nullable.GetUnderlyingType(propertyType) == typeof(bool)
+            ? [new(null, Texts.NotProvided), new(true, Texts.Yes), new(false, Texts.No)]
+            : null;
     }
 
     private static string SplitPascalCase(string value)

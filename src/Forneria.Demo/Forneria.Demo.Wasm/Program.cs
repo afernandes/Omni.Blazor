@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Omni.Blazor;
 using Forneria.Demo.Pages.Pages.PdvFeature;
 using Forneria.Demo.Pages.Services;
 using Forneria.Demo.Wasm;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Omni.Blazor;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 

@@ -230,7 +230,7 @@ public static class Writers
         sb.AppendLine();
         sb.AppendLine($"> Modern Blazor component library for .NET 10 — {comps.Count} components, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap/Tailwind. Published on NuGet as `AndersonN.Omni.Blazor` (namespace `Omni.Blazor`).");
         sb.AppendLine();
-        sb.AppendLine("Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.AddOmniComponents();`, put `<OmniTheme />` in `<head>`, and load the bundle from `_content/Omni.Blazor/css/omni.css` + `_content/Omni.Blazor/js/Omni.js`. CSS class prefix `omni-`, design-token prefix `--omni-`, JS namespace `window.omniBlazor`. Theme via `<html data-theme=\"light|dark\">`, `data-accent=\"amber|crimson|emerald|blue|violet|teal|cyan|indigo|fuchsia|lime|orange|rose\">`, `data-density=\"compact|comfortable|spacious\">`.");
+        sb.AppendLine("Install: `dotnet add package AndersonN.Omni.Blazor`, register `builder.Services.AddOmniComponents();`, and put `<OmniTheme />` in `<head>`. The stylesheet is supplied by `OmniTheme`; isolated JavaScript modules load lazily with no consumer `<script>` tag or browser global. CSS class prefix `omni-`, design-token prefix `--omni-`. Theme via `<html data-theme=\"light|dark\">`, `data-accent=\"amber|crimson|emerald|blue|violet|teal|cyan|indigo|fuchsia|lime|orange|rose\">`, `data-density=\"compact|comfortable|spacious\">`.");
         sb.AppendLine();
 
         foreach (var group in comps.GroupBy(c => c.Category).OrderBy(g => g.Key, StringComparer.Ordinal))
@@ -253,8 +253,11 @@ public static class Writers
         return sb.ToString();
     }
 
-    /// <summary>Full API dump: every component's parameters, events, slots, enum values, plus theme tokens.</summary>
-    public static string LlmsFull(IReadOnlyList<ComponentInfo> comps, IReadOnlyList<string> tokens)
+    /// <summary>Full API dump: components, fluent configuration APIs and theme tokens.</summary>
+    public static string LlmsFull(
+        IReadOnlyList<ComponentInfo> comps,
+        IReadOnlyList<string> tokens,
+        IReadOnlyList<ConfigurationApiInfo>? configurationApis = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine("# Omni.Blazor — full API reference");
@@ -276,6 +279,27 @@ public static class Writers
                 Emit(sb, "Parameters", c.Parameters.Where(p => p.Kind == "parameter" && p.InheritedFrom is null));
                 Emit(sb, "Events", c.Parameters.Where(p => p.Kind == "event" && p.InheritedFrom is null));
                 Emit(sb, "Slots", c.Parameters.Where(p => p.Kind == "slot" && p.InheritedFrom is null));
+                sb.AppendLine();
+            }
+        }
+
+        if (configurationApis is { Count: > 0 })
+        {
+            sb.AppendLine("## Fluent configuration APIs");
+            sb.AppendLine();
+            sb.AppendLine("Typed schemas, builders and providers used by advanced components:");
+            sb.AppendLine();
+            foreach (ConfigurationApiInfo api in configurationApis)
+            {
+                sb.AppendLine($"### {api.Name}");
+                if (!string.IsNullOrEmpty(api.Summary)) sb.AppendLine(api.Summary);
+                sb.AppendLine($"_{api.Kind} · source: {api.Source}_");
+                foreach (ApiMemberInfo member in api.Members)
+                {
+                    sb.Append($"- `{member.Signature}`");
+                    if (!string.IsNullOrEmpty(member.Summary)) sb.Append($" — {member.Summary}");
+                    sb.AppendLine();
+                }
                 sb.AppendLine();
             }
         }

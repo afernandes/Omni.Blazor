@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -70,6 +71,22 @@ public class OmniDataFormTests : TestContextBase
         [Url]
         [DataType(DataType.Password)]
         public string? ExplicitOverride { get; set; }
+    }
+
+    private sealed class CadastroComIdentificadores
+    {
+        public int Id { get; set; }
+        public int ClienteId { get; set; }
+        public int IntegracaoID { get; set; }
+
+        [Key]
+        public int CodigoInterno { get; set; }
+
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Sequencia { get; set; }
+
+        public int Identidade { get; set; }
+        public string? Nome { get; set; }
     }
 
     private sealed class AdvancedCadastro
@@ -162,6 +179,38 @@ public class OmniDataFormTests : TestContextBase
             .Single(component => component.Instance.Name == nameof(Cadastro.Codigo))
             .Instance;
         Assert.True(code.ReadOnly);
+    }
+
+    [Fact]
+    public void Metadata_generation_hides_identifiers_without_reporting_false_diagnostics()
+    {
+        var cut = Render<OmniDataForm<CadastroComIdentificadores>>(parameters => parameters
+            .Add(component => component.Model, new CadastroComIdentificadores()));
+
+        Assert.Empty(cut.FindAll("[name='Id']"));
+        Assert.Empty(cut.FindAll("[name='ClienteId']"));
+        Assert.Empty(cut.FindAll("[name='IntegracaoID']"));
+        Assert.Empty(cut.FindAll("[name='CodigoInterno']"));
+        Assert.Empty(cut.FindAll("[name='Sequencia']"));
+        Assert.Single(cut.FindAll("[name='Identidade']"));
+        Assert.Single(cut.FindAll("[name='Nome']"));
+        Assert.DoesNotContain(cut.Instance.Diagnostics, diagnostic =>
+            diagnostic.PropertyPath is "Id" or "ClienteId" or "IntegracaoID" or "CodigoInterno" or "Sequencia");
+    }
+
+    [Fact]
+    public void Explicit_schema_can_opt_an_identifier_back_in()
+    {
+        DataFormSchema<CadastroComIdentificadores> schema = DataFormSchema<CadastroComIdentificadores>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(model => model.Id, field => field.Label("Identificador técnico")));
+
+        var cut = Render<OmniDataForm<CadastroComIdentificadores>>(parameters => parameters
+            .Add(component => component.Model, new CadastroComIdentificadores())
+            .Add(component => component.Schema, schema));
+
+        Assert.Single(cut.FindAll("[name='Id']"));
+        Assert.Equal("Identificador técnico", cut.Find(".omni-field-label").TextContent.Trim());
     }
 
     [Fact]
@@ -819,6 +868,112 @@ public class OmniDataFormTests : TestContextBase
         cut.WaitForAssertion(() => Assert.Equal("Bahia", cut.Find(".omni-select-option").TextContent.Trim()));
         Assert.Equal(2, providerCalls);
         Assert.Equal(2, observedCountry);
+    }
+
+    [Fact]
+    public void Typed_lookup_resolves_an_initial_value_without_exposing_its_key()
+    {
+        int providerCalls = 0;
+        int resolverCalls = 0;
+        DataFormSchema<CadastroLookup> schema = DataFormSchema<CadastroLookup>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(model => model.EstadoId, field => field.Select<EstadoOpcao>(
+                item => item.Id,
+                item => item.Nome,
+                lookup => lookup
+                    .ItemsProvider((_, _) =>
+                    {
+                        providerCalls++;
+                        return ValueTask.FromResult(new OmniItemsPage<EstadoOpcao>([], 0));
+                    })
+                    .ResolveItem((request, cancellationToken) =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        resolverCalls++;
+                        return ValueTask.FromResult<EstadoOpcao?>(
+                            request.Value == 11 ? new EstadoOpcao(11, "Paraná") : null);
+                    }))));
+        var model = new CadastroLookup { EstadoId = 11 };
+
+        var cut = Render<OmniDataForm<CadastroLookup>>(parameters => parameters
+            .Add(component => component.Model, model)
+            .Add(component => component.Schema, schema));
+
+        cut.WaitForAssertion(() => Assert.Equal(
+            "Paraná",
+            cut.Find(".omni-select-trigger").TextContent.Trim()));
+        Assert.DoesNotContain("11", cut.Find(".omni-select-trigger").TextContent, StringComparison.Ordinal);
+        Assert.Equal(1, resolverCalls);
+        Assert.Equal(0, providerCalls);
+    }
+
+    [Fact]
+    public async Task Typed_lookup_resolution_is_latest_wins_and_cancels_the_superseded_request()
+    {
+        TaskCompletionSource<CancellationToken> firstStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        DataFormSchema<CadastroLookup> schema = DataFormSchema<CadastroLookup>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(model => model.EstadoId, field => field.Select<EstadoOpcao>(
+                item => item.Id,
+                item => item.Nome,
+                lookup => lookup
+                    .ItemsProvider((_, _) => ValueTask.FromResult(new OmniItemsPage<EstadoOpcao>([], 0)))
+                    .ResolveItem(async (request, cancellationToken) =>
+                    {
+                        if (request.Value == 11)
+                        {
+                            firstStarted.TrySetResult(cancellationToken);
+                            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                        }
+
+                        return request.Value == 22 ? new EstadoOpcao(22, "Bahia") : null;
+                    }))));
+        var cut = Render<OmniDataForm<CadastroLookup>>(parameters => parameters
+            .Add(component => component.Model, new CadastroLookup { EstadoId = 11 })
+            .Add(component => component.Schema, schema));
+        CancellationToken firstToken = await firstStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(2),
+            Xunit.TestContext.Current.CancellationToken);
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Model, new CadastroLookup { EstadoId = 22 })
+            .Add(component => component.Schema, schema));
+
+        cut.WaitForAssertion(() => Assert.Equal(
+            "Bahia",
+            cut.Find(".omni-select-trigger").TextContent.Trim()));
+        Assert.True(firstToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task Disposing_a_typed_lookup_cancels_active_item_resolution()
+    {
+        TaskCompletionSource<CancellationToken> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        DataFormSchema<CadastroLookup> schema = DataFormSchema<CadastroLookup>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(model => model.EstadoId, field => field.Select<EstadoOpcao>(
+                item => item.Id,
+                item => item.Nome,
+                lookup => lookup
+                    .ItemsProvider((_, _) => ValueTask.FromResult(new OmniItemsPage<EstadoOpcao>([], 0)))
+                    .ResolveItem(async (_, cancellationToken) =>
+                    {
+                        started.TrySetResult(cancellationToken);
+                        await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                        return null;
+                    }))));
+        var cut = Render<OmniDataForm<CadastroLookup>>(parameters => parameters
+            .Add(component => component.Model, new CadastroLookup { EstadoId = 11 })
+            .Add(component => component.Schema, schema));
+        CancellationToken token = await started.Task.WaitAsync(
+            TimeSpan.FromSeconds(2),
+            Xunit.TestContext.Current.CancellationToken);
+
+        cut.FindComponent<OmniDataFormLookupEditor<CadastroLookup, EstadoOpcao, int?>>()
+            .Instance.Dispose();
+
+        Assert.True(token.IsCancellationRequested);
+        cut.Dispose();
     }
 
     [Fact]

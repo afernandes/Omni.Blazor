@@ -1,16 +1,15 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniScrollJsModule JS
 @using System.Globalization
 @using Omni.Blazor.Models
 @using Omni.Blazor.State
 @using Omni.Blazor.Utilities
 
-@* SVG chart supporting Line, Area, Column, Bar, Pie and Donut series.
+@* SVG chart supporting cartesian, stacked, scatter, bubble, radar, gauge, pie, donut and waterfall series.
    Single-component design: pass IEnumerable<ChartSeries> via the Series
-   parameter. Multiple cartesian series (Line/Area/Column/Bar) can coexist;
-   Pie/Donut take only the first series.
+   parameter. Compatible families can coexist; radial families use one series.
 
    Renderização: ResizeObserver mede o container, viewBox usa PIXELS reais
    (1 unidade SVG = 1 pixel). Sem isso, preserveAspectRatio="none" + viewBox
@@ -45,6 +44,38 @@
                 @RenderSvgText(VW / 2, VH / 2 + 14, DonutCenterValue!, "middle", "omni-chart-donut-value", null)
             }
         }
+        else if (_isGauge && _series.Count > 0)
+        {
+            @foreach (var arc in GaugeArcs())
+            {
+                <path d="@arc.Path" fill="none" stroke="@arc.Color"
+                      stroke-width="@F(arc.Width)" stroke-linecap="round">
+                    <title>@arc.Title</title>
+                </path>
+            }
+            @RenderSvgText(VW / 2, VH * 0.62, GaugeValueLabel, "middle", "omni-chart-gauge-value", null)
+            @RenderSvgText(VW / 2, VH * 0.72, _series[0].Title, "middle", "omni-chart-gauge-label", null)
+        }
+        else if (_isRadar && _series.Count > 0 && _categories.Length > 0)
+        {
+            @foreach (string ring in RadarRings())
+            {
+                <path d="@ring" fill="none" stroke="var(--omni-line)" stroke-width="0.6" />
+            }
+            @foreach (var axis in RadarAxes())
+            {
+                <line x1="@F(VW / 2)" y1="@F(VH / 2)" x2="@F(axis.X)" y2="@F(axis.Y)"
+                      stroke="var(--omni-line)" stroke-width="0.6" />
+                @RenderSvgText(axis.LabelX, axis.LabelY, axis.Label, "middle", "omni-chart-tick", null)
+            }
+            @foreach (var radar in RadarSeriesPaths())
+            {
+                <path d="@radar.Path" fill="@radar.Color" fill-opacity="0.16"
+                      stroke="@radar.Color" stroke-width="2" stroke-linejoin="round">
+                    <title>@radar.Title</title>
+                </path>
+            }
+        }
         else if (_series.Count > 0 && _categories.Length > 0)
         {
             @* Grid *@
@@ -75,13 +106,30 @@
             }
 
             @* X tick labels — every Nth, plus always the last *@
-            @foreach (var (label, x, _) in XTickLabels())
+            @if (_isScatter)
             {
-                @RenderSvgText(x, VH - _marginB + 12, label, "middle", "omni-chart-tick", null)
+                @foreach (var (label, x) in NumericXTicks())
+                {
+                    @RenderSvgText(x, VH - _marginB + 12, label, "middle", "omni-chart-tick", null)
+                }
+            }
+            else
+            {
+                @foreach (var (label, x, _) in XTickLabels())
+                {
+                    @RenderSvgText(x, VH - _marginB + 12, label, "middle", "omni-chart-tick", null)
+                }
             }
 
             @* Columns *@
             @foreach (var col in ColumnRects())
+            {
+                <rect x="@F(col.X)" y="@F(col.Y)" width="@F(col.W)" height="@F(col.H)" fill="@col.Color" rx="1">
+                    <title>@col.Title</title>
+                </rect>
+            }
+
+            @foreach (var col in StackedColumnRects())
             {
                 <rect x="@F(col.X)" y="@F(col.Y)" width="@F(col.W)" height="@F(col.H)" fill="@col.Color" rx="1">
                     <title>@col.Title</title>
@@ -96,12 +144,28 @@
                 </rect>
             }
 
+            @foreach (var bar in StackedBarRects())
+            {
+                <rect x="@F(bar.X)" y="@F(bar.Y)" width="@F(bar.W)" height="@F(bar.H)" fill="@bar.Color" rx="1">
+                    <title>@bar.Title</title>
+                </rect>
+            }
+
             @* Waterfall (colunas flutuantes: base → deltas → total) *@
             @foreach (var wf in WaterfallRects())
             {
                 <rect x="@F(wf.X)" y="@F(wf.Y)" width="@F(wf.W)" height="@F(wf.H)" fill="@wf.Color" rx="1.5">
                     <title>@wf.Title</title>
                 </rect>
+            }
+
+            @foreach (var point in ScatterPoints())
+            {
+                <circle cx="@F(point.X)" cy="@F(point.Y)" r="@F(point.R)"
+                        fill="@point.Color" fill-opacity="0.78"
+                        stroke="var(--omni-bg-elev)" stroke-width="1">
+                    <title>@point.Title</title>
+                </circle>
             }
 
             @* Areas (fill under line + the line itself + optional markers) *@
@@ -145,8 +209,11 @@
 </div>
 
 @code {
+    /// <summary>Optional immutable fluent schema. When supplied, it provides series and presentation defaults.</summary>
+    [Parameter] public ChartSchema? Schema { get; set; }
+
     /// <summary>As séries do chart. Para Pie/Donut, apenas a primeira é usada.</summary>
-    [Parameter, EditorRequired] public IEnumerable<ChartSeries> Series { get; set; } = Array.Empty<ChartSeries>();
+    [Parameter] public IEnumerable<ChartSeries> Series { get; set; } = Array.Empty<ChartSeries>();
 
     /// <summary>Altura CSS do chart. Default <c>"260px"</c>.</summary>
     [Parameter] public string Height { get; set; } = "260px";
@@ -185,7 +252,11 @@
     internal List<ChartSeries> _series = new();
     internal string[] _categories = Array.Empty<string>();
     private double _yMin, _yMax;
+    private double _xMin, _xMax;
     private bool _isPie;
+    private bool _isGauge;
+    private bool _isRadar;
+    private bool _isScatter;
     private ElementReference _hostEl;
     private DotNetObjectReference<OmniChart>? _selfRef;
 
@@ -193,9 +264,15 @@
     // when the Series reference itself changes. ColorScheme/Height/etc. flow
     // through their own getters.
     private ParameterState<IEnumerable<ChartSeries>> _seriesState = null!;
+    private ParameterState<ChartSchema?> _schemaState = null!;
+    private ChartSeries[] _schemaSeries = Array.Empty<ChartSeries>();
 
     protected override void OnInitialized()
     {
+        _schemaState = RegisterParameter<ChartSchema?>(nameof(Schema))
+            .WithParameter(() => Schema)
+            .WithChangeHandler(ApplySchemaConfiguration)
+            .Attach();
         _seriesState = RegisterParameter<IEnumerable<ChartSeries>>(nameof(Series))
             .WithParameter(() => Series)
             .WithChangeHandler(RecomputeFromSeries)
@@ -217,8 +294,17 @@
 
     private void RecomputeFromSeries()
     {
-        _series = (Series ?? Array.Empty<ChartSeries>()).Where(s => s.Points.Any()).ToList();
-        if (_series.Count == 0) { _isPie = false; _categories = Array.Empty<string>(); return; }
+        IEnumerable<ChartSeries> source = Schema is null ? Series ?? Array.Empty<ChartSeries>() : _schemaSeries;
+        _series = source.Where(static series => series.Points.Any()).ToList();
+        _marginL = 50;
+        _marginR = 16;
+        _marginT = 16;
+        _marginB = 30;
+        _isPie = false;
+        _isGauge = false;
+        _isRadar = false;
+        _isScatter = false;
+        if (_series.Count == 0) { _categories = Array.Empty<string>(); return; }
 
         _isPie = _series[0].Type is ChartSeriesType.Pie or ChartSeriesType.Donut;
         if (_isPie)
@@ -226,6 +312,56 @@
             _categories = _series[0].Points.Select(p => p.Category).ToArray();
             _yMin = 0;
             _yMax = _series[0].Points.Sum(p => p.Value);
+            return;
+        }
+
+        _isGauge = _series[0].Type == ChartSeriesType.Gauge;
+        if (_isGauge)
+        {
+            if (_series.Count != 1)
+                throw new InvalidOperationException("Gauge charts support exactly one series.");
+            ChartSeries gauge = _series[0];
+            if (gauge.GaugeMaximum <= gauge.GaugeMinimum)
+                throw new InvalidOperationException("GaugeMaximum must be greater than GaugeMinimum.");
+            _categories = gauge.Points.Select(static point => point.Category).ToArray();
+            _yMin = gauge.GaugeMinimum;
+            _yMax = gauge.GaugeMaximum;
+            return;
+        }
+
+        _isRadar = _series.All(static series => series.Type == ChartSeriesType.Radar);
+        if (_series.Any(static series => series.Type == ChartSeriesType.Radar) && !_isRadar)
+            throw new InvalidOperationException("Radar series cannot be mixed with other chart families.");
+        if (_isRadar)
+        {
+            _categories = DistinctCategories(_series);
+            _yMin = 0;
+            _yMax = Math.Max(1, _series.SelectMany(static series => series.Points).Max(static point => point.Value));
+            return;
+        }
+
+        _isScatter = _series.All(static series => series.Type is ChartSeriesType.Scatter or ChartSeriesType.Bubble);
+        if (_series.Any(static series => series.Type is ChartSeriesType.Scatter or ChartSeriesType.Bubble) && !_isScatter)
+            throw new InvalidOperationException("Scatter and Bubble series cannot be mixed with category-axis chart families.");
+        if (_isScatter)
+        {
+            _categories = DistinctCategories(_series);
+            List<(double X, double Y)> values = [];
+            foreach (ChartSeries series in _series)
+            {
+                int index = 0;
+                foreach (ChartDataPoint point in series.Points)
+                {
+                    values.Add((point.X ?? index, point.Value));
+                    index++;
+                }
+            }
+            _xMin = values.Min(static value => value.X);
+            _xMax = values.Max(static value => value.X);
+            _yMin = values.Min(static value => value.Y);
+            _yMax = values.Max(static value => value.Y);
+            ExpandRange(ref _xMin, ref _xMax, includeZero: false);
+            ExpandRange(ref _yMin, ref _yMax, includeZero: false);
             return;
         }
 
@@ -252,14 +388,28 @@
             return;
         }
 
-        var allCats = new List<string>();
-        foreach (var p in _series.SelectMany(s => s.Points))
-            if (!allCats.Contains(p.Category)) allCats.Add(p.Category);
-        _categories = allCats.ToArray();
+        _categories = DistinctCategories(_series);
 
-        var allValues = _series.SelectMany(s => s.Points.Select(p => p.Value)).ToList();
-        _yMin = Math.Min(0, allValues.Min());
-        _yMax = allValues.Max();
+        List<double> extents = _series
+            .Where(static series => series.Type is not (ChartSeriesType.StackedColumn or ChartSeriesType.StackedBar))
+            .SelectMany(static series => series.Points.Select(static point => point.Value))
+            .ToList();
+        foreach (string category in _categories)
+        {
+            double positive = 0;
+            double negative = 0;
+            foreach (ChartSeries series in _series.Where(static item => item.Type is ChartSeriesType.StackedColumn or ChartSeriesType.StackedBar))
+            {
+                ChartDataPoint? point = series.Points.FirstOrDefault(item => item.Category == category);
+                if (point is null) continue;
+                if (point.Value >= 0) positive += point.Value;
+                else negative += point.Value;
+            }
+            extents.Add(positive);
+            extents.Add(negative);
+        }
+        _yMin = Math.Min(0, extents.Min());
+        _yMax = extents.Max();
         if (_yMax - _yMin < 1e-9) _yMax = _yMin + 1;
         _yMax += (_yMax - _yMin) * 0.05;
         var range = _yMax - _yMin;
@@ -268,7 +418,61 @@
         _yMax = Math.Ceiling(_yMax / step) * step;
 
         // Horizontal Bar needs more room on the left for category labels.
-        if (_series.Any(s => s.Type == ChartSeriesType.Bar)) _marginL = 80;
+        if (_series.Any(static series => series.Type is ChartSeriesType.Bar or ChartSeriesType.StackedBar)) _marginL = 80;
+    }
+
+    private static string[] DistinctCategories(IEnumerable<ChartSeries> series)
+    {
+        List<string> categories = [];
+        HashSet<string> seen = new(StringComparer.Ordinal);
+        foreach (ChartDataPoint point in series.SelectMany(static item => item.Points))
+        {
+            if (seen.Add(point.Category)) categories.Add(point.Category);
+        }
+        return categories.ToArray();
+    }
+
+    private static void ExpandRange(ref double minimum, ref double maximum, bool includeZero)
+    {
+        if (includeZero)
+        {
+            minimum = Math.Min(0, minimum);
+            maximum = Math.Max(0, maximum);
+        }
+        if (maximum - minimum < 1e-9)
+        {
+            double padding = Math.Max(1, Math.Abs(maximum) * 0.05);
+            minimum -= padding;
+            maximum += padding;
+            return;
+        }
+        double range = maximum - minimum;
+        minimum -= range * 0.05;
+        maximum += range * 0.05;
+    }
+
+    private void ApplySchemaConfiguration()
+    {
+        if (Schema is not { } schema)
+        {
+            _schemaSeries = Array.Empty<ChartSeries>();
+            RecomputeFromSeries();
+            return;
+        }
+
+        _schemaSeries = schema.MaterializeSeries();
+        Height = schema.Height;
+        Width = schema.Width;
+        ColorScheme = schema.ColorScheme;
+        LegendPosition = schema.LegendPosition;
+        ShowGrid = schema.ShowGrid;
+        Title = schema.Title;
+        ValueFormatter = schema.ValueFormatter;
+        ValueTicks = schema.ValueTicks;
+        DonutCenterLabel = schema.DonutCenterLabel;
+        DonutCenterValue = schema.DonutCenterValue;
+        AriaLabel = schema.AriaLabel;
+        RecomputeFromSeries();
     }
 
     private string SeriesColor(ChartSeries s, int idx)
@@ -297,6 +501,13 @@
         return _marginL + plotW * norm;
     }
 
+    private double ScatterX(double value)
+    {
+        double plotW = VW - _marginL - _marginR;
+        double norm = (value - _xMin) / (_xMax - _xMin);
+        return _marginL + plotW * norm;
+    }
+
     private IEnumerable<(double Y, string Label)> YTicks()
     {
         var step = (_yMax - _yMin) / Math.Max(1, ValueTicks);
@@ -317,6 +528,21 @@
         {
             if (i % labelEvery != 0 && i != _categories.Length - 1) continue;
             yield return (_categories[i], CategoryX(i), i);
+        }
+    }
+
+    private IEnumerable<(string Label, double X)> NumericXTicks()
+    {
+        int count = Math.Max(2, ValueTicks);
+        double step = (_xMax - _xMin) / count;
+        for (int index = 0; index <= count; index++)
+        {
+            double value = _xMin + step * index;
+            yield return (
+                ValueFormatter is null
+                    ? value.ToString("0.##", CultureInfo.InvariantCulture)
+                    : ValueFormatter(value),
+                ScatterX(value));
         }
     }
 
@@ -359,6 +585,40 @@
         }
     }
 
+    private IEnumerable<(double X, double Y, double W, double H, string Color, string Title)> StackedColumnRects()
+    {
+        List<ChartSeries> series = _series.Where(static item => item.Type == ChartSeriesType.StackedColumn).ToList();
+        if (series.Count == 0) yield break;
+        double plotW = VW - _marginL - _marginR;
+        double slotW = plotW / _categories.Length;
+        double width = Math.Min(48, slotW * 0.64);
+        for (int categoryIndex = 0; categoryIndex < _categories.Length; categoryIndex++)
+        {
+            string category = _categories[categoryIndex];
+            double positive = 0;
+            double negative = 0;
+            foreach (ChartSeries item in series)
+            {
+                ChartDataPoint? point = item.Points.FirstOrDefault(candidate => candidate.Category == category);
+                if (point is null) continue;
+                double from = point.Value >= 0 ? positive : negative;
+                double to = from + point.Value;
+                if (point.Value >= 0) positive = to;
+                else negative = to;
+                double y1 = ValueY(from);
+                double y2 = ValueY(to);
+                double x = _marginL + categoryIndex * slotW + (slotW - width) / 2;
+                yield return (
+                    x,
+                    Math.Min(y1, y2),
+                    width,
+                    Math.Max(0.5, Math.Abs(y2 - y1)),
+                    SeriesColor(item, _series.IndexOf(item)),
+                    $"{item.Title}: {category} · {point.Value:0.##}");
+            }
+        }
+    }
+
     private IEnumerable<(double X, double Y, double W, double H, string Color, string Title)> BarRects()
     {
         var barSeries = _series.Where(s => s.Type == ChartSeriesType.Bar).ToList();
@@ -383,6 +643,69 @@
                 var x = Math.Min(xLeft, xRight);
                 var w = Math.Max(0.5, Math.Abs(xRight - xLeft));
                 yield return (x, y, w, h, color, $"{serie.Title}: {pt.Category} · {pt.Value:0.##}");
+            }
+        }
+    }
+
+    private IEnumerable<(double X, double Y, double W, double H, string Color, string Title)> StackedBarRects()
+    {
+        List<ChartSeries> series = _series.Where(static item => item.Type == ChartSeriesType.StackedBar).ToList();
+        if (series.Count == 0) yield break;
+        double plotH = VH - _marginT - _marginB;
+        double slotH = plotH / _categories.Length;
+        double height = Math.Min(34, slotH * 0.64);
+        for (int categoryIndex = 0; categoryIndex < _categories.Length; categoryIndex++)
+        {
+            string category = _categories[categoryIndex];
+            double positive = 0;
+            double negative = 0;
+            foreach (ChartSeries item in series)
+            {
+                ChartDataPoint? point = item.Points.FirstOrDefault(candidate => candidate.Category == category);
+                if (point is null) continue;
+                double from = point.Value >= 0 ? positive : negative;
+                double to = from + point.Value;
+                if (point.Value >= 0) positive = to;
+                else negative = to;
+                double x1 = ValueXHorizontal(from);
+                double x2 = ValueXHorizontal(to);
+                double y = _marginT + categoryIndex * slotH + (slotH - height) / 2;
+                yield return (
+                    Math.Min(x1, x2),
+                    y,
+                    Math.Max(0.5, Math.Abs(x2 - x1)),
+                    height,
+                    SeriesColor(item, _series.IndexOf(item)),
+                    $"{item.Title}: {category} · {point.Value:0.##}");
+            }
+        }
+    }
+
+    private IEnumerable<(double X, double Y, double R, string Color, string Title)> ScatterPoints()
+    {
+        if (!_isScatter) yield break;
+        double maxSize = _series
+            .SelectMany(static series => series.Points)
+            .Max(static point => point.Size ?? 1);
+        if (maxSize <= 0) maxSize = 1;
+        foreach (ChartSeries series in _series)
+        {
+            int pointIndex = 0;
+            string seriesColor = SeriesColor(series, _series.IndexOf(series));
+            foreach (ChartDataPoint point in series.Points)
+            {
+                double xValue = point.X ?? pointIndex;
+                double radius = series.Type == ChartSeriesType.Bubble
+                    ? 4 + 14 * Math.Sqrt(Math.Max(0, point.Size ?? 1) / maxSize)
+                    : 4;
+                string color = string.IsNullOrWhiteSpace(point.Color) ? seriesColor : point.Color;
+                yield return (
+                    ScatterX(xValue),
+                    ValueY(point.Value),
+                    radius,
+                    color!,
+                    $"{series.Title}: {point.Category} · X {xValue:0.##}, Y {point.Value:0.##}");
+                pointIndex++;
             }
         }
     }
@@ -486,6 +809,111 @@
         sb.Append(" L ").Append(F(pts[0].X)).Append(' ').Append(F(baseline));
         sb.Append(" Z");
         return sb.ToString();
+    }
+
+    // ─── Radar / Gauge ────────────────────────────────────────────────────
+
+    private IEnumerable<string> RadarRings()
+    {
+        const int rings = 5;
+        for (int ring = 1; ring <= rings; ring++)
+            yield return RadarPolygonPath(_categories.Select((_, index) => (index, _yMax * ring / rings)));
+    }
+
+    private IEnumerable<(double X, double Y, double LabelX, double LabelY, string Label)> RadarAxes()
+    {
+        double radius = Math.Max(8, Math.Min(VW, VH) / 2 - 34);
+        double centerX = VW / 2;
+        double centerY = VH / 2;
+        for (int index = 0; index < _categories.Length; index++)
+        {
+            double angle = -Math.PI / 2 + index * Math.PI * 2 / _categories.Length;
+            double x = centerX + radius * Math.Cos(angle);
+            double y = centerY + radius * Math.Sin(angle);
+            yield return (
+                x,
+                y,
+                centerX + (radius + 16) * Math.Cos(angle),
+                centerY + (radius + 16) * Math.Sin(angle) + 3,
+                _categories[index]);
+        }
+    }
+
+    private IEnumerable<(string Path, string Color, string Title)> RadarSeriesPaths()
+    {
+        foreach (ChartSeries series in _series)
+        {
+            Dictionary<string, double> values = series.Points
+                .GroupBy(static point => point.Category, StringComparer.Ordinal)
+                .ToDictionary(static group => group.Key, static group => group.Last().Value, StringComparer.Ordinal);
+            yield return (
+                RadarPolygonPath(_categories.Select((category, index) =>
+                    (index, values.TryGetValue(category, out double value) ? value : 0))),
+                SeriesColor(series, _series.IndexOf(series)),
+                series.Title);
+        }
+    }
+
+    private string RadarPolygonPath(IEnumerable<(int Index, double Value)> values)
+    {
+        double radius = Math.Max(8, Math.Min(VW, VH) / 2 - 34);
+        double centerX = VW / 2;
+        double centerY = VH / 2;
+        var builder = new System.Text.StringBuilder();
+        int count = 0;
+        foreach ((int index, double value) in values)
+        {
+            double normalized = Math.Clamp(value / _yMax, 0, 1);
+            double angle = -Math.PI / 2 + index * Math.PI * 2 / _categories.Length;
+            double x = centerX + radius * normalized * Math.Cos(angle);
+            double y = centerY + radius * normalized * Math.Sin(angle);
+            builder.Append(count++ == 0 ? 'M' : 'L').Append(F(x)).Append(' ').Append(F(y)).Append(' ');
+        }
+        if (count != 0) builder.Append('Z');
+        return builder.ToString();
+    }
+
+    private IEnumerable<(string Path, string Color, double Width, string Title)> GaugeArcs()
+    {
+        ChartSeries series = _series[0];
+        ChartDataPoint point = series.Points.First();
+        double minimum = series.GaugeMinimum;
+        double maximum = series.GaugeMaximum;
+        double value = Math.Clamp(point.Value, minimum, maximum);
+        double ratio = (value - minimum) / (maximum - minimum);
+        double centerX = VW / 2;
+        double centerY = VH * 0.62;
+        double radius = Math.Max(12, Math.Min(VW * 0.36, VH * 0.48));
+        double width = Math.Clamp(radius * 0.18, 8, 30);
+        yield return (
+            GaugeArcPath(centerX, centerY, radius, Math.PI, Math.PI * 2),
+            "var(--omni-line)",
+            width,
+            $"{minimum:0.##} – {maximum:0.##}");
+        yield return (
+            GaugeArcPath(centerX, centerY, radius, Math.PI, Math.PI + Math.PI * ratio),
+            SeriesColor(series, 0),
+            width,
+            $"{series.Title}: {point.Value:0.##}");
+    }
+
+    private static string GaugeArcPath(double cx, double cy, double radius, double start, double end)
+    {
+        double x1 = cx + radius * Math.Cos(start);
+        double y1 = cy + radius * Math.Sin(start);
+        double x2 = cx + radius * Math.Cos(end);
+        double y2 = cy + radius * Math.Sin(end);
+        int largeArc = end - start > Math.PI ? 1 : 0;
+        return $"M {F(x1)} {F(y1)} A {F(radius)} {F(radius)} 0 {largeArc} 1 {F(x2)} {F(y2)}";
+    }
+
+    private string GaugeValueLabel
+    {
+        get
+        {
+            double value = _series[0].Points.First().Value;
+            return ValueFormatter?.Invoke(value) ?? value.ToString("0.##", CultureInfo.InvariantCulture);
+        }
     }
 
     // ─── Pie / Donut slices ───────────────────────────────────────────────
@@ -601,7 +1029,7 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.observeSparklineSize",
+            await JS.InvokeVoidAsync("observeSparklineSize",
                 _hostEl, _selfRef, nameof(OnSizeChangedInternal));
         }
         catch { /* SSR / JS gone */ }
@@ -619,7 +1047,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("omniBlazor.unobserveSparklineSize", _hostEl); } catch { }
+        try { await JS.InvokeVoidAsync("unobserveSparklineSize", _hostEl); } catch { }
         _selfRef?.Dispose();
         _selfRef = null;
         GC.SuppressFinalize(this);

@@ -16,9 +16,9 @@
     <Overview>
         <p>
             O <code>OmniGantt&lt;TItem&gt;</code> mostra tarefas numa visão dividida: à esquerda uma
-            árvore hierárquica (via <code>IdProperty</code>/<code>ParentIdProperty</code>) com colunas
+            árvore hierárquica (preferencialmente via <code>GanttSchema&lt;TItem&gt;</code>) com colunas
             configuráveis; à direita uma timeline por dia com barras posicionadas por
-            <code>StartProperty</code>/<code>EndProperty</code>, progresso, marcos (milestones),
+            um <code>GanttSchema&lt;TItem&gt;</code> tipado, progresso, marcos (milestones),
             baselines (planejado × real), dependências com setas (FS/SS/FF/SF), caminho crítico,
             linha de hoje, fins de semana e marcadores.
         </p>
@@ -48,16 +48,18 @@
 
         <ShowcaseSection Title="BÁSICO — ÁRVORE + TIMELINE + DEPENDÊNCIAS"
                          Description="Hierarquia, progresso, colunas, dependências e zoom. Clique nos chevrons para expandir/recolher. Arraste a borda direita dos cabeçalhos (Tarefa/Início/Fim/%) para redimensionar as colunas — o painel acompanha a soma das larguras (AllowColumnResize, ligado por padrão)."
-                         Code="@(@"<OmniGantt TItem=""GanttTask"" Data=""@_tasks"" Dependencies=""@_deps""
-           IdProperty=""Id"" ParentIdProperty=""ParentId"" TextProperty=""Name""
-           StartProperty=""Start"" EndProperty=""End"" ProgressProperty=""Progress"">
+                         Code="@(@"private static readonly GanttSchema<GanttTask> Schema =
+    GanttSchema<GanttTask>.Create(gantt => gantt
+        .Hierarchy(task => task.Id, task => task.ParentId)
+        .Task(task => task.Name, task => task.Start, task => task.End)
+        .Progress(task => task.Progress));
+
+<OmniGantt TItem=""GanttTask"" Data=""@_tasks"" Dependencies=""@_deps"" Schema=""@Schema"">
     <OmniGanttColumn Title=""Tarefa"" Property=""@(t => t.Name)"" Width=""200px"" />
     <OmniGanttColumn Title=""Início"" Property=""@(t => t.Start)"" Width=""90px"" FormatString=""{0:dd/MM}"" />
     <OmniGanttColumn Title=""%"" Property=""@(t => t.Progress)"" Width=""60px"" FormatString=""{0}%"" />
 </OmniGantt>")">
-            <OmniGantt TItem="GanttTask" Data="@_tasks" Dependencies="@_deps"
-                       IdProperty="Id" ParentIdProperty="ParentId" TextProperty="Name"
-                       StartProperty="Start" EndProperty="End" ProgressProperty="Progress"
+            <OmniGantt TItem="GanttTask" Data="@_tasks" Dependencies="@_deps" Schema="@_ganttSchema"
                        Style="height:460px">
                 <OmniGanttColumn Title="Tarefa" Property="@(t => t.Name)" Width="220px" />
                 <OmniGanttColumn Title="Início" Property="@(t => t.Start)" Width="90px" FormatString="{0:dd/MM}" />
@@ -70,8 +72,7 @@
                          Description="ShowCriticalPath destaca (em vermelho) a cadeia de tarefas que determina a data final do projeto (CPM)."
                          Code="@(@"<OmniGantt ... Dependencies=""@_deps"" ShowCriticalPath=""true"">")">
             <OmniGantt TItem="GanttTask" Data="@_tasks" Dependencies="@_deps"
-                       IdProperty="Id" ParentIdProperty="ParentId" TextProperty="Name"
-                       StartProperty="Start" EndProperty="End" ProgressProperty="Progress"
+                       Schema="@_ganttSchema"
                        ShowCriticalPath="true" Style="height:460px">
                 <OmniGanttColumn Title="Tarefa" Property="@(t => t.Name)" Width="220px" />
                 <OmniGanttColumn Title="Fim" Property="@(t => t.End)" Width="90px" FormatString="{0:dd/MM}" />
@@ -79,28 +80,21 @@
         </ShowcaseSection>
 
         <ShowcaseSection Title="BASELINES — PLANEJADO × REAL"
-                         Description="Defina BaselineStartProperty/BaselineEndProperty para mostrar uma barra fina (planejado) atrás da barra real."
-                         Code="@(@"<OmniGantt ... BaselineStartProperty=""BaselineStart"" BaselineEndProperty=""BaselineEnd"" />")">
+                         Description="Defina os seletores Baseline no schema para mostrar uma barra fina (planejado) atrás da barra real."
+                         Code="@(@"GanttSchema<GanttTask>.Create(gantt => gantt.Baseline(x => x.BaselineStart, x => x.BaselineEnd));")">
             <OmniGantt TItem="GanttTask" Data="@_baselineTasks"
-                       IdProperty="Id" ParentIdProperty="ParentId" TextProperty="Name"
-                       StartProperty="Start" EndProperty="End" ProgressProperty="Progress"
-                       BaselineStartProperty="BaselineStart" BaselineEndProperty="BaselineEnd"
+                       Schema="@_ganttSchema"
                        ZoomLevel="GanttZoomLevel.Day" Style="height:300px">
                 <OmniGanttColumn Title="Tarefa" Property="@(t => t.Name)" Width="200px" />
             </OmniGantt>
         </ShowcaseSection>
 
         <ShowcaseSection Title="TIPOS DE DEPENDÊNCIA (FS / SS / FF / SF)"
-                         Description="DependencyData + DependencyTypeProperty desenham os quatro tipos de vínculo entre tarefas."
-                         Code="@(@"<OmniGantt ... DependencyData=""@_typedDeps""
-           DependencyFromProperty=""PredecessorId"" DependencyToProperty=""SuccessorId""
-           DependencyTypeProperty=""Type"" />")">
+                         Description="Dependencies usa vínculos tipados e rename-safe entre as próprias tarefas."
+                         Code="@(@"<OmniGantt ... Dependencies=""@_typedDeps"" />")">
             <OmniGantt TItem="GanttTask" Data="@_depTasks"
-                       DependencyData="@_typedDeps"
-                       DependencyFromProperty="PredecessorId" DependencyToProperty="SuccessorId"
-                       DependencyTypeProperty="Type"
-                       IdProperty="Id" TextProperty="Name"
-                       StartProperty="Start" EndProperty="End"
+                       Dependencies="@_typedDeps"
+                       Schema="@_ganttSchema"
                        ZoomLevel="GanttZoomLevel.Day" Style="height:300px">
                 <OmniGanttColumn Title="Tarefa" Property="@(t => t.Name)" Width="160px" />
             </OmniGantt>
@@ -116,8 +110,7 @@
     }
 }")">
             <OmniGantt @ref="_dndGantt" TItem="GanttTask" Data="@_dndTasks"
-                       IdProperty="Id" ParentIdProperty="ParentId" TextProperty="Name"
-                       StartProperty="Start" EndProperty="End" ProgressProperty="Progress"
+                       Schema="@_ganttSchema"
                        TaskMove="OnMove" TaskResize="OnResize"
                        ZoomLevel="GanttZoomLevel.Day" Style="height:340px">
                 <OmniGanttColumn Title="Tarefa" Property="@(t => t.Name)" Width="200px" />
@@ -130,8 +123,7 @@
                          Description="TaskMouseEnter/Leave + TooltipService mostram detalhes da tarefa."
                          Code="@(@"<OmniGantt ... TaskMouseEnter=""OnEnter"" TaskMouseLeave=""@(_ => Tooltip.Close())"" />")">
             <OmniGantt TItem="GanttTask" Data="@_tasks"
-                       IdProperty="Id" ParentIdProperty="ParentId" TextProperty="Name"
-                       StartProperty="Start" EndProperty="End" ProgressProperty="Progress"
+                       Schema="@_ganttSchema"
                        TaskMouseEnter="OnTaskEnter" TaskMouseLeave="@(_ => Tooltip.Close())"
                        Style="height:460px">
                 <OmniGanttColumn Title="Tarefa" Property="@(t => t.Name)" Width="220px" />
@@ -149,8 +141,7 @@
     }
 }")">
             <OmniGantt TItem="GanttTask" Data="@_tasks"
-                       IdProperty="Id" ParentIdProperty="ParentId" TextProperty="Name"
-                       StartProperty="Start" EndProperty="End" ProgressProperty="Progress"
+                       Schema="@_ganttSchema"
                        TaskRender="OnTaskRender" Markers="@_markers"
                        Style="height:460px">
                 <OmniGanttColumn Title="Tarefa" Property="@(t => t.Name)" Width="220px" />
@@ -161,12 +152,9 @@
 
     <Api>
         <ShowcaseApiTable Title="OmniGantt&lt;TItem&gt;">
+            <ShowcaseApiRow Name="Schema" Type="GanttSchema&lt;TItem&gt;" Default="required" Description="Mapeamento tipado de tarefas, hierarquia, baselines, dependências e timeline." />
             <ShowcaseApiRow Name="Data" Type="IEnumerable<TItem>?" Default="null" Description="Tarefas." />
-            <ShowcaseApiRow Name="IdProperty / ParentIdProperty" Type="string?" Default="null" Description="Hierarquia (árvore)." />
-            <ShowcaseApiRow Name="TextProperty / StartProperty / EndProperty / ProgressProperty" Type="string?" Default="null" Description="Projeção das barras." />
-            <ShowcaseApiRow Name="BaselineStartProperty / BaselineEndProperty" Type="string?" Default="null" Description="Barra de planejado (baseline)." />
-            <ShowcaseApiRow Name="Dependencies" Type="IEnumerable<GanttDependency<TItem>>?" Default="null" Description="Vínculos por referência." />
-            <ShowcaseApiRow Name="DependencyData + From/To/TypeProperty" Type="—" Default="null" Description="Vínculos por nome de propriedade." />
+            <ShowcaseApiRow Name="Dependencies" Type="IEnumerable&lt;GanttDependency&lt;TItem&gt;&gt;" Default="null" Description="Vínculos tipados e rename-safe." />
             <ShowcaseApiRow Name="ShowCriticalPath" Type="bool" Default="false" Description="Destaca o caminho crítico (CPM)." />
             <ShowcaseApiRow Name="ZoomLevel" Type="GanttZoomLevel" Default="Week" Description="Dia | Semana | Mês | Ano." />
             <ShowcaseApiRow Name="ShowTodayLine / ShowWeekends / NonWorkingDays" Type="—" Default="true" Description="Linha de hoje e sombreado de fim de semana." />
@@ -187,12 +175,18 @@
 
 @code {
     private OmniGantt<GanttTask>? _dndGantt;
+    private static readonly GanttSchema<GanttTask> _ganttSchema =
+        GanttSchema<GanttTask>.Create(gantt => gantt
+            .Hierarchy(task => task.Id, task => task.ParentId)
+            .Task(task => task.Name, task => task.Start, task => task.End)
+            .Progress(task => task.Progress)
+            .Baseline(task => task.BaselineStart, task => task.BaselineEnd));
 
     private List<GanttTask> _tasks = new();
     private List<GanttDependency<GanttTask>> _deps = new();
     private List<GanttTask> _baselineTasks = new();
     private List<GanttTask> _depTasks = new();
-    private List<GanttTaskDependency> _typedDeps = new();
+    private List<GanttDependency<GanttTask>> _typedDeps = new();
     private List<GanttTask> _dndTasks = new();
     private GanttMarker[] _markers = Array.Empty<GanttMarker>();
 
@@ -245,9 +239,9 @@
         };
         _typedDeps = new()
         {
-            new() { PredecessorId = 1, SuccessorId = 2, Type = GanttDependencyType.FinishToStart },
-            new() { PredecessorId = 3, SuccessorId = 4, Type = GanttDependencyType.StartToStart },
-            new() { PredecessorId = 5, SuccessorId = 6, Type = GanttDependencyType.FinishToFinish },
+            new() { From = _depTasks[0], To = _depTasks[1], Type = GanttDependencyType.FinishToStart },
+            new() { From = _depTasks[2], To = _depTasks[3], Type = GanttDependencyType.StartToStart },
+            new() { From = _depTasks[4], To = _depTasks[5], Type = GanttDependencyType.FinishToFinish },
         };
 
         _dndTasks = new()

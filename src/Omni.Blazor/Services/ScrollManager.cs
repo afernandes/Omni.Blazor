@@ -41,9 +41,9 @@ public enum ScrollBlock
 /// </summary>
 public sealed class ScrollManager
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniScrollJsModule _js;
 
-    public ScrollManager(IJSRuntime js) => _js = js;
+    internal ScrollManager(IOmniScrollJsModule js) => _js = js;
 
     // Default selector "auto" tells JS to find the real scroll root — useful
     // in app-shell layouts (OmniLayout) where the scroll happens inside a
@@ -57,16 +57,16 @@ public sealed class ScrollManager
     /// Counter-based: matching <see cref="UnlockScrollAsync"/> calls release.
     /// </summary>
     public ValueTask LockScrollAsync(string selector = "auto")
-        => Invoke("omniBlazor.lockScroll", selector);
+        => Invoke("lockScroll", selector);
 
     /// <summary>Release one lock acquired via <see cref="LockScrollAsync"/>.</summary>
     public ValueTask UnlockScrollAsync(string selector = "auto")
-        => Invoke("omniBlazor.unlockScroll", selector);
+        => Invoke("unlockScroll", selector);
 
     /// <summary>Diagnostic — current lock count for a selector. Mostly for tests.</summary>
     public async ValueTask<int> GetLockCountAsync(string selector = "auto")
     {
-        try { return await _js.InvokeAsync<int>("omniBlazor.scrollLockCount", selector); }
+        try { return await _js.InvokeAsync<int>("scrollLockCount", selector); }
         catch { return 0; }
     }
 
@@ -75,24 +75,24 @@ public sealed class ScrollManager
     /// the auto-detected scrolling container.
     /// </summary>
     public ValueTask ScrollToAsync(string? selector, double top = 0, double left = 0, ScrollBehavior behavior = ScrollBehavior.Auto)
-        => Invoke("omniBlazor.scrollTo", selector ?? "auto", new { top, left, behavior = ToJs(behavior) });
+        => Invoke("scrollTo", selector ?? "auto", new { top, left, behavior = ToJs(behavior) });
 
     /// <summary>Bring an element into view (closest scrollable ancestor scrolls).</summary>
     public ValueTask ScrollIntoViewAsync(string selector, ScrollBehavior behavior = ScrollBehavior.Smooth, ScrollBlock block = ScrollBlock.Start)
-        => Invoke("omniBlazor.scrollIntoView", selector, new { behavior = ToJs(behavior), block = ToJsBlock(block) });
+        => Invoke("scrollIntoView", selector, new { behavior = ToJs(behavior), block = ToJsBlock(block) });
 
     /// <summary>Scroll a container (or the auto-detected root) to the top.</summary>
     public ValueTask ScrollToTopAsync(string? selector = null, ScrollBehavior behavior = ScrollBehavior.Smooth)
-        => Invoke("omniBlazor.scrollToTop", selector ?? "auto", ToJs(behavior));
+        => Invoke("scrollToTop", selector ?? "auto", ToJs(behavior));
 
     /// <summary>Scroll a container (or the auto-detected root) to the bottom.</summary>
     public ValueTask ScrollToBottomAsync(string? selector = null, ScrollBehavior behavior = ScrollBehavior.Smooth)
-        => Invoke("omniBlazor.scrollToBottom", selector ?? "auto", ToJs(behavior));
+        => Invoke("scrollToBottom", selector ?? "auto", ToJs(behavior));
 
     /// <summary>Read the current vertical scroll offset.</summary>
     public async ValueTask<double> GetScrollOffsetYAsync(string? selector = null)
     {
-        try { return await _js.InvokeAsync<double>("omniBlazor.scrollOffsetY", selector ?? "auto"); }
+        try { return await _js.InvokeAsync<double>("scrollOffsetY", selector ?? "auto"); }
         catch { return 0; }
     }
 
@@ -121,13 +121,13 @@ public sealed class ScrollManager
     /// </summary>
     private sealed class ScrollObserver : IAsyncDisposable
     {
-        private readonly IJSRuntime _js;
+        private readonly IOmniScrollJsModule _js;
         private readonly Func<ScrollPositionInfo, Task> _handler;
         private DotNetObjectReference<ScrollObserver>? _selfRef;
         private string? _token;
         private bool _disposed;
 
-        public ScrollObserver(IJSRuntime js, Func<ScrollPositionInfo, Task> handler)
+        public ScrollObserver(IOmniScrollJsModule js, Func<ScrollPositionInfo, Task> handler)
         {
             _js = js;
             _handler = handler;
@@ -139,7 +139,7 @@ public sealed class ScrollManager
             try
             {
                 _token = await _js.InvokeAsync<string?>(
-                    "omniBlazor.observeScrollPosition",
+                    "observeScrollPosition",
                     selector,
                     _selfRef,
                     new { method = nameof(OnScrollInternal), callOnInit = true });
@@ -156,7 +156,7 @@ public sealed class ScrollManager
             _disposed = true;
             if (_token is not null)
             {
-                try { await _js.InvokeVoidAsync("omniBlazor.unobserveScrollPosition", _token); }
+                try { await _js.InvokeVoidAsync("unobserveScrollPosition", _token); }
                 catch { }
             }
             _selfRef?.Dispose();
@@ -175,16 +175,16 @@ public sealed class ScrollManager
 
     private static string ToJs(ScrollBehavior b) => b switch
     {
-        ScrollBehavior.Smooth  => "smooth",
+        ScrollBehavior.Smooth => "smooth",
         ScrollBehavior.Instant => "instant",
-        _                      => "auto"
+        _ => "auto"
     };
 
     private static string ToJsBlock(ScrollBlock b) => b switch
     {
-        ScrollBlock.Center  => "center",
-        ScrollBlock.End     => "end",
+        ScrollBlock.Center => "center",
+        ScrollBlock.End => "end",
         ScrollBlock.Nearest => "nearest",
-        _                   => "start"
+        _ => "start"
     };
 }

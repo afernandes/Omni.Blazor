@@ -1,0 +1,176 @@
+@page "/showcase/data-import"
+@attribute [ShowcaseInfo(Title = "Data Import", Category = Cat.Data, Icon = "upload", New = true, Featured = true, Aliases = "csv,tsv,importacao,preview,mapping,validation")]
+@layout ShowcaseLayout
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using System.Text
+
+<PageTitle>Data Import — Showcase</PageTitle>
+
+@if (_interactiveReady)
+{
+    <span data-testid="data-import-interactive" aria-hidden="true"></span>
+}
+
+<ShowcasePage Title="Data Import"
+              Subtitle="Importação CSV/TSV tipada com mapeamento, pré-visualização, validação por linha e persistência cancelável.">
+    <Overview>
+        <p>
+            <code>OmniDataImport&lt;TItem&gt;</code> lê o arquivo incrementalmente com limites explícitos,
+            associa cabeçalhos a propriedades por expressões tipadas e cria objetos somente dentro da
+            janela configurada. Conversões, validadores do schema e DataAnnotations são executados antes
+            de qualquer item chegar ao handler.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <li>Cadastro em massa de produtos, clientes, tabelas de preço ou saldos.</li>
+        <li>Fluxos que precisam permitir ao usuário revisar e corrigir o mapeamento.</li>
+        <li>Quando a importação parcial deve ser uma decisão explícita e auditável.</li>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="CSV TIPADO E VALIDADO"
+                         Description="Escolha um CSV/TSV ou carregue o exemplo. A segunda linha é inválida de propósito; AllowPartialImport permite enviar apenas a linha válida em um snapshot imutável."
+                         Code="@ImportExample">
+            <div data-testid="data-import" style="max-width:980px;">
+                <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+                    <OmniButton Text="Carregar arquivo de exemplo"
+                                Icon="file-text"
+                                Variant="ButtonVariant.Ghost"
+                                OnClick="@CarregarExemploAsync" />
+                </div>
+                <OmniDataImport TItem="ProdutoImportacao"
+                                @ref="_importador"
+                                Schema="@ProdutoSchema"
+                                Culture="@(CultureInfo.GetCultureInfo("pt-BR"))"
+                                AllowPartialImport="true"
+                                Handler="@ImportarAsync"
+                                Imported="@AoImportar" />
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_resultado))
+            {
+                <div class="omni-alert omni-alert-success" role="status" style="margin-top:12px;">
+                    <div class="omni-alert-body">@_resultado</div>
+                </div>
+            }
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniDataImport&lt;TItem&gt;">
+            <ShowcaseApiRow Name="Schema" Type="DataImportSchema&lt;TItem&gt;" Default="obrigatório" Description="Factory, delimitador e colunas tipadas com aliases, parsing e validação." />
+            <ShowcaseApiRow Name="Handler" Type="DataImportHandler&lt;TItem&gt;" Default="—" Description="Recebe snapshot somente dos itens aceitos e CancellationToken." />
+            <ShowcaseApiRow Name="AllowPartialImport" Type="bool" Default="false" Description="Permite importar linhas válidas quando existem rejeições." />
+            <ShowcaseApiRow Name="MaxFileSize / MaximumRows" Type="long / int" Default="5 MB / 10.000" Description="Limites defensivos aplicados durante a leitura incremental." />
+            <ShowcaseApiRow Name="MaximumColumns / MaximumCellLength" Type="int" Default="256 / 32.768" Description="Limites de cardinalidade e tamanho por célula." />
+            <ShowcaseApiRow Name="LoadAsync / SetMappingAsync / ImportAsync" Type="Task" Default="—" Description="API imperativa observável para automação e fluxos customizados." />
+            <ShowcaseApiRow Name="Headers / Mappings / Rows" Type="IReadOnlyList" Default="estado atual" Description="Estado estruturado para inspeção, auditoria ou UI complementar." />
+            <ShowcaseApiRow Name="RowTemplate" Type="RenderFragment&lt;DataImportRow&lt;TItem&gt;&gt;" Default="tabela gerada" Description="Template tipado para uma pré-visualização especializada." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private bool _interactiveReady;
+    private OmniDataImport<ProdutoImportacao>? _importador;
+    private string? _resultado;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
+    }
+
+    private static readonly DataImportSchema<ProdutoImportacao> ProdutoSchema =
+        DataImportSchema<ProdutoImportacao>.Create(import => import
+            .Factory(static () => new ProdutoImportacao())
+            .Delimiter(';')
+            .Column(item => item.Codigo, column => column
+                .Header("Código")
+                .Aliases("Codigo", "SKU")
+                .Required("Informe o código."))
+            .Column(item => item.Descricao, column => column
+                .Header("Descrição")
+                .Aliases("Descricao", "Produto")
+                .Required("Informe a descrição."))
+            .Column(item => item.Preco, column => column
+                .Header("Preço")
+                .Aliases("Preco", "Valor")
+                .Required()
+                .Parse(ParseDecimal)
+                .Validate(value => value <= 0 ? "O preço deve ser positivo." : null))
+            .Column(item => item.Ativo, column => column
+                .Header("Ativo")
+                .Aliases("Habilitado")));
+
+    private async Task CarregarExemploAsync()
+    {
+        const string csv = "Código;Descrição;Preço;Ativo\r\nCAF-001;Café especial 500 g;34,90;sim\r\nPAO-010;Pão artesanal;valor-inválido;sim\r\n";
+        await using MemoryStream stream = new(Encoding.UTF8.GetBytes(csv));
+        await _importador!.LoadAsync(stream, "produtos-exemplo.csv");
+    }
+
+    private static async ValueTask ImportarAsync(
+        IReadOnlyList<ProdutoImportacao> produtos,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(180, cancellationToken);
+        // Neste showcase o handler simula a persistência em lote.
+        _ = produtos.Count;
+    }
+
+    private Task AoImportar(DataImportCompletedEventArgs<ProdutoImportacao> args)
+    {
+        _resultado = $"{args.Items.Count} produto(s) importado(s); {args.RejectedCount} linha(s) rejeitada(s).";
+        return Task.CompletedTask;
+    }
+
+    private static bool ParseDecimal(
+        ReadOnlySpan<char> text,
+        IFormatProvider provider,
+        out decimal value)
+    {
+        return decimal.TryParse(text, NumberStyles.Number, provider, out value);
+    }
+
+    private sealed class ProdutoImportacao
+    {
+        [Required]
+        public string? Codigo { get; set; }
+
+        [Required]
+        public string? Descricao { get; set; }
+
+        [Range(0.01, 1_000_000)]
+        public decimal Preco { get; set; }
+
+        public bool Ativo { get; set; }
+    }
+
+    private const string ImportExample = """
+        <OmniDataImport TItem="ProdutoImportacao"
+                        Schema="@ProdutoSchema"
+                        Culture="@CultureInfo.GetCultureInfo(\"pt-BR\")"
+                        AllowPartialImport="true"
+                        Handler="@ImportarAsync"
+                        Imported="@AoImportar" />
+
+        @code {
+            private static readonly DataImportSchema<ProdutoImportacao> ProdutoSchema =
+                DataImportSchema<ProdutoImportacao>.Create(import => import
+                    .Factory(static () => new ProdutoImportacao())
+                    .Delimiter(';')
+                    .Column(x => x.Codigo, c => c.Header("Código").Aliases("Codigo", "SKU").Required())
+                    .Column(x => x.Descricao, c => c.Header("Descrição").Aliases("Produto").Required())
+                    .Column(x => x.Preco, c => c.Header("Preço").Aliases("Valor").Parse(ParseDecimal))
+                    .Column(x => x.Ativo, c => c.Header("Ativo")));
+
+            private static async ValueTask ImportarAsync(
+                IReadOnlyList<ProdutoImportacao> produtos,
+                CancellationToken cancellationToken)
+                => await api.ImportarProdutosAsync(produtos, cancellationToken);
+        }
+        """;
+}

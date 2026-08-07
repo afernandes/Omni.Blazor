@@ -5,7 +5,12 @@ namespace Omni.Blazor.Mcp;
 // unknown JSON properties (e.g. "version") are ignored.
 
 /// <summary>Root of the component manifest.</summary>
-public sealed record Manifest(string Package, string Repository, int Count, List<Component> Components);
+public sealed record Manifest(
+    string Package,
+    string Repository,
+    int Count,
+    List<Component> Components,
+    List<ConfigurationApi>? ConfigurationApis = null);
 
 /// <summary>One component and its public surface.</summary>
 public sealed record Component(
@@ -32,3 +37,15 @@ public sealed record Param(
 
 /// <summary>One value of an enum-typed parameter.</summary>
 public sealed record EnumVal(string Name, string? Summary);
+
+/// <summary>One fluent schema, builder or provider design API.</summary>
+public sealed record ConfigurationApi(
+    string Name,
+    string Category,
+    string Kind,
+    string? Summary,
+    string Source,
+    List<ApiMember> Members);
+
+/// <summary>One callable or readable member of a configuration API.</summary>
+public sealed record ApiMember(string Name, string Kind, string Signature, string? Summary);

@@ -5,6 +5,7 @@
     - collapsible Razor source preview (syntax-highlighted, copy button)
 *@
 @inject IJSRuntime JS
+@inject ClipboardService Clipboard
 
 <section class="omni-section">
     <div class="omni-section-head">
@@ -78,7 +79,7 @@
     {
         try
         {
-            var ok = await JS.InvokeAsync<bool>("omniBlazor.copyText", Code);
+            var ok = await Clipboard.TryWriteTextAsync(Code ?? string.Empty);
             if (ok)
             {
                 _copied = true;

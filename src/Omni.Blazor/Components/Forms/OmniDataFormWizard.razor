@@ -1,0 +1,126 @@
+@namespace Omni.Blazor.Components
+@typeparam TModel where TModel : class
+@inherits OmniComponent
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Multi-step DataForm coordinator that preserves one EditContext and validates each explicit step before forward navigation. *@
+
+<div @ref="Element"
+     class="@RootCss"
+     style="@Style"
+     aria-busy="@_busy"
+     @attributes="Attributes">
+    <nav class="omni-data-form-wizard-nav" aria-label="@(NavigationLabel ?? Texts.DataFormWizardNavigation)">
+        <ol>
+            @for (int index = 0; index < _visibleSteps.Count; index++)
+            {
+                int targetIndex = index;
+                DataFormWizardStep<TModel> step = _visibleSteps[index];
+                <li @key="step.Id" class="@StepCss(index)">
+                    <button type="button"
+                            class="omni-data-form-wizard-step-button"
+                            disabled="@(!CanNavigateTo(index))"
+                            aria-current="@(index == ActiveStepIndex ? "step" : null)"
+                            @onclick="@(() => NavigateToAsync(targetIndex))">
+                        <span class="omni-data-form-wizard-step-index">
+                            @if (index < ActiveStepIndex)
+                            {
+                                <OmniIcon Name="check" Size="ComponentSize.Sm" />
+                            }
+                            else
+                            {
+                                @(index + 1)
+                            }
+                        </span>
+                        <span class="omni-data-form-wizard-step-copy">
+                            <span class="omni-data-form-wizard-step-title">@step.Title</span>
+                            @if (!string.IsNullOrWhiteSpace(step.Description))
+                            {
+                                <span class="omni-data-form-wizard-step-description">@step.Description</span>
+                            }
+                        </span>
+                    </button>
+                </li>
+            }
+        </ol>
+    </nav>
+
+    @if (CurrentStep is { } current && CurrentEditContext is { } context && CurrentModel is { } model)
+    {
+        DataFormWizardTemplateContext<TModel> templateContext = CreateTemplateContext(model, context, current);
+        <section class="omni-data-form-wizard-content" aria-labelledby="@CurrentTitleId">
+            @if (HeaderTemplate is not null)
+            {
+                @HeaderTemplate(templateContext)
+            }
+            else
+            {
+                <header class="omni-data-form-wizard-header">
+                    @if (!string.IsNullOrWhiteSpace(current.Icon))
+                    {
+                        <OmniIcon Name="@current.Icon" />
+                    }
+                    <div>
+                        <h2 id="@CurrentTitleId">@current.Title</h2>
+                        @if (!string.IsNullOrWhiteSpace(current.Description))
+                        {
+                            <p>@current.Description</p>
+                        }
+                    </div>
+                </header>
+            }
+
+            <OmniDataForm TModel="TModel"
+                          @key="current.Id"
+                          @ref="_form"
+                          EditContext="@context"
+                          Schema="@current.Schema"
+                          Disabled="@Disabled"
+                          Submitting="@_busy"
+                          RenderFormElement="@RenderFormElement"
+                          ShowValidationSummary="@ShowValidationSummary"
+                          ShowSubmitButton="false">
+                <Actions>
+                    @if (ActionsTemplate is not null)
+                    {
+                        @ActionsTemplate(templateContext)
+                    }
+                    else
+                    {
+                        <div class="omni-data-form-wizard-actions">
+                            @if (ActiveStepIndex > 0)
+                            {
+                                <OmniButton Text="@(BackText ?? Texts.Back)"
+                                            Icon="arrow-left"
+                                            Disabled="@(_busy || Disabled)"
+                                            OnClick="@(_ => BackAsync())" />
+                            }
+                            <span class="omni-data-form-wizard-actions-spacer"></span>
+                            @if (ActiveStepIndex < _visibleSteps.Count - 1)
+                            {
+                                <OmniButton Text="@(NextText ?? Texts.Next)"
+                                            Icon="arrow-right"
+                                            Variant="ButtonVariant.Primary"
+                                            Loading="@_busy"
+                                            Disabled="@Disabled"
+                                            OnClick="@(_ => NextAsync())" />
+                            }
+                            else
+                            {
+                                <OmniButton Text="@(CompleteText ?? Texts.Complete)"
+                                            Icon="check"
+                                            Variant="ButtonVariant.Primary"
+                                            Loading="@_busy"
+                                            Disabled="@Disabled"
+                                            OnClick="@(_ => CompleteAsync())" />
+                            }
+                        </div>
+                    }
+                </Actions>
+            </OmniDataForm>
+        </section>
+    }
+</div>

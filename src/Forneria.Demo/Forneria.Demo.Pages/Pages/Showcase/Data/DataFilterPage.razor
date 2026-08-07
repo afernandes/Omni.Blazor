@@ -4,6 +4,11 @@
 
 <PageTitle>DataFilter — Showcase</PageTitle>
 
+@if (_interactiveReady)
+{
+    <span data-testid="data-filter-interactive" aria-hidden="true"></span>
+}
+
 <ShowcasePage Title="DataFilter"
               Subtitle="Construtor visual de consultas — condições e grupos aninhados (E/OU) que geram um predicado em memória.">
 
@@ -12,11 +17,16 @@
             O <code>OmniDataFilter</code> deixa o usuário montar um filtro composto: cada
             <strong>condição</strong> é <em>campo + operador + valor</em>, e várias condições se
             combinam por <strong>E</strong>/<strong>OU</strong>. Dá para aninhar <strong>grupos</strong>
-            para expressões complexas. Os campos filtráveis são declarados com
-            <code>OmniDataFilterProperty</code> (com <code>Type</code> = Text/Number/Date/Boolean/Select),
-            que define os operadores e o editor de valor apropriado. O componente produz um
+            para expressões complexas. Os campos filtráveis são declarados no
+            <code>DataFilterSchema&lt;TItem&gt;</code> com expressões verificadas pelo compilador;
+            o schema define operadores, opções e o editor de valor apropriado. O componente produz um
             <code>Predicate</code> e uma <code>View</code> filtrada, e dispara <code>Filter</code> a cada
             mudança (modo <code>Auto</code>) ou ao clicar em <em>Aplicar</em>.
+        </p>
+        <p>
+            O estado pode ser representado por um
+            <code>DataFilterQuery&lt;TItem&gt;</code> imutável, versionado e serializável. A consulta
+            pode ser aplicada tanto a <code>IEnumerable</code> quanto a <code>IQueryable</code>.
         </p>
         <p>
             Com <code>AllowSqlMode</code> o filtro ganha um toggle <strong>Visual ⇄ SQL</strong>: o usuário vê
@@ -40,14 +50,57 @@
     </WhenNotToUse>
 
     <ChildContent>
+        <ShowcaseSection Title="SCHEMA TIPADO + QUERY SERIALIZÁVEL"
+                         Description="Expressões eliminam nomes de propriedades frágeis. A árvore E/OU é imutável, limitada, validada contra o schema e pode ser salva ou enviada a um provider remoto."
+                         Code="@(@"private static readonly DataFilterSchema<Person> Schema =
+    DataFilterSchema<Person>.Create(schema =>
+    {
+        schema.Field(x => x.Name, field => field.Id(""name"").Title(""Nome""));
+        schema.Field(x => x.Age, field => field.Id(""age"").Title(""Idade""));
+        schema.Field(x => x.City, field => field.Id(""city"").Title(""Cidade"")
+            .Select(Cities));
+        schema.Field(x => x.Active, field => field.Id(""active"").Title(""Ativo""));
+    });
+
+private DataFilterQuery<Person> query = Schema.Query(root => root
+    .Condition(x => x.Active, FilterOperator.Equals, true)
+    .Group(FilterLogic.Or, group => group
+        .Condition(x => x.City, FilterOperator.Equals, ""São Paulo"")
+        .Condition(x => x.Age, FilterOperator.GreaterOrEqual, 40)));
+
+<OmniDataFilter TItem=""Person"" Data=""people"" Schema=""Schema""
+                @bind-Query=""query"" Filter=""OnFilter"" />
+
+// Persistência segura e versionada
+string json = query.Serialize();
+query = DataFilterQuery<Person>.Deserialize(json, Schema);
+
+// Provider LINQ/EF
+IQueryable<Person> filtered = query.Apply(source, Schema);")">
+            <OmniDataFilter TItem="Person"
+                            data-testid="typed-data-filter"
+                            Data="_people"
+                            Schema="_typedSchema"
+                            @bind-Query="_typedQuery"
+                            Filter="@(items => _typedView = items.ToList())"
+                            AllowSqlMode="true"
+                            ShowSqlPreview="true" />
+
+            <div style="margin-top:12px;display:grid;gap:8px;">
+                <div data-testid="typed-data-filter-result" style="font-size:12px;color:var(--omni-fg-soft)">
+                    Resultado tipado: <strong>@_typedView.Count</strong> de @_people.Count
+                </div>
+                <details>
+                    <summary style="cursor:pointer;font-size:12px;color:var(--omni-fg-soft)">JSON versionado</summary>
+                    <pre style="margin-top:8px;white-space:pre-wrap;overflow:auto;font-size:11px;">@_typedQuery.Serialize()</pre>
+                </details>
+            </div>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="FILTRO INICIAL VIA CÓDIGO (AUTO)"
                          Description="Abre já filtrado: Rules é semeado no código (Cidade = São Paulo) e aplicado na inicialização. Edite à vontade — a tabela reflete em tempo real."
-                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" @bind-Rules=""rules""
-                Filter=""@(v => view = v.ToList())"">
-    <OmniDataFilterProperty Property=""Name"" Title=""Nome"" />
-    <OmniDataFilterProperty Property=""City"" Title=""Cidade"" Type=""ColumnFilterType.Select"" Options=""cities"" />
-    ...
-</OmniDataFilter>
+                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" Schema=""Schema""
+                @bind-Rules=""rules"" Filter=""@(v => view = v.ToList())"" />
 
 @code {
     // filtro pré-aplicado via código
@@ -56,13 +109,8 @@
         new() { Property = ""City"", Operator = FilterOperator.Equals, Value = ""São Paulo"" }
     };
 }")">
-            <OmniDataFilter TItem="Person" Data="_people" @bind-Rules="_rules" Filter="@(v => { _view = v.ToList(); })">
-                <OmniDataFilterProperty Property="Name" Title="Nome" />
-                <OmniDataFilterProperty Property="Age" Title="Idade" Type="ColumnFilterType.Number" />
-                <OmniDataFilterProperty Property="City" Title="Cidade" Type="ColumnFilterType.Select" Options="_cityOptions" />
-                <OmniDataFilterProperty Property="Active" Title="Ativo" Type="ColumnFilterType.Boolean" />
-                <OmniDataFilterProperty Property="JoinDate" Title="Entrada" Type="ColumnFilterType.Date" />
-            </OmniDataFilter>
+            <OmniDataFilter TItem="Person" Data="_people" Schema="_filterSchema"
+                            @bind-Rules="_rules" Filter="@(v => { _view = v.ToList(); })" />
 
             <div style="margin-top:14px;font-size:12px;color:var(--omni-fg-soft)">
                 Mostrando <strong>@_view.Count()</strong> de @_people.Count
@@ -97,15 +145,10 @@
 
         <ShowcaseSection Title="MANUAL (Auto=false)"
                          Description="Com Auto=false o filtro só é aplicado ao clicar em “Aplicar” — útil para consultas caras."
-                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" Auto=""false""
-                Filter=""@(v => view = v.ToList())"">
-    ...propriedades...
-</OmniDataFilter>")">
-            <OmniDataFilter TItem="Person" Data="_people" Auto="false" Filter="@(v => { _view2 = v.ToList(); })">
-                <OmniDataFilterProperty Property="Name" Title="Nome" />
-                <OmniDataFilterProperty Property="Age" Title="Idade" Type="ColumnFilterType.Number" />
-                <OmniDataFilterProperty Property="Active" Title="Ativo" Type="ColumnFilterType.Boolean" />
-            </OmniDataFilter>
+                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" Schema=""Schema""
+                Auto=""false"" Filter=""@(v => view = v.ToList())"" />")">
+            <OmniDataFilter TItem="Person" Data="_people" Schema="_filterSchema"
+                            Auto="false" Filter="@(v => { _view2 = v.ToList(); })" />
             <div style="margin-top:10px;font-size:12px;color:var(--omni-fg-soft)">
                 Resultado aplicado: <strong>@_view2.Count()</strong> registro(s)
             </div>
@@ -113,12 +156,9 @@
 
         <ShowcaseSection Title="MODO SQL (VISUAL ⇄ SQL)"
                          Description="AllowSqlMode adiciona o toggle Visual/SQL — gere o WHERE do filtro, edite e aplique de volta (com validação ao vivo). ShowSqlPreview exibe o SQL gerado, somente leitura, no modo visual."
-                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" AllowSqlMode=""true"" ShowSqlPreview=""true""
-                Filter=""@(v => view = v.ToList())"">
-    <OmniDataFilterProperty Property=""Name"" Title=""Nome"" />
-    <OmniDataFilterProperty Property=""Age""  Title=""Idade"" Type=""ColumnFilterType.Number"" />
-    ...
-</OmniDataFilter>
+                         Code="@(@"<OmniDataFilter TItem=""Person"" Data=""people"" Schema=""Schema""
+                AllowSqlMode=""true"" ShowSqlPreview=""true""
+                Filter=""@(v => view = v.ToList())"" />
 
 @* Programático (o conversor é público): *@
 @code {
@@ -126,13 +166,9 @@
     bool ok = FilterSqlConverter.TryParse(""Age >= 30 AND Name LIKE '%a%'"",
                                           props, out var r, out var logic, out var err);
 }")">
-            <OmniDataFilter TItem="Person" Data="_people" AllowSqlMode="true" ShowSqlPreview="true" Filter="@(v => { _view3 = v.ToList(); })">
-                <OmniDataFilterProperty Property="Name" Title="Nome" />
-                <OmniDataFilterProperty Property="Age" Title="Idade" Type="ColumnFilterType.Number" />
-                <OmniDataFilterProperty Property="City" Title="Cidade" Type="ColumnFilterType.Select" Options="_cityOptions" />
-                <OmniDataFilterProperty Property="Active" Title="Ativo" Type="ColumnFilterType.Boolean" />
-                <OmniDataFilterProperty Property="JoinDate" Title="Entrada" Type="ColumnFilterType.Date" />
-            </OmniDataFilter>
+            <OmniDataFilter TItem="Person" Data="_people" Schema="_filterSchema"
+                            AllowSqlMode="true" ShowSqlPreview="true"
+                            Filter="@(v => { _view3 = v.ToList(); })" />
             <div style="margin-top:10px;font-size:12px;color:var(--omni-fg-soft)">
                 Resultado: <strong>@_view3.Count()</strong> de @_people.Count ·
                 experimente no modo SQL: <code>Age &gt;= 30 AND Name LIKE '%a%'</code>
@@ -143,6 +179,8 @@
     <Api>
         <ShowcaseApiTable Title="Parâmetros — OmniDataFilter&lt;TItem&gt;">
             <ShowcaseApiRow Name="Data" Type="IEnumerable<TItem>?" Default="null" Description="Itens a filtrar." />
+            <ShowcaseApiRow Name="Schema" Type="DataFilterSchema<TItem>" Default="obrigatório" Description="Campos tipados, operadores, opções, codecs e limites da consulta." />
+            <ShowcaseApiRow Name="Query / QueryChanged" Type="DataFilterQuery<TItem>? / EventCallback" Default="null" Description="Snapshot imutável e versionado da árvore visual." />
             <ShowcaseApiRow Name="Filter / ViewChanged" Type="EventCallback<IEnumerable<TItem>>" Default="—" Description="Itens filtrados (em Auto ou ao Aplicar)." />
             <ShowcaseApiRow Name="View" Type="IEnumerable<TItem>" Default="—" Description="Itens filtrados (propriedade somente-leitura)." />
             <ShowcaseApiRow Name="Predicate" Type="Func<TItem, bool>" Default="—" Description="Predicado compilado do filtro atual." />
@@ -153,13 +191,16 @@
             <ShowcaseApiRow Name="Disabled" Type="bool" Default="false" Description="Desabilita o construtor." />
             <ShowcaseApiRow Name="AllowSqlMode" Type="bool" Default="false" Description="Toggle Visual/SQL: editar o filtro como WHERE e aplicar de volta (validado)." />
             <ShowcaseApiRow Name="ShowSqlPreview" Type="bool" Default="false" Description="Disclosure somente-leitura com o SQL gerado, no modo visual." />
+            <ShowcaseApiRow Name="CaptureQuery / ApplyQueryAsync" Type="métodos" Default="—" Description="Captura ou aplica programaticamente uma query validada." />
         </ShowcaseApiTable>
-        <ShowcaseApiTable Title="OmniDataFilterProperty">
-            <ShowcaseApiRow Name="Property" Type="string" Default="—" Description="Nome do membro (reflection)." />
-            <ShowcaseApiRow Name="Title" Type="string?" Default="Property" Description="Rótulo no seletor de campo." />
-            <ShowcaseApiRow Name="Type" Type="ColumnFilterType" Default="Text" Description="Text | Number | Date | Boolean | Select." />
-            <ShowcaseApiRow Name="Operators" Type="IEnumerable<FilterOperator>?" Default="(por tipo)" Description="Operadores disponíveis (override)." />
-            <ShowcaseApiRow Name="Options / OptionText" Type="IEnumerable<object>? / Func" Default="—" Description="Valores e rótulo para o tipo Select." />
+        <ShowcaseApiTable Title="Schema e Query tipados">
+            <ShowcaseApiRow Name="DataFilterSchema.Create" Type="Action<DataFilterSchemaBuilder<TItem>>" Default="—" Description="Cria um schema imutável e reutilizável." />
+            <ShowcaseApiRow Name="Field" Type="Expression<Func<TItem,TValue>>" Default="—" Description="Declara um membro verificável pelo compilador." />
+            <ShowcaseApiRow Name="Id / Title / Type" Type="fluent" Default="inferido" Description="Identidade persistível, rótulo e família de editor." />
+            <ShowcaseApiRow Name="Operators / Select / ValueCodec" Type="fluent" Default="por TValue" Description="Restringe operadores, opções tipadas e tipos customizados." />
+            <ShowcaseApiRow Name="Query / Group / Condition / Between" Type="fluent" Default="—" Description="Monta árvores tipadas com E/OU e intervalos." />
+            <ShowcaseApiRow Name="Serialize / Deserialize" Type="string / DataFilterQuery<TItem>" Default="versão 1" Description="Contrato JSON limitado e validado contra o schema." />
+            <ShowcaseApiRow Name="Compile / ToExpression / Apply" Type="predicate / expression / sequence" Default="—" Description="Execução local ou por IQueryable." />
         </ShowcaseApiTable>
     </Api>
 
@@ -167,6 +208,8 @@
 
 @code {
     public record Person(string Name, int Age, string City, bool Active, DateTime JoinDate);
+
+    private bool _interactiveReady;
 
     private readonly List<Person> _people = new()
     {
@@ -180,8 +223,48 @@
         new("Hugo Pereira", 47, "Belo Horizonte", true, new DateTime(2016, 12, 12)),
     };
 
-    private readonly IEnumerable<object> _cityOptions = new object[]
+    private static readonly string[] _cities =
     { "São Paulo", "Rio de Janeiro", "Curitiba", "Belo Horizonte" };
+
+    private static readonly DataFilterSchema<Person> _typedSchema =
+        DataFilterSchema<Person>.Create(schema =>
+        {
+            schema.Field(person => person.Name, field => field.Id("name").Title("Nome"));
+            schema.Field(person => person.Age, field => field
+                .Id("age")
+                .Title("Idade")
+                .Operators(
+                    FilterOperator.Equals,
+                    FilterOperator.NotEquals,
+                    FilterOperator.GreaterThan,
+                    FilterOperator.GreaterOrEqual,
+                    FilterOperator.LessThan,
+                    FilterOperator.LessOrEqual,
+                    FilterOperator.Between,
+                    FilterOperator.NotBetween));
+            schema.Field(person => person.City, field => field
+                .Id("city")
+                .Title("Cidade")
+                .Select(_cities));
+            schema.Field(person => person.Active, field => field.Id("active").Title("Ativo"));
+            schema.Field(person => person.JoinDate, field => field.Id("joinDate").Title("Entrada"));
+        });
+
+    private static readonly DataFilterSchema<Person> _filterSchema =
+        DataFilterSchema<Person>.Create(schema =>
+        {
+            schema.Field(person => person.Name, field => field.Title("Nome"));
+            schema.Field(person => person.Age, field => field.Title("Idade"));
+            schema.Field(person => person.City, field => field.Title("Cidade").Select(_cities));
+            schema.Field(person => person.Active, field => field.Title("Ativo"));
+            schema.Field(person => person.JoinDate, field => field.Title("Entrada"));
+        });
+
+    private DataFilterQuery<Person> _typedQuery = _typedSchema.Query(root => root
+        .Condition(person => person.Active, FilterOperator.Equals, true)
+        .Group(FilterLogic.Or, group => group
+            .Condition(person => person.City, FilterOperator.Equals, "São Paulo")
+            .Condition(person => person.Age, FilterOperator.GreaterOrEqual, 40)));
 
     // Filtro pré-aplicado via código — semeado em Rules e aplicado na inicialização.
     private List<OmniFilterRule> _rules = new()
@@ -192,6 +275,7 @@
     private IEnumerable<Person> _view = Enumerable.Empty<Person>();
     private IEnumerable<Person> _view2 = Enumerable.Empty<Person>();
     private IEnumerable<Person> _view3 = Enumerable.Empty<Person>();
+    private IReadOnlyList<Person> _typedView = [];
 
     private const string _th = "padding:8px 10px;font-weight:600;color:var(--omni-fg-soft);white-space:nowrap;";
     private const string _td = "padding:8px 10px;";
@@ -201,5 +285,13 @@
         _view = _people;
         _view2 = _people;
         _view3 = _people;
+        _typedView = _typedQuery.Apply(_people, _typedSchema).ToList();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
     }
 }

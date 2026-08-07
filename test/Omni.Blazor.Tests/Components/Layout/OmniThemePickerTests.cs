@@ -16,7 +16,9 @@ public class OmniThemePickerTests : TestContextBase
     {
         // ThemePicker injects ThemeService — register it for the tests using a
         // JSInterop-backed instance from the bUnit context.
-        Services.AddSingleton<ThemeService>(sp => new ThemeService(sp.GetRequiredService<IJSRuntime>()));
+        Services.AddSingleton<ThemeService>(sp => new ThemeService(
+            sp.GetRequiredService<IOmniCoreJsModule>(),
+            sp.GetRequiredService<IOmniResponsiveJsModule>()));
     }
 
     [Fact]

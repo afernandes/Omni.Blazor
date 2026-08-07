@@ -1,0 +1,63 @@
+@page "/showcase/property-grid"
+@attribute [ShowcaseInfo(Title = "Property Grid", Category = Cat.Forms, Icon = "sliders-horizontal", New = true, Aliases = "inspector,properties,metadata")]
+@layout ShowcaseLayout
+
+<PageTitle>Property Grid — Showcase</PageTitle>
+
+<ShowcasePage Title="Property Grid"
+              Subtitle="Inspector compacto e tipado para editar configurações, nós de workflow e propriedades de objetos.">
+    <Overview>
+        <p>
+            O <code>OmniPropertyGrid&lt;TModel&gt;</code> reutiliza o motor do
+            <code>OmniDataForm</code>, aceita <code>DataFormSchema</code> e
+            <code>EditContext</code> externos e remove a cerimônia de um formulário completo.
+        </p>
+    </Overview>
+    <WhenToUse>
+        <ul>
+            <li>Inspectores laterais de designers, dashboards e ferramentas administrativas.</li>
+            <li>Configurações compactas que precisam de validação e metadados tipados.</li>
+        </ul>
+    </WhenToUse>
+    <WhenNotToUse>
+        <ul><li>Fluxos longos de cadastro; prefira <code>OmniDataForm</code> ou <code>OmniDataFormWizard</code>.</li></ul>
+    </WhenNotToUse>
+    <ChildContent>
+        <ShowcaseSection Title="INSPECTOR EDITÁVEL"
+                         Description="O mesmo schema pode ser compartilhado com formulários, CRUD e WorkflowDesigner."
+                         Code="@ExampleCode">
+            <div style="max-width:520px">
+                <OmniPropertyGrid TModel="PainelConfig"
+                                  Model="@_config"
+                                  Schema="@ConfigSchema"
+                                  Title="Propriedades do painel"
+                                  Editable="true" />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private readonly PainelConfig _config = new();
+
+    private static readonly DataFormSchema<PainelConfig> ConfigSchema = DataFormSchema<PainelConfig>.Create(form => form
+        .AutoGenerateFields(false)
+        .Field(model => model.Titulo, field => field.Label("Título"))
+        .Field(model => model.AtualizacaoAutomatica, field => field.Label("Atualização automática"))
+        .Field(model => model.IntervaloSegundos, field => field.Label("Intervalo (segundos)")));
+
+    private const string ExampleCode = """
+<OmniPropertyGrid TModel="PainelConfig"
+                  Model="@config"
+                  Schema="@ConfigSchema"
+                  Title="Propriedades do painel"
+                  Editable="true" />
+""";
+
+    private sealed class PainelConfig
+    {
+        public string Titulo { get; set; } = "Vendas por região";
+        public bool AtualizacaoAutomatica { get; set; } = true;
+        public int IntervaloSegundos { get; set; } = 30;
+    }
+}

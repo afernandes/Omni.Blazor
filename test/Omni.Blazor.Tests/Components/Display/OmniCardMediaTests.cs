@@ -23,11 +23,11 @@ public class OmniCardMediaTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(CardMediaPosition.Top,     "omni-card-media-top")]
-    [InlineData(CardMediaPosition.Bottom,  "omni-card-media-bottom")]
+    [InlineData(CardMediaPosition.Top, "omni-card-media-top")]
+    [InlineData(CardMediaPosition.Bottom, "omni-card-media-bottom")]
     [InlineData(CardMediaPosition.Overlay, "omni-card-media-overlay")]
-    [InlineData(CardMediaPosition.Start,   "omni-card-media-start")]
-    [InlineData(CardMediaPosition.End,     "omni-card-media-end")]
+    [InlineData(CardMediaPosition.Start, "omni-card-media-start")]
+    [InlineData(CardMediaPosition.End, "omni-card-media-end")]
     public void Applies_position_class(CardMediaPosition pos, string expected)
     {
         var cut = Render<OmniCardMedia>(p => p

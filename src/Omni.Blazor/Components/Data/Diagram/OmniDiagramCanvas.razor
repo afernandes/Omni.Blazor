@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponent
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniDiagramJsModule JS
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
 
@@ -15,7 +15,7 @@
     High-frequency interaction (pan, zoom, node drag, connect, marquee) lives
     entirely in the lazy JS module wwwroot/js/omni-diagram.js; .NET is invoked
     only on gesture COMMIT — never per mousemove. That module is intentionally
-    separate from Omni.js so it loads on demand and stays isolated.
+    separate from the shared feature modules so it loads on demand and stays isolated.
 *@
 
 <div class="@RootCss" style="@Style" @attributes="Attributes" id="@Id" tabindex="0">
@@ -191,12 +191,14 @@
 </div>
 
 @code {
-    private IJSObjectReference? _module;
     private IJSObjectReference? _instance;
     private DotNetObjectReference<OmniDiagramCanvas>? _selfRef;
     private DiagramViewport _viewport = DiagramViewport.Default;
     private DiagramSelection _selection = DiagramSelection.Empty;
     private bool _fitted;
+
+    /// <summary>Optional immutable fluent schema for graph structure and canvas defaults.</summary>
+    [Parameter] public DiagramSchema? Schema { get; set; }
 
     /// <summary>Graph nodes (world coordinates).</summary>
     [Parameter] public IReadOnlyList<DiagramNode> Nodes { get; set; } = [];
@@ -277,6 +279,11 @@
 
     protected override void OnInitialized()
     {
+        RegisterParameter<DiagramSchema?>(nameof(Schema))
+            .WithParameter(() => Schema)
+            .WithChangeHandler(_ => ApplySchemaConfigurationAsync())
+            .Attach();
+
         _viewport = Viewport;
         _selection = Selection;
 
@@ -306,13 +313,38 @@
             .Attach();
     }
 
+    private async Task ApplySchemaConfigurationAsync()
+    {
+        if (Schema is not { } schema) return;
+        Nodes = schema.Nodes;
+        Edges = schema.Edges;
+        Viewport = schema.Viewport;
+        _viewport = schema.Viewport;
+        ReadOnly = schema.ReadOnly;
+        FitOnMount = schema.FitOnMount;
+        ShowMinimap = schema.ShowMinimap;
+        ShowControls = schema.ShowControls;
+        ShowAutoLayout = schema.ShowAutoLayout;
+        DropPayloadFormat = schema.DropPayloadFormat;
+        AutoLayoutText = schema.AutoLayoutText;
+        ZoomInText = schema.ZoomInText;
+        ZoomOutText = schema.ZoomOutText;
+        FitText = schema.FitText;
+        _fitted = false;
+
+        if (_instance is not null)
+        {
+            await _instance.InvokeVoidAsync("setViewport", _viewport.X, _viewport.Y, _viewport.Zoom);
+            await _instance.InvokeVoidAsync("setReadOnly", ReadOnly);
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _selfRef = DotNetObjectReference.Create(this);
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Omni.Blazor/js/omni-diagram.js");
-            _instance = await _module.InvokeAsync<IJSObjectReference>("init",
+            _instance = await JS.InitializeAsync(
                 Id, _selfRef, new
                 {
                     readOnly = ReadOnly,
@@ -562,7 +594,6 @@
                 await _instance.InvokeVoidAsync("dispose");
                 await _instance.DisposeAsync();
             }
-            if (_module is not null) await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

@@ -9,7 +9,9 @@ namespace Omni.Blazor.Tests.Services;
 /// </summary>
 public class ThemeServiceTests : TestContextBase
 {
-    private ThemeService NewService() => new(JSInterop.JSRuntime);
+    private ThemeService NewService() => new(
+        new TestJsModule(JSInterop.JSRuntime),
+        new TestJsModule(JSInterop.JSRuntime));
 
     [Fact]
     public void Defaults_are_amber_light_comfortable_and_not_initialized()

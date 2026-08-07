@@ -1,9 +1,9 @@
 @namespace Omni.Templates.Shared
-@inject IJSRuntime JS
+@inject ClipboardService Clipboard
 
 @* Per-template wrapper: header (title + actions), a framed live preview, and a
    collapsible source panel with a copy button. The Code string is the artifact
-   the user copies. Copy uses omniBlazor.copyText (ships in _content/Omni.Blazor). *@
+   the user copies. Copy goes through Omni.Blazor's typed clipboard service. *@
 
 <div class="tpl-doc">
     <header class="tpl-doc-head">
@@ -76,7 +76,7 @@
     {
         try
         {
-            var ok = await JS.InvokeAsync<bool>("omniBlazor.copyText", Code);
+            var ok = await Clipboard.TryWriteTextAsync(Code ?? string.Empty);
             if (ok)
             {
                 _copied = true;

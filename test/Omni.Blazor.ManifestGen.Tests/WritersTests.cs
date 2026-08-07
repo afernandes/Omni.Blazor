@@ -56,4 +56,22 @@ public class WritersTests
             "src/x.razor", [new("Severity", "parameter", "NotificationSeverity", null, null, null, Required: true, "Sev.", null)]);
         Assert.Contains("*required*", Writers.LlmsFull([c], []));
     }
+
+    [Fact]
+    public void LlmsFull_renders_fluent_configuration_apis()
+    {
+        ConfigurationApiInfo api = new(
+            "DataGridFormSchemaBuilder<TItem, TKey>",
+            "Data",
+            "class",
+            "Builds a CRUD schema.",
+            "src/Omni.Blazor/Models/DataGridFormSchema.cs",
+            [new ApiMemberInfo("Create", "method", "DataGridFormSchemaBuilder<TItem, TKey> Create(Action configure)", "Configures creation.")]);
+
+        string text = Writers.LlmsFull([Button()], [], [api]);
+
+        Assert.Contains("## Fluent configuration APIs", text);
+        Assert.Contains("### DataGridFormSchemaBuilder<TItem, TKey>", text);
+        Assert.Contains("`DataGridFormSchemaBuilder<TItem, TKey> Create(Action configure)` — Configures creation.", text);
+    }
 }

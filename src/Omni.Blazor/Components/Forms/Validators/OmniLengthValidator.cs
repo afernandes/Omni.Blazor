@@ -23,9 +23,9 @@ public class OmniLengthValidator : OmniValidatorBase
 
         int len = v switch
         {
-            string s                              => s.Length,
-            System.Collections.ICollection col    => col.Count,
-            _                                      => v.ToString()?.Length ?? 0,
+            string s => s.Length,
+            System.Collections.ICollection col => col.Count,
+            _ => v.ToString()?.Length ?? 0,
         };
         if (Min.HasValue && len < Min.Value) return false;
         if (Max.HasValue && len > Max.Value) return false;

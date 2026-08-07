@@ -31,4 +31,25 @@ public static class OmniCatalogTools
         ComponentCatalog catalog,
         [Description("Search text, e.g. 'date', 'chat', 'grid'.")] string query)
         => catalog.SearchText(query);
+
+    [McpServerTool(Name = "list_configuration_apis")]
+    [Description("List typed Omni.Blazor schemas, fluent builders and provider APIs. Optionally filter by Forms or Data.")]
+    public static string ListConfigurationApis(
+        ComponentCatalog catalog,
+        [Description("Optional category filter: Forms or Data.")] string? category = null)
+        => catalog.ListConfigurationApisText(category);
+
+    [McpServerTool(Name = "get_configuration_api")]
+    [Description("Get constructors, properties and fluent methods for an Omni.Blazor schema, builder or provider type.")]
+    public static string GetConfigurationApi(
+        ComponentCatalog catalog,
+        [Description("Exact friendly type name, e.g. DataGridFormSchemaBuilder<TItem, TKey>.")] string name)
+        => catalog.DescribeConfigurationApi(name);
+
+    [McpServerTool(Name = "search_configuration_apis")]
+    [Description("Search Omni.Blazor schema, builder and provider APIs by type, method signature or documentation.")]
+    public static string SearchConfigurationApis(
+        ComponentCatalog catalog,
+        [Description("Search text, e.g. Collection, VisibleWhen, IDataGridFormProvider.")] string query)
+        => catalog.SearchConfigurationApisText(query);
 }

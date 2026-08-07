@@ -10,7 +10,7 @@
     <Overview>
         <p>
             A <code>Omni.Blazor</code> é uma biblioteca de componentes para
-            <strong>.NET 10</strong> — 77 componentes prontos para apps de negócio
+            <strong>.NET 10</strong> — 202 componentes prontos para apps de negócio
             (PDV, CRUD, dashboards). Esta página mostra o setup mínimo. Cada bloco
             tem o snippet pronto para copiar.
         </p>
@@ -24,7 +24,7 @@
     <ChildContent>
         <ShowcaseSection Title="1 · Instalar o pacote"
                          Description="Via NuGet, ou ProjectReference se a lib está no mesmo monorepo."
-                         Code="@(@"dotnet add package Omni.Blazor")">
+                         Code="@(@"dotnet add package AndersonN.Omni.Blazor")">
             <p class="omni-muted">
                 Adiciona a <code>Omni.Blazor</code> às dependências do projeto.
                 Em monorepo, use um <code>&lt;ProjectReference&gt;</code> apontando
@@ -49,8 +49,8 @@
                          Description="No Program.cs — registra Dialog, Notification, Tooltip, ContextMenu, Theme, Hotkey, ScrollManager, Breakpoint e KeyInterceptor."
                          Code="@(@"builder.Services.AddOmniComponents();")">
             <p class="omni-muted">
-                Uma única chamada registra os 9 serviços da biblioteca como
-                <code>Scoped</code>.
+                Uma única chamada registra os serviços públicos da biblioteca com
+                os lifetimes apropriados.
             </p>
         </ShowcaseSection>
 
@@ -66,20 +66,19 @@
                 <code>data-accent</code> no <code>&lt;html&gt;</code> antes do
                 corpo renderizar. Acentos: <code>amber</code> (padrão),
                 <code>emerald</code>, <code>blue</code>, <code>violet</code>,
-                <code>crimson</code>. Use <code>Dark="true"</code> para iniciar
-                em dark mode. A troca em runtime fica com o <code>ThemeService</code>.
+                <code>crimson</code>, além das demais opções do catálogo. Use
+                <code>Dark="true"</code> para iniciar em dark mode. A troca de tema,
+                accent e densidade em runtime fica com o <code>ThemeService</code>.
             </p>
         </ShowcaseSection>
 
-        <ShowcaseSection Title="5 · Incluir o JavaScript"
-                         Description="No App.razor, antes do blazor.*.js."
-                         Code="@(@"<script src=""_content/Omni.Blazor/js/omni.js""></script>")">
+        <ShowcaseSection Title="5 · JavaScript automático"
+                         Description="Nenhuma tag script precisa ser adicionada pelo consumidor."
+                         Code="@(@"// Nenhuma tag <script>: AddOmniComponents() carrega módulos sob demanda.")">
             <p class="omni-muted">
-                O <code>omni.js</code> traz os helpers de scroll-lock,
-                click-outside, atalhos de teclado e posicionamento de popovers.
-                Em projetos Blazor Web App, prefira
-                <code>@@Assets["_content/Omni.Blazor/js/omni.js"]</code> para
-                versionamento automático.
+                Scroll-lock, click-outside, atalhos e posicionamento de popovers
+                vivem em módulos ES isolados. Eles são carregados apenas quando
+                um componente precisa deles e não publicam nomes em <code>window</code>.
             </p>
         </ShowcaseSection>
 

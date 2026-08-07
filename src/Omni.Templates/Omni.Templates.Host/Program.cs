@@ -1,5 +1,5 @@
-using Omni.Templates.Host.Components;
 using Omni.Blazor;
+using Omni.Templates.Host.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

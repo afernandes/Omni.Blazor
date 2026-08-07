@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace Omni.Blazor.Components;
@@ -7,12 +10,123 @@ namespace Omni.Blazor.Components;
 /// Kept out of the Razor file so cancellation, latest-wins and exception-safety
 /// invariants remain reviewable independently from the markup.
 /// </summary>
-public partial class OmniForm<TModel> where TModel : class
+public partial class OmniForm<
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
+    where TModel : class
 {
+    private static readonly PropertyInfo[] SnapshotProperties = typeof(TModel)
+        .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+        .Where(static property => property.GetMethod is not null
+            && property.SetMethod is not null
+            && property.GetIndexParameters().Length == 0)
+        .ToArray();
+
     private readonly object _validationSync = new();
     private CancellationTokenSource? _validationCts;
     private long _validationVersion;
     private int _disposeState;
+    private PropertySnapshot[]? _propertySnapshot;
+    private TModel? _typedSnapshot;
+
+    /// <summary>
+    /// Optional AOT-safe deep-clone strategy used by <see cref="Snapshot"/>.
+    /// Without it, OmniForm captures a shallow snapshot of writable public properties.
+    /// </summary>
+    [Parameter]
+    public Func<TModel, TModel>? SnapshotFactory { get; set; }
+
+    /// <summary>
+    /// Optional restore strategy paired with <see cref="SnapshotFactory"/>.
+    /// It receives the current model first and the captured snapshot second.
+    /// </summary>
+    [Parameter]
+    public Action<TModel, TModel>? SnapshotRestorer { get; set; }
+
+    /// <summary>Captures the current model state without reflection-based JSON serialization.</summary>
+    public void Snapshot()
+    {
+        TModel? model = CurrentModel;
+        if (model is null)
+        {
+            _propertySnapshot = null;
+            _typedSnapshot = null;
+            return;
+        }
+
+        if (SnapshotFactory is not null)
+        {
+            TModel snapshot = SnapshotFactory(model)
+                ?? throw new InvalidOperationException("SnapshotFactory returned null.");
+            _typedSnapshot = snapshot;
+            _propertySnapshot = null;
+            return;
+        }
+
+        PropertySnapshot[] snapshotValues = new PropertySnapshot[SnapshotProperties.Length];
+        for (int index = 0; index < SnapshotProperties.Length; index++)
+        {
+            PropertyInfo property = SnapshotProperties[index];
+            snapshotValues[index] = new PropertySnapshot(property, property.GetValue(model));
+        }
+        _propertySnapshot = snapshotValues;
+        _typedSnapshot = null;
+    }
+
+    /// <summary>Restores the current model in place so existing bindings keep the same reference.</summary>
+    public void Restore()
+    {
+        TModel? model = CurrentModel;
+        if (model is null) return;
+
+        if (_typedSnapshot is not null)
+        {
+            if (SnapshotRestorer is not null) SnapshotRestorer(model, _typedSnapshot);
+            else CopyProperties(_typedSnapshot, model);
+            _ctx?.NotifyValidationStateChanged();
+            return;
+        }
+
+        if (_propertySnapshot is null) return;
+        ApplySnapshot(model, _propertySnapshot);
+        _ctx?.NotifyValidationStateChanged();
+    }
+
+    private static void CopyProperties(TModel source, TModel destination)
+    {
+        PropertySnapshot[] values = new PropertySnapshot[SnapshotProperties.Length];
+        for (int index = 0; index < SnapshotProperties.Length; index++)
+        {
+            PropertyInfo property = SnapshotProperties[index];
+            values[index] = new PropertySnapshot(property, property.GetValue(source));
+        }
+        ApplySnapshot(destination, values);
+    }
+
+    private static void ApplySnapshot(TModel destination, PropertySnapshot[] values)
+    {
+        PropertySnapshot[] rollback = new PropertySnapshot[values.Length];
+        int applied = 0;
+        try
+        {
+            for (; applied < values.Length; applied++)
+            {
+                PropertySnapshot value = values[applied];
+                rollback[applied] = new PropertySnapshot(value.Property, value.Property.GetValue(destination));
+                value.Property.SetValue(destination, value.Value);
+            }
+        }
+        catch
+        {
+            for (int index = applied - 1; index >= 0; index--)
+            {
+                try { rollback[index].Property.SetValue(destination, rollback[index].Value); }
+                catch { /* Preserve the original restore exception. */ }
+            }
+            throw;
+        }
+    }
+
+    private readonly record struct PropertySnapshot(PropertyInfo Property, object? Value);
 
     /// <summary>
     /// Runs standard and synchronous custom validation first, then awaits
@@ -92,6 +206,12 @@ public partial class OmniForm<TModel> where TModel : class
                 await ValidationAsync(context, localStore);
             }
 
+            foreach (IOmniFormValidationParticipant participant in SnapshotValidationParticipants())
+            {
+                linkedCts.Token.ThrowIfCancellationRequested();
+                await participant.ValidateAsync(context, localStore, linkedCts.Token);
+            }
+
             bool isCurrent;
             lock (_validationSync)
             {
@@ -157,6 +277,11 @@ public partial class OmniForm<TModel> where TModel : class
     }
 
     private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
+
+    private IOmniFormValidationParticipant[] SnapshotValidationParticipants()
+    {
+        lock (_validationSync) return [.. _validationParticipants];
+    }
 
     private static void CancelSafely(CancellationTokenSource? source)
     {

@@ -9,14 +9,22 @@
         style="@Style"
         disabled="@Disabled"
         role="menuitem"
+        tabindex="-1"
+        aria-label="@AccessibleLabel"
         @onclick="HandleClickAsync"
         @attributes="Attributes">
     @if (!string.IsNullOrEmpty(Icon))
     {
         <OmniIcon Name="@Icon" Size="ComponentSize.Sm" />
     }
-    <span class="omni-menu-item-label">
-        @if (ChildContent is not null) { @ChildContent } else { @Text }
+    <span class="omni-menu-item-content">
+        <span class="omni-menu-item-label">
+            @if (ChildContent is not null) { @ChildContent } else { @Text }
+        </span>
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <span class="omni-menu-item-description">@Description</span>
+        }
     </span>
     @if (!string.IsNullOrEmpty(Shortcut))
     {
@@ -31,6 +39,8 @@
     [Parameter] public string? Icon { get; set; }
     /// <summary>Optional keyboard-shortcut hint shown trailing (e.g. <c>"⌘D"</c>), rendered as a kbd.</summary>
     [Parameter] public string? Shortcut { get; set; }
+    /// <summary>Optional secondary description rendered below the label.</summary>
+    [Parameter] public string? Description { get; set; }
     /// <summary>Styles the item as a destructive action (danger color). Default <c>false</c>.</summary>
     [Parameter] public bool IsDanger { get; set; }
     /// <summary>Disables the item (no click, dimmed). Default <c>false</c>.</summary>
@@ -42,6 +52,8 @@
         .AddClass("omni-menu-item-danger", IsDanger)
         .AddClass(Class)
         .Build();
+
+    private string? AccessibleLabel => string.IsNullOrWhiteSpace(Text) ? null : Text;
 
     private async Task HandleClickAsync(MouseEventArgs args)
     {

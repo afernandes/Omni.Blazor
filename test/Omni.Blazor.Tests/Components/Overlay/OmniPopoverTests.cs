@@ -61,10 +61,10 @@ public class OmniPopoverTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(PopoverPosition.Top,    "omni-popover-top")]
+    [InlineData(PopoverPosition.Top, "omni-popover-top")]
     [InlineData(PopoverPosition.Bottom, "omni-popover-bottom")]
-    [InlineData(PopoverPosition.Left,   "omni-popover-left")]
-    [InlineData(PopoverPosition.Right,  "omni-popover-right")]
+    [InlineData(PopoverPosition.Left, "omni-popover-left")]
+    [InlineData(PopoverPosition.Right, "omni-popover-right")]
     public void Applies_position_modifier_when_open(PopoverPosition pos, string expected)
     {
         var cut = Render<OmniPopover>(p => p

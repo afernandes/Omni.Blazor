@@ -17,6 +17,11 @@ public class OmniSchedulerTests : TestContextBase
 {
     public record TestAppt(DateTime Start, DateTime End, string Text);
 
+    private static readonly SchedulerSchema<TestAppt> TestSchema =
+        SchedulerSchema<TestAppt>.Create(scheduler => scheduler
+            .Range(item => item.Start, item => item.End)
+            .Text(item => item.Text));
+
     private static List<TestAppt> SampleToday() => new()
     {
         new(DateTime.Today.AddHours(9), DateTime.Today.AddHours(10), "Standup"),
@@ -40,9 +45,7 @@ public class OmniSchedulerTests : TestContextBase
         => Render<OmniScheduler<TestAppt>>(p =>
         {
             p.Add(s => s.Data, data ?? SampleToday());
-            p.Add(s => s.StartProperty, nameof(TestAppt.Start));
-            p.Add(s => s.EndProperty, nameof(TestAppt.End));
-            p.Add(s => s.TextProperty, nameof(TestAppt.Text));
+            p.Add(s => s.Schema, TestSchema);
             p.Add(s => s.ChildContent, Views());
             extra?.Invoke(p);
         });
@@ -133,14 +136,13 @@ public class OmniSchedulerTests : TestContextBase
     }
 
     [Fact]
-    public void No_projection_without_start_end_properties()
+    public void Schema_is_required_when_data_is_supplied()
     {
-        var cut = Render<OmniScheduler<TestAppt>>(p =>
+        Assert.Throws<InvalidOperationException>(() => Render<OmniScheduler<TestAppt>>(p =>
         {
             p.Add(s => s.Data, SampleToday());
             p.Add(s => s.ChildContent, Views());
-        });
-        Assert.Empty(cut.Instance.AppointmentsInternal);
+        }));
     }
 
     [Fact]
@@ -298,9 +300,7 @@ public class OmniSchedulerTests : TestContextBase
         };
         var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
-            .Add(s => s.StartProperty, nameof(TestAppt.Start))
-            .Add(s => s.EndProperty, nameof(TestAppt.End))
-            .Add(s => s.TextProperty, nameof(TestAppt.Text))
+            .Add(s => s.Schema, TestSchema)
             .Add(s => s.ChildContent, views));
 
         Assert.Equal(3, cut.FindAll(".omni-scheduler-tv-col").Count);
@@ -316,9 +316,7 @@ public class OmniSchedulerTests : TestContextBase
         };
         var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
-            .Add(s => s.StartProperty, nameof(TestAppt.Start))
-            .Add(s => s.EndProperty, nameof(TestAppt.End))
-            .Add(s => s.TextProperty, nameof(TestAppt.Text))
+            .Add(s => s.Schema, TestSchema)
             .Add(s => s.ChildContent, views));
 
         Assert.Equal(12, cut.FindAll(".omni-scheduler-ym").Count);
@@ -370,9 +368,7 @@ public class OmniSchedulerTests : TestContextBase
         };
         var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
-            .Add(s => s.StartProperty, nameof(TestAppt.Start))
-            .Add(s => s.EndProperty, nameof(TestAppt.End))
-            .Add(s => s.TextProperty, nameof(TestAppt.Text))
+            .Add(s => s.Schema, TestSchema)
             .Add(s => s.ChildContent, views));
 
         Assert.Equal(12, cut.FindAll(".omni-scheduler-yr-row").Count);
@@ -383,9 +379,7 @@ public class OmniSchedulerTests : TestContextBase
     private IRenderedComponent<OmniScheduler<TestAppt>> RenderSingleView<TView>() where TView : IComponent
         => Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
-            .Add(s => s.StartProperty, nameof(TestAppt.Start))
-            .Add(s => s.EndProperty, nameof(TestAppt.End))
-            .Add(s => s.TextProperty, nameof(TestAppt.Text))
+            .Add(s => s.Schema, TestSchema)
             .Add(s => s.ChildContent, builder => { builder.OpenComponent<TView>(0); builder.CloseComponent(); }));
 
     // ─── Keyboard navigation (roving cursor) ──────────────────────────────
@@ -433,9 +427,7 @@ public class OmniSchedulerTests : TestContextBase
         RenderFragment views = builder => { builder.OpenComponent<OmniMonthView>(0); builder.CloseComponent(); };
         var cut = Render<OmniScheduler<TestAppt>>(p => p
             .Add(s => s.Data, SampleToday())
-            .Add(s => s.StartProperty, nameof(TestAppt.Start))
-            .Add(s => s.EndProperty, nameof(TestAppt.End))
-            .Add(s => s.TextProperty, nameof(TestAppt.Text))
+            .Add(s => s.Schema, TestSchema)
             .Add(s => s.SlotSelect, EventCallback.Factory.Create<SchedulerSlotSelectEventArgs>(this, a => captured = a))
             .Add(s => s.ChildContent, views));
 

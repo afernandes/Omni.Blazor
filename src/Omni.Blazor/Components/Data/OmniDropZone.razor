@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @typeparam TItem
 @inherits OmniComponentWithChildren
-@inject IJSRuntime JS
+@inject IOmniNavigationJsModule JS
 @using Omni.Blazor.Utilities
 
 @*
@@ -70,7 +70,7 @@
     {
         if (firstRender)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.prepareDrag", _root); }
+            try { await JS.InvokeVoidAsync("prepareDrag", _root); }
             catch { /* SSR or JS not ready yet — Razor handlers still work without it */ }
         }
     }

@@ -95,8 +95,8 @@ public class OmniPanelMenuItemTests : TestContextBase
 
     [Theory]
     [InlineData(MenuMetaKind.Accent, "omni-meta-accent")]
-    [InlineData(MenuMetaKind.Good,   "omni-meta-good")]
-    [InlineData(MenuMetaKind.Warn,   "omni-meta-warn")]
+    [InlineData(MenuMetaKind.Good, "omni-meta-good")]
+    [InlineData(MenuMetaKind.Warn, "omni-meta-warn")]
     [InlineData(MenuMetaKind.Danger, "omni-meta-danger")]
     public void Count_pill_applies_CountKind_modifier(MenuMetaKind kind, string expectedClass)
     {

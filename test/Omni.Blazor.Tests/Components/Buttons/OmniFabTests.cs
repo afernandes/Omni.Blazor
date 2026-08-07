@@ -22,12 +22,12 @@ public class OmniFabTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(FabPosition.BottomRight,  "omni-fab-bottom-right")]
-    [InlineData(FabPosition.BottomLeft,   "omni-fab-bottom-left")]
-    [InlineData(FabPosition.TopRight,     "omni-fab-top-right")]
-    [InlineData(FabPosition.TopLeft,      "omni-fab-top-left")]
+    [InlineData(FabPosition.BottomRight, "omni-fab-bottom-right")]
+    [InlineData(FabPosition.BottomLeft, "omni-fab-bottom-left")]
+    [InlineData(FabPosition.TopRight, "omni-fab-top-right")]
+    [InlineData(FabPosition.TopLeft, "omni-fab-top-left")]
     [InlineData(FabPosition.BottomCenter, "omni-fab-bottom-center")]
-    [InlineData(FabPosition.Static,       "omni-fab-static")]
+    [InlineData(FabPosition.Static, "omni-fab-static")]
     public void Applies_position_modifier(FabPosition pos, string expectedClass)
     {
         var cut = Render<OmniFab>(p => p.Add(c => c.Position, pos));

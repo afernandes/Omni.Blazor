@@ -15,7 +15,7 @@ public class OmniAppointmentData
     /// <summary>Appointment end (exclusive).</summary>
     public DateTime End { get; set; }
 
-    /// <summary>Display text (projected from the consumer's <c>TextProperty</c>).</summary>
+    /// <summary>Display text projected by the consumer schema or selector.</summary>
     public string? Text { get; set; }
 
     /// <summary>The original consumer item this appointment was projected from.</summary>

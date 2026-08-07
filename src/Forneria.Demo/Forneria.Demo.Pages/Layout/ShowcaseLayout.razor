@@ -1,11 +1,11 @@
 @inherits LayoutComponentBase
-@layout AppShell
+@layout DemoShellLayout
 @implements IDisposable
 @using Forneria.Demo.Pages.Layout
 @using Omni.Blazor.Models
 @using Microsoft.AspNetCore.Components.Routing
 @inject Microsoft.AspNetCore.Components.NavigationManager Nav
-@inject Microsoft.JSInterop.IJSRuntime JS
+@inject ScrollManager Scroll
 
 @* Component browser. Nav is auto-built from every routable /showcase page (ShowcaseCatalog):
    nested routes become collapsible submenus; categories are collapsible; live filter
@@ -165,7 +165,10 @@
         if (firstRender || _scrollPending)
         {
             _scrollPending = false;
-            try { await JS.InvokeVoidAsync("omniBlazor.scrollIntoView", ".sc-aside-list .omni-active", "nearest"); }
+            try { await Scroll.ScrollIntoViewAsync(
+                ".sc-aside-list .omni-active",
+                ScrollBehavior.Smooth,
+                ScrollBlock.Nearest); }
             catch { }
         }
     }

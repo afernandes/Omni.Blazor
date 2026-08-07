@@ -1,0 +1,97 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@typeparam TKey where TKey : notnull
+@inherits FormComponent<TKey>
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Form-bound entity selector that opens a searchable local or server-side DataGrid and stores only a stable key. *@
+
+<div @ref="Element"
+     class="@RootCss"
+     style="@Style"
+     aria-busy="@_resolving"
+     @attributes="Attributes">
+    <button id="@InputId"
+            type="button"
+            class="omni-entity-picker-trigger"
+            disabled="@(Disabled || ReadOnly)"
+            aria-haspopup="dialog"
+            aria-expanded="@_open"
+            aria-invalid="@IsInvalid"
+            @onclick="OpenAsync">
+        <span class="@DisplayCss">@DisplayText</span>
+        @if (_resolving)
+        {
+            <OmniSpinner Size="ComponentSize.Sm" />
+        }
+        else
+        {
+            <OmniIcon Name="search" Size="ComponentSize.Sm" />
+        }
+    </button>
+    @if (AllowClear && HasSelection)
+    {
+        <OmniButton Class="omni-entity-picker-clear"
+                    Text="@(ClearText ?? Texts.Clear)"
+                    Icon="x"
+                    Size="ComponentSize.Sm"
+                    Variant="ButtonVariant.Ghost"
+                    Disabled="@(Disabled || ReadOnly)"
+                    OnClick="@(_ => ClearAsync())" />
+    }
+    @if (_resolveError is not null)
+    {
+        <div class="omni-entity-picker-error" role="alert">@_resolveError.Message</div>
+    }
+</div>
+
+@if (_open)
+{
+    <OmniOverlay Visible="true"
+                 AutoClose="false"
+                 CloseOnEsc="true"
+                 OnClosed="CloseAsync">
+        <section class="@PanelCss"
+                 style="@PanelStyle"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="@TitleId">
+            <header class="omni-entity-picker-header">
+                <h2 id="@TitleId">@(Title ?? Texts.EntityPickerTitle)</h2>
+                <OmniButton Text="@(CloseText ?? Texts.Close)"
+                            Icon="x"
+                            Size="ComponentSize.Sm"
+                            Variant="ButtonVariant.Ghost"
+                            OnClick="@(_ => CloseAsync())" />
+            </header>
+            <div class="omni-entity-picker-body">
+                <OmniDataGrid TItem="TItem"
+                              Schema="@GridSchema"
+                              Data="@Items"
+                              DataProvider="@DataProvider"
+                              KeySelector="@GridKeySelector"
+                              AllowSearch="@AllowSearch"
+                              SearchPlaceholder="@(SearchPlaceholder ?? Texts.SearchPlaceholder)"
+                              AllowPaging="@AllowPaging"
+                              PageSize="@PageSize"
+                              EmptyText="@(EmptyText ?? Texts.NoRecords)"
+                              LoadingTemplate="@LoadingTemplate"
+                              OnRowClick="@SelectAsync">
+                    <Columns>
+                        @if (Columns is not null)
+                        {
+                            @Columns
+                        }
+                        else if (GridSchema is null)
+                        {
+                            <OmniDataGridColumn TItem="TItem" Title="@(ColumnTitle ?? Texts.EntityPickerItem)">
+                                <Template Context="item">@TextSelector(item)</Template>
+                            </OmniDataGridColumn>
+                        }
+                    </Columns>
+                </OmniDataGrid>
+            </div>
+        </section>
+    </OmniOverlay>
+}

@@ -25,8 +25,8 @@ public class OmniLinkTests : TestContextBase
 
     [Theory]
     [InlineData(LinkVariant.Default, "omni-link-default")]
-    [InlineData(LinkVariant.Muted,   "omni-link-muted")]
-    [InlineData(LinkVariant.Danger,  "omni-link-danger")]
+    [InlineData(LinkVariant.Muted, "omni-link-muted")]
+    [InlineData(LinkVariant.Danger, "omni-link-danger")]
     public void Applies_variant_class(LinkVariant variant, string expected)
     {
         var cut = Render<OmniLink>(p => p

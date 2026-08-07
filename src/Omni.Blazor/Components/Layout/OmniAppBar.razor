@@ -1,7 +1,7 @@
 @namespace Omni.Blazor.Components
 @inherits OmniComponentWithChildren
 @implements IAsyncDisposable
-@inject IJSRuntime JS
+@inject IOmniResponsiveJsModule JS
 @using Omni.Blazor.Utilities
 
 @*  Barra superior/inferior do <c>OmniLayout</c>. Equivalente a
@@ -82,7 +82,7 @@
             _selfRef ??= DotNetObjectReference.Create(this);
             try
             {
-                await JS.InvokeAsync<bool>("omniBlazor.observeAppBarScroll",
+                await JS.InvokeAsync<bool>("observeAppBarScroll",
                     _elementRef, _selfRef, nameof(OnScrollChanged),
                     HideOnScroll, ElevateOnScroll);
                 _jsSubscribed = true;
@@ -106,7 +106,7 @@
     {
         if (_jsSubscribed)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.unobserveAppBarScroll", _elementRef); }
+            try { await JS.InvokeVoidAsync("unobserveAppBarScroll", _elementRef); }
             catch { }
             _jsSubscribed = false;
         }

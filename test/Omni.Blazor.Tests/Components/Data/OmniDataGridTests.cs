@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Components;
@@ -80,7 +81,7 @@ public class OmniDataGridTests : TestContextBase
     }
 
     [Fact]
-    public void Utility_column_headers_have_scope_col_and_aria_label()
+    public void Utility_column_headers_and_selection_inputs_have_accessible_names()
     {
         var cut = Render<OmniDataGrid<Person>>(p => p
             .Add(c => c.Data, Sample)
@@ -88,11 +89,16 @@ public class OmniDataGridTests : TestContextBase
             .Add(c => c.EditMode, DataGridEditMode.Row)
             .Add(c => c.Columns, ColumnsFragment()));
 
-        // The unlabelled selection column header is still a scoped column header,
-        // and carries an aria-label so it is not announced as blank.
+        // The utility header and every generated checkbox own explicit accessible
+        // names without adding visual text to the narrow selection cells.
         var selectHeader = cut.Find("table.omni-grid-table thead th.omni-grid-th-select");
         Assert.Equal("col", selectHeader.GetAttribute("scope"));
-        Assert.False(string.IsNullOrEmpty(selectHeader.GetAttribute("aria-label")));
+        Assert.False(string.IsNullOrWhiteSpace(selectHeader.GetAttribute("aria-label")));
+        Assert.True(string.IsNullOrWhiteSpace(selectHeader.TextContent));
+        Assert.All(cut.FindAll("table.omni-grid-table tbody td.omni-grid-td-select"), cell =>
+            Assert.True(string.IsNullOrWhiteSpace(cell.TextContent)));
+        Assert.All(cut.FindAll("input[type='checkbox']"), input =>
+            Assert.False(string.IsNullOrWhiteSpace(input.GetAttribute("aria-label"))));
 
         // Same for the trailing edit-actions column header.
         var headers = cut.FindAll("table.omni-grid-table thead tr:first-child th");
@@ -262,6 +268,110 @@ public class OmniDataGridTests : TestContextBase
         Assert.Equal(222, captured!.Width);
         var firstCol = cut.FindAll("table.omni-grid-table colgroup col")[0];
         Assert.Contains("width:222px", (firstCol.GetAttribute("style") ?? "").Replace(" ", ""));
+    }
+
+    [Fact]
+    public async Task Resizing_a_right_frozen_column_recomputes_adjacent_frozen_offsets()
+    {
+        RenderFragment columns = builder =>
+        {
+            builder.OpenComponent<OmniDataGridColumn<Person>>(0);
+            builder.AddAttribute(1, nameof(OmniDataGridColumn<Person>.Title), "Name");
+            builder.AddAttribute(2, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(person => person.Name));
+            builder.AddAttribute(3, nameof(OmniDataGridColumn<Person>.Width), "100px");
+            builder.AddAttribute(4, nameof(OmniDataGridColumn<Person>.Frozen), FrozenPosition.Right);
+            builder.CloseComponent();
+            builder.OpenComponent<OmniDataGridColumn<Person>>(5);
+            builder.AddAttribute(6, nameof(OmniDataGridColumn<Person>.Title), "Age");
+            builder.AddAttribute(7, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(person => person.Age));
+            builder.AddAttribute(8, nameof(OmniDataGridColumn<Person>.Width), "80px");
+            builder.AddAttribute(9, nameof(OmniDataGridColumn<Person>.Frozen), FrozenPosition.Right);
+            builder.CloseComponent();
+        };
+        var cut = Render<OmniDataGrid<Person>>(parameters => parameters
+            .Add(component => component.Data, Sample)
+            .Add(component => component.AllowColumnResize, true)
+            .Add(component => component.Columns, columns));
+
+        await cut.InvokeAsync(() => cut.Instance.OnColumnResized(1, 140));
+
+        var nameHeader = cut.FindAll("thead th").Single(header => header.TextContent.Contains("Name"));
+        Assert.Contains("right: 140px", nameHeader.GetAttribute("style"));
+    }
+
+    [Fact]
+    public async Task View_state_round_trips_order_width_visibility_frozen_sort_filter_group_and_search()
+    {
+        RenderFragment columns = builder =>
+        {
+            builder.OpenComponent<OmniDataGridColumn<Person>>(0);
+            builder.AddAttribute(1, nameof(OmniDataGridColumn<Person>.Title), "Name");
+            builder.AddAttribute(2, nameof(OmniDataGridColumn<Person>.PropertyName), "Name");
+            builder.AddAttribute(3, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(person => person.Name));
+            builder.AddAttribute(4, nameof(OmniDataGridColumn<Person>.Filterable), true);
+            builder.AddAttribute(5, nameof(OmniDataGridColumn<Person>.Groupable), true);
+            builder.CloseComponent();
+            builder.OpenComponent<OmniDataGridColumn<Person>>(10);
+            builder.AddAttribute(11, nameof(OmniDataGridColumn<Person>.Title), "Age");
+            builder.AddAttribute(12, nameof(OmniDataGridColumn<Person>.PropertyName), "Age");
+            builder.AddAttribute(13, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(person => person.Age));
+            builder.CloseComponent();
+        };
+        var cut = Render<OmniDataGrid<Person>>(parameters => parameters
+            .Add(component => component.Data, Sample)
+            .Add(component => component.AllowPaging, false)
+            .Add(component => component.AllowGrouping, true)
+            .Add(component => component.AllowColumnFilter, true)
+            .Add(component => component.Columns, columns));
+        DataGridViewState state = new(
+            [
+                new("Age", 0, "164px", true, FrozenPosition.Right),
+                new("Name", 1, "220px", true, null)
+            ],
+            [new SortDescriptor("Age", SortDirection.Descending)],
+            [new DataGridFilterViewState("Name", FilterOperator.Contains, "A")],
+            [new DataGridGroupViewState("Name")],
+            "Ali");
+
+        await cut.InvokeAsync(() => cut.Instance.ApplyViewStateAsync(state));
+
+        DataGridViewState captured = cut.Instance.CaptureViewState();
+        Assert.Equal(["Age", "Name"], captured.Columns.Select(column => column.Property));
+        Assert.Equal("164px", captured.Columns[0].Width);
+        Assert.Equal(FrozenPosition.Right, captured.Columns[0].Frozen);
+        Assert.Equal(SortDirection.Descending, Assert.Single(captured.Sort).Direction);
+        Assert.Equal("A", Assert.Single(captured.Filters).Value);
+        Assert.Equal("Name", Assert.Single(captured.Groups).Property);
+        Assert.Equal("Ali", captured.Search);
+    }
+
+    [Fact]
+    public void Persist_key_restores_state_after_columns_register()
+    {
+        DataGridViewState persisted = new(
+            [
+                new("Age", 0, "180px", true, FrozenPosition.Right),
+                new("Name", 1, null, true, null)
+            ],
+            [new SortDescriptor("Age", SortDirection.Descending)],
+            [],
+            []);
+        string json = JsonSerializer.Serialize(
+            persisted,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        JSInterop.Setup<string?>("omniBlazor.storageGet", "omni.grid.people").SetResult(json);
+        var cut = Render<OmniDataGrid<Person>>(parameters => parameters
+            .Add(component => component.Data, Sample)
+            .Add(component => component.PersistKey, "people")
+            .Add(component => component.Columns, ColumnsFragment()));
+
+        cut.WaitForAssertion(() =>
+        {
+            DataGridViewState captured = cut.Instance.CaptureViewState();
+            Assert.Equal("Age", captured.Columns[0].Property);
+            Assert.Equal("180px", captured.Columns[0].Width);
+            Assert.Equal(FrozenPosition.Right, captured.Columns[0].Frozen);
+        });
     }
 
     // ─── Grouping ──────────────────────────────────────────────────────────
@@ -1225,5 +1335,139 @@ public class OmniDataGridTests : TestContextBase
 
         var style = cut.Find("div.omni-grid").GetAttribute("style") ?? "";
         Assert.DoesNotContain("--omni-grid-row-h", style);
+    }
+
+    // ── Memoização do shaping ───────────────────────────────────────────────────
+    //
+    // O pai re-renderiza por qualquer motivo e cada render dispara o pipeline de
+    // filtro+ordenação+agrupamento — 318 ms por clique com 1M de itens ordenados.
+    // Estes testes fixam o contrato do carimbo: reprocessar SÓ quando algo que
+    // alimenta o pipeline mudou, com RefreshAsync como válvula para mutação in-place.
+
+    private sealed class Pedido
+    {
+        public string Cliente { get; set; } = "";
+        public decimal Total { get; set; }
+    }
+
+    private static RenderFragment PedidoColumns() => b =>
+    {
+        b.OpenComponent<OmniDataGridColumn<Pedido>>(0);
+        b.AddAttribute(1, nameof(OmniDataGridColumn<Pedido>.Title), "Cliente");
+        b.AddAttribute(2, nameof(OmniDataGridColumn<Pedido>.PropertyName), "Cliente");
+        b.AddAttribute(3, nameof(OmniDataGridColumn<Pedido>.Property), (Func<Pedido, object?>)(x => x.Cliente));
+        b.CloseComponent();
+
+        b.OpenComponent<OmniDataGridColumn<Pedido>>(10);
+        b.AddAttribute(11, nameof(OmniDataGridColumn<Pedido>.Title), "Total");
+        b.AddAttribute(12, nameof(OmniDataGridColumn<Pedido>.PropertyName), "Total");
+        b.AddAttribute(13, nameof(OmniDataGridColumn<Pedido>.Property), (Func<Pedido, object?>)(x => x.Total));
+        b.CloseComponent();
+    };
+
+    private IRenderedComponent<OmniDataGrid<Pedido>> RenderPedidosGrid(List<Pedido> data) =>
+        Render<OmniDataGrid<Pedido>>(p =>
+        {
+            p.Add(c => c.Data, data);
+            p.Add(c => c.AllowSorting, true);
+            p.Add(c => c.AllowPaging, false);
+            p.Add(c => c.Columns, PedidoColumns());
+        });
+
+    private static List<Pedido> Pedidos() => new()
+    {
+        new() { Cliente = "Bruna", Total = 30m },
+        new() { Cliente = "Ana", Total = 10m },
+        new() { Cliente = "Caio", Total = 20m },
+    };
+
+    [Fact]
+    public void A_parent_rerender_with_nothing_changed_does_not_reshape()
+    {
+        var cut = RenderPedidosGrid(Pedidos());
+        var antes = cut.Instance.ShapeApplyCount;
+
+        // Simula o pai re-renderizando à toa (progresso, seleção, badge…).
+        cut.Render();
+        cut.Render();
+
+        Assert.Equal(antes, cut.Instance.ShapeApplyCount);
+    }
+
+    [Fact]
+    public void Changing_the_data_reference_reshapes()
+    {
+        var cut = RenderPedidosGrid(Pedidos());
+        var antes = cut.Instance.ShapeApplyCount;
+
+        cut.Render(p => p.Add(c => c.Data, Pedidos()));
+
+        Assert.True(cut.Instance.ShapeApplyCount > antes);
+    }
+
+    [Fact]
+    public void Appending_to_the_same_list_reshapes()
+    {
+        // O tail do consumidor faz Add na MESMA lista: a contagem no carimbo é o que
+        // impede o item novo de ficar invisível até a próxima interação.
+        var data = Pedidos();
+        var cut = RenderPedidosGrid(data);
+        var antes = cut.Instance.ShapeApplyCount;
+
+        data.Add(new Pedido { Cliente = "Duda", Total = 40m });
+        cut.Render();
+
+        Assert.True(cut.Instance.ShapeApplyCount > antes);
+        Assert.Contains("Duda", cut.Find("tbody").TextContent);
+    }
+
+    [Fact]
+    public async Task Clicking_a_sort_header_reshapes_but_extra_renders_do_not()
+    {
+        var cut = RenderPedidosGrid(Pedidos());
+
+        await cut.InvokeAsync(() => cut.FindAll("th")[0].Click());
+        var aposOrdenar = cut.Instance.ShapeApplyCount;
+        var celulas = cut.FindAll("tbody td").Select(t => t.TextContent.Trim()).ToList();
+        Assert.Equal("Ana", celulas[0]);
+
+        cut.Render();
+
+        Assert.Equal(aposOrdenar, cut.Instance.ShapeApplyCount);
+        // E a ordenação continua aplicada mesmo sem reprocessar.
+        Assert.Equal("Ana", cut.FindAll("tbody td")[0].TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task RefreshAsync_reapplies_the_sort_after_an_in_place_mutation()
+    {
+        // Mesma lista, mesma contagem: o carimbo não tem como ver o campo mudado.
+        // RefreshAsync é a válvula documentada para esse caso.
+        var data = Pedidos();
+        var cut = RenderPedidosGrid(data);
+        await cut.InvokeAsync(() => cut.FindAll("th")[0].Click()); // ordena por Cliente asc
+
+        data[0].Cliente = "Zulmira"; // era "Bruna": deveria ir para o fim
+        cut.Render();
+        Assert.Equal("Ana", cut.FindAll("tbody td")[0].TextContent.Trim());
+
+        await cut.InvokeAsync(() => cut.Instance.RefreshAsync());
+
+        var clientes = cut.FindAll("tbody tr").Select(r => r.QuerySelector("td")!.TextContent.Trim()).ToList();
+        Assert.Equal(new[] { "Ana", "Caio", "Zulmira" }, clientes);
+    }
+
+    [Fact]
+    public async Task Grouping_reshapes_and_extra_renders_keep_the_groups()
+    {
+        var cut = RenderSalesGrid();
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Region"));
+        var apos = cut.Instance.ShapeApplyCount;
+        var grupos = cut.FindAll(".omni-grid-group-row").Count;
+
+        cut.Render();
+
+        Assert.Equal(apos, cut.Instance.ShapeApplyCount);
+        Assert.Equal(grupos, cut.FindAll(".omni-grid-group-row").Count);
     }
 }

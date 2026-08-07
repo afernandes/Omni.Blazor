@@ -25,13 +25,13 @@ public class OmniTreeTests : TestContextBase
     private static RenderFragment Levels(bool expanded = false) => b =>
     {
         b.OpenComponent<OmniTreeLevel>(0);
-        b.AddAttribute(1, nameof(OmniTreeLevel.TextProperty), "Name");
-        b.AddAttribute(2, nameof(OmniTreeLevel.ChildrenProperty), "Children");
+        b.AddAttribute(1, nameof(OmniTreeLevel.Text), (Func<object, string?>)(node => ((Node)node).Name));
+        b.AddAttribute(2, nameof(OmniTreeLevel.Children), (Func<object, IEnumerable?>)(node => ((Node)node).Children));
         if (expanded) b.AddAttribute(3, nameof(OmniTreeLevel.Expanded), (Func<object, bool>)(_ => true));
         b.CloseComponent();
 
         b.OpenComponent<OmniTreeLevel>(10);
-        b.AddAttribute(11, nameof(OmniTreeLevel.TextProperty), "Name");
+        b.AddAttribute(11, nameof(OmniTreeLevel.Text), (Func<object, string?>)(node => ((Node)node).Name));
         b.AddAttribute(12, nameof(OmniTreeLevel.HasChildren), (Func<object, bool>)(_ => false));
         b.CloseComponent();
     };

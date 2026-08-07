@@ -3,7 +3,8 @@
 @implements IAsyncDisposable
 @inject NavigationManager Nav
 @inject DialogService Dialogs
-@inject IJSRuntime JS
+@inject IOmniCoreJsModule CoreJS
+@inject IOmniNavigationJsModule NavigationJS
 
 @*
     Intercepts navigation attempts when `When` returns true and asks the user to
@@ -62,8 +63,8 @@
         if (shouldGuard == _beforeUnloadActive) return;
         try
         {
-            if (shouldGuard) await JS.InvokeVoidAsync("omniBlazor.enableExitPrompt",  _id);
-            else             await JS.InvokeVoidAsync("omniBlazor.disableExitPrompt", _id);
+            if (shouldGuard) await NavigationJS.InvokeVoidAsync("enableExitPrompt",  _id);
+            else             await NavigationJS.InvokeVoidAsync("disableExitPrompt", _id);
             _beforeUnloadActive = shouldGuard;
         }
         catch { /* JS may not be ready during prerender — retry next OnParametersSet */ }
@@ -78,7 +79,7 @@
         bool? confirmed;
         if (UseNativePrompt)
         {
-            try { confirmed = await JS.InvokeAsync<bool>("window.confirm", Text); }
+            try { confirmed = await CoreJS.InvokeAsync<bool>("confirm", Text); }
             catch { confirmed = true; /* fail-open if JS unavailable */ }
         }
         else
@@ -105,7 +106,7 @@
         _locationHandle = null;
         if (_beforeUnloadActive)
         {
-            try { await JS.InvokeVoidAsync("omniBlazor.disableExitPrompt", _id); }
+            try { await NavigationJS.InvokeVoidAsync("disableExitPrompt", _id); }
             catch { }
             _beforeUnloadActive = false;
         }

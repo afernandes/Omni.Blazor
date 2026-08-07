@@ -71,36 +71,78 @@ else
 
         @if (Owner.OperatorNeedsValue(Rule.Operator))
         {
-            switch (FieldType)
+            @if (IsRange)
             {
-                case ColumnFilterType.Number:
-                    <OmniNumeric TValue="decimal?" Value="@AsDecimal(Rule.Value)"
-                                 ValueChanged="@(v => SetValueAsync(v))"
-                                 Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
-                                 Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
-                    break;
-                case ColumnFilterType.Date:
-                    <OmniDatePicker TValue="DateTime?" Value="@AsDate(Rule.Value)"
-                                    ValueChanged="@(v => SetValueAsync(v))"
-                                    Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
-                                    Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
-                    break;
-                case ColumnFilterType.Boolean:
-                    <OmniSelect TValue="bool" Class="omni-datafilter-editor" Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
-                                Items="_boolItems" TextSelector="@(b => b ? "Sim" : "Não")"
-                                Value="@((Rule.Value as bool?) ?? true)" ValueChanged="@(v => SetValueAsync(v))" />
-                    break;
-                case ColumnFilterType.Select:
-                    <OmniAutoComplete TItem="object" Items="@SelectOptions" TextSelector="@(o => OptionText(o))"
-                                      Value="@Rule.Value" ValueChanged="@(v => SetValueAsync(v))"
-                                      Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
-                                      Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
-                    break;
-                default:
-                    <input class="omni-datafilter-input" type="text" disabled="@Owner.Disabled"
-                           value="@AsText(Rule.Value)" placeholder="@Owner.ValuePlaceholder"
-                           @oninput="@(e => SetValueAsync(e.Value?.ToString()))" aria-label="Valor" />
-                    break;
+                <div class="omni-datafilter-range">
+                    @switch (FieldType)
+                    {
+                        case ColumnFilterType.Number:
+                            <OmniNumeric TValue="decimal?" Value="@AsDecimal(Range.Lower)"
+                                         ValueChanged="@(v => SetRangeAsync(v, upper: false))"
+                                         Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                         Class="omni-datafilter-editor" Placeholder="@Owner.MinimumText" />
+                            <span aria-hidden="true">–</span>
+                            <OmniNumeric TValue="decimal?" Value="@AsDecimal(Range.Upper)"
+                                         ValueChanged="@(v => SetRangeAsync(v, upper: true))"
+                                         Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                         Class="omni-datafilter-editor" Placeholder="@Owner.MaximumText" />
+                            break;
+                        case ColumnFilterType.Date:
+                            <OmniDatePicker TValue="DateTime?" Value="@AsDate(Range.Lower)"
+                                            ValueChanged="@(v => SetRangeAsync(v, upper: false))"
+                                            Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                            Class="omni-datafilter-editor" Placeholder="@Owner.StartDateText" />
+                            <span aria-hidden="true">–</span>
+                            <OmniDatePicker TValue="DateTime?" Value="@AsDate(Range.Upper)"
+                                            ValueChanged="@(v => SetRangeAsync(v, upper: true))"
+                                            Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                            Class="omni-datafilter-editor" Placeholder="@Owner.EndDateText" />
+                            break;
+                        default:
+                            <input class="omni-datafilter-input" type="text" disabled="@Owner.Disabled"
+                                   value="@AsText(Range.Lower)" placeholder="@Owner.StartValueText"
+                                   @oninput="@(e => SetRangeAsync(e.Value?.ToString(), upper: false))" aria-label="@Owner.StartValueText" />
+                            <span aria-hidden="true">–</span>
+                            <input class="omni-datafilter-input" type="text" disabled="@Owner.Disabled"
+                                   value="@AsText(Range.Upper)" placeholder="@Owner.EndValueText"
+                                   @oninput="@(e => SetRangeAsync(e.Value?.ToString(), upper: true))" aria-label="@Owner.EndValueText" />
+                            break;
+                    }
+                </div>
+            }
+            else
+            {
+                @switch (FieldType)
+                {
+                    case ColumnFilterType.Number:
+                        <OmniNumeric TValue="decimal?" Value="@AsDecimal(Rule.Value)"
+                                     ValueChanged="@(v => SetValueAsync(v))"
+                                     Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                     Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
+                        break;
+                    case ColumnFilterType.Date:
+                        <OmniDatePicker TValue="DateTime?" Value="@AsDate(Rule.Value)"
+                                        ValueChanged="@(v => SetValueAsync(v))"
+                                        Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                        Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
+                        break;
+                    case ColumnFilterType.Boolean:
+                        <OmniSelect TValue="bool" Class="omni-datafilter-editor" Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                    Items="_boolItems" TextSelector="@(b => b ? Owner.YesText : Owner.NoText)"
+                                    Value="@((Rule.Value as bool?) ?? true)" ValueChanged="@(v => SetValueAsync(v))" />
+                        break;
+                    case ColumnFilterType.Select:
+                        <OmniAutoComplete TItem="object" Items="@SelectOptions" TextSelector="@(o => OptionText(o))"
+                                          Value="@Rule.Value" ValueChanged="@(v => SetValueAsync(v))"
+                                          Size="@Owner.FieldSize" Disabled="@Owner.Disabled"
+                                          Class="omni-datafilter-editor" Placeholder="@Owner.ValuePlaceholder" />
+                        break;
+                    default:
+                        <input class="omni-datafilter-input" type="text" disabled="@Owner.Disabled"
+                               value="@AsText(Rule.Value)" placeholder="@Owner.ValuePlaceholder"
+                               @oninput="@(e => SetValueAsync(e.Value?.ToString()))" aria-label="Valor" />
+                        break;
+                }
             }
         }
 
@@ -124,6 +166,8 @@ else
     [Parameter] public bool IsRoot { get; set; }
 
     private ColumnFilterType FieldType => Owner?.FindProperty(Rule.Property)?.Type ?? ColumnFilterType.Text;
+    private bool IsRange => Rule.Operator is FilterOperator.Between or FilterOperator.NotBetween;
+    private DataFilterRangeValue Range => Rule.Value as DataFilterRangeValue ?? new(null, null);
 
     private string GroupCss => CssBuilder.Default("omni-datafilter-group")
         .AddClass("omni-datafilter-root", IsRoot)
@@ -185,6 +229,10 @@ else
     private async Task OnOperatorChangedAsync(FilterOperator op)
     {
         Rule.Operator = op;
+        if (op is FilterOperator.Between or FilterOperator.NotBetween)
+            Rule.Value = Rule.Value is DataFilterRangeValue ? Rule.Value : new DataFilterRangeValue(Rule.Value, null);
+        else if (Rule.Value is DataFilterRangeValue range)
+            Rule.Value = range.Lower;
         await Notify();
     }
 
@@ -193,6 +241,15 @@ else
     private async Task SetValueAsync(object? value)
     {
         Rule.Value = value;
+        await Notify();
+    }
+
+    private async Task SetRangeAsync(object? value, bool upper)
+    {
+        DataFilterRangeValue range = Range;
+        Rule.Value = upper
+            ? range with { Upper = value }
+            : range with { Lower = value };
         await Notify();
     }
 

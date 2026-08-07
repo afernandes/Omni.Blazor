@@ -56,13 +56,13 @@ public class OmniCompareValidator : OmniValidatorBase
 
         return Operator switch
         {
-            CompareOperator.Equal              =>  Equals(left, right),
-            CompareOperator.NotEqual           => !Equals(left, right),
-            CompareOperator.LessThan           => Cmp(left, right) <  0,
-            CompareOperator.LessThanEqual      => Cmp(left, right) <= 0,
-            CompareOperator.GreaterThan        => Cmp(left, right) >  0,
-            CompareOperator.GreaterThanEqual   => Cmp(left, right) >= 0,
-            _                                    => true,
+            CompareOperator.Equal => Equals(left, right),
+            CompareOperator.NotEqual => !Equals(left, right),
+            CompareOperator.LessThan => Cmp(left, right) < 0,
+            CompareOperator.LessThanEqual => Cmp(left, right) <= 0,
+            CompareOperator.GreaterThan => Cmp(left, right) > 0,
+            CompareOperator.GreaterThanEqual => Cmp(left, right) >= 0,
+            _ => true,
         };
 
         static int Cmp(object a, object b) => ((IComparable)a).CompareTo(b);

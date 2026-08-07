@@ -7,8 +7,7 @@
 @*
     OmniTree — hierarchical tree view (RadzenTree port). Two ways to feed it:
       • Inline: nest <OmniTreeItem> components by hand.
-      • Data-bound: set Data + one or more <OmniTreeLevel> (TextProperty,
-        ChildrenProperty, …). The last level repeats for deeper self-referencing
+      • Data-bound: set Data + one or more <OmniTreeLevel> selectors. The last level repeats for deeper self-referencing
         hierarchies.
     Supports single selection (@bind-Value), tri-state checkboxes
     (@bind-CheckedValues with parent/child cascade), lazy loading (Expand event),
@@ -322,7 +321,7 @@
     }
 
     // `depth` is the depth of `value` itself; its own level defines how to read
-    // its children (ChildrenProperty), and grandchildren recurse at depth + 1.
+    // its children, and grandchildren recurse at depth + 1.
     private void CollectDataDescendants(object value, int depth, List<object> acc)
     {
         var level = depth < _levels.Count ? _levels[depth] : _levels[^1];
@@ -380,11 +379,8 @@
         foreach (var node in s.Data)
         {
             if (node is null) continue;
-            var text = s.Text?.Invoke(node)
-                ?? (s.TextProperty is not null ? SchedulerReflection.GetValue(node, s.TextProperty)?.ToString() : node.ToString())
-                ?? "";
-            var icon = s.Icon?.Invoke(node)
-                ?? (s.IconProperty is not null ? SchedulerReflection.GetValue(node, s.IconProperty)?.ToString() : null);
+            var text = s.Text?.Invoke(node) ?? node.ToString() ?? "";
+            var icon = s.Icon?.Invoke(node);
 
             builder.OpenComponent<OmniTreeItem>(0);
             builder.AddAttribute(1, nameof(OmniTreeItem.Value), node);

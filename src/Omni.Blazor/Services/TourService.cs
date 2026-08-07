@@ -16,19 +16,19 @@ namespace Omni.Blazor.Services;
 /// </summary>
 public sealed class TourService : IDisposable
 {
-    private readonly IJSRuntime _js;
+    private readonly IOmniCoreJsModule _js;
     private readonly ILogger<TourService>? _logger;
     private List<TourStep> _steps = new();
     private TaskCompletionSource<bool>? _tcs;
     private TourOptions _options = new();
     private int _disposeState;
 
-    public TourService(IJSRuntime js)
+    internal TourService(IOmniCoreJsModule js)
         : this(js, null)
     {
     }
 
-    public TourService(IJSRuntime js, ILogger<TourService>? logger)
+    internal TourService(IOmniCoreJsModule js, ILogger<TourService>? logger)
     {
         _js = js ?? throw new ArgumentNullException(nameof(js));
         _logger = logger;
@@ -69,7 +69,7 @@ public sealed class TourService : IDisposable
         {
             try
             {
-                var dismissed = await _js.InvokeAsync<string?>("omniBlazor.storageGet", DismissKey(_options.TourId!));
+                var dismissed = await _js.InvokeAsync<string?>("storageGet", DismissKey(_options.TourId!));
                 if (dismissed == "1") return false;
             }
             catch { /* SSR / private mode — não suprime */ }
@@ -153,7 +153,7 @@ public sealed class TourService : IDisposable
         {
             if (opts.Persist && !string.IsNullOrEmpty(opts.TourId))
             {
-                try { await _js.InvokeVoidAsync("omniBlazor.storageSet", DismissKey(opts.TourId!), "1"); }
+                try { await _js.InvokeVoidAsync("storageSet", DismissKey(opts.TourId!), "1"); }
                 catch { }
             }
         }
@@ -162,7 +162,7 @@ public sealed class TourService : IDisposable
     /// <summary>Remove a dispensa salva de um tour (faz ele reaparecer). Útil em "ver tour de novo".</summary>
     public async Task ClearDismissalAsync(string tourId)
     {
-        try { await _js.InvokeVoidAsync("omniBlazor.storageRemove", DismissKey(tourId)); }
+        try { await _js.InvokeVoidAsync("storageRemove", DismissKey(tourId)); }
         catch { }
     }
 

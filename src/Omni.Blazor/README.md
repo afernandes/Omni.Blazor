@@ -1,6 +1,6 @@
 # Omni.Blazor
 
-Biblioteca de componentes Blazor para **.NET 10** — 77 componentes prontos para
+Biblioteca de componentes Blazor para **.NET 10** — 206 componentes prontos para
 apps de negócio (PDV, CRUD, dashboards): DataGrid completo, DatePicker, Dialog,
 Stepper, AutoComplete, FileUpload, e muito mais. Design system cream/amber com
 dark mode e troca de acento em runtime.
@@ -8,7 +8,7 @@ dark mode e troca de acento em runtime.
 ## Instalação
 
 ```bash
-dotnet add package Omni.Blazor
+dotnet add package AndersonN.Omni.Blazor
 ```
 
 ## Primeiros passos
@@ -37,11 +37,9 @@ builder.Services.AddOmniComponents();
 > Acentos: `amber` (padrão), `emerald`, `blue`, `violet`, `crimson`.
 > Use `Dark="true"` para iniciar em dark mode.
 
-**4. JavaScript** — no `App.razor`, antes de `blazor.*.js`:
-
-```html
-<script src="_content/Omni.Blazor/js/omni.js"></script>
-```
+**4. JavaScript** — nenhum `<script>` manual é necessário. Módulos isolados por
+domínio são importados e armazenados em cache somente quando um componente usa
+aquela funcionalidade, pelos serviços registrados em `AddOmniComponents()`.
 
 **5. Host de overlays** — uma vez no layout raiz (Dialog, Notification,
 Tooltip e ContextMenu compartilham este host):
@@ -55,6 +53,17 @@ Tooltip e ContextMenu compartilham este host):
 ```razor
 <OmniButton Text="Olá" Variant="ButtonVariant.Primary" OnClick="OnClick" />
 ```
+
+Os módulos JavaScript são importados automaticamente por capacidade e somente
+quando utilizados. Cada módulo possui ciclo de vida e cache próprios no escopo
+DI; o consumidor não adiciona scripts nem configura um resolvedor global.
+
+## Native AOT e trimming
+
+O pacote habilita os analisadores de trimming e Native AOT. Em hosts Native AOT,
+use schemas tipados, configure `AutoGenerateFields(false)` no DataForm e forneça
+uma `.Factory(...)` explícita ao DataImport. A geração automática de campos por
+reflection continua disponível apenas quando o runtime suporta código dinâmico.
 
 ## Render mode
 

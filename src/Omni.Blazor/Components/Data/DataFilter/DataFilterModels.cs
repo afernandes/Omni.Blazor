@@ -37,12 +37,12 @@ public sealed class OmniFilterRule
 }
 
 /// <summary>
-/// Metadata for one filterable property, registered by an
-/// <see cref="OmniDataFilterProperty"/>.
+/// Runtime metadata for one filterable field declared by a typed
+/// <see cref="DataFilterSchema{TItem}"/>.
 /// </summary>
 public sealed class OmniFilterPropertyInfo
 {
-    /// <summary>Member name used for reflection on the item type.</summary>
+    /// <summary>Stable field id declared by the schema.</summary>
     public string Property { get; init; } = "";
     /// <summary>Friendly label shown in the property dropdown.</summary>
     public string Title { get; init; } = "";
@@ -54,6 +54,25 @@ public sealed class OmniFilterPropertyInfo
     public IReadOnlyList<object>? Options { get; init; }
     /// <summary>Renders an option's label (for <c>Select</c>). Defaults to <c>ToString()</c>.</summary>
     public Func<object?, string>? OptionText { get; init; }
+    /// <summary>Optional compiled accessor supplied by a strongly typed schema.</summary>
+    internal Func<object?, object?>? Accessor { get; init; }
+}
+
+/// <summary>Two typed values used by Between and NotBetween visual rules.</summary>
+public sealed record DataFilterRangeValue
+{
+    /// <summary>Creates an immutable range value.</summary>
+    public DataFilterRangeValue(object? lower, object? upper)
+    {
+        Lower = lower;
+        Upper = upper;
+    }
+
+    /// <summary>Inclusive lower bound.</summary>
+    public object? Lower { get; init; }
+
+    /// <summary>Inclusive upper bound.</summary>
+    public object? Upper { get; init; }
 }
 
 /// <summary>
@@ -67,9 +86,6 @@ internal interface IOmniDataFilterOwner
     bool AllowGroups { get; }
     bool Disabled { get; }
     ComponentSize FieldSize { get; }
-
-    void RegisterProperty(OmniFilterPropertyInfo info);
-    void UnregisterProperty(OmniFilterPropertyInfo info);
 
     OmniFilterPropertyInfo? FindProperty(string? name);
     IReadOnlyList<FilterOperator> OperatorsFor(string? property);
@@ -85,4 +101,12 @@ internal interface IOmniDataFilterOwner
     string OrText { get; }
     string PropertyPlaceholder { get; }
     string ValuePlaceholder { get; }
+    string MinimumText { get; }
+    string MaximumText { get; }
+    string StartDateText { get; }
+    string EndDateText { get; }
+    string StartValueText { get; }
+    string EndValueText { get; }
+    string YesText { get; }
+    string NoText { get; }
 }

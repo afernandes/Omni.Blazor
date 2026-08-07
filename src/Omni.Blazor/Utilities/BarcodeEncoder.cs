@@ -19,10 +19,10 @@ internal static class BarcodeEncoder
         return type switch
         {
             BarcodeType.Code128 => EncodeCode128(value),
-            BarcodeType.Code39  => EncodeCode39(value),
-            BarcodeType.Ean13   => EncodeEan13(value),
-            BarcodeType.Ean8    => EncodeEan8(value),
-            BarcodeType.UpcA    => EncodeUpcA(value),
+            BarcodeType.Code39 => EncodeCode39(value),
+            BarcodeType.Ean13 => EncodeEan13(value),
+            BarcodeType.Ean8 => EncodeEan8(value),
+            BarcodeType.UpcA => EncodeUpcA(value),
             _ => throw new ArgumentOutOfRangeException(nameof(type)),
         };
     }
@@ -34,8 +34,8 @@ internal static class BarcodeEncoder
         return type switch
         {
             BarcodeType.Ean13 => value.Length == 12 ? value + Ean13Check(value) : value,
-            BarcodeType.Ean8  => value.Length == 7  ? value + Ean8Check(value)  : value,
-            BarcodeType.UpcA  => value.Length == 11 ? value + UpcACheck(value)  : value,
+            BarcodeType.Ean8 => value.Length == 7 ? value + Ean8Check(value) : value,
+            BarcodeType.UpcA => value.Length == 11 ? value + UpcACheck(value) : value,
             _ => value,
         };
     }

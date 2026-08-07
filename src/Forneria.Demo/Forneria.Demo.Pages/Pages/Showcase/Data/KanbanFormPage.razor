@@ -1,0 +1,63 @@
+@page "/showcase/kanban-form"
+@attribute [ShowcaseInfo(Title = "Kanban Form", Category = Cat.Data, Icon = "columns-3", New = true, Aliases = "board,crud,card,dataform")]
+@layout ShowcaseLayout
+
+<PageTitle>Kanban Form — Showcase</PageTitle>
+
+<ShowcasePage Title="Kanban Form" Subtitle="Board editável com drafts, validação e persistência reutilizável.">
+    <Overview><p><code>OmniKanbanForm</code> adiciona CRUD tipado ao Kanban sem acoplar persistência ou regras de negócio ao componente visual.</p></Overview>
+    <WhenToUse><ul><li>Backlogs, pipelines e fluxos de aprovação que editam cartões.</li></ul></WhenToUse>
+    <WhenNotToUse><ul><li>Board somente leitura; use <code>OmniKanban</code>.</li></ul></WhenNotToUse>
+    <ChildContent>
+        <ShowcaseSection Title="BOARD + DATA FORM" Description="Adicionar e clicar no cartão abrem o formulário compartilhado." Code="@ExampleCode">
+            <OmniKanbanForm TItem="Cartao" TKey="int" Items="@_cartoes" KanbanSchema="@BoardSchema" EditorSchema="@EditorSchema" />
+        </ShowcaseSection>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private readonly List<Cartao> _cartoes =
+    [
+        new() { Id = 1, Status = "backlog", Titulo = "Revisar tokens de design" },
+        new() { Id = 2, Status = "doing", Titulo = "Validar navegação por teclado" }
+    ];
+
+    private static readonly KanbanSchema<Cartao> BoardSchema = KanbanSchema<Cartao>.Create(board => board
+        .ColumnState(item => item.Status, static (item, status) => item.Status = status)
+        .Key(item => item.Id)
+        .Column("backlog", "Backlog")
+        .Column("doing", "Em andamento")
+        .Column("done", "Concluído")
+        .Card(card => card.Title(item => item.Titulo)));
+
+    private static readonly DataFormSchema<Cartao> FormSchema = DataFormSchema<Cartao>.Create(form => form
+        .AutoGenerateFields(false)
+        .Field(item => item.Titulo, field => field.Label("Título").Required())
+        .Field(item => item.Status, field => field
+            .Label("Status")
+            .Select(select => select
+                .Option("backlog", "Backlog")
+                .Option("doing", "Em andamento")
+                .Option("done", "Concluído"))));
+
+    private static readonly EntityEditorSchema<Cartao, int> EditorSchema = EntityEditorSchema<Cartao, int>.Create(editor => editor
+        .Key(item => item.Id)
+        .Form(FormSchema)
+        .Create(() => new Cartao { Id = Random.Shared.Next(100, 10_000), Status = "backlog" }, "Novo cartão")
+        .Edit(item => new Cartao { Id = item.Id, Status = item.Status, Titulo = item.Titulo }, item => $"Editar {item.Titulo}")
+        .Delete(item => $"Remover o cartão {item.Titulo}?"));
+
+    private const string ExampleCode = """
+<OmniKanbanForm TItem="Cartao" TKey="int"
+                Items="@cartoes"
+                KanbanSchema="@BoardSchema"
+                EditorSchema="@EditorSchema" />
+""";
+
+    private sealed class Cartao
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = "backlog";
+        public string Titulo { get; set; } = string.Empty;
+    }
+}

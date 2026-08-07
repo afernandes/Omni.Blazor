@@ -1,0 +1,137 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@inherits OmniComponent
+@attribute [OmniCatalogIgnore]
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Internal generated DataForm editor surface used by OmniDataGridForm. *@
+
+<section class="@RootCss"
+         style="@Style"
+         role="@(Presentation == DataGridFormPresentation.Inline ? "region" : "dialog")"
+         aria-modal="@(Presentation == DataGridFormPresentation.Inline ? null : "true")"
+         aria-labelledby="@TitleId"
+         @attributes="Attributes">
+    <header class="omni-data-grid-form-editor-header">
+        <h2 id="@TitleId">@Title</h2>
+        <OmniButton Icon="x"
+                    Text="@CloseText"
+                    Size="ComponentSize.Sm"
+                    Variant="ButtonVariant.Ghost"
+                    Disabled="@Saving"
+                    OnClick="@(_ => CancelAsync())" />
+    </header>
+    <div class="omni-data-grid-form-editor-body">
+        <OmniDataForm TModel="TItem"
+                      @ref="_form"
+                      Model="@Draft"
+                      Schema="@Schema"
+                      Disabled="@Disabled"
+                      Submitting="@Saving"
+                      RenderFormElement="@RenderFormElement"
+                      ShowSubmitButton="false"
+                      OnValidSubmit="@OnValidSubmit">
+            <Actions>
+                @AdditionalActions
+                <OmniButton Text="@CancelText"
+                            Disabled="@Saving"
+                            OnClick="@(_ => CancelAsync())" />
+                <OmniButton Text="@SaveText"
+                            Icon="save"
+                            Variant="ButtonVariant.Primary"
+                            Loading="@Saving"
+                            Disabled="@Disabled"
+                            OnClick="@(_ => SubmitAsync())" />
+            </Actions>
+        </OmniDataForm>
+    </div>
+</section>
+
+@code {
+    private OmniDataForm<TItem>? _form;
+    private EditContext? _subscribedContext;
+
+    /// <summary>Detached model edited by the generated DataForm.</summary>
+    [Parameter, EditorRequired] public TItem Draft { get; set; } = default!;
+
+    /// <summary>Reusable form schema.</summary>
+    [Parameter, EditorRequired] public DataFormSchema<TItem> Schema { get; set; } = default!;
+
+    /// <summary>Editor heading.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Placement used for semantics and styling.</summary>
+    [Parameter] public DataGridFormPresentation Presentation { get; set; }
+
+    /// <summary>Whether persistence is active.</summary>
+    [Parameter] public bool Saving { get; set; }
+
+    /// <summary>Whether generated editors are disabled.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Whether the nested OmniDataForm emits an HTML form element.</summary>
+    [Parameter] public bool RenderFormElement { get; set; } = true;
+
+    /// <summary>Optional actions rendered before cancel and save.</summary>
+    [Parameter] public RenderFragment? AdditionalActions { get; set; }
+
+    /// <summary>Save button text.</summary>
+    [Parameter] public string SaveText { get; set; } = "Salvar";
+
+    /// <summary>Cancel button text.</summary>
+    [Parameter] public string CancelText { get; set; } = "Cancelar";
+
+    /// <summary>Close button text.</summary>
+    [Parameter] public string CloseText { get; set; } = "Fechar";
+
+    /// <summary>Receives a valid generated form submission.</summary>
+    [Parameter] public EventCallback<EditContext> OnValidSubmit { get; set; }
+
+    /// <summary>Requests editor cancellation.</summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    /// <summary>Reports whether the generated EditContext has unsaved field changes.</summary>
+    [Parameter] public EventCallback<bool> DirtyChanged { get; set; }
+
+    /// <summary>Whether the current generated EditContext contains modified fields.</summary>
+    public bool IsModified => _form?.CurrentEditContext?.IsModified() ?? false;
+
+    private string TitleId => $"{Id}-title";
+    private string RootCss => CssBuilder.Default("omni-data-grid-form-editor")
+        .AddClass("omni-data-grid-form-editor-inline", Presentation == DataGridFormPresentation.Inline)
+        .AddClass("omni-data-grid-form-editor-dialog", Presentation == DataGridFormPresentation.Dialog)
+        .AddClass("omni-data-grid-form-editor-drawer", Presentation == DataGridFormPresentation.Drawer)
+        .AddClass(Class)
+        .Build();
+
+    private Task SubmitAsync() => _form?.SubmitAsync() ?? Task.CompletedTask;
+    private Task CancelAsync() => Saving ? Task.CompletedTask : OnCancel.InvokeAsync();
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        EditContext? context = _form?.CurrentEditContext;
+        if (ReferenceEquals(context, _subscribedContext)) return;
+        if (_subscribedContext is not null)
+            _subscribedContext.OnFieldChanged -= OnFieldChanged;
+        _subscribedContext = context;
+        if (_subscribedContext is not null)
+            _subscribedContext.OnFieldChanged += OnFieldChanged;
+    }
+
+    private void OnFieldChanged(object? sender, FieldChangedEventArgs args)
+        => ObserveTask(DirtyChanged.InvokeAsync(IsModified), "OmniDataGridFormEditor.DirtyChanged");
+
+    /// <summary>Releases the EditContext event subscription.</summary>
+    public void Dispose()
+    {
+        if (_subscribedContext is not null)
+        {
+            _subscribedContext.OnFieldChanged -= OnFieldChanged;
+            _subscribedContext = null;
+        }
+        GC.SuppressFinalize(this);
+    }
+}

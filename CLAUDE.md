@@ -99,7 +99,7 @@ Hard rules enforced by the test suite:
    ```
    `OmniComponent.SetParametersAsync` runs `ParameterScope.DetectAllAsync()` after base assigns parameters — handlers fire only on real changes. This avoids re-encoding/re-computing when consumers change unrelated parameters (`Class`, `Style`). Examples in `OmniBarcode`, `OmniQRCode`, `OmniChart`, `OmniSlider`, `OmniNumeric`, `OmniMaskedTextBox`, `OmniPopover`, `OmniValidationMessage`.
 6. **DI services over `IJSRuntime`.** When something needs JS, use the existing service (`ScrollManager`, `BreakpointService`, `HotkeyService`, `KeyInterceptorService`, `OverlayLifecycle`, etc.) instead of injecting `IJSRuntime` directly. Services are registered by `AddOmniComponents()` in `Extensions/ServiceCollectionExtensions.cs`.
-7. **Naming.** CSS class prefix `omni-`, CSS custom property prefix `--omni-`, JS namespace `window.omniBlazor`. App-level CSS in consumers uses its own prefix (`fs-pdv-*`, `fs-cd-*` in FoodService).
+7. **Naming.** CSS class prefix `omni-`, CSS custom property prefix `--omni-`. JavaScript remains private to isolated ES modules and typed services. App-level CSS in consumers uses its own prefix (`fs-pdv-*`, `fs-cd-*` in FoodService).
 
 ## Theming
 
@@ -112,7 +112,7 @@ All visual tokens are CSS custom properties in `src/Omni.Blazor/Themes/_tokens.s
 
 `<OmniTheme />` in `<head>` injects the stylesheet link. `<OmniAppearanceToggle />` exposes a user-facing toggle (persists to localStorage). `<OmniBreakpointProvider>` cascades the current breakpoint (Xs/Sm/Md/Lg/Xl/Xxl) — query `BreakpointService` for the live value.
 
-The entry point `Themes/omni.scss` imports `_reset → _tokens → _base → _components` in that order. Shared variants, design tokens and styles used by dynamically-created DOM belong in these theme sources. A component may use `.razor.css` for truly private implementation details. Prefer typed services and lazy/colocated modules for new complex JS integrations while preserving the existing `window.omniBlazor` compatibility surface.
+The entry point `Themes/omni.scss` imports `_reset → _tokens → _base → _components` in that order. Shared variants, design tokens and styles used by dynamically-created DOM belong in these theme sources. A component may use `.razor.css` for truly private implementation details. JavaScript integrations use typed services and lazy/colocated ES modules; browser globals are not part of the public surface.
 
 Performance, async, concurrency and lifetime requirements are defined in
 [`docs/engineering-quality.md`](docs/engineering-quality.md). Optimizations

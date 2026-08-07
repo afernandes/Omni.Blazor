@@ -103,10 +103,18 @@
     /// <summary>Width set at runtime by a column resize (overrides <see cref="Width"/> when set).</summary>
     internal string? WidthInternal { get; set; }
 
+    /// <summary>Frozen edge set at runtime by a restored view state.</summary>
+    internal FrozenPosition? FrozenInternal { get; set; }
+
     /// <summary>The effective column width — the resized width if any, else the declared <see cref="Width"/>.</summary>
     internal string? EffectiveWidth => WidthInternal ?? Width;
 
-    internal void SetWidth(string width) => WidthInternal = width;
+    /// <summary>The effective frozen edge, including a restored view-state override.</summary>
+    internal FrozenPosition? EffectiveFrozen => FrozenInternal;
+
+    internal void SetWidth(string? width) => WidthInternal = width;
+
+    internal void SetFrozen(FrozenPosition? frozen) => FrozenInternal = frozen;
 
     /// <summary>Resolved property name (PropertyName ou Title como fallback).</summary>
     internal string ResolvedPropertyName => PropertyName ?? Title ?? string.Empty;
@@ -117,11 +125,14 @@
     /// primeiro caso sobrescreve <see cref="VisibleInternal"/>.
     /// </summary>
     private bool _lastVisibleParam = true;
+    private FrozenPosition? _lastFrozenParam;
 
     protected override void OnInitialized()
     {
         VisibleInternal = Visible;
         _lastVisibleParam = Visible;
+        FrozenInternal = Frozen;
+        _lastFrozenParam = Frozen;
         Parent?.Register(this);
     }
 
@@ -136,14 +147,23 @@
     /// </summary>
     protected override void OnParametersSet()
     {
-        if (Visible == _lastVisibleParam) return;
-
-        _lastVisibleParam = Visible;
-        VisibleInternal = Visible;
+        bool changed = false;
+        if (Visible != _lastVisibleParam)
+        {
+            _lastVisibleParam = Visible;
+            VisibleInternal = Visible;
+            changed = true;
+        }
+        if (Frozen != _lastFrozenParam)
+        {
+            _lastFrozenParam = Frozen;
+            FrozenInternal = Frozen;
+            changed = true;
+        }
 
         // O cabeçalho e as células vivem no pai; sem avisá-lo, o estado muda e a
         // tabela continua desenhada como estava.
-        Parent?.NotifyColumnsChanged();
+        if (changed) Parent?.NotifyColumnsChanged();
     }
 
     public void Dispose() => Parent?.Unregister(this);

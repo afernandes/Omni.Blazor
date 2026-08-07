@@ -14,11 +14,3 @@ public class GanttTask
     public DateTime? BaselineStart { get; set; }
     public DateTime? BaselineEnd { get; set; }
 }
-
-/// <summary>Property-name-based dependency row (for the DependencyData example).</summary>
-public class GanttTaskDependency
-{
-    public int PredecessorId { get; set; }
-    public int SuccessorId { get; set; }
-    public GanttDependencyType Type { get; set; } = GanttDependencyType.FinishToStart;
-}

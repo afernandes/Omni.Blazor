@@ -28,7 +28,7 @@ public class OmniDrawerTests : TestContextBase
     }
 
     [Theory]
-    [InlineData(DrawerAnchor.Left,  "left")]
+    [InlineData(DrawerAnchor.Left, "left")]
     [InlineData(DrawerAnchor.Right, "right")]
     public void Applies_anchor_attribute(DrawerAnchor anchor, string expected)
     {
@@ -41,8 +41,8 @@ public class OmniDrawerTests : TestContextBase
 
     [Theory]
     [InlineData(DrawerVariant.Persistent, "persistent")]
-    [InlineData(DrawerVariant.Mini,       "mini")]
-    [InlineData(DrawerVariant.Temporary,  "temporary")]
+    [InlineData(DrawerVariant.Mini, "mini")]
+    [InlineData(DrawerVariant.Temporary, "temporary")]
     [InlineData(DrawerVariant.Responsive, "responsive")]
     public void Applies_variant_attribute(DrawerVariant variant, string expected)
     {

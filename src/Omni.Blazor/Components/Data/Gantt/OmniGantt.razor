@@ -3,7 +3,7 @@
 @attribute [CascadingTypeParameter(nameof(TItem))]
 @inherits OmniComponent
 @implements IDisposable
-@inject IJSRuntime JS
+@inject IOmniDataJsModule JS
 @using System.Globalization
 @using Omni.Blazor.Models
 @using Omni.Blazor.Utilities
@@ -244,48 +244,15 @@
     /// <summary>The task source.</summary>
     [Parameter] public IEnumerable<TItem>? Data { get; set; }
 
-    /// <summary>Name of each task's unique id property (enables the hierarchy + dependencies).</summary>
-    [Parameter] public string? IdProperty { get; set; }
-
-    /// <summary>Name of the parent-id property used to build the task tree. Null = flat list.</summary>
-    [Parameter] public string? ParentIdProperty { get; set; }
-
-    /// <summary>Name of the task display-text property (shown on the bar label).</summary>
-    [Parameter] public string? TextProperty { get; set; }
-
-    /// <summary>Name of the task start <c>DateTime</c> property.</summary>
-    [Parameter] public string? StartProperty { get; set; }
-
-    /// <summary>Name of the task end <c>DateTime</c> property. Equal to start = milestone.</summary>
-    [Parameter] public string? EndProperty { get; set; }
-
-    /// <summary>Name of the progress property (0–100), drawn as a fill inside the bar.</summary>
-    [Parameter] public string? ProgressProperty { get; set; }
-
-    /// <summary>Name of the baseline-start property — draws a baseline bar under the task.</summary>
-    [Parameter] public string? BaselineStartProperty { get; set; }
-
-    /// <summary>Name of the baseline-end property (used with <see cref="BaselineStartProperty"/>).</summary>
-    [Parameter] public string? BaselineEndProperty { get; set; }
+    /// <summary>Immutable typed task projection and presentation schema.</summary>
+    [Parameter, EditorRequired] public GanttSchema<TItem> Schema { get; set; } = default!;
 
     /// <summary>Left-pane column definitions (<c>OmniGanttColumn</c>) — pass them as child content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     // ─── Dependencies ─────────────────────────────────────────────────────
-    /// <summary>Typed task dependencies (rendered as arrows). Alternative to <see cref="DependencyData"/>.</summary>
+    /// <summary>Typed task dependencies rendered as arrows.</summary>
     [Parameter] public IEnumerable<GanttDependency<TItem>>? Dependencies { get; set; }
-
-    /// <summary>Raw dependency objects, resolved via the <c>Dependency*Property</c> names.</summary>
-    [Parameter] public IEnumerable<object>? DependencyData { get; set; }
-
-    /// <summary>On <see cref="DependencyData"/>, the property holding the predecessor task id.</summary>
-    [Parameter] public string? DependencyFromProperty { get; set; }
-
-    /// <summary>On <see cref="DependencyData"/>, the property holding the successor task id.</summary>
-    [Parameter] public string? DependencyToProperty { get; set; }
-
-    /// <summary>On <see cref="DependencyData"/>, the property holding the dependency type. Default Finish-to-Start.</summary>
-    [Parameter] public string? DependencyTypeProperty { get; set; }
 
     // ─── Layout / timeline ────────────────────────────────────────────────
     /// <summary>Timeline granularity (Day/Week/Month/Year). Default Week.</summary>
@@ -432,6 +399,29 @@
     }
 
     private DotNetObjectReference<OmniGantt<TItem>>? _selfRef;
+    private bool _zoomLevelWasSet;
+    private bool _rowHeightWasSet;
+    private bool _leftPaneWidthWasSet;
+    private bool _showNavigationWasSet;
+    private bool _showTodayLineWasSet;
+    private bool _showWeekendsWasSet;
+    private bool _showCriticalPathWasSet;
+    private bool _nonWorkingDaysWasSet;
+    private bool _markersWasSet;
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        _zoomLevelWasSet = parameters.TryGetValue<GanttZoomLevel>(nameof(ZoomLevel), out _);
+        _rowHeightWasSet = parameters.TryGetValue<int>(nameof(RowHeightPx), out _);
+        _leftPaneWidthWasSet = parameters.TryGetValue<string>(nameof(LeftPaneWidth), out _);
+        _showNavigationWasSet = parameters.TryGetValue<bool>(nameof(ShowNavigation), out _);
+        _showTodayLineWasSet = parameters.TryGetValue<bool>(nameof(ShowTodayLine), out _);
+        _showWeekendsWasSet = parameters.TryGetValue<bool>(nameof(ShowWeekends), out _);
+        _showCriticalPathWasSet = parameters.TryGetValue<bool>(nameof(ShowCriticalPath), out _);
+        _nonWorkingDaysWasSet = parameters.TryGetValue<IEnumerable<DayOfWeek>>(nameof(NonWorkingDays), out _);
+        _markersWasSet = parameters.TryGetValue<IEnumerable<GanttMarker>?>(nameof(Markers), out _);
+        await base.SetParametersAsync(parameters);
+    }
 
     private async Task StartColumnResizeAsync(MouseEventArgs e, int index)
     {
@@ -439,7 +429,7 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.ganttStartColumnResize",
+            await JS.InvokeVoidAsync("ganttStartColumnResize",
                 $"{Id}-gleft", $"{Id}-ghcell-{index}", $"--omni-gantt-col-{index}",
                 _selfRef, index, e.ClientX, ColMinPx(_columns[index]));
         }
@@ -465,7 +455,25 @@
         _selfRef = null;
     }
 
-    protected override void OnParametersSet() => Rebuild();
+    protected override void OnParametersSet()
+    {
+        ApplySchemaConfiguration();
+        Rebuild();
+    }
+
+    private void ApplySchemaConfiguration()
+    {
+        if (Schema is not { } schema) return;
+        if (!_zoomLevelWasSet) ZoomLevel = schema.ZoomLevel;
+        if (!_rowHeightWasSet) RowHeightPx = schema.RowHeight;
+        if (!_leftPaneWidthWasSet) LeftPaneWidth = schema.LeftPaneWidth;
+        if (!_showNavigationWasSet) ShowNavigation = schema.ShowNavigation;
+        if (!_showTodayLineWasSet) ShowTodayLine = schema.ShowTodayLine;
+        if (!_showWeekendsWasSet) ShowWeekends = schema.ShowWeekends;
+        if (!_showCriticalPathWasSet) ShowCriticalPath = schema.ShowCriticalPath;
+        if (!_nonWorkingDaysWasSet) NonWorkingDays = schema.NonWorkingDays;
+        if (!_markersWasSet) Markers = schema.RuntimeMarkers;
+    }
 
     private void Rebuild()
     {
@@ -488,7 +496,7 @@
         var items = Data?.ToList() ?? new List<TItem>();
         if (items.Count == 0) return;
 
-        if (string.IsNullOrEmpty(IdProperty) || string.IsNullOrEmpty(ParentIdProperty))
+        if (!HasHierarchyMapping)
         {
             foreach (var it in items) _rows.Add(new GanttRow(it, 0, false, false));
             return;
@@ -498,7 +506,7 @@
         var roots = new List<TItem>();
         foreach (var it in items)
         {
-            var pid = SchedulerReflection.GetValue(it, ParentIdProperty!);
+            var pid = ParentKeyOf(it);
             if (pid is null) roots.Add(it);
             else
             {
@@ -512,7 +520,7 @@
             _expandInit = true;
             foreach (var it in items)
             {
-                var id = SchedulerReflection.GetValue(it, IdProperty!);
+                var id = KeyOf(it);
                 if (id is not null && byParent.ContainsKey(id)) _expanded.Add(id);
             }
         }
@@ -521,7 +529,7 @@
         {
             foreach (var n in nodes)
             {
-                var id = SchedulerReflection.GetValue(n, IdProperty!);
+                var id = KeyOf(n);
                 var hasChildren = id is not null && byParent.ContainsKey(id);
                 var expanded = id is not null && _expanded.Contains(id);
                 _rows.Add(new GanttRow(n, level, hasChildren, expanded));
@@ -533,8 +541,8 @@
 
     private void ToggleExpand(GanttRow row)
     {
-        if (string.IsNullOrEmpty(IdProperty)) return;
-        var id = SchedulerReflection.GetValue(row.Item, IdProperty!);
+        if (!HasKeyMapping) return;
+        var id = KeyOf(row.Item);
         if (id is null) return;
         if (!_expanded.Remove(id)) _expanded.Add(id);
         BuildRows();
@@ -674,9 +682,9 @@
 
     private string? BaselinePlacement(TItem item)
     {
-        if (string.IsNullOrEmpty(BaselineStartProperty) || string.IsNullOrEmpty(BaselineEndProperty)) return null;
-        var bs = ToDateTime(SchedulerReflection.GetValue(item, BaselineStartProperty!));
-        var be = ToDateTime(SchedulerReflection.GetValue(item, BaselineEndProperty!));
+        if (!HasBaselineMapping) return null;
+        var bs = BaselineStartOf(item);
+        var be = BaselineEndOf(item);
         if (bs is null || be is null || be <= bs) return null;
         if (be.Value < _rangeStart || bs.Value > _rangeEnd) return null;
         var leftPx = ClampPx(bs.Value);
@@ -725,7 +733,7 @@
     private bool IsCritical(TItem item)
     {
         if (_criticalItems is null || _criticalItems.Count == 0) return false;
-        var id = !string.IsNullOrEmpty(IdProperty) ? SchedulerReflection.GetValue(item, IdProperty!) : item;
+        var id = KeyOf(item);
         return id is not null && _criticalItems.Contains(id);
     }
 
@@ -735,26 +743,20 @@
             : string.Format(Inv, "left:{0}px;--omni-gantt-marker-color:{1};", px, m.Color);
 
     // ─── Property accessors ───────────────────────────────────────────────
-    private DateTime? StartOf(TItem item) => string.IsNullOrEmpty(StartProperty) ? null : ToDateTime(SchedulerReflection.GetValue(item, StartProperty!));
-    private DateTime? EndOf(TItem item) => string.IsNullOrEmpty(EndProperty) ? null : ToDateTime(SchedulerReflection.GetValue(item, EndProperty!));
-    private string? TextOf(TItem item) => string.IsNullOrEmpty(TextProperty) ? null : SchedulerReflection.GetValue(item, TextProperty!)?.ToString();
+    private bool HasKeyMapping => Schema.Key is not null;
+    private bool HasHierarchyMapping => Schema is { Key: not null, ParentKey: not null };
+    private bool HasBaselineMapping => Schema is { BaselineStart: not null, BaselineEnd: not null };
+    private object? ParentKeyOf(TItem item) => Schema.ParentKey?.Invoke(item);
+    private DateTime? StartOf(TItem item) => Schema.Start(item);
+    private DateTime? EndOf(TItem item) => Schema.End(item);
+    private string? TextOf(TItem item) => Schema.Text?.Invoke(item);
+    private DateTime? BaselineStartOf(TItem item) => Schema.BaselineStart?.Invoke(item);
+    private DateTime? BaselineEndOf(TItem item) => Schema.BaselineEnd?.Invoke(item);
 
     private double? ProgressOf(TItem item)
     {
-        if (string.IsNullOrEmpty(ProgressProperty)) return null;
-        var v = SchedulerReflection.GetValue(item, ProgressProperty!);
-        if (v is null) return null;
-        try { return Convert.ToDouble(v, Inv); } catch { return null; }
+        return Schema.Progress?.Invoke(item);
     }
-
-    private static DateTime? ToDateTime(object? v) => v switch
-    {
-        DateTime dt => dt,
-        DateTimeOffset dto => dto.LocalDateTime,
-        null => null,
-        string s when DateTime.TryParse(s, Inv, DateTimeStyles.AssumeLocal, out var p) => p,
-        _ => null,
-    };
 
     private static string Pct(double v) => Math.Clamp(v, 0, 100).ToString("0.##", Inv);
     private static string Px(double v) => v.ToString("0.###", Inv);
@@ -930,38 +932,9 @@
     // ─── Dependencies + critical path ─────────────────────────────────────
     private IEnumerable<GanttDependency<TItem>> ResolveDependencies()
     {
-        if (DependencyData is not null && !string.IsNullOrEmpty(DependencyFromProperty) && !string.IsNullOrEmpty(DependencyToProperty))
-            return ResolveDependencyData();
-        return Dependencies ?? Enumerable.Empty<GanttDependency<TItem>>();
-    }
-
-    private IEnumerable<GanttDependency<TItem>> ResolveDependencyData()
-    {
-        if (Data is null || string.IsNullOrEmpty(IdProperty)) return Enumerable.Empty<GanttDependency<TItem>>();
-        var byId = new Dictionary<object, TItem>();
-        foreach (var it in Data)
-        {
-            var id = SchedulerReflection.GetValue(it, IdProperty!);
-            if (id is not null) byId[id] = it;
-        }
-        var links = new List<GanttDependency<TItem>>();
-        foreach (var dep in DependencyData!)
-        {
-            if (dep is null) continue;
-            var fromId = SchedulerReflection.GetValue(dep, DependencyFromProperty!);
-            var toId = SchedulerReflection.GetValue(dep, DependencyToProperty!);
-            if (fromId is null || toId is null) continue;
-            if (!byId.TryGetValue(fromId, out var from) || !byId.TryGetValue(toId, out var to)) continue;
-            var type = GanttDependencyType.FinishToStart;
-            if (!string.IsNullOrEmpty(DependencyTypeProperty))
-            {
-                var raw = SchedulerReflection.GetValue(dep, DependencyTypeProperty!);
-                if (raw is GanttDependencyType gdt) type = gdt;
-                else if (raw is not null && Enum.TryParse<GanttDependencyType>(raw.ToString(), out var parsed)) type = parsed;
-            }
-            links.Add(new() { From = from, To = to, Type = type });
-        }
-        return links;
+        return Schema is { Dependencies.Count: > 0 }
+            ? Schema.RuntimeDependencies
+            : Dependencies ?? Enumerable.Empty<GanttDependency<TItem>>();
     }
 
     private void BuildLinks()
@@ -1006,7 +979,7 @@
     }
 
     private object? KeyOf(TItem item)
-        => !string.IsNullOrEmpty(IdProperty) ? SchedulerReflection.GetValue(item, IdProperty!) : item;
+        => Schema.Key?.Invoke(item) ?? item;
 
     private string BuildLinkPath(double x1, double y1, double x2, double y2, GanttDependencyType type)
     {

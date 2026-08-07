@@ -1,7 +1,8 @@
 @namespace Omni.Blazor.Components
 @inherits FormComponent<string>
 @implements IDisposable
-@inject IJSRuntime JS
+@inject IOmniInputsJsModule InputsJS
+@inject IOmniOverlayJsModule OverlayJS
 @using System.Globalization
 @using Omni.Blazor.Models
 @using Omni.Blazor.State
@@ -224,7 +225,7 @@
     {
         if (Disabled || ReadOnly) return;
         _svDragging = true;
-        try { await JS.InvokeVoidAsync("omniBlazor.splitterCapture", $"{_id}-sv", e.PointerId); } catch { }
+        try { await InputsJS.InvokeVoidAsync("splitterCapture", $"{_id}-sv", e.PointerId); } catch { }
         await ApplySvAsync(e.OffsetX, e.OffsetY);
     }
 
@@ -235,7 +236,7 @@
     {
         if (!_svDragging) return;
         _svDragging = false;
-        try { await JS.InvokeVoidAsync("omniBlazor.splitterRelease", $"{_id}-sv", e.PointerId); } catch { }
+        try { await InputsJS.InvokeVoidAsync("splitterRelease", $"{_id}-sv", e.PointerId); } catch { }
     }
 
     private Task ApplySvAsync(double offsetX, double offsetY)
@@ -307,7 +308,7 @@
         StateHasChanged();
         try
         {
-            await JS.InvokeVoidAsync("omniBlazor.registerClickOutside",
+            await OverlayJS.InvokeVoidAsync("registerClickOutside",
                 _id, $"[data-omni-cpid=\"{_id}\"]", _dotnetRef, "OnClickOutsideAsync");
         }
         catch { }
@@ -320,7 +321,7 @@
     {
         if (!_open) return;
         _open = false;
-        try { await JS.InvokeVoidAsync("omniBlazor.unregisterClickOutside", _id); }
+        try { await OverlayJS.InvokeVoidAsync("unregisterClickOutside", _id); }
         catch { }
         StateHasChanged();
     }

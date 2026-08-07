@@ -5,9 +5,8 @@ namespace Omni.Blazor.Tests.Components.Inputs;
 
 /// <summary>
 /// Behavioural contract for <see cref="OmniDateRangePicker"/>: trigger button
-/// rendering, placeholder behavior, and the cross-cutting splat. Popover-driven
-/// preset selection lives behind a JS click-outside binding and isn't exercised
-/// in unit tests.
+/// rendering, placeholder behavior, cross-cutting splat and the shared
+/// top-layer floating-popover lifecycle.
 /// </summary>
 public class OmniDateRangePickerTests : TestContextBase
 {
@@ -33,7 +32,7 @@ public class OmniDateRangePickerTests : TestContextBase
     {
         var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
-            .Add(c => c.To,   new DateOnly(2025, 1, 31)));
+            .Add(c => c.To, new DateOnly(2025, 1, 31)));
 
         Assert.Equal(2, cut.FindAll("span.omni-daterange-value").Count);
     }
@@ -70,6 +69,25 @@ public class OmniDateRangePickerTests : TestContextBase
         Assert.Equal("drp", cut.Find("div.omni-daterange").GetAttribute("data-testid"));
     }
 
+    [Fact]
+    public async Task Open_promotes_the_range_panel_through_the_floating_popover_lifecycle()
+    {
+        var cut = Render<OmniDateRangePicker>();
+
+        await cut.Find("button.omni-daterange-input").ClickAsync(new());
+
+        var popover = cut.Find(".omni-daterange-popover");
+        Assert.Equal("manual", popover.GetAttribute("popover"));
+        Assert.Equal("dialog", popover.GetAttribute("role"));
+        Assert.Equal(popover.Id, cut.Find(".omni-daterange-input").GetAttribute("aria-controls"));
+        JSInterop.VerifyInvoke("omniBlazor.floatingPopoverOpen");
+
+        await cut.InvokeAsync(cut.Instance.OnClickOutsideAsync);
+
+        Assert.Empty(cut.FindAll(".omni-daterange-popover"));
+        JSInterop.VerifyInvoke("omniBlazor.floatingPopoverClose");
+    }
+
     // ── ParameterState: pending sync fires only on From/To/FromExpression changes ──
 
     [Fact]
@@ -77,7 +95,7 @@ public class OmniDateRangePickerTests : TestContextBase
     {
         var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
-            .Add(c => c.To,   new DateOnly(2025, 1, 31)));
+            .Add(c => c.To, new DateOnly(2025, 1, 31)));
 
         // Initial detect fires both From + To + FromExpression handlers (3).
         Assert.True(cut.Instance.RecomputeCount >= 2);
@@ -90,7 +108,7 @@ public class OmniDateRangePickerTests : TestContextBase
     {
         var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
-            .Add(c => c.To,   new DateOnly(2025, 1, 31)));
+            .Add(c => c.To, new DateOnly(2025, 1, 31)));
 
         var baseline = cut.Instance.RecomputeCount;
         cut.Render(p => p
@@ -106,7 +124,7 @@ public class OmniDateRangePickerTests : TestContextBase
     {
         var cut = Render<OmniDateRangePicker>(p => p
             .Add(c => c.From, new DateOnly(2025, 1, 1))
-            .Add(c => c.To,   new DateOnly(2025, 1, 31)));
+            .Add(c => c.To, new DateOnly(2025, 1, 31)));
 
         var baseline = cut.Instance.RecomputeCount;
         cut.Render(p => p.Add(c => c.From, new DateOnly(2025, 2, 1)));

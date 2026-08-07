@@ -29,7 +29,7 @@ public class OmniPivotGridTests : TestContextBase
         foreach (var p in props)
         {
             b.OpenComponent<OmniPivotRow<Sale>>(seq++);
-            b.AddAttribute(seq++, nameof(OmniPivotRow<Sale>.Property), p);
+            b.AddAttribute(seq++, nameof(OmniPivotRow<Sale>.Value), Selector(p));
             b.CloseComponent();
         }
     };
@@ -40,7 +40,7 @@ public class OmniPivotGridTests : TestContextBase
         foreach (var p in props)
         {
             b.OpenComponent<OmniPivotColumn<Sale>>(seq++);
-            b.AddAttribute(seq++, nameof(OmniPivotColumn<Sale>.Property), p);
+            b.AddAttribute(seq++, nameof(OmniPivotColumn<Sale>.Value), Selector(p));
             b.CloseComponent();
         }
     };
@@ -51,11 +51,21 @@ public class OmniPivotGridTests : TestContextBase
         foreach (var (prop, agg) in vals)
         {
             b.OpenComponent<OmniPivotValue<Sale>>(seq++);
-            b.AddAttribute(seq++, nameof(OmniPivotValue<Sale>.Property), prop);
+            b.AddAttribute(seq++, nameof(OmniPivotValue<Sale>.Value), Selector(prop));
             b.AddAttribute(seq++, nameof(OmniPivotValue<Sale>.Aggregate), agg);
             b.AddAttribute(seq++, nameof(OmniPivotValue<Sale>.FormatString), "{0:0}");
             b.CloseComponent();
         }
+    };
+
+    private static Func<Sale, object?> Selector(string property) => property switch
+    {
+        nameof(Sale.Category) => static sale => sale.Category,
+        nameof(Sale.Region) => static sale => sale.Region,
+        nameof(Sale.Year) => static sale => sale.Year,
+        nameof(Sale.Amount) => static sale => sale.Amount,
+        nameof(Sale.Qty) => static sale => sale.Qty,
+        _ => throw new ArgumentOutOfRangeException(nameof(property))
     };
 
     private IRenderedComponent<OmniPivotGrid<Sale>> RenderPivot(

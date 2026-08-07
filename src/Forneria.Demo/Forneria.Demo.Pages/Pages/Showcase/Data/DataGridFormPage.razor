@@ -1,0 +1,523 @@
+@page "/showcase/data-grid-form"
+@attribute [ShowcaseInfo(Title = "DataGrid Form", Category = Cat.Data, Icon = "edit", New = true, Featured = true, Aliases = "crud,cadastro,formulario,dataform,table,grid")]
+@layout ShowcaseLayout
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>DataGrid Form — Showcase</PageTitle>
+
+@if (_interactiveReady)
+{
+    <span data-testid="data-grid-form-interactive" aria-hidden="true"></span>
+}
+
+<ShowcasePage Title="DataGrid Form"
+              Subtitle="CRUD tipado que compõe OmniDataGrid e OmniDataForm sem duplicar binding, validação ou estado assíncrono.">
+    <Overview>
+        <p>
+            <code>OmniDataGridForm&lt;TItem,TKey&gt;</code> usa um schema imutável para gerar colunas,
+            formulário de criação/edição, exclusão confirmada e ações extras. O formulário sempre
+            edita uma cópia: cancelar nunca altera a linha visível.
+        </p>
+        <p>
+            A mesma definição funciona com uma lista local ou com
+            <code>IDataGridFormProvider&lt;TItem,TKey&gt;</code> server-side. Toda operação é cancelável,
+            bloqueada por chave estável e expõe sucesso ou falha observada.
+        </p>
+        <p>
+            <code>RequiresPolicy(...)</code> controla a exposição da ação na interface por meio de
+            <code>IDataGridFormPolicyEvaluator</code>. A API/backend ainda deve aplicar a mesma autorização:
+            ocultar ou desabilitar um botão não substitui segurança server-side.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <li>Telas de cadastro com tabela, criação, edição e exclusão.</li>
+        <li>Master-detail em que uma propriedade de coleção deve aparecer como grid.</li>
+        <li>Quando o mesmo <code>DataFormSchema</code> deve controlar validação e editores em vários fluxos.</li>
+    </WhenToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="CRUD LOCAL COM DRAFT SEGURO"
+                         Description="Overflow automático mantém as ações prioritárias inline e agrupa as demais em um menu ancorado e acessível. A coluna é redimensionável, frozen à direita e o layout é restaurado pelo navegador."
+                         Code="@StandaloneExample">
+            <div data-testid="data-grid-form-standalone">
+                <OmniDataGridForm TItem="ClienteCadastro"
+                                  TKey="Guid"
+                                  @ref="_localGrid"
+                                  Items="@_clientes"
+                                  Schema="@ClienteCrudSchema"
+                                  PersistViewStateKey="showcase.clientes.local"
+                                  OperationCompleted="@AoConcluirOperacao">
+                    <ToolbarContent>
+                        <OmniButton Text="Restaurar layout"
+                                    Icon="rotate-ccw"
+                                    Size="ComponentSize.Sm"
+                                    Variant="ButtonVariant.Ghost"
+                                    OnClick="@(_ => RestaurarLayoutAsync())" />
+                    </ToolbarContent>
+                </OmniDataGridForm>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_ultimaOperacao))
+            {
+                <div class="omni-alert omni-alert-info" role="status" style="margin-top:12px;">
+                    <div class="omni-alert-body">@_ultimaOperacao</div>
+                </div>
+            }
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COLLECTION COMO OMNIDATAGRID"
+                         Description="Collection continua pertencendo ao EditContext do pedido, mas troca os cards aninhados pelo mesmo coordenador de grid e formulário. Limites, reordenação e validação indexada permanecem ativos."
+                         Code="@CollectionGridExample">
+            <div data-testid="data-grid-form-collection" style="max-width:900px;">
+                <OmniDataForm TModel="PedidoCadastro"
+                              Model="@_pedido"
+                              Schema="@PedidoSchema"
+                              ShowSubmitButton="false" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="PROVIDER SERVER-SIDE"
+                         Description="Exemplo executável: busca, paginação e CRUD passam por um provider assíncrono em memória que simula uma API. Nomes duplicados retornam ValidationFailed e versões desatualizadas retornam Conflict, sem usar exceções para regras esperadas."
+                         Code="@ProviderExample">
+            <div data-testid="data-grid-form-provider">
+                <OmniDataGridForm TItem="ClienteCadastro"
+                                  TKey="Guid"
+                                  Provider="@_clienteProvider"
+                                  Schema="@ClienteCrudSchema"
+                                  OperationCompleted="@AoConcluirOperacaoProvider" />
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_ultimaOperacaoProvider))
+            {
+                <div class="omni-alert omni-alert-info" role="status" style="margin-top:12px;">
+                    <div class="omni-alert-body">@_ultimaOperacaoProvider</div>
+                </div>
+            }
+        </ShowcaseSection>
+    </ChildContent>
+
+    <Api>
+        <ShowcaseApiTable Title="OmniDataGridForm&lt;TItem,TKey&gt;">
+            <ShowcaseApiRow Name="Schema" Type="DataGridFormSchema&lt;TItem,TKey&gt;" Default="obrigatório" Description="Colunas, DataForm, chave e operações imutáveis." />
+            <ShowcaseApiRow Name="Items / Provider" Type="IList&lt;TItem&gt; / IDataGridFormProvider" Default="mutuamente exclusivos" Description="Fonte local mutável ou persistência server-side cancelável." />
+            <ShowcaseApiRow Name="AllowCreate / AllowEdit / AllowDelete" Type="bool" Default="true" Description="Capabilities sobrepostas ao schema, úteis para permissões de UI." />
+            <ShowcaseApiRow Name="MinimumItems / MaximumItems" Type="int" Default="0 / int.MaxValue" Description="Limites aplicados ao modo local e à integração Collection." />
+            <ShowcaseApiRow Name="AllowReorder" Type="bool" Default="false" Description="Ações de mover para cima/baixo no modo local." />
+            <ShowcaseApiRow Name="ActionsResizable / ActionsFrozen" Type="bool? / FrozenPosition?" Default="schema / schema" Description="Overrides de runtime para o resizer e frozen configurados no schema." />
+            <ShowcaseApiRow Name="ActionsMenuText / ActionsMenuIcon" Type="string" Default="null / more-horizontal" Description="Personaliza o botão de overflow; sem texto, exibe apenas o ícone de reticências." />
+            <ShowcaseApiRow Name="OperationCompleted / OperationFailed" Type="EventCallback" Default="—" Description="Ciclo de vida observado de CRUD e ações extras." />
+            <ShowcaseApiRow Name="SelectedItems / MaximumSelectedItems" Type="HashSet&lt;TItem&gt; / int" Default="interno / 1000" Description="Seleção controlada e limitada usada por ações em massa." />
+            <ShowcaseApiRow Name="ViewState / PersistViewStateKey" Type="DataGridViewState / string" Default="null" Description="Estado controlado ou persistência local de ordem, largura, visibilidade, frozen, sort, filtros, grupos e busca." />
+            <ShowcaseApiRow Name="RefreshAsync" Type="Task" Default="—" Description="Recarrega provider ou reaplica o shaping local." />
+            <ShowcaseApiRow Name="RefreshAuthorizationAsync" Type="Task" Default="—" Description="Reavalia políticas distintas de forma cancelável e latest-wins." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="DataGridFormSchema&lt;TItem,TKey&gt;">
+            <ShowcaseApiRow Name="Key" Type="Expression&lt;Func&lt;TItem,TKey&gt;&gt;" Default="obrigatório" Description="Identidade estável para estado por linha e persistência." />
+            <ShowcaseApiRow Name="Form" Type="DataFormSchema&lt;TItem&gt;" Default="auto" Description="Fonte dos editores, layout e validação." />
+            <ShowcaseApiRow Name="Grid.Column" Type="selector tipado" Default="auto pelo Form" Description="Override de título, texto, template, filtro, resize e visibilidade." />
+            <ShowcaseApiRow Name="Create / Edit / Delete" Type="builders tipados" Default="desabilitados" Description="Edit exige Clone para garantir cancelamento sem mutação da linha." />
+            <ShowcaseApiRow Name="ActionsColumn.Overflow" Type="Manual / Automatic" Default="Manual" Description="Distribui ações Auto por prioridade, preservando ações KeepInline e InMenu." />
+            <ShowcaseApiRow Name="BulkActions.Overflow" Type="Manual / Automatic" Default="Manual" Description="Aplica o mesmo contrato de prioridade e menu às ações sobre a seleção." />
+            <ShowcaseApiRow Name="MenuMetadata" Type="group / shortcut / description" Default="null" Description="Enriquece menus de linha e em massa sem acoplar templates." />
+            <ShowcaseApiRow Name="RequiresPolicy" Type="policy + Hide / Disable" Default="null / Hide" Description="Autoriza create, edit, delete e ações por um avaliador substituível." />
+            <ShowcaseApiRow Name="Action" Type="callback cancelável" Default="—" Description="Ação extra com visibilidade, disabled, confirmação e contexto RefreshAsync." />
+            <ShowcaseApiRow Name="BulkAction" Type="callback cancelável" Default="—" Description="Ação sobre snapshot imutável de itens/chaves selecionados, com confirmação e ClearSelectionAsync." />
+        </ShowcaseApiTable>
+    </Api>
+</ShowcasePage>
+
+@code {
+    private bool _interactiveReady;
+    private string? _ultimaOperacao;
+    private string? _ultimaOperacaoProvider;
+    private readonly ClienteProvider _clienteProvider = new();
+    private OmniDataGridForm<ClienteCadastro, Guid>? _localGrid;
+
+    private readonly List<ClienteCadastro> _clientes =
+    [
+        new() { Id = Guid.Parse("10000000-0000-0000-0000-000000000001"), Nome = "Marina Costa", Email = "marina@exemplo.com", Ativo = true },
+        new() { Id = Guid.Parse("10000000-0000-0000-0000-000000000002"), Nome = "Rafael Souza", Email = "rafael@exemplo.com", Ativo = false }
+    ];
+
+    private readonly PedidoCadastro _pedido = new()
+    {
+        Contatos =
+        [
+            new() { Id = Guid.Parse("20000000-0000-0000-0000-000000000001"), Tipo = "Telefone", Valor = "(11) 99999-0000" }
+        ]
+    };
+
+    private static readonly DataFormSchema<ClienteCadastro> ClienteFormSchema =
+        DataFormSchema<ClienteCadastro>.Create(form => form
+            .AutoGenerateFields(false)
+            .Layout(layout => layout.Columns(1).Columns(Breakpoint.Sm, 2))
+            .Field(cliente => cliente.Nome, field => field.Label("Nome").Required("Informe o nome."))
+            .Field(cliente => cliente.Email, field => field.Label("E-mail").Email())
+            .Field(cliente => cliente.Ativo, field => field.Label("Ativo").Switch()));
+
+    private static readonly DataGridFormSchema<ClienteCadastro, Guid> ClienteCrudSchema =
+        DataGridFormSchema<ClienteCadastro, Guid>.Create(crud => crud
+            .Key(cliente => cliente.Id)
+            .Form(ClienteFormSchema)
+            .Grid(grid => grid
+                .AutoColumnsFromForm(false)
+                .Column(cliente => cliente.Nome, column => column.Title("Cliente").Filterable())
+                .Column(cliente => cliente.Email, column => column.Title("E-mail").Filterable())
+                .Column(cliente => cliente.Ativo, column => column
+                    .Title("Status")
+                    .Text(cliente => cliente.Ativo ? "Ativo" : "Inativo"))
+                .AllowSearch()
+                .AllowColumnFilter()
+                .AllowColumnResize())
+            .ActionsColumn(column => column
+                .Width("260px")
+                .Resizable()
+                .FrozenRight()
+                .Overflow(DataGridFormActionOverflow.Automatic, maximumInlineActions: 2)
+                .Menu(ariaLabel: "Mais ações"))
+            .BulkActions(actions => actions
+                .Overflow(DataGridFormActionOverflow.Automatic, maximumInlineActions: 1)
+                .Menu(ariaLabel: "Mais ações para selecionados"))
+            .Create(create => create
+                .Factory(() => new ClienteCadastro { Id = Guid.NewGuid(), Ativo = true })
+                .Title("Novo cliente"))
+            .Edit(edit => edit
+                .Clone(cliente => cliente.Copiar())
+                .Title(cliente => $"Editar — {cliente.Nome}")
+                .Priority(100)
+                .Presentation(DataGridFormPresentation.Drawer, "640px"))
+            .Delete(delete => delete
+                .Confirm(cliente => $"Excluir o cliente {cliente.Nome}?")
+                .Priority(10)
+                .MenuMetadata("Gerenciamento", "Del", "Remove o cliente permanentemente."))
+            .Action("Alternar status", "refresh-cw", static (context, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                context.Item.Ativo = !context.Item.Ativo;
+                return context.RefreshAsync(cancellationToken);
+             }, action => action
+                 .Id("alternar-status")
+                 .Priority(80)
+                 .Confirm(cliente => $"Alternar o status de {cliente.Nome}?"))
+            .Action("Arquivar", "archive", static (context, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                context.Item.Ativo = false;
+                return context.RefreshAsync(cancellationToken);
+            }, action => action
+                .Id("arquivar")
+                .InMenu()
+                .MenuMetadata("Gerenciamento", "A", "Mantém o cadastro, mas o torna inativo.")
+                .VisibleWhen(cliente => cliente.Ativo)
+                .Confirm(cliente => $"Arquivar o cliente {cliente.Nome}?"))
+            .BulkAction("Processar selecionados", "check", static async (context, cancellationToken) =>
+            {
+                await Task.Delay(100, cancellationToken);
+                await context.ClearSelectionAsync();
+            }, action => action
+                .Id("processar-selecionados")
+                .Priority(100)
+                .Confirm(clientes => $"Processar {clientes.Count} cliente(s)?"))
+            .BulkAction("Arquivar selecionados", "archive", static async (context, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                foreach (ClienteCadastro cliente in context.Items) cliente.Ativo = false;
+                await context.RefreshAsync(cancellationToken);
+            }, action => action
+                .Id("arquivar-selecionados")
+                .InMenu()
+                .MenuMetadata("Gerenciamento", "Shift+A", "Arquiva todos os clientes selecionados.")));
+
+    private static readonly DataFormSchema<ContatoCadastro> ContatoFormSchema =
+        DataFormSchema<ContatoCadastro>.Create(form => form
+            .AutoGenerateFields(false)
+            .Layout(layout => layout.Columns(1).Columns(Breakpoint.Sm, 2))
+            .Field(contato => contato.Tipo, field => field.Label("Tipo").Required())
+            .Field(contato => contato.Valor, field => field.Label("Contato").Required()));
+
+    private static readonly DataGridFormSchema<ContatoCadastro, Guid> ContatoCrudSchema =
+        DataGridFormSchema<ContatoCadastro, Guid>.Create(crud => crud
+            .Key(contato => contato.Id)
+            .Form(ContatoFormSchema)
+            .Grid(grid => grid
+                .AutoColumnsFromForm(false)
+                .Column(contato => contato.Tipo)
+                .Column(contato => contato.Valor, column => column.Title("Contato"))
+                .AllowSearch(false)
+                .AllowPaging(false))
+            .Create(create => create
+                .Factory(() => new ContatoCadastro { Id = Guid.NewGuid() })
+                .Title("Novo contato")
+                .Presentation(DataGridFormPresentation.Dialog, "560px"))
+            .Edit(edit => edit
+                .Clone(contato => contato.Copiar())
+                .Title(contato => $"Editar — {contato.Tipo}"))
+            .Delete(delete => delete
+                .Confirm(contato => $"Excluir o contato {contato.Valor}?")));
+
+    private static readonly DataFormSchema<PedidoCadastro> PedidoSchema =
+        DataFormSchema<PedidoCadastro>.Create(form => form
+            .AutoGenerateFields(false)
+            .Field(pedido => pedido.Contatos, field => field
+                .Label("Contatos do pedido")
+                .Collection<ContatoCadastro>(collection => collection
+                    .Bounds(1, 5)
+                    .Reorderable()
+                    .Grid(ContatoCrudSchema))));
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactiveReady = true;
+        StateHasChanged();
+    }
+
+    private Task AoConcluirOperacao(DataGridFormOperationEventArgs<ClienteCadastro, Guid> args)
+    {
+        _ultimaOperacao = args.Operation switch
+        {
+            DataGridFormOperation.Create => $"Cliente {args.Item?.Nome} adicionado.",
+            DataGridFormOperation.Edit => $"Cliente {args.Item?.Nome} atualizado.",
+            DataGridFormOperation.Delete => $"Cliente {args.Item?.Nome} removido.",
+            DataGridFormOperation.Bulk => $"{args.AffectedCount} cliente(s) processado(s).",
+            _ => $"Ação concluída para {args.Item?.Nome}."
+        };
+        return Task.CompletedTask;
+    }
+
+    private Task RestaurarLayoutAsync()
+        => _localGrid?.ResetViewStateAsync() ?? Task.CompletedTask;
+
+    private Task AoConcluirOperacaoProvider(DataGridFormOperationEventArgs<ClienteCadastro, Guid> args)
+    {
+        _ultimaOperacaoProvider = args.Operation == DataGridFormOperation.Bulk
+            ? $"Provider: {args.AffectedCount} cliente(s) processado(s)."
+            : $"Provider: operação {args.Operation} concluída para {args.Item?.Nome}.";
+        return Task.CompletedTask;
+    }
+
+    private sealed class ClienteCadastro
+    {
+        public Guid Id { get; set; }
+
+        [Required(ErrorMessage = "Informe o nome.")]
+        public string? Nome { get; set; }
+
+        [EmailAddress(ErrorMessage = "Informe um e-mail válido.")]
+        public string? Email { get; set; }
+
+        public bool Ativo { get; set; }
+
+        public int Versao { get; set; }
+
+        public ClienteCadastro Copiar()
+            => new() { Id = Id, Nome = Nome, Email = Email, Ativo = Ativo, Versao = Versao };
+    }
+
+    private sealed class ClienteProvider : IDataGridFormProvider<ClienteCadastro, Guid>
+    {
+        private readonly object _sync = new();
+        private readonly List<ClienteCadastro> _clientes =
+        [
+            new() { Id = Guid.Parse("30000000-0000-0000-0000-000000000001"), Nome = "Alice Provider", Email = "alice@exemplo.com", Ativo = true, Versao = 1 },
+            new() { Id = Guid.Parse("30000000-0000-0000-0000-000000000002"), Nome = "Bruno Provider", Email = "bruno@exemplo.com", Ativo = false, Versao = 1 },
+            new() { Id = Guid.Parse("30000000-0000-0000-0000-000000000003"), Nome = "Carla Provider", Email = "carla@exemplo.com", Ativo = true, Versao = 1 }
+        ];
+
+        public async ValueTask<GridLoadResult<ClienteCadastro>> LoadAsync(
+            GridState<ClienteCadastro> state,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(120, cancellationToken);
+            ClienteCadastro[] snapshot;
+            lock (_sync) snapshot = _clientes.Select(cliente => cliente.Copiar()).ToArray();
+
+            IEnumerable<ClienteCadastro> query = snapshot;
+            if (!string.IsNullOrWhiteSpace(state.Search))
+            {
+                string search = state.Search.Trim();
+                query = query.Where(cliente =>
+                    (cliente.Nome?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false)
+                    || (cliente.Email?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false));
+            }
+            foreach (FilterDescriptor filter in state.Filters)
+                query = query.Where(cliente => Matches(cliente, filter));
+            IOrderedEnumerable<ClienteCadastro>? ordered = null;
+            foreach (SortDescriptor sort in state.Sort)
+            {
+                Func<ClienteCadastro, object?> selector = sort.Property switch
+                {
+                    nameof(ClienteCadastro.Email) => cliente => cliente.Email,
+                    nameof(ClienteCadastro.Ativo) => cliente => cliente.Ativo,
+                    _ => cliente => cliente.Nome
+                };
+                ordered = ordered is null
+                    ? sort.Direction == SortDirection.Descending
+                        ? query.OrderByDescending(selector)
+                        : query.OrderBy(selector)
+                    : sort.Direction == SortDirection.Descending
+                        ? ordered.ThenByDescending(selector)
+                        : ordered.ThenBy(selector);
+            }
+            if (ordered is not null) query = ordered;
+
+            ClienteCadastro[] filtered = query.ToArray();
+            ClienteCadastro[] window = filtered.Skip(state.Skip).Take(state.Top).ToArray();
+            return new GridLoadResult<ClienteCadastro>(window, filtered.Length);
+        }
+
+        public async ValueTask<DataGridFormMutationResult<ClienteCadastro>> CreateAsync(
+            ClienteCadastro item,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(120, cancellationToken);
+            lock (_sync)
+            {
+                if (_clientes.Any(cliente => string.Equals(cliente.Nome, item.Nome, StringComparison.CurrentCultureIgnoreCase)))
+                    return DataGridFormMutationResult<ClienteCadastro>.ValidationFailed(
+                        ["Já existe um cliente com este nome."]);
+                ClienteCadastro persisted = item.Copiar();
+                persisted.Versao = 1;
+                _clientes.Add(persisted);
+                return DataGridFormMutationResult<ClienteCadastro>.Success(persisted.Copiar());
+            }
+        }
+
+        public async ValueTask<DataGridFormMutationResult<ClienteCadastro>> UpdateAsync(
+            Guid key,
+            ClienteCadastro item,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(120, cancellationToken);
+            lock (_sync)
+            {
+                int index = _clientes.FindIndex(cliente => cliente.Id == key);
+                if (index < 0) return DataGridFormMutationResult<ClienteCadastro>.NotFound();
+                ClienteCadastro current = _clientes[index];
+                if (current.Versao != item.Versao)
+                    return DataGridFormMutationResult<ClienteCadastro>.Conflict(
+                        current.Copiar(),
+                        "O registro foi alterado desde a última leitura.");
+                ClienteCadastro persisted = item.Copiar();
+                persisted.Versao++;
+                _clientes[index] = persisted;
+                return DataGridFormMutationResult<ClienteCadastro>.Success(persisted.Copiar());
+            }
+        }
+
+        public async ValueTask<DataGridFormMutationResult<ClienteCadastro>> DeleteAsync(
+            Guid key,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(120, cancellationToken);
+            lock (_sync)
+            {
+                int index = _clientes.FindIndex(cliente => cliente.Id == key);
+                if (index < 0) return DataGridFormMutationResult<ClienteCadastro>.NotFound();
+                _clientes.RemoveAt(index);
+                return DataGridFormMutationResult<ClienteCadastro>.Deleted();
+            }
+        }
+
+        private static bool Matches(ClienteCadastro cliente, FilterDescriptor filter)
+        {
+            object? value = filter.Property switch
+            {
+                nameof(ClienteCadastro.Email) => cliente.Email,
+                nameof(ClienteCadastro.Ativo) => cliente.Ativo,
+                _ => cliente.Nome
+            };
+            if (filter.Operator == FilterOperator.IsEmpty) return value is null or "";
+            if (filter.Operator == FilterOperator.IsNotEmpty) return value is not null and not "";
+            string actual = Convert.ToString(value, System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
+            string expected = Convert.ToString(filter.Value, System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
+            return filter.Operator switch
+            {
+                FilterOperator.NotContains => !actual.Contains(expected, StringComparison.CurrentCultureIgnoreCase),
+                FilterOperator.Equals => actual.Equals(expected, StringComparison.CurrentCultureIgnoreCase),
+                FilterOperator.NotEquals => !actual.Equals(expected, StringComparison.CurrentCultureIgnoreCase),
+                FilterOperator.StartsWith => actual.StartsWith(expected, StringComparison.CurrentCultureIgnoreCase),
+                FilterOperator.EndsWith => actual.EndsWith(expected, StringComparison.CurrentCultureIgnoreCase),
+                _ => actual.Contains(expected, StringComparison.CurrentCultureIgnoreCase)
+            };
+        }
+    }
+
+    private sealed class PedidoCadastro
+    {
+        public List<ContatoCadastro> Contatos { get; set; } = [];
+    }
+
+    private sealed class ContatoCadastro
+    {
+        public Guid Id { get; set; }
+
+        [Required(ErrorMessage = "Informe o tipo.")]
+        public string? Tipo { get; set; }
+
+        [Required(ErrorMessage = "Informe o contato.")]
+        public string? Valor { get; set; }
+
+        public ContatoCadastro Copiar()
+            => new() { Id = Id, Tipo = Tipo, Valor = Valor };
+    }
+
+    private const string StandaloneExample = """
+<OmniDataGridForm TItem="Cliente" TKey="Guid"
+                  Items="@clientes"
+                  Schema="@ClienteCrudSchema"
+                  PersistViewStateKey="clientes-grid" />
+
+static readonly DataGridFormSchema<Cliente, Guid> ClienteCrudSchema =
+    DataGridFormSchema<Cliente, Guid>.Create(crud => crud
+        .Key(cliente => cliente.Id)
+        .Form(ClienteFormSchema)
+        .Grid(grid => grid
+            .Column(cliente => cliente.Nome)
+            .Column(cliente => cliente.Email)
+            .AllowSearch()
+            .AllowColumnResize())
+        .ActionsColumn(column => column
+            .Width("260px")
+            .Resizable()
+            .FrozenRight()
+            .Overflow(DataGridFormActionOverflow.Automatic, 2)
+            .Menu(ariaLabel: "Mais ações do cliente"))
+        .BulkActions(actions => actions
+            .Overflow(DataGridFormActionOverflow.Automatic, 1))
+        .Create(create => create
+            .Factory(() => new Cliente { Id = Guid.NewGuid() }))
+        .Edit(edit => edit
+            .Clone(cliente => cliente.Copiar())
+            .Presentation(DataGridFormPresentation.Drawer))
+        .Delete(delete => delete
+            .Confirm(cliente => $"Excluir {cliente.Nome}?")
+            .Priority(10)
+            .MenuMetadata("Gerenciamento", "Del", "Exclusão permanente"))
+        .Action("Bloquear", "lock", BloquearAsync,
+            action => action
+                .InMenu()
+                .RequiresPolicy("clientes.manage")));
+""";
+
+    private const string CollectionGridExample = """
+.Field(pedido => pedido.Contatos, field => field
+    .Collection<Contato>(collection => collection
+        .Bounds(1, 5)
+        .Reorderable()
+        .Grid(ContatoCrudSchema)))
+""";
+
+    private const string ProviderExample = """
+public interface IDataGridFormProvider<TItem, TKey>
+{
+    ValueTask<GridLoadResult<TItem>> LoadAsync(GridState<TItem> state, CancellationToken ct);
+    ValueTask<DataGridFormMutationResult<TItem>> CreateAsync(TItem item, CancellationToken ct);
+    ValueTask<DataGridFormMutationResult<TItem>> UpdateAsync(TKey key, TItem item, CancellationToken ct);
+    ValueTask<DataGridFormMutationResult<TItem>> DeleteAsync(TKey key, CancellationToken ct);
+}
+
+// Resultados esperados: Success, ValidationFailed, Conflict,
+// NotFound, Forbidden e Failure. Exceções ficam para falhas inesperadas.
+""";
+}

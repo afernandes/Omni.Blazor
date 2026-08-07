@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace Omni.Blazor.Tests;
 
 /// <summary>
@@ -10,8 +12,7 @@ namespace Omni.Blazor.Tests;
 /// Deliberately NOT enforced here — too many legitimate exceptions to assert
 /// cleanly (a noisy allow-list would defeat the purpose): the root <c>@attributes</c>
 /// splat (host/portal and root-less sub-components don't have a splattable root),
-/// "DI services over IJSRuntime" (widely and intentionally used by data/overlay
-/// components), and <c>@key</c> in every foreach (SVG segments, transient error
+/// <c>@key</c> in every foreach (SVG segments, transient error
 /// lists, and intentionally-unkeyed lists like OmniSuggestionChips).
 /// </summary>
 public class ComponentConventionTests
@@ -45,13 +46,13 @@ public class ComponentConventionTests
     // and tested through their parent component, so a 1:1 <Name>Tests.cs is not expected.
     private static readonly HashSet<string> TestedViaParent = new(StringComparer.Ordinal)
     {
-        "OmniDataFilterItem", "OmniDataFilterProperty", "OmniDayView", "OmniGanttColumn",
+        "OmniDataFilterItem", "OmniDayView", "OmniGanttColumn",
         "OmniMonthView", "OmniMultiDayView", "OmniTreeItem", "OmniWeekView",
         "OmniYearPlannerView", "OmniYearTimelineView", "OmniYearView", "OmniCarouselItem",
         "OmniDescriptionItem", "OmniTimelineItem", "OmniPanelMenuSection", "OmniStep",
         "OmniTabItem", "OmniTourStep",
         "OmniTreeGridColumn",
-        "OmniDataFormCollectionEditor", "OmniDataFormFieldRenderer",
+        "OmniDataFormCollectionEditor", "OmniDataFormFieldRenderer", "OmniDataGridFormEditor",
         "OmniDataFormGroupRenderer", "OmniDataFormLookupEditor",
         "OmniHtmlEditorButton", "OmniTreeLevel", "SchedulerTimeView", "SchedulerYearGrid",
     };
@@ -98,6 +99,50 @@ public class ComponentConventionTests
             $"Every component needs a <Name>Tests.cs (or be allow-listed as tested-via-parent). Missing: {string.Join(", ", missing)}");
     }
 
+    [Fact]
+    public void Components_do_not_inject_IJSRuntime_directly()
+    {
+        var offenders = ComponentRazors
+            .Where(path => File.ReadAllText(path).Contains("@inject IJSRuntime", StringComparison.Ordinal))
+            .Select(path => Path.GetRelativePath(RepoRoot, path))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"Library components must use typed interop services. Offenders: {string.Join(", ", offenders)}");
+    }
+
+    [Fact]
+    public void Public_API_does_not_expose_IJSRuntime()
+    {
+        Type jsRuntime = typeof(Microsoft.JSInterop.IJSRuntime);
+        var offenders = typeof(OmniComponent).Assembly.GetExportedTypes()
+            .SelectMany(type => type.GetMembers(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+            .Where(member => MemberExposesType(member, jsRuntime))
+            .Select(member => $"{member.DeclaringType?.FullName}.{member.Name}")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"Public APIs must not expose IJSRuntime. Offenders: {string.Join(", ", offenders)}");
+    }
+
+    [Fact]
+    public void Public_API_contains_no_obsolete_members_before_v1()
+    {
+        string libraryDir = Path.Combine(RepoRoot, "src", "Omni.Blazor");
+        var offenders = Directory.GetFiles(libraryDir, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(path => File.ReadAllText(path).Contains("[Obsolete", StringComparison.Ordinal))
+            .Select(path => Path.GetRelativePath(RepoRoot, path))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"Pre-v1 obsolete shims must be removed instead of retained. Offenders: {string.Join(", ", offenders)}");
+    }
+
     // The public component types that have a matching .razor file under Components/.
     private static IEnumerable<Type> PublicComponents()
     {
@@ -116,6 +161,33 @@ public class ComponentConventionTests
     {
         int i = name.IndexOf('`');
         return i < 0 ? name : name[..i];
+    }
+
+    private static bool MemberExposesType(MemberInfo member, Type sought)
+    {
+        return member switch
+        {
+            MethodInfo method => TypeContains(method.ReturnType, sought)
+                || method.GetParameters().Any(parameter => TypeContains(parameter.ParameterType, sought)),
+            ConstructorInfo constructor => constructor.GetParameters()
+                .Any(parameter => TypeContains(parameter.ParameterType, sought)),
+            PropertyInfo property => TypeContains(property.PropertyType, sought),
+            FieldInfo field => TypeContains(field.FieldType, sought),
+            EventInfo eventInfo => TypeContains(eventInfo.EventHandlerType, sought),
+            _ => false,
+        };
+    }
+
+    private static bool TypeContains(Type? candidate, Type sought)
+    {
+        if (candidate is null)
+            return false;
+        if (candidate == sought)
+            return true;
+        if (candidate.HasElementType)
+            return TypeContains(candidate.GetElementType(), sought);
+        return candidate.IsGenericType
+            && candidate.GetGenericArguments().Any(argument => TypeContains(argument, sought));
     }
 
     private static string FindRepoRoot()

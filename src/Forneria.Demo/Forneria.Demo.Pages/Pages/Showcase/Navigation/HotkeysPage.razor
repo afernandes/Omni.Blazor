@@ -126,7 +126,7 @@ protected override async Task OnInitializedAsync()
         </ShowcaseSection>
 
         <ShowcaseSection Title="STRESS TEST"
-                         Description="Para validar que não vaza memória: registra N hotkeys e descarta todos. Os contadores (C# e JS) devem voltar a 0."
+                         Description="Para validar que não vaza memória: registra N hotkeys e descarta todos. O contador do serviço deve voltar a 0."
                          Code="@(@"for (int i = 0; i < 500; i++)
 {
     var h = await Hotkeys.RegisterAsync($""Ctrl+Alt+Shift+F{(i % 12) + 1}"", _ => Task.CompletedTask);
@@ -141,7 +141,6 @@ protected override async Task OnInitializedAsync()
                 </div>
                 <div class="omni-stack omni-stack-4">
                     <div class="omni-meta">C# RegistrationCount: <strong>@Hotkeys.RegistrationCount</strong></div>
-                    <div class="omni-meta">JS hotkeys.size: <strong>@_jsSize</strong></div>
                     <div class="omni-meta">Stress handles em memória: <strong>@_stress.Count</strong></div>
                 </div>
             </div>
@@ -189,15 +188,11 @@ protected override async Task OnInitializedAsync()
     }
 
     private readonly List<IAsyncDisposable> _stress = new();
-    private int _jsSize;
-
     private ElementReference _scopedCard;
     private IAsyncDisposable? _scopedHandle;
     private readonly string[] _scopedItems = { "Pizza Margherita", "Pizza Pepperoni", "Pizza Quatro Queijos", "Calzone", "Tiramisu" };
     private int _scopedIdx;
     private string? _scopedSelected;
-
-    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private Task OnPalette(KeyboardEventArgs _) { Toast.Info("Command palette aberto", "Ctrl+K / ⌘+K"); return Task.CompletedTask; }
     private Task OnSave(KeyboardEventArgs _)    { Toast.Success("Salvo", "Ctrl+S");                    return Task.CompletedTask; }
@@ -259,28 +254,20 @@ protected override async Task OnInitializedAsync()
             var h = await Hotkeys.RegisterAsync($"Ctrl+Alt+Shift+F{(i % 12) + 1}", _ => Task.CompletedTask);
             _stress.Add(h);
         }
-        await ReadJsSize();
+        StateHasChanged();
     }
 
     private async Task StressDispose()
     {
         foreach (var h in _stress) await h.DisposeAsync();
         _stress.Clear();
-        await ReadJsSize();
-    }
-
-    private async Task StressReport()
-    {
-        await ReadJsSize();
-        Toast.Info("Contadores",
-            $"C#: {Hotkeys.RegistrationCount} · JS: {_jsSize}");
-    }
-
-    private async Task ReadJsSize()
-    {
-        try { _jsSize = await JS.InvokeAsync<int>("eval", "window.omniBlazor._hotkeys.size"); }
-        catch { _jsSize = -1; }
         StateHasChanged();
+    }
+
+    private void StressReport()
+    {
+        Toast.Info("Contadores",
+            $"Registros ativos: {Hotkeys.RegistrationCount} · handles do stress: {_stress.Count}");
     }
 
     public async ValueTask DisposeAsync()

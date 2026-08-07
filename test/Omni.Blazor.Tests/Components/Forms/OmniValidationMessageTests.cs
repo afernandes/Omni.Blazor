@@ -207,7 +207,7 @@ public class OmniValidationMessageTests : TestContextBase
         var ctx = new EditContext(model);
 
         System.Linq.Expressions.Expression<Func<string?>> emailExpr = () => model.Email;
-        System.Linq.Expressions.Expression<Func<string?>> nameExpr  = () => model.Name;
+        System.Linq.Expressions.Expression<Func<string?>> nameExpr = () => model.Name;
 
         var cut = Render<OmniValidationMessage<string>>(p => p
             .AddCascadingValue(ctx)

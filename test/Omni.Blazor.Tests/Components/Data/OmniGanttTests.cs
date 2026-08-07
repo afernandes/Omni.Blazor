@@ -22,6 +22,12 @@ public class OmniGanttTests : TestContextBase
         public double? Progress { get; set; }
     }
 
+    private static readonly GanttSchema<GTask> TestSchema =
+        GanttSchema<GTask>.Create(gantt => gantt
+            .Hierarchy(item => item.Id, item => item.ParentId)
+            .Task(item => item.Name, item => item.Start, item => item.End)
+            .Progress(item => item.Progress));
+
     private static List<GTask> Sample()
     {
         var t = DateTime.Today;
@@ -47,12 +53,7 @@ public class OmniGanttTests : TestContextBase
         => Render<OmniGantt<GTask>>(p =>
         {
             p.Add(g => g.Data, data ?? Sample());
-            p.Add(g => g.IdProperty, "Id");
-            p.Add(g => g.ParentIdProperty, "ParentId");
-            p.Add(g => g.TextProperty, "Name");
-            p.Add(g => g.StartProperty, "Start");
-            p.Add(g => g.EndProperty, "End");
-            p.Add(g => g.ProgressProperty, "Progress");
+            p.Add(g => g.Schema, TestSchema);
             p.Add(g => g.ChildContent, Columns());
             extra?.Invoke(p);
         });
@@ -237,12 +238,7 @@ public class OmniGanttTests : TestContextBase
         => Render<OmniGantt<GTask>>(p =>
         {
             p.Add(g => g.Data, Sample());
-            p.Add(g => g.IdProperty, "Id");
-            p.Add(g => g.ParentIdProperty, "ParentId");
-            p.Add(g => g.TextProperty, "Name");
-            p.Add(g => g.StartProperty, "Start");
-            p.Add(g => g.EndProperty, "End");
-            p.Add(g => g.ProgressProperty, "Progress");
+            p.Add(g => g.Schema, TestSchema);
             p.Add(g => g.ChildContent, cols);
             extra?.Invoke(p);
         });

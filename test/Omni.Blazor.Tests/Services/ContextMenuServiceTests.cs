@@ -124,4 +124,49 @@ public class ContextMenuServiceTests : TestContextBase
         Assert.True(sep.IsSeparator);
         Assert.Null(sep.Text);
     }
+
+    [Fact]
+    public void Owner_can_close_only_its_own_menu()
+    {
+        var svc = new ContextMenuService();
+        var firstOwner = new object();
+        var secondOwner = new object();
+        svc.Open(new MouseEventArgs(), new[] { Item("Owned") }, firstOwner);
+
+        svc.Close(secondOwner);
+        Assert.True(svc.IsOpen);
+
+        svc.Close(firstOwner);
+        Assert.False(svc.IsOpen);
+        Assert.Empty(svc.Items);
+    }
+
+    [Fact]
+    public void Anchored_open_records_trigger_positioning_and_focus_contract()
+    {
+        var svc = new ContextMenuService();
+        var owner = new object();
+
+        svc.OpenAnchored(new MouseEventArgs(), new[] { Item("Edit") }, owner, alignEnd: true);
+
+        Assert.Equal(ContextMenuPositionMode.Trigger, svc.PositionMode);
+        Assert.True(svc.AlignEnd);
+        Assert.True(svc.IsOwnedBy(owner));
+        svc.Close(owner, restoreFocus: true);
+        Assert.True(svc.RestoreFocusOnClose);
+    }
+
+    [Fact]
+    public void Reopening_with_an_unowned_menu_prevents_the_old_owner_from_closing_it()
+    {
+        var svc = new ContextMenuService();
+        var owner = new object();
+        svc.Open(new MouseEventArgs(), new[] { Item("Owned") }, owner);
+        svc.Open(10, 20, new[] { Item("Unrelated") });
+
+        svc.Close(owner);
+
+        Assert.True(svc.IsOpen);
+        Assert.Equal("Unrelated", Assert.Single(svc.Items).Text);
+    }
 }

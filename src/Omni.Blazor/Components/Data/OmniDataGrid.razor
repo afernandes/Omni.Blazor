@@ -4,6 +4,7 @@
 @implements IDisposable
 @inject FileDownloadService Downloads
 @inject DataGridInteropService GridInterop
+@inject DataGridStateStorageService StateStorage
 @using System.Globalization
 @using Omni.Blazor.Utilities
 
@@ -59,7 +60,39 @@
         }
 
         @* Hidden column registration *@
-        <div style="display:none">@Columns</div>
+        <div style="display:none">
+            @if (Schema is not null)
+            {
+                @foreach (DataGridColumnDefinition<TItem> column in Schema.Columns)
+                {
+                    <OmniDataGridColumn TItem="TItem"
+                                        @key="(Schema, column.PropertyName)"
+                                        Title="@column.Title"
+                                        Width="@column.Width"
+                                        Sortable="@column.Sortable"
+                                        Resizable="@column.Resizable"
+                                        Property="@column.Property"
+                                        TextSelector="@column.TextSelector"
+                                        Template="@column.Template"
+                                        EditTemplate="@column.EditTemplate"
+                                        CanHide="@column.CanHide"
+                                        Visible="@column.Visible"
+                                        PropertyName="@column.PropertyName"
+                                        Filterable="@column.Filterable"
+                                        FilterType="@column.FilterType"
+                                        FilterOperators="@(column.FilterOperators?.ToArray())"
+                                        FilterSelectOptions="@column.FilterSelectOptions"
+                                        Aggregate="@column.Aggregate"
+                                        AggregateProperty="@column.AggregateProperty"
+                                        AggregateFormat="@column.AggregateFormat"
+                                        Groupable="@column.Groupable"
+                                        GroupHierarchy="@column.GroupHierarchy"
+                                        Frozen="@column.Frozen"
+                                        IsHierarchyAnchor="@column.IsHierarchyAnchor" />
+                }
+            }
+            @Columns
+        </div>
 
         @if (AllowGrouping && !IsHierarchyMode)
         {
@@ -129,8 +162,14 @@
                     <tr>
                         @if (AllowMultiSelection)
                         {
-                            <th scope="col" aria-label="Selecionar" class="omni-grid-th-select" style="width: 36px;" @onclick:stopPropagation>
-                                <OmniCheckBox Value="@AllSelectedOnPage" ValueChanged="OnHeaderSelectChangedAsync" />
+                            <th scope="col"
+                                class="omni-grid-th-select"
+                                style="width: 36px;"
+                                aria-label="@Texts.SelectAllRows"
+                                @onclick:stopPropagation>
+                                <OmniCheckBox Value="@AllSelectedOnPage"
+                                              AriaLabel="@Texts.SelectAllRows"
+                                              ValueChanged="OnHeaderSelectChangedAsync" />
                             </th>
                         }
                         @if (DetailTemplate is not null)
@@ -350,7 +389,12 @@
 
 @code {
     // ——— Data source ————————————————————————————————————————————————————
-    /// <summary>Fonte de dados in-memory. Ignorado se <see cref="DataProvider"/> for setado.</summary>
+    /// <summary>
+    /// Fonte de dados in-memory. Ignorado se <see cref="DataProvider"/> for setado.
+    /// Filtro/ordenação/agrupamento são memoizados por referência e contagem: trocar a
+    /// coleção ou acrescentar itens reprocessa sozinho; para itens MUTADOS no lugar
+    /// (mesma coleção, mesma contagem), chame <c>RefreshAsync()</c>.
+    /// </summary>
     [Parameter] public IEnumerable<TItem>? Data { get; set; }
 
     /// <summary>
@@ -364,6 +408,12 @@
 
     /// <summary>Debounce (ms) entre keystrokes na busca antes de chamar <c>DataProvider</c>.</summary>
     [Parameter] public int DebounceMs { get; set; } = 300;
+
+    /// <summary>
+    /// Optional immutable typed schema. Schema columns are rendered before declarative
+    /// Columns and its structural feature defaults take precedence while supplied.
+    /// </summary>
+    [Parameter] public DataGridSchema<TItem>? Schema { get; set; }
 
     /// <summary>Definição das colunas (<c>&lt;OmniDataGridColumn&gt;</c>). Registradas via cascading.</summary>
     [Parameter] public RenderFragment? Columns { get; set; }
@@ -421,6 +471,21 @@
 
     /// <summary>Fired after a column is resized (drag of the header handle finished).</summary>
     [Parameter] public EventCallback<DataGridColumnResizedEventArgs> ColumnResized { get; set; }
+
+    /// <summary>
+    /// Controlled view preferences. Replace the record instance when changing it; row data,
+    /// selection and hierarchy expansion are intentionally outside this state.
+    /// </summary>
+    [Parameter] public DataGridViewState? ViewState { get; set; }
+
+    /// <summary>Raised with a normalized snapshot after a user changes persisted view preferences.</summary>
+    [Parameter] public EventCallback<DataGridViewState> ViewStateChanged { get; set; }
+
+    /// <summary>
+    /// Optional stable local-storage key for automatic view-state restore. Column PropertyName
+    /// values must be unique and stable. Null disables browser persistence.
+    /// </summary>
+    [Parameter] public string? PersistKey { get; set; }
 
     /// <summary>
     /// Enables row grouping. Shows a drop panel above the grid; drag a column's
@@ -692,7 +757,61 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        ApplySchemaConfiguration();
+        if (PersistKey is not null && string.IsNullOrWhiteSpace(PersistKey))
+            throw new ArgumentException("PersistKey cannot be empty or whitespace.", nameof(PersistKey));
+        if (!ReferenceEquals(_lastViewStateParameter, ViewState))
+        {
+            _lastViewStateParameter = ViewState;
+            _pendingViewState = ViewState;
+        }
+        if (!string.Equals(_lastPersistKeyParameter, PersistKey, StringComparison.Ordinal))
+        {
+            _lastPersistKeyParameter = PersistKey;
+            _viewStateInitialized = false;
+        }
+        if (_pendingViewState is { } controlled && _columns.Count != 0)
+        {
+            _pendingViewState = null;
+            _viewStateInitialized = true;
+            await ApplyViewStateCoreAsync(controlled);
+            return;
+        }
         await ApplyAndRenderAsync();
+    }
+
+    private void ApplySchemaConfiguration()
+    {
+        if (Schema is not { } schema) return;
+        AllowSearch = schema.AllowSearch;
+        AllowSorting = schema.AllowSorting;
+        AllowPaging = schema.AllowPaging;
+        PageSize = schema.PageSize;
+        AllowColumnFilter = schema.AllowColumnFilter;
+        AllowColumnResize = schema.AllowColumnResize;
+        AllowColumnVisibility = schema.AllowColumnVisibility;
+        AllowGrouping = schema.AllowGrouping;
+        AllowExport = schema.AllowExport;
+        AllowMultiSelection = schema.AllowMultiSelection;
+        Virtualize = schema.Virtualize;
+        Height = schema.Height;
+        RowHeight = schema.RowHeight;
+        OverscanCount = schema.OverscanCount;
+        SearchPlaceholder = schema.SearchPlaceholder;
+        EmptyText = schema.EmptyText;
+        KeySelector = schema.KeySelector;
+        if (schema.Hierarchy is not { } hierarchy) return;
+        Children = hierarchy.Children;
+        HasChildren = hierarchy.HasChildren;
+        ChildrenProvider = hierarchy.ChildrenProvider;
+        InitiallyExpanded = hierarchy.InitiallyExpanded;
+        IndentSize = hierarchy.IndentSize;
+        MaxChildrenPerNode = hierarchy.MaxChildrenPerNode;
+        MaxCachedNodes = hierarchy.MaxCachedNodes;
+        MaxCachedItems = hierarchy.MaxCachedItems;
+        MaxVisibleRows = hierarchy.MaxVisibleRows;
+        MaxDepth = hierarchy.MaxDepth;
+        MaxConcurrentLoads = hierarchy.MaxConcurrentLoads;
     }
 
     private async Task OnSearchChangedAsync(string? value)
@@ -707,6 +826,7 @@
         {
             await ApplyAndRenderAsync();
         }
+        await NotifyViewStateChangedAsync();
     }
 
     private void ScheduleDebouncedApply()
@@ -770,8 +890,52 @@
         await ApplyAndRenderAsync();
     }
 
+    // ——— Memoização do shaping in-memory ————————————————————————————————
+    // O pai re-renderiza por qualquer motivo (progresso, seleção, um badge que muda) e
+    // cada render dispara OnParametersSetAsync → ApplyAndRenderAsync, que refazia
+    // filtro + ordenação + agrupamento do conjunto INTEIRO mesmo sem nada ter mudado —
+    // medido: 318 ms por clique com 1 milhão de itens ordenados. O carimbo captura tudo
+    // que alimenta o pipeline; se ele bate com o da última aplicação, o resultado
+    // anterior continua válido e o render usa _view/_groups como estão.
+    private readonly record struct ShapeStamp(
+        object? DataRef, int DataCount, string? Search, long Mutation,
+        int Page, int PageSize, bool Paging, bool Sorting, int Columns);
+
+    private ShapeStamp _lastShape;
+    private bool _hasShape;
+    private long _shapeMutation;
+
+    /// <summary>Conta aplicações REAIS do pipeline — visível aos testes de memoização.</summary>
+    internal int ShapeApplyCount;
+
+    private ShapeStamp? CurrentShapeStamp()
+    {
+        // Só o caminho in-memory com contagem barata é memoizável: um IEnumerable lazy
+        // pode produzir itens diferentes a cada enumeração, e o server-side tem ciclo
+        // próprio (cancelamento, sequência de gerações) que não passa por aqui. A
+        // contagem entra no carimbo para um Add na MESMA lista invalidar.
+        if (DataProvider is not null || IsHierarchyMode) return null;
+        if (Data is not ICollection<TItem> colecao) return null;
+        return new ShapeStamp(Data, colecao.Count, _search, _shapeMutation,
+            _page, PageSize, EffectivePaging, AllowSorting, _columns.Count);
+    }
+
+    /// <summary>
+    /// Reprocessa filtro, ordenação e agrupamento mesmo sem mudança detectável. É a
+    /// válvula para itens MUTADOS no lugar (mesma coleção, mesma contagem): a detecção
+    /// automática observa referência e contagem, não o conteúdo de cada item.
+    /// </summary>
+    public Task RefreshAsync()
+    {
+        _hasShape = false;
+        return ApplyAndRenderAsync();
+    }
+
     private async Task ApplyAndRenderAsync()
     {
+        if (_hasShape && CurrentShapeStamp() is { } atual && atual == _lastShape) return;
+        ShapeApplyCount++;
+
         if (DataProvider is not null)
         {
             await ApplyServerSideAsync();
@@ -793,6 +957,12 @@
         BuildGroups();
         RecomputeFrozenStyles();
         StateHasChanged();
+
+        // Carimba DEPOIS do pipeline completo: se algo lançar no meio, o carimbo velho
+        // não fica fingindo que o estado atual foi aplicado.
+        var aplicado = CurrentShapeStamp();
+        _hasShape = aplicado is not null;
+        if (aplicado is { } carimbo) _lastShape = carimbo;
     }
 
     private void ApplyInMemory()
@@ -966,7 +1136,9 @@
         }
 
         _page = 0;
+        _shapeMutation++;
         await ApplyAndRenderAsync();
+        await NotifyViewStateChangedAsync();
     }
 
     private SortDirection? GetSortDir(OmniDataGridColumn<TItem> c)
@@ -1067,7 +1239,7 @@
     {
         _frozenStyles.Clear();
         var visibleCols = VisibleColumns.ToList();
-        if (!visibleCols.Any(c => c.Frozen.HasValue)) return;
+        if (!visibleCols.Any(c => c.EffectiveFrozen.HasValue)) return;
 
         // Prefix offset: cols especiais antes das colunas declaradas (selection + expand)
         int prefixOffset = 0;
@@ -1079,8 +1251,8 @@
         OmniDataGridColumn<TItem>? lastLeft = null;
         foreach (var c in visibleCols)
         {
-            if (c.Frozen != FrozenPosition.Left) continue;
-            var w = ParsePxWidth(c.Width);
+            if (c.EffectiveFrozen != FrozenPosition.Left) continue;
+            var w = ParsePxWidth(c.EffectiveWidth);
             _frozenStyles[c] = (
                 Css: "omni-grid-frozen omni-grid-frozen-left",
                 Style: $"position: sticky; left: {leftOffset}px;"
@@ -1100,8 +1272,8 @@
         for (int i = visibleCols.Count - 1; i >= 0; i--)
         {
             var c = visibleCols[i];
-            if (c.Frozen != FrozenPosition.Right) continue;
-            var w = ParsePxWidth(c.Width);
+            if (c.EffectiveFrozen != FrozenPosition.Right) continue;
+            var w = ParsePxWidth(c.EffectiveWidth);
             _frozenStyles[c] = (
                 Css: "omni-grid-frozen omni-grid-frozen-right",
                 Style: $"position: sticky; right: {rightOffset}px;"
@@ -1176,10 +1348,12 @@
         if (RowUpdated.HasDelegate) await RowUpdated.InvokeAsync(row);
     }
 
-    private void ToggleColumn(OmniDataGridColumn<TItem> col, bool visible)
+    private async Task ToggleColumn(OmniDataGridColumn<TItem> col, bool visible)
     {
         col.VisibleInternal = visible;
+        RecomputeFrozenStyles();
         StateHasChanged();
+        await NotifyViewStateChangedAsync();
     }
 
     private List<TItem> ApplyFilterAndSort(List<TItem> rows)
@@ -1208,8 +1382,10 @@
             _filters[col] = new FilterDescriptor(col.ResolvedPropertyName, FilterOperator.Contains, value);
         }
         _page = 0;
+        _shapeMutation++;
         if (DataProvider is not null && DebounceMs > 0) ScheduleDebouncedApply();
         else await ApplyAndRenderAsync();
+        await NotifyViewStateChangedAsync();
     }
 
     private IEnumerable<TItem> ApplyColumnFilters(IEnumerable<TItem> src)
@@ -1590,12 +1766,14 @@
     {
         _collapsedGroups.Clear();
         _autoCollapsePending = true;
+        _shapeMutation++;
         await ApplyAndRenderAsync();
         if (Grouped.HasDelegate)
             // Distinct: uma coluna com hierarquia ocupa vários níveis, mas para quem
             // escuta o evento (persistência de layout, server-side) ela é uma só.
             await Grouped.InvokeAsync(
                 _groupLevels.Select(l => l.Column.ResolvedPropertyName).Distinct().ToList());
+        await NotifyViewStateChangedAsync();
     }
 
     /// <summary>Programmatically groups by the column with the given resolved property name.</summary>
@@ -1707,7 +1885,9 @@
             @if (AllowMultiSelection)
             {
                 <td class="omni-grid-td-select" @onclick:stopPropagation>
-                    <OmniCheckBox Value="isSelected" ValueChanged="@(v => OnRowSelectChangedAsync(row, v))" />
+                    <OmniCheckBox Value="isSelected"
+                                  AriaLabel="@Texts.SelectRow"
+                                  ValueChanged="@(v => OnRowSelectChangedAsync(row, v))" />
                 </td>
             }
             @if (DetailTemplate is not null)
@@ -1815,7 +1995,9 @@
             @if (AllowMultiSelection)
             {
                 <td class="omni-grid-td-select" @onclick:stopPropagation>
-                    <OmniCheckBox Value="isSelected" ValueChanged="@(v => OnRowSelectChangedAsync(row, v))" />
+                    <OmniCheckBox Value="isSelected"
+                                  AriaLabel="@Texts.SelectRow"
+                                  ValueChanged="@(v => OnRowSelectChangedAsync(row, v))" />
                 </td>
             }
             @if (DetailTemplate is not null)
@@ -1984,21 +2166,23 @@
 
     /// <summary>Invoked from JS when a column resize drag finishes.</summary>
     [JSInvokable]
-    public Task OnColumnResized(int visibleIndex, double width)
+    public async Task OnColumnResized(int visibleIndex, double width)
     {
         var cols = VisibleColumns.ToList();
-        if (visibleIndex < 0 || visibleIndex >= cols.Count) return Task.CompletedTask;
+        if (visibleIndex < 0 || visibleIndex >= cols.Count) return;
         var col = cols[visibleIndex];
         col.SetWidth($"{Math.Round(width)}px");
+        RecomputeFrozenStyles();
         StateHasChanged();
-        return ColumnResized.HasDelegate
-            ? ColumnResized.InvokeAsync(new DataGridColumnResizedEventArgs(col.ResolvedPropertyName, width))
-            : Task.CompletedTask;
+        if (ColumnResized.HasDelegate)
+            await ColumnResized.InvokeAsync(new DataGridColumnResizedEventArgs(col.ResolvedPropertyName, width));
+        await NotifyViewStateChangedAsync();
     }
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
+        Interlocked.Increment(ref _viewStatePersistSequence);
 
         var debounce = Interlocked.Exchange(ref _searchDebounceCts, null);
         CancelSafely(debounce);

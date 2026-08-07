@@ -10,7 +10,7 @@ namespace Omni.Blazor.Tests.Services;
 /// </summary>
 public class HotkeyServiceTests : TestContextBase
 {
-    private HotkeyService NewService() => new(JSInterop.JSRuntime);
+    private HotkeyService NewService() => new(new TestJsModule(JSInterop.JSRuntime));
 
     private static Func<KeyboardEventArgs, Task> NoOpHandler => _ => Task.CompletedTask;
 

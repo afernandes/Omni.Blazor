@@ -44,6 +44,15 @@ public class OmniCheckBoxTests : TestContextBase
     }
 
     [Fact]
+    public void AriaLabel_names_the_input_without_rendering_visible_text()
+    {
+        var cut = Render<OmniCheckBox>(p => p.Add(c => c.AriaLabel, "Selecionar linha"));
+
+        Assert.Equal("Selecionar linha", cut.Find("input").GetAttribute("aria-label"));
+        Assert.DoesNotContain("Selecionar linha", cut.Find("label").TextContent);
+    }
+
+    [Fact]
     public void Disabled_sets_input_disabled_attribute()
     {
         var cut = Render<OmniCheckBox>(p => p.Add(c => c.Disabled, true));

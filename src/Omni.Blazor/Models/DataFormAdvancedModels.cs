@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
@@ -194,6 +195,7 @@ public interface IDataFormEditorResolver
     /// Returns a component type or null when the resolver does not handle the property.
     /// Components must expose the conventional Value, ValueChanged and ValueExpression parameters.
     /// </summary>
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
     Type? Resolve(DataFormEditorResolverContext context);
 }
 

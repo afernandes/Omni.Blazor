@@ -20,7 +20,8 @@
   --omni-accent-hover:  #b45309;
   --omni-accent-soft:   color-mix(in oklab, var(--omni-accent) 10%, transparent);
   --omni-accent-softer: color-mix(in oklab, var(--omni-accent) 5%, transparent);
-  --omni-accent-fg:     #ffffff;
+  // Amber needs a dark foreground to keep normal-size text above WCAG AA.
+  --omni-accent-fg:     #18181b;
 
   // —— Status ——
   --omni-good:    oklch(0.62 0.14 150);
@@ -100,19 +101,20 @@
 
 // —— Accent variants — 12 cores Tailwind-harmonizadas ——
 // 2 stops por paleta: --omni-accent (base 600) e --omni-accent-hover (~700).
-// Contraste WCAG AA em texto branco. (P2.8 — multi-accent expansion.)
-:root[data-accent='amber']   { --omni-accent: #d97706; --omni-accent-hover: #b45309; }
-:root[data-accent='emerald'] { --omni-accent: #059669; --omni-accent-hover: #047857; }
-:root[data-accent='blue']    { --omni-accent: #2563eb; --omni-accent-hover: #1d4ed8; }
-:root[data-accent='violet']  { --omni-accent: #7c3aed; --omni-accent-hover: #6d28d9; }
-:root[data-accent='crimson'] { --omni-accent: #dc2626; --omni-accent-hover: #b91c1c; }
-:root[data-accent='rose']    { --omni-accent: #e11d48; --omni-accent-hover: #be123c; }
-:root[data-accent='orange']  { --omni-accent: #ea580c; --omni-accent-hover: #c2410c; }
-:root[data-accent='teal']    { --omni-accent: #0d9488; --omni-accent-hover: #0f766e; }
-:root[data-accent='cyan']    { --omni-accent: #0891b2; --omni-accent-hover: #0e7490; }
-:root[data-accent='indigo']  { --omni-accent: #4f46e5; --omni-accent-hover: #4338ca; }
-:root[data-accent='fuchsia'] { --omni-accent: #c026d3; --omni-accent-hover: #a21caf; }
-:root[data-accent='lime']    { --omni-accent: #65a30d; --omni-accent-hover: #4d7c0f; }
+// Each palette also owns its accessible foreground; lighter palettes use a
+// dark foreground and a lighter hover stop so both states remain WCAG AA.
+:root[data-accent='amber']   { --omni-accent: #d97706; --omni-accent-hover: #f59e0b; --omni-accent-fg: #18181b; }
+:root[data-accent='emerald'] { --omni-accent: #059669; --omni-accent-hover: #10b981; --omni-accent-fg: #18181b; }
+:root[data-accent='blue']    { --omni-accent: #2563eb; --omni-accent-hover: #1d4ed8; --omni-accent-fg: #ffffff; }
+:root[data-accent='violet']  { --omni-accent: #7c3aed; --omni-accent-hover: #6d28d9; --omni-accent-fg: #ffffff; }
+:root[data-accent='crimson'] { --omni-accent: #dc2626; --omni-accent-hover: #b91c1c; --omni-accent-fg: #ffffff; }
+:root[data-accent='rose']    { --omni-accent: #e11d48; --omni-accent-hover: #be123c; --omni-accent-fg: #ffffff; }
+:root[data-accent='orange']  { --omni-accent: #ea580c; --omni-accent-hover: #f97316; --omni-accent-fg: #18181b; }
+:root[data-accent='teal']    { --omni-accent: #0d9488; --omni-accent-hover: #14b8a6; --omni-accent-fg: #18181b; }
+:root[data-accent='cyan']    { --omni-accent: #0891b2; --omni-accent-hover: #06b6d4; --omni-accent-fg: #18181b; }
+:root[data-accent='indigo']  { --omni-accent: #4f46e5; --omni-accent-hover: #4338ca; --omni-accent-fg: #ffffff; }
+:root[data-accent='fuchsia'] { --omni-accent: #c026d3; --omni-accent-hover: #a21caf; --omni-accent-fg: #ffffff; }
+:root[data-accent='lime']    { --omni-accent: #65a30d; --omni-accent-hover: #84cc16; --omni-accent-fg: #18181b; }
 
 // —— Dark theme ——
 :root[data-theme='dark'] {

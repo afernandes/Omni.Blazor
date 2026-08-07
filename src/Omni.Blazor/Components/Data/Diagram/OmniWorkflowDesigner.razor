@@ -1,0 +1,86 @@
+@namespace Omni.Blazor.Components
+@typeparam TNode where TNode : class
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* Workflow composition surface with Diagram editing, bounded undo/redo, graph validation and a typed PropertyGrid inspector. *@
+
+<section class="@RootCss" style="@Style" @attributes="Attributes">
+    <header class="omni-workflow-designer-toolbar" role="toolbar" aria-label="@ToolbarAriaLabel">
+        <OmniButton Text="@UndoText" Icon="undo-2" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
+                    Disabled="@(!CanUndo || ReadOnly)" OnClick="@(_ => UndoAsync())" />
+        <OmniButton Text="@RedoText" Icon="redo-2" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
+                    Disabled="@(!CanRedo || ReadOnly)" OnClick="@(_ => RedoAsync())" />
+        @ToolbarContent
+    </header>
+
+    @if (_validationErrors.Count != 0)
+    {
+        <div class="omni-alert omni-alert-danger omni-workflow-designer-validation" role="alert">
+            <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
+            <div class="omni-alert-body">
+                <div class="omni-alert-title">@ValidationTitle</div>
+                <ul>
+                    @foreach (string error in _validationErrors)
+                    {
+                        <li @key="error">@error</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    <div class="@WorkspaceCss">
+        @if (PaletteContent is not null)
+        {
+            <aside class="omni-workflow-designer-palette" aria-label="@PaletteAriaLabel">
+                @PaletteContent
+            </aside>
+        }
+
+        <div class="omni-workflow-designer-canvas">
+            <OmniDiagramCanvas Nodes="@_workingNodes"
+                               Edges="@_workingEdges"
+                               Selection="@_selection"
+                               SelectionChanged="@SelectionChangedAsync"
+                               Viewport="@Viewport"
+                               ViewportChanged="@ViewportChanged"
+                               RunState="@RunState"
+                               ReadOnly="@ReadOnly"
+                               FitOnMount="@FitOnMount"
+                               ShowMinimap="@ShowMinimap"
+                               ShowControls="@ShowControls"
+                               ShowAutoLayout="@ShowAutoLayout"
+                               NodeTemplate="@NodeTemplate"
+                               EmptyContent="@EmptyContent"
+                               OnConnect="@ConnectAsync"
+                               NodesMoved="@NodesMovedAsync"
+                               OnDeleteRequested="@DeleteSelectionAsync"
+                               OnExternalDrop="@OnExternalDrop"
+                               Class="@CanvasClass"
+                               Style="@CanvasStyle" />
+        </div>
+
+        <aside class="omni-workflow-designer-inspector" aria-label="@InspectorAriaLabel">
+            @if (SelectedModel is not null)
+            {
+                <OmniPropertyGrid TModel="TNode"
+                                  Model="@SelectedModel"
+                                  Schema="@InspectorSchema"
+                                  Title="@InspectorTitle"
+                                  Editable="@(!ReadOnly)"
+                                  ShowValidationSummary="true"
+                                  PropertyChanged="@InspectorChangedAsync" />
+            }
+            else if (InspectorEmptyContent is not null)
+            {
+                @InspectorEmptyContent
+            }
+            else
+            {
+                <OmniEmptyState Icon="mouse-pointer-2" Title="@InspectorEmptyText" />
+            }
+        </aside>
+    </div>
+</section>

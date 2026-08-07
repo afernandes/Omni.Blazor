@@ -1,0 +1,367 @@
+@namespace Omni.Blazor.Components
+@typeparam TItem where TItem : class
+@typeparam TKey where TKey : notnull
+@inherits OmniComponent
+@implements IDisposable
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@* CRUD coordinator that composes OmniDataGrid with copy-safe OmniDataForm editors and typed cancellable operations. *@
+
+<div @ref="Element"
+     class="@RootCss"
+     style="@Style"
+     aria-busy="@HasActiveOperation"
+     @attributes="Attributes">
+    @if (_operationFailure is not null && ShowOperationErrors)
+    {
+        @if (OperationErrorTemplate is not null)
+        {
+            @OperationErrorTemplate(_operationFailure)
+        }
+        else
+        {
+            <div class="omni-alert omni-alert-danger omni-data-grid-form-error" role="alert">
+                <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
+                <div class="omni-alert-body">
+                    <div class="omni-alert-title">@Texts.DataGridFormOperationFailed</div>
+                    @if (!string.IsNullOrWhiteSpace(_operationFailure.Message))
+                    {
+                        <div>@_operationFailure.Message</div>
+                    }
+                    @if (_operationFailure.Errors.Count != 0)
+                    {
+                        <ul>
+                            @foreach (string error in _operationFailure.Errors)
+                            {
+                                <li @key="error">@error</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    <OmniDataGrid TItem="TItem"
+                  @ref="_grid"
+                  Data="@LocalData"
+                  DataProvider="@EffectiveProvider"
+                  KeySelector="@GridKeySelector"
+                  AllowMultiSelection="@HasBulkActions"
+                  SelectedItems="@Selection"
+                  SelectedItemsChanged="@SelectionChangedAsync"
+                  AllowSearch="@GridOptions.AllowSearch"
+                  AllowPaging="@GridOptions.AllowPaging"
+                  PageSize="@GridOptions.PageSize"
+                  AllowSorting="@GridOptions.AllowSorting"
+                  AllowColumnFilter="@GridOptions.AllowColumnFilter"
+                  AllowColumnResize="@GridOptions.AllowColumnResize"
+                  AllowColumnVisibility="@GridOptions.AllowColumnVisibility"
+                  AllowGrouping="@GridOptions.AllowGrouping"
+                  AllowExport="@GridOptions.AllowExport"
+                  Virtualize="@GridOptions.Virtualize"
+                  Height="@GridOptions.Height"
+                  RowHeight="@GridOptions.RowHeight"
+                  SearchPlaceholder="@(GridOptions.SearchPlaceholder ?? Texts.SearchPlaceholder)"
+                  EmptyText="@(GridOptions.EmptyText ?? Texts.NoRecords)"
+                  ViewState="@ViewState"
+                  ViewStateChanged="@ViewStateChanged"
+                  PersistKey="@PersistViewStateKey"
+                  LoadingTemplate="@LoadingTemplate">
+        <ToolbarContent>
+            @ToolbarContent
+            @if (Schema.CreateOptions is { } createOptions && IsCreateVisible)
+            {
+                <OmniButton Class="omni-data-grid-form-create"
+                            Text="@(createOptions.Text ?? Texts.Add)"
+                            Icon="@createOptions.Icon"
+                            Size="ComponentSize.Sm"
+                            Variant="ButtonVariant.Primary"
+                            Disabled="@(!CanCreate)"
+                            Loading="@_createBusy"
+                            OnClick="@(_ => BeginCreateAsync())" />
+            }
+            @if (HasBulkActions && _selectionSnapshot.Count != 0)
+            {
+                <div class="omni-data-grid-form-bulk-actions" role="toolbar" aria-label="@Texts.DataGridFormBulkActions">
+                    <span class="omni-data-grid-form-selected-count">@SelectedItemsText</span>
+                    @foreach (DataGridFormBulkAction<TItem, TKey> action in Schema.BulkActions)
+                    {
+                        @if (ShouldRenderBulkActionInline(action))
+                        {
+                            <OmniButton @key="action.Id"
+                                        Text="@action.Text"
+                                        Icon="@action.Icon"
+                                        Size="ComponentSize.Sm"
+                                        Variant="@action.Variant"
+                                        Disabled="@(!CanExecuteBulkAction(action))"
+                                        Loading="@IsBulkActionRunning(action)"
+                                        OnClick="@(_ => RequestBulkActionAsync(action))" />
+                        }
+                    }
+                    @if (HasVisibleBulkMenuActions)
+                    {
+                        <OmniButton Class="omni-data-grid-form-bulk-more-actions"
+                                    Text="@Schema.BulkActionsBar.MenuText"
+                                    Icon="@Schema.BulkActionsBar.MenuIcon"
+                                    IconOnly="@string.IsNullOrWhiteSpace(Schema.BulkActionsBar.MenuText)"
+                                    Size="ComponentSize.Sm"
+                                    Variant="ButtonVariant.Ghost"
+                                    Disabled="@IsBulkActionsMenuDisabled"
+                                    aria-label="@BulkActionsMenuLabel"
+                                    aria-haspopup="menu"
+                                    aria-expanded="@(IsBulkActionsMenuOpen ? "true" : "false")"
+                                    aria-controls="@ContextMenu.Id"
+                                    OnClick="@OpenBulkActionsMenuAsync" />
+                    }
+                </div>
+            }
+        </ToolbarContent>
+        <Columns>
+            @foreach (DataGridFormColumn<TItem> column in GridOptions.Columns)
+            {
+                <OmniDataGridColumn TItem="TItem"
+                                    @key="column.PropertyName"
+                                    Title="@column.Title"
+                                    PropertyName="@column.PropertyName"
+                                    Property="@column.Property"
+                                    TextSelector="@column.TextSelector"
+                                    Template="@column.Template"
+                                    Width="@column.Width"
+                                    Sortable="@column.Sortable"
+                                    Resizable="@column.Resizable"
+                                    Filterable="@column.Filterable"
+                                    FilterType="@column.FilterType"
+                                    Groupable="@column.Groupable"
+                                    CanHide="@column.CanHide"
+                                    Visible="@column.Visible" />
+            }
+            @if (HasRowActions)
+            {
+                <OmniDataGridColumn TItem="TItem"
+                                     @key="ActionsColumnKey"
+                                     Title="@Texts.Actions"
+                                     PropertyName="__actions"
+                                     Sortable="false"
+                                     Resizable="@EffectiveActionsResizable"
+                                     Frozen="@EffectiveActionsFrozen"
+                                     CanHide="false"
+                                     Width="@EffectiveActionsWidth">
+                    <Template Context="item">
+                        <div class="omni-data-grid-form-row-actions">
+                            @if (Schema.EditOptions is { } editOptions && ShouldRenderEditInline(item, editOptions))
+                            {
+                                <OmniButton Text="@(editOptions.Text ?? Texts.Edit)"
+                                            Icon="@editOptions.Icon"
+                                            Size="ComponentSize.Sm"
+                                            Variant="ButtonVariant.Ghost"
+                                            Disabled="@(!CanEdit(item))"
+                                            Loading="@IsRowOperation(item, DataGridFormOperation.Edit)"
+                                            OnClick="@(_ => BeginEditAsync(item))" />
+                            }
+                            @foreach (DataGridFormAction<TItem, TKey> action in Schema.Actions)
+                            {
+                                @if (ShouldRenderActionInline(item, action))
+                                {
+                                    <OmniButton @key="action.Id"
+                                                Text="@action.Text"
+                                                Icon="@action.Icon"
+                                                Size="ComponentSize.Sm"
+                                                Variant="@action.Variant"
+                                                Disabled="@(!CanExecuteRowAction(item, action))"
+                                                Loading="@IsRowAction(item, action.Id)"
+                                                OnClick="@(_ => RequestActionAsync(item, action))" />
+                                }
+                            }
+                            @if (Schema.DeleteOptions is { } deleteOptions && ShouldRenderDeleteInline(item, deleteOptions))
+                            {
+                                <OmniButton Text="@(deleteOptions.Text ?? Texts.Remove)"
+                                            Icon="@deleteOptions.Icon"
+                                            Size="ComponentSize.Sm"
+                                            Variant="ButtonVariant.Ghost"
+                                            Disabled="@(!CanDelete(item))"
+                                            Loading="@IsRowOperation(item, DataGridFormOperation.Delete)"
+                                            OnClick="@(_ => RequestDeleteAsync(item))" />
+                            }
+                            @if (ShouldRenderReorderInline(item, -1))
+                            {
+                                <OmniButton Text="@Texts.MoveUp"
+                                            Icon="arrow-up"
+                                            Size="ComponentSize.Sm"
+                                            Variant="ButtonVariant.Ghost"
+                                            Disabled="@(!CanMove(item, -1))"
+                                            OnClick="@(_ => MoveAsync(item, -1))" />
+                            }
+                            @if (ShouldRenderReorderInline(item, 1))
+                            {
+                                <OmniButton Text="@Texts.MoveDown"
+                                            Icon="arrow-down"
+                                            Size="ComponentSize.Sm"
+                                            Variant="ButtonVariant.Ghost"
+                                            Disabled="@(!CanMove(item, 1))"
+                                            OnClick="@(_ => MoveAsync(item, 1))" />
+                            }
+                            @if (HasVisibleMenuActions(item))
+                            {
+                                <OmniButton Class="omni-data-grid-form-more-actions"
+                                            Text="@EffectiveActionsMenuText"
+                                            Icon="@EffectiveActionsMenuIcon"
+                                            IconOnly="@string.IsNullOrWhiteSpace(EffectiveActionsMenuText)"
+                                            Size="ComponentSize.Sm"
+                                            Variant="ButtonVariant.Ghost"
+                                            Disabled="@IsActionsMenuDisabled(item)"
+                                            aria-label="@ActionsMenuLabel"
+                                            aria-haspopup="menu"
+                                            aria-expanded="@(IsActionsMenuOpen ? "true" : "false")"
+                                            aria-controls="@ContextMenu.Id"
+                                            OnClick="@(args => OpenActionsMenuAsync(args, item))" />
+                            }
+                        </div>
+                    </Template>
+                </OmniDataGridColumn>
+            }
+        </Columns>
+        <EmptyTemplate>
+            @if (EmptyTemplate is not null)
+            {
+                @EmptyTemplate
+            }
+            else
+            {
+                <div class="omni-grid-empty">@(GridOptions.EmptyText ?? Texts.NoRecords)</div>
+            }
+        </EmptyTemplate>
+    </OmniDataGrid>
+
+    @if (_draft is not null && _editorOperation is not null)
+    {
+        @if (EditorPresentation == DataGridFormPresentation.Inline)
+        {
+            <OmniDataGridFormEditor TItem="TItem"
+                                    @ref="_editor"
+                                    Draft="@_draft"
+                                    Schema="@Schema.FormSchema"
+                                    Title="@EditorTitle"
+                                    Saving="@_saving"
+                                    Disabled="@(Disabled || ReadOnly)"
+                                    RenderFormElement="@RenderEditorFormElement"
+                                    SaveText="@Texts.Save"
+                                    CancelText="@Texts.Cancel"
+                                    CloseText="@Texts.Close"
+                                    OnValidSubmit="@SaveEditorAsync"
+                                    OnCancel="@CancelEditorAsync"
+                                    DirtyChanged="@EditorDirtyChangedAsync" />
+        }
+        else
+        {
+            <OmniOverlay Visible="true"
+                         AutoClose="false"
+                         CloseOnEsc="@(!_saving)"
+                         OnClosed="@CancelEditorAsync">
+                <OmniDataGridFormEditor TItem="TItem"
+                                        @ref="_editor"
+                                        Class="@EditorCss"
+                                        Style="@EditorStyle"
+                                        Draft="@_draft"
+                                        Schema="@Schema.FormSchema"
+                                        Title="@EditorTitle"
+                                        Presentation="@EditorPresentation"
+                                        Saving="@_saving"
+                                        Disabled="@(Disabled || ReadOnly)"
+                                        RenderFormElement="@RenderEditorFormElement"
+                                        SaveText="@Texts.Save"
+                                        CancelText="@Texts.Cancel"
+                                        CloseText="@Texts.Close"
+                                        OnValidSubmit="@SaveEditorAsync"
+                                        OnCancel="@CancelEditorAsync"
+                                        DirtyChanged="@EditorDirtyChangedAsync" />
+            </OmniOverlay>
+        }
+
+        @if (GuardNavigationWithUnsavedChanges)
+        {
+            <OmniExitPrompt When="@_unsavedChangesPredicate"
+                            Title="@Texts.DataGridFormUnsavedChangesTitle"
+                            Text="@Texts.DataGridFormUnsavedChangesMessage"
+                            ConfirmText="@Texts.DataGridFormDiscardChanges"
+                            CancelText="@Texts.DataGridFormContinueEditing" />
+        }
+    }
+
+    @if (_discardConfirmationOpen)
+    {
+        <OmniOverlay Visible="true"
+                     AutoClose="false"
+                     CloseOnEsc="true"
+                     OnClosed="@CancelDiscardAsync">
+            <section class="omni-data-grid-form-confirm omni-data-grid-form-discard-confirm"
+                     role="alertdialog"
+                     aria-modal="true"
+                     aria-labelledby="@($"{Id}-discard-title")"
+                     aria-describedby="@($"{Id}-discard-message")">
+                <h2 id="@($"{Id}-discard-title")">@Texts.DataGridFormUnsavedChangesTitle</h2>
+                <p id="@($"{Id}-discard-message")">@Texts.DataGridFormUnsavedChangesMessage</p>
+                <div class="omni-data-grid-form-confirm-actions">
+                    <OmniButton Text="@Texts.DataGridFormContinueEditing"
+                                OnClick="@(_ => CancelDiscardAsync())" />
+                    <OmniButton Text="@Texts.DataGridFormDiscardChanges"
+                                Icon="trash-2"
+                                Variant="ButtonVariant.Danger"
+                                OnClick="@(_ => DiscardEditorAsync())" />
+                </div>
+            </section>
+        </OmniOverlay>
+    }
+
+    @if (_bulkConfirmationAction is not null)
+    {
+        <OmniOverlay Visible="true"
+                     AutoClose="false"
+                     CloseOnEsc="@(!_bulkConfirmationBusy)"
+                     OnClosed="@CancelBulkConfirmationAsync">
+            <section class="omni-data-grid-form-confirm omni-data-grid-form-bulk-confirm"
+                     role="alertdialog"
+                     aria-modal="true"
+                     aria-labelledby="@($"{Id}-bulk-confirmation-title")"
+                     aria-describedby="@($"{Id}-bulk-confirmation-message")">
+                <h2 id="@($"{Id}-bulk-confirmation-title")">@Texts.Confirm</h2>
+                <p id="@($"{Id}-bulk-confirmation-message")">@BulkConfirmationMessage</p>
+                <div class="omni-data-grid-form-confirm-actions">
+                    <OmniButton Text="@Texts.Cancel"
+                                Disabled="@_bulkConfirmationBusy"
+                                OnClick="@(_ => CancelBulkConfirmationAsync())" />
+                    <OmniButton Text="@Texts.Confirm"
+                                Icon="@_bulkConfirmationAction.Icon"
+                                Variant="@_bulkConfirmationAction.Variant"
+                                Loading="@_bulkConfirmationBusy"
+                                OnClick="@(_ => ConfirmBulkActionAsync())" />
+                </div>
+            </section>
+        </OmniOverlay>
+    }
+
+    @if (_confirmationItem is not null)
+    {
+        <OmniOverlay Visible="true"
+                     AutoClose="false"
+                     CloseOnEsc="@(!_confirmationBusy)"
+                     OnClosed="@CancelConfirmationAsync">
+            <section class="omni-data-grid-form-confirm" role="alertdialog" aria-modal="true"
+                     aria-labelledby="@ConfirmationTitleId" aria-describedby="@ConfirmationMessageId">
+                <h2 id="@ConfirmationTitleId">@ConfirmationTitle</h2>
+                <p id="@ConfirmationMessageId">@ConfirmationMessage</p>
+                <div class="omni-data-grid-form-confirm-actions">
+                    <OmniButton Text="@ConfirmationCancelText"
+                                Disabled="@_confirmationBusy"
+                                OnClick="@(_ => CancelConfirmationAsync())" />
+                    <OmniButton Text="@ConfirmationConfirmText"
+                                Icon="@ConfirmationIcon"
+                                Variant="@ConfirmationVariant"
+                                Loading="@_confirmationBusy"
+                                OnClick="@(_ => ConfirmPendingAsync())" />
+                </div>
+            </section>
+        </OmniOverlay>
+    }
+</div>

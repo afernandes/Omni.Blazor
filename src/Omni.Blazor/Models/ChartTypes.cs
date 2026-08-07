@@ -11,6 +11,12 @@ public sealed class ChartDataPoint
     /// <summary>Valor numérico (eixo de valores em cartesianos; tamanho da fatia em Pie/Donut).</summary>
     public double Value { get; set; }
 
+    /// <summary>Optional numeric X position used by Scatter and Bubble series.</summary>
+    public double? X { get; set; }
+
+    /// <summary>Optional relative bubble size. Ignored by other series types.</summary>
+    public double? Size { get; set; }
+
     /// <summary>Cor opcional só para Pie/Donut (override do scheme/cor da série).</summary>
     public string? Color { get; set; }
 
@@ -49,4 +55,10 @@ public sealed class ChartSeries
 
     /// <summary>Opacidade do preenchimento de Area (0..1). Default 0.18.</summary>
     public double AreaOpacity { get; set; } = 0.18;
+
+    /// <summary>Minimum Gauge value. Default zero.</summary>
+    public double GaugeMinimum { get; set; }
+
+    /// <summary>Maximum Gauge value. Default one hundred.</summary>
+    public double GaugeMaximum { get; set; } = 100;
 }
