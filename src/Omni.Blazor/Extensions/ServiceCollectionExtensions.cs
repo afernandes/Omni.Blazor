@@ -10,11 +10,6 @@ namespace Omni.Blazor;
 
 public static class ServiceCollectionExtensions
 {
-    /// <summary>What Blazor reaches for by reflection when it activates a component.</summary>
-    private const DynamicallyAccessedMemberTypes RuntimeActivatedMembers =
-        DynamicallyAccessedMemberTypes.PublicConstructors
-        | DynamicallyAccessedMemberTypes.PublicProperties
-        | DynamicallyAccessedMemberTypes.NonPublicProperties;
 
     /// <summary>
     /// Register all Omni.Blazor services as scoped instances.
@@ -35,16 +30,6 @@ public static class ServiceCollectionExtensions
     /// calling this — e.g. scoped, populated from an <c>IStringLocalizer</c> — takes
     /// precedence over <paramref name="configure"/>.
     /// </param>
-    // DataForm picks its editors by Type at runtime, so nothing references these closed
-    // generics statically and a trimmed WebAssembly publish drops the members Blazor needs
-    // to activate them — the constructor ("CtorNotLocated") and the property setters it
-    // assigns by reflection ("...because the property has no setter"; some are private
-    // [CascadingParameter]s, hence NonPublicProperties). Rooting them on the open
-    // definitions covers every instantiation. This lives on AddOmniComponents because every
-    // consumer calls it, so the roots cannot themselves be trimmed away.
-    [DynamicDependency(RuntimeActivatedMembers, typeof(Components.OmniDataFormFieldRenderer<,>))]
-    [DynamicDependency(RuntimeActivatedMembers, typeof(Components.OmniDataFormLookupEditor<,,>))]
-    [DynamicDependency(RuntimeActivatedMembers, typeof(Components.OmniDataFormCollectionEditor<,,>))]
     public static IServiceCollection AddOmniComponents(this IServiceCollection services, Action<OmniOptions>? configure)
     {
         var options = new OmniOptions();

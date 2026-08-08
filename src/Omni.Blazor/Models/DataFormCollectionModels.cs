@@ -230,6 +230,12 @@ internal interface IDataFormCollectionDefinition<TModel> where TModel : class
     int GetCount(object? value);
 }
 
+// Same runtime-Type activation as the lookup editor — see DataFormLookupModels.cs.
+[method: System.Diagnostics.CodeAnalysis.DynamicDependency(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors
+        | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties
+        | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties,
+    typeof(Omni.Blazor.Components.OmniDataFormCollectionEditor<,,>))]
 internal sealed record DataFormCollectionDefinition<TModel, TCollection, TItem>(
     DataFormSchema<TItem>? ItemSchema,
     Func<TItem>? ItemFactory,
