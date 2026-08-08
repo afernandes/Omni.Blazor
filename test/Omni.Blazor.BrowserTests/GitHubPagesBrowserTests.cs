@@ -36,6 +36,13 @@ public sealed class GitHubPagesBrowserTests(BrowserFixture fixture)
             $"Deep route returned HTTP {deepRouteResponse.Status}; it should be pre-rendered and answer 200.");
         await page.Locator("input[placeholder='Buscar pedidos']").First.WaitForAsync();
 
+        // The demo's own stylesheet has to be linked by the host page, not just published.
+        // Assert the effect, not the file: .omni-showcase-body owns `overflow:auto`, and the
+        // library clips .omni-split-main, so losing it leaves the page content unreachable.
+        string showcaseOverflow = await page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.querySelector('.omni-showcase-body')).overflowY");
+        Assert.Equal("auto", showcaseOverflow);
+
         // An unknown route still has to fall back to the app shell, which boots and lets the
         // router render its own not-found page (the response status may legitimately be 404).
         IResponse? unknownRouteResponse = await page.GotoAsync($"{fixture.BaseUrl}/showcase/does-not-exist");
