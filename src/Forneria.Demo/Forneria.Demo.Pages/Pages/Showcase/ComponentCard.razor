@@ -21,5 +21,5 @@
     [Parameter, EditorRequired] public string Path { get; set; } = "";
     [Parameter] public string Icon { get; set; } = "package";
 
-    private Task Go() { Nav.NavigateTo(Path); return Task.CompletedTask; }
+    private Task Go() { Nav.NavigateTo(Path.TrimStart('/')); return Task.CompletedTask; }
 }

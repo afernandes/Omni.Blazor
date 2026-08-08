@@ -69,7 +69,7 @@
                                         var kids = VisibleChildren(root.Path);
                                         @if (kids.Count == 0)
                                         {
-                                            <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon" Path="@root.Path"
+                                            <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon" Path="@AppHref(root.Path)"
                                                                Match="@(root.Path == "/showcase" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
                                                                CountText="@BadgeText(root)" CountKind="@BadgeKind(root)" />
                                         }
@@ -78,10 +78,10 @@
                                             <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon"
                                                                Expanded="@(_query.Length > 0 || IsUnder(root.Path))">
                                                 <ChildContent>
-                                                    <OmniPanelMenuItem Text="Galeria" Icon="@root.Icon" Path="@root.Path" Match="NavLinkMatch.All" />
+                                                    <OmniPanelMenuItem Text="Galeria" Icon="@root.Icon" Path="@AppHref(root.Path)" Match="NavLinkMatch.All" />
                                                     @foreach (var kid in kids)
                                                     {
-                                                        <OmniPanelMenuItem Text="@kid.Title" TextContent="@Lbl(kid.Title)" Icon="@kid.Icon" Path="@kid.Path"
+                                                        <OmniPanelMenuItem Text="@kid.Title" TextContent="@Lbl(kid.Title)" Icon="@kid.Icon" Path="@AppHref(kid.Path)"
                                                                            Match="NavLinkMatch.Prefix"
                                                                            CountText="@BadgeText(kid)" CountKind="@BadgeKind(kid)" />
                                                     }
@@ -149,7 +149,7 @@
         _commands = ShowcaseCatalog.All.Select(l =>
         {
             var path = l.Path;
-            return new OmniCommand(l.Title) { Category = l.Category, Icon = l.Icon, Action = () => { Nav.NavigateTo(path); return Task.CompletedTask; } };
+            return new OmniCommand(l.Title) { Category = l.Category, Icon = l.Icon, Action = () => { Nav.NavigateTo(AppHref(path)); return Task.CompletedTask; } };
         }).ToArray();
         Nav.LocationChanged += OnLocationChanged;
     }
@@ -201,6 +201,7 @@
     }
 
     private bool IsVisible(ShowcaseLink l) => _visible is null || _visible.Contains(l.Path);
+    private static string AppHref(string path) => path.TrimStart('/');
     private IEnumerable<ShowcaseLink> VisibleRoots() => Roots.Where(IsVisible);
     private List<ShowcaseLink> VisibleChildren(string path)
         => ChildrenOf.TryGetValue(path, out var list) ? list.Where(IsVisible).ToList() : new();

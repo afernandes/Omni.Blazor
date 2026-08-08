@@ -5,6 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![CI](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml/badge.svg)](https://github.com/afernandes/Omni.Blazor/actions/workflows/ci.yml)
+[![GitHub Pages](https://github.com/afernandes/Omni.Blazor/actions/workflows/pages.yml/badge.svg)](https://afernandes.github.io/Omni.Blazor/)
+
+**[Explore the live component showcase](https://afernandes.github.io/Omni.Blazor/)**
 
 > Modern Blazor component library for .NET 10 — **206 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
 
