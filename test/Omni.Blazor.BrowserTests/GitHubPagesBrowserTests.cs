@@ -27,12 +27,20 @@ public sealed class GitHubPagesBrowserTests(BrowserFixture fixture)
         await page.GetByRole(AriaRole.Heading, new() { Name = "Omni.Blazor", Exact = true })
             .WaitForAsync();
 
+        // Deep links must answer 200, not the 404 that a bare `404.html` fallback returns:
+        // every client route is pre-rendered as its own .html by prepare_github_pages.py.
         IResponse? deepRouteResponse = await page.GotoAsync($"{fixture.BaseUrl}/showcase/datagrid");
         Assert.NotNull(deepRouteResponse);
         Assert.True(
-            deepRouteResponse.Ok || deepRouteResponse.Status == 404,
-            $"Deep route returned unexpected HTTP {deepRouteResponse.Status}.");
+            deepRouteResponse.Ok,
+            $"Deep route returned HTTP {deepRouteResponse.Status}; it should be pre-rendered and answer 200.");
         await page.Locator("input[placeholder='Buscar pedidos']").First.WaitForAsync();
+
+        // An unknown route still has to fall back to the app shell (and may answer 404).
+        IResponse? unknownRouteResponse = await page.GotoAsync($"{fixture.BaseUrl}/showcase/does-not-exist");
+        Assert.NotNull(unknownRouteResponse);
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Omni.Blazor", Exact = true })
+            .WaitForAsync();
 
         Assert.Empty(errors);
     }

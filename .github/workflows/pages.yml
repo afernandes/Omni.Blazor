@@ -68,7 +68,10 @@ jobs:
           -p:ContinuousIntegrationBuild=true
 
       - name: Prepare project-site artifact
-        run: python scripts/prepare_github_pages.py "$PUBLISH_DIR" "${{ steps.pages.outputs.base_path }}"
+        run: >-
+          python scripts/prepare_github_pages.py "$PUBLISH_DIR" "${{ steps.pages.outputs.base_path }}"
+          --routes-from src/Forneria.Demo/Forneria.Demo.Pages
+          --routes-from src/Forneria.Demo/Forneria.Demo.Wasm
 
       - name: Verify artifact preparation
         run: python -m unittest discover -s scripts/tests -p 'test_*.py'
