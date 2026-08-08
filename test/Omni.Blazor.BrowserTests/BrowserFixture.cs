@@ -14,6 +14,12 @@ public sealed class BrowserFixture : IAsyncLifetime
 
     public string BaseUrl { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// True when serving the prepared GitHub Pages artifact instead of running a host.
+    /// Some things only exist in that artifact — the workflow assembles them.
+    /// </summary>
+    public bool ServesPreparedSite { get; private set; }
+
     public async ValueTask InitializeAsync()
     {
         string repositoryRoot = FindRepositoryRoot();
@@ -21,6 +27,7 @@ public sealed class BrowserFixture : IAsyncLifetime
         string hostMode = Environment.GetEnvironmentVariable("OMNI_BROWSER_HOST") ?? "server";
         string pathBase = NormalizePathBase(Environment.GetEnvironmentVariable("OMNI_BROWSER_PATH_BASE"));
         string? staticRoot = Environment.GetEnvironmentVariable("OMNI_BROWSER_STATIC_ROOT");
+        ServesPreparedSite = !string.IsNullOrWhiteSpace(staticRoot);
         string project = hostMode.Equals("wasm", StringComparison.OrdinalIgnoreCase)
             ? "src/Forneria.Demo/Forneria.Demo.Wasm/Forneria.Demo.Wasm.csproj"
             : "src/Forneria.Demo/Forneria.Demo/Forneria.Demo.csproj";
