@@ -19,29 +19,18 @@ public sealed class BrowserFixture : IAsyncLifetime
         string repositoryRoot = FindRepositoryRoot();
         string configuration = Environment.GetEnvironmentVariable("OMNI_BROWSER_CONFIGURATION") ?? "Release";
         string hostMode = Environment.GetEnvironmentVariable("OMNI_BROWSER_HOST") ?? "server";
+        string pathBase = NormalizePathBase(Environment.GetEnvironmentVariable("OMNI_BROWSER_PATH_BASE"));
+        string? staticRoot = Environment.GetEnvironmentVariable("OMNI_BROWSER_STATIC_ROOT");
         string project = hostMode.Equals("wasm", StringComparison.OrdinalIgnoreCase)
             ? "src/Forneria.Demo/Forneria.Demo.Wasm/Forneria.Demo.Wasm.csproj"
             : "src/Forneria.Demo/Forneria.Demo/Forneria.Demo.csproj";
         int port = ReservePort();
-        BaseUrl = $"http://127.0.0.1:{port}";
+        string origin = $"http://127.0.0.1:{port}";
+        BaseUrl = $"{origin}{pathBase}";
 
-        ProcessStartInfo startInfo = new("dotnet")
-        {
-            WorkingDirectory = repositoryRoot,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
-        startInfo.ArgumentList.Add("run");
-        startInfo.ArgumentList.Add("--project");
-        startInfo.ArgumentList.Add(project);
-        startInfo.ArgumentList.Add("--configuration");
-        startInfo.ArgumentList.Add(configuration);
-        startInfo.ArgumentList.Add("--no-build");
-        startInfo.ArgumentList.Add("--");
-        startInfo.ArgumentList.Add("--urls");
-        startInfo.ArgumentList.Add(BaseUrl);
+        ProcessStartInfo startInfo = string.IsNullOrWhiteSpace(staticRoot)
+            ? CreateDotNetHost(repositoryRoot, project, configuration, origin)
+            : CreateStaticHost(repositoryRoot, staticRoot, pathBase, port);
         startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
         startInfo.Environment["DOTNET_NOLOGO"] = "true";
 
@@ -67,6 +56,56 @@ public sealed class BrowserFixture : IAsyncLifetime
             catch { /* Preserve the initialization exception. */ }
             throw;
         }
+    }
+
+    private static ProcessStartInfo CreateDotNetHost(
+        string repositoryRoot,
+        string project,
+        string configuration,
+        string origin)
+    {
+        ProcessStartInfo startInfo = new("dotnet")
+        {
+            WorkingDirectory = repositoryRoot,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("run");
+        startInfo.ArgumentList.Add("--project");
+        startInfo.ArgumentList.Add(project);
+        startInfo.ArgumentList.Add("--configuration");
+        startInfo.ArgumentList.Add(configuration);
+        startInfo.ArgumentList.Add("--no-build");
+        startInfo.ArgumentList.Add("--");
+        startInfo.ArgumentList.Add("--urls");
+        startInfo.ArgumentList.Add(origin);
+        return startInfo;
+    }
+
+    private static ProcessStartInfo CreateStaticHost(
+        string repositoryRoot,
+        string staticRoot,
+        string pathBase,
+        int port)
+    {
+        ProcessStartInfo startInfo = new("python")
+        {
+            WorkingDirectory = repositoryRoot,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("scripts/serve_github_pages.py");
+        startInfo.ArgumentList.Add("--directory");
+        startInfo.ArgumentList.Add(Path.GetFullPath(staticRoot, repositoryRoot));
+        startInfo.ArgumentList.Add("--path-base");
+        startInfo.ArgumentList.Add(pathBase);
+        startInfo.ArgumentList.Add("--port");
+        startInfo.ArgumentList.Add(port.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return startInfo;
     }
 
     public async Task<IBrowserContext> CreateContextAsync()
@@ -121,7 +160,7 @@ public sealed class BrowserFixture : IAsyncLifetime
             try
             {
                 using HttpResponseMessage response = await client.GetAsync(
-                    $"{BaseUrl}/showcase/data-form",
+                    $"{BaseUrl}/",
                     timeout.Token);
                 if (response.StatusCode == HttpStatusCode.OK) return;
             }
@@ -156,6 +195,16 @@ public sealed class BrowserFixture : IAsyncLifetime
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
+    }
+
+    private static string NormalizePathBase(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        string pathBase = value.Trim();
+        if (pathBase.Contains('?', StringComparison.Ordinal) || pathBase.Contains('#', StringComparison.Ordinal))
+            throw new InvalidOperationException("OMNI_BROWSER_PATH_BASE cannot contain a query or fragment.");
+        pathBase = pathBase.Trim('/');
+        return pathBase.Length == 0 ? string.Empty : $"/{pathBase}";
     }
 
     private static string FindRepositoryRoot()
