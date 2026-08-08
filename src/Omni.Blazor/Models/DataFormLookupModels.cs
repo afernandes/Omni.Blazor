@@ -216,6 +216,15 @@ internal interface IDataFormLookupDefinition<TModel> where TModel : class
     bool ClearValueOnDependencyChange { get; }
 }
 
+// The editor is chosen by Type at runtime, so nothing references the closed generic
+// statically and a trimmed WebAssembly publish drops the members Blazor activates it with.
+// Rooting hangs off the primary constructor so it costs nothing until a consumer actually
+// declares a lookup field. See ServiceCollectionExtensions for why it is not central.
+[method: System.Diagnostics.CodeAnalysis.DynamicDependency(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors
+        | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties
+        | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties,
+    typeof(Omni.Blazor.Components.OmniDataFormLookupEditor<,,>))]
 internal sealed record DataFormLookupDefinition<TModel, TItem, TValue>(
     Func<TItem, TValue> ValueSelector,
     Func<TItem, string> TextSelector,

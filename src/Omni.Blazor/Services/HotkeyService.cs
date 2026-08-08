@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Omni.Blazor.Models;
@@ -78,6 +79,8 @@ public sealed class HotkeyService : IAsyncDisposable
         return RegisterCoreAsync(comboArray, NoSequences, handler, preventDefault, stopPropagation);
     }
 
+    // The serializer only ever reads these getters, so trimming would drop them.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(HotkeyComboPayload))]
     private async Task<IAsyncDisposable> RegisterCoreAsync(
         IReadOnlyList<HotkeyCombo> combos,
         IReadOnlyList<HotkeyCombo[]> sequences,
@@ -111,13 +114,13 @@ public sealed class HotkeyService : IAsyncDisposable
         }
         return new Handle(this, id);
 
-        static object ToJs(HotkeyCombo c) => new
+        static HotkeyComboPayload ToJs(HotkeyCombo c) => new()
         {
-            key = c.Key,
-            ctrl = c.Modifiers.HasFlag(Modifier.Ctrl),
-            alt = c.Modifiers.HasFlag(Modifier.Alt),
-            shift = c.Modifiers.HasFlag(Modifier.Shift),
-            meta = c.Modifiers.HasFlag(Modifier.Meta)
+            Key = c.Key,
+            Ctrl = c.Modifiers.HasFlag(Modifier.Ctrl),
+            Alt = c.Modifiers.HasFlag(Modifier.Alt),
+            Shift = c.Modifiers.HasFlag(Modifier.Shift),
+            Meta = c.Modifiers.HasFlag(Modifier.Meta)
         };
     }
 

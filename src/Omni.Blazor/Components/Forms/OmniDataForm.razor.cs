@@ -1256,6 +1256,18 @@ public partial class OmniDataForm<
         return CreateRuntimeRendererType(property.PropertyType);
     }
 
+    // Nothing references the closed generic statically, so a trimmed WebAssembly publish
+    // drops what Blazor activates it with — first the constructor ("CtorNotLocated"), then
+    // the setters it assigns by reflection ("...because the property has no setter"; one is
+    // a private [CascadingParameter], hence NonPublicProperties). Rooting on the open
+    // definition covers every instantiation. It belongs here, on the already
+    // [RequiresDynamicCode] path, and not somewhere every consumer reaches: rooting it from
+    // AddOmniComponents drags this non-AOT-safe code into every Native AOT consumer.
+    [DynamicDependency(
+        DynamicallyAccessedMemberTypes.PublicConstructors
+            | DynamicallyAccessedMemberTypes.PublicProperties
+            | DynamicallyAccessedMemberTypes.NonPublicProperties,
+        typeof(OmniDataFormFieldRenderer<,>))]
     [RequiresDynamicCode("A geração automática de campos cria um renderer genérico em tempo de execução. Use DataFormSchema tipado em Native AOT.")]
     private static Type CreateRuntimeRendererType(Type propertyType)
         => typeof(OmniDataFormFieldRenderer<,>).MakeGenericType(typeof(TModel), propertyType);

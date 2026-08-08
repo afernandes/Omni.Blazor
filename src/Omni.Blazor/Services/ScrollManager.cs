@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
 using Omni.Blazor.Models;
 
@@ -74,12 +75,16 @@ public sealed class ScrollManager
     /// Scroll <paramref name="selector"/> to a specific position. Defaults to
     /// the auto-detected scrolling container.
     /// </summary>
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ScrollToPayload))]
     public ValueTask ScrollToAsync(string? selector, double top = 0, double left = 0, ScrollBehavior behavior = ScrollBehavior.Auto)
-        => Invoke("scrollTo", selector ?? "auto", new { top, left, behavior = ToJs(behavior) });
+        => Invoke("scrollTo", selector ?? "auto",
+            new ScrollToPayload { Top = top, Left = left, Behavior = ToJs(behavior) });
 
     /// <summary>Bring an element into view (closest scrollable ancestor scrolls).</summary>
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ScrollIntoViewPayload))]
     public ValueTask ScrollIntoViewAsync(string selector, ScrollBehavior behavior = ScrollBehavior.Smooth, ScrollBlock block = ScrollBlock.Start)
-        => Invoke("scrollIntoView", selector, new { behavior = ToJs(behavior), block = ToJsBlock(block) });
+        => Invoke("scrollIntoView", selector,
+            new ScrollIntoViewPayload { Behavior = ToJs(behavior), Block = ToJsBlock(block) });
 
     /// <summary>Scroll a container (or the auto-detected root) to the top.</summary>
     public ValueTask ScrollToTopAsync(string? selector = null, ScrollBehavior behavior = ScrollBehavior.Smooth)
@@ -133,6 +138,7 @@ public sealed class ScrollManager
             _handler = handler;
         }
 
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ScrollObserverPayload))]
         public async Task StartAsync(string selector)
         {
             _selfRef = DotNetObjectReference.Create(this);
@@ -142,7 +148,7 @@ public sealed class ScrollManager
                     "observeScrollPosition",
                     selector,
                     _selfRef,
-                    new { method = nameof(OnScrollInternal), callOnInit = true });
+                    new ScrollObserverPayload { Method = nameof(OnScrollInternal), CallOnInit = true });
             }
             catch { /* SSR — token fica null, dispose no-op */ }
         }

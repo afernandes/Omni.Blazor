@@ -241,6 +241,9 @@
         _snapIndex = Math.Clamp(InitialSnapIndex, 0, _effectiveSnaps.Length - 1);
     }
 
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties,
+        typeof(BottomSheetDragPayload))]
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Detecta desktop pra adaptive
@@ -271,7 +274,8 @@
                 try
                 {
                     await JS.InvokeVoidAsync("bottomSheetAttachDrag",
-                        _handleEl, _selfRef, new { onSnap = nameof(OnDragEndInternal) });
+                        _handleEl, _selfRef,
+                        new BottomSheetDragPayload { OnSnap = nameof(OnDragEndInternal) });
                 }
                 catch { }
             }

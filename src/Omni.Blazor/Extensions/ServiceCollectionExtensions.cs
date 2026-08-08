@@ -10,6 +10,7 @@ namespace Omni.Blazor;
 
 public static class ServiceCollectionExtensions
 {
+
     /// <summary>
     /// Register all Omni.Blazor services as scoped instances.
     /// </summary>

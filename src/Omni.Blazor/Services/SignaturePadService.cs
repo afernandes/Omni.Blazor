@@ -41,7 +41,7 @@ public sealed class SignaturePadService
                 "signaturePad.create",
                 canvas,
                 callback,
-                options);
+                SignaturePadPayloadMapper.ToPayload(options));
 
             return reference is null ? null : new SignaturePadHandle(reference);
         }
@@ -57,6 +57,27 @@ public sealed class SignaturePadService
     }
 }
 
+/// <summary>
+/// Maps the public options record onto its wire shape. <see cref="SignaturePadOptions"/>
+/// is positional, so serializing it directly binds a constructor by parameter name —
+/// names a published WebAssembly app has trimmed away. See JsInteropPayloads.cs.
+/// </summary>
+internal static class SignaturePadPayloadMapper
+{
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(SignaturePadOptionsPayload))]
+    internal static SignaturePadOptionsPayload ToPayload(SignaturePadOptions options) => new()
+    {
+        StrokeColor = options.StrokeColor,
+        BackgroundColor = options.BackgroundColor,
+        StrokeWidth = options.StrokeWidth,
+        Format = options.Format,
+        Quality = options.Quality,
+        Disabled = options.Disabled,
+        ReadOnly = options.ReadOnly,
+        InitialValue = options.InitialValue,
+    };
+}
+
 /// <summary>Owns one browser signature-pad instance and its event listeners.</summary>
 public sealed class SignaturePadHandle : IAsyncDisposable
 {
@@ -66,7 +87,7 @@ public sealed class SignaturePadHandle : IAsyncDisposable
 
     /// <summary>Updates drawing and interaction options without replacing listeners.</summary>
     public ValueTask UpdateAsync(SignaturePadOptions options)
-        => InvokeVoidAsync("update", options);
+        => InvokeVoidAsync("update", SignaturePadPayloadMapper.ToPayload(options));
 
     /// <summary>Clears all captured strokes.</summary>
     public ValueTask<SignaturePadSnapshot?> ClearAsync()

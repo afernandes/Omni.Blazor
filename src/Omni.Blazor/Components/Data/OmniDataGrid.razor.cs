@@ -369,9 +369,17 @@ public partial class OmniDataGrid<TItem>
     private async Task NotifyViewStateChangedAsync()
     {
         if (_applyingViewState || Volatile.Read(ref _disposeState) != 0) return;
-        DataGridViewState state = CaptureViewState();
+
+        // Capturing requires a stable PropertyName on every column. Only grids that opted
+        // into view state should pay that: a template or actions column legitimately has no
+        // property, and sorting one used to throw even when nothing consumed the state.
+        // This mirrors the guard in InitializeOrApplyViewStateAsync.
         string? persistKey = PersistKey;
-        if (ViewStateChanged.HasDelegate) await ViewStateChanged.InvokeAsync(state);
+        bool notifies = ViewStateChanged.HasDelegate;
+        if (!notifies && string.IsNullOrWhiteSpace(persistKey)) return;
+
+        DataGridViewState state = CaptureViewState();
+        if (notifies) await ViewStateChanged.InvokeAsync(state);
         if (string.IsNullOrWhiteSpace(persistKey)) return;
 
         int sequence = Interlocked.Increment(ref _viewStatePersistSequence);
