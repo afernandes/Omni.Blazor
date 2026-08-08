@@ -67,6 +67,12 @@ jobs:
           --output "$PUBLISH_ROOT"
           -p:ContinuousIntegrationBuild=true
 
+      # Serve the agent-facing catalog from the same site. These are generated files, so
+      # publishing them here keeps them in step with main — an agent can read the catalog
+      # over HTTP with nothing installed, which the stdio MCP server cannot offer.
+      - name: Publish the agent catalog alongside the site
+        run: cp llms.txt llms-full.txt docs/components.json "$PUBLISH_DIR/"
+
       - name: Prepare project-site artifact
         run: >-
           python scripts/prepare_github_pages.py "$PUBLISH_DIR" "${{ steps.pages.outputs.base_path }}"

@@ -43,6 +43,14 @@ public sealed class GitHubPagesBrowserTests(BrowserFixture fixture)
             "() => getComputedStyle(document.querySelector('.omni-showcase-body')).overflowY");
         Assert.Equal("auto", showcaseOverflow);
 
+        // The agent-facing catalog ships with the site, so an agent can read it over HTTP
+        // with nothing installed. Nothing in the app links these, so only a check keeps them.
+        foreach (string asset in (string[])["llms.txt", "llms-full.txt", "components.json"])
+        {
+            IAPIResponse assetResponse = await page.APIRequest.GetAsync($"{fixture.BaseUrl}/{asset}");
+            Assert.True(assetResponse.Ok, $"{asset} returned HTTP {assetResponse.Status}; it must ship with the site.");
+        }
+
         // An unknown route still has to fall back to the app shell, which boots and lets the
         // router render its own not-found page (the response status may legitimately be 404).
         IResponse? unknownRouteResponse = await page.GotoAsync($"{fixture.BaseUrl}/showcase/does-not-exist");
