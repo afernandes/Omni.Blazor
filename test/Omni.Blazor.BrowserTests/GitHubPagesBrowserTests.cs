@@ -52,4 +52,26 @@ public sealed class GitHubPagesBrowserTests(BrowserFixture fixture)
 
         Assert.Empty(errors);
     }
+
+    /// <summary>
+    /// The agent-facing catalog ships with the site, so an agent can read it over HTTP with
+    /// nothing installed. The Pages workflow copies these in, so this only holds against the
+    /// prepared artifact — a plain host run has nothing to check, and says so rather than
+    /// passing quietly. Nothing in the app links them; without this they can vanish unnoticed.
+    /// </summary>
+    [Fact]
+    public async Task Agent_catalog_ships_with_the_prepared_site()
+    {
+        if (!fixture.ServesPreparedSite)
+            Assert.Skip("Only the prepared GitHub Pages artifact carries the catalog files.");
+
+        await using IBrowserContext context = await fixture.CreateContextAsync();
+        IPage page = await context.NewPageAsync();
+
+        foreach (string asset in (string[])["llms.txt", "llms-full.txt", "components.json"])
+        {
+            IAPIResponse response = await page.APIRequest.GetAsync($"{fixture.BaseUrl}/{asset}");
+            Assert.True(response.Ok, $"{asset} returned HTTP {response.Status}; it must ship with the site.");
+        }
+    }
 }

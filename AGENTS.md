@@ -42,12 +42,27 @@ A stdio **MCP server** (`tools/Omni.Blazor.Mcp`) exposes the catalog as live too
 `list_components`, `get_component`, `search_components` — over the embedded manifest
 (self-contained, no library reference).
 
-**Use it (external projects)** — install the .NET tool, then point your MCP client
-(Cursor, Claude Code, Copilot) at the `omni-blazor-mcp` command:
+**Use it (external projects)** — install the .NET tool:
 
 ```bash
 dotnet tool install -g AndersonN.Omni.Blazor.Mcp
 ```
+
+Then register it. In **Claude Code**, use the CLI and pick the scope deliberately —
+`user` makes the server available in every project you open, `project` writes it to a
+committed `.mcp.json` so the whole team gets it, and the default `local` is just you in
+just this repository:
+
+```bash
+claude mcp add omni-blazor --scope user -- omni-blazor-mcp
+```
+
+```bash
+claude mcp list
+```
+
+Other clients (Cursor, Claude Desktop, Copilot) take the same command as JSON:
+
 ```json
 {
   "mcpServers": {
@@ -60,6 +75,19 @@ dotnet tool install -g AndersonN.Omni.Blazor.Mcp
 > shell `PATH`, so `~/.dotnet/tools` isn't on it. Use the absolute path instead:
 > `~/.dotnet/tools/omni-blazor-mcp` (macOS/Linux) or
 > `%USERPROFILE%\.dotnet\tools\omni-blazor-mcp.exe` (Windows).
+
+**Already installed? Update, don't install.** The manifest is baked into the package, so
+an old tool serves an old catalog. Use:
+
+```bash
+dotnet tool update -g AndersonN.Omni.Blazor.Mcp
+```
+
+> **`Access to the path ... is denied` on Windows?** That is a lock, not a permission
+> problem: updating uninstalls the current version first, and every MCP client you have
+> open is running `omni-blazor-mcp` as a child process holding those files. Close those
+> clients (or stop the processes — `Get-Process omni-blazor-mcp | Stop-Process`) and run
+> the update again. Each client respawns the server on its next start.
 
 **Contributing to this repo** — it is already wired in [`.mcp.json`](.mcp.json) to run
 straight from source (no install): `dotnet run --project tools/Omni.Blazor.Mcp -c Release`.

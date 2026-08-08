@@ -206,4 +206,11 @@ jobs:
         env:
           OMNI_BROWSER_HOST: ${{ matrix.host }}
           OMNI_BROWSER_CONFIGURATION: Release
-        run: dotnet test test/Omni.Blazor.BrowserTests/Omni.Blazor.BrowserTests.csproj --configuration Release --no-build
+        # The route sweep belongs to the Pages workflow, which runs it against the trimmed,
+        # prepared artifact — the only build where it can find what it exists to find. Here
+        # it would only duplicate coverage, add minutes to both matrix legs, and starve the
+        # neighbouring tests of time (it already tipped a 15s scheduler wait over the edge).
+        run: >-
+          dotnet test test/Omni.Blazor.BrowserTests/Omni.Blazor.BrowserTests.csproj
+          --configuration Release --no-build
+          --filter "FullyQualifiedName!~PublishedRouteSweepBrowserTests"
