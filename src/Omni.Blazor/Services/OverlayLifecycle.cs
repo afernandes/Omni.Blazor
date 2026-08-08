@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
 
 namespace Omni.Blazor.Services;
@@ -99,6 +100,7 @@ internal sealed class OverlayLifecycle : IAsyncDisposable
     /// Default <c>"OnEscape"</c>.</param>
     /// <param name="lockScroll">Se <c>true</c> (default), bloqueia scroll. Setar
     /// false pra overlays decorativos que não querem prender o scroll.</param>
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(OverlayEscapePayload<>))]
     public async Task ActivateAsync<T>(DotNetObjectReference<T> dotnetRef,
         string escMethod = "OnEscape", bool lockScroll = true) where T : class
     {
@@ -113,7 +115,7 @@ internal sealed class OverlayLifecycle : IAsyncDisposable
         try
         {
             await _js.InvokeAsync<bool>("setupOverlay", _id, _selector,
-                new { dotnet = dotnetRef, method = escMethod });
+                new OverlayEscapePayload<T> { Dotnet = dotnetRef, Method = escMethod });
         }
         catch { /* SSR / JS gone */ }
     }

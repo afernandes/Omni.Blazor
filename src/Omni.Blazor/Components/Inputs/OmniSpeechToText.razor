@@ -145,18 +145,18 @@
             // "*Internal" pra evitar colisão de nome com os parâmetros EventCallback
             // (C# não permite property + method com mesmo nome). O JS aceita override
             // via opts.{start|end|result|error|unsupported|state}Method.
-            await JS.InvokeVoidAsync("speechToggle", _selfRef, new
+            await JS.InvokeVoidAsync("speechToggle", _selfRef, new SpeechToTextPayload
             {
-                Language,
-                Continuous,
-                InterimResults,
-                MaxAlternatives,
-                startMethod       = nameof(OnStartInternal),
-                endMethod         = nameof(OnEndInternal),
-                resultMethod      = nameof(OnResultInternal),
-                errorMethod       = nameof(OnErrorInternal),
-                unsupportedMethod = nameof(OnUnsupportedInternal),
-                stateMethod       = nameof(OnStateChangeInternal),
+                Language          = Language,
+                Continuous        = Continuous,
+                InterimResults    = InterimResults,
+                MaxAlternatives   = MaxAlternatives,
+                StartMethod       = nameof(OnStartInternal),
+                EndMethod         = nameof(OnEndInternal),
+                ResultMethod      = nameof(OnResultInternal),
+                ErrorMethod       = nameof(OnErrorInternal),
+                UnsupportedMethod = nameof(OnUnsupportedInternal),
+                StateMethod       = nameof(OnStateChangeInternal),
             });
         }
         catch

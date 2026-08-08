@@ -113,6 +113,9 @@
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties,
+        typeof(OverlayEscapePayload<OmniDialogHost>))]
     private async Task SetupAsync(DialogReference d)
     {
         _selfRef ??= DotNetObjectReference.Create(this);
@@ -128,7 +131,7 @@
             await JS.InvokeAsync<bool>("setupOverlay",
                 d.Id, "#" + d.Id,
                 d.Options.CloseDialogOnEsc
-                    ? new { dotnet = _selfRef, method = nameof(OnEscape) }
+                    ? new OverlayEscapePayload<OmniDialogHost> { Dotnet = _selfRef, Method = nameof(OnEscape) }
                     : null);
         }
         catch { /* SSR / JS gone */ }

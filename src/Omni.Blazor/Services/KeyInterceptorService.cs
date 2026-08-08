@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -51,6 +52,7 @@ public sealed class KeyInterceptorService : IAsyncDisposable
     /// <see cref="IAsyncDisposable"/> that detaches when disposed. (Primary
     /// overload — convenience variants below forward here.)
     /// </summary>
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(KeyInterceptorPayload))]
     public async Task<IAsyncDisposable> AttachAsync(
         ElementReference element,
         IEnumerable<KeyInterceptorOption> keys,
@@ -71,15 +73,15 @@ public sealed class KeyInterceptorService : IAsyncDisposable
         {
             await _js.InvokeVoidAsync("attachKeyListener",
                 id, element, _selfRef, nameof(OnKeyAsync),
-                keyArray.Select(k => new
+                keyArray.Select(k => new KeyInterceptorPayload
                 {
-                    key = k.Key,
-                    ctrl = k.Ctrl,
-                    alt = k.Alt,
-                    shift = k.Shift,
-                    meta = k.Meta,
-                    preventDefault = k.PreventDefault,
-                    stopPropagation = k.StopPropagation
+                    Key = k.Key,
+                    Ctrl = k.Ctrl,
+                    Alt = k.Alt,
+                    Shift = k.Shift,
+                    Meta = k.Meta,
+                    PreventDefault = k.PreventDefault,
+                    StopPropagation = k.StopPropagation
                 }));
         }
         catch

@@ -1256,6 +1256,8 @@ public partial class OmniDataForm<
         return CreateRuntimeRendererType(property.PropertyType);
     }
 
+    // The renderer's members survive trimming only because AddOmniComponents roots them —
+    // nothing here references the closed generic statically. See ServiceCollectionExtensions.
     [RequiresDynamicCode("A geração automática de campos cria um renderer genérico em tempo de execução. Use DataFormSchema tipado em Native AOT.")]
     private static Type CreateRuntimeRendererType(Type propertyType)
         => typeof(OmniDataFormFieldRenderer<,>).MakeGenericType(typeof(TModel), propertyType);
