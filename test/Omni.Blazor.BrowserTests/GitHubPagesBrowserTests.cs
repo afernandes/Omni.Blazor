@@ -36,10 +36,11 @@ public sealed class GitHubPagesBrowserTests(BrowserFixture fixture)
             $"Deep route returned HTTP {deepRouteResponse.Status}; it should be pre-rendered and answer 200.");
         await page.Locator("input[placeholder='Buscar pedidos']").First.WaitForAsync();
 
-        // An unknown route still has to fall back to the app shell (and may answer 404).
+        // An unknown route still has to fall back to the app shell, which boots and lets the
+        // router render its own not-found page (the response status may legitimately be 404).
         IResponse? unknownRouteResponse = await page.GotoAsync($"{fixture.BaseUrl}/showcase/does-not-exist");
         Assert.NotNull(unknownRouteResponse);
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Omni.Blazor", Exact = true })
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Page not found", Exact = true })
             .WaitForAsync();
 
         Assert.Empty(errors);
