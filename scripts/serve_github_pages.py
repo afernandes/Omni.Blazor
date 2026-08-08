@@ -14,7 +14,13 @@ from prepare_github_pages import normalize_base_path
 
 
 class GitHubPagesRequestHandler(SimpleHTTPRequestHandler):
-    """Map the repository base path and use 404.html as the SPA fallback."""
+    """Map the repository base path and resolve requests the way GitHub Pages does.
+
+    Resolution order mirrors the real host so the browser tests are faithful: the literal
+    file, then ``<path>.html`` (GitHub Pages serves extensionless URLs from the matching
+    ``.html`` with 200 and no redirect — that is what makes the pre-rendered route pages
+    work), then a directory index, and only then the ``404.html`` fallback with a 404.
+    """
 
     def __init__(self, *args: object, path_base: str, **kwargs: object) -> None:
         self.path_base = normalize_base_path(path_base).rstrip("/")
@@ -26,12 +32,28 @@ class GitHubPagesRequestHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
 
-        self.path = request_path
-        if Path(self.translate_path(self.path)).exists():
-            super().do_GET()
+        resolved = self._resolve(request_path)
+        if resolved is None:
+            self._serve_spa_fallback()
             return
 
-        self._serve_spa_fallback()
+        self.path = resolved
+        super().do_GET()
+
+    def _resolve(self, request_path: str) -> str | None:
+        """Return the artifact path to serve, or None when nothing matches."""
+        parsed = urlsplit(request_path)
+        candidates = [parsed.path]
+        if not parsed.path.endswith("/"):
+            candidates.append(f"{parsed.path}.html")
+
+        for candidate in candidates:
+            target = Path(self.translate_path(candidate))
+            if target.is_file():
+                return urlunsplit(("", "", candidate, parsed.query, ""))
+            if target.is_dir() and (target / "index.html").is_file():
+                return urlunsplit(("", "", f"{candidate.rstrip('/')}/", parsed.query, ""))
+        return None
 
     def _artifact_path(self) -> str | None:
         parsed = urlsplit(self.path)
