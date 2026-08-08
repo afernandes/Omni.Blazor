@@ -17,6 +17,10 @@ public sealed class GitHubPagesBrowserTests(BrowserFixture fixture)
         Assert.NotNull(landingResponse);
         Assert.True(landingResponse.Ok, $"Landing returned HTTP {landingResponse.Status}.");
 
+        int faviconStatus = await page.EvaluateAsync<int>(
+            "async () => fetch(document.querySelector('link[rel=\"icon\"]')?.href ?? '').then(response => response.status)");
+        Assert.Equal(200, faviconStatus);
+
         await page.GetByRole(AriaRole.Link, new() { Name = "Browse all components", Exact = true })
             .ClickAsync();
         await page.WaitForURLAsync($"{fixture.BaseUrl}/showcase");
