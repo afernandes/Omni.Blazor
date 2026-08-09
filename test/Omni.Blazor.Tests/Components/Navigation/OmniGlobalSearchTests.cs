@@ -59,6 +59,28 @@ public class OmniGlobalSearchTests : TestContextBase
     }
 
     [Fact]
+    public void Combobox_and_options_state_false_explicitly()
+    {
+        // Ausência de aria-expanded/aria-selected não é "fechado"/"não selecionado":
+        // é "não abre nada" / "não é selecionável", e o papel se perde.
+        var vazio = Render<OmniGlobalSearch>(parameters => parameters
+            .Add(component => component.Items, Items));
+
+        Assert.Equal("false", vazio.Find("input").GetAttribute("aria-expanded"));
+
+        var comResultados = Render<OmniGlobalSearch>(parameters => parameters
+            .Add(component => component.Items, Items)
+            .Add(component => component.ShowAllWhenEmpty, true));
+
+        Assert.Equal("true", comResultados.Find("input").GetAttribute("aria-expanded"));
+
+        // O primeiro resultado é o ativo; os demais precisam dizer "false".
+        var opcoes = comResultados.FindAll(".omni-global-search-result");
+        Assert.Equal("true", opcoes[0].GetAttribute("aria-selected"));
+        Assert.Equal("false", opcoes[1].GetAttribute("aria-selected"));
+    }
+
+    [Fact]
     public void Provider_results_are_combined_and_deduplicated()
     {
         GlobalSearchProvider provider = (request, _) =>

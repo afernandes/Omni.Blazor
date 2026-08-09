@@ -96,7 +96,8 @@
 
         @if (AllowGrouping && !IsHierarchyMode)
         {
-            <div class="omni-grid-group-panel" @ondragover:preventDefault="true" @ondrop="OnGroupPanelDropAsync">
+            @* O id ancora o hit-test do gesto de agrupar (gridStartGroupDrag). *@
+            <div class="omni-grid-group-panel" id="@GroupPanelUid">
                 @if (_groupLevels.Count == 0)
                 {
                     <span class="omni-grid-group-panel-hint">@GroupPanelText</span>
@@ -184,9 +185,15 @@
                                 @onclick="@(e => OnHeaderClickAsync(c, e))">
                                 @if (AllowGrouping && c.Groupable)
                                 {
-                                    <span class="omni-grid-col-drag" draggable="true" title="Arraste para agrupar"
+                                    @* Pointer events em vez de HTML5 Drag and Drop: dentro do
+                                       WebView2 (MAUI/Photino no Windows) o drag nativo cai no
+                                       loop OLE do host e o drop nunca chega à página. O gesto
+                                       inteiro vive no JS (gridStartGroupDrag) — mesmo desenho
+                                       browser-owned do resize de coluna. *@
+                                    <span class="omni-grid-col-drag" title="Arraste para agrupar"
                                           @onclick:preventDefault="true" @onclick:stopPropagation="true"
-                                          @ondragstart="@(() => OnColGroupDragStart(c))"></span>
+                                          @onpointerdown:stopPropagation="true"
+                                          @onpointerdown="@(() => StartGroupDragAsync(c))"></span>
                                 }
                                 @c.Title
                                 @if (c.Sortable && AllowSorting)
@@ -1798,9 +1805,35 @@
         return OnGroupsChangedAsync();
     }
 
-    private void OnColGroupDragStart(OmniDataGridColumn<TItem> col) => _draggingGroupCol = col;
+    private string GroupPanelUid => $"{Id}-group-panel";
 
-    private async Task OnGroupPanelDropAsync()
+    /// <summary>
+    /// Inicia o gesto de arrastar o cabeçalho até o painel de agrupamento.
+    /// Pointer events, não HTML5 Drag and Drop: no WebView2 (MAUI/Photino no
+    /// Windows) o drag nativo é roteado pelo OLE do host e o drop nunca chega à
+    /// página — o gesto falhava em silêncio. O JS é dono do arrasto inteiro
+    /// (ghost, realce, hit-test) e só chama <see cref="OnGroupGripDropped"/>
+    /// quando o ponteiro solta sobre o painel — sem tráfego por movimento, o
+    /// que importa no Blazor Server.
+    /// </summary>
+    private async Task StartGroupDragAsync(OmniDataGridColumn<TItem> col)
+    {
+        _draggingGroupCol = col;
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
+        {
+            await GridInterop.StartGroupDragAsync(GroupPanelUid, _selfRef, col.Title ?? string.Empty);
+        }
+        catch
+        {
+            // Sem JS (prerender estático) o gesto simplesmente não arma.
+            _draggingGroupCol = null;
+        }
+    }
+
+    /// <summary>Invocado do JS quando o grip é solto sobre o painel de agrupamento.</summary>
+    [JSInvokable]
+    public async Task OnGroupGripDropped()
     {
         var col = _draggingGroupCol;
         _draggingGroupCol = null;
@@ -1896,7 +1929,7 @@
                     <button type="button"
                             class="@($"omni-grid-expand-btn {(isDetailExpanded ? "omni-active" : "")}")"
                             aria-label="@(isDetailExpanded ? "Colapsar" : "Expandir")"
-                            aria-expanded="@isDetailExpanded"
+                            aria-expanded="@(isDetailExpanded ? "true" : "false")"
                             @onclick="@(_ => ToggleExpandAsync(row))">
                         <OmniIcon Name="@(isDetailExpanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
                     </button>
@@ -1914,7 +1947,7 @@
                             {
                                 <button type="button" class="omni-grid-tree-chevron"
                                         aria-label="@(_hierarchy.IsExpanded(tr.Key) ? CollapseText : ExpandText)"
-                                        aria-expanded="@_hierarchy.IsExpanded(tr.Key)"
+                                        aria-expanded="@(_hierarchy.IsExpanded(tr.Key) ? "true" : "false")"
                                         disabled="@_hierarchy.IsNodeLoading(tr.Key)"
                                         @onclick:stopPropagation
                                         @onclick="@(_ => ToggleHierarchyItemAsync(row))">
@@ -2006,7 +2039,7 @@
                     <button type="button"
                             class="@($"omni-grid-expand-btn {(isExpanded ? "omni-active" : "")}")"
                             aria-label="@(isExpanded ? "Colapsar" : "Expandir")"
-                            aria-expanded="@isExpanded"
+                            aria-expanded="@(isExpanded ? "true" : "false")"
                             @onclick="@(_ => ToggleExpandAsync(row))">
                         <OmniIcon Name="@(isExpanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
                     </button>

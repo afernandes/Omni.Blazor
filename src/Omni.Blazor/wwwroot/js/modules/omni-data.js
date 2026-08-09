@@ -35,6 +35,61 @@ const ns = {};
     document.addEventListener('mouseup', up);
   };
 
+  // ─── DataGrid drag-to-group ───────────────────────────────────────────
+  // Replaces the HTML5 Drag and Drop this gesture used before. Inside WebView2
+  // hosts (MAUI and Photino on Windows) the native drag is routed through the
+  // host's OLE drag loop and the page never receives the drop, so dragging a
+  // header onto the group panel silently did nothing. Pointer events are plain
+  // DOM events and behave the same in every host — and, unlike HTML5 DnD, they
+  // also work with touch (the grip opts out of scrolling via touch-action).
+  //
+  // Same browser-owned shape as gridStartColumnResize above: JS owns the whole
+  // gesture (ghost chip, panel highlight, hit-test) and .NET only hears about
+  // the final drop. No per-move Blazor traffic — that matters on Server.
+  ns.gridStartGroupDrag = function (panelId, dotnetRef, title) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    // The panel cannot move while the pointer is held down (pointer scrolling
+    // is suppressed by the gesture), so one rect up front is enough.
+    const rect = panel.getBoundingClientRect();
+    let over = false;
+
+    // Ghost chip under the cursor so the user sees what they are carrying.
+    const ghost = document.createElement('div');
+    ghost.className = 'omni-grid-group-ghost';
+    ghost.textContent = title || '';
+    document.body.appendChild(ghost);
+
+    const place = (e) => {
+      ghost.style.transform = 'translate(' + (e.clientX + 14) + 'px,' + (e.clientY + 14) + 'px)';
+      const hit = e.clientX >= rect.left && e.clientX <= rect.right &&
+                  e.clientY >= rect.top && e.clientY <= rect.bottom;
+      if (hit !== over) {
+        over = hit;
+        panel.classList.toggle('omni-grid-group-drop-over', hit);
+      }
+    };
+
+    const finish = (commit) => {
+      document.removeEventListener('pointermove', place);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', cancel);
+      ghost.remove();
+      panel.classList.remove('omni-grid-group-drop-armed', 'omni-grid-group-drop-over');
+      document.body.classList.remove('omni-grid-group-dragging');
+      if (commit) { try { dotnetRef.invokeMethodAsync('OnGroupGripDropped'); } catch { /* disposed */ } }
+    };
+    const up = (e) => { place(e); finish(over); };
+    const cancel = () => finish(false);
+
+    panel.classList.add('omni-grid-group-drop-armed');
+    document.body.classList.add('omni-grid-group-dragging');
+    document.addEventListener('pointermove', place);
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', cancel);
+  };
+
   // ─── Gantt left-pane column resize ────────────────────────────────────
   // The pane (paneId) carries a CSS custom property per column (varName);
   // header AND body cells read it via var(), so updating the single property

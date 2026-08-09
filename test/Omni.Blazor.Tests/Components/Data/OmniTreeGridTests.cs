@@ -27,6 +27,10 @@ public class OmniTreeGridTests : TestContextBase
             Assert.Equal("tree-grid", root.GetAttribute("data-testid"));
             Assert.Equal(3, cut.FindAll(".omni-tree-grid-row").Count);
             Assert.Equal(2, cut.FindAll("thead th").Count);
+
+            // Ausente, aria-selected significaria "linha não selecionável".
+            Assert.All(cut.FindAll(".omni-tree-grid-row"),
+                linha => Assert.Equal("false", linha.GetAttribute("aria-selected")));
         });
     }
 

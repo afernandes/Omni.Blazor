@@ -518,14 +518,32 @@ public class OmniDataGridTests : TestContextBase
     [Fact]
     public async Task Dragging_a_groupable_column_onto_the_panel_groups_the_rows()
     {
-        // O caminho que o usuário percorre de fato — arrastar a alça até a faixa —
-        // e não o GroupByAsync que o resto dos testes usa.
+        // O caminho que o usuário percorre de fato — segurar a alça e soltá-la na
+        // faixa — hoje por pointer events: o pointerdown arma o gesto no browser
+        // (gridStartGroupDrag) e o JS chama OnGroupGripDropped quando o ponteiro
+        // solta sobre o painel. HTML5 dragstart/drop saíram: dentro do WebView2
+        // (MAUI/Photino no Windows) o drop nunca chegava à página.
         var cut = RenderSalesGrid();
 
-        await cut.FindAll(".omni-grid-col-drag")[0].TriggerEventAsync("ondragstart", new DragEventArgs());
-        await cut.Find(".omni-grid-group-panel").TriggerEventAsync("ondrop", new DragEventArgs());
+        await cut.FindAll(".omni-grid-col-drag")[0]
+            .TriggerEventAsync("onpointerdown", new PointerEventArgs());
+        await cut.InvokeAsync(() => cut.Instance.OnGroupGripDropped());
 
         Assert.NotEmpty(cut.FindAll(".omni-grid-group-row"));
+    }
+
+    [Fact]
+    public async Task Releasing_the_grip_away_from_the_panel_does_not_group()
+    {
+        // O JS só invoca OnGroupGripDropped quando o up acontece sobre o painel;
+        // soltar longe encerra o gesto sem callback. Um pointerdown que não
+        // termina em drop não pode deixar agrupamento armado para o futuro.
+        var cut = RenderSalesGrid();
+
+        await cut.FindAll(".omni-grid-col-drag")[0]
+            .TriggerEventAsync("onpointerdown", new PointerEventArgs());
+
+        Assert.Empty(cut.FindAll(".omni-grid-group-row"));
     }
 
     // ─── Aggregate formatting ──────────────────────────────────────────────
@@ -555,6 +573,34 @@ public class OmniDataGridTests : TestContextBase
     }
 
     // ─── Shared hierarchy engine ──────────────────────────────────────────
+
+    [Fact]
+    public void Collapsed_expanders_state_aria_expanded_as_false()
+    {
+        // Um aria-expanded ausente não é "colapsado": é "não abre nada".
+        // Vale para o chevron da hierarquia e para o botão de master-detail.
+        var arvore = RenderHierarchyGrid(CreateHierarchy(), parameters => parameters
+            .Add(component => component.Children, node => node.Children)
+            .Add(component => component.HasChildren, node => node.Children.Count > 0));
+
+        arvore.WaitForAssertion(() =>
+            Assert.Equal("false", arvore.Find(".omni-grid-tree-chevron").GetAttribute("aria-expanded")));
+
+        var detalhe = Render<OmniDataGrid<Person>>(parameters => parameters
+            .Add(component => component.Data, Sample)
+            .Add(component => component.AllowPaging, false)
+            .Add(component => component.Columns, ColumnsFragment())
+            .Add(component => component.DetailTemplate, person => builder =>
+                builder.AddContent(0, $"Detalhe de {person.Name}")));
+
+        Assert.All(detalhe.FindAll(".omni-grid-td-expand button"),
+            botao => Assert.Equal("false", botao.GetAttribute("aria-expanded")));
+
+        detalhe.FindAll(".omni-grid-td-expand button")[0].Click();
+
+        detalhe.WaitForAssertion(() =>
+            Assert.Equal("true", detalhe.FindAll(".omni-grid-td-expand button")[0].GetAttribute("aria-expanded")));
+    }
 
     [Fact]
     public void Hierarchy_mode_renders_treegrid_semantics_and_stable_levels()
@@ -671,10 +717,17 @@ public class OmniDataGridTests : TestContextBase
         var hierarchyRow = cut.Find("tbody tr[role='row']");
         Assert.Equal(2, hierarchyRow.QuerySelectorAll("td").Length);
 
+        // Colapsado, o botão precisa dizer "false": ausente, aria-expanded
+        // significaria que ele não abre nada.
+        Assert.Equal("false", cut.Find(".omni-grid-td-expand button").GetAttribute("aria-expanded"));
+
         cut.Find(".omni-grid-td-expand button").Click();
 
         cut.WaitForAssertion(() =>
-            Assert.Contains("Detalhe de Raiz", cut.Find(".omni-grid-detail-row").TextContent));
+        {
+            Assert.Contains("Detalhe de Raiz", cut.Find(".omni-grid-detail-row").TextContent);
+            Assert.Equal("true", cut.Find(".omni-grid-td-expand button").GetAttribute("aria-expanded"));
+        });
     }
 
     [Fact]

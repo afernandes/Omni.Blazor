@@ -3791,9 +3791,51 @@ body.omni-grid-resizing * { cursor: col-resize !important; }
   background-image: radial-gradient(currentColor 1px, transparent 1px);
   background-size: 4px 4px;
   background-position: 0 1px;
+  // Without this a touch on the grip becomes a scroll and the browser fires
+  // pointercancel before the group gesture starts. Grip only — the header
+  // itself must stay touch-scrollable.
+  touch-action: none;
 }
 .omni-grid-col-drag:hover { opacity: 1; color: var(--omni-accent); }
 .omni-grid-col-drag:active { cursor: grabbing; }
+
+// Drag-to-group gesture (pointer-event based, browser-owned — gridStartGroupDrag).
+// While a header is being carried the cursor tells the story and text selection
+// is suppressed, otherwise the motion paints a selection across the header row.
+body.omni-grid-group-dragging,
+body.omni-grid-group-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+// Chip that follows the cursor with the dragged column's title.
+.omni-grid-group-ghost {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--omni-accent);
+  color: var(--omni-accent-fg);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  will-change: transform;
+}
+
+// Panel while a drag is in flight: shows where to drop.
+.omni-grid-group-panel.omni-grid-group-drop-armed {
+  outline: 2px dashed var(--omni-accent);
+  outline-offset: -2px;
+  background: var(--omni-accent-softer);
+}
+
+// Pointer over the panel: target confirmed.
+.omni-grid-group-panel.omni-grid-group-drop-over {
+  outline-style: solid;
+  background: var(--omni-accent-soft);
+}
 
 // Group header row.
 .omni-grid-group-row > td {

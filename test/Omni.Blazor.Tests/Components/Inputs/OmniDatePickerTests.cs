@@ -28,6 +28,16 @@ public class OmniDatePickerTests : TestContextBase
     }
 
     [Fact]
+    public void Collapsed_combobox_states_are_explicit_not_omitted()
+    {
+        var cut = Render<OmniDatePicker<DateOnly?>>();
+
+        // Um aria-expanded ausente não é "fechado": é "não abre nada".
+        Assert.Equal("false", cut.Find("input.omni-datepicker-input").GetAttribute("aria-expanded"));
+        Assert.Equal("false", cut.Find("button.omni-datepicker-trigger").GetAttribute("aria-expanded"));
+    }
+
+    [Fact]
     public void Inline_mode_adds_inline_root_modifier()
     {
         var cut = Render<OmniDatePicker<DateOnly?>>(p => p

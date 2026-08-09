@@ -19,6 +19,14 @@ public class OmniDateRangePickerTests : TestContextBase
     }
 
     [Fact]
+    public void Collapsed_trigger_states_aria_expanded_as_false()
+    {
+        // Um aria-expanded ausente não é "fechado": é "não abre nada".
+        var cut = Render<OmniDateRangePicker>();
+        Assert.Equal("false", cut.Find("button.omni-daterange-input").GetAttribute("aria-expanded"));
+    }
+
+    [Fact]
     public void Shows_placeholder_when_no_range_set()
     {
         var cut = Render<OmniDateRangePicker>(p => p

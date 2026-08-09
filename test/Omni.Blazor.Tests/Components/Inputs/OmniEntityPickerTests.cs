@@ -39,6 +39,9 @@ public sealed class OmniEntityPickerTests : TestContextBase
         Assert.Equal("max-width:300px", root.GetAttribute("style"));
         Assert.Equal("produto-picker", root.GetAttribute("data-testid"));
         Assert.Contains("Café", cut.Find(".omni-entity-picker-trigger").TextContent);
+
+        // Um aria-expanded ausente não é "fechado": é "não abre nada".
+        Assert.Equal("false", cut.Find(".omni-entity-picker-trigger").GetAttribute("aria-expanded"));
     }
 
     [Fact]

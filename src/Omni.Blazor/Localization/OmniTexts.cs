@@ -43,6 +43,17 @@ public class OmniTexts
     public string Add { get; set; } = "Adicionar";
     /// <summary>Edit. Default "Editar".</summary>
     public string Edit { get; set; } = "Editar";
+    // Shift and Enter are not here on purpose: they read the same in pt-BR and English,
+    // and a locale that does differ (German "Umschalt") is served by the per-key
+    // VirtualKeyboardKey.AriaLabel, which belongs to the layout rather than to a global set.
+    /// <summary>Space bar of the virtual keyboard. Default "Espaço".</summary>
+    public string KeyboardSpace { get; set; } = "Espaço";
+    /// <summary>Accessible name of the virtual keyboard's Backspace key. Default "Apagar".</summary>
+    public string KeyboardBackspace { get; set; } = "Apagar";
+    /// <summary>Accessible name of the virtual keyboard's symbol-set key. Default "Símbolos".</summary>
+    public string KeyboardSymbols { get; set; } = "Símbolos";
+    /// <summary>Accessible name of the virtual keyboard itself. Default "Teclado virtual".</summary>
+    public string KeyboardLabel { get; set; } = "Teclado virtual";
     /// <summary>Add a filter condition (data filter). Default "Adicionar condição".</summary>
     public string AddCondition { get; set; } = "Adicionar condição";
     /// <summary>Add a filter group (data filter). Default "Adicionar grupo".</summary>
@@ -189,6 +200,10 @@ public class OmniTexts
     public string No { get; set; } = "Não";
     /// <summary>Nullable option without a value. Default "Não informado".</summary>
     public string NotProvided { get; set; } = "Não informado";
+    /// <summary>Reveal a masked password. Default "Mostrar senha".</summary>
+    public string ShowPassword { get; set; } = "Mostrar senha";
+    /// <summary>Mask a revealed password. Default "Ocultar senha".</summary>
+    public string HidePassword { get; set; } = "Ocultar senha";
 
     // ── Navigation ───────────────────────────────────────────────────────
     /// <summary>Next (stepper, scheduler). Default "Próximo".</summary>
@@ -350,6 +365,8 @@ public class OmniTexts
         Yes = "Yes",
         No = "No",
         NotProvided = "Not provided",
+        ShowPassword = "Show password",
+        HidePassword = "Hide password",
         Next = "Next",
         Previous = "Previous",
         Back = "Back",
@@ -382,5 +399,9 @@ public class OmniTexts
         WeekOf = "Week of {0}",
         MessagePlaceholder = "Type a message...",
         NoMessages = "No messages yet. Start the conversation!",
+        KeyboardSpace = "Space",
+        KeyboardBackspace = "Backspace",
+        KeyboardSymbols = "Symbols",
+        KeyboardLabel = "Virtual keyboard",
     };
 }

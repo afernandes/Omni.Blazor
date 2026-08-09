@@ -48,6 +48,9 @@
 }
 else
 {
+    @* aria-expanded como string: com um bool false o Blazor omite o atributo,
+       e um aria-expanded ausente não significa "fechado" — significa que o
+       controle não abre nada, o que quebra o papel de combobox. *@
     <div @ref="_anchorRef" class="@RootCss" style="@Style" data-omni-dpid="@_id" @attributes="Attributes">
         <input class="omni-input omni-datepicker-input"
                id="@InputId"
@@ -58,7 +61,7 @@ else
                readonly="@ReadOnly"
                name="@Name"
                aria-haspopup="dialog"
-               aria-expanded="@_open"
+               aria-expanded="@(_open ? "true" : "false")"
                aria-controls="@PopoverId"
                @oninput="OnInput"
                @onblur="OnBlur"
@@ -81,7 +84,7 @@ else
                     disabled="@Disabled"
                     aria-label="Abrir calendário"
                     aria-haspopup="dialog"
-                    aria-expanded="@_open"
+                    aria-expanded="@(_open ? "true" : "false")"
                     aria-controls="@PopoverId"
                     @onclick="Toggle">
                 <OmniIcon Name="@TriggerIcon" Size="ComponentSize.Sm" />

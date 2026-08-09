@@ -45,8 +45,13 @@ public class OmniFileManagerTests : TestContextBase
 
         cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll(".omni-file-manager-item")));
         var directory = cut.FindAll(".omni-file-manager-item")[0];
+
+        // Ausente, aria-selected significaria "linha não selecionável".
+        Assert.Equal("false", directory.GetAttribute("aria-selected"));
+
         directory.Click();
         Assert.Equal("docs", selected?.Id);
+        Assert.Equal("true", cut.FindAll(".omni-file-manager-item")[0].GetAttribute("aria-selected"));
 
         cut.FindAll(".omni-file-manager-item")[0].DoubleClick();
         cut.WaitForAssertion(() => Assert.Equal("/docs", path));

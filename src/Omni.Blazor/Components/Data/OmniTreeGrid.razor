@@ -61,7 +61,7 @@
                                 role="row"
                                 aria-level="@(row.Level + 1)"
                                 aria-expanded="@ExpandedAria(row)"
-                                aria-selected="@IsSelected(row.Item)"
+                                aria-selected="@(IsSelected(row.Item) ? "true" : "false")"
                                 tabindex="@RowTabIndex(row)"
                                 @onclick="@(() => SelectAsync(row.Item))"
                                 @ondblclick="@(() => RowDoubleClickAsync(row))"
@@ -82,7 +82,7 @@
                                                     <button type="button"
                                                             class="omni-tree-grid-toggle"
                                                             aria-label="@(IsExpanded(row.Key) ? CollapseText : ExpandText)"
-                                                            aria-expanded="@IsExpanded(row.Key)"
+                                                            aria-expanded="@(IsExpanded(row.Key) ? "true" : "false")"
                                                             disabled="@IsNodeLoading(row.Key)"
                                                             @onclick:stopPropagation
                                                             @onclick="@(() => ToggleAsync(row.Item))">

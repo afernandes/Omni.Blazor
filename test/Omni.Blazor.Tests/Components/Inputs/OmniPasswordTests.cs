@@ -30,6 +30,30 @@ public class OmniPasswordTests : TestContextBase
     }
 
     [Fact]
+    public void Toggle_button_has_an_accessible_name()
+    {
+        var cut = Render<OmniPassword>();
+        var button = cut.Find("button");
+
+        // Ícone sem texto: sem estes dois o botão não tem nome acessível.
+        Assert.Equal("Mostrar senha", button.GetAttribute("aria-label"));
+        Assert.Equal("Mostrar senha", button.GetAttribute("title"));
+        Assert.Equal("false", button.GetAttribute("aria-pressed"));
+    }
+
+    [Fact]
+    public void Toggle_button_name_and_pressed_state_follow_visibility()
+    {
+        var cut = Render<OmniPassword>();
+        cut.Find("button").Click();
+
+        var button = cut.Find("button");
+        Assert.Equal("Ocultar senha", button.GetAttribute("aria-label"));
+        Assert.Equal("Ocultar senha", button.GetAttribute("title"));
+        Assert.Equal("true", button.GetAttribute("aria-pressed"));
+    }
+
+    [Fact]
     public void ShowToggle_false_hides_eye_button()
     {
         var cut = Render<OmniPassword>(p => p.Add(c => c.ShowToggle, false));

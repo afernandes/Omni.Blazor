@@ -19,7 +19,7 @@
                spellcheck="false"
                role="combobox"
                aria-autocomplete="list"
-               aria-expanded="@(_results.Count > 0)"
+               aria-expanded="@(_results.Count > 0 ? "true" : "false")"
                aria-controls="@ResultsId"
                aria-activedescendant="@ActiveDescendant"
                @oninput="OnInputAsync"
@@ -77,7 +77,7 @@
                         id="@ResultId(resultIndex)"
                         type="button"
                         role="option"
-                        aria-selected="@active"
+                        aria-selected="@(active ? "true" : "false")"
                         class="@ResultCss(active)"
                         @onmouseenter="@(() => _activeIndex = resultIndex)"
                         @onclick="@(() => SelectAsync(result))">
