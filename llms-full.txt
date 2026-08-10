@@ -1,6 +1,6 @@
 # Omni.Blazor — full API reference
 
-> 206 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 207 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
 
@@ -2417,6 +2417,18 @@ Parameters:
 Events:
 - `TimeChanged`: EventCallback<TimeOnly> — Fires when the time changes. Two-way via @bind-Time.
 
+### OmniVirtualKeyboard
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniVirtualKeyboard.razor_
+
+Parameters:
+- `AriaLabel`: string — Accessible name of the keyboard as a whole. Defaults to the localized text.
+- `Layout`: VirtualKeyboardLayout — A layout of your own. Takes precedence over Type.
+- `MaxLength`: int — Stop accepting characters past this length. Null (default) means no limit.
+- `Type`: VirtualKeyboardType {Standard | Numeric | Email} = Standard — Which built-in layout to draw. Ignored when Layout is set.
+Events:
+- `OnEnter`: EventCallback — Raised when an Enter key is pressed. The value is left untouched.
+- `OnKeyPress`: EventCallback<VirtualKeyboardKeyEventArgs> — Raised for every key press, after the value has been updated.
+
 ## Layout
 
 ### OmniAppBar
@@ -3037,7 +3049,7 @@ _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Bla
 ## Overlay
 
 ### AlertDialog
-Conteúdo interno do dialog de alerta (mensagem + ícone opcional + botão OK) aberto via DialogService.AlertAsync.
+Conteúdo interno do dialog de alerta (mensagem + ícone opcional + botão OK) aberto via DialogService.Alert.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/AlertDialog.razor_
 
 Parameters:
@@ -3045,7 +3057,7 @@ Parameters:
 - `Options`: AlertOptions — Opções do alerta (texto do botão OK, ícone). Default new AlertOptions().
 
 ### ConfirmDialog
-Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via DialogService.ConfirmAsync; retorna true/false.
+Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via DialogService.Confirm; retorna true/false.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Overlay/ConfirmDialog.razor_
 
 Parameters:

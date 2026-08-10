@@ -2,17 +2,26 @@
 @inherits OmniComponent
 @inject DialogService Dialog
 
-@* Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via DialogService.ConfirmAsync; retorna true/false. *@
+@* Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via
+   DialogService.Confirm; retorna true/false.
 
-<div class="omni-stack omni-stack-16">
-    <div class="omni-row omni-row-gap-12">
+   Ver a nota em AlertDialog: o layout usa classes próprias do dialog porque os
+   utilitários que este markup usava (.omni-stack-16, .omni-row, .omni-row-end) não
+   existem na folha de estilo. *@
+
+<div class="omni-prompt">
+    <div class="omni-prompt-message">
         @if (!string.IsNullOrEmpty(Options.Icon))
         {
-            <div class="omni-toast-ico omni-toast-warn"><OmniIcon Name="@Options.Icon" /></div>
+            @* omni-toast-warn é seletor DESCENDENTE de omni-toast-ico. *@
+            <div class="omni-toast-warn">
+                <div class="omni-toast-ico"><OmniIcon Name="@Options.Icon" /></div>
+            </div>
         }
-        <div class="omni-flex-1">@Message</div>
+        <div class="omni-prompt-text">@Message</div>
     </div>
-    <div class="omni-row omni-row-end omni-row-gap-8">
+
+    <div class="omni-prompt-actions">
         @* data-omni-cancel — Esc dispara este botão (cancel callback semântica) *@
         <OmniButton Text="@Options.CancelButtonText" OnClick="OnCancel" data-omni-cancel="true" />
         @* data-omni-default — Enter dispara este botão (confirm) e ganha foco inicial *@

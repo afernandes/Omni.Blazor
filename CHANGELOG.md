@@ -8,7 +8,10 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-10
+
 ### Added
+- `OmniVirtualKeyboard`: on-screen keyboard for touch terminals (self-checkout, kiosk, PDV). Binds its own value like any `FormComponent<string>`, so it needs no reference to another input. Standard/Numeric/Email layouts plus fully custom ones through `VirtualKeyboardLayout`, one-shot Shift, a Symbols mode, `MaxLength`, `OnKeyPress`/`OnEnter`, and keys that report their pressed state to assistive tech.
 - Native AOT and trimming compatibility contract (`IsAotCompatible`), analyzer-clean builds and a published native smoke consumer exercised by CI.
 - Scoped lazy ECMAScript-module interop split by feature domain, with per-module caching, deterministic cancellation, in-flight call draining, contract validation and disposal coverage.
 - Immutable composition through `Include`, `Extend`, targeted overrides and selective clearing across the main Fluent Schemas.
@@ -122,4 +125,5 @@ Each release section follows this shape:
 - Bumped transitive `Xyz` to patch CVE-XXXX-YYYY.
 ```
 
-[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/HEAD
+[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.6.1...v0.7.0

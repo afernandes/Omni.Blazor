@@ -1,0 +1,234 @@
+@namespace Omni.Blazor.Components
+@inherits FormComponent<string>
+@using Omni.Blazor.Models
+@using Omni.Blazor.State
+@using Omni.Blazor.Utilities
+
+@*
+    OmniVirtualKeyboard — an on-screen keyboard for touch terminals (self-checkout,
+    kiosk, PDV) where there is no physical keyboard.
+
+    It edits its own bound value, so it needs no reference to another input: point both
+    the keyboard and the text box at the same field and they stay in step.
+
+        <OmniTextBox @bind-Value="busca" ReadOnly />
+        <OmniVirtualKeyboard @bind-Value="busca" Type="VirtualKeyboardType.Standard" />
+
+    Text is appended and Backspace deletes from the end — the keyboard owns no caret
+    inside the bound value. Shift applies to the next character only, matching a phone
+    keyboard; Symbols is a mode and stays on until pressed again.
+
+    Layout is data: Type picks a built-in one and Layout replaces it, so a consumer can
+    start from VirtualKeyboardLayouts.Standard() and adjust rather than rebuild.
+*@
+
+<div class="@RootCss" style="@Style" role="group" aria-label="@AriaLabel" @attributes="Attributes">
+    @foreach ((VirtualKeyboardRow row, int rowIndex) in _layout.Rows.Select((r, i) => (r, i)))
+    {
+        <div class="omni-vkb-row" @key="rowIndex">
+            @foreach ((VirtualKeyboardKey key, int keyIndex) in row.Keys.Select((k, i) => (k, i)))
+            {
+                @if (key.Kind == VirtualKeyboardKeyKind.Blank)
+                {
+                    <span class="omni-vkb-blank" style="@FlexFor(key)" @key="keyIndex"></span>
+                }
+                else
+                {
+                    <button type="button"
+                            class="@KeyCss(key)"
+                            style="@FlexFor(key)"
+                            disabled="@(Disabled || ReadOnly)"
+                            aria-label="@AriaLabelFor(key)"
+                            aria-pressed="@AriaPressedFor(key)"
+                            @key="keyIndex"
+                            @onclick="() => PressAsync(key)">@LabelFor(key)</button>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Which built-in layout to draw. Ignored when <see cref="Layout"/> is set.</summary>
+    [Parameter] public VirtualKeyboardType Type { get; set; } = VirtualKeyboardType.Standard;
+
+    /// <summary>A layout of your own. Takes precedence over <see cref="Type"/>.</summary>
+    [Parameter] public VirtualKeyboardLayout? Layout { get; set; }
+
+    /// <summary>Stop accepting characters past this length. Null (default) means no limit.</summary>
+    [Parameter] public int? MaxLength { get; set; }
+
+    /// <summary>Raised for every key press, after the value has been updated.</summary>
+    [Parameter] public EventCallback<VirtualKeyboardKeyEventArgs> OnKeyPress { get; set; }
+
+    /// <summary>Raised when an Enter key is pressed. The value is left untouched.</summary>
+    [Parameter] public EventCallback OnEnter { get; set; }
+
+    /// <summary>Accessible name of the keyboard as a whole. Defaults to the localized text.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    private ParameterState<VirtualKeyboardType> _typeState = null!;
+    private ParameterState<VirtualKeyboardLayout?> _layoutState = null!;
+    private VirtualKeyboardLayout _layout = null!;
+
+    // Test hook: proves the layout is rebuilt only when Type/Layout actually change.
+    internal int _layoutRecomputeCount;
+
+    private bool _shift;
+    private bool _symbols;
+
+    protected override void OnInitialized()
+    {
+        _typeState = RegisterParameter<VirtualKeyboardType>(nameof(Type))
+            .WithParameter(() => Type)
+            .WithChangeHandler(ResolveLayout)
+            .Attach();
+        _layoutState = RegisterParameter<VirtualKeyboardLayout?>(nameof(Layout))
+            .WithParameter(() => Layout)
+            .WithChangeHandler(ResolveLayout)
+            .Attach();
+        ResolveLayout();
+    }
+
+    private void ResolveLayout()
+    {
+        _layout = Layout ?? VirtualKeyboardLayouts.For(Type);
+        _layoutRecomputeCount++;
+        // A layout swap must not leave the modifiers of the previous one stuck on.
+        _shift = false;
+        _symbols = false;
+    }
+
+    private string RootCss => CssBuilder.Default("omni-vkb")
+        .AddClass("omni-vkb-disabled", Disabled || ReadOnly)
+        .AddClass(Class)
+        .Build();
+
+    private string KeyCss(VirtualKeyboardKey key) => CssBuilder.Default("omni-vkb-key")
+        .AddClass("omni-vkb-key-special", key.Kind != VirtualKeyboardKeyKind.Character)
+        .AddClass("omni-vkb-key-active", IsModifierOn(key))
+        .Build();
+
+    // Keys divide the row in proportion to Width, so a row does not have to add up
+    // to anything in particular — flex-grow does the arithmetic.
+    private static string FlexFor(VirtualKeyboardKey key) =>
+        StyleBuilder.Default().AddStyle("flex", Inv($"{key.Width} 1 0")).Build();
+
+    private bool IsModifierOn(VirtualKeyboardKey key) => key.Kind switch
+    {
+        VirtualKeyboardKeyKind.Shift => _shift,
+        VirtualKeyboardKeyKind.Symbols => _symbols,
+        _ => false
+    };
+
+    /// <summary>What is drawn on the key: explicit label first, else the resolved text.</summary>
+    private string LabelFor(VirtualKeyboardKey key) => key.Kind switch
+    {
+        VirtualKeyboardKeyKind.Space => key.Label ?? Texts.KeyboardSpace,
+        VirtualKeyboardKeyKind.Backspace => key.Label ?? "⌫",
+        VirtualKeyboardKeyKind.Shift => key.Label ?? "⇧",
+        VirtualKeyboardKeyKind.Symbols => key.Label ?? "?!#",
+        VirtualKeyboardKeyKind.Enter => key.Label ?? "⏎",
+        VirtualKeyboardKeyKind.Clear => key.Label ?? "⌧",
+        _ => key.Label ?? Resolve(key)
+    };
+
+    // Shift and Enter read the same in pt-BR and English, so they are not in OmniTexts.
+    // A locale that does differ overrides them per key, through the layout.
+    private string AriaLabelFor(VirtualKeyboardKey key) => key.AriaLabel ?? key.Kind switch
+    {
+        VirtualKeyboardKeyKind.Space => Texts.KeyboardSpace,
+        VirtualKeyboardKeyKind.Backspace => Texts.KeyboardBackspace,
+        VirtualKeyboardKeyKind.Shift => "Shift",
+        VirtualKeyboardKeyKind.Symbols => Texts.KeyboardSymbols,
+        VirtualKeyboardKeyKind.Enter => "Enter",
+        VirtualKeyboardKeyKind.Clear => Texts.Clear,
+        _ => Resolve(key)
+    };
+
+    // Only the modifiers are toggles, and a screen reader should hear their state.
+    private string? AriaPressedFor(VirtualKeyboardKey key) => key.Kind switch
+    {
+        VirtualKeyboardKeyKind.Shift => _shift ? "true" : "false",
+        VirtualKeyboardKeyKind.Symbols => _symbols ? "true" : "false",
+        _ => null
+    };
+
+    /// <summary>
+    /// The character a key produces right now. Symbols wins over Shift; a letter with no
+    /// Shift entry is uppercased instead, which is what makes one map cover both cases.
+    /// </summary>
+    private string Resolve(VirtualKeyboardKey key)
+    {
+        if (key.Kind != VirtualKeyboardKeyKind.Character) return string.Empty;
+
+        if (_symbols && _layout.SymbolsMap.TryGetValue(key.Text, out string? symbol))
+            return symbol;
+
+        if (_shift)
+        {
+            return _layout.ShiftMap.TryGetValue(key.Text, out string? shifted)
+                ? shifted
+                : key.Text.ToUpperInvariant();
+        }
+
+        return key.Text;
+    }
+
+    private async Task PressAsync(VirtualKeyboardKey key)
+    {
+        if (Disabled || ReadOnly) return;
+
+        string current = Value ?? string.Empty;
+        string produced = string.Empty;
+
+        switch (key.Kind)
+        {
+            case VirtualKeyboardKeyKind.Shift:
+                _shift = !_shift;
+                break;
+
+            case VirtualKeyboardKeyKind.Symbols:
+                _symbols = !_symbols;
+                break;
+
+            case VirtualKeyboardKeyKind.Backspace:
+                if (current.Length > 0)
+                    await SetValueAsync(current[..^1]);
+                break;
+
+            case VirtualKeyboardKeyKind.Clear:
+                if (current.Length > 0)
+                    await SetValueAsync(string.Empty);
+                break;
+
+            case VirtualKeyboardKeyKind.Enter:
+                await OnEnter.InvokeAsync();
+                break;
+
+            case VirtualKeyboardKeyKind.Space:
+                produced = " ";
+                await AppendAsync(current, produced);
+                break;
+
+            default:
+                produced = Resolve(key);
+                await AppendAsync(current, produced);
+                // Shift lasts one character, like a phone keyboard.
+                _shift = false;
+                break;
+        }
+
+        await OnKeyPress.InvokeAsync(new VirtualKeyboardKeyEventArgs(key, produced));
+    }
+
+    private async Task AppendAsync(string current, string text)
+    {
+        if (MaxLength is { } max && current.Length + text.Length > max) return;
+        await SetValueAsync(current + text);
+    }
+
+    // Widths are numbers in CSS, so they must not pick up a comma from pt-BR.
+    private static string Inv(FormattableString value) =>
+        FormattableString.Invariant(value);
+}

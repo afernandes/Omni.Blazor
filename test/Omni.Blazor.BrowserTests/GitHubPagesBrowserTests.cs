@@ -6,6 +6,31 @@ namespace Omni.Blazor.BrowserTests;
 public sealed class GitHubPagesBrowserTests(BrowserFixture fixture)
 {
     [Fact]
+    public async Task Confirm_dialog_is_activatable_in_the_published_WebAssembly()
+    {
+        await using IBrowserContext context = await fixture.CreateContextAsync();
+        IPage page = await context.NewPageAsync();
+        List<string> errors = [];
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error") errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync($"{fixture.BaseUrl}/showcase/dialog");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Confirmar simples", Exact = true })
+            .ClickAsync();
+
+        ILocator dialog = page.Locator(".omni-dialog");
+        await dialog.WaitForAsync();
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Confirmar", Exact = true })
+            .ClickAsync();
+        await dialog.WaitForAsync(new() { State = WaitForSelectorState.Detached });
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task Base_path_preserves_landing_navigation_and_deep_routes()
     {
         await using IBrowserContext context = await fixture.CreateContextAsync();
