@@ -1,7 +1,7 @@
 {
   "package": "AndersonN.Omni.Blazor",
   "repository": "https://github.com/afernandes/Omni.Blazor",
-  "count": 206,
+  "count": 207,
   "components": [
     {
       "name": "OmniAiConversation",
@@ -19863,6 +19863,186 @@
       ]
     },
     {
+      "name": "OmniVirtualKeyboard",
+      "category": "Inputs",
+      "baseType": "FormComponent<T>",
+      "isInput": true,
+      "hasChildContent": false,
+      "source": "src/Omni.Blazor/Components/Inputs/OmniVirtualKeyboard.razor",
+      "parameters": [
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible name of the keyboard as a whole. Defaults to the localized text."
+        },
+        {
+          "name": "Layout",
+          "kind": "parameter",
+          "type": "VirtualKeyboardLayout",
+          "required": false,
+          "summary": "A layout of your own. Takes precedence over Type."
+        },
+        {
+          "name": "MaxLength",
+          "kind": "parameter",
+          "type": "int",
+          "required": false,
+          "summary": "Stop accepting characters past this length. Null (default) means no limit."
+        },
+        {
+          "name": "OnEnter",
+          "kind": "event",
+          "type": "EventCallback",
+          "required": false,
+          "summary": "Raised when an Enter key is pressed. The value is left untouched."
+        },
+        {
+          "name": "OnKeyPress",
+          "kind": "event",
+          "type": "EventCallback<VirtualKeyboardKeyEventArgs>",
+          "required": false,
+          "summary": "Raised for every key press, after the value has been updated."
+        },
+        {
+          "name": "Type",
+          "kind": "parameter",
+          "type": "VirtualKeyboardType",
+          "enumValues": [
+            {
+              "name": "Standard",
+              "summary": "Full QWERTY: digits, letters, shift, symbols, space and punctuation."
+            },
+            {
+              "name": "Numeric",
+              "summary": "Telephone-style 3x4 digit pad."
+            },
+            {
+              "name": "Email",
+              "summary": "QWERTY without the digit row, plus @, . and a .com key."
+            }
+          ],
+          "default": "Standard",
+          "required": false,
+          "summary": "Which built-in layout to draw. Ignored when Layout is set."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Name",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Nome lógico do campo. Use com validators irmãos (<OmniRequiredValidator Component=\"email\" />). Default = nome da propriedade extraído do ValueExpression.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "OnlyValidateIfDirty",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Quando true, valida apenas após o user mexer no campo (touched). Evita erros vermelhos na primeira render do formulário. Default true.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ReadOnly",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Required",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Marca o campo como obrigatório — valor default/vazio dispara RequiredError.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "RequiredError",
+          "kind": "parameter",
+          "type": "string",
+          "default": "Campo obrigatório.",
+          "required": false,
+          "summary": "Mensagem exibida quando Required = true e o valor é default/empty.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Valor atual.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueChanged",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueExpression",
+          "kind": "parameter",
+          "type": "Expression<Func<string>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        }
+      ]
+    },
+    {
       "name": "OmniAppBar",
       "category": "Layout",
       "baseType": "OmniComponentWithChildren",
@@ -24657,7 +24837,7 @@
       "baseType": "OmniComponent",
       "isInput": false,
       "hasChildContent": false,
-      "summary": "Conteúdo interno do dialog de alerta (mensagem + ícone opcional + botão OK) aberto via DialogService.AlertAsync.",
+      "summary": "Conteúdo interno do dialog de alerta (mensagem + ícone opcional + botão OK) aberto via DialogService.Alert.",
       "source": "src/Omni.Blazor/Components/Overlay/AlertDialog.razor",
       "parameters": [
         {
@@ -24707,7 +24887,7 @@
       "baseType": "OmniComponent",
       "isInput": false,
       "hasChildContent": false,
-      "summary": "Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via DialogService.ConfirmAsync; retorna true/false.",
+      "summary": "Conteúdo interno do dialog de confirmação (mensagem + botões Cancelar/OK) aberto via DialogService.Confirm; retorna true/false.",
       "source": "src/Omni.Blazor/Components/Overlay/ConfirmDialog.razor",
       "parameters": [
         {

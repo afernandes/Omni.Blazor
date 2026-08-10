@@ -2,17 +2,28 @@
 @inherits OmniComponent
 @inject DialogService Dialog
 
-@* Conteúdo interno do dialog de alerta (mensagem + ícone opcional + botão OK) aberto via DialogService.AlertAsync. *@
+@* Conteúdo interno do dialog de alerta (mensagem + ícone opcional + botão OK) aberto via DialogService.Alert.
 
-<div class="omni-stack omni-stack-16">
-    <div class="omni-row omni-row-gap-12">
+   O markup usa classes próprias do dialog em vez de utilitários genéricos: a versão
+   anterior montava o layout com .omni-stack-16, .omni-row, .omni-row-gap-12 e
+   .omni-row-end — nenhuma delas existe na folha de estilo. Sem elas o .omni-stack
+   caía no flex-direction padrão (row), então o botão OK aparecia ao lado da
+   mensagem, e o ícone empilhava sobre o texto. *@
+
+<div class="omni-prompt">
+    <div class="omni-prompt-message">
         @if (!string.IsNullOrEmpty(Options.Icon))
         {
-            <div class="omni-toast-ico omni-toast-info"><OmniIcon Name="@Options.Icon" /></div>
+            @* omni-toast-info é seletor DESCENDENTE de omni-toast-ico; as duas na mesma
+               div nunca casavam e o ícone ficava sem a cor semântica. *@
+            <div class="omni-toast-info">
+                <div class="omni-toast-ico"><OmniIcon Name="@Options.Icon" /></div>
+            </div>
         }
-        <div class="omni-flex-1">@Message</div>
+        <div class="omni-prompt-text">@Message</div>
     </div>
-    <div class="omni-row omni-row-end">
+
+    <div class="omni-prompt-actions">
         @* data-omni-default — Enter dispara este botão; ganha foco inicial *@
         <OmniButton Text="@Options.OkButtonText" Variant="ButtonVariant.Primary" OnClick="OnOk" data-omni-default="true" />
     </div>

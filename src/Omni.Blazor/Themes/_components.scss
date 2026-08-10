@@ -3990,6 +3990,66 @@ body.omni-grid-group-dragging * {
 }
 .omni-dialog-close:hover { background: var(--omni-bg-sunken); color: var(--omni-fg); }
 
+// ─── Alert / Confirm (DialogService.Alert e .Confirm) ──────────────────────
+// Estes dois dialogs renderizam só o conteúdo, dentro do .omni-dialog-body do
+// host — não têm o .omni-dialog-footer do chrome. As classes abaixo dão a eles
+// o mesmo desenho: mensagem no corpo, ações num rodapé encostado nas bordas.
+.omni-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+// Ícone e texto lado a lado. O ícone é alinhado ao topo (e não centralizado)
+// para não descolar da primeira linha quando a mensagem tem várias.
+.omni-prompt-message {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+// O ícone não deve encolher nem esticar quando o texto quebra em várias linhas.
+.omni-prompt-message > [class*='omni-toast-'] { flex: 0 0 auto; }
+
+.omni-prompt-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--omni-fg);
+  // Mensagens de sistema costumam trazer quebras próprias (\n) e nomes longos.
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  // Alinha a primeira linha do texto com o centro do ícone de 28px.
+  padding-top: 3px;
+}
+
+// Rodapé de ações: sangra até as bordas do corpo do dialog para repetir o
+// desenho do .omni-dialog-footer (separador + fundo rebaixado), já que o
+// conteúdo vive dentro do padding de 18px do .omni-dialog-body.
+.omni-prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 -18px -18px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--omni-line);
+  background: var(--omni-bg-sunken);
+  border-bottom-left-radius: var(--omni-radius-lg);
+  border-bottom-right-radius: var(--omni-radius-lg);
+}
+
+// Em telas estreitas os botões ocupam a largura toda, na ordem natural de
+// leitura — confirmar por último, como no rodapé de qualquer diálogo do sistema.
+@media (max-width: 420px) {
+  .omni-prompt-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
 // Side drawer
 .omni-side-dialog-wrap {
   position: fixed; inset: 0;
@@ -11949,4 +12009,89 @@ span.omni-citation { cursor: default; }
   clip: rect(0, 0, 0, 0) !important;
   white-space: nowrap !important;
   border: 0 !important;
+}
+
+/* ── OmniVirtualKeyboard ──────────────────────────────────────────────────────
+   Touch terminals: keys are sized for a fingertip, not a cursor. Rows share
+   their width by flex-grow, so a layout row never has to add up to a fixed
+   number of columns. */
+.omni-vkb {
+  display: flex;
+  flex-direction: column;
+  gap: var(--omni-vkb-gap, 8px);
+  padding: var(--omni-vkb-gap, 8px);
+  background: var(--omni-bg-sunken);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius-lg);
+  user-select: none;
+}
+
+.omni-vkb-row {
+  display: flex;
+  gap: var(--omni-vkb-gap, 8px);
+}
+
+.omni-vkb-key {
+  min-width: 0;
+  min-height: var(--omni-vkb-key-height, 52px);
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: var(--omni-vkb-key-font-size, 18px);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--omni-fg);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  box-shadow: var(--omni-shadow-sm);
+  cursor: pointer;
+  /* A finger lands and lifts; the browser's 300ms tap delay and the text
+     selection from a fast double-tap both get in the way. */
+  touch-action: manipulation;
+  transition: background 120ms ease, transform 60ms ease;
+}
+
+.omni-vkb-key:hover:not(:disabled) { background: var(--omni-bg); }
+
+.omni-vkb-key:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.omni-vkb-key:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 2px;
+}
+
+.omni-vkb-key-special {
+  color: var(--omni-fg-muted);
+  background: var(--omni-bg-sunken);
+  font-size: var(--omni-vkb-special-font-size, 16px);
+}
+
+/* Shift and Symbols are modes, so they stay lit while they are on. */
+.omni-vkb-key-active {
+  color: var(--omni-accent-fg, #fff);
+  background: var(--omni-accent);
+  border-color: var(--omni-accent);
+}
+
+.omni-vkb-key-active:hover:not(:disabled) { background: var(--omni-accent-hover); }
+
+.omni-vkb-key:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+/* Holds its slot so the key above it stays aligned, and draws nothing. */
+.omni-vkb-blank { min-width: 0; }
+
+@media (max-width: 768px) {
+  .omni-vkb {
+    --omni-vkb-gap: 5px;
+    --omni-vkb-key-height: 46px;
+    --omni-vkb-key-font-size: 16px;
+    --omni-vkb-special-font-size: 14px;
+  }
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Models;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Omni.Blazor.Services;
 
@@ -14,7 +15,8 @@ public class DialogService
     internal IReadOnlyList<DialogReference> OpenDialogs => _openDialogs;
     internal DialogReference? OpenSideDialog => _openSideDialog;
 
-    public Task<object?> OpenAsync<TComponent>(
+    public Task<object?> OpenAsync<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TComponent>(
         string? title,
         Dictionary<string, object?>? parameters = null,
         DialogOptions? options = null) where TComponent : ComponentBase
@@ -22,7 +24,7 @@ public class DialogService
 
     public Task<object?> OpenAsync(
         string? title,
-        Type componentType,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type componentType,
         Dictionary<string, object?>? parameters = null,
         DialogOptions? options = null)
     {
@@ -40,7 +42,8 @@ public class DialogService
         return dialog.Tcs.Task;
     }
 
-    public Task<object?> OpenSideAsync<TComponent>(
+    public Task<object?> OpenSideAsync<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TComponent>(
         string? title,
         Dictionary<string, object?>? parameters = null,
         SideDialogOptions? options = null) where TComponent : ComponentBase
@@ -48,7 +51,7 @@ public class DialogService
 
     public Task<object?> OpenSideAsync(
         string? title,
-        Type componentType,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type componentType,
         Dictionary<string, object?>? parameters = null,
         SideDialogOptions? options = null)
     {
@@ -79,13 +82,16 @@ public class DialogService
             ["Message"] = message,
             ["Options"] = options
         };
-        var raw = await OpenAsync("Omni.Blazor.Components.ConfirmDialog", typeof(Components.ConfirmDialog), pars,
+        // O primeiro argumento de OpenAsync é o TÍTULO da barra do dialog — passar o
+        // nome do tipo fazia a barra exibir "Omni.Blazor.Components.ConfirmDialog"
+        // e descartava o título informado por quem chamou.
+        var raw = await OpenAsync(title, typeof(Components.ConfirmDialog), pars,
             new DialogOptions
             {
                 ShowTitle = !string.IsNullOrEmpty(title),
                 CloseDialogOnOverlayClick = false,
                 Width = "400px"
-            }.With(title));
+            });
         if (raw is bool b) return b;
         return null;
     }
@@ -101,13 +107,14 @@ public class DialogService
             ["Message"] = message,
             ["Options"] = options
         };
-        await OpenAsync("Omni.Blazor.Components.AlertDialog", typeof(Components.AlertDialog), pars,
+        // Ver a nota em Confirm: o primeiro argumento é o título, não o nome do tipo.
+        await OpenAsync(title, typeof(Components.AlertDialog), pars,
             new DialogOptions
             {
                 ShowTitle = !string.IsNullOrEmpty(title),
                 CloseDialogOnOverlayClick = false,
                 Width = "400px"
-            }.With(title));
+            });
     }
 
     /// <summary>
@@ -158,7 +165,7 @@ public class DialogService
 
     public Task<object?> OpenAsync(
         string title,
-        Type componentType,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type componentType,
         Dictionary<string, object?>? parameters,
         DialogOptions options,
         bool _)
@@ -172,6 +179,7 @@ internal class DialogReference
     public string Id { get; } = "omni-dlg-" + Guid.NewGuid().ToString("N")[..8];
 
     public string? Title { get; set; }
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     public required Type ComponentType { get; set; }
     public Dictionary<string, object?>? Parameters { get; set; }
     public required DialogOptionsBase Options { get; set; }
@@ -183,11 +191,6 @@ internal class DialogReference
     public int Sequence { get; set; }
 }
 
-internal static class DialogServiceExtensions
-{
-    public static DialogOptions With(this DialogOptions opts, string? title)
-    {
-        opts.ShowTitle = !string.IsNullOrEmpty(title);
-        return opts;
-    }
-}
+// DialogServiceExtensions.With foi removido: definia apenas ShowTitle e descartava
+// o título recebido, o que mascarava o bug de Alert/Confirm passarem o nome do tipo
+// como título. Os dois call sites agora passam o título para OpenAsync diretamente.

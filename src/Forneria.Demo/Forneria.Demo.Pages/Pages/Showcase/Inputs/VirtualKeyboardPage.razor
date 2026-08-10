@@ -1,0 +1,155 @@
+@page "/showcase/virtual-keyboard"
+@attribute [ShowcaseInfo(Title = "Virtual Keyboard", Category = Cat.Inputs, Icon = "keyboard", Featured = true)]
+@layout ShowcaseLayout
+
+<PageTitle>Virtual Keyboard — Showcase</PageTitle>
+
+<ShowcasePage Title="Virtual Keyboard"
+              Subtitle="Teclado na tela para terminais de toque — self-checkout, quiosque e PDV, onde não existe teclado físico.">
+
+    <Overview>
+        <p>
+            O <code>OmniVirtualKeyboard</code> edita o <strong>próprio valor vinculado</strong>, então não
+            precisa de referência a outro campo: aponte o teclado e a caixa de texto para a mesma
+            propriedade e os dois andam juntos. O texto é acrescentado ao fim e o
+            <strong>Backspace</strong> apaga do fim — o teclado não mantém cursor dentro do valor.
+        </p>
+        <p>
+            Herda <code>FormComponent&lt;string&gt;</code>, então integra com <code>OmniForm</code> e
+            validação como qualquer input. O <strong>Shift</strong> vale só para o próximo caractere,
+            como no teclado do celular; <strong>Símbolos</strong> é um modo e fica ligado até ser
+            desligado.
+        </p>
+        <p>
+            O layout é <strong>dado</strong>: <code>Type</code> escolhe um dos embutidos e
+            <code>Layout</code> substitui por completo — dá para partir de
+            <code>VirtualKeyboardLayouts.Standard()</code> e ajustar em vez de descrever um teclado inteiro.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Terminal de toque sem teclado físico: self-checkout, quiosque, PDV, totem.</li>
+            <li>Campo que precisa de entrada controlada — um PIN só com dígitos, por exemplo.</li>
+            <li>Ambiente onde o teclado nativo do sistema não pode aparecer ou atrapalha o layout.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Aplicação de desktop comum → o teclado físico já resolve.</li>
+            <li>Celular/tablet em navegador → prefira o teclado nativo, que o usuário já conhece.</li>
+            <li>Código curto de dígitos com uma caixa por caractere → use <code>OmniSecurityCode</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="PADRÃO (QWERTY)"
+                         Description="Layout completo: dígitos, letras, Shift, Símbolos e espaço. A caixa é ReadOnly de propósito — em terminal de toque a entrada vem só do teclado da tela."
+                         Code="@(@"<OmniTextBox @bind-Value=""_busca"" ReadOnly Placeholder=""Toque nas teclas..."" />
+<OmniVirtualKeyboard @bind-Value=""_busca"" Type=""VirtualKeyboardType.Standard"" />")">
+            <div class="vkb-demo">
+                <OmniTextBox @bind-Value="_busca" ReadOnly Placeholder="Toque nas teclas..." />
+                <OmniVirtualKeyboard @bind-Value="_busca" Type="VirtualKeyboardType.Standard" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="NUMÉRICO"
+                         Description="Pad de dígitos em 3 colunas, com MaxLength para travar o tamanho. O slot vazio embaixo alinha o 0 sob o 8."
+                         Code="@(@"<OmniVirtualKeyboard @bind-Value=""_pin""
+                     Type=""VirtualKeyboardType.Numeric""
+                     MaxLength=""6"" />")">
+            <div class="vkb-demo vkb-demo-narrow">
+                <OmniTextBox @bind-Value="_pin" ReadOnly Placeholder="PIN de até 6 dígitos" />
+                <OmniVirtualKeyboard @bind-Value="_pin" Type="VirtualKeyboardType.Numeric" MaxLength="6" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="E-MAIL"
+                         Description="@("Sem a linha de dígitos, com @ e uma tecla .com — e OnEnter para confirmar.")"
+                         Code="@(@"<OmniVirtualKeyboard @bind-Value=""_email""
+                     Type=""VirtualKeyboardType.Email""
+                     OnEnter=""Confirmar"" />")">
+            <div class="vkb-demo">
+                <OmniTextBox @bind-Value="_email" ReadOnly Placeholder="@("cliente@exemplo.com")" />
+                <OmniVirtualKeyboard @bind-Value="_email" Type="VirtualKeyboardType.Email" />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="LAYOUT PRÓPRIO"
+                         Description="Um teclado é só dados. Aqui, um pad de quantidade para balança: dígitos, vírgula e uma tecla larga de confirmação."
+                         Code="@(@"private static readonly VirtualKeyboardLayout PadBalanca = new()
+{
+    Name = ""Balanca"",
+    Rows =
+    [
+        new() { Keys = [new() { Text = ""7"" }, new() { Text = ""8"" }, new() { Text = ""9"" }] },
+        new() { Keys = [new() { Text = ""4"" }, new() { Text = ""5"" }, new() { Text = ""6"" }] },
+        new() { Keys = [new() { Text = ""1"" }, new() { Text = ""2"" }, new() { Text = ""3"" }] },
+        new() { Keys = [
+            new() { Text = ""0"" },
+            new() { Text = "","" },
+            new() { Kind = VirtualKeyboardKeyKind.Backspace, Label = ""⌫"" }] },
+        new() { Keys = [
+            new() { Kind = VirtualKeyboardKeyKind.Enter, Label = ""Confirmar peso"", Width = 3 }] }
+    ]
+};
+
+<OmniVirtualKeyboard @bind-Value=""_peso"" Layout=""PadBalanca"" OnEnter=""Confirmar"" />")">
+            <div class="vkb-demo vkb-demo-narrow">
+                <OmniTextBox @bind-Value="_peso" ReadOnly Placeholder="Peso em kg" />
+                <OmniVirtualKeyboard @bind-Value="_peso" Layout="PadBalanca" OnEnter="ConfirmarPeso" />
+                @if (_pesoConfirmado is not null)
+                {
+                    <OmniAlert Severity="NotificationSeverity.Success" Class="vkb-demo-result">
+                        Peso confirmado: <strong>@_pesoConfirmado kg</strong>
+                    </OmniAlert>
+                }
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DESABILITADO"
+                         Description="Disabled e ReadOnly desligam todas as teclas — útil enquanto a tela espera resposta do servidor."
+                         Code="@(@"<OmniVirtualKeyboard @bind-Value=""_x"" Type=""VirtualKeyboardType.Numeric"" Disabled />")">
+            <div class="vkb-demo vkb-demo-narrow">
+                <OmniVirtualKeyboard @bind-Value="_travado" Type="VirtualKeyboardType.Numeric" Disabled />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    private string _busca = string.Empty;
+    private string _pin = string.Empty;
+    private string _email = string.Empty;
+    private string _peso = string.Empty;
+    private string _travado = "123";
+    private string? _pesoConfirmado;
+
+    private void ConfirmarPeso() =>
+        _pesoConfirmado = string.IsNullOrWhiteSpace(_peso) ? null : _peso;
+
+    private static readonly VirtualKeyboardLayout PadBalanca = new()
+    {
+        Name = "Balanca",
+        Rows =
+        [
+            new() { Keys = [new() { Text = "7" }, new() { Text = "8" }, new() { Text = "9" }] },
+            new() { Keys = [new() { Text = "4" }, new() { Text = "5" }, new() { Text = "6" }] },
+            new() { Keys = [new() { Text = "1" }, new() { Text = "2" }, new() { Text = "3" }] },
+            new()
+            {
+                Keys =
+                [
+                    new() { Text = "0" },
+                    new() { Text = "," },
+                    new() { Kind = VirtualKeyboardKeyKind.Backspace, Label = "⌫" }
+                ]
+            },
+            new()
+            {
+                Keys = [new() { Kind = VirtualKeyboardKeyKind.Enter, Label = "Confirmar peso", Width = 3 }]
+            }
+        ]
+    };
+}

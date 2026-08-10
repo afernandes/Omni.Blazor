@@ -66,4 +66,33 @@ public class ConfirmDialogTests : TestContextBase
         var result = await task;
         Assert.False((bool)result!);
     }
+
+    [Fact]
+    public void Uses_layout_classes_that_exist_in_the_stylesheet()
+    {
+        // Ver AlertDialogTests: o markup usava utilitários inexistentes, então o
+        // rodapé de ações não alinhava à direita nem descia para baixo da mensagem.
+        var cut = Render<ConfirmDialog>(p => p
+            .Add(c => c.Message, "x")
+            .Add(c => c.Options, new ConfirmOptions { Icon = "alert-triangle" }));
+
+        Assert.Contains("omni-prompt-actions", cut.Markup);
+        Assert.DoesNotContain("omni-stack-16", cut.Markup);
+        Assert.DoesNotContain("omni-row", cut.Markup);
+    }
+
+    [Fact]
+    public void Confirm_button_comes_after_cancel_in_the_actions_row()
+    {
+        // A ordem no DOM é a ordem de leitura e a ordem de tabulação: cancelar
+        // primeiro, confirmar por último — como no rodapé de qualquer diálogo do
+        // sistema. O CSS alinha o conjunto à direita.
+        var cut = Render<ConfirmDialog>(p => p
+            .Add(c => c.Message, "x")
+            .Add(c => c.Options, new ConfirmOptions()));
+
+        var markup = cut.Markup;
+        Assert.True(markup.IndexOf("data-omni-cancel", StringComparison.Ordinal)
+                  < markup.IndexOf("data-omni-default", StringComparison.Ordinal));
+    }
 }

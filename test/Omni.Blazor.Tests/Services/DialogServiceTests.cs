@@ -14,6 +14,44 @@ public class DialogServiceTests : TestContextBase
     private sealed class DummyDialog : ComponentBase { }
 
     [Fact]
+    public void Alert_puts_the_caller_title_on_the_dialog_bar()
+    {
+        // Regressão: Alert/Confirm passavam o NOME DO TIPO como primeiro argumento
+        // de OpenAsync — que é o título — então a barra exibia
+        // "Omni.Blazor.Components.AlertDialog" e o título informado era descartado.
+        var svc = new DialogService();
+
+        _ = svc.Alert("Pedido gerado com sucesso.", "Pedido salvo");
+
+        Assert.Single(svc.OpenDialogs);
+        Assert.Equal("Pedido salvo", svc.OpenDialogs[0].Title);
+        Assert.Equal(typeof(AlertDialog), svc.OpenDialogs[0].ComponentType);
+    }
+
+    [Fact]
+    public void Confirm_puts_the_caller_title_on_the_dialog_bar()
+    {
+        var svc = new DialogService();
+
+        _ = svc.Confirm("Cancelar o atendimento?", "Cancelar atendimento");
+
+        Assert.Single(svc.OpenDialogs);
+        Assert.Equal("Cancelar atendimento", svc.OpenDialogs[0].Title);
+        Assert.Equal(typeof(ConfirmDialog), svc.OpenDialogs[0].ComponentType);
+    }
+
+    [Fact]
+    public void Alert_without_a_title_hides_the_dialog_bar()
+    {
+        var svc = new DialogService();
+
+        _ = svc.Alert("sem título", title: null);
+
+        Assert.Null(svc.OpenDialogs[0].Title);
+        Assert.False(svc.OpenDialogs[0].Options.ShowTitle);
+    }
+
+    [Fact]
     public void OpenAsync_adds_a_dialog_and_fires_OnChange()
     {
         var svc = new DialogService();
