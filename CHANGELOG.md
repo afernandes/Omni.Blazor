@@ -8,6 +8,15 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+### Added
+- Pluggable localization for all library-owned UI strings: `IOmniLocalizer`, `IOmniTranslationProvider`, `IOmniPluralRule`, `OmniTranslationCatalog` and generated `OmniTranslationKeys`. Omni ships `pt-BR` and English RESX catalogs and supports application-owned dictionaries/JSON snapshots, `IStringLocalizer`/RESX, database/tenant sources and optional PO/Gettext adapters.
+- `OmniCultureScope` for an explicit component-subtree formatting culture and UI culture. It emits the corresponding `lang` and inferred `dir` metadata, including RTL cultures, without changing the surrounding application.
+- Culture-aware plural forms (`Zero`, `One`, `Two`, `Few`, `Many`, `Other`), a localization showcase with French and Arabic/RTL examples, and browser/AOT coverage for localized resources.
+
+### Changed
+- Component defaults, accessible names, validation messages, date/number/currency formatting and built-in form/data labels now resolve through the active culture. Explicit component parameters and an application-provided `OmniTexts` instance continue to take precedence.
+- JavaScript module smoke coverage now resolves modules from `document.baseURI`, keeping project-site deployments such as GitHub Pages compatible with a non-root path base.
+
 ### Fixed
 - `ThemeService.InitializeAsync` now reads `prefers-color-scheme` itself when the `<html>` element carries no `data-accent`/`data-theme` — the signal that the `OmniTheme` bootstrap never ran. Hosts that cannot use the component in `<head>` (a static `index.html` under MAUI or Photino) always started in light mode on a dark OS, because the empty-storage branch only mirrored back what the bootstrap had applied. Keeping `OmniTheme` in `<head>` is still the way to avoid the flash: the fallback lands one paint late.
 
