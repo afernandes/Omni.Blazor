@@ -120,10 +120,17 @@ public abstract class OmniValidatorBase : OmniComponent, IDisposable
         var msgs = _editContext?.GetValidationMessages(target.FieldIdentifier);
         if (msgs is null || !msgs.Any()) return;
 
+        // Splat all three, like every other component: the base exposes Class and
+        // Attributes, so a consumer must be able to reach this span with an extra class,
+        // a data-testid or an aria-* the same way they would anywhere else.
         builder.OpenElement(0, "span");
-        builder.AddAttribute(1, "class", "omni-validator-message");
+        builder.AddAttribute(1, "class", Utilities.CssBuilder
+            .Default("omni-validator-message")
+            .AddClass(Class)
+            .Build());
         if (!string.IsNullOrEmpty(Style)) builder.AddAttribute(2, "style", Style);
-        builder.AddContent(3, Text ?? Texts.InvalidValue);
+        builder.AddMultipleAttributes(3, Attributes);
+        builder.AddContent(4, Text ?? Texts.InvalidValue);
         builder.CloseElement();
     }
 

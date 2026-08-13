@@ -88,8 +88,14 @@ public sealed class OmniEntityEditorAdapterTests : TestContextBase
 
         await cut.InvokeAsync(() => cut.Instance.BeginEditAsync(items[0]));
         var inputs = cut.FindAll(".omni-datepicker-input");
-        inputs[0].Input(expectedStart.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture));
-        inputs[1].Input(expectedEnd.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+        // The picker parses with the formatting culture, so the text typed here has to be
+        // written the way that culture writes a date. Hardcoding dd/MM only parsed on a
+        // pt-BR machine; anywhere else the edit was silently rejected and the appointment
+        // kept its original dates.
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        string pattern = $"{culture.DateTimeFormat.ShortDatePattern} HH:mm";
+        inputs[0].Input(expectedStart.ToString(pattern, culture));
+        inputs[1].Input(expectedEnd.ToString(pattern, culture));
         cut.FindAll("button").Single(button => button.TextContent.Contains("Salvar", StringComparison.Ordinal)).Click();
 
         Assert.Equal(expectedStart, items[0].Start);

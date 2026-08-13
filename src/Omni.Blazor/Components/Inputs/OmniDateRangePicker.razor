@@ -254,7 +254,10 @@
                 fallback,
                 a.ToString(EffectiveDateFormat, FormattingCulture),
                 b.ToString(EffectiveDateFormat, FormattingCulture),
-                days);
+                // Pre-formatted: the placeholder would otherwise be rendered with the UI
+                // culture, and inside an OmniCultureScope whose Culture and UICulture differ
+                // the digits would not match the dates beside them.
+                days.ToString(FormattingCulture));
         }
     }
 
