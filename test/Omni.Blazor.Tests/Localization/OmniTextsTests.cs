@@ -86,14 +86,29 @@ public class OmniTextsTests : TestContextBase
     [Fact]
     public void AddOmniComponents_registers_the_default_texts()
     {
-        var services = new ServiceCollection();
-        services.AddOmniComponents();
-        using var provider = services.BuildServiceProvider();
+        // The registered set now resolves through the localizer, so it follows
+        // CurrentUICulture: this same assertion returned "Close" on an en-US agent while
+        // passing on a pt-BR one. The UI culture is pinned because what this test is about
+        // is the DI registration, not which language a given machine happens to be in.
+        var previous = System.Globalization.CultureInfo.CurrentUICulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentUICulture =
+                new System.Globalization.CultureInfo("pt-BR");
 
-        using var scope = provider.CreateScope();
-        Assert.Equal("Fechar", scope.ServiceProvider.GetRequiredService<OmniTexts>().Close);
-        Assert.IsAssignableFrom<IOmniLocalizer>(
-            scope.ServiceProvider.GetRequiredService<IOmniLocalizer>());
+            var services = new ServiceCollection();
+            services.AddOmniComponents();
+            using var provider = services.BuildServiceProvider();
+
+            using var scope = provider.CreateScope();
+            Assert.Equal("Fechar", scope.ServiceProvider.GetRequiredService<OmniTexts>().Close);
+            Assert.IsAssignableFrom<IOmniLocalizer>(
+                scope.ServiceProvider.GetRequiredService<IOmniLocalizer>());
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = previous;
+        }
     }
 
     [Fact]

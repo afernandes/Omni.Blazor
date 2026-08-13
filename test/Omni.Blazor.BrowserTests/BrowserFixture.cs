@@ -121,7 +121,12 @@ public sealed class BrowserFixture : IAsyncLifetime
         IBrowserContext context = await _browser.NewContextAsync(new BrowserNewContextOptions
         {
             ViewportSize = new ViewportSize { Width = 1280, Height = 900 },
-            ReducedMotion = ReducedMotion.Reduce
+            ReducedMotion = ReducedMotion.Reduce,
+            // Library strings resolve against the browser's UI culture now, so without a
+            // fixed locale every assertion on one of them depends on the agent: the CI
+            // Chromium is en-US and rendered "Confirm" where the suite expects "Confirmar".
+            // Pinning it keeps these tests about behaviour rather than about language.
+            Locale = "pt-BR"
         });
         context.SetDefaultTimeout(15_000);
         return context;
