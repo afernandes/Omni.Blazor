@@ -78,7 +78,7 @@
     // (r = 100 / 2π ≈ 15.91549), so the dash offset is simply the empty percentage.
     private double NormalizedValue => Max <= Min ? 0 : Math.Clamp((Value - Min) / (Max - Min), 0, 1);
     private string DashOffset => ((1 - NormalizedValue) * 100).ToString("0.###", CultureInfo.InvariantCulture);
-    private string ValueText => Value.ToString("0.##", CultureInfo.InvariantCulture) + Unit;
+    private string ValueText => Value.ToString("0.##", FormattingCulture) + Unit;
     private string? ValueStroke => string.IsNullOrEmpty(Color) ? null : $"stroke:{Color}";
 
     private string SizeClass => Size switch

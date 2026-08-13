@@ -63,7 +63,7 @@
                                         aria-selected="@(IsSelected(view) ? "true" : "false")"
                                         @onclick="@(() => SelectViewAsync(view))">
                                     <OmniIcon Name="@view.Icon" Size="ComponentSize.Sm" />
-                                    <span>@view.Text</span>
+                                    <span>@view.EffectiveText</span>
                                 </button>
                             }
                         </div>
@@ -222,7 +222,7 @@
     /// <inheritdoc />
     public bool HasAppointmentMouseHandlers => AppointmentMouseEnter.HasDelegate || AppointmentMouseLeave.HasDelegate;
 
-    CultureInfo IOmniScheduler.Culture => Culture ?? CultureInfo.CurrentCulture;
+    CultureInfo IOmniScheduler.Culture => Culture ?? FormattingCulture;
 
     /// <summary>The currently active view, or null before the first registers.</summary>
     public IOmniSchedulerView? SelectedView => _selectedView;

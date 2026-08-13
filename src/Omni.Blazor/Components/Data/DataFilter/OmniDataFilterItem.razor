@@ -39,7 +39,7 @@
             @if (Rule.Rules!.Count == 0)
             {
                 <li class="omni-datafilter-li omni-datafilter-empty-li">
-                    <span class="omni-datafilter-empty">@(IsRoot ? "Nenhuma condição ainda — comece adicionando uma abaixo." : "Grupo vazio")</span>
+                    <span class="omni-datafilter-empty">@(IsRoot ? Owner.EmptyRootText : Owner.EmptyGroupText)</span>
                 </li>
             }
             <li class="omni-datafilter-li omni-datafilter-addbar">
@@ -140,7 +140,7 @@ else
                     default:
                         <input class="omni-datafilter-input" type="text" disabled="@Owner.Disabled"
                                value="@AsText(Rule.Value)" placeholder="@Owner.ValuePlaceholder"
-                               @oninput="@(e => SetValueAsync(e.Value?.ToString()))" aria-label="Valor" />
+                               @oninput="@(e => SetValueAsync(e.Value?.ToString()))" aria-label="@Owner.ValueText" />
                         break;
                 }
             }

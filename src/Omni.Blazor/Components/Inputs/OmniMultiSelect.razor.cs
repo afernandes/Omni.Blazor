@@ -100,16 +100,16 @@ public partial class OmniMultiSelect<TValue>
     [Parameter] public string PopoverMaxHeight { get; set; } = "280px";
 
     /// <summary>Text shown while options are loading.</summary>
-    [Parameter] public string LoadingText { get; set; } = "Carregando...";
+    [Parameter] public string? LoadingText { get; set; }
 
     /// <summary>Text shown when the provider fails.</summary>
-    [Parameter] public string LoadErrorText { get; set; } = "Não foi possível carregar as opções.";
+    [Parameter] public string? LoadErrorText { get; set; }
 
     /// <summary>Provider retry action text.</summary>
-    [Parameter] public string RetryText { get; set; } = "Tentar novamente";
+    [Parameter] public string? RetryText { get; set; }
 
     /// <summary>Action text for requesting another provider page.</summary>
-    [Parameter] public string LoadMoreText { get; set; } = "Carregar mais";
+    [Parameter] public string? LoadMoreText { get; set; }
 
     internal int RecomputeCount { get; private set; }
 
@@ -121,6 +121,10 @@ public partial class OmniMultiSelect<TValue>
     private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
     private bool CanLoadMore => ItemsProvider is not null
         && _availableItems.Count < Math.Min(_providerTotalCount, Math.Max(1, MaxProviderItems));
+    private string EffectiveLoadingText => LoadingText ?? Texts.Loading;
+    private string EffectiveLoadErrorText => LoadErrorText ?? Texts.LoadOptionsError;
+    private string EffectiveRetryText => RetryText ?? Texts.Retry;
+    private string EffectiveLoadMoreText => LoadMoreText ?? Texts.LoadMore;
 
     private string RootCss => CssBuilder.Default("omni-multiselect")
         .AddClass("omni-multiselect-disabled", Disabled)

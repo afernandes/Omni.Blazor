@@ -82,7 +82,7 @@ else
                     class="omni-input-group-ico omni-input-group-ico-right omni-datepicker-trigger"
                     tabindex="-1"
                     disabled="@Disabled"
-                    aria-label="Abrir calendário"
+                    aria-label="@Texts.OpenCalendar"
                     aria-haspopup="dialog"
                     aria-expanded="@(_open ? "true" : "false")"
                     aria-controls="@PopoverId"
@@ -136,7 +136,7 @@ else
     /// <summary>Show a clear (×) button when a value is set. Default true.</summary>
     [Parameter] public bool Clearable { get; set; } = true;
     /// <summary>Date/time format used for display and parsing. Default "dd/MM/yyyy" (adapts when ShowTime is on).</summary>
-    [Parameter] public string DateFormat { get; set; } = "dd/MM/yyyy";
+    [Parameter] public string? DateFormat { get; set; }
 
     /// <summary>Earliest selectable date; earlier days are disabled.</summary>
     [Parameter] public DateOnly? MinDate { get; set; }
@@ -257,8 +257,8 @@ else
     {
         get
         {
-            var current = CultureInfo.CurrentCulture;
-            var wants12h = HourFormat == "12" || DateFormat.Contains("tt");
+            var current = FormattingCulture;
+            var wants12h = HourFormat == "12" || DateFormat?.Contains("tt", StringComparison.Ordinal) == true;
             if (!wants12h) return current;
             if (!string.IsNullOrEmpty(current.DateTimeFormat.AMDesignator)) return current;
             var clone = (CultureInfo)current.Clone();
@@ -274,7 +274,8 @@ else
         get
         {
             // Honor a custom DateFormat verbatim — the consumer knows best.
-            if (DateFormat != "dd/MM/yyyy") return DateFormat;
+            if (!string.IsNullOrWhiteSpace(DateFormat)) return DateFormat;
+            string shortDate = FormattingCulture.DateTimeFormat.ShortDatePattern;
             if (IsTimeOnlyMode)
             {
                 if (HourFormat == "12") return ShowSeconds ? "hh:mm:ss tt" : "hh:mm tt";
@@ -282,10 +283,10 @@ else
             }
             if (EffectiveShowTime)
             {
-                if (HourFormat == "12") return ShowSeconds ? "dd/MM/yyyy hh:mm:ss tt" : "dd/MM/yyyy hh:mm tt";
-                return ShowSeconds ? "dd/MM/yyyy HH:mm:ss" : "dd/MM/yyyy HH:mm";
+                if (HourFormat == "12") return ShowSeconds ? $"{shortDate} hh:mm:ss tt" : $"{shortDate} hh:mm tt";
+                return ShowSeconds ? $"{shortDate} HH:mm:ss" : $"{shortDate} HH:mm";
             }
-            return DateFormat;
+            return shortDate;
         }
     }
 
@@ -509,9 +510,7 @@ else
     {
         get
         {
-            if (IsTimeOnlyMode) return ShowSeconds ? "HH:MM:SS" : "HH:MM";
-            if (EffectiveShowTime && DateFormat == "dd/MM/yyyy") return ShowSeconds ? "DD/MM/YYYY HH:MM:SS" : "DD/MM/YYYY HH:MM";
-            return DateFormat.ToUpperInvariant();
+            return ResolvedDateFormat.ToUpperInvariant();
         }
     }
 

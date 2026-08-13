@@ -36,7 +36,7 @@ public partial class OmniAutoComplete<TItem>
     }
 
     /// <summary>Placeholder text shown in the search input.</summary>
-    [Parameter] public string? Placeholder { get; set; } = "Buscar...";
+    [Parameter] public string? Placeholder { get; set; }
 
     /// <summary>Visual size of the input.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
@@ -45,19 +45,19 @@ public partial class OmniAutoComplete<TItem>
     [Parameter] public bool Clearable { get; set; } = true;
 
     /// <summary>Text shown when no option matches.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Nenhum resultado.";
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Text shown while an asynchronous page is loading.</summary>
-    [Parameter] public string LoadingText { get; set; } = "Buscando...";
+    [Parameter] public string? LoadingText { get; set; }
 
     /// <summary>Text shown when the asynchronous provider fails.</summary>
-    [Parameter] public string LoadErrorText { get; set; } = "Não foi possível carregar as opções.";
+    [Parameter] public string? LoadErrorText { get; set; }
 
     /// <summary>Text of the provider retry action.</summary>
-    [Parameter] public string RetryText { get; set; } = "Tentar novamente";
+    [Parameter] public string? RetryText { get; set; }
 
     /// <summary>Text of the action that requests the next provider page.</summary>
-    [Parameter] public string LoadMoreText { get; set; } = "Carregar mais";
+    [Parameter] public string? LoadMoreText { get; set; }
 
     /// <summary>Synchronous option source. Mutually exclusive with <see cref="ItemsProvider"/>.</summary>
     [Parameter] public IEnumerable<TItem>? Items { get; set; }
@@ -92,6 +92,12 @@ public partial class OmniAutoComplete<TItem>
     private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
     private bool CanLoadMore => ItemsProvider is not null
         && _filtered.Count < Math.Min(_providerTotalCount, Math.Max(1, MaxProviderItems));
+    private string EffectivePlaceholder => Placeholder ?? Texts.SearchPlaceholder;
+    private string EffectiveEmptyText => EmptyText ?? Texts.NoResults;
+    private string EffectiveLoadingText => LoadingText ?? Texts.Searching;
+    private string EffectiveLoadErrorText => LoadErrorText ?? Texts.LoadOptionsError;
+    private string EffectiveRetryText => RetryText ?? Texts.Retry;
+    private string EffectiveLoadMoreText => LoadMoreText ?? Texts.LoadMore;
 
     private string RootCss => CssBuilder.Default("omni-input-group")
         .AddClass("omni-input-group-right")

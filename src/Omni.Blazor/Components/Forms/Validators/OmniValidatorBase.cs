@@ -27,7 +27,7 @@ namespace Omni.Blazor.Components;
 ///   <item>Pluggable — criar <c>OmniCpfValidator</c> é override de 1 método.</item>
 /// </list>
 /// </summary>
-public abstract class OmniValidatorBase : ComponentBase, IDisposable
+public abstract class OmniValidatorBase : OmniComponent, IDisposable
 {
     private EditContext? _editContext;
     private ValidationMessageStore? _messageStore;
@@ -42,13 +42,10 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
     [Parameter, EditorRequired] public string Component { get; set; } = string.Empty;
 
     /// <summary>Mensagem exibida quando a validação falha.</summary>
-    [Parameter] public string Text { get; set; } = "Valor inválido.";
+    [Parameter] public string? Text { get; set; }
 
     /// <summary>Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).</summary>
     [Parameter] public bool ShowMessage { get; set; }
-
-    /// <summary>Estilo inline opcional do span de mensagem (quando ShowMessage=true).</summary>
-    [Parameter] public string? Style { get; set; }
 
     /// <summary>Implementação concreta: retorna true quando o valor passa a validação.</summary>
     protected abstract bool Validate(IOmniFormComponent component);
@@ -104,7 +101,7 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
 
         if (!Validate(component))
         {
-            _messageStore.Add(component.FieldIdentifier, Text);
+            _messageStore.Add(component.FieldIdentifier, Text ?? Texts.InvalidValue);
         }
 
         _editContext.NotifyValidationStateChanged();
@@ -123,10 +120,17 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
         var msgs = _editContext?.GetValidationMessages(target.FieldIdentifier);
         if (msgs is null || !msgs.Any()) return;
 
+        // Splat all three, like every other component: the base exposes Class and
+        // Attributes, so a consumer must be able to reach this span with an extra class,
+        // a data-testid or an aria-* the same way they would anywhere else.
         builder.OpenElement(0, "span");
-        builder.AddAttribute(1, "class", "omni-validator-message");
+        builder.AddAttribute(1, "class", Utilities.CssBuilder
+            .Default("omni-validator-message")
+            .AddClass(Class)
+            .Build());
         if (!string.IsNullOrEmpty(Style)) builder.AddAttribute(2, "style", Style);
-        builder.AddContent(3, Text);
+        builder.AddMultipleAttributes(3, Attributes);
+        builder.AddContent(4, Text ?? Texts.InvalidValue);
         builder.CloseElement();
     }
 

@@ -25,7 +25,7 @@
 <div class="@RootCss" style="@Style" @attributes="Attributes">
     <div class="omni-time-cells">
         <div class="omni-time-cell">
-            <span class="omni-time-label">HORA</span>
+            <span class="omni-time-label">@Texts.Hour.ToUpper(TextCulture)</span>
             <div class="omni-time-cell-row">
                 <OmniNumeric TValue="int"
                                Value="@DisplayHour"
@@ -36,13 +36,13 @@
                                Class="omni-time-numeric" />
                 @if (HourFormat == "12")
                 {
-                    <div class="omni-time-ampm" role="group" aria-label="AM/PM">
+                    <div class="omni-time-ampm" role="group" aria-label="@($"{AmDesignator}/{PmDesignator}")">
                         <button type="button"
                                 class="@(IsAm ? "omni-time-ampm-btn omni-active" : "omni-time-ampm-btn")"
-                                @onclick="@(_ => SetAmPmAsync(true))">AM</button>
+                                @onclick="@(_ => SetAmPmAsync(true))">@AmDesignator</button>
                         <button type="button"
                                 class="@(!IsAm ? "omni-time-ampm-btn omni-active" : "omni-time-ampm-btn")"
-                                @onclick="@(_ => SetAmPmAsync(false))">PM</button>
+                                @onclick="@(_ => SetAmPmAsync(false))">@PmDesignator</button>
                     </div>
                 }
             </div>
@@ -51,7 +51,7 @@
         <span class="omni-time-sep">:</span>
 
         <div class="omni-time-cell">
-            <span class="omni-time-label">MIN</span>
+            <span class="omni-time-label">@Texts.Minute.ToUpper(TextCulture)</span>
             <OmniNumeric TValue="int"
                            Value="Time.Minute"
                            ValueChanged="OnMinuteChangedAsync"
@@ -66,7 +66,7 @@
             <span class="omni-time-sep">:</span>
 
             <div class="omni-time-cell">
-                <span class="omni-time-label">SEG</span>
+            <span class="omni-time-label">@Texts.Second.ToUpper(TextCulture)</span>
                 <OmniNumeric TValue="int"
                                Value="Time.Second"
                                ValueChanged="OnSecondChangedAsync"
@@ -101,6 +101,11 @@
     private bool IsAm => Time.Hour < 12;
     private int HourMin => HourFormat == "12" ? 1 : 0;
     private int HourMax => HourFormat == "12" ? 12 : 23;
+    private string AmDesignator => DesignatorOrFallback(FormattingCulture.DateTimeFormat.AMDesignator, "AM");
+    private string PmDesignator => DesignatorOrFallback(FormattingCulture.DateTimeFormat.PMDesignator, "PM");
+
+    private static string DesignatorOrFallback(string designator, string fallback)
+        => string.IsNullOrWhiteSpace(designator) ? fallback : designator;
 
     private int DisplayHour
     {

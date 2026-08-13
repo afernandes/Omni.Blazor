@@ -70,7 +70,7 @@
          aria-valuemax="@F(Max)"
          aria-valuenow="@F(_currentStart)"
          aria-disabled="@Disabled"
-         aria-label="@(Range ? "Mínimo" : (AriaLabel ?? "Valor"))"
+         aria-label="@(Range ? Texts.DataFilterMinimum : (AriaLabel ?? Texts.Value))"
          data-omni-thumb-idx="0"
          @onkeydown="@(e => OnThumbKey(e, 0))">
         @if (ShowValueLabel)
@@ -91,7 +91,7 @@
              aria-valuemax="@F(Max)"
              aria-valuenow="@F(_currentEnd)"
              aria-disabled="@Disabled"
-             aria-label="Máximo"
+             aria-label="@Texts.DataFilterMaximum"
              data-omni-thumb-idx="1"
              @onkeydown="@(e => OnThumbKey(e, 1))">
             @if (ShowValueLabel)
@@ -316,7 +316,7 @@
     private double Clamp(double v) => Math.Clamp(v, Min, Max);
 
     private string FormatValueLabel(double v)
-        => ValueFormatter is not null ? ValueFormatter(v) : v.ToString("0.##", CultureInfo.InvariantCulture);
+        => ValueFormatter is not null ? ValueFormatter(v) : v.ToString("0.##", FormattingCulture);
 
     private static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
 

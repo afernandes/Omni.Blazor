@@ -26,8 +26,8 @@
 *@
 <button type="button"
         class="@RootCss"
-        aria-label="@Title"
-        title="@Title"
+        aria-label="@(Title ?? Texts.OpenMenu)"
+        title="@(Title ?? Texts.OpenMenu)"
         @onclick="OnClick"
         style="@Style"
         @attributes="Attributes">
@@ -52,7 +52,7 @@
     [Parameter] public string Icon { get; set; } = "menu";
 
     /// <summary>Texto acessível (aria-label + title). Default "Abrir menu".</summary>
-    [Parameter] public string Title { get; set; } = "Abrir menu";
+    [Parameter] public string? Title { get; set; }
 
     private OmniDrawer? Resolved
     {

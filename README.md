@@ -28,6 +28,7 @@
 - **Source Link** + portable PDBs + `.snupkg` — step into the library while debugging
 - **Static Web Assets** — CSS plus independently lazy-loaded JS feature modules; no manual `<script>` tag
 - **Native AOT + trimming** — package analyzers are enabled and a published native consumer is exercised in CI
+- **Complete i18n pipeline** — built-in pt-BR/English resources, custom RESX/JSON/database/PO providers, plural rules, culture-aware formatting and RTL scopes ([guide](docs/localization.md))
 - **AI-ready** — `llms.txt` + `llms-full.txt` + a machine-readable [`docs/components.json`](docs/components.json) manifest and an [`AGENTS.md`](AGENTS.md) runbook, so coding agents (Claude Code, Cursor, Copilot) generate correct code
 - **Typed data workflows** — reusable Fluent schemas for DataGrid, Gantt, Scheduler, Kanban, Chart and Diagram, plus metadata-driven DataForm, CRUD DataGridForm, import, wizard and a serializable DataFilter query builder
 - **MIT licensed**

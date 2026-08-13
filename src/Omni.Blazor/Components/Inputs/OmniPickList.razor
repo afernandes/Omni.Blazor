@@ -37,11 +37,11 @@
             <OmniListBox TValue="TItem" Items="FilteredSource" Multiple="true"
                          Values="_selectedSource" ValuesChanged="OnSourceSelectionChanged"
                          TextSelector="TextSelector" IconSelector="IconSelector" DisabledSelector="DisabledSelector"
-                         MaxHeight="@ListHeight" Disabled="Disabled" AriaLabel="@(SourceTitle ?? "Origem")" />
+                         MaxHeight="@ListHeight" Disabled="Disabled" AriaLabel="@(SourceTitle ?? Texts.Source)" />
         }
         else
         {
-            <div class="omni-picklist-empty" style="@($"min-height:{ListHeight}")">@SourceEmptyText</div>
+            <div class="omni-picklist-empty" style="@($"min-height:{ListHeight}")">@(SourceEmptyText ?? Texts.EmptyList)</div>
         }
     </div>
 
@@ -85,11 +85,11 @@
             <OmniListBox TValue="TItem" Items="FilteredTarget" Multiple="true"
                          Values="_selectedTarget" ValuesChanged="OnTargetSelectionChanged"
                          TextSelector="TextSelector" IconSelector="IconSelector" DisabledSelector="DisabledSelector"
-                         MaxHeight="@ListHeight" Disabled="Disabled" AriaLabel="@(TargetTitle ?? "Destino")" />
+                         MaxHeight="@ListHeight" Disabled="Disabled" AriaLabel="@(TargetTitle ?? Texts.Destination)" />
         }
         else
         {
-            <div class="omni-picklist-empty" style="@($"min-height:{ListHeight}")">@TargetEmptyText</div>
+            <div class="omni-picklist-empty" style="@($"min-height:{ListHeight}")">@(TargetEmptyText ?? Texts.EmptyList)</div>
         }
     </div>
 </div>
@@ -156,9 +156,9 @@
     [Parameter] public RenderFragment? TargetHeader { get; set; }
 
     /// <summary>Text shown when the source list is empty.</summary>
-    [Parameter] public string SourceEmptyText { get; set; } = "Lista vazia";
+    [Parameter] public string? SourceEmptyText { get; set; }
     /// <summary>Text shown when the target list is empty.</summary>
-    [Parameter] public string TargetEmptyText { get; set; } = "Lista vazia";
+    [Parameter] public string? TargetEmptyText { get; set; }
     /// <summary>Placeholder for the filter boxes.</summary>
     [Parameter] public string? FilterPlaceholder { get; set; }
     private string EffFilterPlaceholder => FilterPlaceholder ?? Texts.FilterPlaceholder;
@@ -194,10 +194,10 @@
     private string SelectedToSourceIcon => Vert ? "chevron-up" : "chevron-left";
     private string AllToTargetIcon => Vert ? "chevrons-down" : "chevrons-right";
     private string AllToSourceIcon => Vert ? "chevrons-up" : "chevrons-left";
-    private string SelectedToTargetTitle => "Mover selecionados para " + (Vert ? "baixo" : "a direita");
-    private string SelectedToSourceTitle => "Mover selecionados para " + (Vert ? "cima" : "a esquerda");
-    private string AllToTargetTitle => "Mover todos para " + (Vert ? "baixo" : "a direita");
-    private string AllToSourceTitle => "Mover todos para " + (Vert ? "cima" : "a esquerda");
+    private string SelectedToTargetTitle => Texts.MoveSelectedToDestination;
+    private string SelectedToSourceTitle => Texts.MoveSelectedToSource;
+    private string AllToTargetTitle => Texts.MoveAllToDestination;
+    private string AllToSourceTitle => Texts.MoveAllToSource;
 
     private string RootCss => CssBuilder.Default("omni-picklist")
         .AddClass(Vert ? "omni-picklist-vertical" : "omni-picklist-horizontal")

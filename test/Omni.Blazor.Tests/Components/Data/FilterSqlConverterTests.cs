@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
+using Omni.Blazor.Localization;
+using System.Globalization;
 
 namespace Omni.Blazor.Tests.Components.Data;
 
@@ -268,5 +270,21 @@ public class FilterSqlConverterTests
         Assert.Equal(18m, range.Lower);
         Assert.Equal(65m, range.Upper);
         Assert.Equal(sql, FilterSqlConverter.ToSql(rules, logic, Props()));
+    }
+
+    [Fact]
+    public void Parse_diagnostic_can_be_localized_by_the_component()
+    {
+        bool parsed = FilterSqlConverter.TryParseLocalized(
+            "Unknown = 1",
+            Props(),
+            OmniTexts.English(),
+            CultureInfo.GetCultureInfo("en-US"),
+            out _,
+            out _,
+            out string? error);
+
+        Assert.False(parsed);
+        Assert.Equal("unknown column “Unknown”", error);
     }
 }

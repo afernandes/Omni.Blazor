@@ -25,7 +25,7 @@
 
     @* @ref no SVG (não no wrapper) — wrapper inclui legenda, então tamanho
        do wrapper ≠ tamanho do SVG. ResizeObserver no SVG mede o que importa. *@
-    <svg @ref="_hostEl" class="omni-chart-svg" viewBox="@ViewBox" preserveAspectRatio="none" role="img" aria-label="@(AriaLabel ?? Title ?? "Chart")">
+    <svg @ref="_hostEl" class="omni-chart-svg" viewBox="@ViewBox" preserveAspectRatio="none" role="img" aria-label="@(AriaLabel ?? Title ?? Texts.Chart)">
         @if (_isPie && _series.Count > 0)
         {
             @foreach (var slice in PieSlices())
@@ -517,7 +517,7 @@
             yield return (ValueY(v),
                 ValueFormatter is not null
                     ? ValueFormatter(v)
-                    : v.ToString("0.##", CultureInfo.InvariantCulture));
+                    : v.ToString("0.##", FormattingCulture));
         }
     }
 
@@ -540,7 +540,7 @@
             double value = _xMin + step * index;
             yield return (
                 ValueFormatter is null
-                    ? value.ToString("0.##", CultureInfo.InvariantCulture)
+                    ? value.ToString("0.##", FormattingCulture)
                     : ValueFormatter(value),
                 ScatterX(value));
         }
@@ -912,7 +912,7 @@
         get
         {
             double value = _series[0].Points.First().Value;
-            return ValueFormatter?.Invoke(value) ?? value.ToString("0.##", CultureInfo.InvariantCulture);
+            return ValueFormatter?.Invoke(value) ?? value.ToString("0.##", FormattingCulture);
         }
     }
 
@@ -960,8 +960,9 @@
             var color = !string.IsNullOrEmpty(pt.Color) ? pt.Color!
                        : !string.IsNullOrEmpty(serie.Color) ? serie.Color!
                        : ChartPalette.ColorAt(ColorScheme, i);
-            var pct = (pt.Value / total * 100).ToString("0.#", CultureInfo.InvariantCulture);
-            yield return (path, color, $"{pt.Category}: {pt.Value:0.##} ({pct}%)");
+            var pct = (pt.Value / total * 100).ToString("0.#", FormattingCulture);
+            var value = pt.Value.ToString("0.##", FormattingCulture);
+            yield return (path, color, $"{pt.Category}: {value} ({pct}%)");
 
             angle = end;
         }
@@ -979,7 +980,9 @@
                        ChartPalette.ColorAt(ColorScheme, i)
               )).ToList()
             : _series.Select((s, i) => (
-                Label: string.IsNullOrEmpty(s.Title) ? $"Série {i + 1}" : s.Title,
+                Label: string.IsNullOrEmpty(s.Title)
+                    ? string.Format(FormattingCulture, Texts.Series, i + 1)
+                    : s.Title,
                 Color: SeriesColor(s, i)
               )).ToList();
 

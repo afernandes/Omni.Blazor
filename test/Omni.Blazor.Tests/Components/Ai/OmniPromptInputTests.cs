@@ -62,11 +62,11 @@ public class OmniPromptInputTests : TestContextBase
     {
         string? sent = null;
         var cut = Render(p => p.Add(c => c.OnSend, t => sent = t));
-        var send = cut.Find("button[aria-label='Send']");
+        var send = cut.Find("button[aria-label='Enviar']");
         Assert.True(send.HasAttribute("disabled"));   // empty → cannot send
 
         cut.Render(p => p.Add(c => c.Value, "go"));
-        send = cut.Find("button[aria-label='Send']");
+        send = cut.Find("button[aria-label='Enviar']");
         Assert.False(send.HasAttribute("disabled"));
         send.Click();
         Assert.Equal("go", sent);

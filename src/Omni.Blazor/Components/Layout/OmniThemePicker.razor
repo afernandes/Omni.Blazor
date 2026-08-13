@@ -20,7 +20,7 @@
 *@
 <OmniPopover @bind-Open="_open">
     <Trigger>
-        <button type="button" class="@RootCss" aria-label="@Title" title="@Title">
+        <button type="button" class="@RootCss" aria-label="@(Title ?? Texts.Theme)" title="@(Title ?? Texts.Theme)">
             <OmniIcon Name="@(Theme.Dark ? "moon" : "sun")" Size="ComponentSize.Sm" />
             <span class="omni-theme-picker-swatch" style="background: var(--omni-accent);"></span>
         </button>
@@ -28,14 +28,14 @@
     <ChildContent>
         <div class="omni-theme-picker-panel">
             <div class="omni-theme-picker-section">
-                <div class="omni-theme-picker-label">Cor accent</div>
+                <div class="omni-theme-picker-label">@Texts.AccentColor</div>
                 <div class="omni-theme-picker-swatches">
                     @foreach (var color in Accents)
                     {
                         <button type="button"
                                 class="@(Theme.Accent == color ? "omni-theme-picker-swatch-btn is-active" : "omni-theme-picker-swatch-btn")"
                                 title="@color"
-                                aria-label="Accent @color"
+                                aria-label="@string.Format(FormattingCulture, Texts.AccentColorNamed, color)"
                                 @onclick="@(() => SetAccent(color))">
                             <span class="omni-theme-picker-swatch-dot" style="@SwatchStyle(color)"></span>
                         </button>
@@ -43,54 +43,54 @@
                 </div>
             </div>
             <div class="omni-theme-picker-section">
-                <div class="omni-theme-picker-label">Modo</div>
+                <div class="omni-theme-picker-label">@Texts.Mode</div>
                 <div class="omni-theme-picker-mode">
                     <button type="button"
                             class="@(Theme.IsUserPicked && !Theme.Dark ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
                             @onclick="@(() => SetDark(false))">
                         <OmniIcon Name="sun" Size="ComponentSize.Sm" />
-                        <span>Claro</span>
+                        <span>@Texts.Light</span>
                     </button>
                     <button type="button"
                             class="@(Theme.IsUserPicked && Theme.Dark ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
                             @onclick="@(() => SetDark(true))">
                         <OmniIcon Name="moon" Size="ComponentSize.Sm" />
-                        <span>Escuro</span>
+                        <span>@Texts.Dark</span>
                     </button>
                     <button type="button"
                             class="@(Theme.IsUserPicked ? "omni-theme-picker-mode-btn" : "omni-theme-picker-mode-btn is-active")"
                             @onclick="UseSystem"
-                            title="Segue a preferência do sistema operacional">
+                            title="@Texts.System">
                         <OmniIcon Name="settings" Size="ComponentSize.Sm" />
-                        <span>Sistema</span>
+                        <span>@Texts.System</span>
                     </button>
                 </div>
             </div>
             @if (ShowDensity)
             {
                 <div class="omni-theme-picker-section">
-                    <div class="omni-theme-picker-label">Densidade</div>
+                    <div class="omni-theme-picker-label">@Texts.Density</div>
                     <div class="omni-theme-picker-mode">
                         <button type="button"
                                 class="@(Theme.Density == LayoutDensity.Compact ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
                                 @onclick="@(() => SetDensity(LayoutDensity.Compact))"
-                                title="Tudo mais compacto — mais informação na tela">
+                                title="@Texts.CompactDensity">
                             <span style="font-size:14px;">≡</span>
-                            <span>Compacto</span>
+                            <span>@Texts.CompactDensity</span>
                         </button>
                         <button type="button"
                                 class="@(Theme.Density == LayoutDensity.Comfortable ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
                                 @onclick="@(() => SetDensity(LayoutDensity.Comfortable))"
-                                title="Densidade padrão">
+                                title="@Texts.DefaultDensity">
                             <span style="font-size:14px;">☰</span>
-                            <span>Padrão</span>
+                            <span>@Texts.DefaultDensity</span>
                         </button>
                         <button type="button"
                                 class="@(Theme.Density == LayoutDensity.Spacious ? "omni-theme-picker-mode-btn is-active" : "omni-theme-picker-mode-btn")"
                                 @onclick="@(() => SetDensity(LayoutDensity.Spacious))"
-                                title="Mais espaçamento — mais respiro">
+                                title="@Texts.SpaciousDensity">
                             <span style="font-size:14px;">⫶</span>
-                            <span>Espaçoso</span>
+                            <span>@Texts.SpaciousDensity</span>
                         </button>
                     </div>
                 </div>
@@ -104,7 +104,7 @@
     [Parameter] public IReadOnlyList<string> Accents { get; set; } = DefaultAccents;
 
     /// <summary>Texto acessível do botão (aria-label / tooltip). Default "Tema".</summary>
-    [Parameter] public string Title { get; set; } = "Tema";
+    [Parameter] public string? Title { get; set; }
 
     /// <summary>Mostra a seção de densidade (Compacto/Padrão/Espaçoso) no
     /// dropdown. Default true. P3.3 — Layout density toggle.</summary>

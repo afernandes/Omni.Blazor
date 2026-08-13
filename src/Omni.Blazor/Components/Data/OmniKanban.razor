@@ -37,7 +37,7 @@
                 <div class="omni-kanban-search">
                     <OmniIcon Name="search" Size="ComponentSize.Sm" />
                     <input class="omni-kanban-search-input" type="text" value="@_search"
-                           placeholder="@EffSearchPlaceholder" aria-label="Buscar cards" @oninput="OnSearchInput" />
+                           placeholder="@EffSearchPlaceholder" aria-label="@Texts.SearchCards" @oninput="OnSearchInput" />
                 </div>
             }
             @if (QuickFilters is not null)
@@ -81,7 +81,7 @@
                         @if (SwimlanesCollapsible)
                         {
                             <button type="button" class="omni-kanban-col-collapse"
-                                    aria-label="@(laneCollapsed ? "Expandir" : "Recolher")"
+                                    aria-label="@(laneCollapsed ? Texts.Expand : Texts.Collapse)"
                                     @onclick="@(() => ToggleLane(lane))">
                                 <OmniIcon Name="@(laneCollapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
                             </button>
@@ -122,7 +122,7 @@
                         {
                             <button type="button" class="omni-kanban-col-collapse"
                                     draggable="false"
-                                    aria-label="@(collapsed ? "Expandir" : "Recolher")"
+                                    aria-label="@(collapsed ? Texts.Expand : Texts.Collapse)"
                                     aria-expanded="@(collapsed ? "false" : "true")"
                                     @onmousedown:stopPropagation="true" @ondragstart:stopPropagation="true"
                                     @onclick="@(() => ToggleCollapse(col))">
@@ -143,7 +143,7 @@
                             <footer class="omni-kanban-col-foot">
                                 <button type="button" class="omni-kanban-add" @onclick="@(() => OnAddCard.InvokeAsync(col))">
                                     <OmniIcon Name="plus" Size="ComponentSize.Sm" />
-                                    <span>@AddCardText</span>
+                                    <span>@(AddCardText ?? Texts.AddCard)</span>
                                 </button>
                             </footer>
                         }
@@ -293,7 +293,7 @@
     [Parameter] public bool AllowAddCard { get; set; }
 
     /// <summary>Label do botão de adicionar card. Default <c>"Adicionar card"</c>.</summary>
-    [Parameter] public string AddCardText { get; set; } = "Adicionar card";
+    [Parameter] public string? AddCardText { get; set; }
 
     /// <summary>Desabilita o drag-and-drop (mouse e teclado). Default false.</summary>
     [Parameter] public bool DragDisabled { get; set; }
@@ -439,7 +439,7 @@
         {
             <div class="omni-kanban-empty">
                 @if (EmptyColumnTemplate is not null) { @EmptyColumnTemplate }
-                else { <span>Sem cards</span> }
+                else { <span>@Texts.NoCards</span> }
             </div>
         }
     </div>;
@@ -459,7 +459,7 @@
              @ondragover="@(() => OnCardDragOver(col, lane, card))" @ondragover:preventDefault="true" @ondragover:stopPropagation="true">
         @if (CardActions is not null)
         {
-            <button type="button" class="omni-kanban-card-menu" title="@Texts.Actions" aria-label="Ações do card"
+            <button type="button" class="omni-kanban-card-menu" title="@Texts.Actions" aria-label="@Texts.CardActions"
                     draggable="false"
                     @onclick="@(e => OpenMenu(e, card))" @onclick:stopPropagation="true"
                     @onmousedown:stopPropagation="true" @ondragstart:stopPropagation="true">
@@ -533,21 +533,21 @@
             <div class="omni-kanban-card-meta">
                 @if (!string.IsNullOrEmpty(est))
                 {
-                    <span class="omni-kanban-card-chip" title="Estimativa">
+                    <span class="omni-kanban-card-chip" title="@Texts.Estimate">
                         <OmniIcon Name="clock" Size="ComponentSize.Sm" /><span>@est</span>
                     </span>
                 }
                 @if (st.HasValue)
                 {
                     var (done, total) = st.Value;
-                    <span class="omni-kanban-card-chip" title="Subtarefas">
+                    <span class="omni-kanban-card-chip" title="@Texts.Subtasks">
                         <OmniIcon Name="check" Size="ComponentSize.Sm" /><span>@done/@total</span>
                     </span>
                 }
                 @if (due.HasValue)
                 {
-                    <span class="@DueCss(due.Value)" title="Prazo">
-                        <OmniIcon Name="calendar" Size="ComponentSize.Sm" /><span>@due.Value.ToString(DueDateFormat, CultureInfo.CurrentCulture)</span>
+                    <span class="@DueCss(due.Value)" title="@Texts.DueDate">
+                        <OmniIcon Name="calendar" Size="ComponentSize.Sm" /><span>@due.Value.ToString(DueDateFormat, FormattingCulture)</span>
                     </span>
                 }
                 <span class="omni-kanban-card-meta-spacer"></span>

@@ -82,7 +82,7 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
     [Parameter] public bool Required { get; set; }
 
     /// <summary>Mensagem exibida quando <see cref="Required"/> = true e o valor é default/empty.</summary>
-    [Parameter] public string RequiredError { get; set; } = "Campo obrigatório.";
+    [Parameter] public string? RequiredError { get; set; }
 
     /// <summary>
     /// Delegate de validação polimórfico. Aceita várias formas:
@@ -236,7 +236,7 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
         {
             if (Required && !HasValue(value))
             {
-                errors = [RequiredError];
+                errors = [RequiredError ?? Texts.Required];
             }
             else if (Validation is not null)
             {
@@ -295,7 +295,7 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
         switch (validation)
         {
             case Func<TValue?, bool> validate:
-                return validate(value) ? [] : ["Inválido."];
+                return validate(value) ? [] : [Texts.InvalidValue];
             case Func<TValue?, string?> validate:
                 return Single(validate(value));
             case Func<TValue?, IEnumerable<string>> validate:
@@ -348,7 +348,7 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
         var result = attr.GetValidationResult(value, ctx);
         return result == ValidationResult.Success || result is null
             ? Array.Empty<string>()
-            : new[] { result.ErrorMessage ?? "Inválido." };
+            : new[] { result.ErrorMessage ?? Texts.InvalidValue };
     }
 
     // ─── EditContext wiring ────────────────────────────────────────────────

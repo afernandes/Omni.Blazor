@@ -37,7 +37,7 @@
 <div class="@RootCss" style="@Style" @attributes="Attributes">
     @if (_empty)
     {
-        <div class="omni-pivot-empty">@EmptyText</div>
+        <div class="omni-pivot-empty">@(EmptyText ?? Texts.NoRecords)</div>
     }
     else
     {
@@ -73,7 +73,7 @@
                                 @foreach (var v in _values)
                                 {
                                     <th class="omni-pivot-total-head" rowspan="@(_colLevels + 1)">
-                                        @TotalsText@if (_values.Count > 1) { <br />@v.GetTitle() }
+                                        @(TotalsText ?? Texts.Total)@if (_values.Count > 1) { <br />@v.GetTitle() }
                                     </th>
                                 }
                             }
@@ -99,7 +99,7 @@
                             @foreach (var v in _values)
                             {
                                 <th class="omni-pivot-total-head">
-                                    @TotalsText@if (_values.Count > 1) { <br />@v.GetTitle() }
+                                    @(TotalsText ?? Texts.Total)@if (_values.Count > 1) { <br />@v.GetTitle() }
                                 </th>
                             }
                         }
@@ -135,7 +135,7 @@
                                     var val = row.Values[ci * _values.Count + vi];
                                     <td class="omni-pivot-value" style="@($"text-align:{v.Align}")">
                                         @if (v.Template is not null) { @v.Template(val) }
-                                        else { @v.Format(val) }
+                                        else { @v.Format(val, FormattingCulture) }
                                     </td>
                                 }
                             }
@@ -144,7 +144,7 @@
                                 @for (int vi = 0; vi < _values.Count; vi++)
                                 {
                                     var v = _values[vi];
-                                    <td class="omni-pivot-total-cell" style="@($"text-align:{v.Align}")">@v.Format(row.RowTotals[vi])</td>
+                                    <td class="omni-pivot-total-cell" style="@($"text-align:{v.Align}")">@v.Format(row.RowTotals[vi], FormattingCulture)</td>
                                 }
                             }
                         </tr>
@@ -155,13 +155,13 @@
                 {
                     <tfoot class="omni-pivot-foot">
                         <tr>
-                            <th class="omni-pivot-foot-head" colspan="@Math.Max(1, _rowLevels)">@GrandTotalText</th>
+                            <th class="omni-pivot-foot-head" colspan="@Math.Max(1, _rowLevels)">@(GrandTotalText ?? Texts.GrandTotal)</th>
                             @for (int ci = 0; ci < _visibleColLeaves.Count; ci++)
                             {
                                 @for (int vi = 0; vi < _values.Count; vi++)
                                 {
                                     var v = _values[vi];
-                                    <td class="omni-pivot-foot-cell" style="@($"text-align:{v.Align}")">@v.Format(_colTotals[ci][vi])</td>
+                                    <td class="omni-pivot-foot-cell" style="@($"text-align:{v.Align}")">@v.Format(_colTotals[ci][vi], FormattingCulture)</td>
                                 }
                             }
                             @if (ShowRowTotals)
@@ -169,7 +169,7 @@
                                 @for (int vi = 0; vi < _values.Count; vi++)
                                 {
                                     var v = _values[vi];
-                                    <td class="omni-pivot-foot-grand" style="@($"text-align:{v.Align}")">@v.Format(_grand[vi])</td>
+                                    <td class="omni-pivot-foot-grand" style="@($"text-align:{v.Align}")">@v.Format(_grand[vi], FormattingCulture)</td>
                                 }
                             }
                         </tr>
@@ -203,13 +203,13 @@
     [Parameter] public bool AllowDrillDown { get; set; } = true;
 
     /// <summary>Text shown when there's nothing to pivot.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Sem dados para exibir.";
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Label of the totals column/row headers.</summary>
-    [Parameter] public string TotalsText { get; set; } = "Total";
+    [Parameter] public string? TotalsText { get; set; }
 
     /// <summary>Label of the grand-total footer cell.</summary>
-    [Parameter] public string GrandTotalText { get; set; } = "Total geral";
+    [Parameter] public string? GrandTotalText { get; set; }
 
     private readonly List<OmniPivotRow<TItem>> _rows = new();
     private readonly List<OmniPivotColumn<TItem>> _cols = new();

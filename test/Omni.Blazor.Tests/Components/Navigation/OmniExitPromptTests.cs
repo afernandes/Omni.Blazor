@@ -44,14 +44,14 @@ public class OmniExitPromptTests : TestContextBase
     }
 
     [Fact]
-    public void Parameters_have_default_portuguese_text()
+    public void Text_parameters_are_null_so_the_current_localizer_supplies_defaults()
     {
         var cut = Render<OmniExitPrompt>();
 
-        Assert.Equal("Sair sem salvar?", cut.Instance.Title);
-        Assert.Equal("Você tem alterações não salvas. Deseja sair mesmo assim?", cut.Instance.Text);
-        Assert.Equal("Sair sem salvar", cut.Instance.ConfirmText);
-        Assert.Equal("Continuar editando", cut.Instance.CancelText);
+        Assert.Null(cut.Instance.Title);
+        Assert.Null(cut.Instance.Text);
+        Assert.Null(cut.Instance.ConfirmText);
+        Assert.Null(cut.Instance.CancelText);
         Assert.False(cut.Instance.UseNativePrompt);
     }
 

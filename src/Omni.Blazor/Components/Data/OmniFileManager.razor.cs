@@ -91,70 +91,93 @@ public partial class OmniFileManager
     [Parameter] public EventCallback<Exception> OperationFailed { get; set; }
 
     /// <summary>Accessible label for the component.</summary>
-    [Parameter] public string AriaLabel { get; set; } = "Gerenciador de arquivos";
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Accessible label for breadcrumb navigation.</summary>
-    [Parameter] public string BreadcrumbLabel { get; set; } = "Localização";
+    [Parameter] public string? BreadcrumbLabel { get; set; }
 
     /// <summary>Label for the create-folder action.</summary>
-    [Parameter] public string NewFolderText { get; set; } = "Nova pasta";
+    [Parameter] public string? NewFolderText { get; set; }
 
     /// <summary>Placeholder for a new folder name.</summary>
-    [Parameter] public string NewFolderPlaceholder { get; set; } = "Nome da pasta";
+    [Parameter] public string? NewFolderPlaceholder { get; set; }
 
     /// <summary>Label for the rename action.</summary>
-    [Parameter] public string RenameText { get; set; } = "Renomear";
+    [Parameter] public string? RenameText { get; set; }
 
     /// <summary>Placeholder for a new entry name.</summary>
-    [Parameter] public string RenamePlaceholder { get; set; } = "Novo nome";
+    [Parameter] public string? RenamePlaceholder { get; set; }
 
     /// <summary>Label for the delete action.</summary>
-    [Parameter] public string DeleteText { get; set; } = "Excluir";
+    [Parameter] public string? DeleteText { get; set; }
 
     /// <summary>Delete confirmation template. Placeholder zero receives the entry name.</summary>
-    [Parameter] public string DeleteConfirmationText { get; set; } = "Excluir “{0}”?";
+    [Parameter] public string? DeleteConfirmationText { get; set; }
 
     /// <summary>Label for the upload action.</summary>
-    [Parameter] public string UploadText { get; set; } = "Enviar";
+    [Parameter] public string? UploadText { get; set; }
 
     /// <summary>Label for the download action.</summary>
-    [Parameter] public string DownloadText { get; set; } = "Baixar";
+    [Parameter] public string? DownloadText { get; set; }
 
     /// <summary>Label for the refresh action.</summary>
-    [Parameter] public string RefreshText { get; set; } = "Atualizar";
+    [Parameter] public string? RefreshText { get; set; }
 
     /// <summary>Label for list view.</summary>
-    [Parameter] public string ListViewText { get; set; } = "Exibição em lista";
+    [Parameter] public string? ListViewText { get; set; }
 
     /// <summary>Label for grid view.</summary>
-    [Parameter] public string GridViewText { get; set; } = "Exibição em grade";
+    [Parameter] public string? GridViewText { get; set; }
 
     /// <summary>Provider-side search placeholder.</summary>
-    [Parameter] public string SearchPlaceholder { get; set; } = "Buscar nesta pasta";
+    [Parameter] public string? SearchPlaceholder { get; set; }
 
     /// <summary>Label for saving an inline edit.</summary>
-    [Parameter] public string SaveText { get; set; } = "Salvar";
+    [Parameter] public string? SaveText { get; set; }
 
     /// <summary>Label for cancelling a pending action.</summary>
-    [Parameter] public string CancelText { get; set; } = "Cancelar";
+    [Parameter] public string? CancelText { get; set; }
 
     /// <summary>Label for confirming deletion.</summary>
-    [Parameter] public string ConfirmText { get; set; } = "Confirmar";
+    [Parameter] public string? ConfirmText { get; set; }
 
     /// <summary>Message shown while the initial listing loads.</summary>
-    [Parameter] public string LoadingText { get; set; } = "Carregando arquivos...";
+    [Parameter] public string? LoadingText { get; set; }
 
     /// <summary>Message shown when the directory is empty.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Esta pasta está vazia.";
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Message shown after a provider failure.</summary>
-    [Parameter] public string ErrorText { get; set; } = "Não foi possível concluir a operação.";
+    [Parameter] public string? ErrorText { get; set; }
 
     /// <summary>Footer template for visible and total item counts.</summary>
-    [Parameter] public string ItemsCountText { get; set; } = "{0} de {1} itens";
+    [Parameter] public string? ItemsCountText { get; set; }
 
     /// <summary>Footer template shown when the configured item limit was reached.</summary>
-    [Parameter] public string LimitText { get; set; } = "Limite de {0} itens";
+    [Parameter] public string? LimitText { get; set; }
+
+    private string EffectiveAriaLabel => AriaLabel ?? Texts.FileManager;
+    private string EffectiveBreadcrumbLabel => BreadcrumbLabel ?? Texts.Location;
+    private string EffectiveNewFolderText => NewFolderText ?? Texts.NewFolder;
+    private string EffectiveNewFolderPlaceholder => NewFolderPlaceholder ?? Texts.FolderName;
+    private string EffectiveRenameText => RenameText ?? Texts.Rename;
+    private string EffectiveRenamePlaceholder => RenamePlaceholder ?? Texts.NewName;
+    private string EffectiveDeleteText => DeleteText ?? Texts.Delete;
+    private string EffectiveDeleteConfirmationText => DeleteConfirmationText ?? Texts.DeleteNamedItem;
+    private string EffectiveUploadText => UploadText ?? Texts.Upload;
+    private string EffectiveDownloadText => DownloadText ?? Texts.Download;
+    private string EffectiveRefreshText => RefreshText ?? Texts.Refresh;
+    private string EffectiveListViewText => ListViewText ?? Texts.ListView;
+    private string EffectiveGridViewText => GridViewText ?? Texts.GridView;
+    private string EffectiveSearchPlaceholder => SearchPlaceholder ?? Texts.SearchFolder;
+    private string EffectiveSaveText => SaveText ?? Texts.Save;
+    private string EffectiveCancelText => CancelText ?? Texts.Cancel;
+    private string EffectiveConfirmText => ConfirmText ?? Texts.Confirm;
+    private string EffectiveLoadingText => LoadingText ?? Texts.LoadingFiles;
+    private string EffectiveEmptyText => EmptyText ?? Texts.EmptyFolder;
+    private string EffectiveErrorText => ErrorText ?? Texts.FileOperationFailed;
+    private string EffectiveItemsCountText => ItemsCountText ?? Texts.ItemsCount;
+    private string EffectiveLimitText => LimitText ?? Texts.ItemLimit;
 
     /// <summary>Current bounded entry view.</summary>
     public IReadOnlyList<FileManagerEntry> Items => _items;
@@ -501,18 +524,18 @@ public partial class OmniFileManager
         return "file-text";
     }
 
-    private static string FormatSize(FileManagerEntry item)
+    private string FormatSize(FileManagerEntry item)
     {
         if (item.IsDirectory || item.Size is null) return "—";
         var bytes = item.Size.Value;
-        if (bytes < 1024) return string.Create(CultureInfo.CurrentCulture, $"{bytes} B");
-        if (bytes < 1024L * 1024) return string.Create(CultureInfo.CurrentCulture, $"{bytes / 1024d:N1} KB");
-        if (bytes < 1024L * 1024 * 1024) return string.Create(CultureInfo.CurrentCulture, $"{bytes / (1024d * 1024):N1} MB");
-        return string.Create(CultureInfo.CurrentCulture, $"{bytes / (1024d * 1024 * 1024):N2} GB");
+        if (bytes < 1024) return string.Create(FormattingCulture, $"{bytes} B");
+        if (bytes < 1024L * 1024) return string.Create(FormattingCulture, $"{bytes / 1024d:N1} KB");
+        if (bytes < 1024L * 1024 * 1024) return string.Create(FormattingCulture, $"{bytes / (1024d * 1024):N1} MB");
+        return string.Create(FormattingCulture, $"{bytes / (1024d * 1024 * 1024):N2} GB");
     }
 
-    private static string FormatModified(DateTimeOffset? value)
-        => value?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) ?? "—";
+    private string FormatModified(DateTimeOffset? value)
+        => value?.ToLocalTime().ToString("g", FormattingCulture) ?? "—";
 
     private static string? NullIfWhiteSpace(string value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

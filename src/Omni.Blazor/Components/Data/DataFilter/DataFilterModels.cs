@@ -107,6 +107,9 @@ internal interface IOmniDataFilterOwner
     string EndDateText { get; }
     string StartValueText { get; }
     string EndValueText { get; }
+    string ValueText { get; }
     string YesText { get; }
     string NoText { get; }
+    string EmptyRootText { get; }
+    string EmptyGroupText { get; }
 }

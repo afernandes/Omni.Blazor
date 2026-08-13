@@ -23,16 +23,16 @@ public sealed class OmniPivotValue<TItem> : OmniPivotFieldBase<TItem>
     /// <summary>Optional cell template (receives the aggregated value).</summary>
     [Parameter] public RenderFragment<object?>? Template { get; set; }
 
-    internal string Format(object? value)
+    internal string Format(object? value, CultureInfo culture)
     {
         if (value is null) return "";
         if (!string.IsNullOrEmpty(FormatString))
-            return string.Format(CultureInfo.CurrentCulture, FormatString!, value);
+            return string.Format(culture, FormatString!, value);
         return value switch
         {
-            double d => d.ToString("N2", CultureInfo.CurrentCulture),
-            decimal m => m.ToString("N2", CultureInfo.CurrentCulture),
-            float f => f.ToString("N2", CultureInfo.CurrentCulture),
+            double d => d.ToString("N2", culture),
+            decimal m => m.ToString("N2", culture),
+            float f => f.ToString("N2", culture),
             _ => value.ToString() ?? ""
         };
     }

@@ -37,7 +37,7 @@
                                 {
                                     <button type="button"
                                             class="omni-multiselect-chip-x"
-                                            aria-label="@($"Remover {label}")"
+                                            aria-label="@string.Format(FormattingCulture, Texts.RemoveNamedItem, label)"
                                             @onclick="@(_ => RemoveAsync(value))"
                                             @onclick:stopPropagation>
                                         <OmniIcon Name="x" Size="ComponentSize.Sm" />
@@ -59,7 +59,7 @@
                     <div class="omni-multiselect-search">
                         <OmniTextBox Value="@_searchText"
                                      ValueChanged="OnSearchChangedAsync"
-                                     Placeholder="@(SearchPlaceholder ?? "Buscar...")"
+                                     Placeholder="@(SearchPlaceholder ?? Texts.SearchPlaceholder)"
                                      LeadingIcon="search"
                                      Class="omni-autofocus" />
                     </div>
@@ -68,15 +68,15 @@
                 @if (_providerError is not null)
                 {
                     <div class="omni-select-status" role="alert">
-                        <span>@LoadErrorText</span>
-                        <button type="button" @onclick="RetryProviderAsync">@RetryText</button>
+                        <span>@EffectiveLoadErrorText</span>
+                        <button type="button" @onclick="RetryProviderAsync">@EffectiveRetryText</button>
                     </div>
                 }
                 else if (_loading && _availableItems.Count == 0)
                 {
                     <div class="omni-select-status" role="status">
                         <OmniSpinner Size="ComponentSize.Sm" />
-                        <span>@LoadingText</span>
+                        <span>@EffectiveLoadingText</span>
                     </div>
                 }
                 else
@@ -97,13 +97,13 @@
                     {
                         <div class="omni-select-status" role="status">
                             <OmniSpinner Size="ComponentSize.Sm" />
-                            <span>@LoadingText</span>
+                            <span>@EffectiveLoadingText</span>
                         </div>
                     }
                     else if (CanLoadMore)
                     {
                         <button type="button" class="omni-select-load-more" @onclick="LoadMoreAsync">
-                            @LoadMoreText
+                            @EffectiveLoadMoreText
                         </button>
                     }
                 }

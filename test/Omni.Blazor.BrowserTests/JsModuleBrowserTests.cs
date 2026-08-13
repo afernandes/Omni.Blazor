@@ -20,7 +20,8 @@ public sealed class JsModuleBrowserTests(BrowserFixture fixture)
         _ = await page.EvaluateAsync<bool>(
             """
             async () => {
-                const module = await import('/_content/Omni.Blazor/js/modules/omni-display.js');
+                const moduleUrl = new URL('_content/Omni.Blazor/js/modules/omni-display.js', document.baseURI);
+                const module = await import(moduleUrl.href);
                 return module.invoke('parallax.supportsNative', []);
             }
             """);
@@ -33,7 +34,8 @@ public sealed class JsModuleBrowserTests(BrowserFixture fixture)
         _ = await page.EvaluateAsync<double>(
             """
             async () => {
-                const module = await import('/_content/Omni.Blazor/js/modules/omni-scroll.js');
+                const moduleUrl = new URL('_content/Omni.Blazor/js/modules/omni-scroll.js', document.baseURI);
+                const module = await import(moduleUrl.href);
                 return module.invoke('scrollOffsetY', ['auto']);
             }
             """);

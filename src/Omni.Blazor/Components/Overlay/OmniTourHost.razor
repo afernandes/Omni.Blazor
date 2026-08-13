@@ -25,7 +25,7 @@
          aria-labelledby="@($"{_id}-t")" aria-describedby="@($"{_id}-b")"
          tabindex="-1" data-omni-focus-trap="true"
          @onkeydown="OnKeyDown">
-        <button type="button" class="omni-tour-close" aria-label="Pular tour" @onclick="Tour.SkipAsync">
+        <button type="button" class="omni-tour-close" aria-label="@Texts.SkipTour" @onclick="Tour.SkipAsync">
             <OmniIcon Name="x" Size="ComponentSize.Sm" />
         </button>
 
@@ -44,17 +44,17 @@
             <span class="omni-tour-spacer"></span>
             @if (Tour.CurrentStepIndex > 0)
             {
-                <button type="button" class="omni-tour-btn" @onclick="Tour.Prev">Anterior</button>
+                <button type="button" class="omni-tour-btn" @onclick="Tour.Prev">@Texts.Previous</button>
             }
             @if (Tour.CurrentStepIndex < Tour.StepCount - 1)
             {
                 <button type="button" class="omni-tour-btn omni-tour-btn-primary omni-autofocus"
-                        data-omni-default @onclick="Tour.Next">Próximo</button>
+                        data-omni-default @onclick="Tour.Next">@Texts.Next</button>
             }
             else
             {
                 <button type="button" class="omni-tour-btn omni-tour-btn-primary omni-autofocus"
-                        data-omni-default @onclick="Tour.CompleteAsync">Concluir</button>
+                        data-omni-default @onclick="Tour.CompleteAsync">@Texts.Complete</button>
             }
         </div>
     </div>

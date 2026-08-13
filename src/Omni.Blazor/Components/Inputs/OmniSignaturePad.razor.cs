@@ -39,19 +39,25 @@ public partial class OmniSignaturePad
     [Parameter] public bool ShowToolbar { get; set; } = true;
 
     /// <summary>Accessible label announced for the drawing canvas.</summary>
-    [Parameter] public string AriaLabel { get; set; } = "Área para assinatura";
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Label for the undo action.</summary>
-    [Parameter] public string UndoText { get; set; } = "Desfazer";
+    [Parameter] public string? UndoText { get; set; }
 
     /// <summary>Label for the clear action.</summary>
-    [Parameter] public string ClearText { get; set; } = "Limpar";
+    [Parameter] public string? ClearText { get; set; }
 
     /// <summary>Status text shown while no signature has been captured.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Aguardando assinatura";
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Status text shown after at least one stroke is captured.</summary>
-    [Parameter] public string SignedText { get; set; } = "Assinatura capturada";
+    [Parameter] public string? SignedText { get; set; }
+
+    private string EffectiveAriaLabel => AriaLabel ?? Texts.SignatureArea;
+    private string EffectiveUndoText => UndoText ?? Texts.Undo;
+    private string EffectiveClearText => ClearText ?? Texts.Clear;
+    private string EffectiveEmptyText => EmptyText ?? Texts.AwaitingSignature;
+    private string EffectiveSignedText => SignedText ?? Texts.SignatureCaptured;
 
     /// <summary>Raised after the user completes, removes or clears a stroke.</summary>
     [Parameter] public EventCallback<string?> StrokeCompleted { get; set; }

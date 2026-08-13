@@ -22,33 +22,33 @@
 
 @if (Variant == AppearanceToggleVariant.Segmented)
 {
-    <div class="@RootCss" role="group" aria-label="@AriaLabel">
+    <div class="@RootCss" role="group" aria-label="@(AriaLabel ?? Texts.AppearanceMode)">
         <button type="button"
                 class="@SegBtnCss(ThemeMode.Light)"
-                title="@LightLabel"
-                aria-label="@LightLabel"
+                title="@EffectiveLightLabel"
+                aria-label="@EffectiveLightLabel"
                 aria-pressed="@AriaPressed(ThemeMode.Light)"
                 @onclick="@(_ => SetModeAsync(ThemeMode.Light))">
             <OmniIcon Name="@LightIcon" Size="@IconSize" />
-            @if (ShowLabels) { <span class="omni-app-tog-lbl">@LightLabel</span> }
+            @if (ShowLabels) { <span class="omni-app-tog-lbl">@EffectiveLightLabel</span> }
         </button>
         <button type="button"
                 class="@SegBtnCss(ThemeMode.System)"
-                title="@SystemLabel"
-                aria-label="@SystemLabel"
+                title="@EffectiveSystemLabel"
+                aria-label="@EffectiveSystemLabel"
                 aria-pressed="@AriaPressed(ThemeMode.System)"
                 @onclick="@(_ => SetModeAsync(ThemeMode.System))">
             <OmniIcon Name="@SystemIcon" Size="@IconSize" />
-            @if (ShowLabels) { <span class="omni-app-tog-lbl">@SystemLabel</span> }
+            @if (ShowLabels) { <span class="omni-app-tog-lbl">@EffectiveSystemLabel</span> }
         </button>
         <button type="button"
                 class="@SegBtnCss(ThemeMode.Dark)"
-                title="@DarkLabel"
-                aria-label="@DarkLabel"
+                title="@EffectiveDarkLabel"
+                aria-label="@EffectiveDarkLabel"
                 aria-pressed="@AriaPressed(ThemeMode.Dark)"
                 @onclick="@(_ => SetModeAsync(ThemeMode.Dark))">
             <OmniIcon Name="@DarkIcon" Size="@IconSize" />
-            @if (ShowLabels) { <span class="omni-app-tog-lbl">@DarkLabel</span> }
+            @if (ShowLabels) { <span class="omni-app-tog-lbl">@EffectiveDarkLabel</span> }
         </button>
     </div>
 }
@@ -62,8 +62,8 @@ else if (Variant == AppearanceToggleVariant.Cycle)
                  Variant="ButtonVariant"
                  Size="@Size"
                  OnClick="@(_ => CycleAsync())"
-                 title="@($"{CurrentLabel} · clique para alternar")"
-                 aria-label="@($"{AriaLabel ?? "Modo de aparência"}: {CurrentLabel}")"
+                 title="@CurrentLabel"
+                 aria-label="@($"{AriaLabel ?? Texts.AppearanceMode}: {CurrentLabel}")"
                  Class="@CycleBtnClass" />
 }
 else // Dropdown (default)
@@ -75,8 +75,8 @@ else // Dropdown (default)
                          Text="@(ShowLabels ? CurrentLabel : null)"
                          Variant="ButtonVariant"
                          Size="@Size"
-                         title="@($"Modo: {CurrentLabel}")"
-                         aria-label="@(AriaLabel ?? $"Modo de aparência: {CurrentLabel}")"
+                         title="@CurrentLabel"
+                         aria-label="@($"{AriaLabel ?? Texts.AppearanceMode}: {CurrentLabel}")"
                          Class="@TriggerBtnClass" />
         </Trigger>
         <ChildContent>
@@ -118,13 +118,16 @@ else // Dropdown (default)
     [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Texto/label do modo Light. Default <c>"Claro"</c>.</summary>
-    [Parameter] public string LightLabel { get; set; } = "Claro";
+    [Parameter] public string? LightLabel { get; set; }
 
     /// <summary>Texto/label do modo Dark. Default <c>"Escuro"</c>.</summary>
-    [Parameter] public string DarkLabel { get; set; } = "Escuro";
+    [Parameter] public string? DarkLabel { get; set; }
 
     /// <summary>Texto/label do modo System. Default <c>"Sistema"</c>.</summary>
-    [Parameter] public string SystemLabel { get; set; } = "Sistema";
+    [Parameter] public string? SystemLabel { get; set; }
+    private string EffectiveLightLabel => LightLabel ?? Texts.Light;
+    private string EffectiveDarkLabel => DarkLabel ?? Texts.Dark;
+    private string EffectiveSystemLabel => SystemLabel ?? Texts.System;
 
     /// <summary>Ícone do modo Light. Default <c>"sun"</c>.</summary>
     [Parameter] public string LightIcon { get; set; } = "sun";
@@ -155,9 +158,9 @@ else // Dropdown (default)
 
     private string CurrentLabel => CurrentMode switch
     {
-        ThemeMode.Dark   => DarkLabel,
-        ThemeMode.System => SystemLabel,
-        _                => LightLabel,
+        ThemeMode.Dark   => EffectiveDarkLabel,
+        ThemeMode.System => EffectiveSystemLabel,
+        _                => EffectiveLightLabel,
     };
 
     private ComponentSize IconSize => Size switch
@@ -209,9 +212,9 @@ else // Dropdown (default)
     {
         _allModes = new[]
         {
-            (ThemeMode.Light,  LightIcon,  LightLabel),
-            (ThemeMode.System, SystemIcon, SystemLabel),
-            (ThemeMode.Dark,   DarkIcon,   DarkLabel),
+            (ThemeMode.Light,  LightIcon,  EffectiveLightLabel),
+            (ThemeMode.System, SystemIcon, EffectiveSystemLabel),
+            (ThemeMode.Dark,   DarkIcon,   EffectiveDarkLabel),
         };
         Theme.OnChange += HandleThemeChange;
     }

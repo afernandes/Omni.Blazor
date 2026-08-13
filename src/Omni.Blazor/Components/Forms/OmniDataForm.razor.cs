@@ -1035,14 +1035,14 @@ public partial class OmniDataForm<
         if (count < collection.MinimumItems)
         {
             errors.Add(collection.MinimumItemsError ?? string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
+                FormattingCulture,
                 Texts.DataFormMinimumItems,
                 collection.MinimumItems));
         }
         if (count > collection.MaximumItems)
         {
             errors.Add(collection.MaximumItemsError ?? string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
+                FormattingCulture,
                 Texts.DataFormMaximumItems,
                 collection.MaximumItems));
         }

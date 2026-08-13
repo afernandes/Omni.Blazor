@@ -8,6 +8,9 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+### Fixed
+- `ThemeService.InitializeAsync` now reads `prefers-color-scheme` itself when the `<html>` element carries no `data-accent`/`data-theme` — the signal that the `OmniTheme` bootstrap never ran. Hosts that cannot use the component in `<head>` (a static `index.html` under MAUI or Photino) always started in light mode on a dark OS, because the empty-storage branch only mirrored back what the bootstrap had applied. Keeping `OmniTheme` in `<head>` is still the way to avoid the flash: the fallback lands one paint late.
+
 ## [0.7.0] - 2026-08-10
 
 ### Added

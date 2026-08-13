@@ -17,7 +17,7 @@
      aria-valuemin="0"
      aria-valuemax="@Max"
      aria-valuenow="@F(Value)"
-     aria-label="@(AriaLabel ?? $"Avaliação {F(Value)} de {Max}")"
+     aria-label="@(AriaLabel ?? string.Format(FormattingCulture, Texts.Rating, F(Value), Max))"
      tabindex="@(ReadOnly || Disabled ? -1 : 0)"
      @onkeydown="OnKey"
      @onmouseleave="OnMouseLeave"
@@ -116,7 +116,7 @@
         .Build();
 
     private string FormatValue(double v)
-        => ValueFormatter is not null ? ValueFormatter(v) : v.ToString("0.#", CultureInfo.InvariantCulture);
+        => ValueFormatter is not null ? ValueFormatter(v) : v.ToString("0.#", FormattingCulture);
 
     private static string F(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
 

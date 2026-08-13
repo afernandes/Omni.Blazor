@@ -28,13 +28,13 @@ public class SideDialogOptions : DialogOptionsBase
 
 public class ConfirmOptions : DialogOptionsBase
 {
-    public string OkButtonText { get; set; } = "Confirmar";
-    public string CancelButtonText { get; set; } = "Cancelar";
+    public string? OkButtonText { get; set; }
+    public string? CancelButtonText { get; set; }
     public string? Icon { get; set; } = "alert-triangle";
 }
 
 public class AlertOptions : DialogOptionsBase
 {
-    public string OkButtonText { get; set; } = "Entendi";
+    public string? OkButtonText { get; set; }
     public string? Icon { get; set; }
 }

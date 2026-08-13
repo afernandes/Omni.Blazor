@@ -74,19 +74,19 @@ public partial class OmniSelect<TValue>
     [Parameter] public bool Clearable { get; set; }
 
     /// <summary>Text shown when there are no options.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Sem opções";
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Text shown while options are loading.</summary>
-    [Parameter] public string LoadingText { get; set; } = "Carregando...";
+    [Parameter] public string? LoadingText { get; set; }
 
     /// <summary>Text shown when the provider fails.</summary>
-    [Parameter] public string LoadErrorText { get; set; } = "Não foi possível carregar as opções.";
+    [Parameter] public string? LoadErrorText { get; set; }
 
     /// <summary>Provider retry action text.</summary>
-    [Parameter] public string RetryText { get; set; } = "Tentar novamente";
+    [Parameter] public string? RetryText { get; set; }
 
     /// <summary>Action text for requesting another provider page.</summary>
-    [Parameter] public string LoadMoreText { get; set; } = "Carregar mais";
+    [Parameter] public string? LoadMoreText { get; set; }
 
     /// <summary>Custom content shown while the first provider page is loading.</summary>
     [Parameter] public RenderFragment? LoadingTemplate { get; set; }
@@ -100,6 +100,11 @@ public partial class OmniSelect<TValue>
     private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
     private bool CanLoadMore => ItemsProvider is not null
         && _items.Count < Math.Min(_providerTotalCount, Math.Max(1, MaxProviderItems));
+    private string EffectiveEmptyText => EmptyText ?? Texts.NoOptions;
+    private string EffectiveLoadingText => LoadingText ?? Texts.Loading;
+    private string EffectiveLoadErrorText => LoadErrorText ?? Texts.LoadOptionsError;
+    private string EffectiveRetryText => RetryText ?? Texts.Retry;
+    private string EffectiveLoadMoreText => LoadMoreText ?? Texts.LoadMore;
 
     protected override void OnParametersSet()
     {

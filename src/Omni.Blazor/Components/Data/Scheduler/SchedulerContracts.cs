@@ -14,7 +14,9 @@ namespace Omni.Blazor.Components;
 public interface IOmniSchedulerView
 {
     /// <summary>Label shown on the view-switch tab.</summary>
-    string Text { get; }
+    string? Text { get; }
+    /// <summary>Culture-aware view label used by the scheduler UI.</summary>
+    string EffectiveText { get; }
 
     /// <summary>Icon name shown on the view-switch tab.</summary>
     string Icon { get; }

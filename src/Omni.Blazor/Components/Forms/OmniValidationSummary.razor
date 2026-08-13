@@ -16,9 +16,9 @@
     <div class="@RootCss" role="alert" style="@Style" @attributes="Attributes">
         <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
         <div class="omni-alert-body">
-            @if (!string.IsNullOrEmpty(Title))
+            @if (!string.IsNullOrEmpty(EffectiveTitle))
             {
-                <div class="omni-alert-title">@Title</div>
+                <div class="omni-alert-title">@EffectiveTitle</div>
             }
             <ul class="omni-validation-summary-list">
                 @foreach (var msg in _messages)
@@ -33,7 +33,9 @@
 @code {
     [CascadingParameter] private EditContext? EditContext { get; set; }
     /// <summary>Heading shown above the error list; null/empty hides it. Default "Corrija os erros abaixo:".</summary>
-    [Parameter] public string? Title { get; set; } = "Corrija os erros abaixo:";
+    [Parameter] public string? Title { get; set; }
+
+    private string? EffectiveTitle => Title ?? Texts.DataFormValidationSummary;
 
     private EditContext? _subscribed;
     private string[] _messages = Array.Empty<string>();

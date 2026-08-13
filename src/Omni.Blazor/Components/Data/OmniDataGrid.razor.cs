@@ -112,22 +112,31 @@ public partial class OmniDataGrid<TItem>
     [Parameter] public int MaxConcurrentLoads { get; set; } = 4;
 
     /// <summary>Accessible label used when the table is rendered as a tree grid.</summary>
-    [Parameter] public string HierarchyAriaLabel { get; set; } = "Tabela hierárquica";
+    [Parameter] public string? HierarchyAriaLabel { get; set; }
 
     /// <summary>Accessible label for expanding a hierarchy row.</summary>
-    [Parameter] public string ExpandText { get; set; } = "Expandir";
+    [Parameter] public string? ExpandText { get; set; }
 
     /// <summary>Accessible label for collapsing a hierarchy row.</summary>
-    [Parameter] public string CollapseText { get; set; } = "Recolher";
+    [Parameter] public string? CollapseText { get; set; }
 
     /// <summary>Message displayed when lazy child loading fails.</summary>
-    [Parameter] public string HierarchyLoadErrorText { get; set; } = "Não foi possível carregar os itens.";
+    [Parameter] public string? HierarchyLoadErrorText { get; set; }
 
     /// <summary>Label for retrying a failed lazy hierarchy load.</summary>
-    [Parameter] public string HierarchyRetryText { get; set; } = "Tentar novamente";
+    [Parameter] public string? HierarchyRetryText { get; set; }
 
     /// <summary>Message displayed when the configured hierarchy row limit is reached.</summary>
-    [Parameter] public string HierarchyLimitReachedText { get; set; } = "Exibindo no máximo {0} linhas.";
+    [Parameter] public string? HierarchyLimitReachedText { get; set; }
+
+    private string EffectiveHierarchyAriaLabel => HierarchyAriaLabel ?? Texts.HierarchicalTable;
+    private string EffectiveExpandText => ExpandText ?? Texts.Expand;
+    private string EffectiveCollapseText => CollapseText ?? Texts.Collapse;
+    private string EffectiveHierarchyLoadErrorText => HierarchyLoadErrorText ?? Texts.HierarchyLoadError;
+    private string EffectiveHierarchyRetryText => HierarchyRetryText ?? Texts.Retry;
+    private string EffectiveHierarchyLimitReachedText => HierarchyLimitReachedText ?? Texts.HierarchyLimitReached;
+    private string EffectiveGroupPanelText => GroupPanelText ?? Texts.GroupPanel;
+    private string EffectiveGroupLimitReachedText => GroupLimitReachedText ?? Texts.GroupLimitReached;
 
     /// <summary>Raised when an uncancelled lazy hierarchy load fails.</summary>
     [Parameter] public EventCallback<Exception> HierarchyLoadFailed { get; set; }

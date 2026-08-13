@@ -224,7 +224,7 @@
     private async Task OnLinkAsync()
     {
         await SaveSelectionAsync();
-        var url = await JS.InvokeAsync<string?>("htmlEditorPrompt", "URL do link:", "https://");
+        var url = await JS.InvokeAsync<string?>("htmlEditorPrompt", Texts.LinkUrlPrompt, "https://");
         if (string.IsNullOrWhiteSpace(url)) return;
         if (!IsSafeUrl(url)) return;
         await RestoreSelectionAsync();
@@ -255,44 +255,44 @@
     // ─── Default toolbar ──────────────────────────────────────────────────
     private RenderFragment RenderDefaultToolbar => __builder =>
     {
-        <OmniHtmlEditorButton Command="undo" Icon="arrow-left" Title="Desfazer" />
-        <OmniHtmlEditorButton Command="redo" Icon="arrow-right" Title="Refazer" />
+        <OmniHtmlEditorButton Command="undo" Icon="arrow-left" Title="@Texts.UndoAction" />
+        <OmniHtmlEditorButton Command="redo" Icon="arrow-right" Title="@Texts.RedoAction" />
         @Sep
-        <OmniHtmlEditorButton Command="bold" Icon="bold" Title="Negrito (Ctrl+B)" />
-        <OmniHtmlEditorButton Command="italic" Icon="italic" Title="Itálico (Ctrl+I)" />
-        <OmniHtmlEditorButton Command="underline" Icon="underline" Title="Sublinhado (Ctrl+U)" />
-        <OmniHtmlEditorButton Command="strikeThrough" Icon="strikethrough" Title="Tachado" />
+        <OmniHtmlEditorButton Command="bold" Icon="bold" Title="@($"{Texts.Bold} (Ctrl+B)")" />
+        <OmniHtmlEditorButton Command="italic" Icon="italic" Title="@($"{Texts.Italic} (Ctrl+I)")" />
+        <OmniHtmlEditorButton Command="underline" Icon="underline" Title="@($"{Texts.Underline} (Ctrl+U)")" />
+        <OmniHtmlEditorButton Command="strikeThrough" Icon="strikethrough" Title="@Texts.Strikethrough" />
         @Sep
-        <select class="omni-he-select" disabled="@Disabled" title="Estilo do bloco"
+        <select class="omni-he-select" disabled="@Disabled" title="@Texts.BlockStyle"
                 @onmousedown="@(_ => SaveSelectionAsync())" @onchange="OnFormatAsync">
-            <option value="p" selected="@(State.FormatBlock == "p")">Parágrafo</option>
-            <option value="h1" selected="@(State.FormatBlock == "h1")">Título 1</option>
-            <option value="h2" selected="@(State.FormatBlock == "h2")">Título 2</option>
-            <option value="h3" selected="@(State.FormatBlock == "h3")">Título 3</option>
-            <option value="blockquote" selected="@(State.FormatBlock == "blockquote")">Citação</option>
-            <option value="pre" selected="@(State.FormatBlock == "pre")">Código</option>
+            <option value="p" selected="@(State.FormatBlock == "p")">@Texts.Paragraph</option>
+            <option value="h1" selected="@(State.FormatBlock == "h1")">@string.Format(FormattingCulture, Texts.Heading, 1)</option>
+            <option value="h2" selected="@(State.FormatBlock == "h2")">@string.Format(FormattingCulture, Texts.Heading, 2)</option>
+            <option value="h3" selected="@(State.FormatBlock == "h3")">@string.Format(FormattingCulture, Texts.Heading, 3)</option>
+            <option value="blockquote" selected="@(State.FormatBlock == "blockquote")">@Texts.Quote</option>
+            <option value="pre" selected="@(State.FormatBlock == "pre")">@Texts.Code</option>
         </select>
         @Sep
-        <OmniHtmlEditorButton Command="justifyLeft" Icon="align-left" Title="Alinhar à esquerda" />
-        <OmniHtmlEditorButton Command="justifyCenter" Icon="align-center" Title="Centralizar" />
-        <OmniHtmlEditorButton Command="justifyRight" Icon="align-right" Title="Alinhar à direita" />
+        <OmniHtmlEditorButton Command="justifyLeft" Icon="align-left" Title="@Texts.AlignLeft" />
+        <OmniHtmlEditorButton Command="justifyCenter" Icon="align-center" Title="@Texts.AlignCenter" />
+        <OmniHtmlEditorButton Command="justifyRight" Icon="align-right" Title="@Texts.AlignRight" />
         @Sep
-        <OmniHtmlEditorButton Command="insertUnorderedList" Icon="list" Title="Lista" />
-        <OmniHtmlEditorButton Command="insertOrderedList" Icon="list-ordered" Title="Lista numerada" />
+        <OmniHtmlEditorButton Command="insertUnorderedList" Icon="list" Title="@Texts.BulletedList" />
+        <OmniHtmlEditorButton Command="insertOrderedList" Icon="list-ordered" Title="@Texts.NumberedList" />
         @Sep
-        <label class="omni-he-color" title="Cor do texto">
+        <label class="omni-he-color" title="@Texts.TextColor">
             <OmniIcon Name="droplet" Size="ComponentSize.Sm" />
             <input type="color" disabled="@Disabled"
                    @onmousedown="@(_ => SaveSelectionAsync())" @onchange="@(e => OnColorAsync("foreColor", e))" />
         </label>
-        <button type="button" class="omni-he-btn" disabled="@Disabled" title="Inserir link"
+        <button type="button" class="omni-he-btn" disabled="@Disabled" title="@Texts.InsertLink"
                 @onmousedown:preventDefault="true" @onclick="OnLinkAsync">
             <OmniIcon Name="link" Size="ComponentSize.Sm" />
         </button>
-        <OmniHtmlEditorButton Command="removeFormat" Icon="x" Title="Limpar formatação" />
+        <OmniHtmlEditorButton Command="removeFormat" Icon="x" Title="@Texts.RemoveFormatting" />
         @Sep
         <button type="button" class="@($"omni-he-btn {(_mode == HtmlEditorMode.Source ? "omni-active" : "")}")"
-                title="Ver código" @onmousedown:preventDefault="true" @onclick="ToggleSourceAsync">
+                title="@Texts.ViewSource" @onmousedown:preventDefault="true" @onclick="ToggleSourceAsync">
             <OmniIcon Name="code" Size="ComponentSize.Sm" />
         </button>
     };

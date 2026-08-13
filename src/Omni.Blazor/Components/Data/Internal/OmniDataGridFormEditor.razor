@@ -18,7 +18,7 @@
     <header class="omni-data-grid-form-editor-header">
         <h2 id="@TitleId">@Title</h2>
         <OmniButton Icon="x"
-                    Text="@CloseText"
+                    Text="@(CloseText ?? Texts.Close)"
                     Size="ComponentSize.Sm"
                     Variant="ButtonVariant.Ghost"
                     Disabled="@Saving"
@@ -36,10 +36,10 @@
                       OnValidSubmit="@OnValidSubmit">
             <Actions>
                 @AdditionalActions
-                <OmniButton Text="@CancelText"
+                <OmniButton Text="@(CancelText ?? Texts.Cancel)"
                             Disabled="@Saving"
                             OnClick="@(_ => CancelAsync())" />
-                <OmniButton Text="@SaveText"
+                <OmniButton Text="@(SaveText ?? Texts.Save)"
                             Icon="save"
                             Variant="ButtonVariant.Primary"
                             Loading="@Saving"
@@ -79,13 +79,13 @@
     [Parameter] public RenderFragment? AdditionalActions { get; set; }
 
     /// <summary>Save button text.</summary>
-    [Parameter] public string SaveText { get; set; } = "Salvar";
+    [Parameter] public string? SaveText { get; set; }
 
     /// <summary>Cancel button text.</summary>
-    [Parameter] public string CancelText { get; set; } = "Cancelar";
+    [Parameter] public string? CancelText { get; set; }
 
     /// <summary>Close button text.</summary>
-    [Parameter] public string CloseText { get; set; } = "Fechar";
+    [Parameter] public string? CloseText { get; set; }
 
     /// <summary>Receives a valid generated form submission.</summary>
     [Parameter] public EventCallback<EditContext> OnValidSubmit { get; set; }

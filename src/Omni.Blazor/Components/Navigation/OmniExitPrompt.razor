@@ -28,13 +28,13 @@
     /// <summary>Predicate that gates the prompt: navigation is intercepted only while it returns true. When null, the prompt is always active.</summary>
     [Parameter] public Func<bool>? When { get; set; }
     /// <summary>Title of the confirmation dialog (DialogService path only).</summary>
-    [Parameter] public string Title { get; set; } = "Sair sem salvar?";
+    [Parameter] public string? Title { get; set; }
     /// <summary>Body message of the confirmation prompt (used by both the dialog and the native window.confirm).</summary>
-    [Parameter] public string Text { get; set; } = "Você tem alterações não salvas. Deseja sair mesmo assim?";
+    [Parameter] public string? Text { get; set; }
     /// <summary>Label of the confirm (leave) button in the dialog.</summary>
-    [Parameter] public string ConfirmText { get; set; } = "Sair sem salvar";
+    [Parameter] public string? ConfirmText { get; set; }
     /// <summary>Label of the cancel (stay) button in the dialog.</summary>
-    [Parameter] public string CancelText { get; set; } = "Continuar editando";
+    [Parameter] public string? CancelText { get; set; }
     /// <summary>When true, uses the browser's native window.confirm instead of the Omni DialogService for in-app navigation. Default false.</summary>
     [Parameter] public bool UseNativePrompt { get; set; }
 
@@ -79,15 +79,18 @@
         bool? confirmed;
         if (UseNativePrompt)
         {
-            try { confirmed = await CoreJS.InvokeAsync<bool>("confirm", Text); }
+            try { confirmed = await CoreJS.InvokeAsync<bool>("confirm", Text ?? Texts.ExitWithoutSavingMessage); }
             catch { confirmed = true; /* fail-open if JS unavailable */ }
         }
         else
         {
-            confirmed = await Dialogs.Confirm(Text, Title, new Models.ConfirmOptions
+            confirmed = await Dialogs.Confirm(
+                Text ?? Texts.ExitWithoutSavingMessage,
+                Title ?? Texts.ExitWithoutSavingTitle,
+                new Models.ConfirmOptions
             {
-                OkButtonText = ConfirmText,
-                CancelButtonText = CancelText,
+                OkButtonText = ConfirmText ?? Texts.ExitWithoutSaving,
+                CancelButtonText = CancelText ?? Texts.ContinueEditing,
                 Icon = "alert-triangle"
             });
         }

@@ -24,7 +24,7 @@
                class="omni-seccode-input" type="@InputType" maxlength="1"
                inputmode="@(Type == SecurityCodeType.Numeric ? "numeric" : null)"
                autocomplete="one-time-code" disabled="@Disabled" readonly="@ReadOnly"
-               aria-label="@($"{AriaLabel} {n}")" />
+               aria-label="@($"{AriaLabel ?? Texts.Digit} {n}")" />
     }
 </div>
 
@@ -39,7 +39,7 @@
     [Parameter] public string Gap { get; set; } = "8px";
 
     /// <summary>Accessible label prefix for each cell (e.g. "Dígito 1"). Default "Dígito".</summary>
-    [Parameter] public string AriaLabel { get; set; } = "Dígito";
+    [Parameter] public string? AriaLabel { get; set; }
 
     private ElementReference _container;
     private DotNetObjectReference<OmniSecurityCode>? _selfRef;

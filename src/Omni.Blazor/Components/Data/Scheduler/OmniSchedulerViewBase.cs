@@ -16,7 +16,10 @@ public abstract class OmniSchedulerViewBase : OmniComponent, IOmniSchedulerView,
     [CascadingParameter] protected internal IOmniScheduler? Scheduler { get; set; }
 
     /// <inheritdoc />
-    public abstract string Text { get; set; }
+    public abstract string? Text { get; set; }
+
+    /// <inheritdoc />
+    public abstract string EffectiveText { get; }
 
     /// <inheritdoc />
     public abstract string Icon { get; set; }
@@ -40,7 +43,7 @@ public abstract class OmniSchedulerViewBase : OmniComponent, IOmniSchedulerView,
     protected DateTime CurrentDate => (Scheduler?.CurrentDate ?? DateTime.Today).Date;
 
     /// <summary>Culture for formatting + first-day-of-week (from the scheduler, falls back to current).</summary>
-    protected CultureInfo Culture => Scheduler?.Culture ?? CultureInfo.CurrentCulture;
+    protected CultureInfo Culture => Scheduler?.Culture ?? FormattingCulture;
 
     /// <summary>True when this view is the scheduler's active view.</summary>
     protected bool IsSelectedView => Scheduler is not null && Scheduler.IsSelected(this);

@@ -8,7 +8,7 @@
          class="@RootCss"
          style="@Style"
          aria-busy="@(_loading || _mutating)"
-         aria-label="@AriaLabel"
+         aria-label="@EffectiveAriaLabel"
          @attributes="Attributes">
     <div class="omni-file-manager-toolbar">
         @if (Can(FileManagerCapabilities.CreateFolder))
@@ -18,7 +18,7 @@
                     disabled="@IsBusy"
                     @onclick="BeginCreateFolder">
                 <OmniIcon Name="folder-plus" Size="ComponentSize.Sm" />
-                @NewFolderText
+                @EffectiveNewFolderText
             </button>
         }
         @if (Can(FileManagerCapabilities.Rename))
@@ -28,7 +28,7 @@
                     disabled="@(IsBusy || SelectedItem is null || SelectedItem.IsReadOnly)"
                     @onclick="BeginRename">
                 <OmniIcon Name="edit-2" Size="ComponentSize.Sm" />
-                @RenameText
+                @EffectiveRenameText
             </button>
         }
         @if (Can(FileManagerCapabilities.Delete))
@@ -38,14 +38,14 @@
                     disabled="@(IsBusy || SelectedItem is null || SelectedItem.IsReadOnly)"
                     @onclick="BeginDelete">
                 <OmniIcon Name="trash-2" Size="ComponentSize.Sm" />
-                @DeleteText
+                @EffectiveDeleteText
             </button>
         }
         @if (Can(FileManagerCapabilities.Upload))
         {
             <label class="@UploadCss">
                 <OmniIcon Name="upload" Size="ComponentSize.Sm" />
-                @UploadText
+                @EffectiveUploadText
                 <InputFile class="omni-file-manager-upload-input"
                            multiple
                            disabled="@IsBusy"
@@ -59,34 +59,34 @@
                     disabled="@(IsBusy || SelectedItem is null || SelectedItem.IsDirectory)"
                     @onclick="DownloadAsync">
                 <OmniIcon Name="download" Size="ComponentSize.Sm" />
-                @DownloadText
+                @EffectiveDownloadText
             </button>
         }
 
         <span class="omni-file-manager-toolbar-spacer"></span>
         <button type="button"
                 class="omni-file-manager-tool omni-file-manager-tool-icon"
-                aria-label="@RefreshText"
+                aria-label="@EffectiveRefreshText"
                 disabled="@IsBusy"
                 @onclick="ReloadAsync">
             <OmniIcon Name="refresh-cw" Size="ComponentSize.Sm" />
         </button>
         <button type="button"
                 class="@ViewButtonCss(FileManagerView.List)"
-                aria-label="@ListViewText"
+                aria-label="@EffectiveListViewText"
                 @onclick="@(() => SetViewAsync(FileManagerView.List))">
             <OmniIcon Name="list" Size="ComponentSize.Sm" />
         </button>
         <button type="button"
                 class="@ViewButtonCss(FileManagerView.Grid)"
-                aria-label="@GridViewText"
+                aria-label="@EffectiveGridViewText"
                 @onclick="@(() => SetViewAsync(FileManagerView.Grid))">
             <OmniIcon Name="grid" Size="ComponentSize.Sm" />
         </button>
     </div>
 
     <div class="omni-file-manager-location">
-        <nav class="omni-file-manager-breadcrumb" aria-label="@BreadcrumbLabel">
+        <nav class="omni-file-manager-breadcrumb" aria-label="@EffectiveBreadcrumbLabel">
             @foreach (var segment in Breadcrumbs)
             {
                 <span @key="segment.Path" class="omni-file-manager-crumb-segment">
@@ -107,8 +107,8 @@
             <OmniIcon Name="search" Size="ComponentSize.Sm" />
             <input type="search"
                    value="@SearchText"
-                   placeholder="@SearchPlaceholder"
-                   aria-label="@SearchPlaceholder"
+                   placeholder="@EffectiveSearchPlaceholder"
+                   aria-label="@EffectiveSearchPlaceholder"
                    @oninput="SearchChangedAsync" />
         </div>
     </div>
@@ -118,20 +118,20 @@
         <div class="omni-file-manager-editor">
             <input class="omni-file-manager-editor-input"
                    value="@_editorValue"
-                   placeholder="@(_editorMode == EditorMode.CreateFolder ? NewFolderPlaceholder : RenamePlaceholder)"
+                   placeholder="@(_editorMode == EditorMode.CreateFolder ? EffectiveNewFolderPlaceholder : EffectiveRenamePlaceholder)"
                    @oninput="args => _editorValue = args.Value?.ToString() ?? string.Empty"
                    @onkeydown="EditorKeyDownAsync" />
-            <button type="button" class="omni-file-manager-tool" disabled="@IsBusy" @onclick="CommitEditorAsync">@SaveText</button>
-            <button type="button" class="omni-file-manager-tool" disabled="@IsBusy" @onclick="CancelEditor">@CancelText</button>
+            <button type="button" class="omni-file-manager-tool" disabled="@IsBusy" @onclick="CommitEditorAsync">@EffectiveSaveText</button>
+            <button type="button" class="omni-file-manager-tool" disabled="@IsBusy" @onclick="CancelEditor">@EffectiveCancelText</button>
         </div>
     }
 
     @if (_confirmDelete && SelectedItem is not null)
     {
         <div class="omni-file-manager-confirm" role="alert">
-            <span>@string.Format(DeleteConfirmationText, SelectedItem.Name)</span>
-            <button type="button" class="omni-file-manager-tool omni-file-manager-tool-danger" disabled="@IsBusy" @onclick="DeleteAsync">@ConfirmText</button>
-            <button type="button" class="omni-file-manager-tool" disabled="@IsBusy" @onclick="CancelDelete">@CancelText</button>
+            <span>@string.Format(FormattingCulture, EffectiveDeleteConfirmationText, SelectedItem.Name)</span>
+            <button type="button" class="omni-file-manager-tool omni-file-manager-tool-danger" disabled="@IsBusy" @onclick="DeleteAsync">@EffectiveConfirmText</button>
+            <button type="button" class="omni-file-manager-tool" disabled="@IsBusy" @onclick="CancelDelete">@EffectiveCancelText</button>
         </div>
     }
 
@@ -139,7 +139,7 @@
     {
         <div class="omni-file-manager-error" role="alert">
             <OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" />
-            @ErrorText
+            @EffectiveErrorText
         </div>
     }
 
@@ -148,12 +148,12 @@
         {
             <div class="omni-file-manager-state">
                 <OmniSpinner />
-                @LoadingText
+                @EffectiveLoadingText
             </div>
         }
         else if (_items.Count == 0)
         {
-            <div class="omni-file-manager-state">@EmptyText</div>
+            <div class="omni-file-manager-state">@EffectiveEmptyText</div>
         }
         else
         {
@@ -185,10 +185,10 @@
     </div>
 
     <footer class="omni-file-manager-footer">
-        <span>@string.Format(ItemsCountText, _items.Count, _totalCount)</span>
+        <span>@string.Format(FormattingCulture, EffectiveItemsCountText, _items.Count, _totalCount)</span>
         @if (_totalCount > _items.Count)
         {
-            <span>@string.Format(LimitText, MaxItems)</span>
+            <span>@string.Format(FormattingCulture, EffectiveLimitText, MaxItems)</span>
         }
     </footer>
 </section>

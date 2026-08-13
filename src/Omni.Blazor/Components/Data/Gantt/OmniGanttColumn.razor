@@ -50,6 +50,6 @@
         if (v is null) return null;
         return string.IsNullOrEmpty(FormatString)
             ? v.ToString()
-            : string.Format(CultureInfo.CurrentCulture, FormatString, v);
+            : string.Format(Parent?.Culture ?? FormattingCulture, FormatString, v);
     }
 }

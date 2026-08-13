@@ -73,7 +73,7 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 
 | # | Item | Área | Esforço |
 |---|---|---|---|
-| 5b | Apontar os ~30 defaults de `[Parameter]` para o `OmniTexts` | Lib | M |
+| 5b | ~~Localização completa de defaults e strings internas~~ | Lib | ✅ |
 | 30 | Migrar interop complexo para módulos JS tipados/lazy e contratos descartáveis | Lib | L |
 | 32 | BenchmarkDotNet para DataGrid, Markdown, CSS builders e gerador, com budgets de alocação | Performance | M |
 
@@ -112,17 +112,9 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 
 ## 2. Detalhamento
 
-### P1 · 5b. Apontar os defaults de `[Parameter]` para o `OmniTexts`
+### ✅ P1 · 5b. Localização completa e extensível
 
-**Contexto.** O seam existe e funciona (#30): `[Parameter]` → `Texts` registrado → default embutido. As **17 strings que não tinham override nenhum** já estão ligadas.
-
-**O que falta.** Cerca de **30 parâmetros** cujo default ainda é uma string pt-BR literal — `OmniChat.SendLabel`/`Placeholder`/`EmptyMessage`, `OmniStepper.NextText`/`PrevText`/`CompleteText`, `OmniScheduler.TodayText`/`NextText`/`PrevText`, `OmniDataFilter.*Text`, `OmniDataGrid.SearchPlaceholder`/`EmptyText`, `OmniDateRangePicker.*Text`, `OmniLayout.SkipLabel`, `OmniCommandPalette.Placeholder`, `OmniConfirmPrompt.ButtonText`, … Eles **já aceitam override por instância**, então o gap é menor — mas quem registra `OmniTexts.English()` ainda vê esses defaults em pt-BR, o que é incoerente.
-
-**Como corrigir.** Por parâmetro: tornar nullable (`public string? X`), remover o inicializador e resolver no uso (`X ?? Texts.Chave`). São ~30 declarações e ~40 pontos de uso, todos simples (`@Param` em atributo/conteúdo). As chaves correspondentes **já existem** no `OmniTexts` (`Send`, `Next`, `Back`, `Complete`, `Today`, `Apply`, `Cancel`, `ClearAll`, `SearchPlaceholder`, `NoRecords`, …) — hoje sem consumidor.
-
-**Cuidado.** `OmniDataFilter` reencaminha vários desses parâmetros por uma interface (`string IOmniDataFilterOwner.AddFilterText => AddFilterText;`) — a substituição precisa acertar só o lado direito.
-
-**Esforço:** M · **Área:** Lib
+**Concluído.** Defaults e textos internos renderizados passam por `IOmniLocalizer`; os catálogos embutidos cobrem pt-BR e inglês, com fallback de cultura, pluralização, `OmniCultureScope`, RTL e formatação culture-aware. Aplicações podem adicionar traduções por dicionário/JSON, `IStringLocalizer`/RESX, banco ou PO/Gettext sem acoplar a biblioteca a um formato. Consulte [`docs/localization.md`](docs/localization.md).
 
 ---
 

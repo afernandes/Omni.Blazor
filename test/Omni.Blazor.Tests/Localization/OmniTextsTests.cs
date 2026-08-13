@@ -2,6 +2,7 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Omni.Blazor;
 using Omni.Blazor.Localization;
+using System.Globalization;
 
 namespace Omni.Blazor.Tests.Localization;
 
@@ -23,17 +24,52 @@ public class OmniTextsTests : TestContextBase
     }
 
     [Fact]
-    public void English_translates_every_key()
+    public void English_defines_every_key()
     {
         var en = OmniTexts.English();
-        var pt = OmniTexts.Default;
 
         foreach (var p in typeof(OmniTexts).GetProperties().Where(p => p.PropertyType == typeof(string)))
         {
             var enValue = (string?)p.GetValue(en);
-            var ptValue = (string?)p.GetValue(pt);
             Assert.False(string.IsNullOrWhiteSpace(enValue), $"{p.Name} has no English value");
-            Assert.True(enValue != ptValue, $"{p.Name} was not translated (still '{ptValue}')");
+        }
+
+        Assert.Equal("Close", en.Close);
+        Assert.Equal("No records found.", en.NoRecords);
+        Assert.Equal("Grand total", en.GrandTotal);
+    }
+
+    [Fact]
+    public void Stable_keys_cover_every_public_text_property()
+    {
+        string[] properties = typeof(OmniTexts).GetProperties()
+            .Where(static property => property.PropertyType == typeof(string))
+            .Select(static property => property.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        string[] keys = OmniTranslationKeys.All.Order(StringComparer.Ordinal).ToArray();
+
+        Assert.Equal(properties, keys);
+    }
+
+    [Fact]
+    public void Embedded_catalogs_cover_every_stable_key()
+    {
+        var services = new ServiceCollection();
+        services.AddOmniComponents();
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+
+        foreach (string cultureName in new[] { "pt-BR", "en-US" })
+        {
+            CultureInfo culture = CultureInfo.GetCultureInfo(cultureName);
+            foreach (string key in OmniTranslationKeys.All)
+            {
+                OmniLocalizedString value = localizer.Localize(key, culture);
+                Assert.False(value.ResourceNotFound, $"{cultureName} is missing {key}");
+                Assert.False(string.IsNullOrWhiteSpace(value.Value), $"{cultureName}:{key} is empty");
+            }
         }
     }
 
@@ -50,11 +86,29 @@ public class OmniTextsTests : TestContextBase
     [Fact]
     public void AddOmniComponents_registers_the_default_texts()
     {
-        var services = new ServiceCollection();
-        services.AddOmniComponents();
-        using var provider = services.BuildServiceProvider();
+        // The registered set now resolves through the localizer, so it follows
+        // CurrentUICulture: this same assertion returned "Close" on an en-US agent while
+        // passing on a pt-BR one. The UI culture is pinned because what this test is about
+        // is the DI registration, not which language a given machine happens to be in.
+        var previous = System.Globalization.CultureInfo.CurrentUICulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentUICulture =
+                new System.Globalization.CultureInfo("pt-BR");
 
-        Assert.Same(OmniTexts.Default, provider.GetService<OmniTexts>());
+            var services = new ServiceCollection();
+            services.AddOmniComponents();
+            using var provider = services.BuildServiceProvider();
+
+            using var scope = provider.CreateScope();
+            Assert.Equal("Fechar", scope.ServiceProvider.GetRequiredService<OmniTexts>().Close);
+            Assert.IsAssignableFrom<IOmniLocalizer>(
+                scope.ServiceProvider.GetRequiredService<IOmniLocalizer>());
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = previous;
+        }
     }
 
     [Fact]
@@ -132,5 +186,95 @@ public class OmniTextsTests : TestContextBase
             .Add(c => c.SkipTarget, "#content"));
 
         Assert.Contains("Ir para o conteúdo", cut.Find("a.omni-skip-link").TextContent);
+    }
+
+    [Fact]
+    public void Built_in_resources_follow_current_ui_culture_without_recreating_the_scope()
+    {
+        var services = new ServiceCollection();
+        services.AddOmniComponents();
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var texts = scope.ServiceProvider.GetRequiredService<OmniTexts>();
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("pt-BR");
+            Assert.Equal("Fechar", texts.Close);
+
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+            Assert.Equal("Close", texts.Close);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    [Fact]
+    public void Custom_catalog_overrides_one_key_and_preserves_built_in_fallback()
+    {
+        var services = new ServiceCollection();
+        services.AddOmniTranslations("fr", new Dictionary<string, string>
+        {
+            [OmniTranslationKeys.Close] = "Fermer"
+        });
+        services.AddOmniComponents();
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+        var culture = CultureInfo.GetCultureInfo("fr-FR");
+
+        Assert.Equal("Fermer", localizer.Localize(OmniTranslationKeys.Close, culture).Value);
+        Assert.Equal("Salvar", localizer.Localize(OmniTranslationKeys.Save, culture).Value);
+    }
+
+    [Fact]
+    public void Pluralization_supports_language_specific_categories()
+    {
+        var services = new ServiceCollection();
+        services.AddOmniTranslations("ar", new Dictionary<string, string>
+        {
+            ["Items.Zero"] = "لا عناصر",
+            ["Items.One"] = "عنصر واحد",
+            ["Items.Two"] = "عنصران",
+            ["Items.Few"] = "{0} عناصر",
+            ["Items.Many"] = "{0} عنصرًا",
+            ["Items.Other"] = "{0} عنصر"
+        });
+        services.AddOmniComponents();
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+        var culture = CultureInfo.GetCultureInfo("ar");
+
+        Assert.Equal("لا عناصر", localizer.Plural("Items", 0, culture, 0));
+        Assert.Equal("عنصران", localizer.Plural("Items", 2, culture, 2));
+        Assert.Equal("5 عناصر", localizer.Plural("Items", 5, culture, 5));
+    }
+
+    [Fact]
+    public void Culture_scope_sets_language_direction_and_localizes_descendants()
+    {
+        Services.AddOmniComponents();
+
+        var cut = Render<OmniCultureScope>(parameters => parameters
+            .Add(component => component.UICulture, CultureInfo.GetCultureInfo("en-US"))
+            .AddChildContent<OmniAlert>(alert => alert.Add(component => component.Dismissible, true)));
+
+        Assert.Equal("en-US", cut.Find(".omni-culture-scope").GetAttribute("lang"));
+        Assert.Equal("ltr", cut.Find(".omni-culture-scope").GetAttribute("dir"));
+        Assert.Equal("Close", cut.Find(".omni-alert-close").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void Culture_scope_infers_rtl_from_ui_culture()
+    {
+        var cut = Render<OmniCultureScope>(parameters => parameters
+            .Add(component => component.UICulture, CultureInfo.GetCultureInfo("ar-SA"))
+            .AddChildContent("<span>مرحبا</span>"));
+
+        Assert.Equal("rtl", cut.Find(".omni-culture-scope").GetAttribute("dir"));
     }
 }

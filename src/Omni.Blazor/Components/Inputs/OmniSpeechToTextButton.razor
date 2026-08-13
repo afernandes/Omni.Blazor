@@ -93,10 +93,10 @@
     /// <summary>Texto durante <c>Connecting</c> (aguardando mic ficar pronto).
     /// Default <c>"Conectando…"</c>. Crítico no Edge — mostra que ainda NÃO
     /// está ouvindo enquanto Microsoft Speech estabelece conexão.</summary>
-    [Parameter] public string? ConnectingText { get; set; } = "Conectando…";
+    [Parameter] public string? ConnectingText { get; set; }
 
     /// <summary>Texto durante <c>Stopping</c>. Default <c>"Parando…"</c>.</summary>
-    [Parameter] public string? StoppingText { get; set; } = "Parando…";
+    [Parameter] public string? StoppingText { get; set; }
 
     /// <summary>(Obsoleto — use <see cref="ConnectingText"/>.) Texto genérico de
     /// transição, mantido por compatibilidade. Se setado, sobrescreve
@@ -104,16 +104,16 @@
     [Parameter] public string? BusyText { get; set; }
 
     /// <summary>Tooltip + aria-label idle.</summary>
-    [Parameter] public string Title { get; set; } = "Pressione para falar";
+    [Parameter] public string? Title { get; set; }
 
     /// <summary>Tooltip + aria-label gravando.</summary>
-    [Parameter] public string StopTitle { get; set; } = "Pressione para parar";
+    [Parameter] public string? StopTitle { get; set; }
 
     /// <summary>Tooltip durante transição (Connecting/Stopping).</summary>
-    [Parameter] public string BusyTitle { get; set; } = "Aguarde…";
+    [Parameter] public string? BusyTitle { get; set; }
 
     /// <summary>Tooltip quando browser não suporta Web Speech API.</summary>
-    [Parameter] public string UnsupportedTitle { get; set; } = "Reconhecimento de voz não disponível neste navegador";
+    [Parameter] public string? UnsupportedTitle { get; set; }
 
     /// <summary>Permite clicar o botão mesmo em estado Busy (Starting/Stopping).
     /// Default false — espera transição completar. true = cliques rápidos
@@ -154,21 +154,21 @@
     private string CurrentText => State switch
     {
         SpeechRecognitionState.Recording => RecordingText ?? Text ?? string.Empty,
-        SpeechRecognitionState.Connecting => BusyText ?? ConnectingText ?? Text ?? string.Empty,
-        SpeechRecognitionState.Stopping   => BusyText ?? StoppingText  ?? Text ?? string.Empty,
+        SpeechRecognitionState.Connecting => BusyText ?? ConnectingText ?? Texts.SpeechConnecting,
+        SpeechRecognitionState.Stopping   => BusyText ?? StoppingText ?? Texts.SpeechStopping,
         _ => Text ?? string.Empty,
     };
 
     private string CurrentTitle => _knownUnsupported
-        ? UnsupportedTitle
+        ? UnsupportedTitle ?? Texts.SpeechUnsupported
         : State switch
         {
-            SpeechRecognitionState.Recording => StopTitle,
-            SpeechRecognitionState.Connecting or SpeechRecognitionState.Stopping => BusyTitle,
+            SpeechRecognitionState.Recording => StopTitle ?? Texts.SpeechStop,
+            SpeechRecognitionState.Connecting or SpeechRecognitionState.Stopping => BusyTitle ?? Texts.PleaseWait,
             SpeechRecognitionState.Error => string.IsNullOrEmpty(_lastError)
-                ? Title
-                : $"Erro: {FormatError(_lastError)}",
-            _ => Title,
+                ? Title ?? Texts.SpeechStart
+                : string.Format(FormattingCulture, Texts.ErrorWithMessage, FormatError(_lastError)),
+            _ => Title ?? Texts.SpeechStart,
         };
 
     // OmniButton applies Style/Attributes on the underlying root, so all this
@@ -210,21 +210,21 @@
         if (OnStateChange.HasDelegate) await OnStateChange.InvokeAsync(state);
     }
 
-    /// <summary>Traduz códigos crus do browser pra mensagens humanas (PT-BR).</summary>
-    private static string FormatError(string code) => code switch
+    /// <summary>Maps raw browser error codes to localized, user-facing messages.</summary>
+    private string FormatError(string code) => code switch
     {
-        "not-allowed" => "permissão de microfone negada",
-        "no-speech" => "nenhuma fala detectada",
-        "audio-capture" => "microfone indisponível",
-        "network" => "erro de rede",
-        "aborted" => "interrompido",
-        "language-not-supported" => "idioma não suportado",
-        "service-not-allowed" => "serviço bloqueado",
-        "start-timeout" => "browser não respondeu",
-        "connect-timeout" => "não conectou ao serviço de fala — verifique sua rede",
-        "invalid-state" => "estado inválido — tente novamente",
-        "ctor-failed" => "falha ao criar reconhecedor",
-        "superseded" => "substituído por outro botão",
+        "not-allowed" => Texts.MicrophonePermissionDenied,
+        "no-speech" => Texts.NoSpeechDetected,
+        "audio-capture" => Texts.MicrophoneUnavailable,
+        "network" => Texts.NetworkError,
+        "aborted" => Texts.Aborted,
+        "language-not-supported" => Texts.LanguageUnsupported,
+        "service-not-allowed" => Texts.ServiceBlocked,
+        "start-timeout" => Texts.BrowserTimeout,
+        "connect-timeout" => Texts.SpeechConnectionTimeout,
+        "invalid-state" => Texts.InvalidState,
+        "ctor-failed" => Texts.RecognizerCreationFailed,
+        "superseded" => Texts.Superseded,
         _ => code,
     };
 

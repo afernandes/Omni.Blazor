@@ -100,8 +100,13 @@ public class OmniDatePickerTests : TestContextBase
     [Fact]
     public void Initial_Value_populates_text_on_first_render()
     {
+        // DateFormat is stated rather than left to default: the default now follows the
+        // culture's short pattern, so an assertion on dd/MM/yyyy would only hold on a
+        // machine that happens to be pt-BR. What this test is about is the recompute and
+        // the DOM reflecting the bound value, not which pattern the culture picks.
         var cut = Render<OmniDatePicker<DateOnly?>>(p => p
-            .Add(c => c.Value, new DateOnly(2025, 6, 4)));
+            .Add(c => c.Value, new DateOnly(2025, 6, 4))
+            .Add(c => c.DateFormat, "dd/MM/yyyy"));
 
         // DOM observation: the input value reflects the bound DateOnly.
         Assert.Equal("04/06/2025", cut.Find("input.omni-datepicker-input").GetAttribute("value"));
@@ -127,7 +132,8 @@ public class OmniDatePickerTests : TestContextBase
     public void Recompute_fires_when_Value_changes()
     {
         var cut = Render<OmniDatePicker<DateOnly?>>(p => p
-            .Add(c => c.Value, new DateOnly(2025, 6, 4)));
+            .Add(c => c.Value, new DateOnly(2025, 6, 4))
+            .Add(c => c.DateFormat, "dd/MM/yyyy"));
 
         var baseline = cut.Instance.RecomputeCount;
         cut.Render(p => p.Add(c => c.Value, new DateOnly(2025, 7, 11)));

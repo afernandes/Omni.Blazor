@@ -6,6 +6,11 @@
 
   <PropertyGroup>
     <RootNamespace>Omni.Blazor</RootNamespace>
+    <NeutralLanguage>pt-BR</NeutralLanguage>
+    <!-- A Razor class library only needs the Sass build task. Embedding the
+         development watcher attribute leaks the build-time package into
+         consumers and breaks ResourceManager assembly metadata inspection. -->
+    <SassCompilerEnableWatcher>false</SassCompilerEnableWatcher>
     <AssemblyName>Omni.Blazor</AssemblyName>
     <!-- O PackageId NuGet é AndersonN.Omni.Blazor (o ID 'Omni.Blazor' é reservado
          por outra conta). Fixamos o base path dos static web assets em
@@ -52,6 +57,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" />
     <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
     <!-- The optional AI layer (IChatClient orchestration) lives in the separate
          Omni.Blazor.Ai package so base consumers don't take the AI dependency. -->

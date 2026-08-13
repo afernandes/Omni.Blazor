@@ -34,6 +34,7 @@ new enum, edited XML doc):
 
 ```bash
 dotnet run --project tools/Omni.Blazor.ManifestGen
+pwsh ./tools/generate-localization-resources.ps1  # after changing OmniTexts
 ```
 
 ## MCP server (live tools for agents)

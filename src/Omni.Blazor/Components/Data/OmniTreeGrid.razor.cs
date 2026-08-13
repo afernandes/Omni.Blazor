@@ -105,25 +105,33 @@ public partial class OmniTreeGrid<TItem>
     [Parameter] public bool ExpandOnRowDoubleClick { get; set; } = true;
 
     /// <summary>Accessible label for the tree grid.</summary>
-    [Parameter] public string AriaLabel { get; set; } = "Tabela hierárquica";
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Empty-state text.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Nenhum registro encontrado.";
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Accessible label for expanding a row.</summary>
-    [Parameter] public string ExpandText { get; set; } = "Expandir";
+    [Parameter] public string? ExpandText { get; set; }
 
     /// <summary>Accessible label for collapsing a row.</summary>
-    [Parameter] public string CollapseText { get; set; } = "Recolher";
+    [Parameter] public string? CollapseText { get; set; }
 
     /// <summary>Message shown when lazy child loading fails.</summary>
-    [Parameter] public string LoadErrorText { get; set; } = "Não foi possível carregar os itens.";
+    [Parameter] public string? LoadErrorText { get; set; }
 
     /// <summary>Label for retrying a failed lazy load.</summary>
-    [Parameter] public string RetryText { get; set; } = "Tentar novamente";
+    [Parameter] public string? RetryText { get; set; }
 
     /// <summary>Template shown when the visible-row limit is reached.</summary>
-    [Parameter] public string LimitReachedText { get; set; } = "Exibindo no máximo {0} linhas.";
+    [Parameter] public string? LimitReachedText { get; set; }
+
+    private string EffectiveAriaLabel => AriaLabel ?? Texts.HierarchicalTable;
+    private string EffectiveEmptyText => EmptyText ?? Texts.NoRecords;
+    private string EffectiveExpandText => ExpandText ?? Texts.Expand;
+    private string EffectiveCollapseText => CollapseText ?? Texts.Collapse;
+    private string EffectiveLoadErrorText => LoadErrorText ?? Texts.HierarchyLoadError;
+    private string EffectiveRetryText => RetryText ?? Texts.Retry;
+    private string EffectiveLimitReachedText => LimitReachedText ?? Texts.HierarchyLimitReached;
 
     /// <summary>Raised when an uncancelled lazy-load operation fails.</summary>
     [Parameter] public EventCallback<Exception> LoadFailed { get; set; }

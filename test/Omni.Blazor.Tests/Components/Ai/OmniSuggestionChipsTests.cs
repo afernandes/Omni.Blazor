@@ -14,7 +14,7 @@ public class OmniSuggestionChipsTests : TestContextBase
 
         var root = cut.Find("div.omni-suggestion-chips");
         Assert.Equal("group", root.GetAttribute("role"));
-        Assert.Equal("Suggestions", root.GetAttribute("aria-label"));
+        Assert.Equal("Sugestões", root.GetAttribute("aria-label"));
         Assert.Equal(3, cut.FindAll("button.omni-chip").Count);
         Assert.Contains("Explain", cut.FindAll("button.omni-chip")[1].TextContent);
     }
