@@ -14,7 +14,7 @@
             @ref="_canvas"
             class="omni-signature-pad-canvas"
             style="height: @(Height)px"
-            aria-label="@AriaLabel"
+            aria-label="@EffectiveAriaLabel"
             tabindex="@(Disabled ? -1 : 0)">
     </canvas>
 
@@ -26,17 +26,17 @@
                     disabled="@(Disabled || ReadOnly || !HasSignature)"
                     @onclick="UndoAsync">
                 <OmniIcon Name="undo" Size="ComponentSize.Sm" />
-                @UndoText
+                @EffectiveUndoText
             </button>
             <button type="button"
                     class="omni-signature-pad-action"
                     disabled="@(Disabled || ReadOnly || !HasSignature)"
                     @onclick="ClearAsync">
                 <OmniIcon Name="trash-2" Size="ComponentSize.Sm" />
-                @ClearText
+                @EffectiveClearText
             </button>
             <span class="omni-signature-pad-status" aria-live="polite">
-                @(HasSignature ? SignedText : EmptyText)
+                @(HasSignature ? EffectiveSignedText : EffectiveEmptyText)
             </span>
         </div>
     }

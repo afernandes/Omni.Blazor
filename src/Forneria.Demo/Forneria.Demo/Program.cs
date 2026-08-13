@@ -1,6 +1,9 @@
 using Forneria.Demo.Components;
 using Forneria.Demo.Pages.Pages.PdvFeature;
 using Forneria.Demo.Pages.Services;
+using Forneria.Demo.Pages.Localization;
+using System.Globalization;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Omni.Blazor;
@@ -12,6 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddLocalization();
+builder.Services.AddDemoOmniTranslations();
 builder.Services.AddOmniComponents();
 builder.Services.AddScoped<FakeOrderService>();
 builder.Services.AddScoped<PdvOrderService>();
@@ -39,6 +44,15 @@ if (!app.Environment.IsDevelopment())
 // On the interactive side, <Router NotFoundPage=…> handles it client-side.
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+var supportedCultures = new[] { "pt-BR", "en-US", "fr-FR", "ar-SA" }
+    .Select(CultureInfo.GetCultureInfo)
+    .ToArray();
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("pt-BR"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+});
 
 // ---- Demo upload — serve saved files at /uploads/* ------------------------
 // A source checkout may not contain an empty wwwroot directory (Git does not

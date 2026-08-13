@@ -7,10 +7,10 @@
 @* Workflow composition surface with Diagram editing, bounded undo/redo, graph validation and a typed PropertyGrid inspector. *@
 
 <section class="@RootCss" style="@Style" @attributes="Attributes">
-    <header class="omni-workflow-designer-toolbar" role="toolbar" aria-label="@ToolbarAriaLabel">
-        <OmniButton Text="@UndoText" Icon="undo-2" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
+    <header class="omni-workflow-designer-toolbar" role="toolbar" aria-label="@(ToolbarAriaLabel ?? Texts.WorkflowActions)">
+        <OmniButton Text="@(UndoText ?? Texts.UndoAction)" Icon="undo-2" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
                     Disabled="@(!CanUndo || ReadOnly)" OnClick="@(_ => UndoAsync())" />
-        <OmniButton Text="@RedoText" Icon="redo-2" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
+        <OmniButton Text="@(RedoText ?? Texts.RedoAction)" Icon="redo-2" Size="ComponentSize.Sm" Variant="ButtonVariant.Ghost"
                     Disabled="@(!CanRedo || ReadOnly)" OnClick="@(_ => RedoAsync())" />
         @ToolbarContent
     </header>
@@ -20,7 +20,7 @@
         <div class="omni-alert omni-alert-danger omni-workflow-designer-validation" role="alert">
             <div class="omni-alert-ico"><OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" /></div>
             <div class="omni-alert-body">
-                <div class="omni-alert-title">@ValidationTitle</div>
+                <div class="omni-alert-title">@(ValidationTitle ?? Texts.ReviewWorkflow)</div>
                 <ul>
                     @foreach (string error in _validationErrors)
                     {
@@ -34,7 +34,7 @@
     <div class="@WorkspaceCss">
         @if (PaletteContent is not null)
         {
-            <aside class="omni-workflow-designer-palette" aria-label="@PaletteAriaLabel">
+            <aside class="omni-workflow-designer-palette" aria-label="@(PaletteAriaLabel ?? Texts.WorkflowPalette)">
                 @PaletteContent
             </aside>
         }
@@ -62,13 +62,13 @@
                                Style="@CanvasStyle" />
         </div>
 
-        <aside class="omni-workflow-designer-inspector" aria-label="@InspectorAriaLabel">
+        <aside class="omni-workflow-designer-inspector" aria-label="@(InspectorAriaLabel ?? Texts.Properties)">
             @if (SelectedModel is not null)
             {
                 <OmniPropertyGrid TModel="TNode"
                                   Model="@SelectedModel"
                                   Schema="@InspectorSchema"
-                                  Title="@InspectorTitle"
+                                  Title="@(InspectorTitle ?? Texts.Properties)"
                                   Editable="@(!ReadOnly)"
                                   ShowValidationSummary="true"
                                   PropertyChanged="@InspectorChangedAsync" />
@@ -79,7 +79,7 @@
             }
             else
             {
-                <OmniEmptyState Icon="mouse-pointer-2" Title="@InspectorEmptyText" />
+                <OmniEmptyState Icon="mouse-pointer-2" Title="@(InspectorEmptyText ?? Texts.SelectNode)" />
             }
         </aside>
     </div>

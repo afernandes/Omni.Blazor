@@ -136,20 +136,20 @@
             @if (ShowAutoLayout && !ReadOnly)
             {
                 <div class="omni-diagram-ctlgroup">
-                    <button type="button" class="omni-diagram-ctlbtn" title="@AutoLayoutText" @onclick="AutoLayoutAsync">
+                    <button type="button" class="omni-diagram-ctlbtn" title="@(AutoLayoutText ?? Texts.AutoLayout)" @onclick="AutoLayoutAsync">
                         <OmniIcon Name="layout-dashboard" Style="font-size:18px;" />
                     </button>
                 </div>
             }
             <div class="omni-diagram-ctlgroup omni-diagram-ctlgroup-row">
-                <button type="button" class="omni-diagram-ctlbtn" title="@ZoomOutText" @onclick="@(() => ZoomByAsync(-1))">
+                <button type="button" class="omni-diagram-ctlbtn" title="@(ZoomOutText ?? Texts.ZoomOut)" @onclick="@(() => ZoomByAsync(-1))">
                     <OmniIcon Name="zoom-out" Style="font-size:17px;" />
                 </button>
                 <div class="omni-diagram-zoomlabel">@Math.Round(_viewport.Zoom * 100)%</div>
-                <button type="button" class="omni-diagram-ctlbtn" title="@ZoomInText" @onclick="@(() => ZoomByAsync(1))">
+                <button type="button" class="omni-diagram-ctlbtn" title="@(ZoomInText ?? Texts.ZoomIn)" @onclick="@(() => ZoomByAsync(1))">
                     <OmniIcon Name="zoom-in" Style="font-size:17px;" />
                 </button>
-                <button type="button" class="omni-diagram-ctlbtn" title="@FitText" @onclick="FitToViewAsync">
+                <button type="button" class="omni-diagram-ctlbtn" title="@(FitText ?? Texts.FitToView)" @onclick="FitToViewAsync">
                     <OmniIcon Name="maximize" Style="font-size:16px;" />
                 </button>
             </div>
@@ -261,16 +261,16 @@
     [Parameter] public EventCallback<DiagramExternalDropEventArgs> OnExternalDrop { get; set; }
 
     /// <summary>Tooltip text for the auto-layout button.</summary>
-    [Parameter] public string AutoLayoutText { get; set; } = "Auto-layout (organizar)";
+    [Parameter] public string? AutoLayoutText { get; set; }
 
     /// <summary>Tooltip text for the zoom-in button.</summary>
-    [Parameter] public string ZoomInText { get; set; } = "Aumentar zoom";
+    [Parameter] public string? ZoomInText { get; set; }
 
     /// <summary>Tooltip text for the zoom-out button.</summary>
-    [Parameter] public string ZoomOutText { get; set; } = "Diminuir zoom";
+    [Parameter] public string? ZoomOutText { get; set; }
 
     /// <summary>Tooltip text for the fit button.</summary>
-    [Parameter] public string FitText { get; set; } = "Ajustar à tela";
+    [Parameter] public string? FitText { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-diagram")
         .AddClass("omni-diagram-readonly", ReadOnly)

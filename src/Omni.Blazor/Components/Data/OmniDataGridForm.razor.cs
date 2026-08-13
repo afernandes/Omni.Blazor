@@ -1311,7 +1311,7 @@ public partial class OmniDataGridForm<
     private string? ConfirmationIcon => _confirmationAction?.Icon ?? Schema.DeleteOptions?.Icon;
     private ButtonVariant ConfirmationVariant => _confirmationAction?.Variant ?? ButtonVariant.Danger;
     private string SelectedItemsText
-        => string.Format(CultureInfo.CurrentCulture, Texts.DataGridFormSelectedCount, _selectionSnapshot.Count);
+        => string.Format(FormattingCulture, Texts.DataGridFormSelectedCount, _selectionSnapshot.Count);
     private string BulkConfirmationMessage
         => _bulkConfirmationAction?.Confirmation?.Invoke(_bulkConfirmationItems ?? _selectionSnapshot)
            ?? Texts.DataGridFormBulkConfirmation;

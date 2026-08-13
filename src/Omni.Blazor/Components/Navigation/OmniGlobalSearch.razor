@@ -7,14 +7,14 @@
 <section @ref="Element"
          class="@RootCss"
          style="@Style"
-         aria-label="@AriaLabel"
+         aria-label="@EffectiveAriaLabel"
          @attributes="Attributes">
     <div class="omni-global-search-box">
         <OmniIcon Name="search" Size="ComponentSize.Sm" />
         <input class="omni-global-search-input"
                type="search"
                value="@_query"
-               placeholder="@Placeholder"
+               placeholder="@EffectivePlaceholder"
                autocomplete="off"
                spellcheck="false"
                role="combobox"
@@ -26,13 +26,13 @@
                @onkeydown="OnKeyDownAsync" />
         @if (_loading)
         {
-            <span class="omni-global-search-spinner" role="status" aria-label="@LoadingText"></span>
+            <span class="omni-global-search-spinner" role="status" aria-label="@EffectiveLoadingText"></span>
         }
         else if (!string.IsNullOrEmpty(_query))
         {
             <button type="button"
                     class="omni-global-search-clear"
-                    aria-label="@ClearText"
+                    aria-label="@EffectiveClearText"
                     @onclick="ClearAsync">
                 <OmniIcon Name="x" Size="ComponentSize.Sm" />
             </button>
@@ -44,12 +44,12 @@
         {
             <div class="omni-global-search-message omni-global-search-error" role="alert">
                 <OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" />
-                @ErrorText
+                @EffectiveErrorText
             </div>
         }
         else if (_loading && _results.Count == 0)
         {
-            <div class="omni-global-search-message">@LoadingText</div>
+            <div class="omni-global-search-message">@EffectiveLoadingText</div>
         }
         else if (_query.Trim().Length < MinQueryLength && !ShowAllWhenEmpty)
         {
@@ -59,12 +59,12 @@
             }
             else
             {
-                <div class="omni-global-search-message">@HintText</div>
+                <div class="omni-global-search-message">@EffectiveHintText</div>
             }
         }
         else if (_results.Count == 0)
         {
-            <div class="omni-global-search-message">@EmptyText</div>
+            <div class="omni-global-search-message">@EffectiveEmptyText</div>
         }
         else
         {

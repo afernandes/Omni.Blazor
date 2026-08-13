@@ -37,7 +37,7 @@
                         @if (_colMenuOpen)
                         {
                             <div class="omni-grid-colmenu" @onclick:stopPropagation>
-                                <div class="omni-grid-colmenu-title">Colunas visíveis</div>
+                                <div class="omni-grid-colmenu-title">@Texts.VisibleColumns</div>
                                 @foreach (var col in _columns.Where(c => c.CanHide && !string.IsNullOrEmpty(c.Title)))
                                 {
                                     <label class="omni-grid-colmenu-item">
@@ -54,7 +54,7 @@
                 @if (AllowExport)
                 {
                     <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm" Icon="download"
-                                 Text="Exportar" Disabled="@IsExporting" OnClick="ExportCsvAsync" />
+                                 Text="@Texts.Export" Disabled="@IsExporting" OnClick="ExportCsvAsync" />
                 }
             </div>
         }
@@ -100,7 +100,7 @@
             <div class="omni-grid-group-panel" id="@GroupPanelUid">
                 @if (_groupLevels.Count == 0)
                 {
-                    <span class="omni-grid-group-panel-hint">@GroupPanelText</span>
+                    <span class="omni-grid-group-panel-hint">@EffectiveGroupPanelText</span>
                 }
                 else
                 {
@@ -145,7 +145,7 @@
             }
             <table class="@TableCss"
                    role="@(IsHierarchyMode ? "treegrid" : null)"
-                   aria-label="@(IsHierarchyMode ? HierarchyAriaLabel : null)"
+                   aria-label="@(IsHierarchyMode ? EffectiveHierarchyAriaLabel : null)"
                    aria-rowcount="@(IsHierarchyMode ? HierarchyRows.Count : null)">
                 <colgroup>
                     @if (AllowMultiSelection) { <col style="width:36px" /> }
@@ -175,7 +175,7 @@
                         }
                         @if (DetailTemplate is not null)
                         {
-                            <th scope="col" aria-label="Detalhes" class="omni-grid-th-expand" style="width: 36px;"></th>
+                            <th scope="col" aria-label="@Texts.Details" class="omni-grid-th-expand" style="width: 36px;"></th>
                         }
                         @{ var _hi = 0; }
                         @foreach (var c in VisibleColumns)
@@ -190,7 +190,7 @@
                                        loop OLE do host e o drop nunca chega à página. O gesto
                                        inteiro vive no JS (gridStartGroupDrag) — mesmo desenho
                                        browser-owned do resize de coluna. *@
-                                    <span class="omni-grid-col-drag" title="Arraste para agrupar"
+                                    <span class="omni-grid-col-drag" title="@Texts.DragColumnToGroup"
                                           @onclick:preventDefault="true" @onclick:stopPropagation="true"
                                           @onpointerdown:stopPropagation="true"
                                           @onpointerdown="@(() => StartGroupDragAsync(c))"></span>
@@ -209,7 +209,7 @@
                                 }
                                 @if (AllowColumnResize && c.Resizable)
                                 {
-                                    <span class="omni-grid-resizer" title="Redimensionar coluna"
+                                    <span class="omni-grid-resizer" title="@Texts.ResizeColumn"
                                           @onclick:preventDefault="true" @onclick:stopPropagation="true"
                                           @onmousedown:preventDefault="true" @onmousedown:stopPropagation="true"
                                           @onmousedown="@(e => StartColumnResizeAsync(hi, e))"></span>
@@ -363,14 +363,14 @@
         @if (IsHierarchyMode && HierarchyLimitReached)
         {
             <div class="omni-tree-grid-limit" role="status">
-                @string.Format(HierarchyLimitReachedText, MaxVisibleRows)
+                @string.Format(FormattingCulture, EffectiveHierarchyLimitReachedText, MaxVisibleRows)
             </div>
         }
 
         @if (IsGroupMode && _groupLimitReached)
         {
             <div class="omni-grid-group-limit" role="status">
-                @string.Format(GroupLimitReachedText, MaxGroups)
+                @string.Format(FormattingCulture, EffectiveGroupLimitReachedText, MaxGroups)
             </div>
         }
 
@@ -379,7 +379,7 @@
             <div class="omni-grid-footer">
                 @* No modo agrupado a paginação recorta grupos, não linhas — dizer só
                    "1–10 de 37" faria o usuário ler 37 registros onde há 37 grupos. *@
-                <span>@_pageStart–@_pageEnd de @_totalCount @(IsGroupMode && _allGroups is not null ? Texts.Groups : null)</span>
+                <span>@string.Format(FormattingCulture, Texts.PageRange, _pageStart, _pageEnd, _totalCount) @(IsGroupMode && _allGroups is not null ? Texts.Groups : null)</span>
                 <div class="omni-grid-pager">
                     <OmniButton Variant="ButtonVariant.Ghost" Size="ComponentSize.Sm" IconOnly Icon="chevron-left"
                                  Disabled="@(_page == 0)"
@@ -508,7 +508,7 @@
     [Parameter] public bool ShowGroupFooters { get; set; }
 
     /// <summary>Placeholder text shown in the (empty) group panel.</summary>
-    [Parameter] public string GroupPanelText { get; set; } = "Arraste o cabeçalho de uma coluna aqui para agrupar";
+    [Parameter] public string? GroupPanelText { get; set; }
 
     /// <summary>
     /// Teto de nós de grupo montados numa passada (todos os níveis somados). Default 10.000.
@@ -520,7 +520,7 @@
     [Parameter] public int MaxGroups { get; set; } = 10_000;
 
     /// <summary>Aviso exibido quando <see cref="MaxGroups"/> é atingido; <c>{0}</c> é o teto.</summary>
-    [Parameter] public string GroupLimitReachedText { get; set; } = "Exibindo no máximo {0} grupos.";
+    [Parameter] public string? GroupLimitReachedText { get; set; }
 
     /// <summary>
     /// Acima de quantos grupos de primeiro nível o agrupamento nasce COLAPSADO. Default 100.
@@ -1695,7 +1695,7 @@
         if (node.Interval is { } interval)
         {
             return node.Key is DateTime key
-                ? DateGrouping.Label(key, interval, node.NestedInLarger, CultureInfo.CurrentCulture, Texts)
+                ? DateGrouping.Label(key, interval, node.NestedInLarger, FormattingCulture, Texts)
                 : "(vazio)";
         }
 
@@ -1850,7 +1850,7 @@
         _ => "?"
     };
 
-    private static string FormatAggregate(OmniDataGridColumn<TItem> col, object? value)
+    private string FormatAggregate(OmniDataGridColumn<TItem> col, object? value)
     {
         if (value is null) return "—";
         if (col.AggregateFormat is not null) return col.AggregateFormat(value);
@@ -1859,9 +1859,9 @@
         // in any app that isn't pt-BR.
         return value switch
         {
-            decimal d => d.ToString("N2", System.Globalization.CultureInfo.CurrentCulture),
-            double dbl => dbl.ToString("N2", System.Globalization.CultureInfo.CurrentCulture),
-            float f => f.ToString("N2", System.Globalization.CultureInfo.CurrentCulture),
+            decimal d => d.ToString("N2", FormattingCulture),
+            double dbl => dbl.ToString("N2", FormattingCulture),
+            float f => f.ToString("N2", FormattingCulture),
             _ => value.ToString() ?? "—"
         };
     }
@@ -1928,7 +1928,7 @@
                 <td class="omni-grid-td-expand" @onclick:stopPropagation>
                     <button type="button"
                             class="@($"omni-grid-expand-btn {(isDetailExpanded ? "omni-active" : "")}")"
-                            aria-label="@(isDetailExpanded ? "Colapsar" : "Expandir")"
+                            aria-label="@(isDetailExpanded ? Texts.Collapse : Texts.Expand)"
                             aria-expanded="@(isDetailExpanded ? "true" : "false")"
                             @onclick="@(_ => ToggleExpandAsync(row))">
                         <OmniIcon Name="@(isDetailExpanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />
@@ -1946,7 +1946,7 @@
                             @if (hasChildren)
                             {
                                 <button type="button" class="omni-grid-tree-chevron"
-                                        aria-label="@(_hierarchy.IsExpanded(tr.Key) ? CollapseText : ExpandText)"
+                                        aria-label="@(_hierarchy.IsExpanded(tr.Key) ? EffectiveCollapseText : EffectiveExpandText)"
                                         aria-expanded="@(_hierarchy.IsExpanded(tr.Key) ? "true" : "false")"
                                         disabled="@_hierarchy.IsNodeLoading(tr.Key)"
                                         @onclick:stopPropagation
@@ -2011,8 +2011,8 @@
         {
             <tr @key="HierarchyErrorRowKey(tr.Key)" class="omni-tree-grid-error-row">
                 <td colspan="@FullColSpan">
-                    <span>@HierarchyLoadErrorText</span>
-                    <button type="button" @onclick="@(() => RetryHierarchyAsync(row))">@HierarchyRetryText</button>
+                    <span>@EffectiveHierarchyLoadErrorText</span>
+                    <button type="button" @onclick="@(() => RetryHierarchyAsync(row))">@EffectiveHierarchyRetryText</button>
                     <span class="omni-visually-hidden">@hierarchyError</span>
                 </td>
             </tr>
@@ -2038,7 +2038,7 @@
                 <td class="omni-grid-td-expand" @onclick:stopPropagation>
                     <button type="button"
                             class="@($"omni-grid-expand-btn {(isExpanded ? "omni-active" : "")}")"
-                            aria-label="@(isExpanded ? "Colapsar" : "Expandir")"
+                            aria-label="@(isExpanded ? Texts.Collapse : Texts.Expand)"
                             aria-expanded="@(isExpanded ? "true" : "false")"
                             @onclick="@(_ => ToggleExpandAsync(row))">
                         <OmniIcon Name="@(isExpanded ? "chevron-down" : "chevron-right")" Size="ComponentSize.Sm" />

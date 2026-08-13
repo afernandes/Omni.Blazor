@@ -3,9 +3,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Omni.Blazor;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
+using Omni.Blazor.Localization;
+using System.Globalization;
 
 var services = new ServiceCollection();
 services.AddOmniComponents();
+using ServiceProvider provider = services.BuildServiceProvider();
+using IServiceScope scope = provider.CreateScope();
+IOmniLocalizer localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+bool localizedResourcesWork = localizer.Localize(
+    OmniTranslationKeys.Close,
+    CultureInfo.GetCultureInfo("en-US")).Value == "Close";
 
 DataFormSchema<AotContact> formSchema = DataFormSchema<AotContact>.Builder()
     .AutoGenerateFields(false)
@@ -65,7 +73,8 @@ if (services.Count == 0
     || importSchema.Count != 2
     || schedulerSchema.Text is null
     || ganttSchema.Key is null
-    || !typedRuntimePathsWork)
+    || !typedRuntimePathsWork
+    || !localizedResourcesWork)
     return 1;
 
 Type[] rootedComponents =

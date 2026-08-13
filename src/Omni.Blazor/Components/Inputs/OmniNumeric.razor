@@ -48,10 +48,10 @@
     @if (ShowSpinButtons && !ReadOnly)
     {
         <div class="omni-numeric-spinner">
-            <button type="button" tabindex="-1" disabled="@Disabled" @onclick="@(_ => StepAsync(+1))" aria-label="Aumentar">
+            <button type="button" tabindex="-1" disabled="@Disabled" @onclick="@(_ => StepAsync(+1))" aria-label="@Texts.Increase">
                 <OmniIcon Name="chevron-up" Size="ComponentSize.Sm" />
             </button>
-            <button type="button" tabindex="-1" disabled="@Disabled" @onclick="@(_ => StepAsync(-1))" aria-label="Diminuir">
+            <button type="button" tabindex="-1" disabled="@Disabled" @onclick="@(_ => StepAsync(-1))" aria-label="@Texts.Decrease">
                 <OmniIcon Name="chevron-down" Size="ComponentSize.Sm" />
             </button>
         </div>
@@ -111,8 +111,7 @@
             .Attach();
     }
 
-    private static readonly System.Globalization.CultureInfo Culture =
-        System.Globalization.CultureInfo.CurrentCulture;
+    private System.Globalization.CultureInfo Culture => FormattingCulture;
 
     private string JsDecimalSeparator =>
         Culture.NumberFormat.NumberDecimalSeparator.Replace("\\", "\\\\").Replace("'", "\\'");

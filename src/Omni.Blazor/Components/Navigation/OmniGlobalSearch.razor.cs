@@ -69,25 +69,33 @@ public partial class OmniGlobalSearch
     [Parameter] public bool NavigateOnSelect { get; set; } = true;
 
     /// <summary>Accessible label for the search landmark.</summary>
-    [Parameter] public string AriaLabel { get; set; } = "Busca global";
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Search input placeholder.</summary>
-    [Parameter] public string Placeholder { get; set; } = "Buscar em todo o sistema...";
+    [Parameter] public string? Placeholder { get; set; }
 
     /// <summary>Hint shown before the minimum query length is reached.</summary>
-    [Parameter] public string HintText { get; set; } = "Digite para buscar";
+    [Parameter] public string? HintText { get; set; }
 
     /// <summary>Message shown while the provider is running.</summary>
-    [Parameter] public string LoadingText { get; set; } = "Buscando...";
+    [Parameter] public string? LoadingText { get; set; }
 
     /// <summary>Message shown when no result matches.</summary>
-    [Parameter] public string EmptyText { get; set; } = "Nenhum resultado encontrado.";
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Message shown when the provider fails.</summary>
-    [Parameter] public string ErrorText { get; set; } = "Não foi possível concluir a busca.";
+    [Parameter] public string? ErrorText { get; set; }
 
     /// <summary>Accessible label for the clear-query action.</summary>
-    [Parameter] public string ClearText { get; set; } = "Limpar busca";
+    [Parameter] public string? ClearText { get; set; }
+
+    private string EffectiveAriaLabel => AriaLabel ?? Texts.GlobalSearch;
+    private string EffectivePlaceholder => Placeholder ?? Texts.GlobalSearchPlaceholder;
+    private string EffectiveHintText => HintText ?? Texts.TypeToSearch;
+    private string EffectiveLoadingText => LoadingText ?? Texts.Searching;
+    private string EffectiveEmptyText => EmptyText ?? Texts.NoResults;
+    private string EffectiveErrorText => ErrorText ?? Texts.SearchFailed;
+    private string EffectiveClearText => ClearText ?? Texts.ClearSearch;
 
     /// <summary>Whether an asynchronous provider request is currently active.</summary>
     public bool IsLoading => _loading;

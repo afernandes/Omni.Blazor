@@ -137,7 +137,7 @@ public class OmniAiConversationTests : TestContextBase
         var cut = Render(client);
 
         cut.Find("textarea.omni-prompt-input-field").Input("pergunta");
-        cut.Find("button[aria-label='Send']").Click();
+        cut.Find("button[aria-label='Enviar']").Click();
 
         cut.WaitForAssertion(() =>
         {

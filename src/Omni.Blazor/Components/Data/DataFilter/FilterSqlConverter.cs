@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Omni.Blazor.Models;
+using Omni.Blazor.Localization;
 
 namespace Omni.Blazor.Components;
 
@@ -156,6 +157,34 @@ public static class FilterSqlConverter
     public static bool TryParse(string? sql, IReadOnlyList<OmniFilterPropertyInfo> properties,
                                 out List<OmniFilterRule> rules, out FilterLogic logic, out string? error)
     {
+        bool success = TryParseCore(sql, properties, out rules, out logic, out FilterSqlParseException? diagnostic);
+        error = diagnostic is null
+            ? null
+            : FormatDiagnostic(diagnostic, OmniTexts.Default, CultureInfo.CurrentCulture);
+        return success;
+    }
+
+    internal static bool TryParseLocalized(
+        string? sql,
+        IReadOnlyList<OmniFilterPropertyInfo> properties,
+        OmniTexts texts,
+        CultureInfo culture,
+        out List<OmniFilterRule> rules,
+        out FilterLogic logic,
+        out string? error)
+    {
+        bool success = TryParseCore(sql, properties, out rules, out logic, out FilterSqlParseException? diagnostic);
+        error = diagnostic is null ? null : FormatDiagnostic(diagnostic, texts, culture);
+        return success;
+    }
+
+    private static bool TryParseCore(
+        string? sql,
+        IReadOnlyList<OmniFilterPropertyInfo> properties,
+        out List<OmniFilterRule> rules,
+        out FilterLogic logic,
+        out FilterSqlParseException? error)
+    {
         rules = new();
         logic = FilterLogic.And;
         error = null;
@@ -173,11 +202,40 @@ public static class FilterSqlConverter
         }
         catch (FilterSqlParseException ex)
         {
-            error = ex.Message;
+            error = ex;
             rules = new();
             logic = FilterLogic.And;
             return false;
         }
+    }
+
+    private static string FormatDiagnostic(FilterSqlParseException error, OmniTexts texts, CultureInfo culture)
+    {
+        string format = error.Key switch
+        {
+            nameof(OmniTexts.SqlUnexpectedToken) => texts.SqlUnexpectedToken,
+            nameof(OmniTexts.SqlPrefixNotUnsupported) => texts.SqlPrefixNotUnsupported,
+            nameof(OmniTexts.SqlExpectedField) => texts.SqlExpectedField,
+            nameof(OmniTexts.SqlUnknownColumn) => texts.SqlUnknownColumn,
+            nameof(OmniTexts.SqlExpectedLikeOrBetween) => texts.SqlExpectedLikeOrBetween,
+            nameof(OmniTexts.SqlExpectedOperator) => texts.SqlExpectedOperator,
+            nameof(OmniTexts.SqlExpectedValue) => texts.SqlExpectedValue,
+            nameof(OmniTexts.SqlExpectedNumber) => texts.SqlExpectedNumber,
+            nameof(OmniTexts.SqlInvalidDate) => texts.SqlInvalidDate,
+            nameof(OmniTexts.SqlExpectedBoolean) => texts.SqlExpectedBoolean,
+            nameof(OmniTexts.SqlNotLikePatternUnsupported) => texts.SqlNotLikePatternUnsupported,
+            nameof(OmniTexts.SqlUnexpectedCharacter) => texts.SqlUnexpectedCharacter,
+            nameof(OmniTexts.SqlUnterminatedString) => texts.SqlUnterminatedString,
+            nameof(OmniTexts.SqlUnterminatedIdentifier) => texts.SqlUnterminatedIdentifier,
+            nameof(OmniTexts.SqlInvalidNumber) => texts.SqlInvalidNumber,
+            nameof(OmniTexts.SqlExpectedNumberLiteral) => texts.SqlExpectedNumberLiteral,
+            nameof(OmniTexts.SqlExpectedClosingParenthesis) => texts.SqlExpectedClosingParenthesis,
+            nameof(OmniTexts.SqlExpectedNull) => texts.SqlExpectedNull,
+            nameof(OmniTexts.SqlExpectedQuotedPattern) => texts.SqlExpectedQuotedPattern,
+            nameof(OmniTexts.SqlExpectedAndInRange) => texts.SqlExpectedAndInRange,
+            _ => error.Key
+        };
+        return error.Arguments.Length == 0 ? format : string.Format(culture, format, error.Arguments);
     }
 
     // ─── Parser ──────────────────────────────────────────────────────────────
@@ -203,9 +261,9 @@ public static class FilterSqlConverter
         private Token Next() => _toks[_i++];
         private bool Is(K k) => _toks[_i].Kind == k;
 
-        private Token Expect(K k, string what)
+        private Token Expect(K k, string errorKey)
         {
-            if (!Is(k)) throw Err($"esperado {what}");
+            if (!Is(k)) throw Err(errorKey);
             return Next();
         }
 
@@ -213,7 +271,7 @@ public static class FilterSqlConverter
         {
             if (Is(K.End)) return null;
             var node = ParseOr();
-            if (!Is(K.End)) throw Err($"token inesperado “{Peek.Text}”");
+            if (!Is(K.End)) throw Err(nameof(OmniTexts.SqlUnexpectedToken), Peek.Text);
             return node;
         }
 
@@ -237,22 +295,22 @@ public static class FilterSqlConverter
             {
                 Next();
                 var inner = ParseOr();
-                Expect(K.RParen, "“)”");
+                Expect(K.RParen, nameof(OmniTexts.SqlExpectedClosingParenthesis));
                 // Always wrap a parenthesised sub-expression in a group so the tree
                 // mirrors what the user typed (and round-trips).
                 return inner.IsGroup ? inner : new OmniFilterRule { Logic = FilterLogic.And, Rules = new() { inner } };
             }
             if (Is(K.Not))
-                throw Err("NOT só é suportado na forma infixa (campo NOT LIKE '%x%', <>, IS NOT NULL)");
+                throw Err(nameof(OmniTexts.SqlPrefixNotUnsupported));
             return ParseCondition();
         }
 
         private OmniFilterRule ParseCondition()
         {
-            if (!Is(K.Ident)) throw Err($"esperado um campo, encontrado “{Peek.Text}”");
+            if (!Is(K.Ident)) throw Err(nameof(OmniTexts.SqlExpectedField), Peek.Text);
             var idTok = Next();
             if (!_props.TryGetValue(idTok.Text, out var info))
-                throw Err($"coluna “{idTok.Text}” desconhecida");
+                throw Err(nameof(OmniTexts.SqlUnknownColumn), idTok.Text);
 
             var rule = new OmniFilterRule { Property = info.Property };
 
@@ -262,7 +320,7 @@ public static class FilterSqlConverter
                 Next();
                 var not = Is(K.Not);
                 if (not) Next();
-                Expect(K.Null, "NULL");
+                Expect(K.Null, nameof(OmniTexts.SqlExpectedNull));
                 rule.Operator = not ? FilterOperator.IsNotEmpty : FilterOperator.IsEmpty;
                 return rule;
             }
@@ -273,7 +331,7 @@ public static class FilterSqlConverter
             if (Is(K.Like))
             {
                 Next();
-                var pat = Expect(K.Str, "um padrão entre aspas").Value as string ?? "";
+                var pat = Expect(K.Str, nameof(OmniTexts.SqlExpectedQuotedPattern)).Value as string ?? "";
                 ApplyLike(rule, pat, negated);
                 return rule;
             }
@@ -281,13 +339,13 @@ public static class FilterSqlConverter
             {
                 Next();
                 object? lower = CoerceValue(ParseValue(), info, idTok.Text);
-                Expect(K.And, "AND no intervalo");
+                Expect(K.And, nameof(OmniTexts.SqlExpectedAndInRange));
                 object? upper = CoerceValue(ParseValue(), info, idTok.Text);
                 rule.Operator = negated ? FilterOperator.NotBetween : FilterOperator.Between;
                 rule.Value = new DataFilterRangeValue(lower, upper);
                 return rule;
             }
-            if (negated) throw Err("esperado LIKE ou BETWEEN após NOT");
+            if (negated) throw Err(nameof(OmniTexts.SqlExpectedLikeOrBetween));
 
             // comparison operator + value
             var op = Peek.Kind switch
@@ -298,7 +356,7 @@ public static class FilterSqlConverter
                 K.Ge => FilterOperator.GreaterOrEqual,
                 K.Lt => FilterOperator.LessThan,
                 K.Le => FilterOperator.LessOrEqual,
-                _ => throw Err($"esperado um operador após “{info.Property}”")
+                _ => throw Err(nameof(OmniTexts.SqlExpectedOperator), info.Property)
             };
             Next();
             rule.Operator = op;
@@ -318,7 +376,7 @@ public static class FilterSqlConverter
                 // Only %x% (NotContains) and a plain literal (NotEquals) have counterparts.
                 if (lead && trail) { rule.Operator = FilterOperator.NotContains; rule.Value = core; return; }
                 if (!lead && !trail) { rule.Operator = FilterOperator.NotEquals; rule.Value = core; return; }
-                throw new FilterSqlParseException("NOT LIKE só suporta '%valor%' ou um valor exato");
+                throw new FilterSqlParseException(nameof(OmniTexts.SqlNotLikePatternUnsupported));
             }
 
             if (lead && trail) rule.Operator = FilterOperator.Contains;
@@ -334,7 +392,7 @@ public static class FilterSqlConverter
             if (Is(K.Minus))
             {
                 Next();
-                var n = Expect(K.Num, "um número").Value;
+                var n = Expect(K.Num, nameof(OmniTexts.SqlExpectedNumberLiteral)).Value;
                 return -(decimal)n!;
             }
             return Peek.Kind switch
@@ -344,7 +402,7 @@ public static class FilterSqlConverter
                 K.True => Skip(true),
                 K.False => Skip(false),
                 K.Null => Skip((object?)null),
-                _ => throw Err($"esperado um valor, encontrado “{Peek.Text}”")
+                _ => throw Err(nameof(OmniTexts.SqlExpectedValue), Peek.Text)
             };
         }
 
@@ -359,18 +417,18 @@ public static class FilterSqlConverter
                 case ColumnFilterType.Number:
                     if (raw is decimal d) return d;
                     if (raw is string sn && decimal.TryParse(sn, NumStyle, Inv, out var pn)) return pn;
-                    throw Err($"valor numérico esperado para “{col}”");
+                    throw Err(nameof(OmniTexts.SqlExpectedNumber), col);
 
                 case ColumnFilterType.Date:
                     if (raw is string sd && DateTime.TryParseExact(sd, DateFormats, Inv, DateTimeStyles.None, out var pd)) return pd;
-                    throw Err($"data inválida para “{col}” (use 'AAAA-MM-DD')");
+                    throw Err(nameof(OmniTexts.SqlInvalidDate), col);
 
                 case ColumnFilterType.Boolean:
                     if (raw is bool b) return b;
                     if (raw is decimal db) return db == 1 ? true : db == 0 ? false
-                        : throw Err($"valor booleano esperado para “{col}” (TRUE/FALSE)");
+                        : throw Err(nameof(OmniTexts.SqlExpectedBoolean), col);
                     if (raw is string sb && bool.TryParse(sb, out var pb)) return pb;
-                    throw Err($"valor booleano esperado para “{col}” (TRUE/FALSE)");
+                    throw Err(nameof(OmniTexts.SqlExpectedBoolean), col);
 
                 default: // Text / Select
                     return raw is decimal dx ? dx.ToString(Inv)
@@ -379,7 +437,7 @@ public static class FilterSqlConverter
             }
         }
 
-        private FilterSqlParseException Err(string msg) => new(msg);
+        private FilterSqlParseException Err(string key, params object?[] arguments) => new(key, arguments);
 
         // ── tokenizer ──
         private static List<Token> Tokenize(string s)
@@ -408,7 +466,7 @@ public static class FilterSqlConverter
                         continue;
                     case '!':
                         if (i + 1 < n && s[i + 1] == '=') { toks.Add(new(K.Ne, "!=", null)); i += 2; continue; }
-                        throw new FilterSqlParseException("caractere inesperado “!”");
+                        throw new FilterSqlParseException(nameof(OmniTexts.SqlUnexpectedCharacter), "!");
                 }
 
                 // quoted string '...'  ('' is an escaped quote)
@@ -425,7 +483,7 @@ public static class FilterSqlConverter
                         }
                         sb.Append(s[i++]);
                     }
-                    throw new FilterSqlParseException("string não terminada (faltou aspas de fechamento)");
+                    throw new FilterSqlParseException(nameof(OmniTexts.SqlUnterminatedString));
                 strDone:
                     toks.Add(new(K.Str, sb.ToString(), sb.ToString()));
                     continue;
@@ -447,7 +505,7 @@ public static class FilterSqlConverter
                         }
                         sb.Append(s[i++]);
                     }
-                    if (!closed) throw new FilterSqlParseException("identificador não terminado");
+                    if (!closed) throw new FilterSqlParseException(nameof(OmniTexts.SqlUnterminatedIdentifier));
                     toks.Add(new(K.Ident, sb.ToString(), null));
                     continue;
                 }
@@ -459,7 +517,7 @@ public static class FilterSqlConverter
                     while (i < n && (char.IsDigit(s[i]) || s[i] == '.')) i++;
                     var raw = s[start..i];
                     if (!decimal.TryParse(raw, NumberStyles.Any, Inv, out var dv))
-                        throw new FilterSqlParseException($"número inválido “{raw}”");
+                        throw new FilterSqlParseException(nameof(OmniTexts.SqlInvalidNumber), raw);
                     toks.Add(new(K.Num, raw, dv));
                     continue;
                 }
@@ -487,7 +545,7 @@ public static class FilterSqlConverter
                     continue;
                 }
 
-                throw new FilterSqlParseException($"caractere inesperado “{c}”");
+                throw new FilterSqlParseException(nameof(OmniTexts.SqlUnexpectedCharacter), c);
             }
             toks.Add(new(K.End, "", null));
             return toks;
@@ -498,5 +556,12 @@ public static class FilterSqlConverter
 /// <summary>Raised by <see cref="FilterSqlConverter.TryParse"/> internals; surfaced as the out error.</summary>
 internal sealed class FilterSqlParseException : Exception
 {
-    public FilterSqlParseException(string message) : base(message) { }
+    public FilterSqlParseException(string key, params object?[] arguments) : base(key)
+    {
+        Key = key;
+        Arguments = arguments;
+    }
+
+    public string Key { get; }
+    public object?[] Arguments { get; }
 }

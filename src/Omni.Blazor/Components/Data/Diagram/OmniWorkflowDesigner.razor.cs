@@ -135,35 +135,35 @@ public partial class OmniWorkflowDesigner<
 
     /// <summary>Accessible toolbar label.</summary>
     [Parameter]
-    public string ToolbarAriaLabel { get; set; } = "Workflow actions";
+    public string? ToolbarAriaLabel { get; set; }
 
     /// <summary>Accessible palette label.</summary>
     [Parameter]
-    public string PaletteAriaLabel { get; set; } = "Workflow palette";
+    public string? PaletteAriaLabel { get; set; }
 
     /// <summary>Accessible inspector label.</summary>
     [Parameter]
-    public string InspectorAriaLabel { get; set; } = "Properties";
+    public string? InspectorAriaLabel { get; set; }
 
     /// <summary>Inspector heading.</summary>
     [Parameter]
-    public string InspectorTitle { get; set; } = "Properties";
+    public string? InspectorTitle { get; set; }
 
     /// <summary>Inspector empty-state title.</summary>
     [Parameter]
-    public string InspectorEmptyText { get; set; } = "Select a node";
+    public string? InspectorEmptyText { get; set; }
 
     /// <summary>Undo action text.</summary>
     [Parameter]
-    public string UndoText { get; set; } = "Undo";
+    public string? UndoText { get; set; }
 
     /// <summary>Redo action text.</summary>
     [Parameter]
-    public string RedoText { get; set; } = "Redo";
+    public string? RedoText { get; set; }
 
     /// <summary>Graph validation heading.</summary>
     [Parameter]
-    public string ValidationTitle { get; set; } = "Review the workflow";
+    public string? ValidationTitle { get; set; }
 
     /// <summary>Whether an undo entry is available.</summary>
     public bool CanUndo => _undo.Count != 0;

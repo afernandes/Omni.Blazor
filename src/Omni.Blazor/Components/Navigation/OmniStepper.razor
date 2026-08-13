@@ -39,7 +39,7 @@
         @* Compact (mobile ≤ 480px). Está sempre no DOM; CSS escolhe quando exibir. *@
         <div class="omni-stepper-compact">
             <div class="omni-stepper-compact-indicator">
-                Etapa @(ActiveStep + 1) <span class="omni-stepper-compact-indicator-sep">/</span> @_steps.Count
+                @Texts.Step @(ActiveStep + 1) <span class="omni-stepper-compact-indicator-sep">/</span> @_steps.Count
             </div>
             <div class="omni-stepper-compact-card">
                 @if (ActiveStepInstance is not null)
@@ -47,7 +47,7 @@
                     @RenderNode(ActiveStep, isLast: true, withConnector: false, asButton: false)
                 }
             </div>
-            <div class="omni-stepper-compact-dots" role="tablist" aria-label="Steps">
+            <div class="omni-stepper-compact-dots" role="tablist" aria-label="@Texts.Steps">
                 @for (int i = 0; i < _steps.Count; i++)
                 {
                     var idx = i;
@@ -57,7 +57,7 @@
                     <button type="button"
                             class="@($"omni-stepper-compact-dot omni-stepper-{status.ToString().ToLowerInvariant()}")"
                             disabled="@(!canClick || s.Disabled)"
-                            aria-label="@($"Ir para etapa {idx + 1}: {s.Title}")"
+                            aria-label="@string.Format(FormattingCulture, Texts.GoToStep, idx + 1, s.Title)"
                             aria-current="@(idx == ActiveStep ? "step" : null)"
                             @onclick="@(_ => GoToAsync(idx))"></button>
                 }

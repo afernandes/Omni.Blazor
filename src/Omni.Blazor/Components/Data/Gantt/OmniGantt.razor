@@ -33,7 +33,7 @@
                         <button type="button" class="@ZoomBtnCss(zl)" @onclick="@(() => SetZoomAsync(zl))">@ZoomLabel(zl)</button>
                     }
                 </div>
-                <button type="button" class="omni-gantt-nav-btn" title="@ZoomToFitText"
+                <button type="button" class="omni-gantt-nav-btn" title="@(ZoomToFitText ?? Texts.FitToView)"
                         @onclick="ZoomToFitAsync">
                     <OmniIcon Name="maximize" Size="ComponentSize.Sm" />
                 </button>
@@ -54,7 +54,7 @@
                             <span class="omni-gantt-hcell-text">@col.Title</span>
                             @if (AllowColumnResize && col.Resizable)
                             {
-                                <span class="omni-gantt-resizer" title="Redimensionar coluna"
+                                <span class="omni-gantt-resizer" title="@Texts.ResizeColumn"
                                       @onmousedown:preventDefault="true" @onmousedown:stopPropagation="true"
                                       @onmousedown="@(e => StartColumnResizeAsync(e, hi))"></span>
                             }
@@ -301,7 +301,7 @@
     [Parameter] public RenderFragment<TItem>? TaskTemplate { get; set; }
 
     /// <summary>Tooltip for the zoom-to-fit button. Default <c>"Ajustar à tela"</c>.</summary>
-    [Parameter] public string ZoomToFitText { get; set; } = "Ajustar à tela";
+    [Parameter] public string? ZoomToFitText { get; set; }
 
     // ─── Callbacks ────────────────────────────────────────────────────────
     /// <summary>Fired when a task bar is clicked.</summary>
@@ -638,7 +638,7 @@
 
     private void BuildTodayAndMarkers() => _todayPx = ShowTodayLine ? PxAt(DateTime.Now) : null;
 
-    private CultureInfo Culture => CultureInfo.CurrentCulture;
+    internal CultureInfo Culture => FormattingCulture;
     internal double TimelineWidthPx => _timelineWidth;
 
     // ─── Placement helpers (tick-based / continuous, like Radzen) ─────────
@@ -793,12 +793,12 @@
         _ => 7,
     };
 
-    private static string ZoomLabel(GanttZoomLevel z) => z switch
+    private string ZoomLabel(GanttZoomLevel z) => z switch
     {
-        GanttZoomLevel.Day => "Dia",
-        GanttZoomLevel.Week => "Semana",
-        GanttZoomLevel.Month => "Mês",
-        GanttZoomLevel.Year => "Ano",
+        GanttZoomLevel.Day => Texts.Day,
+        GanttZoomLevel.Week => Texts.Week,
+        GanttZoomLevel.Month => Texts.Month,
+        GanttZoomLevel.Year => Texts.Year,
         _ => z.ToString(),
     };
 

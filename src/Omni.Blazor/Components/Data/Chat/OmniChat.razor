@@ -49,7 +49,7 @@
         </div>
     }
 
-    <div class="omni-chat-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="@MessagesLabel" id="@_messagesId">
+    <div class="omni-chat-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="@(MessagesLabel ?? Texts.Messages)" id="@_messagesId">
         @if (_messages.Count == 0)
         {
             <div class="omni-chat-empty">
@@ -121,7 +121,7 @@
 
     <div class="omni-chat-input">
         <textarea class="omni-chat-textarea" rows="1" placeholder="@EffPlaceholder"
-                  aria-label="@InputLabel"
+                  aria-label="@(InputLabel ?? Texts.Message)"
                   @ref="_inputRef" value="@_input" @oninput="OnInputChangedAsync"
                   disabled="@(Disabled || ReadOnly)"></textarea>
         <button type="button" class="omni-chat-send" title="@EffSendLabel" aria-label="@EffSendLabel"
@@ -183,10 +183,10 @@
 
     /// <summary>Accessible label (<c>aria-label</c>) for the compose textarea — describes the
     /// field, not the send action. Default <c>"Mensagem"</c>.</summary>
-    [Parameter] public string InputLabel { get; set; } = "Mensagem";
+    [Parameter] public string? InputLabel { get; set; }
 
     /// <summary>Accessible label (<c>aria-label</c>) for the message log region. Default <c>"Mensagens"</c>.</summary>
-    [Parameter] public string MessagesLabel { get; set; } = "Mensagens";
+    [Parameter] public string? MessagesLabel { get; set; }
 
     /// <summary>Text shown when there are no messages. Default <c>"Nenhuma mensagem ainda. Comece a conversa!"</c>.</summary>
     [Parameter] public string? EmptyMessage { get; set; }
@@ -259,7 +259,7 @@
         _messages = Messages?.ToList() ?? new();
     }
 
-    private CultureInfo Culture => CultureInfo.CurrentCulture;
+    private CultureInfo Culture => FormattingCulture;
 
     // Null-tolerant like the previous FirstOrDefault: a Dictionary rejects a null key,
     // so guard it (a message may carry a null UserId).
@@ -278,13 +278,13 @@
     {
         get
         {
-            var names = _typing.Select(id => GetUser(id)?.Name ?? "Alguém").ToList();
+            var names = _typing.Select(id => GetUser(id)?.Name ?? Texts.Someone).ToList();
             return names.Count switch
             {
                 0 => "",
-                1 => $"{names[0]} está digitando…",
-                2 => $"{names[0]} e {names[1]} estão digitando…",
-                _ => $"{names[0]} e mais {names.Count - 1} estão digitando…"
+                1 => string.Format(FormattingCulture, Texts.TypingOne, names[0]),
+                2 => string.Format(FormattingCulture, Texts.TypingTwo, names[0], names[1]),
+                _ => string.Format(FormattingCulture, Texts.TypingMany, names[0], names.Count - 1)
             };
         }
     }

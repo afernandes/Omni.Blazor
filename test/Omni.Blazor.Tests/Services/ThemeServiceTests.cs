@@ -43,6 +43,37 @@ public class ThemeServiceTests : TestContextBase
     }
 
     [Fact]
+    public async Task InitializeAsync_without_head_bootstrap_adopts_the_os_preference()
+    {
+        // No saved pick and no data-accent/data-theme on <html> means the
+        // OmniTheme bootstrap never ran (static index.html host). Reading the
+        // DOM back would say "light" on a dark OS, so the service asks the OS.
+        JSInterop.Setup<bool>("omniBlazor.prefersColorSchemeDark").SetResult(true);
+
+        var svc = NewService();
+        await svc.InitializeAsync();
+
+        Assert.True(svc.Dark);
+        Assert.False(svc.IsUserPicked); // still following the OS
+        JSInterop.VerifyInvoke("omniBlazor.setAttr"); // data-theme written to <html>
+    }
+
+    [Fact]
+    public async Task InitializeAsync_keeps_light_when_bootstrap_ran_and_os_is_light()
+    {
+        // The bootstrap always writes data-accent, even in light mode — that is
+        // the signal that phase 1 ran, so the OS is not consulted again.
+        JSInterop.Setup<string?>("omniBlazor.getAttr", "html", "data-accent").SetResult("emerald");
+        JSInterop.Setup<bool>("omniBlazor.prefersColorSchemeDark").SetResult(true);
+
+        var svc = NewService();
+        await svc.InitializeAsync();
+
+        Assert.Equal("emerald", svc.Accent);
+        Assert.False(svc.Dark); // adopted the DOM (no data-theme), not the OS
+    }
+
+    [Fact]
     public async Task InitializeAsync_is_idempotent()
     {
         var svc = NewService();

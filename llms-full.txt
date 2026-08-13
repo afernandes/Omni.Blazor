@@ -1,6 +1,6 @@
 # Omni.Blazor — full API reference
 
-> 207 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 208 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
 
@@ -13,9 +13,9 @@ Parameters:
 - `AssistantName`: string — Author name shown above assistant turns when ShowAuthor is on.
 - `Client`: OmniChatClient *required* — The conversation orchestrator (wraps your IChatClient). Required.
 - `Disabled`: bool = false — Disable the composer (e.g. while offline). Streaming auto-disables it too.
-- `LogLabel`: string = Conversation — Accessible label for the message log. Default "Conversation".
+- `LogLabel`: string — Accessible label for the message log. Default "Conversation".
 - `Placeholder`: string — Placeholder for the composer.
-- `SendLabel`: string = Send — Accessible label for the send button. Default "Send".
+- `SendLabel`: string — Accessible label for the send button. Default "Send".
 - `ShowAuthor`: bool = false — Show the author name above each message. Default false.
 - `UserInitials`: string = U — Avatar initials for user turns. Default "U".
 - `UserName`: string — Author name shown above user turns when ShowAuthor is on.
@@ -57,7 +57,7 @@ Parameters:
 - `MaxLength`: int — Optional maximum length; when set the counter shows count/max.
 - `Placeholder`: string — Placeholder shown in the empty composer.
 - `Rows`: int = 3 — Initial visible rows of the textarea. Default 3.
-- `SendLabel`: string = Send — Accessible label for the send button. Default "Send".
+- `SendLabel`: string — Accessible label for the send button. Default "Send".
 Events:
 - `OnSend`: EventCallback<string> — Fired with the prompt text when the user sends (Ctrl/Cmd+Enter or the send button).
 Slots:
@@ -79,7 +79,7 @@ A row of clickable suggestion chips (follow-up questions / quick replies) for an
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Ai/OmniSuggestionChips.razor_
 
 Parameters:
-- `AriaLabel`: string = Suggestions — Accessible label for the chip group. Default "Suggestions".
+- `AriaLabel`: string — Accessible label for the chip group. Default "Suggestions".
 - `Icon`: string — Optional icon name shown on every suggestion chip.
 - `Suggestions`: IEnumerable<string> — The suggestion labels to render as chips. Each fires OnSelect with its text.
 Events:
@@ -91,7 +91,7 @@ _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Bla
 
 Parameters:
 - `Expanded`: bool = false — Expanded state; supports two-way binding via ExpandedChanged. Default collapsed.
-- `Title`: string = Reasoning — Toggle label. Default "Reasoning".
+- `Title`: string — Toggle label. Default "Reasoning".
 Events:
 - `ExpandedChanged`: EventCallback<bool> — Fired when the block expands or collapses, carrying the new state.
 
@@ -253,11 +253,11 @@ Parameters:
 - `Disabled`: bool = false — Disables the whole chat (compose box, send, clear). Default false.
 - `EmptyMessage`: string — Text shown when there are no messages. Default "Nenhuma mensagem ainda. Comece a conversa!".
 - `Height`: string = 480px — Height of the chat (CSS). Default 480px.
-- `InputLabel`: string = Mensagem — Accessible label (aria-label) for the compose textarea — describes the field, not the send action. Default "Mensagem".
+- `InputLabel`: string — Accessible label (aria-label) for the compose textarea — describes the field, not the send action. Default "Mensagem".
 - `MaxMessages`: int = 200 — Max messages kept; older ones are trimmed once exceeded. Default 200.
 - `MaxVisibleUsers`: int = 5 — Max roster avatars shown before a "+N" overflow badge. Default 5.
 - `Messages`: IEnumerable<OmniChatMessage> — The messages to render (two-way via MessagesChanged).
-- `MessagesLabel`: string = Mensagens — Accessible label (aria-label) for the message log region. Default "Mensagens".
+- `MessagesLabel`: string — Accessible label (aria-label) for the message log region. Default "Mensagens".
 - `Placeholder`: string — Compose-box placeholder. Default "Digite uma mensagem...".
 - `ReadOnly`: bool = false — Read-only mode — messages render but the compose box is disabled. Default false.
 - `RenderMarkdown`: bool = true — Render bubble content as Markdown (default) or plain text.
@@ -522,7 +522,7 @@ Parameters:
 - `Icon`: string = clock — Icon name shown on this view's switch tab. Default "clock".
 - `MinutesPerSlot`: int = 30 — Minutes per slot row. Default 30.
 - `StartTime`: TimeSpan — First time slot of the day. Default 08:00.
-- `Text`: string = Dia — Label shown on this view's switch tab. Default "Dia".
+- `Text`: string — Label shown on this view's switch tab. Default "Dia".
 - `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
 
 ### OmniDiagramCanvas
@@ -530,11 +530,11 @@ OmniDiagramCanvas — generic infinite graph editor: pan/zoom, dotted grid, node
 _base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Components/Data/Diagram/OmniDiagramCanvas.razor_
 
 Parameters:
-- `AutoLayoutText`: string = Auto-layout (organizar) — Tooltip text for the auto-layout button.
+- `AutoLayoutText`: string — Tooltip text for the auto-layout button.
 - `DropPayloadFormat`: string = application/x-omni-diagram — HTML5 drag payload format accepted by OnExternalDrop.
 - `Edges`: IReadOnlyList<DiagramEdge> — Graph edges.
 - `FitOnMount`: bool = false — Fits the graph into view once, on first render with nodes.
-- `FitText`: string = Ajustar à tela — Tooltip text for the fit button.
+- `FitText`: string — Tooltip text for the fit button.
 - `Nodes`: IReadOnlyList<DiagramNode> — Graph nodes (world coordinates).
 - `ReadOnly`: bool = false — Disables editing gestures (drag, connect, marquee, delete, drop). Pan/zoom stay enabled.
 - `RunState`: DiagramRunState — Optional execution overlay (current/done/faulted/taken edges...).
@@ -544,8 +544,8 @@ Parameters:
 - `ShowControls`: bool = true — Shows the zoom control group (bottom-left).
 - `ShowMinimap`: bool = true — Shows the minimap (bottom-right).
 - `Viewport`: DiagramViewport — Viewport (offset + zoom). Two-way bindable; committed after gestures.
-- `ZoomInText`: string = Aumentar zoom — Tooltip text for the zoom-in button.
-- `ZoomOutText`: string = Diminuir zoom — Tooltip text for the zoom-out button.
+- `ZoomInText`: string — Tooltip text for the zoom-in button.
+- `ZoomOutText`: string — Tooltip text for the zoom-out button.
 Events:
 - `NodesMoved`: EventCallback<IReadOnlyList<DiagramNodeMove>> — Raised when a node drag (possibly multi-node) or auto-layout commits.
 - `OnConnect`: EventCallback<DiagramConnectEventArgs> — Raised when the user finishes a drag-to-connect between two ports.
@@ -595,36 +595,36 @@ Provider-backed file manager with bounded loading, navigation and guarded mutati
 _base: OmniComponent · source: src/Omni.Blazor/Components/Data/OmniFileManager.razor_
 
 Parameters:
-- `AriaLabel`: string = Gerenciador de arquivos — Accessible label for the component.
-- `BreadcrumbLabel`: string = Localização — Accessible label for breadcrumb navigation.
-- `CancelText`: string = Cancelar — Label for cancelling a pending action.
+- `AriaLabel`: string — Accessible label for the component.
+- `BreadcrumbLabel`: string — Accessible label for breadcrumb navigation.
+- `CancelText`: string — Label for cancelling a pending action.
 - `Capabilities`: FileManagerCapabilities {Browse | CreateFolder | Rename | Delete | Upload | Download | All} = Browse — Enabled optional operations. Browse is always available.
-- `ConfirmText`: string = Confirmar — Label for confirming deletion.
-- `DeleteConfirmationText`: string = Excluir “{0}”? — Delete confirmation template. Placeholder zero receives the entry name.
-- `DeleteText`: string = Excluir — Label for the delete action.
-- `DownloadText`: string = Baixar — Label for the download action.
-- `EmptyText`: string = Esta pasta está vazia. — Message shown when the directory is empty.
-- `ErrorText`: string = Não foi possível concluir a operação. — Message shown after a provider failure.
-- `GridViewText`: string = Exibição em grade — Label for grid view.
-- `ItemsCountText`: string = {0} de {1} itens — Footer template for visible and total item counts.
-- `LimitText`: string = Limite de {0} itens — Footer template shown when the configured item limit was reached.
-- `ListViewText`: string = Exibição em lista — Label for list view.
-- `LoadingText`: string = Carregando arquivos... — Message shown while the initial listing loads.
+- `ConfirmText`: string — Label for confirming deletion.
+- `DeleteConfirmationText`: string — Delete confirmation template. Placeholder zero receives the entry name.
+- `DeleteText`: string — Label for the delete action.
+- `DownloadText`: string — Label for the download action.
+- `EmptyText`: string — Message shown when the directory is empty.
+- `ErrorText`: string — Message shown after a provider failure.
+- `GridViewText`: string — Label for grid view.
+- `ItemsCountText`: string — Footer template for visible and total item counts.
+- `LimitText`: string — Footer template shown when the configured item limit was reached.
+- `ListViewText`: string — Label for list view.
+- `LoadingText`: string — Message shown while the initial listing loads.
 - `MaxItems`: int = 1000 — Maximum entries requested, retained and rendered per directory.
 - `MaxUploadFiles`: int = 20 — Maximum files accepted in one upload selection.
-- `NewFolderPlaceholder`: string = Nome da pasta — Placeholder for a new folder name.
-- `NewFolderText`: string = Nova pasta — Label for the create-folder action.
+- `NewFolderPlaceholder`: string — Placeholder for a new folder name.
+- `NewFolderText`: string — Label for the create-folder action.
 - `Path`: string = / — Current logical path for two-way binding. Paths use forward slashes.
 - `Provider`: IOmniFileManagerProvider *required* — Backend responsible for browsing and optional mutations.
-- `RefreshText`: string = Atualizar — Label for the refresh action.
-- `RenamePlaceholder`: string = Novo nome — Placeholder for a new entry name.
-- `RenameText`: string = Renomear — Label for the rename action.
-- `SaveText`: string = Salvar — Label for saving an inline edit.
+- `RefreshText`: string — Label for the refresh action.
+- `RenamePlaceholder`: string — Placeholder for a new entry name.
+- `RenameText`: string — Label for the rename action.
+- `SaveText`: string — Label for saving an inline edit.
 - `SearchDebounce`: int = 250 — Delay before provider-side text searches, in milliseconds.
-- `SearchPlaceholder`: string = Buscar nesta pasta — Provider-side search placeholder.
+- `SearchPlaceholder`: string — Provider-side search placeholder.
 - `SearchText`: string =  — Current provider-side search text for two-way binding.
 - `SelectedItem`: FileManagerEntry — Currently selected entry for two-way binding.
-- `UploadText`: string = Enviar — Label for the upload action.
+- `UploadText`: string — Label for the upload action.
 - `View`: FileManagerView {List | Grid} = List — Current list or grid layout for two-way binding.
 Events:
 - `DirectoryOpened`: EventCallback<FileManagerEntry> — Raised after a directory is opened and its path changes.
@@ -831,8 +831,8 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniMo
 Parameters:
 - `Icon`: string = grid — Icon name shown on this view's switch tab. Default "grid".
 - `MaxAppointmentsInSlot`: int = 3 — Max appointments rendered per day before a "+N more" link appears. Null = unlimited.
-- `MoreText`: string = + {0} mais — Overflow link text. {0} is replaced with the hidden count. Default "+ {0} mais".
-- `Text`: string = Mês — Label shown on this view's switch tab. Default "Mês".
+- `MoreText`: string — Overflow link text. {0} is replaced with the hidden count. Default "+ {0} mais".
+- `Text`: string — Label shown on this view's switch tab. Default "Mês".
 
 ### OmniMultiDayView
 N consecutive days side-by-side with time slots (mirrors RadzenMultiDayView).
@@ -846,7 +846,7 @@ Parameters:
 - `MinutesPerSlot`: int = 30 — Minutes per slot row. Default 30.
 - `NumberOfDays`: int = 2 — How many days to render side-by-side. Default 2.
 - `StartTime`: TimeSpan — First time slot of the day. Default 08:00.
-- `Text`: string = Multi-dias — Label shown on this view's switch tab. Default "Multi-dias".
+- `Text`: string — Label shown on this view's switch tab. Default "Multi-dias".
 - `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
 
 ### OmniPivotColumn
@@ -1095,7 +1095,7 @@ Parameters:
 - `Icon`: string = calendar — Icon name shown on this view's switch tab. Default "calendar".
 - `MinutesPerSlot`: int = 30 — Minutes per slot row. Default 30.
 - `StartTime`: TimeSpan — First time slot of the day. Default 08:00.
-- `Text`: string = Semana — Label shown on this view's switch tab. Default "Semana".
+- `Text`: string — Label shown on this view's switch tab. Default "Semana".
 - `TimeFormat`: string = HH:mm — Time format for slot labels. Default "HH:mm".
 
 ### OmniWorkflowDesigner
@@ -1149,7 +1149,7 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniYe
 
 Parameters:
 - `Icon`: string = grid — Icon name shown on this view's switch tab. Default "grid".
-- `Text`: string = Planner — Label shown on this view's switch tab. Default "Planner".
+- `Text`: string — Label shown on this view's switch tab. Default "Planner".
 
 ### OmniYearTimelineView
 Year timeline: 12 month rows × day columns, connected timeline styling (mirrors RadzenYearTimelineView).
@@ -1157,7 +1157,7 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniYe
 
 Parameters:
 - `Icon`: string = trending-up — Icon name shown on this view's switch tab. Default "trending-up".
-- `Text`: string = Timeline — Label shown on this view's switch tab. Default "Timeline".
+- `Text`: string — Label shown on this view's switch tab. Default "Timeline".
 
 ### OmniYearView
 Twelve mini-month calendars (mirrors RadzenYearView).
@@ -1165,7 +1165,7 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Data/Scheduler/OmniYe
 
 Parameters:
 - `Icon`: string = calendar — Icon name shown on this view's switch tab. Default "calendar".
-- `Text`: string = Ano — Label shown on this view's switch tab. Default "Ano".
+- `Text`: string — Label shown on this view's switch tab. Default "Ano".
 
 ## Display
 
@@ -1324,7 +1324,7 @@ Parameters:
 - `NextAriaLabel`: string — Accessible label for the next button. Default "Próximo slide".
 - `NextIcon`: string = chevron-right — Next-button icon name. Default "chevron-right".
 - `NextText`: string =  — Optional next-button text.
-- `PagerButtonAriaLabelFormat`: string = Ir para o slide {0} — Format string for each pager dot's aria-label ({0} = 1-based page). Default "Ir para o slide {0}".
+- `PagerButtonAriaLabelFormat`: string — Format string for each pager dot's aria-label ({0} = 1-based page). Default "Ir para o slide {0}".
 - `PagerOverlay`: bool = true — Whether the pager overlays the slides (vs. sitting outside). Default true.
 - `PagerPosition`: CarouselPagerPosition {Top | Bottom | TopAndBottom} = Bottom — Pager (dots) position. Default Bottom.
 - `PrevAriaLabel`: string — Accessible label for the previous button. Default "Slide anterior".
@@ -1648,7 +1648,7 @@ Slots:
 
 ### OmniCompareValidator
 Compara o valor de um campo com outro campo (lookup por nome) OU com um valor literal. Caso clássico: "confirmar senha". Cuidado especial: revalida automaticamente quando o campo de referência muda (não só quando o próprio campo muda). <OmniTextBox Name="password" @bind-Value="model.Password" /> <OmniTextBox Name="confirm" @bind-Value="model.Confirm" /> <OmniCompareValidator Component="confirm" Value="@model.Password" Text="Senhas não conferem." />
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniCompareValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniCompareValidator.cs_
 
 Parameters:
 - `Operator`: CompareOperator {Equal | NotEqual | LessThan | LessThanEqual | GreaterThan | GreaterThanEqual} = Equal — Operador. Default Equal.
@@ -1657,14 +1657,14 @@ Parameters:
 
 ### OmniCustomValidator
 Validator custom com delegate Func`2 tipado. Diferença pro RadzenCustomValidator: Radzen usa Func<bool> (sem o valor), forçando closure sobre o model. Aqui o delegate recebe o valor atual do campo já tipado, fica mais reutilizável e testável. <OmniCustomValidator TValue="string" Component="username" Validator="@IsAvailable" Text="Usuário já existe." /> @code { bool IsAvailable(string? value) => !usedNames.Contains(value); } Pra lógica assíncrona (consulta server), prefira o Validation do FormComponent per-input que aceita Func<T, Task<string?>>.
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniCustomValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniCustomValidator.cs_
 
 Parameters:
 - `Validator`: Func<TValue, bool> *required* — Função de validação. Retorna true = OK, false = inválido.
 
 ### OmniDataAnnotationValidator
 Valida um único campo do model contra TODOS os ValidationAttributes declarados na propriedade ([Required], [StringLength], [EmailAddress], etc.). Diferente do <DataAnnotationsValidator /> nativo do Blazor (que valida o model inteiro), este focaliza um único campo — útil quando você está montando regras campo a campo no markup, junto com outros validators irmãos.<OmniDataAnnotationValidator Component="email" Property="@(() => model.Email)" />O OmniForm já tem AddDataAnnotationsValidator=true por default — você raramente precisa deste validator individual. Use quando quiser desligar o DataAnnotationsValidator global e ter controle fino por campo.
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniDataAnnotationValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniDataAnnotationValidator.cs_
 
 Parameters:
 - `MessageSeparator`: string = ;  — Separador quando múltiplos atributos falham. Default "; ".
@@ -1736,7 +1736,7 @@ Slots:
 
 ### OmniEmailValidator
 Valida e-mail usando o mesmo motor do EmailAddressAttribute (suficientemente permissivo, RFC 5322 simplificado — o que [EmailAddress] usa). Vazio passa. <OmniEmailValidator Component="email" Text="E-mail inválido." />
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniEmailValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniEmailValidator.cs_
 
 
 ### OmniForm
@@ -1764,7 +1764,7 @@ Slots:
 
 ### OmniLengthValidator
 Valida comprimento de string (ou tamanho de coleção ICollection). Vazio passa — componha com OmniRequiredValidator quando ambos forem necessários. <OmniLengthValidator Component="cnpj" Min="14" Max="14" Text="CNPJ deve ter 14 dígitos." />
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniLengthValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniLengthValidator.cs_
 
 Parameters:
 - `Max`: int — Comprimento máximo (inclusive). Null = sem limite superior.
@@ -1794,7 +1794,7 @@ Slots:
 
 ### OmniRangeValidator
 Valida faixa numérica (int / double / decimal / DateTime). Aceita qualquer tipo que implemente IComparable. Vazio passa — componha com Required quando precisar. <OmniRangeValidator Component="idade" Min="18" Max="120" Text="Idade entre 18 e 120." />
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniRangeValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniRangeValidator.cs_
 
 Parameters:
 - `Max`: object — Valor máximo (inclusive).
@@ -1802,7 +1802,7 @@ Parameters:
 
 ### OmniRegexValidator
 Valida string contra um padrão regex. Vazio passa. <OmniRegexValidator Component="cep" Pattern="^\\d{5}-\\d{3}$" Text="CEP deve ser 00000-000." />
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniRegexValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniRegexValidator.cs_
 
 Parameters:
 - `Options`: RegexOptions {None | IgnoreCase | Multiline | ExplicitCapture | Compiled | Singleline | IgnorePatternWhitespace | RightToLeft | ECMAScript | CultureInvariant | NonBacktracking} = None — Opções do regex. Default None.
@@ -1810,7 +1810,7 @@ Parameters:
 
 ### OmniRequiredValidator
 Falha quando o campo está vazio. Verifica via HasValue — que cobre null, string vazia, e default(T) pra structs. <OmniRequiredValidator Component="email" Text="Informe o e-mail." />
-_base: OmniValidatorBase · source: src/Omni.Blazor/Components/Forms/Validators/OmniRequiredValidator.cs_
+_base: OmniComponent · source: src/Omni.Blazor/Components/Forms/Validators/OmniRequiredValidator.cs_
 
 Parameters:
 - `DefaultValue`: object — Valor "default" customizado. Útil quando você quer que 0 seja válido pra um campo numérico (default), mas -1 não.
@@ -1828,7 +1828,7 @@ Styled validation summary — like Blazor's <ValidationSummary> but uses the `om
 _base: OmniComponent · source: src/Omni.Blazor/Components/Forms/OmniValidationSummary.razor_
 
 Parameters:
-- `Title`: string = Corrija os erros abaixo: — Heading shown above the error list; null/empty hides it. Default "Corrija os erros abaixo:".
+- `Title`: string — Heading shown above the error list; null/empty hides it. Default "Corrija os erros abaixo:".
 
 ## Inputs
 
@@ -1957,7 +1957,7 @@ Parameters:
 - `AutoApply`: bool = true — When true (default), the second click on a day commits and closes the picker immediately. When false, the popover stays open and Apply / Cancel buttons are shown so the user can preview before committing.
 - `CancelText`: string — Label for the cancel button (shown when AutoApply is off). Default "Cancelar".
 - `ClearText`: string — Label for the clear button. Default "Limpar".
-- `DateFormat`: string = dd/MM/yyyy — Format used to display the From/To dates in the input. Default "dd/MM/yyyy".
+- `DateFormat`: string — Format used to display the From/To dates in the input. Default "dd/MM/yyyy".
 - `DateRender`: Action<DateRenderEventArgs> — Per-day render hook applied to both calendars (holidays, markers, tooltips).
 - `DisableWeekends`: bool = false — Disable Saturdays and Sundays on both calendars. Default false.
 - `Disabled`: bool = false — Disables the whole control. Default false.
@@ -1968,7 +1968,7 @@ Parameters:
 - `MaxDate`: DateOnly — Latest selectable date on both calendars; later days are disabled.
 - `MinDate`: DateOnly — Earliest selectable date on both calendars; earlier days are disabled.
 - `Name`: string — Nome lógico — registra com OmniForm para validators irmãos. (<OmniRequiredValidator Component="periodo" />)
-- `Placeholder`: string = Selecionar período — Text shown in the input when no range is selected. Default "Selecionar período".
+- `Placeholder`: string — Text shown in the input when no range is selected. Default "Selecionar período".
 - `Presets`: IReadOnlyList<DateRangePreset> — Quick-select shortcuts shown in the popover sidebar. Each preset is a label plus a function returning the (from, to) tuple at the moment it's clicked. Default set covers the most common business reporting periods.
 - `ShowClearButton`: bool = true — Show the "Limpar" button in the popover footer.
 - `ShowWeekNumbers`: bool = false — Show the ISO 8601 week number column on both calendars.
@@ -2018,7 +2018,7 @@ Parameters:
 - `Accept`: string — HTML accept filter passed to the file input (e.g. "image/*", ".pdf").
 - `FilesExpression`: Expression<Func<IReadOnlyList<IBrowserFile>>> — Expression apontando pra coleção de files no model — habilita validators irmãos. Ex: FilesExpression="@(() => model.Anexos)".
 - `HintText`: string — Secondary hint under the label. When null, an auto hint listing Accept + max size is shown.
-- `LabelText`: string = Arraste arquivos aqui ou clique para selecionar — Main text shown inside the drop-zone. Default "Arraste arquivos aqui ou clique para selecionar".
+- `LabelText`: string — Main text shown inside the drop-zone. Default "Arraste arquivos aqui ou clique para selecionar".
 - `MaxFileCount`: int = 0 — Maximum number of files (Multiple only). 0 = no limit.
 - `MaxFileSize`: long = 10485760 — Maximum size per file, in bytes. 0 = no limit. Default 10 MB.
 - `Multiple`: bool = false — Allow selecting/dropping more than one file. Default false (single file replaces the previous).
@@ -2133,7 +2133,7 @@ Password strength meter + configurable requirement checklist.
 _base: OmniComponent · source: src/Omni.Blazor/Components/Inputs/OmniPasswordStrength.razor_
 
 Parameters:
-- `LabelText`: string = Força da senha — Caption text on the label line. Default "Força da senha".
+- `LabelText`: string — Caption text on the label line. Default "Força da senha".
 - `MinLength`: int = 8 — Minimum length rule. Set to 0 to drop the length rule. Default 8.
 - `Password`: string — The password to evaluate (read-only; this component never owns the value).
 - `RequireDigit`: bool = true — Require a digit (default rule). Default true.
@@ -2220,7 +2220,7 @@ Parameters:
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSecurityCode.razor_
 
 Parameters:
-- `AriaLabel`: string = Dígito — Accessible label prefix for each cell (e.g. "Dígito 1"). Default "Dígito".
+- `AriaLabel`: string — Accessible label prefix for each cell (e.g. "Dígito 1"). Default "Dígito".
 - `Count`: int = 4 — Number of code cells. Default 4.
 - `Gap`: string = 8px — Gap between cells (CSS length). Default 8px.
 - `Type`: SecurityCodeType {Text | Numeric | Password} = Text — Input type: Text (any char), Numeric (digits only) or Password (masked).
@@ -2258,18 +2258,18 @@ Canvas-based signature input with undo, clear and PNG/JPEG/SVG export.
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniSignaturePad.razor_
 
 Parameters:
-- `AriaLabel`: string = Área para assinatura — Accessible label announced for the drawing canvas.
+- `AriaLabel`: string — Accessible label announced for the drawing canvas.
 - `BackgroundColor`: string = #ffffff — Canvas background color.
-- `ClearText`: string = Limpar — Label for the clear action.
-- `EmptyText`: string = Aguardando assinatura — Status text shown while no signature has been captured.
+- `ClearText`: string — Label for the clear action.
+- `EmptyText`: string — Status text shown while no signature has been captured.
 - `Format`: SignaturePadFormat {Png | Jpeg | Svg} = Png — Format used by the bound Value and ExportAsync.
 - `Height`: int = 220 — Canvas height in CSS pixels.
 - `Quality`: double = 0.92 — JPEG quality between 0 and 1. Ignored by PNG and SVG.
 - `ShowToolbar`: bool = true — Shows the built-in undo, clear and status toolbar.
-- `SignedText`: string = Assinatura capturada — Status text shown after at least one stroke is captured.
+- `SignedText`: string — Status text shown after at least one stroke is captured.
 - `StrokeColor`: string = #111827 — Stroke color accepted by the browser canvas API.
 - `StrokeWidth`: double = 2 — Stroke width in CSS pixels.
-- `UndoText`: string = Desfazer — Label for the undo action.
+- `UndoText`: string — Label for the undo action.
 Events:
 - `StrokeCompleted`: EventCallback<string> — Raised after the user completes, removes or clears a stroke.
 
@@ -2320,8 +2320,8 @@ Parameters:
 - `AllowInterrupt`: bool = false — Permite clicar o botão mesmo em estado Busy (Starting/Stopping). Default false — espera transição completar. true = cliques rápidos passam pro JS (que já tem debounce de 250ms).
 - `BusyIcon`: string = loader — Ícone em transição (Connecting/Stopping). Default "loader".
 - `BusyText`: string — (Obsoleto — use ConnectingText.) Texto genérico de transição, mantido por compatibilidade. Se setado, sobrescreve ConnectingText e StoppingText.
-- `BusyTitle`: string = Aguarde… — Tooltip durante transição (Connecting/Stopping).
-- `ConnectingText`: string = Conectando… — Texto durante Connecting (aguardando mic ficar pronto). Default "Conectando…". Crítico no Edge — mostra que ainda NÃO está ouvindo enquanto Microsoft Speech estabelece conexão.
+- `BusyTitle`: string — Tooltip durante transição (Connecting/Stopping).
+- `ConnectingText`: string — Texto durante Connecting (aguardando mic ficar pronto). Default "Conectando…". Crítico no Edge — mostra que ainda NÃO está ouvindo enquanto Microsoft Speech estabelece conexão.
 - `Continuous`: bool = true — Continua reconhecendo até o user parar. Default true.
 - `Disabled`: bool = false — Desabilita o botão manualmente (além de desabilitar quando o browser não suporta). Default false.
 - `ErrorIcon`: string = alert-circle — Ícone em erro. Default "alert-circle".
@@ -2332,11 +2332,11 @@ Parameters:
 - `RecordingText`: string — Texto durante gravação (mic capturando). Default = Text.
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho do botão. Default Md.
 - `StopIcon`: string = stop-circle — Ícone gravando. Default "stop-circle".
-- `StopTitle`: string = Pressione para parar — Tooltip + aria-label gravando.
-- `StoppingText`: string = Parando… — Texto durante Stopping. Default "Parando…".
+- `StopTitle`: string — Tooltip + aria-label gravando.
+- `StoppingText`: string — Texto durante Stopping. Default "Parando…".
 - `Text`: string — Texto idle. Vazio + RecordingText vazio = botão icon-only.
-- `Title`: string = Pressione para falar — Tooltip + aria-label idle.
-- `UnsupportedTitle`: string = Reconhecimento de voz não disponível neste navegador — Tooltip quando browser não suporta Web Speech API.
+- `Title`: string — Tooltip + aria-label idle.
+- `UnsupportedTitle`: string — Tooltip quando browser não suporta Web Speech API.
 - `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Variante visual do botão. Default Default.
 Events:
 - `OnEnd`: EventCallback — Disparado quando o reconhecimento termina.
@@ -2451,13 +2451,13 @@ Parameters:
 - `AriaLabel`: string — aria-label do grupo. Default "Modo de aparência".
 - `ButtonVariant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Variant do OmniButton interno (Dropdown/Cycle). Default Default.
 - `DarkIcon`: string = moon — Ícone do modo Dark. Default "moon".
-- `DarkLabel`: string = Escuro — Texto/label do modo Dark. Default "Escuro".
+- `DarkLabel`: string — Texto/label do modo Dark. Default "Escuro".
 - `LightIcon`: string = sun — Ícone do modo Light. Default "sun".
-- `LightLabel`: string = Claro — Texto/label do modo Light. Default "Claro".
+- `LightLabel`: string — Texto/label do modo Light. Default "Claro".
 - `ShowLabels`: bool = false — Mostra label de texto junto do ícone. Default false (icon-only).
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho do botão. Default Md.
 - `SystemIcon`: string = monitor — Ícone do modo System. Default "monitor".
-- `SystemLabel`: string = Sistema — Texto/label do modo System. Default "Sistema".
+- `SystemLabel`: string — Texto/label do modo System. Default "Sistema".
 - `Variant`: AppearanceToggleVariant {Dropdown | Segmented | Cycle} = Dropdown — Visual do toggle. Default Dropdown.
 Events:
 - `OnModeChanged`: EventCallback<ThemeMode> — Disparado quando o modo muda.
@@ -2568,6 +2568,15 @@ Parameters:
 - `Gutters`: bool = true — Padding lateral nas bordas. Default true.
 - `MaxWidth`: ContainerMaxWidth {Sm | Md | Lg | Xl | Xxl | Full} = Lg — Largura máxima do container. Default Lg (1280px).
 
+### OmniCultureScope
+Provides formatting, UI culture, language and text direction to a component subtree.
+_base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniCultureScope.razor_
+
+Parameters:
+- `Culture`: CultureInfo — Culture used to format numbers, dates and currencies.
+- `Direction`: string — Text direction. Null infers it from UICulture.
+- `UICulture`: CultureInfo — Culture used to resolve translated UI strings.
+
 ### OmniDrawer
 Drawer / sidebar genérico — equivalente ao <c>MudDrawer</c> (MudBlazor),
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Layout/OmniDrawer.razor_
@@ -2598,7 +2607,7 @@ Parameters:
 - `Anchor`: DrawerAnchor {Left | Right} — Filtra drawers por âncora quando há mais de um no layout. Default null.
 - `Icon`: string = menu — Ícone Lucide do botão. Default menu.
 - `Target`: OmniDrawer — Referência manual ao drawer alvo. Default: usa resolução automática.
-- `Title`: string = Abrir menu — Texto acessível (aria-label + title). Default "Abrir menu".
+- `Title`: string — Texto acessível (aria-label + title). Default "Abrir menu".
 
 ### OmniFooter
 Footer slot do <c>OmniLayout</c>.
@@ -2800,7 +2809,7 @@ _base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniThemePicke
 Parameters:
 - `Accents`: IReadOnlyList<string> — Cores de accent oferecidas. Default: as 5 já suportadas (amber/emerald/blue/violet/crimson).
 - `ShowDensity`: bool = true — Mostra a seção de densidade (Compacto/Padrão/Espaçoso) no dropdown. Default true. P3.3 — Layout density toggle.
-- `Title`: string = Tema — Texto acessível do botão (aria-label / tooltip). Default "Tema".
+- `Title`: string — Texto acessível do botão (aria-label / tooltip). Default "Tema".
 
 ### OmniToolBar
 Faixa horizontal abaixo do <c>OmniAppBar</c>.
@@ -2862,10 +2871,10 @@ Intercepts navigation attempts when `When` returns true and asks the user to con
 _base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniExitPrompt.razor_
 
 Parameters:
-- `CancelText`: string = Continuar editando — Label of the cancel (stay) button in the dialog.
-- `ConfirmText`: string = Sair sem salvar — Label of the confirm (leave) button in the dialog.
-- `Text`: string = Você tem alterações não salvas. Deseja sair mesmo assim? — Body message of the confirmation prompt (used by both the dialog and the native window.confirm).
-- `Title`: string = Sair sem salvar? — Title of the confirmation dialog (DialogService path only).
+- `CancelText`: string — Label of the cancel (stay) button in the dialog.
+- `ConfirmText`: string — Label of the confirm (leave) button in the dialog.
+- `Text`: string — Body message of the confirmation prompt (used by both the dialog and the native window.confirm).
+- `Title`: string — Title of the confirmation dialog (DialogService path only).
 - `UseNativePrompt`: bool = false — When true, uses the browser's native window.confirm instead of the Omni DialogService for in-app navigation. Default false.
 - `When`: Func<bool> — Predicate that gates the prompt: navigation is intercepted only while it returns true. When null, the prompt is always active.
 
@@ -2874,18 +2883,18 @@ Embedded global search surface with local/remote providers and keyboard navigati
 _base: OmniComponent · source: src/Omni.Blazor/Components/Navigation/OmniGlobalSearch.razor_
 
 Parameters:
-- `AriaLabel`: string = Busca global — Accessible label for the search landmark.
-- `ClearText`: string = Limpar busca — Accessible label for the clear-query action.
+- `AriaLabel`: string — Accessible label for the search landmark.
+- `ClearText`: string — Accessible label for the clear-query action.
 - `Debounce`: int = 250 — Delay before invoking SearchProvider, in milliseconds.
-- `EmptyText`: string = Nenhum resultado encontrado. — Message shown when no result matches.
-- `ErrorText`: string = Não foi possível concluir a busca. — Message shown when the provider fails.
-- `HintText`: string = Digite para buscar — Hint shown before the minimum query length is reached.
+- `EmptyText`: string — Message shown when no result matches.
+- `ErrorText`: string — Message shown when the provider fails.
+- `HintText`: string — Hint shown before the minimum query length is reached.
 - `Items`: IEnumerable<GlobalSearchResult> — Optional in-memory result source, combined with provider results.
-- `LoadingText`: string = Buscando... — Message shown while the provider is running.
+- `LoadingText`: string — Message shown while the provider is running.
 - `MaxResults`: int = 50 — Maximum number of combined results retained and rendered.
 - `MinQueryLength`: int = 2 — Minimum trimmed query length required to search.
 - `NavigateOnSelect`: bool = true — Navigates to a selected result's URL after raising ResultSelected.
-- `Placeholder`: string = Buscar em todo o sistema... — Search input placeholder.
+- `Placeholder`: string — Search input placeholder.
 - `Query`: string — Current query for two-way binding.
 - `SearchProvider`: GlobalSearchProvider — Optional asynchronous, cancellable server-side result source.
 - `ShowAllWhenEmpty`: bool = false — Shows all local items when the query is empty.
@@ -2916,7 +2925,7 @@ Horizontal navigation bar — tab-style root items with rich dropdowns.
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniMenuBar.razor_
 
 Parameters:
-- `AriaLabel`: string = Menu — Accessible label for the navigation landmark.
+- `AriaLabel`: string — Accessible label for the navigation landmark.
 - `Trigger`: MenuTrigger {Hover | Click} = Click — How a dropdown first opens — Click (default) or Hover.
 Slots:
 - `Aux`: RenderFragment — Optional content pinned to the right edge of the bar (status, etc.).
@@ -3103,7 +3112,7 @@ Parameters:
 - `Open`: bool = false — Open state (two-way). Also toggled by the global hotkey.
 - `Placeholder`: string — Search box placeholder.
 - `RecentCount`: int = 5 — How many recent commands to surface in the "Recentes" section.
-- `RecentLabel`: string = Recentes — Heading for the recent-commands section.
+- `RecentLabel`: string — Heading for the recent-commands section.
 - `SearchDebounce`: int = 200 — Debounce (ms) before calling CommandSource. Default 200.
 - `ShowFooter`: bool = true — Show the footer with key hints. Default true.
 Events:

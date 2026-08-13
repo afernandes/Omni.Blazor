@@ -1,0 +1,18 @@
+@using System.Globalization
+
+<OmniCultureScope Culture="@Culture" UICulture="@Culture" Class="omni-card omni-stack">
+    <div class="omni-eyebrow">@Title · @CultureName</div>
+    <strong>@Date.ToString("F", Culture)</strong>
+    <OmniDatePicker TValue="DateTime?" Value="@Date" ShowTime Clearable="false" />
+    <OmniAlert Dismissible Severity="NotificationSeverity.Info">
+        @((12345.67m).ToString("C", Culture))
+    </OmniAlert>
+</OmniCultureScope>
+
+@code {
+    [Parameter, EditorRequired] public string CultureName { get; set; } = default!;
+    [Parameter, EditorRequired] public string Title { get; set; } = default!;
+    [Parameter] public DateTime Date { get; set; }
+
+    private CultureInfo Culture => CultureInfo.GetCultureInfo(CultureName);
+}

@@ -8,7 +8,7 @@
 <div class="@RootCss" style="@Style" @attributes="Attributes">
     <button type="button" class="omni-thinking-toggle" @onclick="ToggleAsync" aria-expanded="@(_expanded ? "true" : "false")">
         <span class="omni-thinking-chevron"><OmniIcon Name="chevron-right" Size="ComponentSize.Sm" /></span>
-        <span class="omni-thinking-title">@Title</span>
+        <span class="omni-thinking-title">@(Title ?? Texts.Reasoning)</span>
     </button>
     @if (_expanded)
     {
@@ -18,7 +18,7 @@
 
 @code {
     /// <summary>Toggle label. Default "Reasoning".</summary>
-    [Parameter] public string Title { get; set; } = "Reasoning";
+    [Parameter] public string? Title { get; set; }
 
     /// <summary>Expanded state; supports two-way binding via <see cref="ExpandedChanged"/>. Default collapsed.</summary>
     [Parameter] public bool Expanded { get; set; }

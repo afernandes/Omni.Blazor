@@ -18,7 +18,10 @@ namespace Omni.Blazor.Services;
 /// <item><description><see cref="InitializeAsync"/> runs after Blazor connects:
 /// reads back what the inline script applied (so the service is in sync with
 /// the DOM), and subscribes to <c>prefers-color-scheme</c> changes so the app
-/// follows the OS when the user hasn't picked manually.</description></item>
+/// follows the OS when the user hasn't picked manually. When phase 1 never ran
+/// (host with a static index.html, or an App.razor without <c>OmniTheme</c>),
+/// it falls back to reading <c>prefers-color-scheme</c> itself — one paint late,
+/// but the right theme.</description></item>
 /// </list>
 /// </summary>
 public class ThemeService : IAsyncDisposable
@@ -78,6 +81,18 @@ public class ThemeService : IAsyncDisposable
                 var domTheme = await _coreJs.InvokeAsync<string?>("getAttr", "html", "data-theme");
                 if (!string.IsNullOrEmpty(domAccent)) Accent = domAccent;
                 Dark = domTheme == "dark";
+
+                // Defensive: a host without the <head> bootstrap (a static
+                // index.html in MAUI/Photino, or an App.razor missing
+                // <OmniTheme />) paints with no data-accent/data-theme at all,
+                // and reading the DOM back would report light on a dark OS.
+                // No attribute means nobody seeded the theme, so ask the OS
+                // and apply it — one round-trip, only on that path.
+                if (string.IsNullOrEmpty(domAccent) && string.IsNullOrEmpty(domTheme))
+                {
+                    Dark = await _responsiveJs.InvokeAsync<bool>("prefersColorSchemeDark");
+                    if (Dark) await _coreJs.InvokeVoidAsync("setAttr", "html", "data-theme", "dark");
+                }
 
                 // Subscribe to OS color-scheme changes so the app follows the
                 // system theme until the user makes a manual choice (which will

@@ -86,13 +86,13 @@ public partial class OmniDataFilter<TItem>
     private string EffApplyFilterText => ApplyFilterText ?? Texts.Apply;
 
     /// <summary>Label of the AND logic toggle. Default <c>"E"</c>.</summary>
-    [Parameter] public string AndOperatorText { get; set; } = "E";
+    [Parameter] public string? AndOperatorText { get; set; }
 
     /// <summary>Label of the OR logic toggle. Default <c>"OU"</c>.</summary>
-    [Parameter] public string OrOperatorText { get; set; } = "OU";
+    [Parameter] public string? OrOperatorText { get; set; }
 
     /// <summary>Placeholder of the condition value inputs. Default <c>"valor"</c>.</summary>
-    [Parameter] public string ValuePlaceholder { get; set; } = "valor";
+    [Parameter] public string? ValuePlaceholder { get; set; }
 
     // ─── SQL mode ──────────────────────────────────────────────────────────────
 
@@ -103,7 +103,7 @@ public partial class OmniDataFilter<TItem>
     [Parameter] public bool ShowSqlPreview { get; set; }
 
     /// <summary>Label of the visual-mode toggle. Default <c>"Visual"</c>.</summary>
-    [Parameter] public string VisualModeText { get; set; } = "Visual";
+    [Parameter] public string? VisualModeText { get; set; }
 
     /// <summary>Label of the SQL-mode toggle. Default <c>"SQL"</c>.</summary>
     [Parameter] public string SqlModeText { get; set; } = "SQL";
@@ -113,20 +113,29 @@ public partial class OmniDataFilter<TItem>
     private string EffApplySqlText => ApplySqlText ?? Texts.ApplyToFilter;
 
     /// <summary>Status text shown when the typed SQL is valid. Default <c>"SQL válido"</c>.</summary>
-    [Parameter] public string SqlValidText { get; set; } = "SQL válido";
+    [Parameter] public string? SqlValidText { get; set; }
 
     /// <summary>Summary label of the generated-SQL disclosure. Default <c>"SQL gerado"</c>.</summary>
-    [Parameter] public string SqlPreviewLabel { get; set; } = "SQL gerado";
+    [Parameter] public string? SqlPreviewLabel { get; set; }
 
     /// <summary>Label of the copy button. Default <c>"Copiar"</c>.</summary>
     [Parameter] public string? CopyText { get; set; }
     private string EffCopyText => CopyText ?? Texts.Copy;
 
     /// <summary>Label preceding the available-fields chips in SQL mode. Default <c>"Campos"</c>.</summary>
-    [Parameter] public string FieldsLabel { get; set; } = "Campos";
+    [Parameter] public string? FieldsLabel { get; set; }
 
     /// <summary>Placeholder of the SQL textarea. Default an example expression.</summary>
-    [Parameter] public string SqlPlaceholder { get; set; } = "ex.: Nome LIKE '%texto%' AND Idade >= 18";
+    [Parameter] public string? SqlPlaceholder { get; set; }
+
+    private string EffectiveAndOperatorText => AndOperatorText ?? Texts.And;
+    private string EffectiveOrOperatorText => OrOperatorText ?? Texts.Or;
+    private string EffectiveValuePlaceholder => ValuePlaceholder ?? Texts.FilterValue;
+    private string EffectiveVisualModeText => VisualModeText ?? Texts.VisualMode;
+    private string EffectiveSqlValidText => SqlValidText ?? Texts.SqlValid;
+    private string EffectiveSqlPreviewLabel => SqlPreviewLabel ?? Texts.GeneratedSql;
+    private string EffectiveFieldsLabel => FieldsLabel ?? Texts.Fields;
+    private string EffectiveSqlPlaceholder => SqlPlaceholder ?? Texts.SqlFilterPlaceholder;
 
     // ─── State ─────────────────────────────────────────────────────────────────
 
@@ -297,11 +306,14 @@ public partial class OmniDataFilter<TItem>
     }
 
     private void ValidateSql()
-        => FilterSqlConverter.TryParse(_sqlText, _properties, out _, out _, out _sqlError);
+        => FilterSqlConverter.TryParseLocalized(
+            _sqlText, _properties, Texts, FormattingCulture, out _, out _, out _sqlError);
 
     private async Task ApplySqlAsync()
     {
-        if (!FilterSqlConverter.TryParse(_sqlText, _properties, out var parsed, out var logic, out var error))
+        if (!FilterSqlConverter.TryParseLocalized(
+                _sqlText, _properties, Texts, FormattingCulture,
+                out var parsed, out var logic, out var error))
         {
             _sqlError = error;
             StateHasChanged();
@@ -402,18 +414,21 @@ public partial class OmniDataFilter<TItem>
     string IOmniDataFilterOwner.AddFilterText => EffAddFilterText;
     string IOmniDataFilterOwner.AddGroupText => EffAddGroupText;
     string IOmniDataFilterOwner.RemoveFilterText => EffRemoveFilterText;
-    string IOmniDataFilterOwner.AndText => AndOperatorText;
-    string IOmniDataFilterOwner.OrText => OrOperatorText;
-    string IOmniDataFilterOwner.PropertyPlaceholder => "Campo";
-    string IOmniDataFilterOwner.ValuePlaceholder => ValuePlaceholder;
+    string IOmniDataFilterOwner.AndText => EffectiveAndOperatorText;
+    string IOmniDataFilterOwner.OrText => EffectiveOrOperatorText;
+    string IOmniDataFilterOwner.PropertyPlaceholder => Texts.Field;
+    string IOmniDataFilterOwner.ValuePlaceholder => EffectiveValuePlaceholder;
     string IOmniDataFilterOwner.MinimumText => Texts.DataFilterMinimum;
     string IOmniDataFilterOwner.MaximumText => Texts.DataFilterMaximum;
     string IOmniDataFilterOwner.StartDateText => Texts.DataFilterStartDate;
     string IOmniDataFilterOwner.EndDateText => Texts.DataFilterEndDate;
     string IOmniDataFilterOwner.StartValueText => Texts.DataFilterStartValue;
     string IOmniDataFilterOwner.EndValueText => Texts.DataFilterEndValue;
+    string IOmniDataFilterOwner.ValueText => Texts.Value;
     string IOmniDataFilterOwner.YesText => Texts.Yes;
     string IOmniDataFilterOwner.NoText => Texts.No;
+    string IOmniDataFilterOwner.EmptyRootText => Texts.NoFilterConditions;
+    string IOmniDataFilterOwner.EmptyGroupText => Texts.EmptyGroup;
 
     OmniFilterPropertyInfo? IOmniDataFilterOwner.FindProperty(string? name) =>
         name is null ? null : _properties.FirstOrDefault(p => p.Property == name);
@@ -427,20 +442,20 @@ public partial class OmniDataFilter<TItem>
 
     string IOmniDataFilterOwner.OperatorText(FilterOperator op) => op switch
     {
-        FilterOperator.Contains => "Contém",
-        FilterOperator.NotContains => "Não contém",
-        FilterOperator.Equals => "Igual a",
-        FilterOperator.NotEquals => "Diferente de",
-        FilterOperator.StartsWith => "Começa com",
-        FilterOperator.EndsWith => "Termina com",
-        FilterOperator.GreaterThan => "Maior que",
-        FilterOperator.GreaterOrEqual => "Maior ou igual",
-        FilterOperator.LessThan => "Menor que",
-        FilterOperator.LessOrEqual => "Menor ou igual",
-        FilterOperator.Between => "Entre",
-        FilterOperator.NotBetween => "Fora do intervalo",
-        FilterOperator.IsEmpty => "Vazio",
-        FilterOperator.IsNotEmpty => "Não vazio",
+        FilterOperator.Contains => Texts.FilterContains,
+        FilterOperator.NotContains => Texts.FilterNotContains,
+        FilterOperator.Equals => Texts.FilterEquals,
+        FilterOperator.NotEquals => Texts.FilterNotEquals,
+        FilterOperator.StartsWith => Texts.FilterStartsWith,
+        FilterOperator.EndsWith => Texts.FilterEndsWith,
+        FilterOperator.GreaterThan => Texts.FilterGreaterThan,
+        FilterOperator.GreaterOrEqual => Texts.FilterGreaterThanOrEqual,
+        FilterOperator.LessThan => Texts.FilterLessThan,
+        FilterOperator.LessOrEqual => Texts.FilterLessThanOrEqual,
+        FilterOperator.Between => Texts.FilterBetween,
+        FilterOperator.NotBetween => Texts.FilterNotBetween,
+        FilterOperator.IsEmpty => Texts.FilterIsEmpty,
+        FilterOperator.IsNotEmpty => Texts.FilterIsNotEmpty,
         _ => op.ToString()
     };
 

@@ -13,10 +13,10 @@ public sealed class DiagramSchema
         bool showControls,
         bool showAutoLayout,
         string dropPayloadFormat,
-        string autoLayoutText,
-        string zoomInText,
-        string zoomOutText,
-        string fitText)
+        string? autoLayoutText,
+        string? zoomInText,
+        string? zoomOutText,
+        string? fitText)
     {
         Nodes = nodes;
         Edges = edges;
@@ -61,16 +61,16 @@ public sealed class DiagramSchema
     public string DropPayloadFormat { get; }
 
     /// <summary>Auto-layout action text.</summary>
-    public string AutoLayoutText { get; }
+    public string? AutoLayoutText { get; }
 
     /// <summary>Zoom-in action text.</summary>
-    public string ZoomInText { get; }
+    public string? ZoomInText { get; }
 
     /// <summary>Zoom-out action text.</summary>
-    public string ZoomOutText { get; }
+    public string? ZoomOutText { get; }
 
     /// <summary>Fit-to-view action text.</summary>
-    public string FitText { get; }
+    public string? FitText { get; }
 
     /// <summary>Creates an immutable diagram schema.</summary>
     public static DiagramSchema Create(Action<DiagramSchemaBuilder> configure)
@@ -109,10 +109,10 @@ public sealed class DiagramSchemaBuilder
     private bool _showControls = true;
     private bool _showAutoLayout = true;
     private string _dropPayloadFormat = "application/x-omni-diagram";
-    private string _autoLayoutText = "Auto-layout (organizar)";
-    private string _zoomInText = "Aumentar zoom";
-    private string _zoomOutText = "Diminuir zoom";
-    private string _fitText = "Ajustar à tela";
+    private string? _autoLayoutText;
+    private string? _zoomInText;
+    private string? _zoomOutText;
+    private string? _fitText;
     private DiagramAutoLayoutOptions? _autoLayout;
     private bool _built;
 

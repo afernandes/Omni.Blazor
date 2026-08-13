@@ -9,7 +9,7 @@
 @*  Horizontal navigation bar — tab-style root items with rich dropdowns.
     One dropdown open at a time; click opens, and once a menu is open hovering
     a sibling switches to it. Overflows into a horizontal scroll on phones.  *@
-<nav id="@Id" class="@RootCss" style="@Style" aria-label="@AriaLabel" @attributes="Attributes">
+<nav id="@Id" class="@RootCss" style="@Style" aria-label="@(AriaLabel ?? Texts.Menu)" @attributes="Attributes">
     <ul class="omni-menubar-list" role="menubar">
         <CascadingValue Value="this" IsFixed="true">
             <CascadingValue Name="MenuBarDepth" Value="0" IsFixed="true">
@@ -28,7 +28,7 @@
     [Parameter] public MenuTrigger Trigger { get; set; } = MenuTrigger.Click;
 
     /// <summary>Accessible label for the navigation landmark.</summary>
-    [Parameter] public string AriaLabel { get; set; } = "Menu";
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Optional content pinned to the right edge of the bar (status, etc.).</summary>
     [Parameter] public RenderFragment? Aux { get; set; }

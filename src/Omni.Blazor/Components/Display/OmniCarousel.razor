@@ -129,7 +129,7 @@
     private string EffNextAriaLabel => NextAriaLabel ?? Texts.NextSlide;
 
     /// <summary>Format string for each pager dot's aria-label ({0} = 1-based page). Default "Ir para o slide {0}".</summary>
-    [Parameter] public string PagerButtonAriaLabelFormat { get; set; } = "Ir para o slide {0}";
+    [Parameter] public string? PagerButtonAriaLabelFormat { get; set; }
 
     // ─── Derived ─────────────────────────────────────────────────────────────
 
@@ -160,7 +160,7 @@
             var itemIndex = pageIndex * ItemsPerPage;
             <button @key="pageIndex" type="button" role="listitem"
                     class="@PagerButtonCss(pageIndex == ActivePage)"
-                    aria-label="@string.Format(PagerButtonAriaLabelFormat, pageIndex + 1)"
+                    aria-label="@string.Format(FormattingCulture, PagerButtonAriaLabelFormat ?? Texts.GoToSlide, pageIndex + 1)"
                     @onclick="@(() => NavigateAsync(itemIndex))"></button>
         }
     </div>;

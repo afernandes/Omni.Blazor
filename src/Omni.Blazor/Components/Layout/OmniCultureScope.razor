@@ -1,0 +1,40 @@
+@* Provides formatting, UI culture, language and text direction to a component subtree. *@
+@namespace Omni.Blazor.Components
+@using System.Globalization
+@using Omni.Blazor.Utilities
+@inherits OmniComponentWithChildren
+
+<CascadingValue Name="@CultureCascadeName" Value="@EffectiveFormattingCulture" IsFixed="false">
+    <CascadingValue Name="@UICultureCascadeName" Value="@EffectiveTextCulture" IsFixed="false">
+        <div @ref="Element"
+             class="@RootCss"
+             style="@Style"
+             lang="@EffectiveTextCulture.Name"
+             dir="@EffectiveDirection"
+             @attributes="Attributes">
+            @ChildContent
+        </div>
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    internal const string CultureCascadeName = "Omni.Culture";
+    internal const string UICultureCascadeName = "Omni.UICulture";
+
+    /// <summary>Culture used to format numbers, dates and currencies.</summary>
+    [Parameter] public CultureInfo? Culture { get; set; }
+
+    /// <summary>Culture used to resolve translated UI strings.</summary>
+    [Parameter] public CultureInfo? UICulture { get; set; }
+
+    /// <summary>Text direction. Null infers it from <see cref="UICulture"/>.</summary>
+    [Parameter] public string? Direction { get; set; }
+
+    private CultureInfo EffectiveFormattingCulture => Culture ?? CultureInfo.CurrentCulture;
+    private CultureInfo EffectiveTextCulture => UICulture ?? Culture ?? CultureInfo.CurrentUICulture;
+    private string EffectiveDirection => Direction ?? (EffectiveTextCulture.TextInfo.IsRightToLeft ? "rtl" : "ltr");
+
+    private string RootCss => CssBuilder.Default("omni-culture-scope")
+        .AddClass(Class)
+        .Build();
+}

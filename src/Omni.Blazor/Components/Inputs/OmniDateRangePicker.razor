@@ -36,13 +36,13 @@
             @onclick="ToggleAsync">
         @if (From is null && To is null)
         {
-            <span class="omni-daterange-placeholder">@Placeholder</span>
+            <span class="omni-daterange-placeholder">@EffectivePlaceholder</span>
         }
         else
         {
-            <span class="omni-daterange-value">@(From?.ToString(DateFormat) ?? "…")</span>
+            <span class="omni-daterange-value">@(From?.ToString(EffectiveDateFormat, FormattingCulture) ?? "…")</span>
             <span class="omni-daterange-sep">→</span>
-            <span class="omni-daterange-value">@(To?.ToString(DateFormat) ?? "…")</span>
+            <span class="omni-daterange-value">@(To?.ToString(EffectiveDateFormat, FormattingCulture) ?? "…")</span>
         }
         <span class="omni-daterange-trigger">
             <OmniIcon Name="calendar" Size="ComponentSize.Sm" />
@@ -59,8 +59,8 @@
              aria-modal="false"
              @onclick:stopPropagation>
             <aside class="omni-daterange-presets">
-                <div class="omni-daterange-presets-title">ATALHOS</div>
-                @foreach (var p in Presets)
+                <div class="omni-daterange-presets-title">@Texts.Shortcuts.ToUpper(TextCulture)</div>
+                @foreach (var p in EffectivePresets)
                 {
                     var preset = p;
                     <button type="button"
@@ -159,9 +159,10 @@
     /// <summary>Disables the whole control. Default false.</summary>
     [Parameter] public bool Disabled { get; set; }
     /// <summary>Format used to display the From/To dates in the input. Default "dd/MM/yyyy".</summary>
-    [Parameter] public string DateFormat { get; set; } = "dd/MM/yyyy";
+    [Parameter] public string? DateFormat { get; set; }
     /// <summary>Text shown in the input when no range is selected. Default "Selecionar período".</summary>
-    [Parameter] public string Placeholder { get; set; } = "Selecionar período";
+    [Parameter] public string? Placeholder { get; set; }
+    private string EffectivePlaceholder => Placeholder ?? Texts.SelectDateRange;
     /// <summary>Earliest selectable date on both calendars; earlier days are disabled.</summary>
     [Parameter] public DateOnly? MinDate { get; set; }
     /// <summary>Latest selectable date on both calendars; later days are disabled.</summary>
@@ -183,7 +184,7 @@
     /// label plus a function returning the (from, to) tuple at the moment it's
     /// clicked. Default set covers the most common business reporting periods.
     /// </summary>
-    [Parameter] public IReadOnlyList<DateRangePreset> Presets { get; set; } = DefaultPresets;
+    [Parameter] public IReadOnlyList<DateRangePreset>? Presets { get; set; }
 
     /// <summary>
     /// When true (default), the second click on a day commits and closes the
@@ -231,18 +232,29 @@
         .Build();
 
     private string PopoverId => $"{_id}-popover";
+    private string EffectiveDateFormat => DateFormat ?? FormattingCulture.DateTimeFormat.ShortDatePattern;
 
     private string RangeSummary
     {
         get
         {
-            if (_pendingFrom is null) return "Selecione a data inicial";
-            if (_pendingTo is null)   return $"Início: {_pendingFrom.Value.ToString(DateFormat)} · selecione o fim";
+            if (_pendingFrom is null) return Texts.SelectRangeStart;
+            if (_pendingTo is null)
+                return string.Format(FormattingCulture, Texts.SelectRangeEnd, _pendingFrom.Value.ToString(EffectiveDateFormat, FormattingCulture));
             var (a, b) = _pendingFrom.Value <= _pendingTo.Value
                 ? (_pendingFrom.Value, _pendingTo.Value)
                 : (_pendingTo.Value, _pendingFrom.Value);
             var days = b.DayNumber - a.DayNumber + 1;
-            return $"{a.ToString(DateFormat)} → {b.ToString(DateFormat)} · {days} dia{(days == 1 ? "" : "s")}";
+            string fallback = days == 1
+                ? "{0} → {1} · {2} dia"
+                : Texts.DateRangeSummary;
+            return Texts.Plural(
+                nameof(OmniTexts.DateRangeSummary),
+                days,
+                fallback,
+                a.ToString(EffectiveDateFormat, FormattingCulture),
+                b.ToString(EffectiveDateFormat, FormattingCulture),
+                days);
         }
     }
 
@@ -480,20 +492,35 @@
     /// <summary>Quick-select shortcut: label + resolver returning the range.</summary>
     public sealed record DateRangePreset(string Label, Func<(DateOnly From, DateOnly To)> Resolve);
 
-    public static readonly IReadOnlyList<DateRangePreset> DefaultPresets = new[]
+    private IReadOnlyList<DateRangePreset>? _localizedPresets;
+    private string? _localizedPresetsCulture;
+
+    private IReadOnlyList<DateRangePreset> EffectivePresets
     {
-        new DateRangePreset("Hoje",            () => { var d = Today; return (d, d); }),
-        new DateRangePreset("Ontem",           () => { var d = Today.AddDays(-1); return (d, d); }),
-        new DateRangePreset("Últimos 7 dias",  () => (Today.AddDays(-6),  Today)),
-        new DateRangePreset("Últimos 30 dias", () => (Today.AddDays(-29), Today)),
-        new DateRangePreset("Este mês",        () => (new DateOnly(Today.Year, Today.Month, 1), Today)),
-        new DateRangePreset("Mês passado",     () => {
+        get
+        {
+            if (Presets is not null) return Presets;
+            if (_localizedPresets is not null &&
+                string.Equals(_localizedPresetsCulture, TextCulture.Name, StringComparison.Ordinal))
+                return _localizedPresets;
+
+            _localizedPresetsCulture = TextCulture.Name;
+            return _localizedPresets =
+            [
+                new DateRangePreset(Texts.Today, () => { var d = Today; return (d, d); }),
+                new DateRangePreset(Texts.Yesterday, () => { var d = Today.AddDays(-1); return (d, d); }),
+                new DateRangePreset(Texts.LastSevenDays, () => (Today.AddDays(-6), Today)),
+                new DateRangePreset(Texts.LastThirtyDays, () => (Today.AddDays(-29), Today)),
+                new DateRangePreset(Texts.ThisMonth, () => (new DateOnly(Today.Year, Today.Month, 1), Today)),
+                new DateRangePreset(Texts.LastMonth, () => {
             var first = new DateOnly(Today.Year, Today.Month, 1).AddMonths(-1);
             var last  = first.AddMonths(1).AddDays(-1);
             return (first, last);
-        }),
-        new DateRangePreset("Este ano",        () => (new DateOnly(Today.Year, 1, 1), Today)),
-    };
+                }),
+                new DateRangePreset(Texts.ThisYear, () => (new DateOnly(Today.Year, 1, 1), Today)),
+            ];
+        }
+    }
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 }

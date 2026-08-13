@@ -1,3 +1,5 @@
+using Omni.Blazor.Localization;
+
 namespace Omni.Blazor.Tests.Services;
 
 /// <summary>
@@ -38,6 +40,26 @@ public class DialogServiceTests : TestContextBase
         Assert.Single(svc.OpenDialogs);
         Assert.Equal("Cancelar atendimento", svc.OpenDialogs[0].Title);
         Assert.Equal(typeof(ConfirmDialog), svc.OpenDialogs[0].ComponentType);
+    }
+
+    [Fact]
+    public void Dialog_defaults_follow_the_configured_localized_texts()
+    {
+        var svc = new DialogService(OmniTexts.English());
+
+        _ = svc.Confirm("Continue?");
+
+        Assert.Equal("Confirm", svc.OpenDialogs[0].Title);
+        ConfirmOptions options = Assert.IsType<ConfirmOptions>(svc.OpenDialogs[0].Parameters!["Options"]);
+        Assert.Null(options.OkButtonText);
+        Assert.Null(options.CancelButtonText);
+
+        svc.Close(false);
+        _ = svc.Alert("Done");
+
+        Assert.Equal("Warning", svc.OpenDialogs[0].Title);
+        AlertOptions alertOptions = Assert.IsType<AlertOptions>(svc.OpenDialogs[0].Parameters!["Options"]);
+        Assert.Null(alertOptions.OkButtonText);
     }
 
     [Fact]

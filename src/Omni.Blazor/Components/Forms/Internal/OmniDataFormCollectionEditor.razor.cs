@@ -329,7 +329,7 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection,
                     FieldIdentifier,
                     TypedDefinition.MinimumItemsError
                     ?? string.Format(
-                        System.Globalization.CultureInfo.CurrentCulture,
+                        FormattingCulture,
                         Texts.DataFormMinimumItems,
                         TypedDefinition.MinimumItems));
             }
@@ -339,7 +339,7 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection,
                     FieldIdentifier,
                     TypedDefinition.MaximumItemsError
                     ?? string.Format(
-                        System.Globalization.CultureInfo.CurrentCulture,
+                        FormattingCulture,
                         Texts.DataFormMaximumItems,
                         TypedDefinition.MaximumItems));
             }

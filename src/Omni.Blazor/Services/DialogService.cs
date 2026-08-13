@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Omni.Blazor.Localization;
 using Omni.Blazor.Models;
 using System.Diagnostics.CodeAnalysis;
 
@@ -6,9 +7,13 @@ namespace Omni.Blazor.Services;
 
 public class DialogService
 {
+    private readonly OmniTexts _texts;
     private readonly List<DialogReference> _openDialogs = new();
     private DialogReference? _openSideDialog;
     private int _sequence;   // monotonic — define ordem de "topmost" entre main e side dialogs
+
+    public DialogService(OmniTexts? texts = null)
+        => _texts = texts ?? OmniTexts.Default;
 
     public event Action? OnChange;
 
@@ -71,9 +76,15 @@ public class DialogService
         return dialog.Tcs.Task;
     }
 
+    public Task<bool?> Confirm(string message)
+        => Confirm(message, _texts.Confirm);
+
+    public Task<bool?> Confirm(string message, ConfirmOptions options)
+        => Confirm(message, _texts.Confirm, options);
+
     public async Task<bool?> Confirm(
         string message,
-        string? title = "Confirmar",
+        string? title,
         ConfirmOptions? options = null)
     {
         options ??= new ConfirmOptions();
@@ -96,9 +107,15 @@ public class DialogService
         return null;
     }
 
+    public Task Alert(string message)
+        => Alert(message, _texts.Warning);
+
+    public Task Alert(string message, AlertOptions options)
+        => Alert(message, _texts.Warning, options);
+
     public async Task Alert(
         string message,
-        string? title = "Aviso",
+        string? title,
         AlertOptions? options = null)
     {
         options ??= new AlertOptions();

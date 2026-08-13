@@ -19,7 +19,7 @@ public class OmniThinkingBlockTests : TestContextBase
     public void Title_defaults_to_Reasoning_and_is_overridable()
     {
         var cut = Render<OmniThinkingBlock>(p => p.AddChildContent("x"));
-        Assert.Contains("Reasoning", cut.Find(".omni-thinking-title").TextContent);
+        Assert.Contains("Raciocínio", cut.Find(".omni-thinking-title").TextContent);
 
         cut.Render(p => p.Add(c => c.Title, "Thinking").AddChildContent("x"));
         Assert.Contains("Thinking", cut.Find(".omni-thinking-title").TextContent);

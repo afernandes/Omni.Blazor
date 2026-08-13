@@ -16,7 +16,7 @@
         <div class="omni-tree-grid-scroller">
             <table class="omni-tree-grid-table"
                    role="treegrid"
-                   aria-label="@AriaLabel"
+                   aria-label="@EffectiveAriaLabel"
                    aria-rowcount="@Rows.Count">
                 <colgroup>
                     @foreach (var column in _columns)
@@ -47,7 +47,7 @@
                                 }
                                 else
                                 {
-                                    @EmptyText
+                                    @EffectiveEmptyText
                                 }
                             </td>
                         </tr>
@@ -81,7 +81,7 @@
                                                 {
                                                     <button type="button"
                                                             class="omni-tree-grid-toggle"
-                                                            aria-label="@(IsExpanded(row.Key) ? CollapseText : ExpandText)"
+                                                            aria-label="@(IsExpanded(row.Key) ? EffectiveCollapseText : EffectiveExpandText)"
                                                             aria-expanded="@(IsExpanded(row.Key) ? "true" : "false")"
                                                             disabled="@IsNodeLoading(row.Key)"
                                                             @onclick:stopPropagation
@@ -132,8 +132,8 @@
                             {
                                 <tr @key="ErrorRowKey(row.Key)" class="omni-tree-grid-error-row">
                                     <td colspan="@ColumnSpan">
-                                        <span>@LoadErrorText</span>
-                                        <button type="button" @onclick="@(() => RetryAsync(row.Item))">@RetryText</button>
+                                        <span>@EffectiveLoadErrorText</span>
+                                        <button type="button" @onclick="@(() => RetryAsync(row.Item))">@EffectiveRetryText</button>
                                         <span class="omni-visually-hidden">@error</span>
                                     </td>
                                 </tr>
@@ -147,7 +147,7 @@
         @if (LimitReached)
         {
             <footer class="omni-tree-grid-limit" role="status">
-                @string.Format(LimitReachedText, MaxVisibleRows)
+                @string.Format(FormattingCulture, EffectiveLimitReachedText, MaxVisibleRows)
             </footer>
         }
     </section>

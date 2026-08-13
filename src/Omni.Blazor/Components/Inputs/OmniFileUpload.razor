@@ -25,7 +25,7 @@
                    class="omni-upload-input" />
         <OmniIcon Name="upload" Size="ComponentSize.Lg" />
         <div class="omni-upload-zone-text">
-            <div class="omni-upload-label">@LabelText</div>
+            <div class="omni-upload-label">@(LabelText ?? Texts.ChooseFiles)</div>
             <div class="omni-upload-hint">@(HintText ?? DefaultHint)</div>
         </div>
     </label>
@@ -71,7 +71,7 @@
     [Parameter] public int MaxFileCount { get; set; }
 
     /// <summary>Main text shown inside the drop-zone. Default "Arraste arquivos aqui ou clique para selecionar".</summary>
-    [Parameter] public string LabelText { get; set; } = "Arraste arquivos aqui ou clique para selecionar";
+    [Parameter] public string? LabelText { get; set; }
     /// <summary>Secondary hint under the label. When null, an auto hint listing Accept + max size is shown.</summary>
     [Parameter] public string? HintText { get; set; }
 
@@ -107,10 +107,9 @@
     {
         get
         {
-            var parts = new List<string>();
-            if (!string.IsNullOrEmpty(Accept)) parts.Add(Accept);
-            if (MaxFileSize > 0) parts.Add($"até {FormatSize(MaxFileSize)}");
-            return string.Join(" · ", parts);
+            if (MaxFileSize <= 0) return Accept ?? string.Empty;
+            string size = string.Format(FormattingCulture, Texts.UpToSize, FormatSize(MaxFileSize));
+            return string.IsNullOrEmpty(Accept) ? size : string.Concat(Accept, " · ", size);
         }
     }
 

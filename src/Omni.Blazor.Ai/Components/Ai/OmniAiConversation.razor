@@ -17,7 +17,7 @@
         <div class="omni-ai-conversation-header">@HeaderContent</div>
     }
 
-    <div class="omni-ai-conversation-log" id="@LogId" role="log" aria-label="@LogLabel">
+    <div class="omni-ai-conversation-log" id="@LogId" role="log" aria-label="@(LogLabel ?? Texts.Conversation)">
         @if (Client.Turns.Count == 0 && EmptyContent is not null)
         {
             <div class="omni-ai-conversation-empty">@EmptyContent</div>
@@ -37,7 +37,7 @@
     <div class="omni-ai-conversation-composer">
         <OmniPromptInput @bind-Value="_draft"
                          Placeholder="@Placeholder"
-                         SendLabel="@SendLabel"
+                         SendLabel="@(SendLabel ?? Texts.Send)"
                          Disabled="@(Disabled || Client.IsStreaming)"
                          OnSend="HandleSendAsync" />
     </div>
@@ -51,10 +51,10 @@
     [Parameter] public string? Placeholder { get; set; }
 
     /// <summary>Accessible label for the send button. Default "Send".</summary>
-    [Parameter] public string SendLabel { get; set; } = "Send";
+    [Parameter] public string? SendLabel { get; set; }
 
     /// <summary>Accessible label for the message log. Default "Conversation".</summary>
-    [Parameter] public string LogLabel { get; set; } = "Conversation";
+    [Parameter] public string? LogLabel { get; set; }
 
     /// <summary>Avatar initials for user turns. Default "U".</summary>
     [Parameter] public string UserInitials { get; set; } = "U";

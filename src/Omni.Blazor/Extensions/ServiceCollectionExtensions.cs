@@ -34,7 +34,16 @@ public static class ServiceCollectionExtensions
     {
         var options = new OmniOptions();
         configure?.Invoke(options);
-        services.TryAddSingleton(options.Texts);
+        services.TryAddScoped<IOmniLocalizer, OmniLocalizer>();
+        if (ReferenceEquals(options.Texts, OmniTexts.Default))
+        {
+            services.TryAddScoped(static provider =>
+                OmniTexts.FromLocalizer(provider.GetRequiredService<IOmniLocalizer>()));
+        }
+        else
+        {
+            services.TryAddSingleton(options.Texts);
+        }
         services.TryAddScoped<IOmniCoreJsModule>(static provider => new OmniCoreJsModule(
             provider.GetRequiredService<Microsoft.JSInterop.IJSRuntime>()));
         services.TryAddScoped<IOmniScrollJsModule>(static provider => new OmniScrollJsModule(

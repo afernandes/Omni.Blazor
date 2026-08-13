@@ -23,7 +23,7 @@
         else { <span></span> }
         <div class="omni-calendar-title">
             <button type="button" class="omni-calendar-title-btn" @onclick="ToggleYearPicker">
-                @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(_view.Month).ToUpperInvariant() @_view.Year
+                @FormattingCulture.DateTimeFormat.GetMonthName(_view.Month).ToUpper(FormattingCulture) @_view.Year
             </button>
         </div>
         @if (ShowNavButtons && ShowNextButton)
@@ -282,12 +282,12 @@
         }
     }
 
-    private DayOfWeek FirstDow => FirstDayOfWeek ?? CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+    private DayOfWeek FirstDow => FirstDayOfWeek ?? FormattingCulture.DateTimeFormat.FirstDayOfWeek;
 
     private void BuildWeekdays()
     {
         // Use the current culture's short day names rotated to start on FirstDow.
-        var names = CultureInfo.CurrentCulture.DateTimeFormat.ShortestDayNames; // ["dom","seg","ter","qua",...] (varies)
+        var names = FormattingCulture.DateTimeFormat.ShortestDayNames;
         // Fallback for cultures that return empty: single-letter ours.
         if (names is null || names.Length != 7 || names.Any(string.IsNullOrEmpty))
             names = new[] { "D", "S", "T", "Q", "Q", "S", "S" };

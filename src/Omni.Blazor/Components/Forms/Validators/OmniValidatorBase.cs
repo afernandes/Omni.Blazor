@@ -27,7 +27,7 @@ namespace Omni.Blazor.Components;
 ///   <item>Pluggable — criar <c>OmniCpfValidator</c> é override de 1 método.</item>
 /// </list>
 /// </summary>
-public abstract class OmniValidatorBase : ComponentBase, IDisposable
+public abstract class OmniValidatorBase : OmniComponent, IDisposable
 {
     private EditContext? _editContext;
     private ValidationMessageStore? _messageStore;
@@ -42,13 +42,10 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
     [Parameter, EditorRequired] public string Component { get; set; } = string.Empty;
 
     /// <summary>Mensagem exibida quando a validação falha.</summary>
-    [Parameter] public string Text { get; set; } = "Valor inválido.";
+    [Parameter] public string? Text { get; set; }
 
     /// <summary>Quando true, mostra a mensagem inline embaixo do form (default false — relies on OmniFormField/Summary).</summary>
     [Parameter] public bool ShowMessage { get; set; }
-
-    /// <summary>Estilo inline opcional do span de mensagem (quando ShowMessage=true).</summary>
-    [Parameter] public string? Style { get; set; }
 
     /// <summary>Implementação concreta: retorna true quando o valor passa a validação.</summary>
     protected abstract bool Validate(IOmniFormComponent component);
@@ -104,7 +101,7 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
 
         if (!Validate(component))
         {
-            _messageStore.Add(component.FieldIdentifier, Text);
+            _messageStore.Add(component.FieldIdentifier, Text ?? Texts.InvalidValue);
         }
 
         _editContext.NotifyValidationStateChanged();
@@ -126,7 +123,7 @@ public abstract class OmniValidatorBase : ComponentBase, IDisposable
         builder.OpenElement(0, "span");
         builder.AddAttribute(1, "class", "omni-validator-message");
         if (!string.IsNullOrEmpty(Style)) builder.AddAttribute(2, "style", Style);
-        builder.AddContent(3, Text);
+        builder.AddContent(3, Text ?? Texts.InvalidValue);
         builder.CloseElement();
     }
 

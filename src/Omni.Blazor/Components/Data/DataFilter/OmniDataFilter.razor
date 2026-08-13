@@ -19,9 +19,9 @@
     <div class="@RootCss" style="@Style" @attributes="Attributes">
         @if (AllowSqlMode)
         {
-            <div class="omni-datafilter-modes" role="group" aria-label="Modo do filtro">
+            <div class="omni-datafilter-modes" role="group" aria-label="@Texts.Mode">
                 <button type="button" class="@ModeCss(false)" disabled="@Disabled" @onclick="@(() => SetSqlModeAsync(false))">
-                    <OmniIcon Name="layout-grid" Size="ComponentSize.Sm" /> @VisualModeText
+                    <OmniIcon Name="layout-grid" Size="ComponentSize.Sm" /> @EffectiveVisualModeText
                 </button>
                 <button type="button" class="@ModeCss(true)" disabled="@Disabled" @onclick="@(() => SetSqlModeAsync(true))">
                     <OmniIcon Name="code" Size="ComponentSize.Sm" /> @SqlModeText
@@ -34,7 +34,7 @@
             <div class="omni-datafilter-sql">
                 <textarea class="omni-datafilter-sql-input" rows="4" spellcheck="false" autocomplete="off"
                           value="@_sqlText" @oninput="OnSqlInput" disabled="@Disabled"
-                          placeholder="@SqlPlaceholder" aria-label="Filtro em SQL"></textarea>
+                          placeholder="@EffectiveSqlPlaceholder" aria-label="@Texts.SqlFilter"></textarea>
 
                 <div class="@SqlStatusCss" role="status">
                     @if (_sqlError is not null)
@@ -43,14 +43,14 @@
                     }
                     else
                     {
-                        <OmniIcon Name="circle-check" Size="ComponentSize.Sm" /> <span>@SqlValidText</span>
+                        <OmniIcon Name="circle-check" Size="ComponentSize.Sm" /> <span>@EffectiveSqlValidText</span>
                     }
                 </div>
 
                 @if (_properties.Count > 0)
                 {
                     <div class="omni-datafilter-sql-fields">
-                        <span class="omni-datafilter-sql-fieldslabel">@FieldsLabel:</span>
+                        <span class="omni-datafilter-sql-fieldslabel">@EffectiveFieldsLabel:</span>
                         @foreach (var p in _properties)
                         {
                             <code class="omni-datafilter-sql-chip" @key="p">@p.Property</code>
@@ -89,7 +89,7 @@
             @if (ShowSqlPreview && HasRules)
             {
                 <details class="omni-datafilter-sqlpreview">
-                    <summary>@SqlPreviewLabel</summary>
+                    <summary>@EffectiveSqlPreviewLabel</summary>
                     <div class="omni-datafilter-sqlpreview-body">
                         <pre>@CurrentSql</pre>
                         <OmniButton Text="@EffCopyText" Icon="copy" Variant="ButtonVariant.Default"

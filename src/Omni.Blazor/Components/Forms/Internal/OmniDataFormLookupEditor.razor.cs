@@ -42,12 +42,12 @@ public partial class OmniDataFormLookupEditor<TModel, TItem, TValue>
     private OmniItemsProvider<DataFormLookupOption<TValue>>? EffectiveProvider => _provider;
     private DataFormLookupDefinition<TModel, TItem, TValue> TypedDefinition
         => (DataFormLookupDefinition<TModel, TItem, TValue>)LookupDefinition;
-    private string EffectiveEmptyText => TypedDefinition.EmptyText ?? "Sem opções";
-    private string EffectiveLoadingText => TypedDefinition.LoadingText ?? "Carregando...";
-    private string EffectiveLoadErrorText => TypedDefinition.LoadErrorText ?? "Não foi possível carregar as opções.";
-    private string EffectiveRetryText => TypedDefinition.RetryText ?? "Tentar novamente";
-    private string EffectiveLoadMoreText => TypedDefinition.LoadMoreText ?? "Carregar mais";
-    private string EffectiveUnresolvedText => Placeholder ?? "Opção selecionada";
+    private string EffectiveEmptyText => TypedDefinition.EmptyText ?? Texts.NoOptions;
+    private string EffectiveLoadingText => TypedDefinition.LoadingText ?? Texts.Loading;
+    private string EffectiveLoadErrorText => TypedDefinition.LoadErrorText ?? Texts.LoadOptionsError;
+    private string EffectiveRetryText => TypedDefinition.RetryText ?? Texts.Retry;
+    private string EffectiveLoadMoreText => TypedDefinition.LoadMoreText ?? Texts.LoadMore;
+    private string EffectiveUnresolvedText => Placeholder ?? Texts.SelectedOption;
     private bool IsLookupDisposed => Volatile.Read(ref _lookupDisposeState) != 0;
 
     private DataFormLookupOption<TValue>? SelectedOption

@@ -397,7 +397,7 @@ public partial class OmniDataImport<TItem> where TItem : class
             {
                 int count = records.Max(static record => record.Length);
                 headers = Enumerable.Range(1, count)
-                    .Select(index => string.Format(CultureInfo.CurrentCulture, Texts.DataImportColumn, index))
+                    .Select(index => string.Format(FormattingCulture, Texts.DataImportColumn, index))
                     .ToArray();
                 firstDataRow = 0;
             }
@@ -478,7 +478,7 @@ public partial class OmniDataImport<TItem> where TItem : class
     {
         _rows.Clear();
         _validCount = 0;
-        CultureInfo culture = Culture ?? CultureInfo.CurrentCulture;
+        CultureInfo culture = Culture ?? FormattingCulture;
         List<ValidationResult> validationResults = [];
         for (int rawIndex = 0; rawIndex < _rawRows.Count; rawIndex++)
         {

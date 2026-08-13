@@ -57,6 +57,12 @@ public abstract class OmniComponent : ComponentBase
 
     [Inject] private IServiceProvider? ServiceProvider { get; set; }
 
+    [CascadingParameter(Name = OmniCultureScope.CultureCascadeName)]
+    private CultureInfo? CascadedCulture { get; set; }
+
+    [CascadingParameter(Name = OmniCultureScope.UICultureCascadeName)]
+    private CultureInfo? CascadedUICulture { get; set; }
+
     private OmniTexts? _texts;
 
     /// <summary>
@@ -66,8 +72,25 @@ public abstract class OmniComponent : ComponentBase
     /// Resolution stays optional on purpose: a component still renders correctly in a host
     /// that never called <c>AddOmniComponents</c>.
     /// </summary>
-    protected OmniTexts Texts =>
-        _texts ??= ServiceProvider?.GetService(typeof(OmniTexts)) as OmniTexts ?? OmniTexts.Default;
+    protected OmniTexts Texts => _texts ??= ResolveTexts();
+
+    /// <summary>Culture used for numbers, dates and other formatted values.</summary>
+    protected CultureInfo FormattingCulture => CascadedCulture ?? CultureInfo.CurrentCulture;
+
+    /// <summary>Culture used for component UI strings.</summary>
+    protected CultureInfo TextCulture => CascadedUICulture ?? CultureInfo.CurrentUICulture;
+
+    private OmniTexts ResolveTexts()
+    {
+        OmniTexts? registered = ServiceProvider?.GetService(typeof(OmniTexts)) as OmniTexts;
+        if (registered is not null && !registered.IsLocalizedFacade)
+            return registered;
+
+        IOmniLocalizer? localizer = ServiceProvider?.GetService(typeof(IOmniLocalizer)) as IOmniLocalizer;
+        return localizer is null
+            ? registered ?? OmniTexts.Default
+            : OmniTexts.FromLocalizer(localizer, () => TextCulture);
+    }
 
     /// <summary>
     /// Scope for declarative parameter change detection. Use

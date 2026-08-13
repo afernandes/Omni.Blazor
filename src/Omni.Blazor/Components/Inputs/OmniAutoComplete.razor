@@ -11,7 +11,7 @@
            class="omni-input omni-autocomplete-input"
            type="text"
            value="@_searchText"
-           placeholder="@Placeholder"
+           placeholder="@EffectivePlaceholder"
            disabled="@Disabled"
            readonly="@ReadOnly"
            name="@Name"
@@ -50,20 +50,20 @@
             @if (_providerError is not null)
             {
                 <div class="omni-autocomplete-status" role="alert">
-                    <span>@LoadErrorText</span>
-                    <button type="button" @onclick="RetryProviderAsync">@RetryText</button>
+                    <span>@EffectiveLoadErrorText</span>
+                    <button type="button" @onclick="RetryProviderAsync">@EffectiveRetryText</button>
                 </div>
             }
             else if (_loading && _filtered.Count == 0)
             {
                 <div class="omni-autocomplete-status" role="status">
                     <OmniSpinner Size="ComponentSize.Sm" />
-                    <span>@LoadingText</span>
+                    <span>@EffectiveLoadingText</span>
                 </div>
             }
             else if (_filtered.Count == 0)
             {
-                <div class="omni-autocomplete-status">@EmptyText</div>
+                <div class="omni-autocomplete-status">@EffectiveEmptyText</div>
             }
             else
             {
@@ -88,7 +88,7 @@
                 {
                     <div class="omni-autocomplete-status" role="status">
                         <OmniSpinner Size="ComponentSize.Sm" />
-                        <span>@LoadingText</span>
+                        <span>@EffectiveLoadingText</span>
                     </div>
                 }
                 else if (CanLoadMore)
@@ -96,7 +96,7 @@
                     <button type="button"
                             class="omni-autocomplete-load-more"
                             @onclick="LoadMoreAsync">
-                        @LoadMoreText
+                        @EffectiveLoadMoreText
                     </button>
                 }
             }

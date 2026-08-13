@@ -4,7 +4,7 @@
 
 @* A row of clickable suggestion chips (follow-up questions / quick replies) for an AI conversation. *@
 
-<div class="@RootCss" style="@Style" role="group" aria-label="@AriaLabel" @attributes="Attributes">
+<div class="@RootCss" style="@Style" role="group" aria-label="@(AriaLabel ?? Texts.Suggestions)" @attributes="Attributes">
     @if (Suggestions is not null)
     {
         @foreach (var s in Suggestions)
@@ -26,7 +26,7 @@
     [Parameter] public EventCallback<string> OnSelect { get; set; }
 
     /// <summary>Accessible label for the chip group. Default "Suggestions".</summary>
-    [Parameter] public string AriaLabel { get; set; } = "Suggestions";
+    [Parameter] public string? AriaLabel { get; set; }
 
     private string RootCss => CssBuilder.Default("omni-suggestion-chips").AddClass(Class).Build();
 
