@@ -29,24 +29,37 @@ public class OmniTexts
 {
     private readonly IOmniLocalizer? _localizer;
     private readonly Func<CultureInfo>? _cultureAccessor;
+    private readonly Func<CultureInfo>? _formattingCultureAccessor;
+    private readonly CultureInfo? _fixedTextCulture;
 
     /// <summary>Creates a mutable fixed-culture text set.</summary>
     public OmniTexts()
     {
     }
 
-    private OmniTexts(IOmniLocalizer localizer, Func<CultureInfo> cultureAccessor)
+    private OmniTexts(CultureInfo fixedTextCulture)
+        => _fixedTextCulture = fixedTextCulture;
+
+    private OmniTexts(
+        IOmniLocalizer localizer,
+        Func<CultureInfo> cultureAccessor,
+        Func<CultureInfo> formattingCultureAccessor)
     {
         _localizer = localizer;
         _cultureAccessor = cultureAccessor;
+        _formattingCultureAccessor = formattingCultureAccessor;
     }
 
     internal bool IsLocalizedFacade => _localizer is not null;
 
     internal static OmniTexts FromLocalizer(
         IOmniLocalizer localizer,
-        Func<CultureInfo>? cultureAccessor = null)
-        => new(localizer, cultureAccessor ?? (static () => CultureInfo.CurrentUICulture));
+        Func<CultureInfo>? cultureAccessor = null,
+        Func<CultureInfo>? formattingCultureAccessor = null)
+        => new(
+            localizer,
+            cultureAccessor ?? (static () => CultureInfo.CurrentUICulture),
+            formattingCultureAccessor ?? (static () => CultureInfo.CurrentCulture));
 
     private string Resolve(string key, string fallback)
     {
@@ -58,11 +71,18 @@ public class OmniTexts
     }
 
     internal string Plural(string key, decimal count, string fallback, params object?[] arguments)
-        => _localizer?.Plural(key, count, _cultureAccessor!(), arguments)
-            ?? string.Format(CultureInfo.CurrentCulture, fallback, arguments);
+    {
+        string format = _localizer?.Plural(key, count, _cultureAccessor!())
+            ?? (_fixedTextCulture is null
+                ? fallback
+                : OmniLocalizer.GetBuiltInPluralFormat(key, count, _fixedTextCulture) ?? fallback);
+        return arguments.Length == 0
+            ? format
+            : string.Format(_formattingCultureAccessor?.Invoke() ?? CultureInfo.CurrentCulture, format, arguments);
+    }
 
     /// <summary>Built-in pt-BR defaults, used when nothing is registered.</summary>
-    public static OmniTexts Default { get; } = new();
+    public static OmniTexts Default { get; } = new(CultureInfo.GetCultureInfo("pt-BR"));
 
     // ── Generic actions ──────────────────────────────────────────────────
     /// <summary>Close (dialogs, alerts, banners). Default "Fechar".</summary>
@@ -315,7 +335,7 @@ public class OmniTexts
     private string _valueForDataGridFormMoreActions = "Mais ações";
     public string DataGridFormMoreActions { get => Resolve(nameof(DataGridFormMoreActions), _valueForDataGridFormMoreActions); set => _valueForDataGridFormMoreActions = value; }
     /// <summary>DataGridForm selected-item count format; placeholder zero receives the count.</summary>
-    private string _valueForDataGridFormSelectedCount = "{0} selecionado(s)";
+    private string _valueForDataGridFormSelectedCount = "{0} selecionados";
     public string DataGridFormSelectedCount { get => Resolve(nameof(DataGridFormSelectedCount), _valueForDataGridFormSelectedCount); set => _valueForDataGridFormSelectedCount = value; }
     /// <summary>Default DataGridForm bulk action confirmation.</summary>
     private string _valueForDataGridFormBulkConfirmation = "Deseja aplicar esta ação aos registros selecionados?";
@@ -368,9 +388,18 @@ public class OmniTexts
     /// <summary>DataImport invalid row status.</summary>
     private string _valueForDataImportInvalid = "Inválida";
     public string DataImportInvalid { get => Resolve(nameof(DataImportInvalid), _valueForDataImportInvalid); set => _valueForDataImportInvalid = value; }
-    /// <summary>DataImport preview summary; placeholders receive valid, invalid and total counts.</summary>
-    private string _valueForDataImportSummary = "{0:N0} válida(s), {1:N0} inválida(s), {2:N0} no total";
+    /// <summary>DataImport preview summary; placeholders receive three already pluralized count labels.</summary>
+    private string _valueForDataImportSummary = "{0}, {1}, {2}";
     public string DataImportSummary { get => Resolve(nameof(DataImportSummary), _valueForDataImportSummary); set => _valueForDataImportSummary = value; }
+    /// <summary>DataImport valid-row count.</summary>
+    private string _valueForDataImportValidCount = "{0:N0} linhas válidas";
+    public string DataImportValidCount { get => Resolve(nameof(DataImportValidCount), _valueForDataImportValidCount); set => _valueForDataImportValidCount = value; }
+    /// <summary>DataImport invalid-row count.</summary>
+    private string _valueForDataImportInvalidCount = "{0:N0} linhas inválidas";
+    public string DataImportInvalidCount { get => Resolve(nameof(DataImportInvalidCount), _valueForDataImportInvalidCount); set => _valueForDataImportInvalidCount = value; }
+    /// <summary>DataImport total-row count.</summary>
+    private string _valueForDataImportTotalCount = "{0:N0} linhas no total";
+    public string DataImportTotalCount { get => Resolve(nameof(DataImportTotalCount), _valueForDataImportTotalCount); set => _valueForDataImportTotalCount = value; }
     /// <summary>DataImport preview truncation; placeholders receive shown and total counts.</summary>
     private string _valueForDataImportPreviewLimit = "Exibindo as primeiras {0:N0} de {1:N0} linhas.";
     public string DataImportPreviewLimit { get => Resolve(nameof(DataImportPreviewLimit), _valueForDataImportPreviewLimit); set => _valueForDataImportPreviewLimit = value; }
@@ -378,7 +407,7 @@ public class OmniTexts
     private string _valueForDataImportImport = "Importar dados";
     public string DataImportImport { get => Resolve(nameof(DataImportImport), _valueForDataImportImport); set => _valueForDataImportImport = value; }
     /// <summary>DataImport accepted count.</summary>
-    private string _valueForDataImportReady = "{0:N0} linha(s) pronta(s) para importar.";
+    private string _valueForDataImportReady = "{0:N0} linhas prontas para importar.";
     public string DataImportReady { get => Resolve(nameof(DataImportReady), _valueForDataImportReady); set => _valueForDataImportReady = value; }
     /// <summary>DataImport blocking validation status.</summary>
     private string _valueForDataImportResolveErrors = "Corrija ou remova as linhas inválidas antes de importar.";
@@ -435,10 +464,10 @@ public class OmniTexts
     private string _valueForMoveDown = "Mover para baixo";
     public string MoveDown { get => Resolve(nameof(MoveDown), _valueForMoveDown); set => _valueForMoveDown = value; }
     /// <summary>DataForm minimum collection count format.</summary>
-    private string _valueForDataFormMinimumItems = "Adicione pelo menos {0} item(ns).";
+    private string _valueForDataFormMinimumItems = "Adicione pelo menos {0} itens.";
     public string DataFormMinimumItems { get => Resolve(nameof(DataFormMinimumItems), _valueForDataFormMinimumItems); set => _valueForDataFormMinimumItems = value; }
     /// <summary>DataForm maximum collection count format.</summary>
-    private string _valueForDataFormMaximumItems = "Mantenha no máximo {0} item(ns).";
+    private string _valueForDataFormMaximumItems = "Mantenha no máximo {0} itens.";
     public string DataFormMaximumItems { get => Resolve(nameof(DataFormMaximumItems), _valueForDataFormMaximumItems); set => _valueForDataFormMaximumItems = value; }
     /// <summary>Boolean affirmative option. Default "Sim".</summary>
     private string _valueForYes = "Sim";
@@ -576,6 +605,8 @@ public class OmniTexts
     /// <summary>Theme-picker title.</summary>
     private string _valueForTheme = "Tema";
     public string Theme { get => Resolve(nameof(Theme), _valueForTheme); set => _valueForTheme = value; }
+    private string _valueForLanguage = "Idioma";
+    public string Language { get => Resolve(nameof(Language), _valueForLanguage); set => _valueForLanguage = value; }
     /// <summary>Default density label.</summary>
     private string _valueForDefaultDensity = "Padrão";
     public string DefaultDensity { get => Resolve(nameof(DefaultDensity), _valueForDefaultDensity); set => _valueForDefaultDensity = value; }
@@ -1088,7 +1119,7 @@ public class OmniTexts
     /// An English set. Use as-is, or as a starting point:
     /// <c>o.Texts = OmniTexts.English()</c>.
     /// </summary>
-    public static OmniTexts English() => new()
+    public static OmniTexts English() => new(CultureInfo.GetCultureInfo("en"))
     {
         Close = "Close",
         Clear = "Clear",
@@ -1186,10 +1217,13 @@ public class OmniTexts
         DataImportErrors = "Errors",
         DataImportValid = "Valid",
         DataImportInvalid = "Invalid",
-        DataImportSummary = "{0:N0} valid, {1:N0} invalid, {2:N0} total",
+        DataImportSummary = "{0}, {1}, {2}",
+        DataImportValidCount = "{0:N0} valid rows",
+        DataImportInvalidCount = "{0:N0} invalid rows",
+        DataImportTotalCount = "{0:N0} total rows",
         DataImportPreviewLimit = "Showing the first {0:N0} of {1:N0} rows.",
         DataImportImport = "Import data",
-        DataImportReady = "{0:N0} row(s) ready to import.",
+        DataImportReady = "{0:N0} rows ready to import.",
         DataImportResolveErrors = "Fix or remove invalid rows before importing.",
         DataImportColumn = "Column {0}",
         DataImportFileTooLarge = "The file exceeds the {0} limit.",
@@ -1208,8 +1242,8 @@ public class OmniTexts
         DataFormValidationSummary = "Fix the errors below:",
         MoveUp = "Move up",
         MoveDown = "Move down",
-        DataFormMinimumItems = "Add at least {0} item(s).",
-        DataFormMaximumItems = "Keep at most {0} item(s).",
+        DataFormMinimumItems = "Add at least {0} items.",
+        DataFormMaximumItems = "Keep at most {0} items.",
         Yes = "Yes",
         No = "No",
         NotProvided = "Not provided",
@@ -1254,6 +1288,7 @@ public class OmniTexts
         Dark = "Dark",
         System = "System",
         Theme = "Theme",
+        Language = "Language",
         DefaultDensity = "Default",
         SpaciousDensity = "Spacious",
         AccentColor = "Accent color",

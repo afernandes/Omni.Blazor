@@ -1,6 +1,8 @@
 using System.Collections.Frozen;
 using System.Globalization;
 using System.Resources;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Omni.Blazor.Localization;
 
@@ -10,15 +12,32 @@ internal sealed class OmniLocalizer : IOmniLocalizer
     private static readonly ResourceManager Resources = new(ResourceBaseName, typeof(OmniLocalizer).Assembly);
     private readonly IOmniTranslationProvider[] _providers;
     private readonly IOmniPluralRule[] _pluralRules;
+    private readonly OmniMissingTranslationBehavior _missingBehavior;
+    private readonly int _maximumTrackedMissingTranslations;
+    private readonly ILogger<OmniLocalizer> _logger;
+    private readonly HashSet<string>? _reportedMisses;
+    private readonly Lock? _reportedMissesLock;
 
     public OmniLocalizer(
         IEnumerable<IOmniTranslationProvider> providers,
-        IEnumerable<IOmniPluralRule> pluralRules)
+        IEnumerable<IOmniPluralRule> pluralRules,
+        OmniLocalizationOptions options,
+        ILogger<OmniLocalizer>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(pluralRules);
         _providers = providers.ToArray();
         _pluralRules = pluralRules.ToArray();
+        ArgumentNullException.ThrowIfNull(options);
+        _missingBehavior = options.MissingTranslationBehavior;
+        _maximumTrackedMissingTranslations = options.MaximumTrackedMissingTranslations;
+        _logger = logger ?? NullLogger<OmniLocalizer>.Instance;
+        if (_missingBehavior == OmniMissingTranslationBehavior.Log &&
+            _maximumTrackedMissingTranslations > 0)
+        {
+            _reportedMisses = new(StringComparer.Ordinal);
+            _reportedMissesLock = new();
+        }
     }
 
     public string this[string key] => Localize(key).Value;
@@ -35,6 +54,8 @@ internal sealed class OmniLocalizer : IOmniLocalizer
             return new(key, translated, effectiveCulture, ResourceNotFound: false);
 
         string? builtIn = Resources.GetString(key, effectiveCulture);
+        if (builtIn is null || !IsBuiltInCulture(effectiveCulture))
+            ReportMissing(key, effectiveCulture);
         return builtIn is null
             ? new(key, key, effectiveCulture, ResourceNotFound: true)
             : new(key, builtIn, effectiveCulture, ResourceNotFound: false);
@@ -57,10 +78,13 @@ internal sealed class OmniLocalizer : IOmniLocalizer
         string? format = null;
         if (!TryProviders(in request, out format))
         {
-            format = Resources.GetString($"{key}.{category}", effectiveUiCulture)
+            string pluralKey = $"{key}.{category}";
+            format = Resources.GetString(pluralKey, effectiveUiCulture)
                 ?? Resources.GetString($"{key}.Other", effectiveUiCulture)
                 ?? Resources.GetString(key, effectiveUiCulture)
                 ?? key;
+            if (!IsBuiltInCulture(effectiveUiCulture) || string.Equals(format, key, StringComparison.Ordinal))
+                ReportMissing(pluralKey, effectiveUiCulture);
         }
 
         if (arguments.Length == 0)
@@ -92,6 +116,48 @@ internal sealed class OmniLocalizer : IOmniLocalizer
 
         return DefaultOmniPluralRule.GetCategory(culture, count);
     }
+
+    internal static string? GetBuiltInPluralFormat(string key, decimal count, CultureInfo culture)
+    {
+        OmniPluralCategory category = DefaultOmniPluralRule.GetCategory(culture, count);
+        return Resources.GetString($"{key}.{category}", culture)
+            ?? Resources.GetString($"{key}.Other", culture)
+            ?? Resources.GetString(key, culture);
+    }
+
+    private static bool IsBuiltInCulture(CultureInfo culture)
+        => culture.TwoLetterISOLanguageName is "pt" or "en";
+
+    private void ReportMissing(string key, CultureInfo culture)
+    {
+        switch (_missingBehavior)
+        {
+            case OmniMissingTranslationBehavior.Ignore:
+                return;
+            case OmniMissingTranslationBehavior.Throw:
+                throw new OmniMissingTranslationException(key, culture.Name);
+            case OmniMissingTranslationBehavior.Log:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(_missingBehavior));
+        }
+
+        if (_reportedMisses is null || _reportedMissesLock is null)
+            return;
+
+        string identity = string.Concat(culture.Name, "\0", key);
+        lock (_reportedMissesLock)
+        {
+            if (_reportedMisses.Count >= _maximumTrackedMissingTranslations ||
+                !_reportedMisses.Add(identity))
+                return;
+        }
+
+        _logger.LogWarning(
+            "Omni translation {TranslationKey} was not found for culture {CultureName}; a built-in fallback was used.",
+            key,
+            culture.Name);
+    }
 }
 
 /// <summary>
@@ -108,8 +174,21 @@ public sealed class OmniTranslationCatalog : IOmniTranslationProvider
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
         ArgumentNullException.ThrowIfNull(translations);
+        KeyValuePair<string, string>[] snapshot = translations.ToArray();
+        OmniTranslationCatalogValidationResult validation =
+            OmniTranslationCatalogValidator.Validate(cultureName, snapshot);
+        if (!validation.IsValid)
+        {
+            string message = string.Join(
+                Environment.NewLine,
+                validation.Issues
+                    .Where(static issue => issue.Severity == OmniTranslationCatalogIssueSeverity.Error)
+                    .Select(static issue => $"{issue.Key}: {issue.Message}"));
+            throw new ArgumentException(message, nameof(translations));
+        }
+
         _cultureName = CultureInfo.GetCultureInfo(cultureName).Name;
-        _translations = translations.ToFrozenDictionary(
+        _translations = snapshot.ToFrozenDictionary(
             static pair => pair.Key,
             static pair => pair.Value,
             StringComparer.Ordinal);
@@ -126,6 +205,10 @@ public sealed class OmniTranslationCatalog : IOmniTranslationProvider
 
         if (request.PluralCategory is { } category &&
             _translations.TryGetValue($"{request.Key}.{category}", out translation!))
+            return true;
+
+        if (request.PluralCategory is not null &&
+            _translations.TryGetValue($"{request.Key}.Other", out translation!))
             return true;
 
         return _translations.TryGetValue(request.Key, out translation!);

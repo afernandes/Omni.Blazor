@@ -1,12 +1,14 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Omni.Blazor;
 using Omni.Blazor.Components;
-using Omni.Blazor.Models;
 using Omni.Blazor.Localization;
-using System.Globalization;
+using Omni.Blazor.Localization.Po;
+using Omni.Blazor.Models;
 
 var services = new ServiceCollection();
+services.AddOmniPseudoLocalization();
 services.AddOmniComponents();
 using ServiceProvider provider = services.BuildServiceProvider();
 using IServiceScope scope = provider.CreateScope();
@@ -14,6 +16,12 @@ IOmniLocalizer localizer = scope.ServiceProvider.GetRequiredService<IOmniLocaliz
 bool localizedResourcesWork = localizer.Localize(
     OmniTranslationKeys.Close,
     CultureInfo.GetCultureInfo("en-US")).Value == "Close";
+bool pseudoLocalizationWorks = localizer.Localize(
+    OmniTranslationKeys.Close,
+    CultureInfo.GetCultureInfo("en-XA")).Value.StartsWith('［');
+
+var poServices = new ServiceCollection();
+poServices.AddOmniPortableObjectLocalization<AotPoResource>();
 
 DataFormSchema<AotContact> formSchema = DataFormSchema<AotContact>.Builder()
     .AutoGenerateFields(false)
@@ -74,7 +82,8 @@ if (services.Count == 0
     || schedulerSchema.Text is null
     || ganttSchema.Key is null
     || !typedRuntimePathsWork
-    || !localizedResourcesWork)
+    || !localizedResourcesWork
+    || !pseudoLocalizationWorks)
     return 1;
 
 Type[] rootedComponents =
@@ -110,4 +119,8 @@ internal sealed class AotContact
     public DateTime End { get; set; }
 
     public double? Progress { get; set; }
+}
+
+internal sealed class AotPoResource
+{
 }

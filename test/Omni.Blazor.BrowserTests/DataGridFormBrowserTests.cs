@@ -165,7 +165,7 @@ public sealed class DataGridFormBrowserTests(BrowserFixture fixture)
         await provider.GetByRole(AriaRole.Button, new() { Name = "Processar selecionados", Exact = true }).ClickAsync();
         ILocator bulk = provider.GetByRole(AriaRole.Alertdialog, new() { Name = "Confirmar" });
         await bulk.GetByRole(AriaRole.Button, new() { Name = "Confirmar", Exact = true }).ClickAsync();
-        await provider.GetByText("1 selecionado(s)", new() { Exact = true }).WaitForAsync(
+        await provider.GetByText("1 selecionado", new() { Exact = true }).WaitForAsync(
             new LocatorWaitForOptions { State = WaitForSelectorState.Detached });
 
         Assert.Empty(errors);

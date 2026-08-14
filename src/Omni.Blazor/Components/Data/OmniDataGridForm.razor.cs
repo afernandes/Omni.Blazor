@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
+using Omni.Blazor.Localization;
 using Omni.Blazor.Models;
 using Omni.Blazor.Services;
 using Omni.Blazor.Utilities;
@@ -1311,7 +1312,11 @@ public partial class OmniDataGridForm<
     private string? ConfirmationIcon => _confirmationAction?.Icon ?? Schema.DeleteOptions?.Icon;
     private ButtonVariant ConfirmationVariant => _confirmationAction?.Variant ?? ButtonVariant.Danger;
     private string SelectedItemsText
-        => string.Format(FormattingCulture, Texts.DataGridFormSelectedCount, _selectionSnapshot.Count);
+        => Texts.Plural(
+            OmniTranslationKeys.DataGridFormSelectedCount,
+            _selectionSnapshot.Count,
+            Texts.DataGridFormSelectedCount,
+            _selectionSnapshot.Count);
     private string BulkConfirmationMessage
         => _bulkConfirmationAction?.Confirmation?.Invoke(_bulkConfirmationItems ?? _selectionSnapshot)
            ?? Texts.DataGridFormBulkConfirmation;

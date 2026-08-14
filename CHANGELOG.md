@@ -9,6 +9,7 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 ## [Unreleased]
 
 ### Added
+- `OmniCulturePicker`: flag dropdown for switching the application language, built for the app bar beside `OmniThemePicker`. Presentational by design — it reports the choice through `ValueChanged` and leaves persistence to the host, since where a language is kept differs per host (cookie on Server, localStorage on WebAssembly). Flags come from a short built-in set keyed by the culture's region; anything outside it draws a code badge, `FlagTemplate` overrides both, and `ShowFlags="false"` turns them off for the many languages that do not belong to one country.
 - Pluggable localization for all library-owned UI strings: `IOmniLocalizer`, `IOmniTranslationProvider`, `IOmniPluralRule`, `OmniTranslationCatalog` and generated `OmniTranslationKeys`. Omni ships `pt-BR` and English RESX catalogs and supports application-owned dictionaries/JSON snapshots, `IStringLocalizer`/RESX, database/tenant sources and optional PO/Gettext adapters.
 - `OmniCultureScope` for an explicit component-subtree formatting culture and UI culture. It emits the corresponding `lang` and inferred `dir` metadata, including RTL cultures, without changing the surrounding application.
 - Culture-aware plural forms (`Zero`, `One`, `Two`, `Few`, `Many`, `Other`), a localization showcase with French and Arabic/RTL examples, and browser/AOT coverage for localized resources.

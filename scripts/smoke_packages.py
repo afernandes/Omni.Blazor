@@ -13,7 +13,7 @@ import textwrap
 
 
 BASE_PATTERN = re.compile(
-    r"^AndersonN\.Omni\.Blazor\.(?!Ai\.|Mcp\.)(?P<version>.+)\.nupkg$"
+    r"^AndersonN\.Omni\.Blazor\.(?!Ai\.|Mcp\.|Localization\.Po\.)(?P<version>.+)\.nupkg$"
 )
 
 
@@ -59,7 +59,11 @@ def package_version(artifacts: pathlib.Path, expected: str | None) -> str:
     if expected is not None and version != expected:
         fail(f"Packed version {version!r} differs from expected version {expected!r}")
 
-    for package_id in ("AndersonN.Omni.Blazor.Ai", "AndersonN.Omni.Blazor.Mcp"):
+    for package_id in (
+        "AndersonN.Omni.Blazor.Ai",
+        "AndersonN.Omni.Blazor.Localization.Po",
+        "AndersonN.Omni.Blazor.Mcp",
+    ):
         package = artifacts / f"{package_id}.{version}.nupkg"
         if not package.is_file():
             fail(f"Missing exact package {package.name}")
@@ -80,6 +84,7 @@ def create_server(root: pathlib.Path, version: str) -> pathlib.Path:
           <ItemGroup>
             <PackageReference Include="AndersonN.Omni.Blazor" Version="{version}" />
             <PackageReference Include="AndersonN.Omni.Blazor.Ai" Version="{version}" />
+            <PackageReference Include="AndersonN.Omni.Blazor.Localization.Po" Version="{version}" />
           </ItemGroup>
         </Project>
         """,
@@ -88,11 +93,13 @@ def create_server(root: pathlib.Path, version: str) -> pathlib.Path:
         project / "Program.cs",
         """
         using Omni.Blazor;
+        using Omni.Blazor.Localization.Po;
         using PackageSmoke.Server;
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.AddOmniComponents();
+        builder.Services.AddOmniPortableObjectLocalization<Program>("Localization");
         _ = typeof(Omni.Blazor.Ai.OmniChatClient);
 
         var app = builder.Build();
@@ -232,7 +239,7 @@ def main() -> int:
         if reported != version:
             fail(f"MCP tool reported {reported!r}; expected {version!r}")
 
-    print(f"Package smoke passed for Omni.Blazor {version} (Server, WASM, AI, MCP).")
+    print(f"Package smoke passed for Omni.Blazor {version} (Server, WASM, AI, PO, MCP).")
     return 0
 
 

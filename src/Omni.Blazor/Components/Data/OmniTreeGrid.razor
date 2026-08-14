@@ -147,7 +147,9 @@
         @if (LimitReached)
         {
             <footer class="omni-tree-grid-limit" role="status">
-                @string.Format(FormattingCulture, EffectiveLimitReachedText, MaxVisibleRows)
+                @(LimitReachedText is not null
+                    ? string.Format(FormattingCulture, LimitReachedText, MaxVisibleRows)
+                    : Texts.Plural(OmniTranslationKeys.HierarchyLimitReached, MaxVisibleRows, Texts.HierarchyLimitReached, MaxVisibleRows))
             </footer>
         }
     </section>

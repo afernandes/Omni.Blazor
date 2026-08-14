@@ -176,8 +176,6 @@ public partial class OmniFileManager
     private string EffectiveLoadingText => LoadingText ?? Texts.LoadingFiles;
     private string EffectiveEmptyText => EmptyText ?? Texts.EmptyFolder;
     private string EffectiveErrorText => ErrorText ?? Texts.FileOperationFailed;
-    private string EffectiveItemsCountText => ItemsCountText ?? Texts.ItemsCount;
-    private string EffectiveLimitText => LimitText ?? Texts.ItemLimit;
 
     /// <summary>Current bounded entry view.</summary>
     public IReadOnlyList<FileManagerEntry> Items => _items;

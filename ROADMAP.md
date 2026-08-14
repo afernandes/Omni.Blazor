@@ -114,7 +114,7 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 
 ### ✅ P1 · 5b. Localização completa e extensível
 
-**Concluído.** Defaults e textos internos renderizados passam por `IOmniLocalizer`; os catálogos embutidos cobrem pt-BR e inglês, com fallback de cultura, pluralização, `OmniCultureScope`, RTL e formatação culture-aware. Aplicações podem adicionar traduções por dicionário/JSON, `IStringLocalizer`/RESX, banco ou PO/Gettext sem acoplar a biblioteca a um formato. Consulte [`docs/localization.md`](docs/localization.md).
+**Concluído.** Defaults e textos internos renderizados passam por `IOmniLocalizer`; os catálogos embutidos cobrem pt-BR e inglês, com fallback de cultura, pluralização real dos textos de contagem, `OmniCultureScope`, troca global Server/WASM, RTL e formatação culture-aware. A infraestrutura inclui validação de catálogos/placeholders, diagnósticos estritos e limitados, pseudolocales, exportação JSON/RESX/POT, gate de literais no CI e o pacote opcional `AndersonN.Omni.Blazor.Localization.Po`. Consulte [`docs/localization.md`](docs/localization.md).
 
 ---
 

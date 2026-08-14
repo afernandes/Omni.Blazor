@@ -134,9 +134,7 @@ public partial class OmniDataGrid<TItem>
     private string EffectiveCollapseText => CollapseText ?? Texts.Collapse;
     private string EffectiveHierarchyLoadErrorText => HierarchyLoadErrorText ?? Texts.HierarchyLoadError;
     private string EffectiveHierarchyRetryText => HierarchyRetryText ?? Texts.Retry;
-    private string EffectiveHierarchyLimitReachedText => HierarchyLimitReachedText ?? Texts.HierarchyLimitReached;
     private string EffectiveGroupPanelText => GroupPanelText ?? Texts.GroupPanel;
-    private string EffectiveGroupLimitReachedText => GroupLimitReachedText ?? Texts.GroupLimitReached;
 
     /// <summary>Raised when an uncancelled lazy hierarchy load fails.</summary>
     [Parameter] public EventCallback<Exception> HierarchyLoadFailed { get; set; }

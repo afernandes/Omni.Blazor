@@ -34,6 +34,11 @@ public static class ServiceCollectionExtensions
     {
         var options = new OmniOptions();
         configure?.Invoke(options);
+        if (options.Localization.MaximumTrackedMissingTranslations < 0)
+            throw new ArgumentOutOfRangeException(nameof(options.Localization.MaximumTrackedMissingTranslations));
+        if (!Enum.IsDefined(options.Localization.MissingTranslationBehavior))
+            throw new ArgumentOutOfRangeException(nameof(options.Localization.MissingTranslationBehavior));
+        services.TryAddSingleton(options.Localization);
         services.TryAddScoped<IOmniLocalizer, OmniLocalizer>();
         if (ReferenceEquals(options.Texts, OmniTexts.Default))
         {

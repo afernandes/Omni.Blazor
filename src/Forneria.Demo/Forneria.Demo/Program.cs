@@ -1,12 +1,14 @@
+using System.Globalization;
 using Forneria.Demo.Components;
+using Forneria.Demo.Localization;
+using Forneria.Demo.Pages.Localization;
 using Forneria.Demo.Pages.Pages.PdvFeature;
 using Forneria.Demo.Pages.Services;
-using Forneria.Demo.Pages.Localization;
-using System.Globalization;
-using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Localization;
 using Omni.Blazor;
+using Omni.Blazor.Localization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +18,10 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddLocalization();
+builder.Services.AddOmniPseudoLocalization();
 builder.Services.AddDemoOmniTranslations();
 builder.Services.AddOmniComponents();
+builder.Services.AddScoped<IDemoCultureManager, ServerDemoCultureManager>();
 builder.Services.AddScoped<FakeOrderService>();
 builder.Services.AddScoped<PdvOrderService>();
 
@@ -44,9 +48,7 @@ if (!app.Environment.IsDevelopment())
 // On the interactive side, <Router NotFoundPage=…> handles it client-side.
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
-var supportedCultures = new[] { "pt-BR", "en-US", "fr-FR", "ar-SA" }
-    .Select(CultureInfo.GetCultureInfo)
-    .ToArray();
+var supportedCultures = DemoCultures.All.Select(option => CultureInfo.GetCultureInfo(option.Name)).ToArray();
 app.UseRequestLocalization(new RequestLocalizationOptions
 {
     DefaultRequestCulture = new RequestCulture("pt-BR"),
@@ -69,6 +71,34 @@ app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
 });
 
 app.UseAntiforgery();
+
+app.MapGet("/culture/set", (HttpContext context, string culture, string? redirectUri) =>
+{
+    if (!DemoCultures.IsSupported(culture))
+        return Results.BadRequest("Cultura não suportada.");
+
+    context.Response.Cookies.Append(
+        CookieRequestCultureProvider.DefaultCookieName,
+        CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(culture)),
+        new CookieOptions
+        {
+            Expires = DateTimeOffset.UtcNow.AddYears(1),
+            IsEssential = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = context.Request.IsHttps
+        });
+
+    bool localDestination = !string.IsNullOrWhiteSpace(redirectUri)
+        && redirectUri.StartsWith("/", StringComparison.Ordinal)
+        && !redirectUri.StartsWith("//", StringComparison.Ordinal)
+        && !redirectUri.Contains('\\')
+        && Uri.IsWellFormedUriString(redirectUri, UriKind.Relative);
+    string destination = !localDestination
+        ? "/showcase/localization"
+        : redirectUri!;
+    return Results.LocalRedirect(destination);
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

@@ -131,7 +131,6 @@ public partial class OmniTreeGrid<TItem>
     private string EffectiveCollapseText => CollapseText ?? Texts.Collapse;
     private string EffectiveLoadErrorText => LoadErrorText ?? Texts.HierarchyLoadError;
     private string EffectiveRetryText => RetryText ?? Texts.Retry;
-    private string EffectiveLimitReachedText => LimitReachedText ?? Texts.HierarchyLimitReached;
 
     /// <summary>Raised when an uncancelled lazy-load operation fails.</summary>
     [Parameter] public EventCallback<Exception> LoadFailed { get; set; }

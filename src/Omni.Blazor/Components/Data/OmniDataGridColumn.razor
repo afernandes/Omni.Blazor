@@ -25,6 +25,19 @@
     /// <summary>Selector for the displayed cell text. Overrides <see cref="Property"/>'s <c>ToString()</c> when set.</summary>
     [Parameter] public Func<TItem, string?>? TextSelector { get; set; }
 
+    /// <summary>
+    /// Uses the design system's monospace family and tabular numerals for this
+    /// column. Intended for identifiers, codes, dates, and technical values.
+    /// </summary>
+    [Parameter] public bool Monospace { get; set; }
+
+    /// <summary>
+    /// Marks this as a numeric column. Numeric columns use the monospace family,
+    /// tabular numerals, and end alignment in both left-to-right and right-to-left
+    /// layouts.
+    /// </summary>
+    [Parameter] public bool Numeric { get; set; }
+
     /// <summary>Custom cell render template. Receives the row item as <c>@context</c>. Falls back to the cell text.</summary>
     [Parameter] public RenderFragment<TItem>? Template { get; set; }
 

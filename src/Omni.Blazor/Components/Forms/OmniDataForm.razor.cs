@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Omni.Blazor.Localization;
 using Omni.Blazor.Models;
 using Omni.Blazor.Services;
 using Omni.Blazor.State;
@@ -1034,15 +1035,17 @@ public partial class OmniDataForm<
         int count = collection.GetCount(value);
         if (count < collection.MinimumItems)
         {
-            errors.Add(collection.MinimumItemsError ?? string.Format(
-                FormattingCulture,
+            errors.Add(collection.MinimumItemsError ?? Texts.Plural(
+                OmniTranslationKeys.DataFormMinimumItems,
+                collection.MinimumItems,
                 Texts.DataFormMinimumItems,
                 collection.MinimumItems));
         }
         if (count > collection.MaximumItems)
         {
-            errors.Add(collection.MaximumItemsError ?? string.Format(
-                FormattingCulture,
+            errors.Add(collection.MaximumItemsError ?? Texts.Plural(
+                OmniTranslationKeys.DataFormMaximumItems,
+                collection.MaximumItems,
                 Texts.DataFormMaximumItems,
                 collection.MaximumItems));
         }

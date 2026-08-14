@@ -119,6 +119,51 @@ public class OmniDataGridTests : TestContextBase
     }
 
     [Fact]
+    public void Monospace_column_applies_the_typography_class_to_header_and_cells()
+    {
+        RenderFragment columns = builder =>
+        {
+            builder.OpenComponent<OmniDataGridColumn<Person>>(0);
+            builder.AddAttribute(1, nameof(OmniDataGridColumn<Person>.Title), "Name");
+            builder.AddAttribute(2, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(p => p.Name));
+            builder.AddAttribute(3, nameof(OmniDataGridColumn<Person>.Monospace), true);
+            builder.CloseComponent();
+        };
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.Columns, columns));
+
+        Assert.Contains("omni-grid-cell-mono", cut.Find("thead th").ClassName);
+        Assert.All(cut.FindAll("tbody td"), cell =>
+            Assert.Contains("omni-grid-cell-mono", cell.ClassName));
+    }
+
+    [Fact]
+    public void Numeric_column_applies_monospace_and_numeric_classes()
+    {
+        RenderFragment columns = builder =>
+        {
+            builder.OpenComponent<OmniDataGridColumn<Person>>(0);
+            builder.AddAttribute(1, nameof(OmniDataGridColumn<Person>.Title), "Age");
+            builder.AddAttribute(2, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(p => p.Age));
+            builder.AddAttribute(3, nameof(OmniDataGridColumn<Person>.Numeric), true);
+            builder.CloseComponent();
+        };
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.Columns, columns));
+
+        var header = cut.Find("thead th");
+        Assert.Contains("omni-grid-cell-mono", header.ClassName);
+        Assert.Contains("omni-grid-cell-numeric", header.ClassName);
+        Assert.All(cut.FindAll("tbody td"), cell =>
+        {
+            Assert.Contains("omni-grid-cell-mono", cell.ClassName);
+            Assert.Contains("omni-grid-cell-numeric", cell.ClassName);
+        });
+    }
+
+    [Fact]
     public void Renders_EmptyText_when_data_is_empty()
     {
         var cut = Render<OmniDataGrid<Person>>(p => p

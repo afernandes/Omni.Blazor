@@ -2,6 +2,8 @@
 @attribute [ShowcaseInfo(Title = "Localization & RTL", Category = Cat.Overview, Icon = "globe", Order = 2, Aliases = "i18n,culture,resx,po,gettext,rtl,idioma,tradução")]
 @layout ShowcaseLayout
 @using System.Globalization
+@using Forneria.Demo.Pages.Localization
+@inject IDemoCultureManager CultureManager
 
 <PageTitle>Localization & RTL — Omni.Blazor</PageTitle>
 
@@ -20,6 +22,24 @@
     </Overview>
 
     <ChildContent>
+        <ShowcaseSection Title="Cultura global da aplicação"
+                         Description="Persiste a escolha no cookie do Blazor Server ou no localStorage do WebAssembly e recarrega a mesma rota.">
+            <div class="omni-stack" style="max-width: 32rem" data-testid="global-culture-section">
+                <OmniLabel For="demo-global-culture">Idioma da demonstração</OmniLabel>
+                <OmniSelect TValue="string"
+                            InputId="demo-global-culture"
+                            Items="@_cultureNames"
+                            TextSelector="CultureDisplayName"
+                            Value="@_selectedCulture"
+                            ValueChanged="ChangeCultureAsync"
+                            data-testid="global-culture-selector" />
+                <span class="omni-muted" data-testid="current-culture">
+                    CultureInfo.CurrentCulture: @CultureInfo.CurrentCulture.Name ·
+                    CurrentUICulture: @CultureInfo.CurrentUICulture.Name
+                </span>
+            </div>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="Culturas independentes no mesmo render"
                          Description="OmniCultureScope separa Culture (formatação) de UICulture (textos) e define lang/dir.">
             <div class="omni-grid omni-grid-3">
@@ -40,6 +60,14 @@
             </OmniCultureScope>
         </ShowcaseSection>
 
+        <ShowcaseSection Title="Pseudolocalização sem catálogo manual"
+                         Description="en-XA expande o texto para revelar cortes; ar-XB exercita bidi e RTL preservando placeholders.">
+            <div class="omni-grid omni-grid-2" data-testid="pseudo-localization-grid">
+                <LocalizationCultureCard CultureName="en-XA" Title="Pseudo expanded" Date="@_sampleDate" />
+                <LocalizationCultureCard CultureName="ar-XB" Title="Pseudo RTL" Date="@_sampleDate" />
+            </div>
+        </ShowcaseSection>
+
         <ShowcaseSection Title="Adicionar um idioma sem recompilar a biblioteca"
                          Description="O catálogo é copiado para um FrozenDictionary e participa da cadeia de fallback."
                          Code="@DictionaryExample">
@@ -56,6 +84,23 @@
     private readonly DateTime? _date = new(2026, 8, 12, 14, 30, 0);
     private readonly DateTime _sampleDate = new(2026, 8, 12, 14, 30, 0);
     private readonly CultureInfo _arabicCulture = CultureInfo.GetCultureInfo("ar-SA");
+    private readonly IReadOnlyList<string> _cultureNames = DemoCultures.All.Select(static culture => culture.Name).ToArray();
+    private string _selectedCulture = "pt-BR";
+
+    protected override void OnInitialized()
+    {
+        string current = CultureInfo.CurrentUICulture.Name;
+        _selectedCulture = DemoCultures.IsSupported(current) ? current : "pt-BR";
+    }
+
+    private static string CultureDisplayName(string cultureName)
+        => DemoCultures.All.First(culture => string.Equals(culture.Name, cultureName, StringComparison.Ordinal)).DisplayName;
+
+    private async Task ChangeCultureAsync(string cultureName)
+    {
+        _selectedCulture = cultureName;
+        await CultureManager.SetCultureAsync(cultureName);
+    }
 
     private const string DictionaryExample = @"builder.Services.AddOmniTranslations(""fr-FR"", new Dictionary<string, string>
 {

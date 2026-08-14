@@ -239,7 +239,7 @@
                                         var filter = _filters.TryGetValue(c, out var f) ? f : null;
                                         <OmniTextBox Value="@(filter?.Value as string)"
                                                       ValueChanged="@(v => OnFilterTextChangedAsync(c, v))"
-                                                      Placeholder="Filtrar..."
+                                                      Placeholder="@Texts.FilterPlaceholder"
                                                       Clearable="true"
                                                       Class="omni-grid-filter-input" />
                                     }
@@ -363,14 +363,18 @@
         @if (IsHierarchyMode && HierarchyLimitReached)
         {
             <div class="omni-tree-grid-limit" role="status">
-                @string.Format(FormattingCulture, EffectiveHierarchyLimitReachedText, MaxVisibleRows)
+                @(HierarchyLimitReachedText is not null
+                    ? string.Format(FormattingCulture, HierarchyLimitReachedText, MaxVisibleRows)
+                    : Texts.Plural(OmniTranslationKeys.HierarchyLimitReached, MaxVisibleRows, Texts.HierarchyLimitReached, MaxVisibleRows))
             </div>
         }
 
         @if (IsGroupMode && _groupLimitReached)
         {
             <div class="omni-grid-group-limit" role="status">
-                @string.Format(FormattingCulture, EffectiveGroupLimitReachedText, MaxGroups)
+                @(GroupLimitReachedText is not null
+                    ? string.Format(FormattingCulture, GroupLimitReachedText, MaxGroups)
+                    : Texts.Plural(OmniTranslationKeys.GroupLimitReached, MaxGroups, Texts.GroupLimitReached, MaxGroups))
             </div>
         }
 
@@ -1304,7 +1308,10 @@
     }
 
     private string CellCss(OmniDataGridColumn<TItem> c)
-        => _frozenStyles.TryGetValue(c, out var s) ? s.Css : string.Empty;
+        => CssBuilder.Default(_frozenStyles.TryGetValue(c, out var s) ? s.Css : null)
+            .AddClass("omni-grid-cell-mono", c.Monospace || c.Numeric)
+            .AddClass("omni-grid-cell-numeric", c.Numeric)
+            .Build();
 
     // Column widths live on the <colgroup> <col> elements (so a resize updates
     // one element, not every cell). Cells only carry frozen-column positioning.
