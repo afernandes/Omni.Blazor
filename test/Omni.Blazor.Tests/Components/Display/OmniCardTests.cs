@@ -65,6 +65,27 @@ public class OmniCardTests : TestContextBase
     }
 
     [Fact]
+    public void HeadingLevel_is_not_validated_when_HeaderContent_replaces_the_title()
+    {
+        // The parameter is documented as ignored here, and an ignored parameter that can
+        // still throw is a trap: a consumer who never renders a heading pays for its value.
+        var cut = Render<OmniCard>(p => p
+            .Add(c => c.HeadingLevel, 0)
+            .Add(c => c.HeaderContent, (RenderFragment)(b => b.AddMarkupContent(0, "<span>Custom</span>"))));
+
+        Assert.Empty(cut.FindAll(".omni-card-title"));
+        Assert.Contains("Custom", cut.Markup);
+    }
+
+    [Fact]
+    public void HeadingLevel_is_not_validated_when_there_is_no_title_to_render()
+    {
+        var cut = Render<OmniCard>(p => p.Add(c => c.HeadingLevel, 7));
+
+        Assert.Empty(cut.FindAll(".omni-card-title"));
+    }
+
+    [Fact]
     public void Elevated_adds_modifier()
     {
         var cut = Render<OmniCard>(p => p

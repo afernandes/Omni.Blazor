@@ -111,7 +111,12 @@
 
     protected override void OnParametersSet()
     {
-        if (HeadingLevel is < 1 or > 6)
+        // Only guard the case that actually renders a heading. HeadingLevel is documented
+        // as ignored when HeaderContent is supplied, and a parameter the component ignores
+        // must not be able to throw — nor should one that has no title to apply itself to.
+        bool rendersTitle = HeaderContent is null && !string.IsNullOrEmpty(Title);
+
+        if (rendersTitle && HeadingLevel is < 1 or > 6)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(HeadingLevel),
