@@ -1,8 +1,8 @@
+using System.Globalization;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Omni.Blazor;
 using Omni.Blazor.Localization;
-using System.Globalization;
 
 namespace Omni.Blazor.Tests.Localization;
 
@@ -64,7 +64,7 @@ public class OmniTextsTests : TestContextBase
         foreach (string cultureName in new[] { "pt-BR", "en-US" })
         {
             CultureInfo culture = CultureInfo.GetCultureInfo(cultureName);
-            foreach (string key in OmniTranslationKeys.All)
+            foreach (string key in OmniTranslationKeys.AllCatalogKeys)
             {
                 OmniLocalizedString value = localizer.Localize(key, culture);
                 Assert.False(value.ResourceNotFound, $"{cultureName} is missing {key}");
@@ -79,6 +79,17 @@ public class OmniTextsTests : TestContextBase
         var a = OmniTexts.English();
         a.Close = "mutated";
         Assert.Equal("Close", OmniTexts.English().Close); // not shared state
+    }
+
+    [Fact]
+    public void Fixed_builtin_text_sets_use_real_singular_and_plural_forms_without_di()
+    {
+        Assert.Equal(
+            "1 linha pronta para importar.",
+            OmniTexts.Default.Plural(OmniTranslationKeys.DataImportReady, 1, string.Empty, 1));
+        Assert.Equal(
+            "2 rows ready to import.",
+            OmniTexts.English().Plural(OmniTranslationKeys.DataImportReady, 2, string.Empty, 2));
     }
 
     // ── DI registration ───────────────────────────────────────────────────
@@ -252,6 +263,22 @@ public class OmniTextsTests : TestContextBase
         Assert.Equal("لا عناصر", localizer.Plural("Items", 0, culture, 0));
         Assert.Equal("عنصران", localizer.Plural("Items", 2, culture, 2));
         Assert.Equal("5 عناصر", localizer.Plural("Items", 5, culture, 5));
+    }
+
+    [Fact]
+    public void Pluralization_falls_back_to_other_when_a_catalog_omits_a_language_specific_category()
+    {
+        var services = new ServiceCollection();
+        services.AddOmniTranslations("ar", new Dictionary<string, string>
+        {
+            ["Items.Other"] = "{0} عنصر"
+        });
+        services.AddOmniComponents();
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+
+        Assert.Equal("5 عنصر", localizer.Plural("Items", 5, CultureInfo.GetCultureInfo("ar"), 5));
     }
 
     [Fact]

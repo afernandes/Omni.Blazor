@@ -91,6 +91,17 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: python3 scripts/check_async_safety.py
 
+      - name: Localization literal gate
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 scripts/check_localization_literals.py
+
+      - name: Localization catalogs are up to date
+        if: matrix.os == 'ubuntu-latest'
+        shell: pwsh
+        run: |
+          ./tools/generate-localization-resources.ps1
+          git diff --exit-code -- src/Omni.Blazor/Localization/Resources src/Omni.Blazor/Localization/OmniTranslationKeys.cs || throw "Localization artifacts are stale."
+
       - name: Manifest is up to date
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -116,6 +127,15 @@ jobs:
             --output ./artifacts \
             -p:ContinuousIntegrationBuild=true
 
+      - name: Pack (PO/Gettext adapter, dry-run)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet pack src/Omni.Blazor.Localization.Po/Omni.Blazor.Localization.Po.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./artifacts \
+            -p:ContinuousIntegrationBuild=true
+
       - name: Pack (MCP tool, dry-run)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -125,7 +145,7 @@ jobs:
             --output ./artifacts \
             -p:ContinuousIntegrationBuild=true
 
-      - name: Smoke test packed Server, WASM, AI and MCP consumers
+      - name: Smoke test packed Server, WASM, AI, PO and MCP consumers
         if: matrix.os == 'ubuntu-latest'
         run: python3 scripts/smoke_packages.py ./artifacts
 

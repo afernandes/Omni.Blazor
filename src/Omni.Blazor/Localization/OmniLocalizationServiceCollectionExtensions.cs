@@ -44,6 +44,18 @@ public static class OmniLocalizationServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Adds the built-in <c>en-XA</c> expanded and <c>ar-XB</c> RTL pseudo-locales.
+    /// Use them in development and browser tests to expose clipping and direction bugs.
+    /// </summary>
+    public static IServiceCollection AddOmniPseudoLocalization(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IOmniTranslationProvider, OmniPseudoTranslationProvider>());
+        return services;
+    }
+
     /// <summary>Adds a custom plural rule with a scoped lifetime.</summary>
     public static IServiceCollection AddOmniPluralRule<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TRule>(

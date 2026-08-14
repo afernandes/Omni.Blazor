@@ -14,4 +14,7 @@ public sealed class OmniOptions
     /// (or your own instance) to translate the whole library at once.
     /// </summary>
     public OmniTexts Texts { get; set; } = OmniTexts.Default;
+
+    /// <summary>Configures localization diagnostics without changing fallback behavior by default.</summary>
+    public OmniLocalizationOptions Localization { get; } = new();
 }

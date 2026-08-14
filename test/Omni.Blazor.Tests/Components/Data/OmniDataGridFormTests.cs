@@ -337,7 +337,7 @@ public sealed class OmniDataGridFormTests : TestContextBase
             .Add(component => component.OperationCompleted, args => completed = args));
 
         foreach (var checkbox in cut.FindAll("tbody input[type='checkbox']")) checkbox.Change(true);
-        Assert.Contains("2 selecionado(s)", cut.Find(".omni-data-grid-form-bulk-actions").TextContent);
+        Assert.Contains("2 selecionados", cut.Find(".omni-data-grid-form-bulk-actions").TextContent);
         cut.FindAll(".omni-data-grid-form-bulk-actions button")
             .Single(button => button.TextContent.Contains("Ativar"))
             .Click();

@@ -106,7 +106,9 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
 
         await scope.GetByRole(AriaRole.Button, new() { Name = "Carregar arquivo de exemplo", Exact = true }).ClickAsync();
         await scope.GetByText("Pré-visualização validada", new() { Exact = true }).WaitForAsync();
-        await scope.GetByText("1 válida(s), 1 inválida(s), 2 no total", new() { Exact = true }).WaitForAsync();
+        await scope.GetByText(
+            "1 linha válida, 1 linha inválida, 2 linhas no total",
+            new() { Exact = true }).WaitForAsync();
         AssertNoAxeViolations(await scope.RunAxe());
         await scope.GetByRole(AriaRole.Button, new() { Name = "Importar dados", Exact = true }).ClickAsync();
         await page.GetByRole(AriaRole.Status)

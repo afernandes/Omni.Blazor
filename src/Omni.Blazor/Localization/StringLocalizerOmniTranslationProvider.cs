@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Localization;
 using System.Globalization;
+using Microsoft.Extensions.Localization;
 
 namespace Omni.Blazor.Localization;
 
@@ -20,27 +20,39 @@ public sealed class StringLocalizerOmniTranslationProvider<TResource> : IOmniTra
     /// <inheritdoc />
     public bool TryGetTranslation(in OmniTranslationRequest request, out string translation)
     {
-        // IStringLocalizer intentionally follows CurrentUICulture and has no
-        // explicit-culture lookup API. Never return a value from the wrong culture
-        // when an OmniCultureScope requests a different one.
-        if (!string.Equals(request.Culture.Name, CultureInfo.CurrentUICulture.Name, StringComparison.OrdinalIgnoreCase))
+        CultureInfo previousCulture = CultureInfo.CurrentUICulture;
+        try
         {
-            translation = string.Empty;
-            return false;
-        }
+            // IStringLocalizer intentionally reads the ambient UI culture. The
+            // assignment is scoped to this synchronous lookup and CultureInfo is
+            // backed by the async execution context, so concurrent Blazor circuits
+            // do not share mutable process-wide state.
+            CultureInfo.CurrentUICulture = request.Culture;
 
-        if (request.PluralCategory is { } category)
-        {
-            LocalizedString plural = _localizer[$"{request.Key}.{category}"];
-            if (!plural.ResourceNotFound)
+            if (request.PluralCategory is { } category)
             {
-                translation = plural.Value;
-                return true;
-            }
-        }
+                LocalizedString plural = _localizer[$"{request.Key}.{category}"];
+                if (!plural.ResourceNotFound)
+                {
+                    translation = plural.Value;
+                    return true;
+                }
 
-        LocalizedString value = _localizer[request.Key];
-        translation = value.Value;
-        return !value.ResourceNotFound;
+                LocalizedString other = _localizer[$"{request.Key}.{OmniPluralCategory.Other}"];
+                if (!other.ResourceNotFound)
+                {
+                    translation = other.Value;
+                    return true;
+                }
+            }
+
+            LocalizedString value = _localizer[request.Key];
+            translation = value.Value;
+            return !value.ResourceNotFound;
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previousCulture;
+        }
     }
 }

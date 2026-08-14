@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Omni.Blazor.Localization;
 using Omni.Blazor.Models;
 using Omni.Blazor.Utilities;
 
@@ -328,8 +329,9 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection,
                 store.Add(
                     FieldIdentifier,
                     TypedDefinition.MinimumItemsError
-                    ?? string.Format(
-                        FormattingCulture,
+                    ?? Texts.Plural(
+                        OmniTranslationKeys.DataFormMinimumItems,
+                        TypedDefinition.MinimumItems,
                         Texts.DataFormMinimumItems,
                         TypedDefinition.MinimumItems));
             }
@@ -338,8 +340,9 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection,
                 store.Add(
                     FieldIdentifier,
                     TypedDefinition.MaximumItemsError
-                    ?? string.Format(
-                        FormattingCulture,
+                    ?? Texts.Plural(
+                        OmniTranslationKeys.DataFormMaximumItems,
+                        TypedDefinition.MaximumItems,
                         Texts.DataFormMaximumItems,
                         TypedDefinition.MaximumItems));
             }

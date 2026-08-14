@@ -32,6 +32,60 @@ public class OmniCardTests : TestContextBase
     }
 
     [Fact]
+    public void Title_uses_h3_by_default_for_backward_compatibility()
+    {
+        var cut = Render<OmniCard>(p => p.Add(c => c.Title, "Section"));
+
+        Assert.Equal("H3", cut.Find(".omni-card-title").TagName);
+    }
+
+    [Theory]
+    [InlineData(1, "H1")]
+    [InlineData(2, "H2")]
+    [InlineData(4, "H4")]
+    [InlineData(5, "H5")]
+    [InlineData(6, "H6")]
+    public void HeadingLevel_controls_the_semantic_title_element(int level, string expectedTag)
+    {
+        var cut = Render<OmniCard>(p => p
+            .Add(c => c.Title, "Section")
+            .Add(c => c.HeadingLevel, level));
+
+        Assert.Equal(expectedTag, cut.Find(".omni-card-title").TagName);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    public void HeadingLevel_rejects_values_outside_the_html_heading_range(int level)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Render<OmniCard>(p => p
+            .Add(c => c.Title, "Section")
+            .Add(c => c.HeadingLevel, level)));
+    }
+
+    [Fact]
+    public void HeadingLevel_is_not_validated_when_HeaderContent_replaces_the_title()
+    {
+        // The parameter is documented as ignored here, and an ignored parameter that can
+        // still throw is a trap: a consumer who never renders a heading pays for its value.
+        var cut = Render<OmniCard>(p => p
+            .Add(c => c.HeadingLevel, 0)
+            .Add(c => c.HeaderContent, (RenderFragment)(b => b.AddMarkupContent(0, "<span>Custom</span>"))));
+
+        Assert.Empty(cut.FindAll(".omni-card-title"));
+        Assert.Contains("Custom", cut.Markup);
+    }
+
+    [Fact]
+    public void HeadingLevel_is_not_validated_when_there_is_no_title_to_render()
+    {
+        var cut = Render<OmniCard>(p => p.Add(c => c.HeadingLevel, 7));
+
+        Assert.Empty(cut.FindAll(".omni-card-title"));
+    }
+
+    [Fact]
     public void Elevated_adds_modifier()
     {
         var cut = Render<OmniCard>(p => p

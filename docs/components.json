@@ -1,7 +1,7 @@
 {
   "package": "AndersonN.Omni.Blazor",
   "repository": "https://github.com/afernandes/Omni.Blazor",
-  "count": 208,
+  "count": 209,
   "components": [
     {
       "name": "OmniAiConversation",
@@ -3465,6 +3465,20 @@
           "type": "bool",
           "required": false,
           "summary": "Marca esta coluna como o \"âncora\" da hierarquia — receberá o chevron de expand/collapse + indentação por nível. Quando nenhuma coluna marca, o grid usa a primeira coluna visível."
+        },
+        {
+          "name": "Monospace",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Uses the design system's monospace family and tabular numerals for this column. Intended for identifiers, codes, dates, and technical values."
+        },
+        {
+          "name": "Numeric",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Marks this as a numeric column. Numeric columns use the monospace family, tabular numerals, and end alignment in both left-to-right and right-to-left layouts."
         },
         {
           "name": "Property",
@@ -9353,6 +9367,14 @@
           "type": "RenderFragment",
           "required": false,
           "summary": "Custom header content (overrides Title/Subtitle)."
+        },
+        {
+          "name": "HeadingLevel",
+          "kind": "parameter",
+          "type": "int",
+          "default": "3",
+          "required": false,
+          "summary": "Semantic heading level used by Title, from 1 through 6. The default is 3 for backward compatibility. Ignored when HeaderContent is supplied."
         },
         {
           "name": "Horizontal",
@@ -21242,6 +21264,101 @@
           "type": "RenderFragment",
           "required": false,
           "inheritedFrom": "OmniComponentWithChildren"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        }
+      ]
+    },
+    {
+      "name": "OmniCulturePicker",
+      "category": "Layout",
+      "baseType": "OmniComponent",
+      "isInput": false,
+      "hasChildContent": false,
+      "summary": "OmniCulturePicker — a flag dropdown for switching the application's language.",
+      "source": "src/Omni.Blazor/Components/Layout/OmniCulturePicker.razor",
+      "parameters": [
+        {
+          "name": "Cultures",
+          "kind": "parameter",
+          "type": "IReadOnlyList<OmniCultureOption>",
+          "required": false,
+          "summary": "Languages to offer, in the order they should be listed."
+        },
+        {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Disables the trigger."
+        },
+        {
+          "name": "FlagTemplate",
+          "kind": "slot",
+          "type": "RenderFragment<OmniCultureOption>",
+          "contextType": "OmniCultureOption",
+          "required": false,
+          "summary": "Replaces the built-in flag for every option."
+        },
+        {
+          "name": "ShowFlags",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Draw flags. Off leaves the code badge everywhere, which is the honest choice when a language does not map to one country."
+        },
+        {
+          "name": "ShowLabel",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Show the current language's name next to the flag. Off by default."
+        },
+        {
+          "name": "Title",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Accessible name of the trigger. Defaults to the localized \"Language\"."
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Culture name currently active, such as pt-BR."
+        },
+        {
+          "name": "ValueChanged",
+          "kind": "event",
+          "type": "EventCallback<string>",
+          "required": false,
+          "summary": "Raised with the chosen culture name. Persisting the choice and bringing the app back in the new language is the host's job — see the component remarks."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
         },
         {
           "name": "Class",

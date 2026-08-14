@@ -1854,7 +1854,9 @@ button.omni-input-clear:hover { background: var(--omni-bg-sunken); color: var(--
 .omni-qty-stepper button:disabled { color: var(--omni-line-strong); cursor: not-allowed; }
 .omni-qty-stepper-v {
   min-width: 24px; text-align: center;
+  font-family: var(--omni-font-mono);
   font-weight: 700; font-size: 13px;
+  font-variant-numeric: tabular-nums;
   color: var(--omni-fg);
 }
 
@@ -1897,6 +1899,7 @@ button.omni-input-clear:hover { background: var(--omni-bg-sunken); color: var(--
   border: 0; outline: none; background: transparent;
   color: var(--omni-fg);
   font: inherit;
+  font-family: var(--omni-font-mono);
   font-size: 14px;
   line-height: 1.4;
   font-variant-numeric: tabular-nums;
@@ -3318,9 +3321,10 @@ button.omni-select-load-more:disabled {
   position: relative;
 }
 .omni-stat-value {
-  font-family: var(--omni-font-ui);
+  font-family: var(--omni-font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 28px; font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.1;
   color: var(--omni-fg);
 }
@@ -3515,6 +3519,11 @@ body.omni-grid-resizing * { cursor: col-resize !important; }
   vertical-align: middle;
   color: var(--omni-fg);
 }
+.omni-grid-cell-mono {
+  font-family: var(--omni-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.omni-grid-cell-numeric { text-align: end !important; }
 .omni-grid-table tbody tr:last-child td { border-bottom: 0; }
 .omni-grid-table tbody tr:hover td { background: var(--omni-bg-sunken); }
 .omni-grid-row-clickable { cursor: pointer; }
@@ -11995,7 +12004,10 @@ span.omni-citation { cursor: default; }
 // bundle because library components themselves use them (OmniCard, OmniTextBox,
 // OmniQtyStepper, OmniStepper, Alert/ConfirmDialog) — without them those
 // components render unstyled in a consumer app. Also available to consumers.
-.omni-mono { font-family: var(--omni-font-mono); }
+.omni-mono {
+  font-family: var(--omni-font-mono);
+  font-variant-numeric: tabular-nums;
+}
 .omni-muted { color: var(--omni-fg-muted); }
 .omni-soft { color: var(--omni-fg-soft); }
 .omni-flex-1 { flex: 1; min-width: 0; }
@@ -12094,4 +12106,158 @@ span.omni-citation { cursor: default; }
     --omni-vkb-key-font-size: 16px;
     --omni-vkb-special-font-size: 14px;
   }
+}
+
+/* ── OmniCulturePicker ────────────────────────────────────────────────────────
+   Flags carry their own palettes, so each sits in a hairline-framed chip that
+   keeps it legible on any surface and stops a white flag dissolving into the
+   menu. Logical properties throughout: this control is the one an RTL reader
+   reaches for first. */
+.omni-culture-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--omni-fg);
+  background: var(--omni-bg-elev);
+  border: 1px solid var(--omni-line);
+  border-radius: var(--omni-radius);
+  box-shadow: var(--omni-shadow-sm);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.omni-culture-picker:hover:not(:disabled) {
+  background: var(--omni-bg);
+  border-color: var(--omni-line-strong);
+}
+
+.omni-culture-picker:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 2px;
+}
+
+.omni-culture-picker:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.omni-culture-picker-label {
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omni-culture-picker-caret {
+  width: 10px;
+  height: 10px;
+  color: var(--omni-fg-soft);
+  transition: transform 160ms ease;
+}
+
+.omni-culture-picker[aria-expanded='true'] .omni-culture-picker-caret { transform: rotate(180deg); }
+
+.omni-culture-picker-flag,
+.omni-culture-picker-code {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 16px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+/* Inset ring rather than a border: it does not add to the box and reads as a
+   frame around the artwork instead of a line drawn over it. */
+.omni-culture-picker-flag { box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.16); }
+.omni-culture-picker-flag svg { display: block; width: 100%; height: 100%; }
+
+.omni-culture-picker-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--omni-fg-muted);
+  background: var(--omni-bg-sunken);
+  box-shadow: inset 0 0 0 1px var(--omni-line-strong);
+}
+
+.omni-culture-picker-menu {
+  min-width: 250px;
+  padding: 6px;
+}
+
+.omni-culture-picker-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-radius: var(--omni-radius-sm);
+  cursor: pointer;
+  animation: omni-culture-picker-in 220ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes omni-culture-picker-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.omni-culture-picker-item:hover { background: var(--omni-bg-sunken); }
+.omni-culture-picker-item:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: -2px; }
+.omni-culture-picker-item.is-active { background: var(--omni-accent-soft); }
+
+/* A rail rather than a filled row: the flag keeps its own colours. */
+.omni-culture-picker-item.is-active::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--omni-accent);
+}
+
+.omni-culture-picker-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.omni-culture-picker-name {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.omni-culture-picker-desc {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--omni-fg-soft);
+}
+
+.omni-culture-picker-check {
+  width: 14px;
+  height: 14px;
+  margin-inline-start: auto;
+  color: var(--omni-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omni-culture-picker-item { animation: none; }
+  .omni-culture-picker-caret { transition: none; }
 }

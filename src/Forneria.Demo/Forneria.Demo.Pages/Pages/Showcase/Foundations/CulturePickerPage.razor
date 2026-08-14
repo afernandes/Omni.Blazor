@@ -1,0 +1,168 @@
+@page "/showcase/culture-picker"
+@attribute [ShowcaseInfo(Title = "Culture Picker", Category = Cat.Overview, Icon = "globe", New = true)]
+@layout ShowcaseLayout
+@using System.Globalization
+@using Forneria.Demo.Pages.Localization
+
+<PageTitle>Culture Picker — Showcase</PageTitle>
+
+<ShowcasePage Title="Culture Picker"
+              Subtitle="Dropdown de bandeira para trocar o idioma da aplicação — o mesmo que está na barra desta página.">
+
+    <Overview>
+        <p>
+            O <code>OmniCulturePicker</code> mostra a bandeira do idioma atual e abre a lista
+            de idiomas disponíveis. É <strong>apresentacional</strong>: informa a escolha por
+            <code>ValueChanged</code> e para por aí. Onde a escolha é guardada e como o app
+            volta no novo idioma é assunto do host — cookie no Blazor Server, localStorage no
+            WebAssembly, coluna no usuário em outros casos —, então isso fica fora do componente.
+        </p>
+        <p>
+            As bandeiras vêm de um conjunto embutido pequeno, indexado pela <strong>região</strong>
+            do nome da cultura (<code>pt-BR</code> → <code>BR</code>). Região fora do conjunto
+            desenha uma <strong>etiqueta com o código</strong>, e <code>FlagTemplate</code> substitui
+            os dois. São ~250 regiões no mundo: uma biblioteca de componentes que desenha metade
+            delas pela metade não ajuda ninguém.
+        </p>
+        <p>
+            Bandeira é uma representação ruim de idioma — espanhol não é só a Espanha, árabe não é
+            só a Arábia Saudita, e inglês tem duas bandeiras óbvias e nenhuma correta.
+            <code>ShowFlags="false"</code> desliga todas de uma vez e deixa só as etiquetas.
+        </p>
+    </Overview>
+
+    <WhenToUse>
+        <ul>
+            <li>Aplicação multi-idioma onde o usuário escolhe a língua, e não o navegador.</li>
+            <li>Barra superior / cabeçalho, ao lado do <code>OmniThemePicker</code>.</li>
+            <li>Quiosque e PDV: a bandeira é reconhecível sem leitura, útil para quem não fala a língua da tela.</li>
+        </ul>
+    </WhenToUse>
+
+    <WhenNotToUse>
+        <ul>
+            <li>Idioma escolhido por conta/perfil no servidor → mostre só o estado, sem seletor.</li>
+            <li>Campo de formulário para escolher um idioma como <em>dado</em> → use <code>OmniSelect</code>.</li>
+            <li>Formatação e texto precisando divergir num trecho da tela → <code>OmniCultureScope</code>.</li>
+        </ul>
+    </WhenNotToUse>
+
+    <ChildContent>
+        <ShowcaseSection Title="TROCANDO O IDIOMA DE VERDADE"
+                         Description="Este é o mesmo componente da barra do topo, ligado ao IDemoCultureManager. Escolher recarrega a rota no novo idioma — repare nos textos dos componentes abaixo."
+                         Code="@(@"<OmniCulturePicker Cultures=""@DemoCultures.PickerOptions""
+                   Value=""@_culture""
+                   ValueChanged=""ChangeCultureAsync"" />
+
+@code {
+    private async Task ChangeCultureAsync(string name)
+    {
+        _culture = name;
+        await CultureManager.SetCultureAsync(name);   // cookie / localStorage + reload
+    }
+}")">
+            <div class="cp-demo">
+                <OmniCulturePicker Cultures="@DemoCultures.PickerOptions"
+                                   Value="@_culture"
+                                   ValueChanged="ChangeCultureAsync"
+                                   ShowLabel
+                                   data-testid="culture-picker-live" />
+                <span class="omni-muted">
+                    CurrentUICulture: <strong>@CultureInfo.CurrentUICulture.Name</strong> ·
+                    CurrentCulture: <strong>@CultureInfo.CurrentCulture.Name</strong>
+                </span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="COMPACTO E COM RÓTULO"
+                         Description="Sem rótulo cabe em qualquer barra; com rótulo deixa o idioma explícito quando há espaço."
+                         Code="@(@"<OmniCulturePicker Cultures=""@cultures"" @bind-Value=""_lang"" />
+<OmniCulturePicker Cultures=""@cultures"" @bind-Value=""_lang"" ShowLabel />")">
+            <div class="cp-row">
+                <OmniCulturePicker Cultures="@DemoCultures.PickerOptions" @bind-Value="_sample" />
+                <OmniCulturePicker Cultures="@DemoCultures.PickerOptions" @bind-Value="_sample" ShowLabel />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEM BANDEIRAS"
+                         Description="A recomendação de i18n quando um idioma não pertence a um país. As etiquetas usam a subtag do nome da cultura."
+                         Code="@(@"<OmniCulturePicker Cultures=""@cultures"" @bind-Value=""_lang"" ShowFlags=""false"" ShowLabel />")">
+            <div class="cp-row">
+                <OmniCulturePicker Cultures="@DemoCultures.PickerOptions"
+                                   @bind-Value="_sample"
+                                   ShowFlags="false"
+                                   ShowLabel />
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="BANDEIRA PRÓPRIA"
+                         Description="FlagTemplate assume o desenho — um emoji, um <img>, um ícone do seu design system. Aqui, uma pastilha com as duas letras do idioma."
+                         Code="@(@"<OmniCulturePicker Cultures=""@cultures"" @bind-Value=""_lang"" ShowLabel>
+    <FlagTemplate Context=""culture"">
+        <span class=""minha-pastilha"">@culture.Name[..2]</span>
+    </FlagTemplate>
+</OmniCulturePicker>")">
+            <div class="cp-row">
+                <OmniCulturePicker Cultures="@DemoCultures.PickerOptions" @bind-Value="_sample" ShowLabel>
+                    <FlagTemplate Context="culture">
+                        <span class="cp-chip">@culture.Name[..2].ToUpperInvariant()</span>
+                    </FlagTemplate>
+                </OmniCulturePicker>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="REGIÕES COM BANDEIRA EMBUTIDA"
+                         Description="O conjunto embutido cobre as regiões mais pedidas. Qualquer outra cai na etiqueta de código — nenhuma bandeira aproximada é inventada."
+                         Code="@(@"// Sem bandeira embutida? A etiqueta de código aparece sozinha.
+new OmniCultureOption { Name = ""sv-SE"" }   // → etiqueta ""SE""
+new OmniCultureOption { Name = ""en-XA"" }   // pseudo-locale → etiqueta ""XA""")">
+            <div class="cp-row">
+                <OmniCulturePicker Cultures="@_builtInRegions" @bind-Value="_region" ShowLabel />
+                <span class="omni-muted">@_builtInRegions.Count regiões desenhadas</span>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="DESABILITADO"
+                         Description="Trava o gatilho enquanto a tela espera o servidor."
+                         Code="@(@"<OmniCulturePicker Cultures=""@cultures"" Value=""pt-BR"" Disabled ShowLabel />")">
+            <div class="cp-row">
+                <OmniCulturePicker Cultures="@DemoCultures.PickerOptions" Value="pt-BR" Disabled ShowLabel />
+            </div>
+        </ShowcaseSection>
+    </ChildContent>
+</ShowcasePage>
+
+@code {
+    [Inject] private IDemoCultureManager CultureManager { get; set; } = default!;
+
+    private string _culture = "pt-BR";
+    private string _sample = "pt-BR";
+    private string _region = "pt-BR";
+
+    private readonly IReadOnlyList<Omni.Blazor.Models.OmniCultureOption> _builtInRegions =
+    [
+        new() { Name = "pt-BR", DisplayName = "Português", Description = "Brasil" },
+        new() { Name = "pt-PT", DisplayName = "Português", Description = "Portugal" },
+        new() { Name = "en-US", DisplayName = "English", Description = "United States" },
+        new() { Name = "en-GB", DisplayName = "English", Description = "United Kingdom" },
+        new() { Name = "es-ES", DisplayName = "Español", Description = "España" },
+        new() { Name = "fr-FR", DisplayName = "Français", Description = "France" },
+        new() { Name = "it-IT", DisplayName = "Italiano", Description = "Italia" },
+        new() { Name = "de-DE", DisplayName = "Deutsch", Description = "Deutschland" },
+        new() { Name = "ja-JP", DisplayName = "日本語", Description = "日本" },
+        new() { Name = "ar-SA", DisplayName = "العربية", Description = "السعودية" }
+    ];
+
+    protected override void OnInitialized()
+    {
+        string current = CultureInfo.CurrentUICulture.Name;
+        _culture = DemoCultures.IsSupported(current) ? current : "pt-BR";
+        _sample = _culture;
+    }
+
+    private async Task ChangeCultureAsync(string cultureName)
+    {
+        _culture = cultureName;
+        await CultureManager.SetCultureAsync(cultureName);
+    }
+}

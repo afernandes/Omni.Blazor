@@ -89,7 +89,7 @@ public abstract class OmniComponent : ComponentBase
         IOmniLocalizer? localizer = ServiceProvider?.GetService(typeof(IOmniLocalizer)) as IOmniLocalizer;
         return localizer is null
             ? registered ?? OmniTexts.Default
-            : OmniTexts.FromLocalizer(localizer, () => TextCulture);
+            : OmniTexts.FromLocalizer(localizer, () => TextCulture, () => FormattingCulture);
     }
 
     /// <summary>

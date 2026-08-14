@@ -185,10 +185,14 @@
     </div>
 
     <footer class="omni-file-manager-footer">
-        <span>@string.Format(FormattingCulture, EffectiveItemsCountText, _items.Count, _totalCount)</span>
+        <span>@(ItemsCountText is not null
+            ? string.Format(FormattingCulture, ItemsCountText, _items.Count, _totalCount)
+            : Texts.Plural(OmniTranslationKeys.ItemsCount, _totalCount, Texts.ItemsCount, _items.Count, _totalCount))</span>
         @if (_totalCount > _items.Count)
         {
-            <span>@string.Format(FormattingCulture, EffectiveLimitText, MaxItems)</span>
+            <span>@(LimitText is not null
+                ? string.Format(FormattingCulture, LimitText, MaxItems)
+                : Texts.Plural(OmniTranslationKeys.ItemLimit, MaxItems, Texts.ItemLimit, MaxItems))</span>
         }
     </footer>
 </section>

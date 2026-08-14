@@ -24,7 +24,18 @@
                 }
                 else
                 {
-                    @if (!string.IsNullOrEmpty(Title))    { <h3 class="omni-card-title">@Title</h3> }
+                    @if (!string.IsNullOrEmpty(Title))
+                    {
+                        @switch (HeadingLevel)
+                        {
+                            case 1: <h1 class="omni-card-title">@Title</h1> break;
+                            case 2: <h2 class="omni-card-title">@Title</h2> break;
+                            case 3: <h3 class="omni-card-title">@Title</h3> break;
+                            case 4: <h4 class="omni-card-title">@Title</h4> break;
+                            case 5: <h5 class="omni-card-title">@Title</h5> break;
+                            case 6: <h6 class="omni-card-title">@Title</h6> break;
+                        }
+                    }
                     @if (!string.IsNullOrEmpty(Subtitle)) { <p class="omni-card-sub">@Subtitle</p> }
                 }
             </div>
@@ -49,6 +60,13 @@
 @code {
     /// <summary>Title shown in the card header.</summary>
     [Parameter] public string? Title { get; set; }
+
+    /// <summary>
+    /// Semantic heading level used by <see cref="Title"/>, from 1 through 6.
+    /// The default is 3 for backward compatibility. Ignored when
+    /// <see cref="HeaderContent"/> is supplied.
+    /// </summary>
+    [Parameter] public int HeadingLevel { get; set; } = 3;
 
     /// <summary>Subtitle shown below the title.</summary>
     [Parameter] public string? Subtitle { get; set; }
@@ -90,6 +108,22 @@
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
     private ElementReference _el;
+
+    protected override void OnParametersSet()
+    {
+        // Only guard the case that actually renders a heading. HeadingLevel is documented
+        // as ignored when HeaderContent is supplied, and a parameter the component ignores
+        // must not be able to throw — nor should one that has no title to apply itself to.
+        bool rendersTitle = HeaderContent is null && !string.IsNullOrEmpty(Title);
+
+        if (rendersTitle && HeadingLevel is < 1 or > 6)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(HeadingLevel),
+                HeadingLevel,
+                "HeadingLevel must be between 1 and 6.");
+        }
+    }
 
     private string RootCss => CssBuilder.Default("omni-card")
         .AddClass("omni-card-elevated", Elevated)

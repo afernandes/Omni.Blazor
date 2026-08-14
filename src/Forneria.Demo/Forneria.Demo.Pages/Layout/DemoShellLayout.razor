@@ -1,5 +1,8 @@
 @inherits LayoutComponentBase
 @inject ThemeService Theme
+@inject Forneria.Demo.Pages.Localization.IDemoCultureManager CultureManager
+@using System.Globalization
+@using Forneria.Demo.Pages.Localization
 
 @* Catalog-only shell. Vertical product examples live in src/FoodService. *@
 <OmniLayout Class="demo-catalog-shell">
@@ -11,6 +14,10 @@
                 <NavLink href="showcase/get-started">Get started</NavLink>
                 <a href="https://github.com/afernandes/Omni.Blazor">GitHub</a>
             </nav>
+            <OmniCulturePicker Cultures="@DemoCultures.PickerOptions"
+                               Value="@_culture"
+                               ValueChanged="ChangeCultureAsync"
+                               data-testid="shell-culture-picker" />
             <OmniThemePicker Title="Appearance" />
         </div>
     </OmniAppBar>
@@ -23,6 +30,22 @@
 <OmniOverlayHosts />
 
 @code {
+    private string _culture = "pt-BR";
+
+    protected override void OnInitialized()
+    {
+        string current = CultureInfo.CurrentUICulture.Name;
+        _culture = DemoCultures.IsSupported(current) ? current : "pt-BR";
+    }
+
+    // The picker reports the choice; persisting it and coming back in the new language is
+    // host business — a cookie on Server, localStorage on WebAssembly.
+    private async Task ChangeCultureAsync(string cultureName)
+    {
+        _culture = cultureName;
+        await CultureManager.SetCultureAsync(cultureName);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || Theme.IsInitialized) return;

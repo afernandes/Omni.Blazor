@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Omni.Blazor.Localization;
 using Omni.Blazor.Models;
 using Omni.Blazor.Utilities;
 
@@ -611,11 +612,25 @@ public partial class OmniDataImport<TItem> where TItem : class
     private bool CanImport => !Disabled && !_busy && !_importing && ValidCount != 0 && (AllowPartialImport || InvalidCount == 0);
     private string MappingHeadingId => $"{Id}-mapping";
     private string PreviewHeadingId => $"{Id}-preview";
-    private string UploadHint => string.Format(Texts.DataImportUploadHint, FormatBytes(MaxFileSize), MaximumRows);
-    private string PreviewSummary => string.Format(Texts.DataImportSummary, ValidCount, InvalidCount, _rows.Count);
+    private string UploadHint => Texts.Plural(
+        OmniTranslationKeys.DataImportUploadHint,
+        MaximumRows,
+        Texts.DataImportUploadHint,
+        FormatBytes(MaxFileSize),
+        MaximumRows);
+    private string PreviewSummary => string.Format(
+        FormattingCulture,
+        Texts.DataImportSummary,
+        Texts.Plural(OmniTranslationKeys.DataImportValidCount, ValidCount, Texts.DataImportValidCount, ValidCount),
+        Texts.Plural(OmniTranslationKeys.DataImportInvalidCount, InvalidCount, Texts.DataImportInvalidCount, InvalidCount),
+        Texts.Plural(OmniTranslationKeys.DataImportTotalCount, _rows.Count, Texts.DataImportTotalCount, _rows.Count));
     private string ImportAvailabilityText => InvalidCount != 0 && !AllowPartialImport
         ? Texts.DataImportResolveErrors
-        : string.Format(Texts.DataImportReady, ValidCount);
+        : Texts.Plural(
+            OmniTranslationKeys.DataImportReady,
+            ValidCount,
+            Texts.DataImportReady,
+            ValidCount);
     private string RootCss => CssBuilder.Default("omni-data-import")
         .AddClass("omni-data-import-disabled", Disabled)
         .AddClass(Class)

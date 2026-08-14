@@ -56,7 +56,9 @@
                                     @onclick="@(() => OnMoreClickAsync(d, appts))"
                                     @onclick:stopPropagation="true"
                                     @onkeydown:stopPropagation="true">
-                                @string.Format(Culture, MoreText ?? Texts.MoreAppointments, overflow)
+                                @(MoreText is not null
+                                    ? string.Format(Culture, MoreText, overflow)
+                                    : Texts.Plural(OmniTranslationKeys.MoreAppointments, overflow, Texts.MoreAppointments, overflow))
                             </button>
                         }
                     </div>

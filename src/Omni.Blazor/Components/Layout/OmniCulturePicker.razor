@@ -1,0 +1,165 @@
+@namespace Omni.Blazor.Components
+@inherits OmniComponent
+@using Omni.Blazor.Models
+@using Omni.Blazor.Utilities
+
+@*
+    OmniCulturePicker — a flag dropdown for switching the application's language.
+    Drops into an app bar next to OmniThemePicker:
+
+        <OmniCulturePicker Cultures="@_cultures" Value="@_culture" ValueChanged="ChangeAsync" />
+
+    Unlike OmniThemePicker, this one does not persist anything. Where the choice is kept
+    and how the app comes back in the new language is host business — a cookie and a
+    re-render on Server, localStorage and a reload on WebAssembly, a column on the user
+    row for some apps — so the component reports the choice and stops there.
+
+    Flags come from a short built-in set, keyed by the region in the culture name. A
+    region outside that set draws a code badge instead, and FlagTemplate overrides both.
+    Flags are a poor stand-in for languages (Spanish is not only Spain, Arabic is not only
+    Saudi Arabia), so ShowFlags="false" turns them off wholesale and leaves the badges.
+*@
+
+<OmniPopover @bind-Open="_open">
+    <Trigger>
+        <button type="button"
+                class="@RootCss"
+                style="@Style"
+                aria-label="@(Title ?? Texts.Language)"
+                title="@(Title ?? Texts.Language)"
+                aria-haspopup="listbox"
+                aria-expanded="@(_open ? "true" : "false")"
+                disabled="@Disabled"
+                @attributes="Attributes">
+            @RenderBadge(Current)
+            @if (ShowLabel && Current is not null)
+            {
+                <span class="omni-culture-picker-label">@Current.ResolvedDisplayName</span>
+            }
+            <svg class="omni-culture-picker-caret" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="3" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+            </svg>
+        </button>
+    </Trigger>
+    <ChildContent>
+        <div class="omni-culture-picker-menu" role="listbox" aria-label="@(Title ?? Texts.Language)">
+            @{ int index = 0; }
+            @foreach (OmniCultureOption option in Cultures)
+            {
+                bool active = IsActive(option);
+                int position = index++;
+                <button type="button"
+                        class="@ItemCss(active)"
+                        style="@ItemDelay(position)"
+                        role="option"
+                        aria-selected="@(active ? "true" : "false")"
+                        @key="option.Name"
+                        @onclick="@(() => SelectAsync(option))">
+                    @RenderBadge(option)
+                    <span class="omni-culture-picker-text">
+                        <span class="omni-culture-picker-name">@option.ResolvedDisplayName</span>
+                        <span class="omni-culture-picker-desc">@option.ResolvedDescription</span>
+                    </span>
+                    @if (active)
+                    {
+                        <svg class="omni-culture-picker-check" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="3.2" aria-hidden="true">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                    }
+                </button>
+            }
+        </div>
+    </ChildContent>
+</OmniPopover>
+
+@code {
+    /// <summary>Languages to offer, in the order they should be listed.</summary>
+    [Parameter] public IReadOnlyList<OmniCultureOption> Cultures { get; set; } = [];
+
+    /// <summary>Culture name currently active, such as <c>pt-BR</c>.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>
+    /// Raised with the chosen culture name. Persisting the choice and bringing the app
+    /// back in the new language is the host's job — see the component remarks.
+    /// </summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Show the current language's name next to the flag. Off by default.</summary>
+    [Parameter] public bool ShowLabel { get; set; }
+
+    /// <summary>
+    /// Draw flags. Off leaves the code badge everywhere, which is the honest choice when
+    /// a language does not map to one country.
+    /// </summary>
+    [Parameter] public bool ShowFlags { get; set; } = true;
+
+    /// <summary>Replaces the built-in flag for every option.</summary>
+    [Parameter] public RenderFragment<OmniCultureOption>? FlagTemplate { get; set; }
+
+    /// <summary>Accessible name of the trigger. Defaults to the localized "Language".</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Disables the trigger.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    private bool _open;
+
+    private OmniCultureOption? Current =>
+        Cultures.FirstOrDefault(IsActive) ?? Cultures.FirstOrDefault();
+
+    private bool IsActive(OmniCultureOption option) =>
+        string.Equals(option.Name, Value, StringComparison.OrdinalIgnoreCase);
+
+    private string RootCss => CssBuilder.Default("omni-culture-picker")
+        .AddClass("omni-culture-picker-labelled", ShowLabel)
+        .AddClass(Class)
+        .Build();
+
+    private static string ItemCss(bool active) => CssBuilder.Default("omni-culture-picker-item")
+        .AddClass("is-active", active)
+        .Build();
+
+    // The list assembles instead of arriving all at once. Reduced-motion drops it in CSS.
+    private static string ItemDelay(int position) =>
+        StyleBuilder.Default()
+            .AddStyle("animation-delay", FormattableString.Invariant($"{Math.Min(position, 8) * 26}ms"))
+            .Build();
+
+    private async Task SelectAsync(OmniCultureOption option)
+    {
+        _open = false;
+        if (IsActive(option)) return;
+        await ValueChanged.InvokeAsync(option.Name);
+    }
+
+    private RenderFragment RenderBadge(OmniCultureOption? option) => builder =>
+    {
+        if (option is null) return;
+
+        if (FlagTemplate is not null)
+        {
+            builder.AddContent(0, FlagTemplate(option));
+            return;
+        }
+
+        string? flag = ShowFlags ? OmniFlagLibrary.Get(option.ResolvedRegion) : null;
+        if (flag is not null)
+        {
+            builder.OpenElement(1, "span");
+            builder.AddAttribute(2, "class", "omni-culture-picker-flag");
+            builder.AddAttribute(3, "aria-hidden", "true");
+            builder.AddMarkupContent(4, flag);
+            builder.CloseElement();
+            return;
+        }
+
+        builder.OpenElement(5, "span");
+        builder.AddAttribute(6, "class", "omni-culture-picker-code");
+        builder.AddAttribute(7, "aria-hidden", "true");
+        builder.AddContent(8, option.CodeBadge);
+        builder.CloseElement();
+    };
+}

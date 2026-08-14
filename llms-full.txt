@@ -1,6 +1,6 @@
 # Omni.Blazor — full API reference
 
-> 208 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 209 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
 
@@ -430,6 +430,8 @@ Parameters:
 - `GroupHierarchy`: IReadOnlyList<DateGroupInterval> — Desdobra esta coluna em vários níveis de agrupamento por data. Agrupar uma coluna de data pelo valor exato rende um grupo por linha — o instante nunca se repete —, então aqui se declara a granularidade de cada nível: GroupHierarchy="@DateGroupHierarchy.YearMonthDay" dá Ano › Mês › Dia com um único arrasto. Um nível só (new[] { DateGroupInterval.Month }) agrupa por mês, sem hierarquia. null (padrão) mantém o agrupamento pelo valor exato, e itens cujo valor não é uma data caem num grupo vazio.
 - `Groupable`: bool — Permite arrastar esta coluna para a group zone do DataGrid.
 - `IsHierarchyAnchor`: bool — Marca esta coluna como o "âncora" da hierarquia — receberá o chevron de expand/collapse + indentação por nível. Quando nenhuma coluna marca, o grid usa a primeira coluna visível.
+- `Monospace`: bool — Uses the design system's monospace family and tabular numerals for this column. Intended for identifiers, codes, dates, and technical values.
+- `Numeric`: bool — Marks this as a numeric column. Numeric columns use the monospace family, tabular numerals, and end alignment in both left-to-right and right-to-left layouts.
 - `Property`: Func<TItem, object> — Selector for the column's raw value — used for cell text, sorting, and filtering.
 - `PropertyName`: string — Nome canônico da propriedade (usado para serializar em SortDescriptor, FilterDescriptor e GroupBy). Quando ausente, cai no Title. Em modo server-side é altamente recomendado definir explicitamente.
 - `Resizable`: bool — Whether this column can be resized when the grid has AllowColumnResize. Default true.
@@ -1267,6 +1269,7 @@ Parameters:
 - `Clickable`: bool = false — Applies pointer cursor + hover lift (card-as-link).
 - `Elevated`: bool = false — Adds a shadow to lift the card.
 - `Flat`: bool = false — Removes the border — variant for secondary regions.
+- `HeadingLevel`: int = 3 — Semantic heading level used by Title, from 1 through 6. The default is 3 for backward compatibility. Ignored when HeaderContent is supplied.
 - `Horizontal`: bool = false — Lays the card out horizontally (media beside body).
 - `MaxBodyHeight`: string — When set, the body scrolls internally at this max height (scrollable card).
 - `NoPadding`: bool = false — Escape-hatch: forces the body flush (no padding) even for mixed content.
@@ -2567,6 +2570,22 @@ Parameters:
 - `Fluid`: bool = false — Atalho para Full (sem limite). Default false.
 - `Gutters`: bool = true — Padding lateral nas bordas. Default true.
 - `MaxWidth`: ContainerMaxWidth {Sm | Md | Lg | Xl | Xxl | Full} = Lg — Largura máxima do container. Default Lg (1280px).
+
+### OmniCulturePicker
+OmniCulturePicker — a flag dropdown for switching the application's language.
+_base: OmniComponent · source: src/Omni.Blazor/Components/Layout/OmniCulturePicker.razor_
+
+Parameters:
+- `Cultures`: IReadOnlyList<OmniCultureOption> — Languages to offer, in the order they should be listed.
+- `Disabled`: bool = false — Disables the trigger.
+- `ShowFlags`: bool = true — Draw flags. Off leaves the code badge everywhere, which is the honest choice when a language does not map to one country.
+- `ShowLabel`: bool = false — Show the current language's name next to the flag. Off by default.
+- `Title`: string — Accessible name of the trigger. Defaults to the localized "Language".
+- `Value`: string — Culture name currently active, such as pt-BR.
+Events:
+- `ValueChanged`: EventCallback<string> — Raised with the chosen culture name. Persisting the choice and bringing the app back in the new language is the host's job — see the component remarks.
+Slots:
+- `FlagTemplate`: RenderFragment<OmniCultureOption> (context: OmniCultureOption) — Replaces the built-in flag for every option.
 
 ### OmniCultureScope
 Provides formatting, UI culture, language and text direction to a component subtree.

@@ -78,9 +78,8 @@
 </OmniDataGrid>")">
             <OmniDataGrid TItem="Order" Data="@_inMemory" AllowSearch AllowPaging PageSize="6">
                 <Columns>
-                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)" Width="120px">
-                        <Template><span class="omni-mono">#@context.Numero</span></Template>
-                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
+                                        TextSelector="@(o => $"#{o.Numero}")" Width="120px" Monospace />
                     <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" />
                     <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)">
                         <Template><OmniBadge Text="@context.Canal" Variant="BadgeVariant.Plain" /></Template>
@@ -88,9 +87,8 @@
                     <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)">
                         <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
                     </OmniDataGridColumn>
-                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)">
-                        <Template><span class="omni-mono">@context.Total.ToString("C", _ptBr)</span></Template>
-                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)"
+                                        TextSelector="@(o => o.Total.ToString("C", _ptBr))" Numeric />
                 </Columns>
             </OmniDataGrid>
         </ShowcaseSection>
@@ -695,6 +693,10 @@
                             Description="Largura CSS da coluna (ex: 120px)." />
             <ShowcaseApiRow Name="Sortable" Type="bool" Default="true"
                             Description="Permite ordenar por esta coluna." />
+            <ShowcaseApiRow Name="Monospace" Type="bool" Default="false"
+                            Description="Usa a família mono e algarismos tabulares para IDs, códigos, datas e valores técnicos." />
+            <ShowcaseApiRow Name="Numeric" Type="bool" Default="false"
+                            Description="Usa tipografia mono tabular e alinha a coluna numérica ao fim." />
             <ShowcaseApiRow Name="Filterable" Type="bool" Default="false"
                             Description="Exibe o input de filtro nesta coluna (requer AllowColumnFilter)." />
             <ShowcaseApiRow Name="Frozen" Type="FrozenPosition?" Default="null"
