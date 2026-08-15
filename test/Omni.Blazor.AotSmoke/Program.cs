@@ -1,18 +1,22 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Omni.Blazor;
 using Omni.Blazor.Components;
 using Omni.Blazor.Localization;
-using Omni.Blazor.Localization.Po;
 using Omni.Blazor.Models;
+using Omni.Localization;
+using Omni.Localization.Po;
 
 var services = new ServiceCollection();
 services.AddOmniPseudoLocalization();
 services.AddOmniComponents();
 using ServiceProvider provider = services.BuildServiceProvider();
 using IServiceScope scope = provider.CreateScope();
-IOmniLocalizer localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+IOmniLocalizer<OmniBlazorResource> localizer =
+    scope.ServiceProvider.GetRequiredService<IOmniLocalizer<OmniBlazorResource>>();
 bool localizedResourcesWork = localizer.Localize(
     OmniTranslationKeys.Close,
     CultureInfo.GetCultureInfo("en-US")).Value == "Close";
@@ -21,7 +25,18 @@ bool pseudoLocalizationWorks = localizer.Localize(
     CultureInfo.GetCultureInfo("en-XA")).Value.StartsWith('［');
 
 var poServices = new ServiceCollection();
-poServices.AddOmniPortableObjectLocalization<AotPoResource>();
+poServices.AddLogging();
+poServices.AddSingleton<IHostEnvironment>(new AotHostEnvironment());
+poServices.AddOmniLocalizationResource<OmniBlazorResource>(
+    "en",
+    "en",
+    new Dictionary<string, string> { [OmniTranslationKeys.Close] = "Close" });
+poServices.AddOmniPortableObjectLocalization<OmniBlazorResource, AotPoResource>();
+using ServiceProvider poProvider = poServices.BuildServiceProvider();
+bool poPipelineWorks = poProvider
+    .GetRequiredService<IOmniLocalizer<OmniBlazorResource>>()
+    .Localize(OmniTranslationKeys.Close, CultureInfo.GetCultureInfo("en-US"))
+    .Value == "Close";
 
 DataFormSchema<AotContact> formSchema = DataFormSchema<AotContact>.Builder()
     .AutoGenerateFields(false)
@@ -83,7 +98,8 @@ if (services.Count == 0
     || ganttSchema.Key is null
     || !typedRuntimePathsWork
     || !localizedResourcesWork
-    || !pseudoLocalizationWorks)
+    || !pseudoLocalizationWorks
+    || !poPipelineWorks)
     return 1;
 
 Type[] rootedComponents =
@@ -123,4 +139,15 @@ internal sealed class AotContact
 
 internal sealed class AotPoResource
 {
+}
+
+internal sealed class AotHostEnvironment : IHostEnvironment
+{
+    public string EnvironmentName { get; set; } = "Production";
+
+    public string ApplicationName { get; set; } = typeof(AotHostEnvironment).Assembly.GetName().Name!;
+
+    public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
 }

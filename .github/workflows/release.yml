@@ -75,6 +75,7 @@ jobs:
       - name: Test release binaries
         run: |
           for proj in \
+            test/Omni.Localization.Tests/Omni.Localization.Tests.csproj \
             test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj \
             test/Omni.Blazor.ManifestGen.Tests/Omni.Blazor.ManifestGen.Tests.csproj \
             test/Omni.Blazor.Mcp.Tests/Omni.Blazor.Mcp.Tests.csproj; do
@@ -112,6 +113,20 @@ jobs:
             --no-build \
             --output ${{ env.ARTIFACTS }} \
             -p:ContinuousIntegrationBuild=true
+
+      - name: Pack localization core and JSON provider
+        run: |
+          set -e
+          dotnet pack src/Omni.Localization/Omni.Localization.csproj \
+            --configuration Release --no-build --output ${{ env.ARTIFACTS }} \
+            -p:ContinuousIntegrationBuild=true
+          dotnet pack src/Omni.Localization.Json/Omni.Localization.Json.csproj \
+            --configuration Release --no-build --output ${{ env.ARTIFACTS }} \
+            -p:ContinuousIntegrationBuild=true
+          test -f "${{ env.ARTIFACTS }}/AndersonN.Omni.Localization.${{ steps.minver.outputs.version }}.nupkg" \
+            || { echo "::error::Localization core version != tag"; exit 1; }
+          test -f "${{ env.ARTIFACTS }}/AndersonN.Omni.Localization.Json.${{ steps.minver.outputs.version }}.nupkg" \
+            || { echo "::error::Localization JSON version != tag"; exit 1; }
 
       - name: Verify package contents (static web assets present)
         run: |
@@ -154,15 +169,15 @@ jobs:
           EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.Ai.${{ steps.minver.outputs.version }}.nupkg"
           test -f "$EXPECTED" || { echo "::error::AI package version != tag — esperado $EXPECTED"; exit 1; }
 
-      - name: Pack PO/Gettext adapter (AndersonN.Omni.Blazor.Localization.Po)
+      - name: Pack PO/Gettext adapter (AndersonN.Omni.Localization.Po)
         run: |
           set -e
-          dotnet pack src/Omni.Blazor.Localization.Po/Omni.Blazor.Localization.Po.csproj \
+          dotnet pack src/Omni.Localization.Po/Omni.Localization.Po.csproj \
             --configuration Release \
             --no-build \
             --output ${{ env.ARTIFACTS }} \
             -p:ContinuousIntegrationBuild=true
-          EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Blazor.Localization.Po.${{ steps.minver.outputs.version }}.nupkg"
+          EXPECTED="${{ env.ARTIFACTS }}/AndersonN.Omni.Localization.Po.${{ steps.minver.outputs.version }}.nupkg"
           test -f "$EXPECTED" || { echo "::error::PO adapter version != tag — esperado $EXPECTED"; exit 1; }
 
       - name: Smoke test exact packed artifacts

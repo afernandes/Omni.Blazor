@@ -49,6 +49,10 @@ public sealed class LocalizationBrowserTests(BrowserFixture fixture)
         Assert.Contains("CurrentUICulture: ar-XB", await page.GetByTestId("current-culture").InnerTextAsync());
         Assert.Contains(
             "⟦",
+            await page.Locator("h1.omni-view-title").InnerTextAsync(),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "⟦",
             await page.Locator(".omni-culture-scope[lang='ar-XB'] button.omni-alert-close")
                 .GetAttributeAsync("aria-label"));
 

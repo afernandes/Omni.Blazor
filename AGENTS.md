@@ -14,6 +14,7 @@ Overlay. One SCSS bundle, isolated feature ES modules, all theming via CSS custo
 | | |
 |---|---|
 | NuGet package id | `AndersonN.Omni.Blazor` |
+| Localization packages | `AndersonN.Omni.Localization`, `.Json`, `.Po` |
 | Namespace / assembly | `Omni.Blazor` |
 | Static assets | `_content/Omni.Blazor/css/omni.css`, lazily imported JS modules |
 | CSS class prefix | `omni-` |

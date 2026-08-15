@@ -24,7 +24,9 @@
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>0.5.0</PackageValidationBaselineVersion>
+    <!-- The pre-v1 localization contracts moved to AndersonN.Omni.Localization.
+         Keep current-package validation enabled, but establish a new compatibility
+         baseline only after the v1 API is frozen. -->
     <!-- Native AOT is a package contract, not a consumer opt-in guess. This
          enables trim, single-file and AOT analyzers for every library build. -->
     <IsAotCompatible>true</IsAotCompatible>
@@ -57,10 +59,13 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
-    <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" />
     <PackageReference Include="AspNetCore.SassCompiler" PrivateAssets="all" />
     <!-- The optional AI layer (IChatClient orchestration) lives in the separate
          Omni.Blazor.Ai package so base consumers don't take the AI dependency. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Omni.Localization\Omni.Localization.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,6 +3,7 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Omni.Blazor;
 using Omni.Blazor.Localization;
+using Omni.Localization;
 
 namespace Omni.Blazor.Tests.Localization;
 
@@ -59,7 +60,7 @@ public class OmniTextsTests : TestContextBase
         services.AddOmniComponents();
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
-        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer<OmniBlazorResource>>();
 
         foreach (string cultureName in new[] { "pt-BR", "en-US" })
         {
@@ -113,8 +114,8 @@ public class OmniTextsTests : TestContextBase
 
             using var scope = provider.CreateScope();
             Assert.Equal("Fechar", scope.ServiceProvider.GetRequiredService<OmniTexts>().Close);
-            Assert.IsAssignableFrom<IOmniLocalizer>(
-                scope.ServiceProvider.GetRequiredService<IOmniLocalizer>());
+            Assert.IsAssignableFrom<IOmniLocalizer<OmniBlazorResource>>(
+                scope.ServiceProvider.GetRequiredService<IOmniLocalizer<OmniBlazorResource>>());
         }
         finally
         {
@@ -234,7 +235,7 @@ public class OmniTextsTests : TestContextBase
         services.AddOmniComponents();
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
-        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer<OmniBlazorResource>>();
         var culture = CultureInfo.GetCultureInfo("fr-FR");
 
         Assert.Equal("Fermer", localizer.Localize(OmniTranslationKeys.Close, culture).Value);
@@ -257,7 +258,7 @@ public class OmniTextsTests : TestContextBase
         services.AddOmniComponents();
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
-        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer<OmniBlazorResource>>();
         var culture = CultureInfo.GetCultureInfo("ar");
 
         Assert.Equal("لا عناصر", localizer.Plural("Items", 0, culture, 0));
@@ -276,7 +277,7 @@ public class OmniTextsTests : TestContextBase
         services.AddOmniComponents();
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
-        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer>();
+        var localizer = scope.ServiceProvider.GetRequiredService<IOmniLocalizer<OmniBlazorResource>>();
 
         Assert.Equal("5 عنصر", localizer.Plural("Items", 5, CultureInfo.GetCultureInfo("ar"), 5));
     }

@@ -65,14 +65,12 @@
         if (_showCode) _needsHighlight = true;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_needsHighlight)
-        {
-            _needsHighlight = false;
-            try { await JS.InvokeVoidAsync("omniShowcase.highlightElement", _codeEl); }
-            catch { /* prerender / JS not ready */ }
-        }
+        if (!_needsHighlight) return Task.CompletedTask;
+
+        _needsHighlight = false;
+        return JS.InvokeVoidAsync("omniShowcase.highlightElement", _codeEl).AsTask();
     }
 
     private async Task CopyCodeAsync()

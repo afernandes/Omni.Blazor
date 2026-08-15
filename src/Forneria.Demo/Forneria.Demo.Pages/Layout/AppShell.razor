@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject ThemeService Theme
+@inject IOmniLocalizer<DemoResource> DemoL
 
 @*  Shell padrão: AppBar topo + Drawer esquerdo Responsive + Main + Body slot.
     Tudo composto a partir das primitivas LEGO (OmniLayout / OmniAppBar /
@@ -14,7 +15,7 @@
         <div class="omni-header-spacer"></div>
         <div class="omni-header-kbd-hint">
             <OmniIcon Name="search" Size="ComponentSize.Sm" />
-            <span>Buscar</span>
+            <span>@DemoL[DemoTranslationKeys.Search]</span>
             <OmniKbd Text="⌘K" />
         </div>
         <OmniThemePicker />
@@ -68,9 +69,9 @@
                 <OmniPanelMenuItem Text="Perdas e quebras" />
             </OmniPanelMenuItem>
         </OmniPanelMenuSection>
-        <OmniPanelMenuSection Label="Showcase">
-            <OmniPanelMenuItem Text="Componentes"          Icon="grid"   Path="showcase" />
-            <OmniPanelMenuItem Text="Wireframes"           Icon="layout" Path="showcase/wireframes" />
+        <OmniPanelMenuSection Label="@DemoL[DemoTranslationKeys.Showcase]">
+            <OmniPanelMenuItem Text="@DemoL[DemoTranslationKeys.Components]" Icon="grid" Path="showcase" />
+            <OmniPanelMenuItem Text="@DemoL[DemoTranslationKeys.Wireframes]" Icon="layout" Path="showcase/wireframes" />
         </OmniPanelMenuSection>
 
         <div class="omni-sidebar-footer">

@@ -15,7 +15,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddLocalization();
 builder.Services.AddOmniPseudoLocalization();
-builder.Services.AddDemoOmniTranslations();
+builder.Services.AddDemoLocalization();
 builder.Services.AddOmniComponents();
 builder.Services.AddScoped<IDemoCultureManager, WasmDemoCultureManager>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

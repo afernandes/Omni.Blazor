@@ -1,11 +1,12 @@
 using System.Globalization;
+using Omni.Localization;
 
 namespace Omni.Blazor.Localization;
 
 /// <summary>
 /// Every user-facing string the library renders on its own (button labels, ARIA
 /// names, empty states). The default facade resolves the current UI culture through
-/// <see cref="IOmniLocalizer"/> on every access, so culture changes don't require a
+/// <see cref="IOmniLocalizer{TResource}"/> on every access, so culture changes don't require a
 /// new DI scope. Per-component parameters still take precedence.
 ///
 /// <code>
@@ -27,7 +28,7 @@ namespace Omni.Blazor.Localization;
 /// </summary>
 public class OmniTexts
 {
-    private readonly IOmniLocalizer? _localizer;
+    private readonly IOmniLocalizer<OmniBlazorResource>? _localizer;
     private readonly Func<CultureInfo>? _cultureAccessor;
     private readonly Func<CultureInfo>? _formattingCultureAccessor;
     private readonly CultureInfo? _fixedTextCulture;
@@ -41,7 +42,7 @@ public class OmniTexts
         => _fixedTextCulture = fixedTextCulture;
 
     private OmniTexts(
-        IOmniLocalizer localizer,
+        IOmniLocalizer<OmniBlazorResource> localizer,
         Func<CultureInfo> cultureAccessor,
         Func<CultureInfo> formattingCultureAccessor)
     {
@@ -53,7 +54,7 @@ public class OmniTexts
     internal bool IsLocalizedFacade => _localizer is not null;
 
     internal static OmniTexts FromLocalizer(
-        IOmniLocalizer localizer,
+        IOmniLocalizer<OmniBlazorResource> localizer,
         Func<CultureInfo>? cultureAccessor = null,
         Func<CultureInfo>? formattingCultureAccessor = null)
         => new(
@@ -75,7 +76,7 @@ public class OmniTexts
         string format = _localizer?.Plural(key, count, _cultureAccessor!())
             ?? (_fixedTextCulture is null
                 ? fallback
-                : OmniLocalizer.GetBuiltInPluralFormat(key, count, _fixedTextCulture) ?? fallback);
+                : OmniBlazorResources.GetPluralFormat(key, count, _fixedTextCulture) ?? fallback);
         return arguments.Length == 0
             ? format
             : string.Format(_formattingCultureAccessor?.Invoke() ?? CultureInfo.CurrentCulture, format, arguments);

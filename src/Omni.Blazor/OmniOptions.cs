@@ -1,4 +1,5 @@
 using Omni.Blazor.Localization;
+using Omni.Localization;
 
 namespace Omni.Blazor;
 

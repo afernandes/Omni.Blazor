@@ -4,28 +4,26 @@
 @using System.Globalization
 @using Forneria.Demo.Pages.Localization
 @inject IDemoCultureManager CultureManager
+@inject IOmniLocalizer<DemoResource> DemoL
 
-<PageTitle>Localization & RTL — Omni.Blazor</PageTitle>
+<PageTitle>@DemoL[DemoTranslationKeys.LocalizationTitle] — Omni.Blazor</PageTitle>
 
-<ShowcasePage Title="Localization & RTL"
-              Subtitle="Traduções extensíveis, formatação por cultura, pluralização e direção RTL.">
+<ShowcasePage Title="@DemoL[DemoTranslationKeys.LocalizationTitle]"
+              Subtitle="@DemoL[DemoTranslationKeys.LocalizationSubtitle]">
     <Overview>
+        <p>@DemoL[DemoTranslationKeys.LocalizationOverview]</p>
         <p>
-            A biblioteca inclui catálogos completos em <strong>pt-BR</strong> e <strong>inglês</strong>.
-            Idiomas da aplicação podem vir de RESX, JSON/dicionário, banco ou PO/Gettext por meio de
-            <code>IOmniTranslationProvider</code> e <code>IStringLocalizer</code>.
-        </p>
-        <p>
-            Cada painel abaixo renderiza os mesmos componentes com cultura própria. Francês e árabe
-            são catálogos pequenos registrados pelo projeto demo; chaves ausentes mantêm o fallback seguro.
+            <code>DemoResource</code> e <code>OmniBlazorResource</code> usam espaços de chaves separados.
+            RESX, JSON, PO/Gettext, banco e tenant stores podem participar por meio de
+            <code>IOmniTranslationProvider&lt;TResource&gt;</code> e <code>IStringLocalizer</code>.
         </p>
     </Overview>
 
     <ChildContent>
-        <ShowcaseSection Title="Cultura global da aplicação"
-                         Description="Persiste a escolha no cookie do Blazor Server ou no localStorage do WebAssembly e recarrega a mesma rota.">
+        <ShowcaseSection Title="@DemoL[DemoTranslationKeys.LocalizationGlobalCulture]"
+                         Description="@DemoL[DemoTranslationKeys.LocalizationGlobalCultureDescription]">
             <div class="omni-stack" style="max-width: 32rem" data-testid="global-culture-section">
-                <OmniLabel For="demo-global-culture">Idioma da demonstração</OmniLabel>
+                <OmniLabel For="demo-global-culture">@DemoL[DemoTranslationKeys.LocalizationDemoLanguage]</OmniLabel>
                 <OmniSelect TValue="string"
                             InputId="demo-global-culture"
                             Items="@_cultureNames"
@@ -40,8 +38,8 @@
             </div>
         </ShowcaseSection>
 
-        <ShowcaseSection Title="Culturas independentes no mesmo render"
-                         Description="OmniCultureScope separa Culture (formatação) de UICulture (textos) e define lang/dir.">
+        <ShowcaseSection Title="@DemoL[DemoTranslationKeys.LocalizationIndependentCultures]"
+                         Description="@DemoL[DemoTranslationKeys.LocalizationIndependentCulturesDescription]">
             <div class="omni-grid omni-grid-3">
                 <LocalizationCultureCard CultureName="pt-BR" Title="Português" Date="@_sampleDate" />
                 <LocalizationCultureCard CultureName="en-US" Title="English" Date="@_sampleDate" />
@@ -49,8 +47,8 @@
             </div>
         </ShowcaseSection>
 
-        <ShowcaseSection Title="RTL inferido pela cultura"
-                         Description="A cultura ar-SA produz dir=rtl; os controles continuam usando a mesma API.">
+        <ShowcaseSection Title="@DemoL[DemoTranslationKeys.LocalizationRtl]"
+                         Description="@DemoL[DemoTranslationKeys.LocalizationRtlDescription]">
             <OmniCultureScope Culture="@_arabicCulture"
                               UICulture="@_arabicCulture"
                               Class="omni-card omni-stack">
@@ -60,19 +58,19 @@
             </OmniCultureScope>
         </ShowcaseSection>
 
-        <ShowcaseSection Title="Pseudolocalização sem catálogo manual"
-                         Description="en-XA expande o texto para revelar cortes; ar-XB exercita bidi e RTL preservando placeholders.">
+        <ShowcaseSection Title="@DemoL[DemoTranslationKeys.LocalizationPseudo]"
+                         Description="@DemoL[DemoTranslationKeys.LocalizationPseudoDescription]">
             <div class="omni-grid omni-grid-2" data-testid="pseudo-localization-grid">
                 <LocalizationCultureCard CultureName="en-XA" Title="Pseudo expanded" Date="@_sampleDate" />
                 <LocalizationCultureCard CultureName="ar-XB" Title="Pseudo RTL" Date="@_sampleDate" />
             </div>
         </ShowcaseSection>
 
-        <ShowcaseSection Title="Adicionar um idioma sem recompilar a biblioteca"
-                         Description="O catálogo é copiado para um FrozenDictionary e participa da cadeia de fallback."
+        <ShowcaseSection Title="@DemoL[DemoTranslationKeys.LocalizationAddLanguage]"
+                         Description="@DemoL[DemoTranslationKeys.LocalizationAddLanguageDescription]"
                          Code="@DictionaryExample">
             <p class="omni-muted">
-                Use <code>AddOmniStringLocalizer&lt;SharedResources&gt;()</code> para RESX ou para um
+                Use <code>AddOmniStringLocalizer&lt;DemoResource, SharedResources&gt;()</code> para RESX ou para um
                 provider PO que implemente o pipeline padrão do .NET. Veja o guia completo em
                 <code>docs/localization.md</code>.
             </p>
@@ -102,12 +100,13 @@
         await CultureManager.SetCultureAsync(cultureName);
     }
 
-    private const string DictionaryExample = @"builder.Services.AddOmniTranslations(""fr-FR"", new Dictionary<string, string>
+    private const string DictionaryExample = @"builder.Services.AddOmniLocalizationResource<AppResource>(
+    defaultCulture: ""pt-BR"",
+    referenceCulture: ""pt-BR"",
+    referenceTranslations: referenceCatalog);
+builder.Services.AddOmniTranslations<AppResource>(""fr-FR"", new Dictionary<string, string>
 {
-    [OmniTranslationKeys.Close] = ""Fermer"",
-    [OmniTranslationKeys.Save] = ""Enregistrer"",
-    [""DateRangeSummary.One""] = ""{0} → {1} · {2} jour"",
-    [""DateRangeSummary.Other""] = ""{0} → {1} · {2} jours""
+    [""Home.Title""] = ""Accueil""
 });
-builder.Services.AddOmniComponents();";
+builder.Services.AddOmniStringLocalizerAdapter<AppResource>();";
 }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Omni.Blazor.Localization;
 using Omni.Blazor.Models;
 using Omni.Blazor.Services;
+using Omni.Localization;
 
 namespace Omni.Blazor;
 
@@ -34,16 +35,12 @@ public static class ServiceCollectionExtensions
     {
         var options = new OmniOptions();
         configure?.Invoke(options);
-        if (options.Localization.MaximumTrackedMissingTranslations < 0)
-            throw new ArgumentOutOfRangeException(nameof(options.Localization.MaximumTrackedMissingTranslations));
-        if (!Enum.IsDefined(options.Localization.MissingTranslationBehavior))
-            throw new ArgumentOutOfRangeException(nameof(options.Localization.MissingTranslationBehavior));
-        services.TryAddSingleton(options.Localization);
-        services.TryAddScoped<IOmniLocalizer, OmniLocalizer>();
+        services.AddOmniBlazorLocalization(options.Localization);
         if (ReferenceEquals(options.Texts, OmniTexts.Default))
         {
             services.TryAddScoped(static provider =>
-                OmniTexts.FromLocalizer(provider.GetRequiredService<IOmniLocalizer>()));
+                OmniTexts.FromLocalizer(
+                    provider.GetRequiredService<IOmniLocalizer<OmniBlazorResource>>()));
         }
         else
         {

@@ -8,8 +8,8 @@
 @inject ScrollManager Scroll
 
 @* Component browser. Nav is auto-built from every routable /showcase page (ShowcaseCatalog):
-   nested routes become collapsible submenus; categories are collapsible; live filter
-   (accent-insensitive + synonyms) with match highlight; per-category counts; "Novo" badges;
+   categories are collapsible; live filter (accent-insensitive + synonyms); per-category
+   counts; "Novo" badges;
    and ⌘K jumps to any component. Styles live in ShowcaseLayout.razor.css (CSS isolation). *@
 
 <div class="sc-shell">
@@ -42,8 +42,8 @@
                 </div>
 
                 <div class="sc-aside-list">
-                    @{ var roots = VisibleRoots().ToList(); }
-                    @if (roots.Count == 0)
+                    @{ var groups = VisibleGroups(); }
+                    @if (groups.Count == 0)
                     {
                         <div class="sc-aside-empty">
                             <OmniIcon Name="search" />
@@ -52,9 +52,9 @@
                     }
                     else
                     {
-                        @foreach (var group in roots.GroupBy(l => (l.Category, l.CategoryOrder)).OrderBy(g => g.Key.CategoryOrder))
+                        @foreach (var group in groups)
                         {
-                            var cat = group.Key.Category;
+                            var cat = group.Category;
                             var collapsed = _query.Length == 0 && _collapsed.Contains(cat);
                             <button type="button" class="sc-cat" @onclick="@(() => ToggleCat(cat))" aria-expanded="@(!collapsed)">
                                 <OmniIcon Name="@(collapsed ? "chevron-right" : "chevron-down")" Size="ComponentSize.Sm" />
@@ -64,30 +64,13 @@
                             @if (!collapsed)
                             {
                                 <OmniPanelMenu>
-                                    @foreach (var root in group)
+                                    @foreach (var row in group.Rows)
                                     {
-                                        var kids = VisibleChildren(root.Path);
-                                        @if (kids.Count == 0)
-                                        {
-                                            <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon" Path="@AppHref(root.Path)"
-                                                               Match="@(root.Path == "/showcase" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
-                                                               CountText="@BadgeText(root)" CountKind="@BadgeKind(root)" />
-                                        }
-                                        else
-                                        {
-                                            <OmniPanelMenuItem Text="@root.Title" TextContent="@Lbl(root.Title)" Icon="@root.Icon"
-                                                               Expanded="@(_query.Length > 0 || IsUnder(root.Path))">
-                                                <ChildContent>
-                                                    <OmniPanelMenuItem Text="Galeria" Icon="@root.Icon" Path="@AppHref(root.Path)" Match="NavLinkMatch.All" />
-                                                    @foreach (var kid in kids)
-                                                    {
-                                                        <OmniPanelMenuItem Text="@kid.Title" TextContent="@Lbl(kid.Title)" Icon="@kid.Icon" Path="@AppHref(kid.Path)"
-                                                                           Match="NavLinkMatch.Prefix"
-                                                                           CountText="@BadgeText(kid)" CountKind="@BadgeKind(kid)" />
-                                                    }
-                                                </ChildContent>
-                                            </OmniPanelMenuItem>
-                                        }
+                                        var link = row.Link;
+                                        var linkMatch = link.Path == "/showcase" ? NavLinkMatch.All : NavLinkMatch.Prefix;
+                                        <OmniPanelMenuItem Text="@link.Title" Icon="@link.Icon" Path="@link.Href"
+                                                           Match="@linkMatch" Class="@row.CssClass"
+                                                           CountText="@link.BadgeText" CountKind="@link.BadgeKind" />
                                     }
                                 </OmniPanelMenu>
                             }
@@ -103,23 +86,58 @@
 </div>
 
 @* ⌘K / Ctrl+K — jump to any of the discovered components. *@
-<OmniCommandPalette Commands="_commands" HistoryKey="showcase" />
+@if (!DemoRuntime.AvoidWasmDebugStartupInterop)
+{
+    <OmniCommandPalette Commands="_commands" HistoryKey="showcase" />
+}
 
 @code {
-    // ── tree (computed once from the catalog) ───────────────────────────────
+    // ── navigation model (computed once from the catalog) ──────────────────
     private static readonly Dictionary<string, string> ParentOf = BuildParents();
-    private static readonly List<ShowcaseLink> Roots =
-        ShowcaseCatalog.All.Where(l => !ParentOf.ContainsKey(l.Path)).ToList();
-    private static readonly Dictionary<string, List<ShowcaseLink>> ChildrenOf =
-        ShowcaseCatalog.All.Where(l => ParentOf.ContainsKey(l.Path))
-            .GroupBy(l => ParentOf[l.Path])
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, int> CategoryTotals =
-        ShowcaseCatalog.All.GroupBy(l => l.Category).ToDictionary(g => g.Key, g => g.Count());
+    private static readonly List<ShowcaseLink> Roots = BuildRoots();
+    private static readonly Dictionary<string, List<ShowcaseLink>> ChildrenOf = BuildChildren();
+    private static readonly Dictionary<string, int> CategoryTotals = BuildCategoryTotals();
+
+    // Keep static initialization delegate-free. Mono WebAssembly Debug can abort while
+    // resolving the compiler-generated lambda type immediately after the reflection-built
+    // catalog initializes. Equivalent loops are deterministic on Server, WASM Debug and
+    // trimmed Release builds.
+    private static List<ShowcaseLink> BuildRoots()
+    {
+        var roots = new List<ShowcaseLink>();
+        foreach (var link in ShowcaseCatalog.All)
+            if (!ParentOf.ContainsKey(link.Path)) roots.Add(link);
+        return roots;
+    }
+
+    private static Dictionary<string, List<ShowcaseLink>> BuildChildren()
+    {
+        var children = new Dictionary<string, List<ShowcaseLink>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var link in ShowcaseCatalog.All)
+        {
+            if (!ParentOf.TryGetValue(link.Path, out var parent)) continue;
+            if (!children.TryGetValue(parent, out var siblings))
+            {
+                siblings = [];
+                children[parent] = siblings;
+            }
+            siblings.Add(link);
+        }
+        return children;
+    }
+
+    private static Dictionary<string, int> BuildCategoryTotals()
+    {
+        var totals = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var link in ShowcaseCatalog.All)
+            totals[link.Category] = totals.GetValueOrDefault(link.Category) + 1;
+        return totals;
+    }
 
     private static Dictionary<string, string> BuildParents()
     {
-        var paths = ShowcaseCatalog.All.Select(l => l.Path).ToList();
+        var paths = new List<string>(ShowcaseCatalog.All.Count);
+        foreach (var link in ShowcaseCatalog.All) paths.Add(link.Path);
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var path in paths)
         {
@@ -137,7 +155,7 @@
     }
 
     // ── state ────────────────────────────────────────────────────────────────
-    private OmniCommand[] _commands = Array.Empty<OmniCommand>();
+    private OmniCommand[] _commands = [];
     private string _query = "";
     private HashSet<string>? _visible;                       // null = show everything
     private int _matchedCount = ShowcaseCatalog.All.Count;
@@ -146,12 +164,19 @@
 
     protected override void OnInitialized()
     {
-        _commands = ShowcaseCatalog.All.Select(l =>
+        var commands = new List<OmniCommand>(ShowcaseCatalog.All.Count);
+        foreach (var link in ShowcaseCatalog.All)
         {
-            var path = l.Path;
-            return new OmniCommand(l.Title) { Category = l.Category, Icon = l.Icon, Action = () => { Nav.NavigateTo(AppHref(path)); return Task.CompletedTask; } };
-        }).ToArray();
-        Nav.LocationChanged += OnLocationChanged;
+            var action = new ShowcaseNavigationAction(Nav, link.Href);
+            commands.Add(new OmniCommand(link.Title, action.ExecuteAsync)
+            {
+                Category = link.Category,
+                Icon = link.Icon
+            });
+        }
+        _commands = commands.ToArray();
+        if (!DemoRuntime.AvoidWasmDebugStartupInterop)
+            Nav.LocationChanged += OnLocationChanged;
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -160,17 +185,18 @@
         InvokeAsync(StateHasChanged);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender || _scrollPending)
-        {
-            _scrollPending = false;
-            try { await Scroll.ScrollIntoViewAsync(
-                ".sc-aside-list .omni-active",
-                ScrollBehavior.Smooth,
-                ScrollBlock.Nearest); }
-            catch { }
-        }
+        if (DemoRuntime.AvoidWasmDebugStartupInterop || (!firstRender && !_scrollPending))
+            return Task.CompletedTask;
+
+        _scrollPending = false;
+        // ScrollManager contains the no-JS fallback. Returning its task directly keeps this
+        // Razor layout free of the async state-machine metadata that aborts Mono WASM Debug.
+        return Scroll.ScrollIntoViewAsync(
+            ".sc-aside-list .omni-active",
+            ScrollBehavior.Smooth,
+            ScrollBlock.Nearest).AsTask();
     }
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
@@ -185,7 +211,9 @@
         var q = _query.Trim();
         if (q.Length == 0) { _visible = null; _matchedCount = ShowcaseCatalog.All.Count; return; }
 
-        var matched = ShowcaseCatalog.All.Where(l => Matches(l, q)).ToList();
+        var matched = new List<ShowcaseLink>();
+        foreach (var link in ShowcaseCatalog.All)
+            if (Matches(link, q)) matched.Add(link);
         _matchedCount = matched.Count;
 
         var vis = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -201,16 +229,28 @@
     }
 
     private bool IsVisible(ShowcaseLink l) => _visible is null || _visible.Contains(l.Path);
-    private static string AppHref(string path) => path.TrimStart('/');
-    private IEnumerable<ShowcaseLink> VisibleRoots() => Roots.Where(IsVisible);
-    private List<ShowcaseLink> VisibleChildren(string path)
-        => ChildrenOf.TryGetValue(path, out var list) ? list.Where(IsVisible).ToList() : new();
-
-    private bool IsUnder(string path)
+    private List<VisibleShowcaseGroup> VisibleGroups()
     {
-        var cur = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/');
-        return cur.StartsWith(path + "/", StringComparison.OrdinalIgnoreCase);
+        var groups = new List<VisibleShowcaseGroup>();
+        VisibleShowcaseGroup? current = null;
+        foreach (var root in Roots)
+        {
+            if (!IsVisible(root)) continue;
+            if (current is null || !string.Equals(current.Category, root.Category, StringComparison.Ordinal))
+            {
+                current = new VisibleShowcaseGroup(root.Category, []);
+                groups.Add(current);
+            }
+            current.Rows.Add(new VisibleShowcaseRow(root, null));
+            if (!ChildrenOf.TryGetValue(root.Path, out var children)) continue;
+            foreach (var child in children)
+                if (IsVisible(child)) current.Rows.Add(new VisibleShowcaseRow(child, "sc-menu-child"));
+        }
+        return groups;
     }
+
+    private sealed record VisibleShowcaseGroup(string Category, List<VisibleShowcaseRow> Rows);
+    private sealed record VisibleShowcaseRow(ShowcaseLink Link, string? CssClass);
 
     private static bool Matches(ShowcaseLink l, string q)
     {
@@ -221,27 +261,6 @@
         return false;
     }
 
-    // Nav badge: flagship/advanced differentiators get an accent "★ Destaque"; genuinely-new
-    // components get a green "Novo" (reserved for future use). Featured wins if both are set.
-    private static string? BadgeText(ShowcaseLink l) => l.Featured ? "★ Destaque" : l.IsNew ? "Novo" : null;
-    private static MenuMetaKind BadgeKind(ShowcaseLink l) => l.Featured ? MenuMetaKind.Accent : MenuMetaKind.Good;
-
-    // ── match highlight (best-effort: case-insensitive on the original text) ──
-    private RenderFragment Lbl(string text) => builder =>
-    {
-        var q = _query.Trim();
-        var idx = q.Length == 0 ? -1 : text.IndexOf(q, StringComparison.OrdinalIgnoreCase);
-        if (idx < 0) { builder.AddContent(0, text); return; }
-        var seq = 0;
-        if (idx > 0) builder.AddContent(seq++, text[..idx]);
-        builder.OpenElement(seq++, "mark");
-        builder.AddAttribute(seq++, "class", "sc-hl");
-        builder.AddContent(seq++, text.Substring(idx, q.Length));
-        builder.CloseElement();
-        var rest = idx + q.Length;
-        if (rest < text.Length) builder.AddContent(seq++, text[rest..]);
-    };
-
     // lowercase + strip accents so "visao" matches "Visão", "botao" matches "Botões".
     private static string Fold(string s)
     {
@@ -251,5 +270,14 @@
             if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
                 sb.Append(char.ToLowerInvariant(c));
         return sb.ToString();
+    }
+
+    private sealed class ShowcaseNavigationAction(NavigationManager navigation, string href)
+    {
+        public Task ExecuteAsync()
+        {
+            navigation.NavigateTo(href);
+            return Task.CompletedTask;
+        }
     }
 }

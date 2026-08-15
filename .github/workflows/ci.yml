@@ -70,6 +70,7 @@ jobs:
         shell: bash
         run: |
           for proj in \
+            test/Omni.Localization.Tests/Omni.Localization.Tests.csproj \
             test/Omni.Blazor.Tests/Omni.Blazor.Tests.csproj \
             test/Omni.Blazor.ManifestGen.Tests/Omni.Blazor.ManifestGen.Tests.csproj \
             test/Omni.Blazor.Mcp.Tests/Omni.Blazor.Mcp.Tests.csproj; do
@@ -118,6 +119,20 @@ jobs:
             --output ./artifacts \
             -p:ContinuousIntegrationBuild=true
 
+      - name: Pack (Omni.Localization, dry-run)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet pack src/Omni.Localization/Omni.Localization.csproj \
+            --configuration Release --no-build --output ./artifacts \
+            -p:ContinuousIntegrationBuild=true
+
+      - name: Pack (Omni.Localization.Json, dry-run)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet pack src/Omni.Localization.Json/Omni.Localization.Json.csproj \
+            --configuration Release --no-build --output ./artifacts \
+            -p:ContinuousIntegrationBuild=true
+
       - name: Pack (Omni.Blazor.Ai, dry-run)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -130,7 +145,7 @@ jobs:
       - name: Pack (PO/Gettext adapter, dry-run)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          dotnet pack src/Omni.Blazor.Localization.Po/Omni.Blazor.Localization.Po.csproj \
+          dotnet pack src/Omni.Localization.Po/Omni.Localization.Po.csproj \
             --configuration Release \
             --no-build \
             --output ./artifacts \
@@ -145,7 +160,7 @@ jobs:
             --output ./artifacts \
             -p:ContinuousIntegrationBuild=true
 
-      - name: Smoke test packed Server, WASM, AI, PO and MCP consumers
+      - name: Smoke test packed standalone localization, Server, WASM, AI, PO and MCP consumers
         if: matrix.os == 'ubuntu-latest'
         run: python3 scripts/smoke_packages.py ./artifacts
 
@@ -186,6 +201,18 @@ jobs:
 
       - name: Run Native AOT smoke consumer
         run: ./artifacts/aot/Omni.Blazor.AotSmoke
+
+      - name: Restore standalone localization Native AOT consumer
+        run: dotnet restore test/Omni.Localization.AotSmoke/Omni.Localization.AotSmoke.csproj --runtime linux-x64
+
+      - name: Publish standalone localization Native AOT consumer
+        run: |
+          dotnet publish test/Omni.Localization.AotSmoke/Omni.Localization.AotSmoke.csproj \
+            --configuration Release --runtime linux-x64 --no-restore \
+            --output ./artifacts/localization-aot
+
+      - name: Run standalone localization Native AOT consumer
+        run: ./artifacts/localization-aot/Omni.Localization.AotSmoke
 
   browser:
     name: Browser tests (${{ matrix.host }}, Chromium)
