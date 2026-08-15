@@ -1,14 +1,16 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
+using Omni.Blazor.Models;
 
 namespace Forneria.Demo.Pages.Layout;
 
 /// <summary>One auto-discovered showcase page (built once via reflection).</summary>
 public sealed record ShowcaseLink(
     string Category, int CategoryOrder, int ItemOrder,
-    string Title, string Icon, string Path,
-    string[] Aliases, bool IsNew, bool Featured);
+    string Title, string Icon, string Path, string Href,
+    string[] Aliases, bool IsNew, bool Featured,
+    string? BadgeText, MenuMetaKind BadgeKind);
 
 /// <summary>
 /// The closed set of showcase nav categories. <see cref="Cat.Auto"/> means "derive from the
@@ -156,7 +158,11 @@ public static class ShowcaseCatalog
             var isNew = info?.New ?? false;
             var featured = info?.Featured ?? false;
 
-            list.Add(new ShowcaseLink(def.Name, def.Order, order, title, icon, route, aliases, isNew, featured));
+            list.Add(new ShowcaseLink(
+                def.Name, def.Order, order, title, icon, route, route.TrimStart('/'), aliases,
+                isNew, featured,
+                featured ? "★ Destaque" : isNew ? "Novo" : null,
+                featured ? MenuMetaKind.Accent : MenuMetaKind.Good));
         }
         return list
             .OrderBy(l => l.CategoryOrder)

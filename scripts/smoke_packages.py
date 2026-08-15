@@ -60,8 +60,10 @@ def package_version(artifacts: pathlib.Path, expected: str | None) -> str:
         fail(f"Packed version {version!r} differs from expected version {expected!r}")
 
     for package_id in (
+        "AndersonN.Omni.Localization",
+        "AndersonN.Omni.Localization.Json",
+        "AndersonN.Omni.Localization.Po",
         "AndersonN.Omni.Blazor.Ai",
-        "AndersonN.Omni.Blazor.Localization.Po",
         "AndersonN.Omni.Blazor.Mcp",
     ):
         package = artifacts / f"{package_id}.{version}.nupkg"
@@ -84,7 +86,7 @@ def create_server(root: pathlib.Path, version: str) -> pathlib.Path:
           <ItemGroup>
             <PackageReference Include="AndersonN.Omni.Blazor" Version="{version}" />
             <PackageReference Include="AndersonN.Omni.Blazor.Ai" Version="{version}" />
-            <PackageReference Include="AndersonN.Omni.Blazor.Localization.Po" Version="{version}" />
+            <PackageReference Include="AndersonN.Omni.Localization.Po" Version="{version}" />
           </ItemGroup>
         </Project>
         """,
@@ -93,13 +95,14 @@ def create_server(root: pathlib.Path, version: str) -> pathlib.Path:
         project / "Program.cs",
         """
         using Omni.Blazor;
-        using Omni.Blazor.Localization.Po;
+        using Omni.Blazor.Localization;
+        using Omni.Localization.Po;
         using PackageSmoke.Server;
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.AddOmniComponents();
-        builder.Services.AddOmniPortableObjectLocalization<Program>("Localization");
+        builder.Services.AddOmniPortableObjectLocalization<OmniBlazorResource, Program>("Localization");
         _ = typeof(Omni.Blazor.Ai.OmniChatClient);
 
         var app = builder.Build();
@@ -129,6 +132,50 @@ def create_server(root: pathlib.Path, version: str) -> pathlib.Path:
         """
         @using Microsoft.AspNetCore.Components.Web
         @using Omni.Blazor.Components
+        """,
+    )
+    return project
+
+
+def create_localization(root: pathlib.Path, version: str) -> pathlib.Path:
+    project = root / "localization"
+    write(
+        project / "SmokeLocalization.csproj",
+        f"""
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>Exe</OutputType>
+            <TargetFramework>net10.0</TargetFramework>
+            <Nullable>enable</Nullable>
+            <ImplicitUsings>enable</ImplicitUsings>
+          </PropertyGroup>
+          <ItemGroup>
+            <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+            <PackageReference Include="AndersonN.Omni.Localization" Version="{version}" />
+            <PackageReference Include="AndersonN.Omni.Localization.Json" Version="{version}" />
+          </ItemGroup>
+        </Project>
+        """,
+    )
+    write(
+        project / "Program.cs",
+        """
+        using System.Globalization;
+        using System.Text;
+        using Microsoft.Extensions.DependencyInjection;
+        using Omni.Localization;
+        using Omni.Localization.Json;
+
+        var services = new ServiceCollection();
+        services.AddOmniLocalizationResource<AppResource>("pt-BR", "en",
+            new Dictionary<string, string> { ["Greeting"] = "Hello" });
+        services.AddOmniJsonTranslations<AppResource>(
+            Encoding.UTF8.GetBytes("{\\\"culture\\\":\\\"pt-BR\\\",\\\"texts\\\":{\\\"Greeting\\\":\\\"Olá\\\"}}"));
+        using var provider = services.BuildServiceProvider();
+        var localizer = provider.GetRequiredService<IOmniLocalizer<AppResource>>();
+        return localizer.Localize("Greeting", CultureInfo.GetCultureInfo("pt-BR")).Value == "Olá" ? 0 : 1;
+
+        internal sealed class AppResource;
         """,
     )
     return project
@@ -219,9 +266,15 @@ def main() -> int:
         env["DOTNET_NOLOGO"] = "true"
         env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "true"
 
-        for project in (create_server(root, version), create_wasm(root, version)):
+        for project in (
+            create_localization(root, version),
+            create_server(root, version),
+            create_wasm(root, version),
+        ):
             run(["dotnet", "restore", "--configfile", str(config), "--no-cache"], project, env)
             run(["dotnet", "build", "--configuration", "Release", "--no-restore"], project, env)
+
+        run(["dotnet", "run", "--configuration", "Release", "--no-build"], root / "localization", env)
 
         tool_dir = root / "tools"
         run(
@@ -239,7 +292,7 @@ def main() -> int:
         if reported != version:
             fail(f"MCP tool reported {reported!r}; expected {version!r}")
 
-    print(f"Package smoke passed for Omni.Blazor {version} (Server, WASM, AI, PO, MCP).")
+    print(f"Package smoke passed for Omni.Blazor {version} (standalone localization, Server, WASM, AI, JSON, PO, MCP).")
     return 0
 
 

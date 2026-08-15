@@ -38,6 +38,12 @@ public sealed class DemoExperienceBrowserTests(BrowserFixture fixture)
     {
         await using IBrowserContext context = await fixture.CreateContextAsync();
         IPage page = await context.NewPageAsync();
+        List<string> runtimeErrors = [];
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error" && message.Text.Contains("[MONO]", StringComparison.Ordinal))
+                lock (runtimeErrors) runtimeErrors.Add(message.Text);
+        };
 
         await page.GotoAsync($"{fixture.BaseUrl}/showcase");
 
@@ -49,6 +55,18 @@ public sealed class DemoExperienceBrowserTests(BrowserFixture fixture)
         Assert.True(await banner.GetByRole(AriaRole.Link, new() { Name = "Components" }).IsVisibleAsync());
         Assert.Equal(0, await banner.GetByRole(AriaRole.Link, new() { Name = "PDV", Exact = true }).CountAsync());
         Assert.Equal(0, await banner.GetByRole(AriaRole.Link, new() { Name = "Dashboard", Exact = true }).CountAsync());
+
+        // The Mono Debug failure occurs after the first successful render. Keep the page alive
+        // long enough to exercise a second interactive render instead of accepting a transient shell.
+        await page.WaitForTimeoutAsync(2_000);
+        await page.GetByRole(AriaRole.Searchbox, new() { Name = "Filtrar componentes" }).FillAsync("culture");
+        await page.GetByRole(AriaRole.Link, new() { Name = "Culture Picker Novo" }).ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Culture Picker", Exact = true }).WaitForAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Ver código", Exact = true }).First.ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Ocultar código", Exact = true }).WaitForAsync();
+
+        lock (runtimeErrors)
+            Assert.Empty(runtimeErrors);
     }
 
     private static void AssertNoAxeViolations(AxeResult result)

@@ -1,42 +1,48 @@
 using System.Globalization;
-using System.Resources;
 using System.Text;
 
-namespace Omni.Blazor.Localization;
+namespace Omni.Localization;
 
-/// <summary>
-/// Generates expanded <c>en-XA</c> and right-to-left <c>ar-XB</c> translations
-/// for localization and layout testing. Composite-format placeholders are preserved.
-/// </summary>
-public sealed class OmniPseudoTranslationProvider : IOmniTranslationProvider
+/// <summary>Generates expanded <c>en-XA</c> and RTL <c>ar-XB</c> translations.</summary>
+public sealed class OmniPseudoTranslationProvider<TResource> : IOmniTranslationProvider<TResource>
 {
-    private const string ResourceBaseName = "Omni.Blazor.Localization.Resources.OmniResources";
-    private static readonly ResourceManager Resources = new(ResourceBaseName, typeof(OmniPseudoTranslationProvider).Assembly);
-    private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en");
+    private readonly OmniLocalizationResource<TResource> _resource;
+
+    /// <summary>Creates a provider from the resource reference catalog.</summary>
+    public OmniPseudoTranslationProvider(OmniLocalizationResource<TResource> resource)
+        => _resource = resource ?? throw new ArgumentNullException(nameof(resource));
+
+    /// <inheritdoc />
+    public int Priority => 10_000;
 
     /// <inheritdoc />
     public bool TryGetTranslation(in OmniTranslationRequest request, out string translation)
     {
-        bool isExpanded = string.Equals(request.Culture.Name, "en-XA", StringComparison.OrdinalIgnoreCase);
-        bool isRtl = string.Equals(request.Culture.Name, "ar-XB", StringComparison.OrdinalIgnoreCase);
-        if (!isExpanded && !isRtl)
+        bool expanded = string.Equals(request.Culture.Name, "en-XA", StringComparison.OrdinalIgnoreCase);
+        bool rtl = string.Equals(request.Culture.Name, "ar-XB", StringComparison.OrdinalIgnoreCase);
+        if (!expanded && !rtl)
         {
             translation = string.Empty;
             return false;
         }
 
-        string? source = request.PluralCategory is { } category
-            ? Resources.GetString($"{request.Key}.{category}", English)
-                ?? Resources.GetString($"{request.Key}.Other", English)
-                ?? Resources.GetString(request.Key, English)
-            : Resources.GetString(request.Key, English);
+        string? source = null;
+        if (request.PluralCategory is { } category)
+        {
+            _resource.ReferenceTranslations.TryGetValue(
+                string.Concat(request.Key, ".", category.ToString()), out source);
+            if (source is null)
+                _resource.ReferenceTranslations.TryGetValue(string.Concat(request.Key, ".Other"), out source);
+        }
+        if (source is null)
+            _resource.ReferenceTranslations.TryGetValue(request.Key, out source);
         if (source is null)
         {
             translation = string.Empty;
             return false;
         }
 
-        translation = Transform(source, isRtl);
+        translation = Transform(source, rtl);
         return true;
     }
 
@@ -56,7 +62,6 @@ public sealed class OmniPseudoTranslationProvider : IOmniTranslationProvider
                     index++;
                     continue;
                 }
-
                 int closing = span[(index + 1)..].IndexOf('}');
                 if (closing >= 0)
                 {
@@ -68,13 +73,15 @@ public sealed class OmniPseudoTranslationProvider : IOmniTranslationProvider
             }
 
             builder.Append(Accent(current));
-            if (current.IsVowel())
+            if (IsVowel(current))
                 builder.Append(Accent(char.ToLowerInvariant(current)));
         }
-
         builder.Append(rightToLeft ? "⟧\u200f" : "］");
         return builder.ToString();
     }
+
+    private static bool IsVowel(char value)
+        => char.ToLowerInvariant(value) is 'a' or 'e' or 'i' or 'o' or 'u';
 
     private static char Accent(char value) => value switch
     {
@@ -110,8 +117,6 @@ public sealed class OmniPseudoTranslationProvider : IOmniTranslationProvider
         'o' => 'ö',
         'P' => 'Þ',
         'p' => 'þ',
-        'Q' => 'Q',
-        'q' => 'q',
         'R' => 'Ŕ',
         'r' => 'ŕ',
         'S' => 'Š',
@@ -132,10 +137,4 @@ public sealed class OmniPseudoTranslationProvider : IOmniTranslationProvider
         'z' => 'ž',
         _ => value
     };
-}
-
-internal static class CharacterExtensions
-{
-    public static bool IsVowel(this char value)
-        => char.ToLowerInvariant(value) is 'a' or 'e' or 'i' or 'o' or 'u';
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Localization;
 using Omni.Blazor.State;
 using Omni.Blazor.Utilities;
+using Omni.Localization;
 
 namespace Omni.Blazor.Components;
 
@@ -86,7 +87,9 @@ public abstract class OmniComponent : ComponentBase
         if (registered is not null && !registered.IsLocalizedFacade)
             return registered;
 
-        IOmniLocalizer? localizer = ServiceProvider?.GetService(typeof(IOmniLocalizer)) as IOmniLocalizer;
+        IOmniLocalizer<OmniBlazorResource>? localizer =
+            ServiceProvider?.GetService(typeof(IOmniLocalizer<OmniBlazorResource>))
+                as IOmniLocalizer<OmniBlazorResource>;
         return localizer is null
             ? registered ?? OmniTexts.Default
             : OmniTexts.FromLocalizer(localizer, () => TextCulture, () => FormattingCulture);

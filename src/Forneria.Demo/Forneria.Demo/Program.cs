@@ -19,7 +19,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddLocalization();
 builder.Services.AddOmniPseudoLocalization();
-builder.Services.AddDemoOmniTranslations();
+builder.Services.AddDemoLocalization();
 builder.Services.AddOmniComponents();
 builder.Services.AddScoped<IDemoCultureManager, ServerDemoCultureManager>();
 builder.Services.AddScoped<FakeOrderService>();

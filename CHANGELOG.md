@@ -10,11 +10,12 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ### Added
 - `OmniCulturePicker`: flag dropdown for switching the application language, built for the app bar beside `OmniThemePicker`. Presentational by design — it reports the choice through `ValueChanged` and leaves persistence to the host, since where a language is kept differs per host (cookie on Server, localStorage on WebAssembly). Flags come from a short built-in set keyed by the culture's region; anything outside it draws a code badge, `FlagTemplate` overrides both, and `ShowFlags="false"` turns them off for the many languages that do not belong to one country.
-- Pluggable localization for all library-owned UI strings: `IOmniLocalizer`, `IOmniTranslationProvider`, `IOmniPluralRule`, `OmniTranslationCatalog` and generated `OmniTranslationKeys`. Omni ships `pt-BR` and English RESX catalogs and supports application-owned dictionaries/JSON snapshots, `IStringLocalizer`/RESX, database/tenant sources and optional PO/Gettext adapters.
+- Framework-independent typed localization packages: `AndersonN.Omni.Localization`, `AndersonN.Omni.Localization.Json` and `AndersonN.Omni.Localization.Po`. Resource-scoped `IOmniLocalizer<TResource>`/providers isolate application and component keys, centralize exact/parent/default fallback, support pluralization, validation, pseudolocales, standard `IStringLocalizer`, JSON and PO/Gettext without requiring Blazor.
 - `OmniCultureScope` for an explicit component-subtree formatting culture and UI culture. It emits the corresponding `lang` and inferred `dir` metadata, including RTL cultures, without changing the surrounding application.
 - Culture-aware plural forms (`Zero`, `One`, `Two`, `Few`, `Many`, `Other`), a localization showcase with French and Arabic/RTL examples, and browser/AOT coverage for localized resources.
 
 ### Changed
+- Omni.Blazor now consumes its own `OmniBlazorResource`; the showcase dogfoods a separate `DemoResource`. The previous PO package tied to the Razor Class Library was replaced by the UI-independent `AndersonN.Omni.Localization.Po` package before v1.
 - Component defaults, accessible names, validation messages, date/number/currency formatting and built-in form/data labels now resolve through the active culture. Explicit component parameters and an application-provided `OmniTexts` instance continue to take precedence.
 - JavaScript module smoke coverage now resolves modules from `document.baseURI`, keeping project-site deployments such as GitHub Pages compatible with a non-root path base.
 

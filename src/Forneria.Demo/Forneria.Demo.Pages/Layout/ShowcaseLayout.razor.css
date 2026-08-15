@@ -1,9 +1,7 @@
 /* Scoped styles for ShowcaseLayout (CSS isolation).
    Two rules cross the component boundary and use ::deep:
    - .omni-split-aside belongs to the OmniSplitView child and is an ANCESTOR of our
-     markup, so we anchor on a layout-transparent (.sc-shell, display:contents) wrapper.
-   - .sc-hl is the highlight <mark> built in code (RenderTreeBuilder), which doesn't
-     receive the scope attribute, so it's reached from the scoped .sc-aside-list. */
+   markup, so we anchor on a layout-transparent (.sc-shell, display:contents) wrapper. */
 
 .sc-shell { display: contents; }
 .sc-shell ::deep .omni-split-aside { padding: 0; overflow: hidden; }
@@ -24,4 +22,4 @@
 .sc-cat-name { flex: 1; text-align: left; }
 .sc-cat-count { font-weight: 400; color: var(--omni-fg-muted); }
 
-.sc-aside-list ::deep .sc-hl { background: transparent; color: var(--omni-accent); font-weight: 700; }
+.sc-aside-list ::deep .sc-menu-child { margin-inline-start: 14px; width: calc(100% - 14px); }

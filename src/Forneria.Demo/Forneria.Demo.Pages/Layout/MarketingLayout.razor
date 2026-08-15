@@ -44,18 +44,13 @@
 <OmniOverlayHosts />
 
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || Theme.IsInitialized) return;
+        if (DemoRuntime.AvoidWasmDebugStartupInterop || !firstRender || Theme.IsInitialized)
+            return Task.CompletedTask;
 
-        try
-        {
-            await Theme.InitializeAsync();
-            StateHasChanged();
-        }
-        catch
-        {
-            // Theme persistence must never block the demo landing page.
-        }
+        // ThemeService owns its JS-failure fallback. Returning the task directly also avoids
+        // emitting a Razor-layout async state machine, which Mono WASM Debug cannot resolve.
+        return Theme.InitializeAsync();
     }
 }
