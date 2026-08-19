@@ -27,7 +27,7 @@
         <OmniCommandPalette Commands="_commands" OnCommand="Run" />
 *@
 
-<OmniOverlay Visible="Open" VisibleChanged="OnVisibleChanged" AutoClose CloseOnEsc="false"
+<OmniOverlay Open="Open" OpenChanged="OnOverlayOpenChanged" AutoClose CloseOnEsc="false"
              ZIndex="1050" Class="omni-cmdk-overlay" OnClosed="OnClosedReset">
     <div class="@RootCss" style="@Style" @attributes="Attributes" role="dialog" aria-label="@Texts.CommandPalette">
         @* OmniOverlay's capture-phase Esc handler clicks [data-omni-cancel] (and
@@ -573,7 +573,7 @@
 
     // ---- Open / close -------------------------------------------------------
 
-    private Task OnVisibleChanged(bool v) => SetOpenAsync(v);
+    private Task OnOverlayOpenChanged(bool v) => SetOpenAsync(v);
 
     private async Task SetOpenAsync(bool v)
     {

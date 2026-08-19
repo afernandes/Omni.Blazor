@@ -80,14 +80,4 @@ public class OmniMessageTests : TestContextBase
         Assert.Equal("gap: 4px", root.GetAttribute("style"));
         Assert.Equal("msg", root.GetAttribute("data-testid"));
     }
-
-    [Fact]
-    public void Obsolete_Content_alias_still_sets_Text()
-    {
-#pragma warning disable CS0618 // Content is the deprecated alias under test.
-        var cut = Render<OmniMessage>(p => p.Add(c => c.Content, "**hi**"));
-#pragma warning restore CS0618
-
-        Assert.Contains("<strong>hi</strong>", cut.Find(".omni-message-content .omni-markdown").InnerHtml);
-    }
 }

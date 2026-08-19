@@ -21,23 +21,23 @@
         = você fornece o card/modal/spinner/lightbox)
 
     Usage — scrim simples controlado por flag:
-        <OmniOverlay @bind-Visible="_loading" />
+        <OmniOverlay @bind-Open="_loading" />
 
     Usage — confirmação inline com conteúdo:
-        <OmniOverlay @bind-Visible="_confirmShow" AutoClose>
+        <OmniOverlay @bind-Open="_confirmShow" AutoClose>
             <OmniCard Title="Tem certeza?">...</OmniCard>
         </OmniOverlay>
 
     Usage — loading absoluto dentro de um painel (não da viewport):
         <div style="position: relative">
-            <OmniOverlay @bind-Visible="_pageBusy" Absolute Modal="false">
+            <OmniOverlay @bind-Open="_pageBusy" Absolute Modal="false">
                 <OmniSpinner Size="ComponentSize.Lg" />
             </OmniOverlay>
             ...
         </div>
 *@
 
-@if (Visible)
+@if (Open)
 {
     <div id="@Id"
          class="@RootCss"
@@ -54,11 +54,11 @@
 }
 
 @code {
-    /// <summary>Controla a visibilidade. Two-way via <c>@@bind-Visible</c>.</summary>
-    [Parameter] public bool Visible { get; set; }
-    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    /// <summary>Controla a visibilidade. Two-way via <c>@@bind-Open</c>.</summary>
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
 
-    /// <summary>Quando <c>true</c>, clicar no backdrop fecha (seta Visible=false).
+    /// <summary>Quando <c>true</c>, clicar no backdrop fecha (seta Open=false).
     /// Default <c>false</c>. Conteúdo (<see cref="ChildContent"/>) não dispara — o overlay
     /// usa <c>@@onclick:stopPropagation</c> no wrapper interno.</summary>
     [Parameter] public bool AutoClose { get; set; }
@@ -95,7 +95,7 @@
     /// <summary>Disparado quando o overlay fecha (via AutoClose, Esc ou bind setando false).</summary>
     [Parameter] public EventCallback OnClosed { get; set; }
 
-    private bool _wasVisible;
+    private bool _wasOpen;
     private DotNetObjectReference<OmniOverlay>? _selfRef;
     private Services.OverlayLifecycle? _overlay;
 
@@ -127,11 +127,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Detecta transição Visible flipou. Engaja/libera scroll lock + Esc handler.
-        if (Visible == _wasVisible) return;
-        _wasVisible = Visible;
+        // Detecta transição Open flipou. Engaja/libera scroll lock + Esc handler.
+        if (Open == _wasOpen) return;
+        _wasOpen = Open;
 
-        if (Visible)
+        if (Open)
         {
             await ActivateAsync();
         }
@@ -171,9 +171,9 @@
     /// <summary>Fecha programaticamente.</summary>
     public async Task CloseAsync()
     {
-        if (!Visible) return;
-        Visible = false;
-        if (VisibleChanged.HasDelegate) await VisibleChanged.InvokeAsync(false);
+        if (!Open) return;
+        Open = false;
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(false);
         // OnClosed será disparado no próximo OnAfterRenderAsync (transição detectada lá).
         StateHasChanged();
     }

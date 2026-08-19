@@ -2,7 +2,7 @@ namespace Omni.Blazor.Tests.Components.Buttons;
 
 /// <summary>
 /// Behavioural contract for <see cref="OmniFabMenu"/>: position/direction
-/// modifier classes, open/close state (incl. two-way IsOpen binding), the
+/// modifier classes, open/close state (incl. two-way Open binding), the
 /// backdrop's <c>omni-fab-backdrop-scoped</c> variant for <c>Static</c>
 /// position, and Class/Style/Attributes splat onto the root.
 /// </summary>
@@ -56,10 +56,10 @@ public class OmniFabMenuTests : TestContextBase
     }
 
     [Fact]
-    public void IsOpen_initial_true_adds_open_class_and_renders_items()
+    public void Open_initial_true_adds_open_class_and_renders_items()
     {
         var cut = Render<OmniFabMenu>(p => p
-            .Add(c => c.IsOpen, true)
+            .Add(c => c.Open, true)
             .AddChildContent("<span class=\"probe\">probe</span>"));
 
         Assert.Contains("omni-fab-open", cut.Find("div.omni-fab-menu").ClassName);
@@ -67,9 +67,9 @@ public class OmniFabMenuTests : TestContextBase
     }
 
     [Fact]
-    public void IsOpen_initial_false_hides_items_container()
+    public void Open_initial_false_hides_items_container()
     {
-        var cut = Render<OmniFabMenu>(p => p.Add(c => c.IsOpen, false));
+        var cut = Render<OmniFabMenu>(p => p.Add(c => c.Open, false));
 
         Assert.Empty(cut.FindAll(".omni-fab-items"));
         Assert.DoesNotContain("omni-fab-open", cut.Find("div.omni-fab-menu").ClassName);
@@ -81,13 +81,13 @@ public class OmniFabMenuTests : TestContextBase
         // No backdrop closed.
         var closed = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
-            .Add(c => c.IsOpen, false));
+            .Add(c => c.Open, false));
         Assert.Empty(closed.FindAll(".omni-fab-backdrop"));
 
         // Backdrop visible when open.
         var open = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
-            .Add(c => c.IsOpen, true));
+            .Add(c => c.Open, true));
         Assert.NotNull(open.Find(".omni-fab-backdrop"));
     }
 
@@ -96,7 +96,7 @@ public class OmniFabMenuTests : TestContextBase
     {
         var cut = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
-            .Add(c => c.IsOpen, true)
+            .Add(c => c.Open, true)
             .Add(c => c.Position, FabPosition.Static));
 
         Assert.Contains("omni-fab-backdrop-scoped", cut.Find(".omni-fab-backdrop").ClassName);
@@ -107,7 +107,7 @@ public class OmniFabMenuTests : TestContextBase
     {
         var cut = Render<OmniFabMenu>(p => p
             .Add(c => c.ShowBackdrop, true)
-            .Add(c => c.IsOpen, true)
+            .Add(c => c.Open, true)
             .Add(c => c.Position, FabPosition.BottomRight));
 
         Assert.DoesNotContain("omni-fab-backdrop-scoped", cut.Find(".omni-fab-backdrop").ClassName);

@@ -217,10 +217,10 @@
         @* ─── Programmatic control ─── *@
         <ShowcaseSection Title="CONTROLE PROGRAMÁTICO — two-way binding"
                          Description="@DescBind"
-                         Code='@("<OmniFabMenu @bind-IsOpen=\"_menuOpen\" Icon=\"plus\" Position=\"FabPosition.Static\">\n    ...items...\n</OmniFabMenu>\n<OmniButton OnClick=\"@(() => _menuOpen = !_menuOpen)\">Toggle externo</OmniButton>")'>
+                         Code='@("<OmniFabMenu @bind-Open=\"_menuOpen\" Icon=\"plus\" Position=\"FabPosition.Static\">\n    ...items...\n</OmniFabMenu>\n<OmniButton OnClick=\"@(() => _menuOpen = !_menuOpen)\">Toggle externo</OmniButton>")'>
             <div class="fab-controlled">
                 <div class="fab-stage">
-                    <OmniFabMenu @bind-IsOpen="_menuOpen" Icon="plus" OpenIcon="x"
+                    <OmniFabMenu @bind-Open="_menuOpen" Icon="plus" OpenIcon="x"
                                   Position="FabPosition.Static"
                                   AriaLabel="Controlado externamente">
                         <OmniFabMenuItem Icon="check" Text="OK"     OnClick="@(_ => Log("OK"))" />
@@ -263,8 +263,8 @@
         <ShowcaseApiTable Title="OmniFabMenu — parâmetros">
             <ShowcaseApiRow Name="Icon / OpenIcon" Type="string" Default='"plus" / "x"'
                             Description="Ícone do FAB quando fechado / aberto. Default é '+' → 'x' (Material spec)." />
-            <ShowcaseApiRow Name="IsOpen" Type="bool" Default="false"
-                            Description="@DescIsOpen" />
+            <ShowcaseApiRow Name="Open" Type="bool" Default="false"
+                            Description="@DescOpen" />
             <ShowcaseApiRow Name="Position" Type="FabPosition" Default="BottomRight"
                             Description="Mesma do OmniFab." />
             <ShowcaseApiRow Name="Direction" Type="FabMenuDirection" Default="Up"
@@ -450,8 +450,8 @@
     private bool _menuOpen;
 
     // Strings com @ literal — evita Razor parser de attribute interpretar como diretiva.
-    private const string DescBind = "@bind-IsOpen permite abrir/fechar de fora. Use OpenAsync() / CloseAsync() / ToggleAsync() via @ref.";
-    private const string DescIsOpen = "Estado aberto. Use @bind-IsOpen pra two-way binding.";
+    private const string DescBind = "@bind-Open permite abrir/fechar de fora. Use OpenAsync() / CloseAsync() / ToggleAsync() via @ref.";
+    private const string DescOpen = "Estado aberto. Use @bind-Open pra two-way binding.";
     private const string DescMethods = "Métodos públicos pra controle programático via @ref.";
 
     private void Log(string action)
