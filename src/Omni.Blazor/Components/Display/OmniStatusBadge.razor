@@ -13,7 +13,7 @@
     foca em *sinalização* (não em filtro/seleção), e separa visualmente um
     rótulo principal de uma meta-info opcional (monoespaçada). Use isso na
     barra de status, header de páginas operacionais e badges de saúde. *@
-<span id="@Id" class="@RootCss" style="@Style" @attributes="Attributes">
+<span id="@Id" class="@RootCss" style="@Style" @attributes="Attributes" aria-label="@EffectiveAriaLabel">
     <span class="@DotCss" aria-hidden="true"></span>
     @if (!string.IsNullOrEmpty(Label))
     {
@@ -57,4 +57,30 @@
     private string DotCss => CssBuilder.Default("omni-status-dot")
         .AddClass("omni-pulse", Pulse)
         .Build();
+
+    private string? EffectiveAriaLabel
+    {
+        get
+        {
+            if (AriaLabel is not null)
+            {
+                return AriaLabel;
+            }
+
+            if (Attributes is null)
+            {
+                return null;
+            }
+
+            foreach (var attribute in Attributes)
+            {
+                if (string.Equals(attribute.Key, "aria-label", StringComparison.OrdinalIgnoreCase))
+                {
+                    return attribute.Value?.ToString();
+                }
+            }
+
+            return null;
+        }
+    }
 }
