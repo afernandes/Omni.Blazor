@@ -42,9 +42,10 @@ Parameters:
 - `Author`: string — Display name shown above the content.
 - `AvatarInitials`: string — Avatar initials when no image is set.
 - `AvatarUrl`: string — Avatar image URL (falls back to AvatarInitials).
-- `Content`: string — Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given.
+- `Content`: string — Deprecated alias for Text. Will be removed in a future version.
 - `Role`: MessageRole {User | Assistant | System} = Assistant — Who sent the message — drives the layout/styling. Default Assistant.
 - `Streaming`: bool = false — When true, the content shows the streaming caret (assistant still typing).
+- `Text`: string — Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given.
 Slots:
 - `AvatarContent`: RenderFragment — Custom avatar markup; overrides the default OmniAvatar.
 - `Footer`: RenderFragment — Footer slot for citations (OmniCitation), reasoning (OmniThinkingBlock) or actions.
@@ -163,13 +164,14 @@ Item dentro de um OmniFabMenu — botão circular menor com label opcional ao la
 _base: OmniComponent · source: src/Omni.Blazor/Components/Buttons/OmniFabMenuItem.razor_
 
 Parameters:
-- `AriaLabel`: string — aria-label. Fallback: Title → Label.
+- `AriaLabel`: string — aria-label. Fallback: Title → Text.
 - `Disabled`: bool = false
 - `Icon`: string *required* = circle — Ícone do item. Obrigatório (FAB items são icon-first).
-- `Label`: string — Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto.
+- `Label`: string — Alias obsoleto de Text. Será removido numa versão futura.
 - `LabelPosition`: FabMenuItemLabelPosition {Auto | Left | Right | None} = Auto — Posição do label em relação ao botão. Default Auto — segue a direção do menu (Left/Right) ou esconde (Up/Down).
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho. Default Md — items são menores que o FAB principal.
-- `Title`: string — Tooltip nativo. Fallback: Label.
+- `Text`: string — Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto.
+- `Title`: string — Tooltip nativo. Fallback: Text.
 - `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Default — Variant do botão interno. Default Default — neutro, contrasta com o FAB principal (Primary).
 Events:
 - `OnClick`: EventCallback<MouseEventArgs>
@@ -3070,9 +3072,13 @@ Slots:
 - `ChildContent`: RenderFragment — The tab's panel content, rendered by the parent only while this tab is active.
 
 ### OmniTabs
-Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body; the first registered tab is active by default.
+Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body.
 _base: OmniComponentWithChildren · accepts ChildContent · source: src/Omni.Blazor/Components/Navigation/OmniTabs.razor_
 
+Parameters:
+- `ActiveIndex`: int = -1 — Zero-based index of the active tab. Two-way bindable via @bind-ActiveIndex. Default -1 — uncontrolled: the first registered tab becomes active, unchanged from before this parameter existed.
+Events:
+- `ActiveIndexChanged`: EventCallback<int> — Raised when the active tab changes (click or a controlled ActiveIndex update), carrying the new zero-based index.
 
 ## Overlay
 

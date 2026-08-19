@@ -8,6 +8,16 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+### Added
+- `OmniTabs.ActiveIndex` / `ActiveIndexChanged`: the active tab can now be driven or observed from outside via `@bind-ActiveIndex`. Uncontrolled usage (no `ActiveIndex` passed) is unchanged — the first registered tab is still active by default.
+
+### Changed
+- `OmniFabMenuItem.Label` and `OmniMessage.Content` are renamed to `Text`, for consistency with the rest of the library's naming. The old names remain as `[Obsolete]` aliases that forward to `Text` and will keep working until they are removed.
+
+### Deprecated
+- `OmniFabMenuItem.Label` — use `Text`. Will be removed in a future version.
+- `OmniMessage.Content` — use `Text`. Will be removed in a future version.
+
 ### Fixed
 - `OmniStatusBadge.AriaLabel` is now emitted on the root element instead of being a no-op parameter.
 - `OmniChip` now gives `Accent Static` chips a soft accent surface without requiring the selected `Active` state.

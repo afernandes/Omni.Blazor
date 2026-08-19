@@ -239,7 +239,7 @@
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given."
+          "summary": "Deprecated alias for Text. Will be removed in a future version."
         },
         {
           "name": "Footer",
@@ -277,6 +277,13 @@
           "default": "false",
           "required": false,
           "summary": "When true, the content shows the streaming caret (assistant still typing)."
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given."
         },
         {
           "name": "Attributes",
@@ -1313,7 +1320,7 @@
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "aria-label. Fallback: Title → Label."
+          "summary": "aria-label. Fallback: Title → Text."
         },
         {
           "name": "Disabled",
@@ -1335,7 +1342,7 @@
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto."
+          "summary": "Alias obsoleto de Text. Será removido numa versão futura."
         },
         {
           "name": "LabelPosition",
@@ -1396,11 +1403,18 @@
           "summary": "Tamanho. Default Md — items são menores que o FAB principal."
         },
         {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto."
+        },
+        {
           "name": "Title",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Tooltip nativo. Fallback: Label."
+          "summary": "Tooltip nativo. Fallback: Text."
         },
         {
           "name": "Variant",
@@ -25005,9 +25019,24 @@
       "baseType": "OmniComponentWithChildren",
       "isInput": false,
       "hasChildContent": true,
-      "summary": "Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body; the first registered tab is active by default.",
+      "summary": "Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body.",
       "source": "src/Omni.Blazor/Components/Navigation/OmniTabs.razor",
       "parameters": [
+        {
+          "name": "ActiveIndex",
+          "kind": "parameter",
+          "type": "int",
+          "default": "-1",
+          "required": false,
+          "summary": "Zero-based index of the active tab. Two-way bindable via @bind-ActiveIndex. Default -1 — uncontrolled: the first registered tab becomes active, unchanged from before this parameter existed."
+        },
+        {
+          "name": "ActiveIndexChanged",
+          "kind": "event",
+          "type": "EventCallback<int>",
+          "required": false,
+          "summary": "Raised when the active tab changes (click or a controlled ActiveIndex update), carrying the new zero-based index."
+        },
         {
           "name": "Attributes",
           "kind": "parameter",
