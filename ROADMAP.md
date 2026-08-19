@@ -1,9 +1,9 @@
 # Roadmap — Omni.Blazor
 
 > Estado em **2026-08-19** · versão publicada **v0.9.0** (`AndersonN.Omni.Blazor`, `.Ai`, `.Mcp`, `.Localization`, `.Localization.Json`, `.Localization.Po`)
-> 209 componentes catalogados · pacotes com validação de compatibilidade e warnings como erro
+> 209 componentes catalogados · **2.514 testes passando** (1 ignorado, 0 falhas — suíte completa: lib, AI/MCP/gerador, localização, browser) · pacotes com validação de compatibilidade e warnings como erro
 >
-> *(Contagem de testes/cobertura desta seção não foi remedida nesta revisão — a última leitura confiável é a da auditoria 2026-07-31 abaixo; tratar como desatualizada.)*
+> *(Cobertura por projeto — %, não só contagem — não foi remedida nesta revisão; a última leitura confiável dessa métrica é a da auditoria 2026-07-31 abaixo, tratar como desatualizada.)*
 
 Consolida três fontes: a **auditoria de hardening** (2026-07-01, 7 PRs), a **análise de biblioteca + templates** (2026-07-28) e as **pendências de roadmaps anteriores** (gaps de componentes/telas, AI-Ready).
 
