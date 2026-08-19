@@ -38,7 +38,7 @@ public class OmniFabMenuItemTests : TestContextBase
     {
         var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
-            .Add(c => c.Label, "Folder"));
+            .Add(c => c.Text, "Folder"));
 
         var label = cut.Find(".omni-fab-item-label");
         Assert.Equal("Folder", label.TextContent);
@@ -49,7 +49,7 @@ public class OmniFabMenuItemTests : TestContextBase
     {
         var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
-            .Add(c => c.Label, "Folder")
+            .Add(c => c.Text, "Folder")
             .Add(c => c.LabelPosition, FabMenuItemLabelPosition.None));
 
         Assert.Empty(cut.FindAll(".omni-fab-item-label"));
@@ -98,5 +98,17 @@ public class OmniFabMenuItemTests : TestContextBase
 
         cut.Find("button").Click();
         Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void Obsolete_Label_alias_still_sets_Text()
+    {
+#pragma warning disable CS0618 // Label is the deprecated alias under test.
+        var cut = Render<OmniFabMenuItem>(p => p
+            .Add(c => c.Icon, "plus")
+            .Add(c => c.Label, "Folder"));
+#pragma warning restore CS0618
+
+        Assert.Equal("Folder", cut.Find(".omni-fab-item-label").TextContent);
     }
 }

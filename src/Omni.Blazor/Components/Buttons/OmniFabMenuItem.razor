@@ -11,16 +11,16 @@
 
     Usage:
         <OmniFabMenu>
-            <OmniFabMenuItem Icon="folder" Label="Pasta"
+            <OmniFabMenuItem Icon="folder" Text="Pasta"
                               OnClick="@(_ => NewFolder())" />
-            <OmniFabMenuItem Icon="message-square" Label="Chat"
+            <OmniFabMenuItem Icon="message-square" Text="Chat"
                               OnClick="@(_ => NewChat())" />
         </OmniFabMenu> *@
 
 <div class="@RootCss" style="@Style" role="menuitem" @attributes="Attributes">
-    @if (!string.IsNullOrEmpty(Label) && LabelPosition != FabMenuItemLabelPosition.None)
+    @if (!string.IsNullOrEmpty(Text) && LabelPosition != FabMenuItemLabelPosition.None)
     {
-        <span class="omni-fab-item-label">@Label</span>
+        <span class="omni-fab-item-label">@Text</span>
     }
     <OmniButton Icon="@Icon"
                  IconOnly="true"
@@ -29,8 +29,8 @@
                  Disabled="@Disabled"
                  OnClick="HandleClickAsync"
                  Class="omni-fab-item-btn"
-                 title="@(Title ?? Label)"
-                 aria-label="@(AriaLabel ?? Title ?? Label)" />
+                 title="@(Title ?? Text)"
+                 aria-label="@(AriaLabel ?? Title ?? Text)" />
 </div>
 
 @code {
@@ -39,16 +39,20 @@
 
     /// <summary>Label flutuante ao lado do botão. Padrão Material — chip pequeno
     /// com fundo opaco, visível só quando o menu está aberto.</summary>
-    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>Alias obsoleto de <see cref="Text"/>. Será removido numa versão futura.</summary>
+    [Obsolete("Use Text instead. Label will be removed in a future version.")]
+    [Parameter] public string? Label { get => Text; set => Text = value; }
 
     /// <summary>Posição do label em relação ao botão. Default <c>Auto</c> — segue
     /// a direção do menu (Left/Right) ou esconde (Up/Down).</summary>
     [Parameter] public FabMenuItemLabelPosition LabelPosition { get; set; } = FabMenuItemLabelPosition.Auto;
 
-    /// <summary>Tooltip nativo. Fallback: Label.</summary>
+    /// <summary>Tooltip nativo. Fallback: Text.</summary>
     [Parameter] public string? Title { get; set; }
 
-    /// <summary>aria-label. Fallback: Title → Label.</summary>
+    /// <summary>aria-label. Fallback: Title → Text.</summary>
     [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Variant do botão interno. Default <c>Default</c> — neutro, contrasta

@@ -143,4 +143,41 @@ public class OmniTabsTests : TestContextBase
         Assert.Equal(tabId, panel.GetAttribute("aria-labelledby"));
         Assert.Equal(activeTab.GetAttribute("aria-controls"), panel.GetAttribute("id"));
     }
+
+    [Fact]
+    public void ActiveIndex_selects_the_matching_tab_instead_of_the_first()
+    {
+        var cut = Render<OmniTabs>(p => p
+            .Add(c => c.ActiveIndex, 1)
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
+
+        var buttons = cut.FindAll(".omni-tab");
+        Assert.DoesNotContain("omni-active", buttons[0].ClassName);
+        Assert.Contains("omni-active", buttons[1].ClassName);
+    }
+
+    [Fact]
+    public void Click_fires_ActiveIndexChanged_with_the_clicked_tabs_index()
+    {
+        var captured = -1;
+        var cut = Render<OmniTabs>(p => p
+            .Add(c => c.ActiveIndexChanged, EventCallback.Factory.Create<int>(this, v => captured = v))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
+
+        cut.FindAll(".omni-tab")[1].Click();
+
+        Assert.Equal(1, captured);
+    }
+
+    [Fact]
+    public void Omitting_ActiveIndex_keeps_the_first_tab_active_by_default()
+    {
+        var cut = Render<OmniTabs>(p => p
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "One"))
+            .AddChildContent<OmniTabItem>(t => t.Add(c => c.Title, "Two")));
+
+        Assert.Contains("omni-active", cut.FindAll(".omni-tab")[0].ClassName);
+    }
 }
