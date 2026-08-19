@@ -1,7 +1,9 @@
 # Roadmap — Omni.Blazor
 
-> Estado em **2026-07-31** · versão publicada **v0.3.0** (`AndersonN.Omni.Blazor`, `.Ai`, `.Mcp`)
-> 198 componentes catalogados · **2.204 testes passando** · cobertura: lib **84,93%**, AI **96,12%**, gerador **95,79%**, MCP **93,48%** · pacotes com validação de compatibilidade e warnings como erro
+> Estado em **2026-08-19** · versão publicada **v0.9.0** (`AndersonN.Omni.Blazor`, `.Ai`, `.Mcp`, `.Localization`, `.Localization.Json`, `.Localization.Po`)
+> 209 componentes catalogados · pacotes com validação de compatibilidade e warnings como erro
+>
+> *(Contagem de testes/cobertura desta seção não foi remedida nesta revisão — a última leitura confiável é a da auditoria 2026-07-31 abaixo; tratar como desatualizada.)*
 
 Consolida três fontes: a **auditoria de hardening** (2026-07-01, 7 PRs), a **análise de biblioteca + templates** (2026-07-28) e as **pendências de roadmaps anteriores** (gaps de componentes/telas, AI-Ready).
 
@@ -87,14 +89,14 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | 12 | Contrato único de binding multi-valor | Lib | L |
 | 13 | Acessibilidade sistêmica dos templates (`label for`, headings) | Templates | M |
 | 24 | Limpar as 4 utilitárias duplicadas no `_demo.scss` | Demo | S |
-| 33 | Testes Playwright de teclado, foco, overlays, descarte e reconexão | QA | L |
+| 33 | Testes Playwright de teclado, foco, overlays, descarte e reconexão | QA | L — **parcial**: infra existe (`test/Omni.Blazor.BrowserTests`, Playwright), mas cobre forms/grid/localização/rotas publicadas; teclado/foco/overlay/descarte/reconexão específicos ainda não |
 | 34 | Gate de paridade componente ↔ teste ↔ showcase, com allow-list explícita de subcomponentes | CI/Docs | M |
 
 ### P3 — Features que faltam
 
 | # | Item | Área | Esforço |
 |---|---|---|---|
-| 15 | Tipos de gráfico faltando (Stacked/Radar/Scatter/Gauge) | Lib | L |
+| 15 | ~~Tipos de gráfico faltando (Stacked/Radar/Scatter/Gauge)~~ | Lib | ✅ |
 | 16 | Telas SaaS faltando (Onboarding, Billing, Settings com abas, Search, Notificações, CRUD detalhe) | Templates | L |
 
 ### P4 — Deferidos (reavaliar antes de executar)
@@ -194,11 +196,9 @@ exata e impedir regressão.
 
 ---
 
-### P3 · 15. Tipos de gráfico faltando
+### ✅ P3 · 15. Tipos de gráfico faltando
 
-**Problema.** `ChartSeriesType` tem **7 tipos** (`Line`, `Area`, `Column`, `Bar`, `Pie`, `Donut`, `Waterfall`) — faltam `StackedColumn`/`StackedBar`, `Radar`, `Scatter`/`Bubble` e `Gauge` radial, que dashboards (e os próprios templates SAAS/Bento do repo) demandam.
-
-**Como corrigir.** Começar por **StackedColumn** (mais barato, reusa o pipeline cartesiano), depois Gauge/Radar/Scatter.
+**Concluído** (release 0.7.0). `ChartSeriesType` (`src/Omni.Blazor/Models/Enums.cs`) agora tem 13 valores — os 7 originais mais `StackedColumn`, `StackedBar`, `Scatter`, `Bubble`, `Radar` e `Gauge`, com suporte a `ChartSchema` tipado. Ver CHANGELOG `[0.7.0]`.
 
 **Esforço:** L · **Área:** Lib
 
