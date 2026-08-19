@@ -42,7 +42,6 @@ Parameters:
 - `Author`: string — Display name shown above the content.
 - `AvatarInitials`: string — Avatar initials when no image is set.
 - `AvatarUrl`: string — Avatar image URL (falls back to AvatarInitials).
-- `Content`: string — Deprecated alias for Text. Will be removed in a future version.
 - `Role`: MessageRole {User | Assistant | System} = Assistant — Who sent the message — drives the layout/styling. Default Assistant.
 - `Streaming`: bool = false — When true, the content shows the streaming caret (assistant still typing).
 - `Text`: string — Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given.
@@ -146,7 +145,7 @@ Parameters:
 - `Direction`: FabMenuDirection {Up | Down | Left | Right} = Up — Direção em que os items se expandem. Default Up (combina com posições Bottom*).
 - `Disabled`: bool = false
 - `Icon`: string = plus — Ícone do FAB quando o menu está fechado. Default "plus".
-- `IsOpen`: bool = false — Two-way bound. Pode ser controlado externamente.
+- `Open`: bool = false — Two-way bound via @@bind-Open. Pode ser controlado externamente.
 - `OpenIcon`: string = x — Ícone do FAB quando o menu está aberto. Default "x" (padrão Material — close icon indica "agora fecha").
 - `OpenTitle`: string — Tooltip quando aberto. Default "Fechar menu".
 - `Position`: FabPosition {BottomRight | BottomLeft | TopRight | TopLeft | BottomCenter | Static} = BottomRight — Canto da viewport onde o FAB ancora. Default BottomRight.
@@ -155,7 +154,7 @@ Parameters:
 - `Title`: string — Tooltip quando fechado. Default "Abrir menu".
 - `Variant`: ButtonVariant {Default | Primary | Ghost | Danger | Link} = Primary — Variant do FAB. Default Primary.
 Events:
-- `IsOpenChanged`: EventCallback<bool>
+- `OpenChanged`: EventCallback<bool>
 Slots:
 - `ChildContent`: RenderFragment
 
@@ -167,7 +166,6 @@ Parameters:
 - `AriaLabel`: string — aria-label. Fallback: Title → Text.
 - `Disabled`: bool = false
 - `Icon`: string *required* = circle — Ícone do item. Obrigatório (FAB items são icon-first).
-- `Label`: string — Alias obsoleto de Text. Será removido numa versão futura.
 - `LabelPosition`: FabMenuItemLabelPosition {Auto | Left | Right | None} = Auto — Posição do label em relação ao botão. Default Auto — segue a direção do menu (Left/Right) ou esconde (Up/Down).
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho. Default Md — items são menores que o FAB principal.
 - `Text`: string — Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto.
@@ -3202,16 +3200,16 @@ _base: OmniComponent · accepts ChildContent · source: src/Omni.Blazor/Componen
 
 Parameters:
 - `Absolute`: bool = false — Position absolute em vez de fixed. Use quando o overlay deve preencher um container específico (não a viewport). O container precisa ter position: relative. Quando true, LockScroll é ignorado (não faz sentido bloquear scroll do body num overlay local).
-- `AutoClose`: bool = false — Quando true, clicar no backdrop fecha (seta Visible=false). Default false. Conteúdo (ChildContent) não dispara — o overlay usa @@onclick:stopPropagation no wrapper interno.
+- `AutoClose`: bool = false — Quando true, clicar no backdrop fecha (seta Open=false). Default false. Conteúdo (ChildContent) não dispara — o overlay usa @@onclick:stopPropagation no wrapper interno.
 - `CloseOnEsc`: bool = true — Quando true (default), Esc fecha o overlay. false ignora Esc.
 - `LockScroll`: bool = true — Bloqueia scroll do <body> enquanto visível. Default true. Refcount-safe — múltiplos overlays não desbloqueiam até todos fecharem.
 - `Modal`: bool = true — Quando true (default), o overlay BLOQUEIA cliques no que está atrás. Quando false, pointer-events: none deixa o user clicar através (modo "decoração" — overlay decorativo sem capturar input).
-- `Visible`: bool = false — Controla a visibilidade. Two-way via @@bind-Visible.
+- `Open`: bool = false — Controla a visibilidade. Two-way via @@bind-Open.
 - `ZIndex`: int — Z-index inline. Quando null (default), herda o stack natural (500).
 Events:
 - `OnClick`: EventCallback<MouseEventArgs> — Callback adicional quando o user clica no backdrop. Recebe o MouseEventArgs. Dispara independente de AutoClose (AutoClose só decide se fecha).
 - `OnClosed`: EventCallback — Disparado quando o overlay fecha (via AutoClose, Esc ou bind setando false).
-- `VisibleChanged`: EventCallback<bool>
+- `OpenChanged`: EventCallback<bool>
 Slots:
 - `ChildContent`: RenderFragment — Conteúdo opcional renderizado centrado dentro do overlay. Quando null, o overlay é puro scrim (sem nada visível além do backdrop).
 

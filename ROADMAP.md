@@ -85,7 +85,7 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 |---|---|---|---|
 | 9 | Templates para os componentes-flagship (Kanban/Scheduler/Chat/Wizard/Tabs) | Templates | L |
 | 10 | Cobertura de showcase (~40 componentes sem página) | Docs | M |
-| 11 | Consistência de API pública — **parcial**: `Label`/`Content`→`Text` e binding do Tabs ✅; falta só `Open`/`IsOpen`/`Visible` dos overlays | Lib | S restante |
+| 11 | ~~Consistência de API pública (`Label`/`Content`→`Text`, `Open`/`IsOpen`/`Visible`, binding do Tabs)~~ | Lib | ✅ |
 | 12 | Contrato único de binding multi-valor | Lib | L |
 | 13 | Acessibilidade sistêmica dos templates (`label for`, headings) | Templates | M |
 | 24 | Limpar as 4 utilitárias duplicadas no `_demo.scss` | Demo | S |
@@ -149,24 +149,17 @@ exata e impedir regressão.
 
 ---
 
-### 🟡 P2 · 11. Consistência de API pública (parcial)
+### ✅ P2 · 11. Consistência de API pública
 
-**Problema.** Atritos localizados que prejudicam descoberta e troca de componentes.
+**Concluído.** Sem alias de compatibilidade em nenhum dos três — a lib é pré-1.0, então toda renomeação foi direta (rename + build/testes pegam qualquer referência esquecida como erro, não warning).
 
-**Feito.**
-- `OmniFabMenuItem.Label` e `OmniMessage.Content` renomeados para `Text`, com `Label`/`Content` mantidos como alias `[Obsolete]` (repassam para `Text`) — showcase, `Omni.Blazor.Ai` e manifesto atualizados juntos.
+- `OmniFabMenuItem.Label` → `Text`; `OmniMessage.Content` → `Text`.
+- `OmniFabMenu.IsOpen`/`IsOpenChanged` → `Open`/`OpenChanged`; `OmniOverlay.Visible`/`VisibleChanged` → `Open`/`OpenChanged` — agora todo overlay usa `Open` (`OmniBottomSheet`, `OmniCommandPalette`, `OmniPopover`, `OmniDrawer` já usavam; `OmniOverlay` tinha 4 consumidores internos na própria lib — `OmniEntityEditorHost`, `OmniDataGridForm`, `OmniEntityPicker`, `OmniCommandPalette` — todos migrados junto).
 - `OmniTabs.ActiveIndex`/`ActiveIndexChanged` — bindable via `@bind-ActiveIndex`; uso não controlado (sem passar o parâmetro) preserva o comportamento anterior (primeira aba registrada fica ativa).
 
-**Ainda falta — booleano de overlay inconsistente** (verificado por grep, não apenas por amostra):
-- `Open`: `OmniBottomSheet`, `OmniCommandPalette`, `OmniPopover`, `OmniDrawer`.
-- `IsOpen`: `OmniFabMenu`.
-- `Visible` (semântica equivalente — controla exibição do overlay): `OmniOverlay`.
+  *(`OmniBadge.Visible` e `OmniDataGridColumn.Visible` ficaram de fora de propósito — visibilidade genérica, não estado de overlay.)*
 
-  *(`OmniBadge.Visible` e `OmniDataGridColumn.Visible` também usam `Visible`, mas são visibilidade genérica, não estado de overlay — fora do escopo deste item.)*
-
-**Como corrigir o que falta.** Escolher um nome canônico (`Open` é maioria) e migrar `OmniFabMenu.IsOpen`/`OmniOverlay.Visible` com alias `[Obsolete]`, no mesmo molde usado para `Text` acima.
-
-**Esforço:** S restante (era M) · **Área:** Lib
+**Esforço:** M · **Área:** Lib
 
 ---
 
