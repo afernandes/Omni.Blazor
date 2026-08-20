@@ -2523,7 +2523,25 @@ button.omni-select-load-more:disabled {
 }
 .omni-field-required::after { content: '*'; color: var(--omni-danger); }
 .omni-field-hint  { font-size: 11px; color: var(--omni-fg-soft); }
-.omni-field-error { font-size: 11px; color: var(--omni-danger); margin-top: 2px; }
+.omni-field-error { font-size: 11px; color: var(--omni-danger); }
+
+// The message line under a field — hint, error, or the blank placeholder that
+// holds its place — must measure the same in all three states. Otherwise the
+// field changes height as the message appears, disappears or switches from hint
+// to error: everything below shifts, and a neighbour sitting beside it in a row
+// slides out of alignment (a centred row splits the difference between them).
+// Direct children only: HintRight lives in .omni-field-row next to the label and
+// must keep its own metrics.
+.omni-field > .omni-field-hint,
+.omni-field > .omni-field-error,
+.omni-field > .omni-field-message-reserve {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+// 1lh is exactly one line at the line-height above, so the reserved line keeps
+// matching if the typography is ever retuned.
+.omni-field > .omni-field-message-reserve { min-height: 1lh; }
 .omni-validation-message {
   font-size: 11px;
   color: var(--omni-danger);
