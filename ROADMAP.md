@@ -84,13 +84,13 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | # | Item | Área | Esforço |
 |---|---|---|---|
 | 9 | Templates para os componentes-flagship (Kanban/Scheduler/Chat/Wizard/Tabs) | Templates | L |
-| 10 | Cobertura de showcase (~40 componentes sem página) | Docs | M |
+| 10 | ~~Cobertura de showcase (~40 componentes sem página)~~ | Docs | ✅ |
 | 11 | ~~Consistência de API pública (`Label`/`Content`→`Text`, `Open`/`IsOpen`/`Visible`, binding do Tabs)~~ | Lib | ✅ |
 | 12 | Contrato único de binding multi-valor | Lib | L |
 | 13 | Acessibilidade sistêmica dos templates (`label for`, headings) | Templates | M |
 | 24 | Limpar as 4 utilitárias duplicadas no `_demo.scss` | Demo | S |
 | 33 | Testes Playwright de teclado, foco, overlays, descarte e reconexão | QA | L — **parcial**: infra existe (`test/Omni.Blazor.BrowserTests`, Playwright), mas cobre forms/grid/localização/rotas publicadas; teclado/foco/overlay/descarte/reconexão específicos ainda não |
-| 34 | Gate de paridade componente ↔ teste ↔ showcase, com allow-list explícita de subcomponentes | CI/Docs | M |
+| 34 | ~~Gate de paridade componente ↔ teste ↔ showcase, com allow-list explícita de subcomponentes~~ | CI/Docs | ✅ |
 
 ### P3 — Features que faltam
 
@@ -132,20 +132,29 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 
 ---
 
-### P2 · 10. Cobertura de showcase
+### ✅ P2 · 10 e 34. Cobertura de showcase + gate de paridade
 
-**Problema.** O CONTRIBUTING exige uma página de showcase por componente; hoje há
-**142 arquivos Razor no showcase para 198 componentes catalogados**. A diferença não
-é o gap real porque hosts, validators e subcomponentes são legitimamente demonstrados
-pelo pai; falta transformar essa regra em mapeamento verificável para obter a lista
-exata e impedir regressão.
+**Concluído.** `ComponentConventionTests.Every_component_has_a_showcase_usage` escaneia
+todo `.razor` sob `Pages/Showcase/**` por um uso literal de tag (`<Nome`) de cada
+componente público (mesma enumeração por reflexão que já alimenta o teste "tem
+arquivo de teste"). Achou **20 componentes sem uso de tag** — não ~40; a lista antiga
+já estava desatualizada.
 
-**Como corrigir.**
-1. Levantar a lista exata (excluindo sub-componentes, usando a allow-list `TestedViaParent` dos convention tests como referência).
-2. Priorizar os de alto uso (`OmniDataGrid`, `OmniAutoComplete`, `OmniFileUpload`, `OmniCalendar`, `OmniDateRangePicker`, …).
-3. Estender o `ComponentConventionTests` com uma checagem de "tem showcase" (mesma mecânica do "tem teste"), com allow-list — assim o gap não volta a crescer.
+Dos 20: **19 são exceções legítimas**, agora numa allow-list dedicada
+(`NotDirectlyShowcased`) com o motivo de cada um — sub-componentes renderizados só
+pelo pai (`OmniCalendar`/`OmniTimePicker` via `OmniDatePicker`, `OmniDropZoneItem` via
+`OmniDropZone`, `OmniEntityEditorHost` via `OmniGanttForm`/`OmniKanbanForm`/
+`OmniSchedulerForm`, mais os já presentes em `TestedViaParent`), hosts montados uma
+vez via `<OmniOverlayHosts />` (`OmniDialogHost`/`OmniNotificationHost`/
+`OmniTooltipHost`/`OmniContextMenuHost`/`OmniTourHost`), e diálogos abertos por
+`typeof()` via `DialogService` em vez de tag (`AlertDialog`/`ConfirmDialog`).
 
-**Esforço:** M · **Área:** Docs
+O 20º era um **gap real**: `OmniValidationMessage` tinha tabela de API e menção em
+prosa no showcase de Form Validation, mas nunca era renderizado de verdade. Adicionada
+uma seção nova (`FormValidationPage.razor`) mostrando o uso pretendido — mensagem de
+erro avulsa, sem `OmniFormField` ao redor.
+
+**Esforço:** M · **Área:** Docs/CI
 
 ---
 
@@ -256,12 +265,15 @@ haver demanda e um contrato de provider sustentável.
 
 1. ~~**Sprint "confiança"** — P0 (itens 1–4).~~ ✅ #28
 2. ~~**Sprint "templates consumíveis"** — itens 6 + 7 + 8.~~ ✅ #29
-3. ~~**Sprint "i18n"** — seam do item 5.~~ ✅ #30 *(falta o 5b)*
-4. **Agora:** fechar o **5b**, o smoke test de pacotes (**31**) e o gate de
-   paridade de showcase (**34**).
-5. **Depois:** observer de tarefas descartadas (**35**), módulos JS tipados
-   (**30**), browser/a11y (**33**) e benchmarks com orçamento (**32**).
-6. **Cobertura funcional:** itens **9**, **10**, **14**, **15** e **17**.
-7. **Conforme demanda:** demais itens 11–16.
+3. ~~**Sprint "i18n"** — seam do item 5.~~ ✅ #30
+4. ~~**Fechar 5b, gate de paridade de showcase (34) e cobertura de showcase (10).**~~ ✅
+5. **Depois:** módulos JS tipados (**30**), browser/a11y (**33** — parcial, ver detalhamento), benchmarks com orçamento (**32**).
+6. **Cobertura funcional restante:** templates para os componentes-flagship (**9**).
+7. **Conforme demanda:** itens **12**, **13**, **16**.
+
+> Itens antigos **14**, **31** e **35** citados em revisões anteriores desta seção não correspondem
+> a nenhum item numerado atual — provavelmente foram absorvidos pelos itens 36–40 da tabela
+> "0. Concluído" (auditoria 2026-07-31) sem que esta seção fosse atualizada junto. Removidos daqui
+> em vez de adivinhar o mapeamento.
 
 > Convenções obrigatórias para qualquer item: testes junto (cobertura ≥ 80%), lib packable sem warnings (`TreatWarningsAsErrors`), showcase por componente novo, o guarda de drift dos templates verde, e regenerar o manifesto (`dotnet run --project tools/Omni.Blazor.ManifestGen`) quando a API pública mudar.
