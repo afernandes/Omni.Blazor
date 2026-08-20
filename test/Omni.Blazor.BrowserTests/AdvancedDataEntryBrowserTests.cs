@@ -16,6 +16,7 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/numeric");
+        await WaitForNumericInteractivityAsync(page);
         ILocator input = page.Locator(".omni-numeric-input").First;
         await input.WaitForAsync();
         await input.FocusAsync();
@@ -36,6 +37,7 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/numeric");
+        await WaitForNumericInteractivityAsync(page);
 
         ILocator twoDecimals = page.GetByTestId("numeric-auto-2").Locator("input");
         await twoDecimals.WaitForAsync();
@@ -66,6 +68,10 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
         await input.PressAsync("Control+A");
         await input.PressAsync("Backspace");
     }
+
+    private static Task WaitForNumericInteractivityAsync(IPage page) =>
+        page.GetByTestId("numeric-interactive").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
 
     [Fact]
     public async Task Typed_data_filter_serializes_and_updates_the_effective_query()

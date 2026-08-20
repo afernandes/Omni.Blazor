@@ -4,6 +4,13 @@
 
 <PageTitle>Numeric — Showcase</PageTitle>
 
+@* Browser tests must not interact with the server-prerendered input before
+   OnAfterRender attaches the isolated numeric module. *@
+@if (_interactiveReady)
+{
+    <span data-testid="numeric-interactive" aria-hidden="true"></span>
+}
+
 <ShowcasePage Title="Numeric"
               Subtitle="Input numérico genérico com spinner, prefix/suffix e formatação culture-aware.">
 
@@ -181,4 +188,13 @@
     private int ns1;
     private decimal? ns2;
     private int ns3;
+    private bool _interactiveReady;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _interactiveReady = true;
+        StateHasChanged();
+    }
 }
