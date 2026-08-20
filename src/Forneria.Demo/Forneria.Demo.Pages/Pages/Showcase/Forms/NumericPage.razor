@@ -19,7 +19,8 @@
             Suporta <code>Min</code>/<code>Max</code> com clamp automático, <code>Step</code>
             para os botões de spinner (<code>ShowSpinButtons</code>), slots <code>Prefix</code>/
             <code>Suffix</code> para símbolos monetários e unidades, e <code>Decimals</code>
-            para controlar as casas decimais exibidas.
+            para controlar as casas decimais exibidas. Com <code>AutoDecimalSeparator</code>,
+            cada dígito desloca a parte decimal automaticamente, como em terminais de pagamento.
         </p>
     </Overview>
 
@@ -58,6 +59,33 @@
                 <div class="omni-stack omni-stack-4">
                     <label class="omni-field-label">double?</label>
                     <OmniNumeric TValue="double?" @bind-Value="db" Decimals="3" />
+                </div>
+            </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection Title="SEPARADOR DECIMAL AUTOMÁTICO"
+                         Description="Digitação de valor com escala fixa: o separador da cultura é inserido e mantido automaticamente."
+                         Code="@(@"<OmniNumeric TValue=""decimal"" @bind-Value=""amount2""
+              Decimals=""2"" AutoDecimalSeparator ShowSpinButtons=""false"" />
+<OmniNumeric TValue=""decimal"" @bind-Value=""amount3""
+              Decimals=""3"" AutoDecimalSeparator ShowSpinButtons=""false"" />
+<OmniNumeric TValue=""decimal"" @bind-Value=""amount4""
+              Decimals=""4"" AutoDecimalSeparator ShowSpinButtons=""false"" />")">
+            <div class="omni-grid-3">
+                <div class="omni-stack omni-stack-4" data-testid="numeric-auto-2">
+                    <label class="omni-field-label">2 casas</label>
+                    <OmniNumeric TValue="decimal" @bind-Value="amount2" Decimals="2"
+                                 AutoDecimalSeparator ShowSpinButtons="false" />
+                </div>
+                <div class="omni-stack omni-stack-4" data-testid="numeric-auto-3">
+                    <label class="omni-field-label">3 casas</label>
+                    <OmniNumeric TValue="decimal" @bind-Value="amount3" Decimals="3"
+                                 AutoDecimalSeparator ShowSpinButtons="false" />
+                </div>
+                <div class="omni-stack omni-stack-4" data-testid="numeric-auto-4">
+                    <label class="omni-field-label">4 casas</label>
+                    <OmniNumeric TValue="decimal" @bind-Value="amount4" Decimals="4"
+                                 AutoDecimalSeparator ShowSpinButtons="false" />
                 </div>
             </div>
         </ShowcaseSection>
@@ -117,6 +145,8 @@
                             Description="Incremento aplicado pelos botões de spinner e setas." />
             <ShowcaseApiRow Name="Decimals" Type="int?" Default="null"
                             Description="Casas decimais exibidas no blur. Inferido de TValue se omitido." />
+            <ShowcaseApiRow Name="AutoDecimalSeparator" Type="bool" Default="false"
+                            Description="Trata os dígitos como um valor de escala fixa e insere o separador decimal da cultura automaticamente." />
             <ShowcaseApiRow Name="Format" Type="string?" Default="null"
                             Description="Formato ToString customizado — vence sobre Decimals." />
             <ShowcaseApiRow Name="Wrap" Type="bool" Default="false"
@@ -142,6 +172,9 @@
     private int iv = 1;
     private decimal? dv;
     private double? db;
+    private decimal amount2;
+    private decimal amount3;
+    private decimal amount4;
     private decimal? preco = 42.90m;
     private int qtd = 1;
     private decimal? pct = 18m;

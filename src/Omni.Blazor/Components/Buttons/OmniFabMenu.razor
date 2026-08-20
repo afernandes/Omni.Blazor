@@ -117,7 +117,11 @@
     /// <summary>aria-label do grupo. Use pra nomear semanticamente o speed dial.</summary>
     [Parameter] public string? AriaLabel { get; set; }
 
-    /// <summary>Fecha o menu quando o user clica fora dele. Default <c>true</c>.</summary>
+    /// <summary>Fecha o menu quando o user clica fora dele. Default <c>true</c>.
+    /// O fechamento é despachado depois do clique, então um handler do próprio
+    /// consumidor disparado pelo mesmo clique decide primeiro. Se o menu for dirigido
+    /// exclusivamente por controles externos — que são todos "fora" dele —, prefira
+    /// <c>false</c>: cada um desses cliques também conta como clique fora.</summary>
     [Parameter] public bool CloseOnOutsideClick { get; set; } = true;
 
     /// <summary>Fecha o menu quando o user pressiona Escape. Default <c>true</c>.</summary>
