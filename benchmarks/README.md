@@ -57,15 +57,38 @@ appended rather than with chain length.
 | `StreamingChunk` (half a document) | 987 µs | **1.67 MB** |
 | `SanitizeHostileHtml` | 7.9 µs | **6.3 KB** |
 
-**The finding worth acting on.** ~32 regex passes over the source cost 3.35 MB for one
-document render. Memoisation hides this for static content, but *not* for streaming:
-`StreamingChunk` is the uncached path an assistant reply takes on every chunk, at
-1.67 MB a chunk.
+**The finding worth acting on — and its root cause.** Rendering one 75-byte sentence
+allocates 84 KB, which is ~1100× the input. That is not parsing cost; it is the .NET
+static regex cache thrashing.
 
-This is direct evidence against the reasoning that deferred roadmap item 19
-(`[GeneratedRegex]` in `MarkdownRenderer`, deferred as "low ROI after memoisation").
-The premise holds only where the cache applies. Item 19 should be reconsidered with
-these numbers, and the AI/chat streaming path is the case to optimise for.
+`MarkdownRenderer` uses **31 distinct patterns** through the *static* `Regex.Match` /
+`IsMatch` / `Replace` overloads. Those consult a process-wide cache whose default size
+is **15**. With 31 patterns rotating through 15 slots, most calls miss and **recompile
+the pattern from scratch** — every render, every line.
+
+Proven, not inferred. Raising `Regex.CacheSize` to 64 and re-measuring the same paths:
+
+| Path | Default cache (15) | Cache 64 | Reduction |
+|---|---|---|---|
+| Short reply | 86 KB | 8 KB | **91%** |
+| Full document | 3 412 KB | 213 KB | **94%** |
+| Streaming chunk | 1 782 KB | 107 KB | **94%** |
+
+Two patterns are also interpolated per call
+(`MarkdownRenderer.cs:52` and `:339`), so they build a new pattern string every time and
+can *never* hit the cache regardless of its size.
+
+**Why this matters most for streaming.** Memoisation hides the cost for static content,
+but every chunk of an assistant reply carries a new source, so a 100-chunk answer
+allocates on the order of 170 MB — on the server, per connected user, under Blazor
+Server.
+
+**Fix:** roadmap item 19 (`[GeneratedRegex]`) is exactly the right remedy, and for a
+sharper reason than originally recorded: each pattern becomes a compiled static
+instance, so there is no cache lookup and no recompilation — the 94% without touching
+process-global state. Bumping `Regex.CacheSize` gets the same numbers but is a poor fit
+for a library, since it silently changes a setting the host application owns. The two
+interpolated patterns need handling on their own either way.
 
 ### DataGrid hierarchy
 

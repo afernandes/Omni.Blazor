@@ -171,14 +171,25 @@ normal. As duas concordam — a cadeia típica do `CssBuilder` dá 128 B em qual
 O gate foi validado apertando um budget de propósito e confirmando que falha com a
 mensagem certa; um gate que nunca falha não é gate.
 
-**O achado que muda uma decisão anterior.** O `MarkdownRenderer` aloca **3,35 MB** para
-renderizar um documento de 12 seções, e **1,67 MB** por chunk no caminho de streaming.
-A memoização do `OmniMarkdown` esconde isso para conteúdo estático, mas **não** para
-streaming — cada chunk traz uma source diferente, que é exatamente o que o cache não
-cobre. Isso é evidência direta contra a justificativa que adiou o **item 19**
-(`[GeneratedRegex]` no `MarkdownRenderer`, adiado como "ROI baixo pós-memoização"): a
-premissa só vale onde o cache se aplica. **Item 19 merece reavaliação**, com o caminho
-de streaming de IA/chat como caso a otimizar.
+**O achado, com causa raiz medida.** Renderizar uma frase de 75 bytes aloca 84 KB —
+~1100× a entrada. Não é custo de parsing: o `MarkdownRenderer` usa **31 padrões
+distintos** nos overloads *estáticos* do `Regex`, que consultam um cache de processo de
+**15** slots. Com 31 padrões girando em 15 posições, a maioria das chamadas **recompila
+o padrão do zero**, a cada render e a cada linha.
+
+Provado, não deduzido — subindo `Regex.CacheSize` para 64 e remedindo: documento
+3 412 KB → **213 KB (−94%)**, chunk de streaming 1 782 KB → **107 KB (−94%)**, frase
+curta 86 KB → **8 KB (−91%)**.
+
+Pesa mais no streaming: a memoização cobre conteúdo estático, mas cada chunk de uma
+resposta de IA traz source nova, então uma resposta de 100 chunks aloca ~170 MB — no
+servidor, por usuário conectado, sob Blazor Server.
+
+Isso reabre o **item 19** com uma razão mais afiada do que a registrada antes:
+`[GeneratedRegex]` transforma cada padrão numa instância compilada estática — sem
+lookup de cache e sem recompilação, entregando os mesmos 94% **sem** tocar em estado
+global do processo (subir `Regex.CacheSize` numa biblioteca alteraria silenciosamente
+uma configuração que pertence à aplicação hospedeira).
 
 Os demais alvos passaram sem surpresa: `CssBuilder` não aloca por classe pulada e
 escala com o que é de fato anexado; o flatten do `HierarchyState` escala linearmente
@@ -334,7 +345,7 @@ haver demanda e um contrato de provider sustentável.
 | Item | Quando reconsiderar |
 |---|---|
 | **18.** Sanitizador por parser (`Ganss.Xss`/AngleSharp; DOMPurify no JS) | O regex foi endurecido (entidades numéricas, control chars, atributo sem aspas, `data:` MIME). Trocar **se** `AllowHtml` passar a receber conteúdo não confiável — regex nunca é garantia. |
-| **19.** `[GeneratedRegex]` no `MarkdownRenderer` | ⚠️ **Agora.** O profiling pedido existe (item 32): 3,35 MB por documento e **1,67 MB por chunk no streaming**. A memoização removeu o custo por *re-render*, não o do streaming — cada chunk tem source nova, que o cache não cobre. O motivo do adiamento não vale mais para o caminho de IA/chat. |
+| **19.** `[GeneratedRegex]` no `MarkdownRenderer` | ⚠️ **Agora, e a causa raiz está medida** (item 32). Não é custo de parsing: são **31 padrões distintos** nos overloads *estáticos* do `Regex`, cujo cache de processo tem **15** slots — a maioria das chamadas recompila o padrão do zero. Provado subindo `Regex.CacheSize` para 64: **−91% a −94%** de alocação (3 412 KB → 213 KB no documento; 1 782 KB → 107 KB no chunk de streaming). `[GeneratedRegex]` entrega isso sem mexer em estado global do processo. Dois padrões interpolados (`MarkdownRenderer.cs:52` e `:339`) nunca cacheiam e precisam de tratamento próprio. |
 | **20.** Virtualizar listas de chat | Se surgirem chats com centenas de mensagens. Hoje o custo dominante já foi eliminado. |
 | **21.** Unificar os "dois mundos" de chat | Se `OmniChat` e a stack de IA passarem a compartilhar requisitos de verdade. Hoje `UserId` (multiusuário) vs `Role` (IA) é separação legítima. |
 | **22.** Gate `dotnet format` na CI | Depois de um pass de formatação dedicado nos projetos de demo (a lib já está limpa). |
