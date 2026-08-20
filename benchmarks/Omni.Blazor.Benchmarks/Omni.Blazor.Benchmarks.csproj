@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- BenchmarkDotNet measures optimized code; a Debug run reports numbers that
+         mean nothing, and it warns loudly about exactly that. -->
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <!-- Server GC would hide the allocation pressure these benchmarks exist to see. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Omni.Blazor\Omni.Blazor.csproj" />
+    <ProjectReference Include="..\..\tools\Omni.Blazor.ManifestGen\Omni.Blazor.ManifestGen.csproj" />
+  </ItemGroup>
+
+</Project>
