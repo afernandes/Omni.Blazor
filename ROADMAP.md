@@ -76,8 +76,8 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | # | Item | Área | Esforço |
 |---|---|---|---|
 | 5b | ~~Localização completa de defaults e strings internas~~ | Lib | ✅ |
-| 30 | Migrar interop complexo para módulos JS tipados/lazy e contratos descartáveis | Lib | L |
-| 32 | BenchmarkDotNet para DataGrid, Markdown, CSS builders e gerador, com budgets de alocação | Performance | M |
+| 30 | ~~Migrar interop complexo para módulos JS tipados/lazy e contratos descartáveis~~ | Lib | ✅ |
+| 32 | ~~BenchmarkDotNet para DataGrid, Markdown, CSS builders e gerador, com budgets de alocação~~ | Performance | ✅ |
 
 ### P2 — Cobertura e consistência
 
@@ -104,7 +104,7 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | # | Item | Motivo do deferimento |
 |---|---|---|
 | 18 | Sanitizador de HTML baseado em parser | O regex atual está endurecido; troca só se `AllowHtml` passar a receber conteúdo hostil |
-| 19 | `[GeneratedRegex]` no `MarkdownRenderer` | ROI baixo após a memoização; ~32 patterns em arquivo crítico |
+| 19 | `[GeneratedRegex]` no `MarkdownRenderer` | ⚠️ **Reavaliar** — os benchmarks do item 32 contradizem o motivo original (ver abaixo) |
 | 20 | Virtualizar as listas de chat | A memoização já removeu o reparse; `Virtualize` + altura variável + auto-scroll é frágil |
 | 21 | Unificar os "dois mundos" de chat | Modelos genuinamente diferentes (multiusuário vs IA); alto risco de regressão |
 | 22 | Gate `dotnet format` na CI | Exige um pass de formatação nos projetos de demo primeiro |
@@ -155,6 +155,63 @@ uma seção nova (`FormValidationPage.razor`) mostrando o uso pretendido — men
 erro avulsa, sem `OmniFormField` ao redor.
 
 **Esforço:** M · **Área:** Docs/CI
+
+---
+
+### ✅ P1 · 32. BenchmarkDotNet com budgets de alocação
+
+**Concluído.** `benchmarks/Omni.Blazor.Benchmarks` cobre os quatro alvos, e
+[`benchmarks/README.md`](benchmarks/README.md) guarda os números medidos — a evidência
+que o `docs/engineering-quality.md` exige junto da mudança.
+
+**Duas camadas, de propósito.** BenchmarkDotNet leva minutos, então não pode ser gate de
+push; `test/Omni.Blazor.Tests/Performance/AllocationBudgetTests.cs` mede os mesmos
+caminhos com `GC.GetAllocatedBytesForCurrentThread()` e roda em segundos com a suíte
+normal. As duas concordam — a cadeia típica do `CssBuilder` dá 128 B em qualquer uma.
+O gate foi validado apertando um budget de propósito e confirmando que falha com a
+mensagem certa; um gate que nunca falha não é gate.
+
+**O achado que muda uma decisão anterior.** O `MarkdownRenderer` aloca **3,35 MB** para
+renderizar um documento de 12 seções, e **1,67 MB** por chunk no caminho de streaming.
+A memoização do `OmniMarkdown` esconde isso para conteúdo estático, mas **não** para
+streaming — cada chunk traz uma source diferente, que é exatamente o que o cache não
+cobre. Isso é evidência direta contra a justificativa que adiou o **item 19**
+(`[GeneratedRegex]` no `MarkdownRenderer`, adiado como "ROI baixo pós-memoização"): a
+premissa só vale onde o cache se aplica. **Item 19 merece reavaliação**, com o caminho
+de streaming de IA/chat como caso a otimizar.
+
+Os demais alvos passaram sem surpresa: `CssBuilder` não aloca por classe pulada e
+escala com o que é de fato anexado; o flatten do `HierarchyState` escala linearmente
+com linhas visíveis (colapsar é economia real); e o gerador, a 22 ms por catálogo
+completo, não vale otimizar — roda uma vez por push de CI e ninguém espera por ele.
+
+---
+
+### ✅ P1 · 30. Interop em módulos JS tipados/lazy e contratos descartáveis
+
+**Concluído** na release 0.7.0 — o item ficou aberto na tabela por drift de documentação,
+não por trabalho pendente. As três partes do título, verificadas no código:
+
+- **Tipados:** 10 interfaces, uma por domínio (`IOmniCoreJsModule`, `Scroll`, `Responsive`,
+  `Overlay`, `Inputs`, `Navigation`, `Speech`, `Data`, `Display`, `Diagram`), todas
+  registradas como Scoped em `AddOmniComponents`. Nada é publicado em `window` — o
+  `omni-module.js` é um dispatcher compartilhado e cada feature mantém sua API privada.
+- **Lazy:** `OmniJsModule.ImportCoreAsync` faz `import` dinâmico só na primeira invocação,
+  cacheia em `_moduleTask` e reimporta se a importação anterior falhou ou foi cancelada.
+- **Descartáveis:** `IOmniFeatureJsModule : IAsyncDisposable`, com dreno das chamadas em voo
+  (`_activeCalls`/`_drained`), `CancellationTokenSource` de lifetime, descarte idempotente e
+  guarda contra publicar um import depois do snapshot de descarte.
+
+**Nada ficou por migrar:** zero componentes com `@inject IJSRuntime`, zero campos
+`IJSRuntime` fora da própria classe base de módulo, e todo serviço de interop
+(`BreakpointService`, `ClickOutsideService`, `ClipboardService`, `CommandHistoryService`,
+`ContextMenuInteropService`, …) tipa seu campo como interface de módulo.
+
+*Gotcha ao auditar:* um grep por `_js.InvokeVoidAsync` acusa dezenas de chamadas que
+parecem interop cru — só o tipo declarado do campo revela que passam pelo módulo tipado.
+
+**Guardas contra regressão:** `ComponentConventionTests` barra `@inject IJSRuntime` em
+componente e `IJSRuntime` na API pública; `JsModuleBrowserTests` faz smoke dos módulos.
 
 ---
 
@@ -277,7 +334,7 @@ haver demanda e um contrato de provider sustentável.
 | Item | Quando reconsiderar |
 |---|---|
 | **18.** Sanitizador por parser (`Ganss.Xss`/AngleSharp; DOMPurify no JS) | O regex foi endurecido (entidades numéricas, control chars, atributo sem aspas, `data:` MIME). Trocar **se** `AllowHtml` passar a receber conteúdo não confiável — regex nunca é garantia. |
-| **19.** `[GeneratedRegex]` no `MarkdownRenderer` | Se profiling mostrar o parser como gargalo. A memoização já removeu o custo por render. |
+| **19.** `[GeneratedRegex]` no `MarkdownRenderer` | ⚠️ **Agora.** O profiling pedido existe (item 32): 3,35 MB por documento e **1,67 MB por chunk no streaming**. A memoização removeu o custo por *re-render*, não o do streaming — cada chunk tem source nova, que o cache não cobre. O motivo do adiamento não vale mais para o caminho de IA/chat. |
 | **20.** Virtualizar listas de chat | Se surgirem chats com centenas de mensagens. Hoje o custo dominante já foi eliminado. |
 | **21.** Unificar os "dois mundos" de chat | Se `OmniChat` e a stack de IA passarem a compartilhar requisitos de verdade. Hoje `UserId` (multiusuário) vs `Role` (IA) é separação legítima. |
 | **22.** Gate `dotnet format` na CI | Depois de um pass de formatação dedicado nos projetos de demo (a lib já está limpa). |
@@ -291,9 +348,11 @@ haver demanda e um contrato de provider sustentável.
 2. ~~**Sprint "templates consumíveis"** — itens 6 + 7 + 8.~~ ✅ #29
 3. ~~**Sprint "i18n"** — seam do item 5.~~ ✅ #30
 4. ~~**Fechar 5b, gate de paridade de showcase (34) e cobertura de showcase (10).**~~ ✅
-5. **Depois:** módulos JS tipados (**30**), browser/a11y (**33** — parcial, ver detalhamento), benchmarks com orçamento (**32**).
-6. **Cobertura funcional restante:** templates para os componentes-flagship (**9**).
-7. **Conforme demanda:** itens **13**, **16**.
+5. ~~**Módulos JS tipados (30) e benchmarks com orçamento (32).**~~ ✅
+6. **Agora:** `[GeneratedRegex]` no `MarkdownRenderer` (**19**) — reaberto pelos números
+   do item 32; e browser/a11y (**33** — parcial, ver detalhamento).
+7. **Cobertura funcional restante:** templates para os componentes-flagship (**9**).
+8. **Conforme demanda:** itens **13**, **16**.
 
 > Itens antigos **14**, **31** e **35** citados em revisões anteriores desta seção não correspondem
 > a nenhum item numerado atual — provavelmente foram absorvidos pelos itens 36–40 da tabela
