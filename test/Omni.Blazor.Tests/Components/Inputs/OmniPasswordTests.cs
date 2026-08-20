@@ -103,4 +103,43 @@ public class OmniPasswordTests : TestContextBase
 
         Assert.Equal("pw1", cut.Find("div.omni-input-group").GetAttribute("data-testid"));
     }
+
+    [Fact]
+    public void Edge_native_reveal_and_clear_are_hidden_by_the_css_bundle()
+    {
+        // Edge draws its own reveal eye inside input[type=password] (and its own
+        // clear "×" in text inputs), which lands next to the eye this component
+        // already renders. Only the shipped bundle can prove the rules ship, since
+        // the pseudo-elements are Edge-only and no bUnit render exercises them.
+        var css = File.ReadAllText(Path.Combine(
+            FindRepoRoot(), "src", "Omni.Blazor", "wwwroot", "css", "omni.css"));
+
+        foreach (string selector in new[] { ".omni-input::-ms-reveal", ".omni-input::-ms-clear" })
+        {
+            int start = css.IndexOf(selector, StringComparison.Ordinal);
+            Assert.True(start >= 0, $"The shipped CSS bundle does not contain '{selector}'.");
+
+            int end = css.IndexOf('}', start);
+            Assert.True(end > start, $"The shipped CSS rule for '{selector}' is incomplete.");
+            Assert.Contains("display: none", css[start..end], StringComparison.Ordinal);
+        }
+
+        // Deliberately two standalone rules: a selector list is dropped as a whole
+        // when any one selector fails to parse, so grouping them would mean an
+        // engine supporting only one of the two silently loses both.
+        Assert.DoesNotContain("::-ms-reveal,", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("::-ms-clear,", css, StringComparison.Ordinal);
+    }
+
+    private static string FindRepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Omni.Blazor.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? Directory.GetCurrentDirectory();
+    }
 }

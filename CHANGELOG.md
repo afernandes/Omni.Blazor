@@ -22,6 +22,7 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 - `OmniListBox.Multiple`, along with its `Values`/`ValuesChanged` pair: the listbox is single-selection only, and multi-selection moved to the new `OmniMultiListBox`. A single component whose bound type changed with a boolean could not participate in the shared contract.
 
 ### Fixed
+- Edge no longer draws a second reveal eye next to `OmniPassword`'s own toggle. Edge injects a native `::-ms-reveal` control into every `input[type=password]` (and a `::-ms-clear` "×" into text inputs), so it stacked beside the eye the component already renders — and it also defeated `ShowToggle="false"`, which exists precisely to say "no reveal control here". Both are now hidden for `.omni-input`, as two standalone rules rather than one selector list, since a list is dropped as a whole if any selector in it fails to parse.
 - `Required` no longer accepts an empty collection as a filled-in value. `FormComponent.HasValue` treated any non-null value other than a string as present, so a multi-value input bound to an empty list satisfied `Required` — precisely the case it exists to reject. Strings keep their existing empty-is-missing behaviour.
 - `OmniStatusBadge.AriaLabel` is now emitted on the root element instead of being a no-op parameter.
 - `OmniChip` now gives `Accent Static` chips a soft accent surface without requiring the selected `Active` state.
