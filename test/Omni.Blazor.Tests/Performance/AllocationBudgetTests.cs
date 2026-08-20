@@ -96,7 +96,9 @@ public class AllocationBudgetTests
     // ── Markdown. OmniMarkdown memoises per (source, allowHtml), so a re-render is
     //    free — but a streaming reply feeds a different source on every chunk, which
     //    the cache cannot help with. This budget guards the uncached path.
-    //    Measured: ~84 KB for a short reply.
+    //    Measured: ~7 KB for a short reply, down from ~84 KB before the patterns
+    //    moved to [GeneratedRegex]. Deliberately re-tightened after that change:
+    //    a budget left at the old figure would no longer catch anything.
     [Fact]
     public void Markdown_short_reply_stays_within_budget()
     {
@@ -104,9 +106,35 @@ public class AllocationBudgetTests
 
         AssertWithinBudget(
             "MarkdownRenderer short reply",
-            budgetBytes: 200 * 1024,
+            budgetBytes: 20 * 1024,
             operation: static () => _ = MarkdownRenderer.ToHtml(source),
             iterations: 50);
+    }
+
+    /// <summary>
+    /// The streaming path specifically: a chunk-sized document, uncached by
+    /// definition. This is where the pre-[GeneratedRegex] cost hurt most — 1.67 MB
+    /// per chunk meant ~170 MB for a 100-chunk assistant reply, per connected user
+    /// under Blazor Server. Measured after the fix: ~110 KB.
+    /// </summary>
+    [Fact]
+    public void Markdown_streaming_chunk_stays_within_budget()
+    {
+        var document = new System.Text.StringBuilder();
+        for (int section = 0; section < 6; section++)
+        {
+            document.AppendLine($"## Section {section}").AppendLine();
+            document.AppendLine("Body with **bold**, *italic*, `code` and a [link](https://example.com/a).")
+                .AppendLine();
+            document.AppendLine("- first item").AppendLine("- second `item`").AppendLine();
+        }
+        string chunk = document.ToString();
+
+        AssertWithinBudget(
+            "MarkdownRenderer streaming chunk",
+            budgetBytes: 256 * 1024,
+            operation: () => _ = MarkdownRenderer.ToHtml(chunk),
+            iterations: 20);
     }
 
     // ── DataGrid/TreeGrid flattening: rebuilt on every expand, collapse and items

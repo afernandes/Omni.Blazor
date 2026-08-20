@@ -50,45 +50,44 @@ appended rather than with chain length.
 
 ### Markdown
 
-| Benchmark | Mean | Allocated |
-|---|---|---|
-| `ShortReply` | 39.6 µs | **84 KB** |
-| `FullDocument` (12 sections) | 2.34 ms | **3.35 MB** |
-| `StreamingChunk` (half a document) | 987 µs | **1.67 MB** |
-| `SanitizeHostileHtml` | 7.9 µs | **6.3 KB** |
-
-**The finding worth acting on — and its root cause.** Rendering one 75-byte sentence
-allocates 84 KB, which is ~1100× the input. That is not parsing cost; it is the .NET
-static regex cache thrashing.
-
-`MarkdownRenderer` uses **31 distinct patterns** through the *static* `Regex.Match` /
-`IsMatch` / `Replace` overloads. Those consult a process-wide cache whose default size
-is **15**. With 31 patterns rotating through 15 slots, most calls miss and **recompile
-the pattern from scratch** — every render, every line.
-
-Proven, not inferred. Raising `Regex.CacheSize` to 64 and re-measuring the same paths:
-
-| Path | Default cache (15) | Cache 64 | Reduction |
+| Benchmark | Mean | Allocated | Before `[GeneratedRegex]` |
 |---|---|---|---|
-| Short reply | 86 KB | 8 KB | **91%** |
-| Full document | 3 412 KB | 213 KB | **94%** |
-| Streaming chunk | 1 782 KB | 107 KB | **94%** |
+| `ShortReply` | 5.9 µs | **6.9 KB** | 39.6 µs / 84 KB |
+| `FullDocument` (12 sections) | 176 µs | **217 KB** | 2.34 ms / 3.35 MB |
+| `StreamingChunk` (half a document) | 87 µs | **109 KB** | 987 µs / 1.67 MB |
+| `SanitizeHostileHtml` | 4.5 µs | **6.3 KB** | 7.9 µs / 6.3 KB |
 
-Two patterns are also interpolated per call
-(`MarkdownRenderer.cs:52` and `:339`), so they build a new pattern string every time and
-can *never* hit the cache regardless of its size.
+**How this suite paid for itself** — the "before" column above was the state when these
+benchmarks were first written, and it is why roadmap item 19 got done.
 
-**Why this matters most for streaming.** Memoisation hides the cost for static content,
-but every chunk of an assistant reply carries a new source, so a 100-chunk answer
-allocates on the order of 170 MB — on the server, per connected user, under Blazor
-Server.
+Rendering one 75-byte sentence used to allocate 84 KB: ~1100× the input. That was never
+parsing cost — it was the .NET static regex cache thrashing. `MarkdownRenderer` ran ~29
+distinct patterns through the *static* `Regex.Match` / `IsMatch` / `Replace` overloads,
+which share a process-wide cache whose default size is **15**. With more patterns than
+slots, most calls missed and **recompiled the pattern from scratch**, every render and
+every line. Two more patterns were interpolated per call, so they built a new pattern
+string each time and could never hit the cache at any size.
 
-**Fix:** roadmap item 19 (`[GeneratedRegex]`) is exactly the right remedy, and for a
-sharper reason than originally recorded: each pattern becomes a compiled static
-instance, so there is no cache lookup and no recompilation — the 94% without touching
-process-global state. Bumping `Regex.CacheSize` gets the same numbers but is a poor fit
-for a library, since it silently changes a setting the host application owns. The two
-interpolated patterns need handling on their own either way.
+Diagnosed by raising `Regex.CacheSize` to 64 and re-measuring: allocation fell 91–94%,
+which identified the cache rather than the parser as the cost.
+
+The fix was `[GeneratedRegex]`, which gets there without touching `Regex.CacheSize` — a
+process-global setting that belongs to the host application, not to a library. Each
+pattern is now a compiled static instance: no cache lookup, nothing to recompile. The
+one genuinely dynamic pattern (the closing fence, which depends on the opening fence's
+character and length) became a hand-written scan, since it was also the worst case for
+the old cache.
+
+Time improved more than predicted — the estimate was about allocation, but removing
+per-call recompilation made the document path **13× faster** as well.
+
+Two things worth keeping in mind, both visible above:
+- `SanitizeHostileHtml` allocation did not move (6.3 KB either way). It uses few enough
+  patterns that they fit the old cache; its gain is time only. A useful reminder that
+  the win came from cache misses, not from regex being "slow".
+- 217 KB per document render is still not free. `OmniMarkdown` memoises, so static
+  content pays it once — but streaming pays per chunk. That is now proportionate rather
+  than pathological.
 
 ### DataGrid hierarchy
 
