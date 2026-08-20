@@ -334,6 +334,11 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
     {
         if (value is null) return false;
         if (value is string text) return !string.IsNullOrEmpty(text);
+        // Count first: the multi-value inputs bind List<T> and T[], which answer
+        // from a field. Only shapes without a non-generic ICollection (HashSet<T>
+        // among them) fall through to enumeration, where boxing an enumerator to
+        // look at one element is the price of not knowing the element type here.
+        if (value is System.Collections.ICollection collection) return collection.Count > 0;
         if (value is System.Collections.IEnumerable sequence)
         {
             foreach (object? _ in sequence) return true;

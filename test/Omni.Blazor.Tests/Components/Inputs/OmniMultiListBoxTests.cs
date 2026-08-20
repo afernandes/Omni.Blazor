@@ -124,6 +124,24 @@ public class OmniMultiListBoxTests : TestContextBase
         Assert.True(((IOmniFormComponent)cut.Instance).HasValue);
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    public void Emptiness_is_read_correctly_from_a_collection_without_non_generic_ICollection(
+        int count,
+        bool expected)
+    {
+        // HasValue reads Count when the value is a non-generic ICollection (List, array)
+        // and enumerates otherwise. HashSet<T> is the "otherwise": it implements
+        // ICollection<T> but not ICollection, so it exercises the fallback path.
+        var selection = new HashSet<string>(Enumerable.Range(0, count).Select(i => $"item{i}"));
+        var cut = Render<OmniMultiListBox<string>>(p => p
+            .Add(c => c.Items, new[] { "item0" })
+            .Add(c => c.Value, selection));
+
+        Assert.Equal(expected, ((IOmniFormComponent)cut.Instance).HasValue);
+    }
+
     [Fact]
     public void Disabled_applies_modifier_and_sets_tabindex_minus_one()
     {
