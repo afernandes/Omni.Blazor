@@ -141,7 +141,7 @@ Parameters:
 - `AriaLabel`: string — aria-label do grupo. Use pra nomear semanticamente o speed dial.
 - `CloseOnEsc`: bool = true — Fecha o menu quando o user pressiona Escape. Default true.
 - `CloseOnItemClick`: bool = true — Fecha o menu quando um OmniFabMenuItem filho é clicado. Default true — comportamento usual de speed dial.
-- `CloseOnOutsideClick`: bool = true — Fecha o menu quando o user clica fora dele. Default true.
+- `CloseOnOutsideClick`: bool = true — Fecha o menu quando o user clica fora dele. Default true. O fechamento é despachado depois do clique, então um handler do próprio consumidor disparado pelo mesmo clique decide primeiro. Se o menu for dirigido exclusivamente por controles externos — que são todos "fora" dele —, prefira false: cada um desses cliques também conta como clique fora.
 - `Direction`: FabMenuDirection {Up | Down | Left | Right} = Up — Direção em que os items se expandem. Default Up (combina com posições Bottom*).
 - `Disabled`: bool = false
 - `Icon`: string = plus — Ícone do FAB quando o menu está fechado. Default "plus".
@@ -2113,6 +2113,7 @@ Events:
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniNumeric.razor_
 
 Parameters:
+- `AutoDecimalSeparator`: bool — When true, typed digits are treated as a fixed-scale number and the culture-specific decimal separator is inserted automatically. For example, with Decimals="2", typing 1234 produces 12,34 in pt-BR. Default false.
 - `Decimals`: int — Number of decimal places shown when the input loses focus. Default = inferred from TValue.
 - `Format`: string — Custom ToString format for the display value (e.g. "00" for 2-digit zero-padded, "0,000" for thousands grouping). When set, wins over the default "N{Decimals}".
 - `Max`: decimal — Maximum allowed value; entries above it are clamped. Default null (no maximum).

@@ -104,7 +104,7 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | # | Item | Motivo do deferimento |
 |---|---|---|
 | 18 | Sanitizador de HTML baseado em parser | O regex atual está endurecido; troca só se `AllowHtml` passar a receber conteúdo hostil |
-| 19 | `[GeneratedRegex]` no `MarkdownRenderer` | ⚠️ **Reavaliar** — os benchmarks do item 32 contradizem o motivo original (ver abaixo) |
+| 19 | ~~`[GeneratedRegex]` no `MarkdownRenderer`~~ | ✅ **Feito** — reaberto e resolvido pelos números do item 32 (ver detalhamento) |
 | 20 | Virtualizar as listas de chat | A memoização já removeu o reparse; `Virtualize` + altura variável + auto-scroll é frágil |
 | 21 | Unificar os "dois mundos" de chat | Modelos genuinamente diferentes (multiusuário vs IA); alto risco de regressão |
 | 22 | Gate `dotnet format` na CI | Exige um pass de formatação nos projetos de demo primeiro |
@@ -171,14 +171,27 @@ normal. As duas concordam — a cadeia típica do `CssBuilder` dá 128 B em qual
 O gate foi validado apertando um budget de propósito e confirmando que falha com a
 mensagem certa; um gate que nunca falha não é gate.
 
-**O achado que muda uma decisão anterior.** O `MarkdownRenderer` aloca **3,35 MB** para
-renderizar um documento de 12 seções, e **1,67 MB** por chunk no caminho de streaming.
-A memoização do `OmniMarkdown` esconde isso para conteúdo estático, mas **não** para
-streaming — cada chunk traz uma source diferente, que é exatamente o que o cache não
-cobre. Isso é evidência direta contra a justificativa que adiou o **item 19**
-(`[GeneratedRegex]` no `MarkdownRenderer`, adiado como "ROI baixo pós-memoização"): a
-premissa só vale onde o cache se aplica. **Item 19 merece reavaliação**, com o caminho
-de streaming de IA/chat como caso a otimizar.
+**O achado, com causa raiz medida.** Renderizar uma frase de 75 bytes aloca 84 KB —
+~1100× a entrada. Não é custo de parsing: o `MarkdownRenderer` usa **31 padrões
+distintos** nos overloads *estáticos* do `Regex`, que consultam um cache de processo de
+**15** slots. Com 31 padrões girando em 15 posições, a maioria das chamadas **recompila
+o padrão do zero**, a cada render e a cada linha.
+
+Provado, não deduzido — subindo `Regex.CacheSize` para 64 e remedindo: documento
+3 412 KB → **213 KB (−94%)**, chunk de streaming 1 782 KB → **107 KB (−94%)**, frase
+curta 86 KB → **8 KB (−91%)**.
+
+Pesa mais no streaming: a memoização cobre conteúdo estático, mas cada chunk de uma
+resposta de IA traz source nova, então uma resposta de 100 chunks aloca ~170 MB — no
+servidor, por usuário conectado, sob Blazor Server.
+
+Isso reabriu — e já resolveu — o **item 19**: `[GeneratedRegex]` transforma cada padrão
+numa instância compilada estática, sem lookup de cache e sem recompilação, **sem** tocar
+em estado global do processo (subir `Regex.CacheSize` numa biblioteca alteraria
+silenciosamente uma configuração que pertence à aplicação hospedeira). Resultado
+real: **−92% a −94% de alocação e até 13× mais rápido**; o ganho de tempo foi bônus, já
+que a previsão era só sobre alocação. Ver os números pós-correção no README dos
+benchmarks.
 
 Os demais alvos passaram sem surpresa: `CssBuilder` não aloca por classe pulada e
 escala com o que é de fato anexado; o flatten do `HierarchyState` escala linearmente
@@ -334,7 +347,7 @@ haver demanda e um contrato de provider sustentável.
 | Item | Quando reconsiderar |
 |---|---|
 | **18.** Sanitizador por parser (`Ganss.Xss`/AngleSharp; DOMPurify no JS) | O regex foi endurecido (entidades numéricas, control chars, atributo sem aspas, `data:` MIME). Trocar **se** `AllowHtml` passar a receber conteúdo não confiável — regex nunca é garantia. |
-| **19.** `[GeneratedRegex]` no `MarkdownRenderer` | ⚠️ **Agora.** O profiling pedido existe (item 32): 3,35 MB por documento e **1,67 MB por chunk no streaming**. A memoização removeu o custo por *re-render*, não o do streaming — cada chunk tem source nova, que o cache não cobre. O motivo do adiamento não vale mais para o caminho de IA/chat. |
+| **19.** ~~`[GeneratedRegex]` no `MarkdownRenderer`~~ | ✅ **Feito.** Adiado por "ROI baixo pós-memoização" — os benchmarks do item 32 mostraram que a premissa só valia onde o cache do `OmniMarkdown` se aplica. Causa raiz: ~29 padrões nos overloads *estáticos* do `Regex` contra um cache de processo de 15 slots, recompilando a cada chamada. Convertido para `[GeneratedRegex]`: **−92% a −94% de alocação e até 13× mais rápido** (documento 3 428 KB/2,34 ms → 217 KB/176 µs; chunk de streaming 1 715 KB/987 µs → 109 KB/87 µs). Saída idêntica byte a byte, garantida por teste de caracterização de 54 casos. |
 | **20.** Virtualizar listas de chat | Se surgirem chats com centenas de mensagens. Hoje o custo dominante já foi eliminado. |
 | **21.** Unificar os "dois mundos" de chat | Se `OmniChat` e a stack de IA passarem a compartilhar requisitos de verdade. Hoje `UserId` (multiusuário) vs `Role` (IA) é separação legítima. |
 | **22.** Gate `dotnet format` na CI | Depois de um pass de formatação dedicado nos projetos de demo (a lib já está limpa). |
@@ -349,10 +362,11 @@ haver demanda e um contrato de provider sustentável.
 3. ~~**Sprint "i18n"** — seam do item 5.~~ ✅ #30
 4. ~~**Fechar 5b, gate de paridade de showcase (34) e cobertura de showcase (10).**~~ ✅
 5. ~~**Módulos JS tipados (30) e benchmarks com orçamento (32).**~~ ✅
-6. **Agora:** `[GeneratedRegex]` no `MarkdownRenderer` (**19**) — reaberto pelos números
-   do item 32; e browser/a11y (**33** — parcial, ver detalhamento).
-7. **Cobertura funcional restante:** templates para os componentes-flagship (**9**).
-8. **Conforme demanda:** itens **13**, **16**.
+6. ~~**`[GeneratedRegex]` no `MarkdownRenderer` (19)**~~ ✅ — reaberto pelos números do
+   item 32 e resolvido na sequência.
+7. **Agora:** browser/a11y (**33** — parcial, ver detalhamento).
+8. **Cobertura funcional restante:** templates para os componentes-flagship (**9**).
+9. **Conforme demanda:** itens **13**, **16**.
 
 > Itens antigos **14**, **31** e **35** citados em revisões anteriores desta seção não correspondem
 > a nenhum item numerado atual — provavelmente foram absorvidos pelos itens 36–40 da tabela

@@ -307,12 +307,27 @@ const ns = {};
       data.clickHandler = function (e) {
         // element.contains(e.target) cobre o toggle button (vive dentro do
         // mesmo wrapper), então click no FAB nunca conta como "outside".
-        if (!element.contains(e.target)) {
-          try { dotnet.invokeMethodAsync('CloseAsync'); } catch { }
-        }
+        if (element.contains(e.target)) return;
+        // NÃO despacha o close daqui. Capture phase roda ANTES do click chegar
+        // ao alvo, então fechar agora escreve `false` no campo do consumidor
+        // ANTES do @onclick dele rodar — e um handler que DERIVA o novo valor do
+        // atual (`_menuOpen = !_menuOpen`, o toggle externo documentado no
+        // OmniFabMenu) leria um valor que o usuário nunca viu e reabriria o
+        // menu. Os dois updates se anulam e o clique vira no-op.
+        //
+        // Mesma disciplina do dispatcher de click-outside em omni-overlay.js:
+        // adia pro fim do turno (o click já foi despachado pro .NET, e SignalR
+        // preserva a ordem de envio, então o handler do consumidor é processado
+        // primeiro) e reconfere que o registro ainda é este antes de invocar.
+        // Se o próprio clique já fechou o menu, CloseAsync é no-op idempotente.
+        setTimeout(function () {
+          if (element.__tvsFabMenu !== data) return;
+          dotnet.invokeMethodAsync('CloseAsync').catch(function () { });
+        }, 0);
       };
-      // Capture phase (true) garante que pegamos o click ANTES de outros
-      // listeners (importante pra menus aninhados / popovers).
+      // Capture phase (true) garante que OBSERVAMOS o click ANTES de outros
+      // listeners (importante pra menus aninhados / popovers) — quem é adiado
+      // é só o despacho pro .NET, não a detecção.
       document.addEventListener('click', data.clickHandler, true);
     }
 

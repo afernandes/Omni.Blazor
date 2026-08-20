@@ -8,6 +8,76 @@ namespace Omni.Blazor.BrowserTests;
 public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
 {
     [Fact]
+    public async Task Numeric_filters_invalid_keys_without_relying_on_browser_globals()
+    {
+        await using IBrowserContext context = await fixture.CreateContextAsync();
+        IPage page = await context.NewPageAsync();
+        List<string> errors = [];
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync($"{fixture.BaseUrl}/showcase/numeric");
+        await WaitForNumericInteractivityAsync(page);
+        ILocator input = page.Locator(".omni-numeric-input").First;
+        await input.WaitForAsync();
+        await input.FocusAsync();
+        await input.PressAsync("Control+A");
+        await input.PressAsync("Backspace");
+        await input.PressSequentiallyAsync("fgh1");
+
+        Assert.Equal("1", await input.InputValueAsync());
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task Numeric_auto_decimal_separator_keeps_the_configured_fixed_scale()
+    {
+        await using IBrowserContext context = await fixture.CreateContextAsync();
+        IPage page = await context.NewPageAsync();
+        List<string> errors = [];
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync($"{fixture.BaseUrl}/showcase/numeric");
+        await WaitForNumericInteractivityAsync(page);
+
+        ILocator twoDecimals = page.GetByTestId("numeric-auto-2").Locator("input");
+        await twoDecimals.WaitForAsync();
+        await ClearAsync(twoDecimals);
+        await twoDecimals.PressSequentiallyAsync("123");
+        Assert.Equal("1,23", await twoDecimals.InputValueAsync());
+        await twoDecimals.PressAsync("Backspace");
+        Assert.Equal("0,12", await twoDecimals.InputValueAsync());
+        await twoDecimals.BlurAsync();
+        Assert.Equal("0,12", await twoDecimals.InputValueAsync());
+
+        await ClearAsync(twoDecimals);
+        await twoDecimals.PressSequentiallyAsync("١٢٣");
+        Assert.Equal("1,23", await twoDecimals.InputValueAsync());
+
+        ILocator threeDecimals = page.GetByTestId("numeric-auto-3").Locator("input");
+        await ClearAsync(threeDecimals);
+        await threeDecimals.PressSequentiallyAsync("1234");
+        Assert.Equal("1,234", await threeDecimals.InputValueAsync());
+
+        ILocator fourDecimals = page.GetByTestId("numeric-auto-4").Locator("input");
+        await ClearAsync(fourDecimals);
+        await fourDecimals.PressSequentiallyAsync("12345");
+        Assert.Equal("1,2345", await fourDecimals.InputValueAsync());
+
+        Assert.Empty(errors);
+    }
+
+    private static async Task ClearAsync(ILocator input)
+    {
+        await input.FocusAsync();
+        await input.PressAsync("Control+A");
+        await input.PressAsync("Backspace");
+    }
+
+    private static Task WaitForNumericInteractivityAsync(IPage page) =>
+        page.GetByTestId("numeric-interactive").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
+
+    [Fact]
     public async Task Typed_data_filter_serializes_and_updates_the_effective_query()
     {
         await using IBrowserContext context = await fixture.CreateContextAsync();
