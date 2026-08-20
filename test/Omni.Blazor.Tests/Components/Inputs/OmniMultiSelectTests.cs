@@ -36,7 +36,7 @@ public class OmniMultiSelectTests : TestContextBase
     {
         var cut = Render<OmniMultiSelect<string>>(p => p
             .Add(c => c.Items, new[] { "a", "b", "c" })
-            .Add(c => c.Values, new[] { "a", "c" }));
+            .Add(c => c.Value, new[] { "a", "c" }));
 
         Assert.Equal(2, cut.FindAll("span.omni-multiselect-chip").Count);
     }
@@ -81,57 +81,52 @@ public class OmniMultiSelectTests : TestContextBase
         Assert.Equal("ms", cut.Find("div.omni-multiselect").GetAttribute("data-testid"));
     }
 
-    // ── ParameterState: FieldIdentifier rebuild fires only when ValuesExpression changes ──
+    // ── Shared multi-value contract: FormComponent<IEnumerable<TValue>> ──
 
     private sealed class Model
     {
         public IEnumerable<string>? Cats { get; set; }
-        public IEnumerable<string>? Tags { get; set; }
     }
 
     [Fact]
-    public void Initial_ValuesExpression_triggers_recompute()
+    public void ValueExpression_builds_the_FieldIdentifier()
     {
         var model = new Model();
         var cut = Render<OmniMultiSelect<string>>(p => p
             .Add(c => c.Items, new[] { "a", "b" })
-            .Add(c => c.ValuesExpression, () => model.Cats));
+            .Add(c => c.ValueExpression, () => model.Cats));
 
-        Assert.Equal(1, cut.Instance.RecomputeCount);
+        Assert.True(cut.Instance.HasFieldIdentifier);
+        Assert.Equal(nameof(Model.Cats), cut.Instance.FieldId.FieldName);
     }
 
     [Fact]
-    public void Recompute_does_not_fire_when_unrelated_params_change()
+    public void Removing_a_chip_raises_ValueChanged_without_the_removed_value()
     {
-        var model = new Model();
+        IEnumerable<string>? captured = null;
         var cut = Render<OmniMultiSelect<string>>(p => p
-            .Add(c => c.Items, new[] { "a", "b" })
-            .Add(c => c.ValuesExpression, () => model.Cats));
+            .Add(c => c.Items, new[] { "a", "b", "c" })
+            .Add(c => c.Value, new[] { "a", "c" })
+            .Add(c => c.ValueChanged, (IEnumerable<string>? v) => captured = v));
 
-        var baseline = cut.Instance.RecomputeCount;
-        cut.Render(p => p
-            .Add(c => c.Class, "x")
-            .Add(c => c.Style, "color: red")
-            .AddUnmatched("data-foo", "bar"));
+        cut.FindAll("button.omni-multiselect-chip-x")[0].Click();
 
-        Assert.Equal(baseline, cut.Instance.RecomputeCount);
+        Assert.NotNull(captured);
+        Assert.Equal(["c"], captured);
     }
 
     [Fact]
-    public void Recompute_fires_when_ValuesExpression_changes()
+    public void Required_rejects_an_empty_selection()
     {
-        var model = new Model();
-        System.Linq.Expressions.Expression<Func<IEnumerable<string>?>> first = () => model.Cats;
-        System.Linq.Expressions.Expression<Func<IEnumerable<string>?>> second = () => model.Tags;
-
+        var model = new Model { Cats = Array.Empty<string>() };
         var cut = Render<OmniMultiSelect<string>>(p => p
             .Add(c => c.Items, new[] { "a" })
-            .Add(c => c.ValuesExpression, first));
+            .Add(c => c.Value, model.Cats)
+            .Add(c => c.ValueExpression, () => model.Cats)
+            .Add(c => c.Required, true)
+            .Add(c => c.OnlyValidateIfDirty, false));
 
-        var baseline = cut.Instance.RecomputeCount;
-        cut.Render(p => p.Add(c => c.ValuesExpression, second));
-
-        Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
+        Assert.False(((IOmniFormComponent)cut.Instance).HasValue);
     }
 
     [Fact]

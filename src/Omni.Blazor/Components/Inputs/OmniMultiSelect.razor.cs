@@ -1,8 +1,5 @@
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using Omni.Blazor.Models;
-using Omni.Blazor.State;
 using Omni.Blazor.Utilities;
 
 namespace Omni.Blazor.Components;
@@ -11,9 +8,7 @@ namespace Omni.Blazor.Components;
 public partial class OmniMultiSelect<TValue>
 {
     private readonly ItemsProviderCoordinator<TValue> _providerCoordinator = new();
-    private readonly ParameterState<Expression<Func<IEnumerable<TValue>?>>?> _valuesExpressionState;
     private readonly List<TValue> _availableItems = [];
-    private FieldIdentifier _fieldIdentifier;
     private bool _open;
     private bool _loading;
     private string? _searchText;
@@ -21,15 +16,6 @@ public partial class OmniMultiSelect<TValue>
     private long _providerVersion;
     private int _disposeState;
     private Exception? _providerError;
-
-    /// <summary>Initializes form-expression tracking.</summary>
-    public OmniMultiSelect()
-    {
-        _valuesExpressionState = RegisterParameter<Expression<Func<IEnumerable<TValue>?>>?>(nameof(ValuesExpression))
-            .WithParameter(() => ValuesExpression)
-            .WithChangeHandler(RecomputeFieldIdentifier)
-            .Attach();
-    }
 
     /// <summary>Synchronous options. Mutually exclusive with <see cref="ItemsProvider"/>.</summary>
     [Parameter] public IEnumerable<TValue>? Items { get; set; }
@@ -49,19 +35,9 @@ public partial class OmniMultiSelect<TValue>
     /// <summary>Raised when an uncancelled provider request fails.</summary>
     [Parameter] public EventCallback<Exception> ItemsProviderFailed { get; set; }
 
-    /// <summary>Selected values.</summary>
-    [Parameter] public IEnumerable<TValue>? Values { get; set; }
-
-    /// <summary>Raised when <see cref="Values"/> changes.</summary>
-    [Parameter] public EventCallback<IEnumerable<TValue>> ValuesChanged { get; set; }
-
-    /// <summary>Expression used for EditContext integration.</summary>
-    [Parameter] public Expression<Func<IEnumerable<TValue>?>>? ValuesExpression { get; set; }
-
-    /// <summary>Logical form-component name.</summary>
-    [Parameter] public string? Name { get; set; }
-
-    [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
+    // Value / ValueChanged / ValueExpression (the selected values), Name, Disabled,
+    // Required, Validation and the EditContext wiring all come from
+    // FormComponent<IEnumerable<TValue>> — the shared multi-value contract.
 
     /// <summary>Extracts the bound value from an option.</summary>
     [Parameter] public Func<TValue?, TValue?>? ValueSelector { get; set; }
@@ -80,9 +56,6 @@ public partial class OmniMultiSelect<TValue>
 
     /// <summary>Text displayed when nothing is selected.</summary>
     [Parameter] public string? Placeholder { get; set; }
-
-    /// <summary>Whether the component is disabled.</summary>
-    [Parameter] public bool Disabled { get; set; }
 
     /// <summary>Whether to display a search input.</summary>
     [Parameter] public bool Searchable { get; set; }
@@ -110,13 +83,6 @@ public partial class OmniMultiSelect<TValue>
 
     /// <summary>Action text for requesting another provider page.</summary>
     [Parameter] public string? LoadMoreText { get; set; }
-
-    internal int RecomputeCount { get; private set; }
-
-    string IOmniFormComponent.ResolvedName => Name ?? _fieldIdentifier.FieldName ?? string.Empty;
-    FieldIdentifier IOmniFormComponent.FieldIdentifier => _fieldIdentifier;
-    object? IOmniFormComponent.GetValue() => Values;
-    bool IOmniFormComponent.HasValue => Values?.Any() == true;
 
     private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
     private bool CanLoadMore => ItemsProvider is not null
@@ -167,19 +133,6 @@ public partial class OmniMultiSelect<TValue>
         return ItemText(value);
     }
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender && !string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
-            FormRegistry?.RegisterComponent(this);
-    }
-
-    private void RecomputeFieldIdentifier()
-    {
-        if (ValuesExpression is not null)
-            _fieldIdentifier = FieldIdentifier.Create(ValuesExpression);
-        RecomputeCount++;
-    }
-
     private async Task OnOpenChangedAsync(bool open)
     {
         _open = open;
@@ -200,26 +153,16 @@ public partial class OmniMultiSelect<TValue>
             await LoadProviderPageAsync(append: false, applyDebounce: true);
     }
 
-    private async Task OnListChangedAsync(IEnumerable<TValue> next)
-    {
-        Values = next;
-        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(next);
-    }
+    private Task OnListChangedAsync(IEnumerable<TValue>? next) => SetValueAsync(next ?? []);
 
-    private async Task RemoveAsync(TValue value)
+    private Task RemoveAsync(TValue value)
     {
-        var next = Values?.Where(item => !EqualityComparer<TValue>.Default.Equals(item, value)).ToArray()
+        var next = Value?.Where(item => !EqualityComparer<TValue>.Default.Equals(item, value)).ToArray()
             ?? [];
-        Values = next;
-        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(next);
+        return SetValueAsync(next);
     }
 
-    private async Task ClearAllAsync()
-    {
-        TValue[] empty = [];
-        Values = empty;
-        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(empty);
-    }
+    private Task ClearAllAsync() => SetValueAsync([]);
 
     private Task LoadMoreAsync() => LoadProviderPageAsync(append: true, applyDebounce: false);
 
@@ -281,12 +224,16 @@ public partial class OmniMultiSelect<TValue>
     }
 
     /// <inheritdoc />
-    public void Dispose()
+    public override void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposeState, 1) != 0) return;
-        _providerCoordinator.Dispose();
-        Interlocked.Increment(ref _providerVersion);
-        FormRegistry?.UnregisterComponent(this);
-        GC.SuppressFinalize(this);
+        // Guarded so a second Dispose doesn't re-cancel the coordinator; the base
+        // handles form-registry removal, EditContext detach and validation cancellation.
+        if (Interlocked.Exchange(ref _disposeState, 1) == 0)
+        {
+            _providerCoordinator.Dispose();
+            Interlocked.Increment(ref _providerVersion);
+        }
+
+        base.Dispose();
     }
 }

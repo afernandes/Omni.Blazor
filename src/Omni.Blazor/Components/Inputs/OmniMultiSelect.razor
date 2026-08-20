@@ -1,8 +1,6 @@
 @namespace Omni.Blazor.Components
 @typeparam TValue
-@inherits OmniComponent
-@implements IOmniFormComponent
-@implements IDisposable
+@inherits FormComponent<IEnumerable<TValue>>
 
 @* Multiple selection with chips and bounded local or cancellable server-side options. *@
 
@@ -22,13 +20,13 @@
                  aria-busy="@_loading"
                  aria-disabled="@Disabled">
                 <div class="omni-multiselect-chips">
-                    @if (Values is null || !Values.Any())
+                    @if (Value is null || !Value.Any())
                     {
                         <span class="omni-multiselect-placeholder">@Placeholder</span>
                     }
                     else
                     {
-                        @foreach (var value in Values)
+                        @foreach (var value in Value)
                         {
                             var label = ItemTextFor(value);
                             <span @key="value" class="omni-multiselect-chip">
@@ -81,11 +79,10 @@
                 }
                 else
                 {
-                    <OmniListBox TValue="TValue"
+                    <OmniMultiListBox TValue="TValue"
                                  Items="@FilteredItems"
-                                 Multiple="true"
-                                 Values="@(Values ?? Array.Empty<TValue>())"
-                                 ValuesChanged="OnListChangedAsync"
+                                 Value="@(Value ?? Array.Empty<TValue>())"
+                                 ValueChanged="OnListChangedAsync"
                                  ValueSelector="@ValueSelector"
                                  TextSelector="@TextSelector"
                                  DescriptionSelector="@DescriptionSelector"
@@ -108,14 +105,14 @@
                     }
                 }
 
-                @if (ShowClearAll && Values?.Any() == true)
+                @if (ShowClearAll && Value?.Any() == true)
                 {
                     <div class="omni-multiselect-footer">
                         <button type="button"
                                 class="omni-multiselect-clear"
                                 @onclick="ClearAllAsync"
                                 @onclick:stopPropagation>
-                            Limpar seleção (@Values.Count())
+                            Limpar seleção (@Value.Count())
                         </button>
                     </div>
                 }

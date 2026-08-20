@@ -1,6 +1,5 @@
 @namespace Omni.Blazor.Components
-@inherits OmniComponent
-@implements IOmniFormComponent
+@inherits FormComponent<IEnumerable<string>>
 @implements IAsyncDisposable
 @inject KeyInterceptorService KeyInterceptor
 @using Microsoft.AspNetCore.Components.Forms
@@ -18,8 +17,9 @@
     sugestões (autocomplete) a partir de <see cref="Suggestions"/>.
 
     Difere do OmniMultiSelect: lá os valores vêm de uma lista FIXA de opções;
-    aqui o usuário CRIA valores arbitrários (texto livre). A API de bind é
-    simétrica ao MultiSelect (Values / ValuesChanged / ValuesExpression).
+    aqui o usuário CRIA valores arbitrários (texto livre). O bind é o contrato
+    compartilhado de multi-valor — @bind-Value sobre IEnumerable<string>, o
+    mesmo do MultiSelect, do MultiListBox e do CheckBoxList.
 
     Teclado via KeyInterceptorService (preventDefault condicional por tecla):
       • Enter / vírgula → confirma o texto digitado como tag (não submete o form).
@@ -28,15 +28,15 @@
     Vírgulas/quebras coladas (paste) são divididas em várias tags via oninput.
 
     Usage:
-        <OmniTagInput @bind-Values="tags" Placeholder="Adicionar tag..." />
-        <OmniTagInput @bind-Values="emails" Suggestions="@contatos"
+        <OmniTagInput @bind-Value="tags" Placeholder="Adicionar tag..." />
+        <OmniTagInput @bind-Value="emails" Suggestions="@contatos"
                       AllowCustom="true" Placeholder="Convidar por e-mail..." /> *@
 
 <div class="@RootCss" style="@Style" @attributes="Attributes">
     <div class="@FieldCss" @onclick="FocusInputAsync">
-        @if (Values is not null)
+        @if (Value is not null)
         {
-            @foreach (var item in Values.Select((t, i) => (Tag: t, Index: i)))
+            @foreach (var item in Value.Select((t, i) => (Tag: t, Index: i)))
             {
                 <span class="omni-taginput-chip" @key="@($"{item.Tag}{item.Index}")">
                     <span class="omni-taginput-chip-label">@item.Tag</span>
@@ -92,28 +92,15 @@
 </div>
 
 @code {
-    // ── Bind (simétrico ao OmniMultiSelect) ───────────────────────────────
-    /// <summary>Tags atuais (two-way via <c>@bind-Values</c>).</summary>
-    [Parameter] public IEnumerable<string>? Values { get; set; }
-    /// <summary>Disparado quando a coleção de tags muda.</summary>
-    [Parameter] public EventCallback<IEnumerable<string>> ValuesChanged { get; set; }
-
-    /// <summary>Expression pra integração com EditContext (validators irmãos).</summary>
-    [Parameter] public Expression<Func<IEnumerable<string>?>>? ValuesExpression { get; set; }
-
-    /// <summary>Nome lógico — registra com OmniForm para validators irmãos
-    /// (<c>&lt;OmniRequiredValidator Component="..." /&gt;</c>).</summary>
-    [Parameter] public string? Name { get; set; }
-
-    [CascadingParameter] protected IOmniFormRegistry? FormRegistry { get; set; }
+    // ── Bind ──────────────────────────────────────────────────────────────
+    // Value (as tags) / ValueChanged / ValueExpression / Name / Disabled / ReadOnly /
+    // Required / Validation e o wiring de EditContext vêm de
+    // FormComponent<IEnumerable<string>> — o contrato compartilhado de multi-valor,
+    // o mesmo do OmniMultiSelect, OmniMultiListBox e OmniCheckBoxList.
 
     // ── Aparência / estado ────────────────────────────────────────────────
     /// <summary>Texto exibido no campo quando não há tags.</summary>
     [Parameter] public string? Placeholder { get; set; }
-    /// <summary>Desabilita o campo (sem adicionar/remover tags). Default false.</summary>
-    [Parameter] public bool Disabled { get; set; }
-    /// <summary>Somente leitura — exibe as tags mas bloqueia edição. Default false.</summary>
-    [Parameter] public bool ReadOnly { get; set; }
     /// <summary>Tamanho visual do campo. Default <c>Md</c>.</summary>
     [Parameter] public ComponentSize Size { get; set; } = ComponentSize.Md;
 
@@ -144,13 +131,6 @@
     /// <summary>Disparado após uma tag ser removida, com o texto da tag.</summary>
     [Parameter] public EventCallback<string> OnTagRemoved { get; set; }
 
-    // ── IOmniFormComponent — descoberta por validators irmãos ──
-    private FieldIdentifier _fieldId;
-    string IOmniFormComponent.ResolvedName => Name ?? _fieldId.FieldName ?? string.Empty;
-    FieldIdentifier IOmniFormComponent.FieldIdentifier => _fieldId;
-    object? IOmniFormComponent.GetValue() => Values;
-    bool IOmniFormComponent.HasValue => Values is not null && Values.Any();
-
     // ── Internos ──────────────────────────────────────────────────────────
     private string _buffer = "";
     private bool _open;
@@ -163,7 +143,7 @@
     private StringComparison Comparison => CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
     private StringComparer Comparer => CaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
 
-    private string? PlaceholderText => (Values is null || !Values.Any()) ? Placeholder : null;
+    private string? PlaceholderText => (Value is null || !Value.Any()) ? Placeholder : null;
 
     private string RootCss => CssBuilder.Default("omni-taginput")
         .AddClass("omni-taginput-sm", Size == ComponentSize.Sm)
@@ -264,7 +244,7 @@
         if (!AllowCustom && !(Suggestions?.Any(s => string.Equals(s, tag, Comparison)) ?? false))
             return; // restrito ao pool de sugestões
 
-        var current = Values?.ToList() ?? new List<string>();
+        var current = Value?.ToList() ?? new List<string>();
 
         if (!AllowDuplicates && current.Any(t => string.Equals(t, tag, Comparison)))
         {
@@ -286,7 +266,7 @@
 
     private async Task RemoveAtAsync(int index)
     {
-        var current = Values?.ToList() ?? new List<string>();
+        var current = Value?.ToList() ?? new List<string>();
         if (index < 0 || index >= current.Count) return;
         var removed = current[index];
         current.RemoveAt(index);
@@ -297,20 +277,16 @@
 
     private Task RemoveLastAsync()
     {
-        var list = Values?.ToList();
+        var list = Value?.ToList();
         return list is { Count: > 0 } ? RemoveAtAsync(list.Count - 1) : Task.CompletedTask;
     }
 
-    private async Task UpdateValuesAsync(IEnumerable<string> next)
-    {
-        Values = next;
-        if (ValuesChanged.HasDelegate) await ValuesChanged.InvokeAsync(next);
-    }
+    private Task UpdateValuesAsync(IEnumerable<string> next) => SetValueAsync(next);
 
     private void RefreshSuggestions()
     {
         if (Suggestions is null) { _filtered = new(); _open = false; return; }
-        var added = new HashSet<string>(Values ?? Enumerable.Empty<string>(), Comparer);
+        var added = new HashSet<string>(Value ?? Enumerable.Empty<string>(), Comparer);
         var q = _buffer.Trim();
         _filtered = Suggestions
             .Where(s => !string.IsNullOrWhiteSpace(s) && !added.Contains(s))
@@ -320,33 +296,11 @@
         if (_highlighted >= _filtered.Count) _highlighted = 0;
     }
 
-    // ── ParameterState: reconstrói o FieldIdentifier só quando a expression muda ──
-    private readonly ParameterState<Expression<Func<IEnumerable<string>?>>?> _valuesExprState;
-
-    // Test-only: incrementa a cada recompute disparado pela expression.
-    internal int RecomputeCount { get; private set; }
-
-    public OmniTagInput()
-    {
-        _valuesExprState = RegisterParameter<Expression<Func<IEnumerable<string>?>>?>(nameof(ValuesExpression))
-            .WithParameter(() => ValuesExpression)
-            .WithChangeHandler(RecomputeFieldId)
-            .Attach();
-    }
-
-    private void RecomputeFieldId()
-    {
-        if (ValuesExpression is not null)
-            _fieldId = FieldIdentifier.Create(ValuesExpression);
-        RecomputeCount++;
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // The base OnAfterRender registers with the form registry; only the key
+        // interception is this component's own first-render work.
         if (!firstRender) return;
-
-        if (!string.IsNullOrEmpty(((IOmniFormComponent)this).ResolvedName))
-            FormRegistry?.RegisterComponent(this);
 
         try
         {
@@ -365,7 +319,8 @@
 
     public async ValueTask DisposeAsync()
     {
-        FormRegistry?.UnregisterComponent(this);
+        // Base Dispose unregisters from the form registry and detaches the EditContext.
+        Dispose();
         if (_keyHandle is not null)
         {
             try { await _keyHandle.DisposeAsync(); } catch { }
