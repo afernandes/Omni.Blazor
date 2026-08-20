@@ -26,7 +26,7 @@ public class OmniTagInputTests : TestContextBase
     public void Renders_one_chip_per_value()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, new[] { "a", "b", "c" }));
+            .Add(c => c.Value, new[] { "a", "b", "c" }));
 
         Assert.Equal(3, cut.FindAll(".omni-taginput-chip").Count);
     }
@@ -35,7 +35,7 @@ public class OmniTagInputTests : TestContextBase
     public void Renders_remove_button_per_chip_when_editable()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, new[] { "a", "b" }));
+            .Add(c => c.Value, new[] { "a", "b" }));
 
         Assert.Equal(2, cut.FindAll(".omni-taginput-chip-x").Count);
     }
@@ -44,7 +44,7 @@ public class OmniTagInputTests : TestContextBase
     public void ReadOnly_hides_remove_buttons()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, new[] { "a", "b" })
+            .Add(c => c.Value, new[] { "a", "b" })
             .Add(c => c.ReadOnly, true));
 
         Assert.Empty(cut.FindAll(".omni-taginput-chip-x"));
@@ -64,7 +64,7 @@ public class OmniTagInputTests : TestContextBase
     {
         var cut = Render<OmniTagInput>(p => p
             .Add(c => c.Placeholder, "Add tag...")
-            .Add(c => c.Values, new[] { "a" }));
+            .Add(c => c.Value, new[] { "a" }));
 
         var ph = cut.Find("input.omni-taginput-entry").GetAttribute("placeholder");
         Assert.True(string.IsNullOrEmpty(ph));
@@ -109,8 +109,8 @@ public class OmniTagInputTests : TestContextBase
     {
         IEnumerable<string>? captured = null;
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>())
-            .Add(c => c.ValuesChanged, EventCallback.Factory.Create<IEnumerable<string>>(this, v => captured = v)));
+            .Add(c => c.Value, Array.Empty<string>())
+            .Add(c => c.ValueChanged, EventCallback.Factory.Create<IEnumerable<string>>(this, v => captured = v)));
 
         cut.Find("input.omni-taginput-entry").Input("react,");
 
@@ -123,7 +123,7 @@ public class OmniTagInputTests : TestContextBase
     public void Pasted_csv_splits_into_multiple_tags()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>()));
+            .Add(c => c.Value, Array.Empty<string>()));
 
         cut.Find("input.omni-taginput-entry").Input("a,b,c,");
 
@@ -134,7 +134,7 @@ public class OmniTagInputTests : TestContextBase
     public void Duplicate_ignored_by_default()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, new[] { "react" }));
+            .Add(c => c.Value, new[] { "react" }));
 
         cut.Find("input.omni-taginput-entry").Input("react,");
 
@@ -145,7 +145,7 @@ public class OmniTagInputTests : TestContextBase
     public void Duplicate_allowed_when_AllowDuplicates()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, new[] { "react" })
+            .Add(c => c.Value, new[] { "react" })
             .Add(c => c.AllowDuplicates, true));
 
         cut.Find("input.omni-taginput-entry").Input("react,");
@@ -157,7 +157,7 @@ public class OmniTagInputTests : TestContextBase
     public void Max_limits_tag_count()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>())
+            .Add(c => c.Value, Array.Empty<string>())
             .Add(c => c.Max, 2));
 
         cut.Find("input.omni-taginput-entry").Input("a,");
@@ -171,7 +171,7 @@ public class OmniTagInputTests : TestContextBase
     public void Blank_input_does_not_add_empty_tag()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>()));
+            .Add(c => c.Value, Array.Empty<string>()));
 
         cut.Find("input.omni-taginput-entry").Input("   ,");
 
@@ -182,7 +182,7 @@ public class OmniTagInputTests : TestContextBase
     public void ReadOnly_blocks_adding_tags()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>())
+            .Add(c => c.Value, Array.Empty<string>())
             .Add(c => c.ReadOnly, true));
 
         cut.Find("input.omni-taginput-entry").Input("nope,");
@@ -195,8 +195,8 @@ public class OmniTagInputTests : TestContextBase
     {
         IEnumerable<string>? captured = null;
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, new[] { "a", "b" })
-            .Add(c => c.ValuesChanged, EventCallback.Factory.Create<IEnumerable<string>>(this, v => captured = v)));
+            .Add(c => c.Value, new[] { "a", "b" })
+            .Add(c => c.ValueChanged, EventCallback.Factory.Create<IEnumerable<string>>(this, v => captured = v)));
 
         cut.FindAll(".omni-taginput-chip-x")[0].Click();
 
@@ -209,7 +209,7 @@ public class OmniTagInputTests : TestContextBase
     public void AllowCustom_false_rejects_values_outside_pool()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>())
+            .Add(c => c.Value, Array.Empty<string>())
             .Add(c => c.Suggestions, new[] { "read", "write" })
             .Add(c => c.AllowCustom, false));
 
@@ -226,7 +226,7 @@ public class OmniTagInputTests : TestContextBase
     public void Suggestions_panel_renders_on_focus()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>())
+            .Add(c => c.Value, Array.Empty<string>())
             .Add(c => c.Suggestions, new[] { "react", "vue", "svelte" }));
 
         cut.Find("input.omni-taginput-entry").Focus();
@@ -238,7 +238,7 @@ public class OmniTagInputTests : TestContextBase
     public void Suggestions_filtered_by_typed_text()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, Array.Empty<string>())
+            .Add(c => c.Value, Array.Empty<string>())
             .Add(c => c.Suggestions, new[] { "react", "vue", "svelte" }));
 
         cut.Find("input.omni-taginput-entry").Input("re");
@@ -252,7 +252,7 @@ public class OmniTagInputTests : TestContextBase
     public void Already_added_value_excluded_from_suggestions()
     {
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.Values, new[] { "react" })
+            .Add(c => c.Value, new[] { "react" })
             .Add(c => c.Suggestions, new[] { "react", "vue", "svelte" }));
 
         cut.Find("input.omni-taginput-entry").Focus();
@@ -260,7 +260,7 @@ public class OmniTagInputTests : TestContextBase
         Assert.Equal(2, cut.FindAll(".omni-taginput-option").Count); // react excluded
     }
 
-    // ── ParameterState: FieldIdentifier rebuild fires only when ValuesExpression changes ──
+    // ── Shared multi-value contract: FormComponent<IEnumerable<string>> ──
 
     private sealed class Model
     {
@@ -269,44 +269,36 @@ public class OmniTagInputTests : TestContextBase
     }
 
     [Fact]
-    public void Initial_ValuesExpression_triggers_recompute()
+    public void ValueExpression_builds_the_FieldIdentifier()
     {
         var model = new Model();
         var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.ValuesExpression, () => model.Tags));
+            .Add(c => c.ValueExpression, () => model.Tags));
 
-        Assert.Equal(1, cut.Instance.RecomputeCount);
+        Assert.True(cut.Instance.HasFieldIdentifier);
+        Assert.Equal(nameof(Model.Tags), cut.Instance.FieldId.FieldName);
     }
 
     [Fact]
-    public void Recompute_does_not_fire_when_unrelated_params_change()
-    {
-        var model = new Model();
-        var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.ValuesExpression, () => model.Tags));
-
-        var baseline = cut.Instance.RecomputeCount;
-        cut.Render(p => p
-            .Add(c => c.Class, "x")
-            .Add(c => c.Style, "color: red")
-            .AddUnmatched("data-foo", "bar"));
-
-        Assert.Equal(baseline, cut.Instance.RecomputeCount);
-    }
-
-    [Fact]
-    public void Recompute_fires_when_ValuesExpression_changes()
+    public void Rebinding_ValueExpression_repoints_the_FieldIdentifier()
     {
         var model = new Model();
         System.Linq.Expressions.Expression<Func<IEnumerable<string>?>> first = () => model.Tags;
         System.Linq.Expressions.Expression<Func<IEnumerable<string>?>> second = () => model.Scopes;
 
-        var cut = Render<OmniTagInput>(p => p
-            .Add(c => c.ValuesExpression, first));
+        var cut = Render<OmniTagInput>(p => p.Add(c => c.ValueExpression, first));
+        Assert.Equal(nameof(Model.Tags), cut.Instance.FieldId.FieldName);
 
-        var baseline = cut.Instance.RecomputeCount;
-        cut.Render(p => p.Add(c => c.ValuesExpression, second));
+        cut.Render(p => p.Add(c => c.ValueExpression, second));
 
-        Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
+        Assert.Equal(nameof(Model.Scopes), cut.Instance.FieldId.FieldName);
+    }
+
+    [Fact]
+    public void Empty_tag_collection_does_not_count_as_a_value_for_Required()
+    {
+        var cut = Render<OmniTagInput>(p => p.Add(c => c.Value, Array.Empty<string>()));
+
+        Assert.False(((IOmniFormComponent)cut.Instance).HasValue);
     }
 }

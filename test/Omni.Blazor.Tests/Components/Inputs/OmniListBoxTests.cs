@@ -5,8 +5,9 @@ namespace Omni.Blazor.Tests.Components.Inputs;
 
 /// <summary>
 /// Behavioural contract for <see cref="OmniListBox{TValue}"/>: option
-/// rendering, single vs multi mode, MaxHeight forwarding, and the
-/// cross-cutting splat.
+/// rendering, single selection, MaxHeight forwarding, and the
+/// cross-cutting splat. Multi-selection lives in
+/// <see cref="OmniMultiListBox{TValue}"/> and has its own tests.
 /// </summary>
 public class OmniListBoxTests : TestContextBase
 {
@@ -22,14 +23,14 @@ public class OmniListBoxTests : TestContextBase
     }
 
     [Fact]
-    public void Multi_mode_applies_multi_modifier()
+    public void Does_not_advertise_multi_selection()
     {
         var cut = Render<OmniListBox<string>>(p => p
-            .Add(c => c.Items, new[] { "a" })
-            .Add(c => c.Multiple, true));
+            .Add(c => c.Items, new[] { "a" }));
 
-        Assert.Contains("omni-listbox-multi", cut.Find("div.omni-listbox").ClassName);
-        Assert.Equal("true", cut.Find("div.omni-listbox").GetAttribute("aria-multiselectable"));
+        var root = cut.Find("div.omni-listbox");
+        Assert.DoesNotContain("omni-listbox-multi", root.ClassName);
+        Assert.Null(root.GetAttribute("aria-multiselectable"));
     }
 
     [Fact]

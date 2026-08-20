@@ -43,6 +43,15 @@
     {
         <span id="@HintId" class="omni-field-hint">@Hint</span>
     }
+    else if (ReservesMessageLine)
+    {
+        @* Blank line holding the message's place. A validated field otherwise
+           grows the moment its error appears — pushing everything below it down,
+           and knocking a side-by-side neighbour out of alignment in any row that
+           centres its items. Empty and aria-hidden: it is layout, nothing for
+           assistive tech to read. *@
+        <span class="omni-field-message-reserve" aria-hidden="true"></span>
+    }
 </div>
 
 @code {
@@ -139,6 +148,15 @@
             return null;
         }
     }
+
+    /// <summary>
+    /// Whether the field keeps a blank message line while it has nothing to show.
+    /// True once <see cref="ValidationFor"/> is set: the field is wired to an
+    /// <see cref="EditContext"/>, so a message can appear at any time and its
+    /// height has to be constant for it to stay aligned with its neighbours.
+    /// A field with no validation never changes height, so it reserves nothing.
+    /// </summary>
+    private bool ReservesMessageLine => ValidationFor is not null;
 
     private string RootCss => CssBuilder.Default("omni-field")
         .AddClass("omni-field-invalid", !string.IsNullOrEmpty(EffectiveError))

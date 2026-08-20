@@ -86,7 +86,7 @@ Artefatos novos que passam a valer como convenção: [`scripts/check_template_co
 | 9 | Templates para os componentes-flagship (Kanban/Scheduler/Chat/Wizard/Tabs) | Templates | L |
 | 10 | ~~Cobertura de showcase (~40 componentes sem página)~~ | Docs | ✅ |
 | 11 | ~~Consistência de API pública (`Label`/`Content`→`Text`, `Open`/`IsOpen`/`Visible`, binding do Tabs)~~ | Lib | ✅ |
-| 12 | Contrato único de binding multi-valor | Lib | L |
+| 12 | ~~Contrato único de binding multi-valor~~ | Lib | ✅ |
 | 13 | Acessibilidade sistêmica dos templates (`label for`, headings) | Templates | M |
 | 24 | Limpar as 4 utilitárias duplicadas no `_demo.scss` | Demo | S |
 | 33 | Testes Playwright de teclado, foco, overlays, descarte e reconexão | QA | L — **parcial**: infra existe (`test/Omni.Blazor.BrowserTests`, Playwright), mas cobre forms/grid/localização/rotas publicadas; teclado/foco/overlay/descarte/reconexão específicos ainda não |
@@ -172,11 +172,35 @@ erro avulsa, sem `OmniFormField` ao redor.
 
 ---
 
-### P2 · 12. Contrato único de binding multi-valor
+### ✅ P2 · 12. Contrato único de binding multi-valor
 
-**Problema.** Três APIs incompatíveis para "seleção múltipla": `OmniMultiSelect` (`Values`/`ValuesChanged`, sem `EditContext`), `OmniListBox` (`Value` **e** `Values`), `OmniCheckBoxList` (`Value` como `IEnumerable`). O consumidor não consegue trocar um pelo outro e nem todos integram com validação de formulário.
+**Concluído.** Todo componente multi-valor herda `FormComponent<IEnumerable<TValue>>` e binda via
+`@bind-Value`. Trocar um pelo outro é trocar a tag, e todos integram com `EditContext`,
+`Required` e `Validation`. Sem alias `[Obsolete]` — pré-1.0, renomeação direta (o
+`TreatWarningsAsErrors` da lib transforma qualquer referência esquecida em erro de build,
+não warning).
 
-**Como corrigir.** Unificar em `FormComponent<IEnumerable<TValue>>` com `Value`/`ValueChanged`, mantendo os nomes antigos como alias `[Obsolete]`. **Breaking change controlado** — agendar para uma minor com nota de migração.
+**Eram 4, não 3.** O levantamento original listava `OmniMultiSelect`, `OmniListBox` e
+`OmniCheckBoxList`; o **`OmniTagInput`** tinha exatamente o mesmo problema — a doc dele até
+prometia "API simétrica ao MultiSelect (Values/ValuesChanged/ValuesExpression)". Ele e o
+`OmniMultiSelect` implementavam `IOmniFormComponent` na mão sobre `OmniComponent`,
+replicando FieldIdentifier + FormRegistry mas **sem** `NotifyFieldChanged`, `Required`,
+`Validation` nem `ValidationMessages`. Ambos passaram a herdar a base compartilhada.
+
+**`OmniListBox` foi dividido.** Um único componente cujo tipo bindado mudava conforme um
+booleano (`Multiple`) não cabe no contrato. Virou o par single/multi que a lib já usa em
+`OmniSelect`/`OmniMultiSelect`: `OmniListBox` (single, `FormComponent<TValue>`) e o novo
+**`OmniMultiListBox`** (`FormComponent<IEnumerable<TValue>>`). `OmniMultiSelect` e
+`OmniPickList`, que usavam `OmniListBox Multiple="true"` internamente, foram migrados junto.
+
+**Bug encontrado no caminho:** `FormComponent.HasValue` tratava qualquer valor não-nulo que
+não fosse string como preenchido, então uma coleção **vazia** satisfazia `Required` — o caso
+exato que `Required` existe para rejeitar. Afetava o `OmniCheckBoxList` já em produção.
+Corrigido na base, com teste.
+
+**Fora de escopo (verificado, não é o mesmo problema):** `OmniTree.CheckedValues` — eixo
+paralelo de checkboxes num componente que sequer é `FormComponent` e que já tem seu próprio
+`Value` (nó selecionado). Análogo ao `OmniBadge.Visible` no item 11.
 
 **Esforço:** L · **Área:** Lib
 
@@ -269,7 +293,7 @@ haver demanda e um contrato de provider sustentável.
 4. ~~**Fechar 5b, gate de paridade de showcase (34) e cobertura de showcase (10).**~~ ✅
 5. **Depois:** módulos JS tipados (**30**), browser/a11y (**33** — parcial, ver detalhamento), benchmarks com orçamento (**32**).
 6. **Cobertura funcional restante:** templates para os componentes-flagship (**9**).
-7. **Conforme demanda:** itens **12**, **13**, **16**.
+7. **Conforme demanda:** itens **13**, **16**.
 
 > Itens antigos **14**, **31** e **35** citados em revisões anteriores desta seção não correspondem
 > a nenhum item numerado atual — provavelmente foram absorvidos pelos itens 36–40 da tabela

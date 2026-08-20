@@ -1744,6 +1744,16 @@
   transition: border-color 120ms, box-shadow 120ms, background 120ms;
 }
 .omni-input::placeholder { color: var(--omni-fg-soft); }
+/* Edge injects its own reveal eye into every input[type=password] and its own
+   clear "×" into text inputs. OmniPassword already renders an eye (ShowToggle)
+   and OmniTextBox its own clear (Clearable), so Edge's controls render on top —
+   two eyes side by side. These pseudo-elements are Edge-only; engines that do
+   not know them drop the rule entirely, which is the wanted no-op there.
+   Kept as two separate rules ON PURPOSE: a selector list is discarded as a
+   whole when any selector in it fails to parse, so pairing them would mean an
+   engine that supports only one of the two silently loses both. */
+.omni-input::-ms-reveal { display: none; }
+.omni-input::-ms-clear { display: none; }
 .omni-input:hover:not(:disabled):not(:focus) { border-color: var(--omni-line-strong); }
 .omni-input:focus {
   outline: none; border-color: var(--omni-accent);
@@ -2513,7 +2523,25 @@ button.omni-select-load-more:disabled {
 }
 .omni-field-required::after { content: '*'; color: var(--omni-danger); }
 .omni-field-hint  { font-size: 11px; color: var(--omni-fg-soft); }
-.omni-field-error { font-size: 11px; color: var(--omni-danger); margin-top: 2px; }
+.omni-field-error { font-size: 11px; color: var(--omni-danger); }
+
+// The message line under a field — hint, error, or the blank placeholder that
+// holds its place — must measure the same in all three states. Otherwise the
+// field changes height as the message appears, disappears or switches from hint
+// to error: everything below shifts, and a neighbour sitting beside it in a row
+// slides out of alignment (a centred row splits the difference between them).
+// Direct children only: HintRight lives in .omni-field-row next to the label and
+// must keep its own metrics.
+.omni-field > .omni-field-hint,
+.omni-field > .omni-field-error,
+.omni-field > .omni-field-message-reserve {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+// 1lh is exactly one line at the line-height above, so the reserved line keeps
+// matching if the typography is ever retuned.
+.omni-field > .omni-field-message-reserve { min-height: 1lh; }
 .omni-validation-message {
   font-size: 11px;
   color: var(--omni-danger);

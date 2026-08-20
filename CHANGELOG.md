@@ -10,12 +10,21 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ### Added
 - `OmniTabs.ActiveIndex` / `ActiveIndexChanged`: the active tab can now be driven or observed from outside via `@bind-ActiveIndex`. Uncontrolled usage (no `ActiveIndex` passed) is unchanged — the first registered tab is still active by default.
+- `OmniMultiListBox<TValue>`: the multi-selection half of the listbox pair, the same way `OmniMultiSelect` pairs with `OmniSelect`. Binds the whole selection as one collection through `@bind-Value`.
+
+### Changed
+- **One multi-value binding contract.** `OmniMultiSelect`, `OmniTagInput`, `OmniMultiListBox` and `OmniCheckBoxList` all derive from `FormComponent<IEnumerable<TValue>>` and bind through `@bind-Value`, so they are interchangeable and every one of them integrates with `EditContext`, `Required` and `Validation`. `OmniMultiSelect` and `OmniTagInput` previously hand-rolled a partial `IOmniFormComponent` implementation with no validation support; that is gone in favour of the shared base.
 
 ### Removed
 - Renamed `OmniFabMenuItem.Label` and `OmniMessage.Content` to `Text`, for consistency with the rest of the library's naming. No compatibility alias — the library is pre-1.0.
 - Renamed `OmniFabMenu.IsOpen`/`IsOpenChanged` and `OmniOverlay.Visible`/`VisibleChanged` to `Open`/`OpenChanged`, matching the name already used by `OmniBottomSheet`, `OmniCommandPalette`, `OmniPopover` and `OmniDrawer`. No compatibility alias.
+- `OmniMultiSelect.Values`/`ValuesChanged`/`ValuesExpression` and `OmniTagInput.Values`/`ValuesChanged`/`ValuesExpression` are now `Value`/`ValueChanged`/`ValueExpression`, per the unified contract above.
+- `OmniListBox.Multiple`, along with its `Values`/`ValuesChanged` pair: the listbox is single-selection only, and multi-selection moved to the new `OmniMultiListBox`. A single component whose bound type changed with a boolean could not participate in the shared contract.
 
 ### Fixed
+- `OmniFormField` keeps its height constant once it is wired to validation, so a field no longer drops out of line with the one beside it when only one of the two shows a message. The message line (hint, error, or a blank placeholder) now always occupies the same space, which also removes the layout shift that used to push the rest of the form down as a message appeared or disappeared. Fields with no `ValidationFor` can never change height and reserve nothing, so dense forms are unaffected. Hint and error also share one set of metrics now — previously only the error carried a 2px `margin-top`, so a field twitched when its hint turned into an error.
+- Edge no longer draws a second reveal eye next to `OmniPassword`'s own toggle. Edge injects a native `::-ms-reveal` control into every `input[type=password]` (and a `::-ms-clear` "×" into text inputs), so it stacked beside the eye the component already renders — and it also defeated `ShowToggle="false"`, which exists precisely to say "no reveal control here". Both are now hidden for `.omni-input`, as two standalone rules rather than one selector list, since a list is dropped as a whole if any selector in it fails to parse.
+- `Required` no longer accepts an empty collection as a filled-in value. `FormComponent.HasValue` treated any non-null value other than a string as present, so a multi-value input bound to an empty list satisfied `Required` — precisely the case it exists to reject. Strings keep their existing empty-is-missing behaviour.
 - `OmniStatusBadge.AriaLabel` is now emitted on the root element instead of being a no-op parameter.
 - `OmniChip` now gives `Accent Static` chips a soft accent surface without requiring the selected `Active` state.
 

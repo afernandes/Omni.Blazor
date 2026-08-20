@@ -1,6 +1,6 @@
 # Omni.Blazor — full API reference
 
-> 209 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
+> 210 components. NuGet `AndersonN.Omni.Blazor`, namespace `Omni.Blazor`. Every component inherits the common Omni surface: `Class` (string), `Style` (string) and `Attributes` (HTML splat) — these are omitted per-component below and apply everywhere. Form inputs (FormComponent<T>) also expose `Value`/`ValueChanged`/`ValueExpression`, `Disabled`, `ReadOnly`, `Name`, `Required`.
 
 ## Ai
 
@@ -2055,12 +2055,8 @@ Parameters:
 - `IconSelector`: Func<TValue, string> — Nome do ícone exibido à esquerda de cada item. Default = sem ícone.
 - `Items`: IEnumerable<TValue> — Itens a renderizar.
 - `MaxHeight`: string — Altura máxima (CSS). Default 240px. Quando excede, scroll vertical.
-- `Multiple`: bool — Quando true, permite selecionar múltiplos itens.
 - `TextSelector`: Func<TValue, string> — Texto principal de cada item. Default = item.ToString().
 - `ValueSelector`: Func<TValue, TValue> — Extrai o valor de bind de cada item. Default = o próprio item (identidade).
-- `Values`: IEnumerable<TValue> — Multi-select bind. Use com Multiple=true.
-Events:
-- `ValuesChanged`: EventCallback<IEnumerable<TValue>> — Disparado quando a seleção múltipla muda (modo Multiple).
 
 ### OmniMaskedTextBox
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniMaskedTextBox.razor_
@@ -2072,6 +2068,19 @@ Parameters:
 - `Placeholder`: string — Placeholder text shown when the input is empty.
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Visual size of the input. Default Md.
 
+### OmniMultiListBox
+_base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniMultiListBox.razor_
+
+Parameters:
+- `AriaLabel`: string — aria-label for the listbox.
+- `DescriptionSelector`: Func<TValue, string> — Optional secondary text under each item's label.
+- `DisabledSelector`: Func<TValue, bool> — Per item: return true to disable that specific item.
+- `IconSelector`: Func<TValue, string> — Icon name shown to the left of each item. Default = no icon.
+- `Items`: IEnumerable<TValue> — Items to render.
+- `MaxHeight`: string — Max height (CSS). Default 240px; scrolls vertically past it.
+- `TextSelector`: Func<TValue, string> — Primary text per item. Default = item.ToString().
+- `ValueSelector`: Func<TValue, TValue> — Extracts each item's bound value. Default = the item itself (identity).
+
 ### OmniMultiSelect
 Multiple selection with chips and bounded local or cancellable server-side options.
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniMultiSelect.razor_
@@ -2079,7 +2088,6 @@ _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inpu
 Parameters:
 - `DebounceMs`: int — Debounce applied to provider-backed searches.
 - `DescriptionSelector`: Func<TValue, string> — Maps an option to secondary text.
-- `Disabled`: bool — Whether the component is disabled.
 - `DisabledSelector`: Func<TValue, bool> — Determines whether an option is disabled.
 - `IconSelector`: Func<TValue, string> — Maps an option to an icon name.
 - `Items`: IEnumerable<TValue> — Synchronous options. Mutually exclusive with ItemsProvider.
@@ -2088,7 +2096,6 @@ Parameters:
 - `LoadMoreText`: string — Action text for requesting another provider page.
 - `LoadingText`: string — Text shown while options are loading.
 - `MaxProviderItems`: int — Hard limit for options retained from one provider search.
-- `Name`: string — Logical form-component name.
 - `Placeholder`: string — Text displayed when nothing is selected.
 - `PopoverMaxHeight`: string — Maximum list height.
 - `PopoverWidth`: string — Popover width.
@@ -2099,11 +2106,8 @@ Parameters:
 - `ShowClearAll`: bool — Whether to display the clear-all action.
 - `TextSelector`: Func<TValue, string> — Maps an option to primary text.
 - `ValueSelector`: Func<TValue, TValue> — Extracts the bound value from an option.
-- `Values`: IEnumerable<TValue> — Selected values.
-- `ValuesExpression`: Expression<Func<IEnumerable<TValue>>> — Expression used for EditContext integration.
 Events:
 - `ItemsProviderFailed`: EventCallback<Exception> — Raised when an uncancelled provider request fails.
-- `ValuesChanged`: EventCallback<IEnumerable<TValue>> — Raised when Values changes.
 
 ### OmniNumeric
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniNumeric.razor_
@@ -2357,27 +2361,20 @@ Slots:
 - `ChildContent`: RenderFragment — Custom label content; rendered instead of Label when provided.
 
 ### OmniTagInput
-OmniTagInput — entrada de múltiplos valores de texto livre (tags, e-mails, escopos, rótulos).
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniTagInput.razor_
 
 Parameters:
 - `AllowCustom`: bool = true — Permite criar valores livres (fora das Suggestions). Default true. Quando false, só valores presentes em Suggestions são aceitos.
 - `AllowDuplicates`: bool = false — Permite tags repetidas. Default false (ignora duplicatas).
 - `CaseSensitive`: bool = false — Comparação sensível a maiúsculas (duplicatas/sugestões). Default false.
-- `Disabled`: bool = false — Desabilita o campo (sem adicionar/remover tags). Default false.
 - `Max`: int — Número máximo de tags. null = ilimitado.
 - `MaxSuggestions`: int = 8 — Máximo de sugestões exibidas no painel. Default 8.
-- `Name`: string — Nome lógico — registra com OmniForm para validators irmãos (<OmniRequiredValidator Component="..." />).
 - `Placeholder`: string — Texto exibido no campo quando não há tags.
-- `ReadOnly`: bool = false — Somente leitura — exibe as tags mas bloqueia edição. Default false.
 - `Size`: ComponentSize {Sm | Md | Lg | Xl} = Md — Tamanho visual do campo. Default Md.
 - `Suggestions`: IEnumerable<string> — Conjunto opcional de sugestões exibidas num painel ao digitar.
-- `Values`: IEnumerable<string> — Tags atuais (two-way via @bind-Values).
-- `ValuesExpression`: Expression<Func<IEnumerable<string>>> — Expression pra integração com EditContext (validators irmãos).
 Events:
 - `OnTagAdded`: EventCallback<string> — Disparado após uma tag ser adicionada, com o texto da tag.
 - `OnTagRemoved`: EventCallback<string> — Disparado após uma tag ser removida, com o texto da tag.
-- `ValuesChanged`: EventCallback<IEnumerable<string>> — Disparado quando a coleção de tags muda.
 
 ### OmniTextArea
 _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inputs/OmniTextArea.razor_

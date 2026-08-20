@@ -188,4 +188,92 @@ public class OmniFormFieldTests : TestContextBase
 
         Assert.Equal(baseline + 1, cut.Instance.RecomputeCount);
     }
+
+    // ── Reserved message line: keeps a validated field's height constant, so it
+    //    neither shifts the page nor drops a side-by-side neighbour out of line
+    //    when its message appears. ──
+
+    [Fact]
+    public void Validated_field_reserves_the_message_line_while_it_has_none()
+    {
+        var model = new Model();
+        var cut = Render<OmniFormField>(p => p
+            .Add(c => c.ValidationFor, () => model.A)
+            .AddChildContent("<input />"));
+
+        var reserve = cut.Find(".omni-field-message-reserve");
+        // Layout only — assistive tech must not announce an empty line.
+        Assert.Equal("true", reserve.GetAttribute("aria-hidden"));
+        Assert.Equal("", reserve.TextContent);
+    }
+
+    [Fact]
+    public void Field_without_validation_reserves_nothing()
+    {
+        // A field that can never show a message never changes height, so adding
+        // space there would be pure padding.
+        var cut = Render<OmniFormField>(p => p
+            .Add(c => c.Label, "Plain")
+            .AddChildContent("<input />"));
+
+        Assert.Empty(cut.FindAll(".omni-field-message-reserve"));
+    }
+
+    [Fact]
+    public void Reserved_line_gives_way_to_the_real_message()
+    {
+        var model = new Model();
+        var cut = Render<OmniFormField>(p => p
+            .Add(c => c.ValidationFor, () => model.A)
+            .Add(c => c.Error, "Obrigatório")
+            .AddChildContent("<input />"));
+
+        Assert.Empty(cut.FindAll(".omni-field-message-reserve"));
+        Assert.Equal("Obrigatório", cut.Find(".omni-field-error").TextContent);
+    }
+
+    [Fact]
+    public void Reserved_line_gives_way_to_the_hint()
+    {
+        var model = new Model();
+        var cut = Render<OmniFormField>(p => p
+            .Add(c => c.ValidationFor, () => model.A)
+            .Add(c => c.Hint, "Mínimo 8 caracteres")
+            .AddChildContent("<input />"));
+
+        Assert.Empty(cut.FindAll(".omni-field-message-reserve"));
+        Assert.Equal("Mínimo 8 caracteres", cut.Find(".omni-field-hint").TextContent);
+    }
+
+    [Fact]
+    public void Message_line_metrics_are_identical_in_all_three_states()
+    {
+        // The whole point: hint, error and the reserved blank must measure the
+        // same, or the field still changes height as the message switches kind.
+        // Only the shipped bundle can prove that — bUnit does not lay anything out.
+        var css = File.ReadAllText(Path.Combine(
+            FindRepoRoot(), "src", "Omni.Blazor", "wwwroot", "css", "omni.css"));
+
+        const string selector =
+            ".omni-field > .omni-field-hint,\n.omni-field > .omni-field-error,\n.omni-field > .omni-field-message-reserve";
+        int start = css.Replace("\r\n", "\n", StringComparison.Ordinal)
+            .IndexOf(selector, StringComparison.Ordinal);
+        Assert.True(start >= 0, "The shipped CSS does not size the three message states together.");
+
+        // Scoped to direct children so HintRight, which sits in .omni-field-row
+        // beside the label, keeps its own metrics.
+        Assert.DoesNotContain(".omni-field-row > .omni-field-hint {", css, StringComparison.Ordinal);
+    }
+
+    private static string FindRepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Omni.Blazor.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? Directory.GetCurrentDirectory();
+    }
 }

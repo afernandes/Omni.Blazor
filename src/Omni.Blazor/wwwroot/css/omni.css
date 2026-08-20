@@ -3334,6 +3334,22 @@ progress {
   color: var(--omni-fg-soft);
 }
 
+/* Edge injects its own reveal eye into every input[type=password] and its own
+   clear "×" into text inputs. OmniPassword already renders an eye (ShowToggle)
+   and OmniTextBox its own clear (Clearable), so Edge's controls render on top —
+   two eyes side by side. These pseudo-elements are Edge-only; engines that do
+   not know them drop the rule entirely, which is the wanted no-op there.
+   Kept as two separate rules ON PURPOSE: a selector list is discarded as a
+   whole when any selector in it fails to parse, so pairing them would mean an
+   engine that supports only one of the two silently loses both. */
+.omni-input::-ms-reveal {
+  display: none;
+}
+
+.omni-input::-ms-clear {
+  display: none;
+}
+
 .omni-input:hover:not(:disabled):not(:focus) {
   border-color: var(--omni-line-strong);
 }
@@ -4459,7 +4475,18 @@ button.omni-select-load-more:disabled {
 .omni-field-error {
   font-size: 11px;
   color: var(--omni-danger);
+}
+
+.omni-field > .omni-field-hint,
+.omni-field > .omni-field-error,
+.omni-field > .omni-field-message-reserve {
   margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.omni-field > .omni-field-message-reserve {
+  min-height: 1lh;
 }
 
 .omni-validation-message {

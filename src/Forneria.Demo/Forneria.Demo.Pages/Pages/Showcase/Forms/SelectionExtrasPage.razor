@@ -11,14 +11,20 @@
     <Overview>
         <p>
             Quando há poucas opções e quer mostrar todas: <code>OmniCheckBoxList</code>.
-            Quando precisa de uma lista permanente fixa (sidebar, transfer): <code>OmniListBox</code>.
+            Quando precisa de uma lista permanente fixa (sidebar, transfer):
+            <code>OmniMultiListBox</code> (ou <code>OmniListBox</code> para escolha única).
             Quando há muitas opções e precisa de espaço: <code>OmniMultiSelect</code>
             (popup com chips, suporta busca).
         </p>
         <p>
-            Todos os 3 compartilham o mesmo modelo de bind (<code>Items</code> +
-            <code>TextSelector</code> + <code>ValueSelector</code>) e fazem two-way para
-            <code>IEnumerable&lt;TValue&gt;</code>.
+            <strong>Contrato único de seleção múltipla:</strong> todos herdam
+            <code>FormComponent&lt;IEnumerable&lt;TValue&gt;&gt;</code> e bindam a coleção inteira
+            via <code>@@bind-Value</code>, além de compartilharem o mesmo modelo de itens
+            (<code>Items</code> + <code>TextSelector</code> + <code>ValueSelector</code>).
+            Trocar um pelo outro é só trocar a tag — e todos integram com
+            <code>EditContext</code>, <code>Required</code> e <code>Validation</code>.
+            O par single/multi segue a mesma convenção de <code>OmniSelect</code> /
+            <code>OmniMultiSelect</code>.
         </p>
     </Overview>
 
@@ -88,18 +94,16 @@
             </div>
         </ShowcaseSection>
 
-        <ShowcaseSection Title="LISTBOX — multi select"
-                         Description='@("Multiple=true: checkbox visual aparece à esquerda. Bind via @bind-Values.")'
-                         Code="@(@"<OmniListBox TValue=""string""
-              Items=""@mesas""
-              Multiple
-              @bind-Values=""mesasSel"" />")">
+        <ShowcaseSection Title="MULTILISTBOX — multi select"
+                         Description='@("O par multi do ListBox (como OmniMultiSelect é o par do OmniSelect): checkbox visual à esquerda e a coleção inteira bindada via @bind-Value — o mesmo contrato do CheckBoxList e do MultiSelect.")'
+                         Code="@(@"<OmniMultiListBox TValue=""string""
+                   Items=""@mesas""
+                   @bind-Value=""mesasSel"" />")">
             <div>
                 <OmniLabel Text="Mesas reservadas (multi)" Size="ComponentSize.Sm" />
-                <OmniListBox TValue="string"
+                <OmniMultiListBox TValue="string"
                               Items="@_mesas"
-                              Multiple
-                              @bind-Values="_mesasMulti"
+                              @bind-Value="_mesasMulti"
                               MaxHeight="200px" />
                 <p class="omni-muted omni-mono" style="font-size:11px;margin-top:6px;">
                     Selecionadas (@(_mesasMulti?.Count() ?? 0)): @string.Join(", ", _mesasMulti ?? Array.Empty<string>())
@@ -111,13 +115,13 @@
                          Description="Compacto: cada item selecionado vira chip removível dentro do campo. Chevron abre popover com lista (OmniListBox internamente)."
                          Code="@(@"<OmniMultiSelect TValue=""string""
                   Items=""@categorias""
-                  @bind-Values=""categoriasSel""
+                  @bind-Value=""categoriasSel""
                   Placeholder=""Selecione categorias..."" />")">
             <div>
                 <OmniLabel Text="Categorias do produto" Size="ComponentSize.Sm" Required />
                 <OmniMultiSelect TValue="string"
                                   Items="@_categoriasPizza"
-                                  @bind-Values="_categoriasSel"
+                                  @bind-Value="_categoriasSel"
                                   Placeholder="Selecione categorias..." />
                 <p class="omni-muted omni-mono" style="font-size:11px;margin-top:6px;">
                     @(_categoriasSel?.Count() ?? 0) selecionadas
@@ -129,14 +133,14 @@
                          Description="Searchable=true habilita campo de busca no topo do popover (auto-focus via .omni-autofocus)."
                          Code="@(@"<OmniMultiSelect TValue=""string""
                   Items=""@bairros""
-                  @bind-Values=""bairrosSel""
+                  @bind-Value=""bairrosSel""
                   Searchable
                   SearchPlaceholder=""Buscar bairro..."" />")">
             <div>
                 <OmniLabel Text="Bairros atendidos" Size="ComponentSize.Sm" />
                 <OmniMultiSelect TValue="string"
                                   Items="@_bairrosOptions"
-                                  @bind-Values="_bairrosSel"
+                                  @bind-Value="_bairrosSel"
                                   Searchable
                                   SearchPlaceholder="Buscar bairro..." />
             </div>
@@ -149,7 +153,7 @@
                   ProviderPageSize=""5""
                   MaxProviderItems=""15""
                   Searchable
-                  @bind-Values=""bairrosRemotos"" />")">
+                  @bind-Value=""bairrosRemotos"" />")">
             <div>
                 <OmniLabel Text="Bairros remotos" Size="ComponentSize.Sm" />
                 <OmniMultiSelect TValue="string"
@@ -158,7 +162,7 @@
                                   MaxProviderItems="15"
                                   Searchable
                                   SearchPlaceholder="Buscar no servidor..."
-                                  @bind-Values="_bairrosRemotos"
+                                  @bind-Value="_bairrosRemotos"
                                   Placeholder="Selecione bairros..." />
             </div>
         </ShowcaseSection>
@@ -215,13 +219,18 @@
                             Description="Vertical (default) ou Horizontal." />
         </ShowcaseApiTable>
 
-        <ShowcaseApiTable Title="OmniListBox — específico">
-            <ShowcaseApiRow Name="Multiple" Type="bool" Default="false"
-                            Description="false = single (Value), true = multi (Values)." />
+        <ShowcaseApiTable Title="OmniListBox — específico (seleção única)">
             <ShowcaseApiRow Name="Value / ValueChanged" Type="TValue?" Default="null"
-                            Description="Single-select bind (Multiple=false)." />
-            <ShowcaseApiRow Name="Values / ValuesChanged" Type="IEnumerable&lt;TValue&gt;?" Default="null"
-                            Description="Multi-select bind (Multiple=true)." />
+                            Description='@("Two-way: @bind-Value. Para seleção múltipla use o OmniMultiListBox.")' />
+            <ShowcaseApiRow Name="IconSelector" Type="Func&lt;TValue?, string?&gt;?" Default="null"
+                            Description="Ícone Lucide opcional por item." />
+            <ShowcaseApiRow Name="MaxHeight" Type="string" Default="&quot;240px&quot;"
+                            Description="Altura máxima — scroll vertical se exceder." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniMultiListBox — específico (seleção múltipla)">
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="IEnumerable&lt;TValue&gt;?" Default="null"
+                            Description='@("Two-way: @bind-Value — mesmo contrato do CheckBoxList e do MultiSelect.")' />
             <ShowcaseApiRow Name="IconSelector" Type="Func&lt;TValue?, string?&gt;?" Default="null"
                             Description="Ícone Lucide opcional por item." />
             <ShowcaseApiRow Name="MaxHeight" Type="string" Default="&quot;240px&quot;"
@@ -229,8 +238,8 @@
         </ShowcaseApiTable>
 
         <ShowcaseApiTable Title="OmniMultiSelect — específico">
-            <ShowcaseApiRow Name="Values / ValuesChanged" Type="IEnumerable&lt;TValue&gt;?" Default="null"
-                            Description='@("Bind: @bind-Values.")' />
+            <ShowcaseApiRow Name="Value / ValueChanged" Type="IEnumerable&lt;TValue&gt;?" Default="null"
+                            Description='@("Two-way: @bind-Value.")' />
             <ShowcaseApiRow Name="Placeholder" Type="string?" Default="null"
                             Description="Texto exibido quando nenhuma seleção." />
             <ShowcaseApiRow Name="Searchable" Type="bool" Default="false"

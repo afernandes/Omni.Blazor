@@ -133,15 +133,7 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
 
     FieldIdentifier IOmniFormComponent.FieldIdentifier => FieldId;
 
-    bool IOmniFormComponent.HasValue
-    {
-        get
-        {
-            if (Value is null) return false;
-            if (Value is string s) return !string.IsNullOrEmpty(s);
-            return !EqualityComparer<TValue?>.Default.Equals(Value, default);
-        }
-    }
+    bool IOmniFormComponent.HasValue => HasValue(Value);
 
     // ─── Lifecycle ─────────────────────────────────────────────────────────
 
@@ -331,10 +323,27 @@ public abstract class FormComponent<TValue> : OmniComponent, IOmniFormComponent,
         }
     }
 
+    /// <summary>
+    /// Whether the bound value counts as filled in, for <see cref="Required"/> and for
+    /// <see cref="IOmniFormComponent.HasValue"/>. An empty string or an empty collection
+    /// counts as missing: a multi-value input bound to an empty list has nothing selected,
+    /// which is precisely what Required exists to reject. Checked after the string case,
+    /// since string is itself an <see cref="System.Collections.IEnumerable"/>.
+    /// </summary>
     private static bool HasValue(TValue? value)
     {
         if (value is null) return false;
         if (value is string text) return !string.IsNullOrEmpty(text);
+        // Count first: the multi-value inputs bind List<T> and T[], which answer
+        // from a field. Only shapes without a non-generic ICollection (HashSet<T>
+        // among them) fall through to enumeration, where boxing an enumerator to
+        // look at one element is the price of not knowing the element type here.
+        if (value is System.Collections.ICollection collection) return collection.Count > 0;
+        if (value is System.Collections.IEnumerable sequence)
+        {
+            foreach (object? _ in sequence) return true;
+            return false;
+        }
         return !EqualityComparer<TValue?>.Default.Equals(value, default);
     }
 
