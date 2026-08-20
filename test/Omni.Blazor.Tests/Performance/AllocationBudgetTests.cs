@@ -20,6 +20,8 @@ public class AllocationBudgetTests
     /// Allocated bytes per iteration, JIT warmed up first so the measurement covers
     /// the work rather than one-time compilation. Single-threaded by construction:
     /// GetAllocatedBytesForCurrentThread only sees this thread.
+    /// Rounded up: a budget check should never report less than was actually
+    /// allocated, and plain integer division truncates toward zero.
     /// </summary>
     private static long MeasureBytesPerOperation(Action operation, int iterations = 100)
     {
@@ -29,7 +31,8 @@ public class AllocationBudgetTests
         for (int i = 0; i < iterations; i++) operation();
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        return (after - before) / iterations;
+        long total = after - before;
+        return (total + iterations - 1) / iterations;
     }
 
     private static void AssertWithinBudget(string what, long budgetBytes, Action operation, int iterations = 100)
