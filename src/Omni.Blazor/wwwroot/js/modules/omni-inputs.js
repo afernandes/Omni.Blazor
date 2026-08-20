@@ -86,6 +86,45 @@ const ns = {};
     }
   };
 
+  const decimalDigitMap = (function () {
+    const map = new Map();
+    for (let digit = 0; digit <= 9; digit++) map.set(String(digit), String(digit));
+
+    // Build mappings for every decimal numbering system supported by the
+    // browser (arab, arabext, deva, fullwide, mathematical digits, etc.).
+    // Intl is the source of truth for each glyph's numeric value; this avoids
+    // maintaining a brittle table of Unicode code-point ranges.
+    let numberingSystems = [];
+    try {
+      if (typeof Intl.supportedValuesOf === 'function') {
+        numberingSystems = Intl.supportedValuesOf('numberingSystem');
+      }
+    } catch { }
+
+    // Older engines may not expose supportedValuesOf, but their active locale
+    // still needs to work.
+    numberingSystems.push(undefined);
+    for (const numberingSystem of numberingSystems) {
+      try {
+        const formatter = new Intl.NumberFormat(
+          navigator.language,
+          { useGrouping: false, numberingSystem });
+        for (let digit = 0; digit <= 9; digit++) {
+          const glyph = Array.from(formatter.format(digit))
+            .find(character => /\p{Nd}/u.test(character));
+          if (glyph) map.set(glyph, String(digit));
+        }
+      } catch { }
+    }
+    return map;
+  })();
+
+  function normalizeDecimalDigits(value) {
+    return Array.from(String(value ?? ''))
+      .map(character => decimalDigitMap.get(character) ?? character)
+      .join('');
+  }
+
   // Numeric input key filter — ported from Radzen.numericKeyPress.
   // Blocks any character that isn't a Unicode digit, minus sign, or (when the
   // bound type isn't integer) the culture's decimal separator. Translates the
@@ -112,7 +151,7 @@ const ns = {};
     }
 
     if (autoDecimalSeparator) {
-      if (/^[0-9]$/.test(k) || k === '-') return;
+      if (decimalDigitMap.has(k) || k === '-') return;
       e.preventDefault();
       return;
     }
@@ -122,7 +161,7 @@ const ns = {};
   }
 
   function formatFixedDecimalInput(value, decimalSeparator, scale) {
-    const source = String(value ?? '');
+    const source = normalizeDecimalDigits(value);
     const negative = source.trimStart().startsWith('-');
     let digits = source.replace(/[^0-9]/g, '');
     digits = digits.replace(/^0+(?=\d)/, '');

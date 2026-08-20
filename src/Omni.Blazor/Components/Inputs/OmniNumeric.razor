@@ -216,16 +216,28 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        await JS.InvokeVoidAsync(
-            "numericAttach",
-            _input,
-            IsIntegerType,
-            JsDecimalSeparator,
-            Min,
-            Max,
-            AutoDecimalSeparator,
-            EffectiveDecimals);
-        _jsAttached = true;
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "numericAttach",
+                _input,
+                IsIntegerType,
+                JsDecimalSeparator,
+                Min,
+                Max,
+                AutoDecimalSeparator,
+                EffectiveDecimals);
+            _jsAttached = true;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException
+            or JSDisconnectedException
+            or OperationCanceledException
+            or ObjectDisposedException)
+        {
+            // Static SSR, an interrupted interactive handoff, or a disposed
+            // circuit. A later interactive render can retry the attachment.
+            _jsAttached = false;
+        }
     }
 
     private async Task StepAsync(int sign)

@@ -64,6 +64,20 @@ public class OmniNumericTests : TestContextBase
         Assert.Contains("Decimals", exception.ToString(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Interop_unavailable_during_handoff_does_not_break_render_or_schedule_detach()
+    {
+        JSInterop.SetupVoid("omniBlazor.numericAttach")
+            .SetException(new InvalidOperationException("JavaScript interop is unavailable."));
+
+        var cut = Render<OmniNumeric<decimal>>();
+        cut.Dispose();
+
+        Assert.DoesNotContain(
+            JSInterop.Invocations,
+            invocation => invocation.Identifier == "omniBlazor.numericDetach");
+    }
+
     [Theory]
     [InlineData(ComponentSize.Sm, "omni-numeric-sm")]
     [InlineData(ComponentSize.Lg, "omni-numeric-lg")]

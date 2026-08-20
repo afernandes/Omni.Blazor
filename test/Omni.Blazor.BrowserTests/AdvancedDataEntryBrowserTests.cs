@@ -49,6 +49,10 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
         await twoDecimals.BlurAsync();
         Assert.Equal("0,12", await twoDecimals.InputValueAsync());
 
+        await ClearAsync(twoDecimals);
+        await twoDecimals.PressSequentiallyAsync("١٢٣");
+        Assert.Equal("1,23", await twoDecimals.InputValueAsync());
+
         ILocator threeDecimals = page.GetByTestId("numeric-auto-3").Locator("input");
         await ClearAsync(threeDecimals);
         await threeDecimals.PressSequentiallyAsync("1234");
