@@ -12,14 +12,14 @@ public class OmniMessageTests : TestContextBase
     [InlineData(MessageRole.System, "omni-message-system")]
     public void Applies_role_modifier(MessageRole role, string expectedClass)
     {
-        var cut = Render<OmniMessage>(p => p.Add(c => c.Role, role).Add(c => c.Content, "hi"));
+        var cut = Render<OmniMessage>(p => p.Add(c => c.Role, role).Add(c => c.Text, "hi"));
         Assert.Contains(expectedClass, cut.Find("div.omni-message").ClassName);
     }
 
     [Fact]
     public void Renders_author_and_markdown_content()
     {
-        var cut = Render<OmniMessage>(p => p.Add(c => c.Author, "Assistant").Add(c => c.Content, "**hi**"));
+        var cut = Render<OmniMessage>(p => p.Add(c => c.Author, "Assistant").Add(c => c.Text, "**hi**"));
         Assert.Equal("Assistant", cut.Find(".omni-message-author").TextContent);
         Assert.Contains("<strong>hi</strong>", cut.Find(".omni-message-content .omni-markdown").InnerHtml);
     }
@@ -27,7 +27,7 @@ public class OmniMessageTests : TestContextBase
     [Fact]
     public void Streaming_shows_caret_in_content()
     {
-        var cut = Render<OmniMessage>(p => p.Add(c => c.Content, "typing").Add(c => c.Streaming, true));
+        var cut = Render<OmniMessage>(p => p.Add(c => c.Text, "typing").Add(c => c.Streaming, true));
         Assert.NotNull(cut.Find(".omni-message-content .omni-streaming-caret"));
     }
 
@@ -35,7 +35,7 @@ public class OmniMessageTests : TestContextBase
     public void ChildContent_overrides_Content()
     {
         var cut = Render<OmniMessage>(p => p
-            .Add(c => c.Content, "ignored")
+            .Add(c => c.Text, "ignored")
             .AddChildContent("<p class=\"custom\">custom</p>"));
         Assert.NotNull(cut.Find(".omni-message-content p.custom"));
         Assert.Empty(cut.FindAll(".omni-message-content .omni-streaming-text"));
@@ -44,7 +44,7 @@ public class OmniMessageTests : TestContextBase
     [Fact]
     public void Renders_default_avatar_from_initials()
     {
-        var cut = Render<OmniMessage>(p => p.Add(c => c.AvatarInitials, "AI").Add(c => c.Content, "x"));
+        var cut = Render<OmniMessage>(p => p.Add(c => c.AvatarInitials, "AI").Add(c => c.Text, "x"));
         var avatar = cut.Find(".omni-message-avatar .omni-avatar");
         Assert.Contains("AI", avatar.TextContent);
     }
@@ -54,7 +54,7 @@ public class OmniMessageTests : TestContextBase
     {
         var cut = Render<OmniMessage>(p => p
             .Add(c => c.AvatarContent, b => b.AddMarkupContent(0, "<img class=\"bot\" />"))
-            .Add(c => c.Content, "x"));
+            .Add(c => c.Text, "x"));
         Assert.NotNull(cut.Find(".omni-message-avatar img.bot"));
         Assert.Empty(cut.FindAll(".omni-message-avatar .omni-avatar"));
     }
@@ -63,7 +63,7 @@ public class OmniMessageTests : TestContextBase
     public void Renders_Footer_slot()
     {
         var cut = Render<OmniMessage>(p => p
-            .Add(c => c.Content, "x")
+            .Add(c => c.Text, "x")
             .Add(c => c.Footer, b => b.AddMarkupContent(0, "<span class=\"src\">[1]</span>")));
         Assert.NotNull(cut.Find(".omni-message-footer span.src"));
     }
@@ -72,7 +72,7 @@ public class OmniMessageTests : TestContextBase
     public void Appends_Class_Style_and_Attributes()
     {
         var cut = Render<OmniMessage>(p => p
-            .Add(c => c.Content, "x")
+            .Add(c => c.Text, "x")
             .Add(c => c.Class, "cc").Add(c => c.Style, "gap: 4px")
             .AddUnmatched("data-testid", "msg"));
         var root = cut.Find("div.omni-message");

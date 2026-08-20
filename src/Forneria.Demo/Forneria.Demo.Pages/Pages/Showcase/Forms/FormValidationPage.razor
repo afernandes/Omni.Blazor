@@ -349,6 +349,22 @@
                 Requer TModel JSON-serializable (POCO com props públicas, records).
             </p>
         </ShowcaseSection>
+
+        <ShowcaseSection Title="MENSAGEM AVULSA — sem OmniFormField"
+                         Description="OmniValidationMessage mostra o erro de um campo específico sem o wrapper de OmniFormField — útil ao lado de um input customizado ou de layout próprio."
+                         Code="@(@"<OmniForm Model=""inline"">
+    <input value=""@inline.Name"" @oninput=""@(e => inline.Name = e.Value?.ToString())"" />
+    <OmniValidationMessage For=""@(() => inline.Name)"" />
+</OmniForm>")">
+            <OmniForm Model="inline" @ref="inlineForm">
+                <input class="omni-textbox" style="max-width:280px;"
+                       value="@inline.Name"
+                       @oninput="@(e => inline.Name = e.Value?.ToString())" />
+                <OmniValidationMessage For="@(() => inline.Name)" />
+                <OmniButton Text="Validar" Variant="ButtonVariant.Ghost"
+                             OnClick="@(_ => inlineForm!.ValidateAsync())" />
+            </OmniForm>
+        </ShowcaseSection>
     </ChildContent>
 
     <Api>
@@ -472,6 +488,7 @@
     private OmniForm<MudStyleModel>? mudForm;
     private OmniForm<RadStyleModel>? radForm;
     private OmniForm<UndoModel>? undoForm;
+    private OmniForm<InlineModel>? inlineForm;
 
     private UserModel user = new();
     private SignupModel signup = new();
@@ -479,6 +496,7 @@
     private MudStyleModel mud = new();
     private RadStyleModel rad = new();
     private UndoModel undo = new() { Name = "João Silva", Age = 30 };
+    private InlineModel inline = new();
     private bool _undoSnapshotted;
     private bool asyncTouched;
     private bool asyncBusy;
@@ -602,6 +620,12 @@
             store.Add(new FieldIdentifier(signup, nameof(signup.PasswordConfirm)),
                       "As senhas não conferem.");
         }
+    }
+
+    public class InlineModel
+    {
+        [Required(ErrorMessage = "Informe um nome.")]
+        public string? Name { get; set; }
     }
 
     public class UserModel

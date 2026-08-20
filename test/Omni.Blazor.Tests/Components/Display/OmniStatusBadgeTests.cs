@@ -58,6 +58,39 @@ public class OmniStatusBadgeTests : TestContextBase
     }
 
     [Fact]
+    public void AriaLabel_is_forwarded_to_root()
+    {
+        var cut = Render<OmniStatusBadge>(p => p
+            .Add(c => c.Label, "Online")
+            .Add(c => c.AriaLabel, "Store connection online"));
+
+        Assert.Equal(
+            "Store connection online",
+            cut.Find("span.omni-status").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void AriaLabel_parameter_takes_precedence_over_splat()
+    {
+        var cut = Render<OmniStatusBadge>(p => p
+            .Add(c => c.Label, "Online")
+            .Add(c => c.AriaLabel, "Typed label")
+            .AddUnmatched("aria-label", "Splat label"));
+
+        Assert.Equal("Typed label", cut.Find("span.omni-status").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void Splat_aria_label_is_preserved_when_parameter_is_not_set()
+    {
+        var cut = Render<OmniStatusBadge>(p => p
+            .Add(c => c.Label, "Online")
+            .AddUnmatched("aria-label", "Splat label"));
+
+        Assert.Equal("Splat label", cut.Find("span.omni-status").GetAttribute("aria-label"));
+    }
+
+    [Fact]
     public void Appends_consumer_Class_to_root()
     {
         var cut = Render<OmniStatusBadge>(p => p

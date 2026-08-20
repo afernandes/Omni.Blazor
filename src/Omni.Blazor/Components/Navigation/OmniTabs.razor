@@ -2,7 +2,7 @@
 @inherits OmniComponentWithChildren
 @using Omni.Blazor.Utilities
 
-@* Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body; the first registered tab is active by default. *@
+@* Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body. Uncontrolled by default (first registered tab active); pass ActiveIndex or @bind-ActiveIndex to drive or observe the active tab from outside. *@
 <CascadingValue Value="this" IsFixed="true">
     <div class="@RootCss" style="@Style" @attributes="Attributes">
         <div class="omni-tabs-bar" role="tablist">
@@ -17,7 +17,7 @@
                         role="tab"
                         aria-selected="@(active ? "true" : "false")"
                         aria-controls="@PanelId(current)"
-                        @onclick="@(() => Activate(current))">
+                        @onclick="@(() => ActivateAsync(current))">
                     @if (!string.IsNullOrEmpty(current.Icon)) { <OmniIcon Name="@current.Icon" Size="ComponentSize.Sm" /> }
                     <span>@current.Title</span>
                 </button>
@@ -34,6 +34,15 @@
 </CascadingValue>
 
 @code {
+    /// <summary>Zero-based index of the active tab. Two-way bindable via <c>@bind-ActiveIndex</c>.
+    /// Default <c>-1</c> — uncontrolled: the first registered tab becomes active, unchanged from
+    /// before this parameter existed.</summary>
+    [Parameter] public int ActiveIndex { get; set; } = -1;
+
+    /// <summary>Raised when the active tab changes (click or a controlled <see cref="ActiveIndex"/>
+    /// update), carrying the new zero-based index.</summary>
+    [Parameter] public EventCallback<int> ActiveIndexChanged { get; set; }
+
     private readonly List<OmniTabItem> _tabs = new();
     private OmniTabItem? _active;
 
@@ -49,11 +58,26 @@
 
     private static string PanelId(OmniTabItem tab) => $"{tab.Id}-panel";
 
+    protected override void OnParametersSet()
+    {
+        if (ActiveIndex >= 0 && ActiveIndex < _tabs.Count)
+        {
+            _active = _tabs[ActiveIndex];
+        }
+    }
+
     internal void Register(OmniTabItem tab)
     {
         if (_tabs.Contains(tab)) return;
         _tabs.Add(tab);
-        _active ??= tab;
+        if (ActiveIndex >= 0 && ActiveIndex < _tabs.Count)
+        {
+            _active = _tabs[ActiveIndex];
+        }
+        else
+        {
+            _active ??= tab;
+        }
         StateHasChanged();
     }
 
@@ -66,9 +90,10 @@
 
     internal bool IsActive(OmniTabItem tab) => _active == tab;
 
-    private void Activate(OmniTabItem tab)
+    private async Task ActivateAsync(OmniTabItem tab)
     {
         _active = tab;
         StateHasChanged();
+        if (ActiveIndexChanged.HasDelegate) await ActiveIndexChanged.InvokeAsync(_tabs.IndexOf(tab));
     }
 }

@@ -235,13 +235,6 @@
           "summary": "Avatar image URL (falls back to AvatarInitials)."
         },
         {
-          "name": "Content",
-          "kind": "parameter",
-          "type": "string",
-          "required": false,
-          "summary": "Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given."
-        },
-        {
           "name": "Footer",
           "kind": "slot",
           "type": "RenderFragment",
@@ -277,6 +270,13 @@
           "default": "false",
           "required": false,
           "summary": "When true, the content shows the streaming caret (assistant still typing)."
+        },
+        {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Message text, rendered as Markdown via OmniStreamingText when no ChildContent is given."
         },
         {
           "name": "Attributes",
@@ -1140,15 +1140,15 @@
           "summary": "Ícone do FAB quando o menu está fechado. Default \"plus\"."
         },
         {
-          "name": "IsOpen",
+          "name": "Open",
           "kind": "parameter",
           "type": "bool",
           "default": "false",
           "required": false,
-          "summary": "Two-way bound. Pode ser controlado externamente."
+          "summary": "Two-way bound via @@bind-Open. Pode ser controlado externamente."
         },
         {
-          "name": "IsOpenChanged",
+          "name": "OpenChanged",
           "kind": "event",
           "type": "EventCallback<bool>",
           "required": false
@@ -1313,7 +1313,7 @@
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "aria-label. Fallback: Title → Label."
+          "summary": "aria-label. Fallback: Title → Text."
         },
         {
           "name": "Disabled",
@@ -1329,13 +1329,6 @@
           "default": "circle",
           "required": true,
           "summary": "Ícone do item. Obrigatório (FAB items são icon-first)."
-        },
-        {
-          "name": "Label",
-          "kind": "parameter",
-          "type": "string",
-          "required": false,
-          "summary": "Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto."
         },
         {
           "name": "LabelPosition",
@@ -1396,11 +1389,18 @@
           "summary": "Tamanho. Default Md — items são menores que o FAB principal."
         },
         {
+          "name": "Text",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Label flutuante ao lado do botão. Padrão Material — chip pequeno com fundo opaco, visível só quando o menu está aberto."
+        },
+        {
           "name": "Title",
           "kind": "parameter",
           "type": "string",
           "required": false,
-          "summary": "Tooltip nativo. Fallback: Label."
+          "summary": "Tooltip nativo. Fallback: Text."
         },
         {
           "name": "Variant",
@@ -25005,9 +25005,24 @@
       "baseType": "OmniComponentWithChildren",
       "isInput": false,
       "hasChildContent": true,
-      "summary": "Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body; the first registered tab is active by default.",
+      "summary": "Tab container: renders a tab bar from its OmniTabItem children and shows the active tab's body.",
       "source": "src/Omni.Blazor/Components/Navigation/OmniTabs.razor",
       "parameters": [
+        {
+          "name": "ActiveIndex",
+          "kind": "parameter",
+          "type": "int",
+          "default": "-1",
+          "required": false,
+          "summary": "Zero-based index of the active tab. Two-way bindable via @bind-ActiveIndex. Default -1 — uncontrolled: the first registered tab becomes active, unchanged from before this parameter existed."
+        },
+        {
+          "name": "ActiveIndexChanged",
+          "kind": "event",
+          "type": "EventCallback<int>",
+          "required": false,
+          "summary": "Raised when the active tab changes (click or a controlled ActiveIndex update), carrying the new zero-based index."
+        },
         {
           "name": "Attributes",
           "kind": "parameter",
@@ -25879,7 +25894,7 @@
           "type": "bool",
           "default": "false",
           "required": false,
-          "summary": "Quando true, clicar no backdrop fecha (seta Visible=false). Default false. Conteúdo (ChildContent) não dispara — o overlay usa @@onclick:stopPropagation no wrapper interno."
+          "summary": "Quando true, clicar no backdrop fecha (seta Open=false). Default false. Conteúdo (ChildContent) não dispara — o overlay usa @@onclick:stopPropagation no wrapper interno."
         },
         {
           "name": "ChildContent",
@@ -25927,15 +25942,15 @@
           "summary": "Disparado quando o overlay fecha (via AutoClose, Esc ou bind setando false)."
         },
         {
-          "name": "Visible",
+          "name": "Open",
           "kind": "parameter",
           "type": "bool",
           "default": "false",
           "required": false,
-          "summary": "Controla a visibilidade. Two-way via @@bind-Visible."
+          "summary": "Controla a visibilidade. Two-way via @@bind-Open."
         },
         {
-          "name": "VisibleChanged",
+          "name": "OpenChanged",
           "kind": "event",
           "type": "EventCallback<bool>",
           "required": false

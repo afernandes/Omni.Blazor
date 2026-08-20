@@ -38,7 +38,7 @@ public class OmniFabMenuItemTests : TestContextBase
     {
         var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
-            .Add(c => c.Label, "Folder"));
+            .Add(c => c.Text, "Folder"));
 
         var label = cut.Find(".omni-fab-item-label");
         Assert.Equal("Folder", label.TextContent);
@@ -49,7 +49,7 @@ public class OmniFabMenuItemTests : TestContextBase
     {
         var cut = Render<OmniFabMenuItem>(p => p
             .Add(c => c.Icon, "plus")
-            .Add(c => c.Label, "Folder")
+            .Add(c => c.Text, "Folder")
             .Add(c => c.LabelPosition, FabMenuItemLabelPosition.None));
 
         Assert.Empty(cut.FindAll(".omni-fab-item-label"));

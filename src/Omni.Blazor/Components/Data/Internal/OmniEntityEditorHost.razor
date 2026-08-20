@@ -82,7 +82,7 @@
         }
         else
         {
-            <OmniOverlay Visible="true" AutoClose="false" CloseOnEsc="@(!_saving)" OnClosed="@CancelEditorAsync">
+            <OmniOverlay Open="true" AutoClose="false" CloseOnEsc="@(!_saving)" OnClosed="@CancelEditorAsync">
                 <OmniDataGridFormEditor TItem="TItem"
                                         Class="@EditorCss"
                                         Style="@EditorStyle"
@@ -124,7 +124,7 @@
 
     @if (_deleteConfirmationOpen && _sourceItem is not null)
     {
-        <OmniOverlay Visible="true" AutoClose="false" CloseOnEsc="@(!_saving)" OnClosed="@CancelDeleteAsync">
+        <OmniOverlay Open="true" AutoClose="false" CloseOnEsc="@(!_saving)" OnClosed="@CancelDeleteAsync">
             <section class="omni-data-grid-form-confirm" role="alertdialog" aria-modal="true"
                      aria-labelledby="@DeleteTitleId" aria-describedby="@DeleteMessageId">
                 <h2 id="@DeleteTitleId">@DeleteTitle</h2>
@@ -140,7 +140,7 @@
 
     @if (_discardConfirmationOpen)
     {
-        <OmniOverlay Visible="true" AutoClose="false" CloseOnEsc="true" OnClosed="@CancelDiscardAsync">
+        <OmniOverlay Open="true" AutoClose="false" CloseOnEsc="true" OnClosed="@CancelDiscardAsync">
             <section class="omni-data-grid-form-confirm" role="alertdialog" aria-modal="true"
                      aria-labelledby="@DiscardTitleId" aria-describedby="@DiscardMessageId">
                 <h2 id="@DiscardTitleId">@Texts.DataGridFormUnsavedChangesTitle</h2>

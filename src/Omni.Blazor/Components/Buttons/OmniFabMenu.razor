@@ -19,13 +19,13 @@
         <OmniFabMenu Position="FabPosition.BottomRight"
                       Direction="FabMenuDirection.Up"
                       Icon="plus" OpenIcon="x">
-            <OmniFabMenuItem Icon="folder"        Label="Pasta"   OnClick="@NewFolder" />
-            <OmniFabMenuItem Icon="message-square" Label="Chat"   OnClick="@NewChat" />
-            <OmniFabMenuItem Icon="image"          Label="Imagem" OnClick="@NewImage" />
+            <OmniFabMenuItem Icon="folder"        Text="Pasta"   OnClick="@NewFolder" />
+            <OmniFabMenuItem Icon="message-square" Text="Chat"   OnClick="@NewChat" />
+            <OmniFabMenuItem Icon="image"          Text="Imagem" OnClick="@NewImage" />
         </OmniFabMenu>
 
     Usage — controlado externamente via two-way binding:
-        <OmniFabMenu @bind-IsOpen="_menuOpen" Icon="more-vertical">
+        <OmniFabMenu @bind-Open="_menuOpen" Icon="more-vertical">
             ...
         </OmniFabMenu>
         <button @onclick="@(() => _menuOpen = true)">Abrir programaticamente</button> *@
@@ -82,9 +82,9 @@
     /// (padrão Material — close icon indica "agora fecha").</summary>
     [Parameter] public string OpenIcon { get; set; } = "x";
 
-    /// <summary>Two-way bound. Pode ser controlado externamente.</summary>
-    [Parameter] public bool IsOpen { get; set; }
-    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    /// <summary>Two-way bound via <c>@@bind-Open</c>. Pode ser controlado externamente.</summary>
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
 
     /// <summary>Canto da viewport onde o FAB ancora. Default <c>BottomRight</c>.</summary>
     [Parameter] public FabPosition Position { get; set; } = FabPosition.BottomRight;
@@ -141,7 +141,7 @@
     // o estado C#. Crítico pra modo controlado: se _isOpen oscilar várias
     // vezes entre renders, ainda sabemos se precisamos registrar/desregistrar.
     private bool _jsListenersActive;
-    // _previousIsOpen rastreia o último valor de IsOpen recebido do pai.
+    // _previousIsOpen rastreia o último valor de Open recebido do pai.
     // Sem isso, SetParametersAsync resetaria _isOpen toda vez que o pai
     // re-renderizasse — destruindo estado interno em modo uncontrolled.
     private bool _previousIsOpen;
@@ -192,26 +192,26 @@
     {
         await base.SetParametersAsync(parameters);
 
-        // Sincronização IsOpen (externo) → _isOpen (interno):
+        // Sincronização Open (externo) → _isOpen (interno):
         //   • Primeira render: copia o valor inicial.
         //   • Renders subsequentes: SÓ aceita o valor externo se ele MUDOU
         //     desde a última vez que vimos (parent explicitamente alterou).
         //     Sem essa guarda, qualquer re-render do pai (ex: outro state
-        //     change no showcase) chamaria _isOpen = IsOpen, RESETANDO o
+        //     change no showcase) chamaria _isOpen = Open, RESETANDO o
         //     estado interno para o default — fazia o toggle parecer "só
         //     reabrir": menu fecha visualmente, mas próximo click vê
         //     _isOpen=false e abre de novo.
         if (!_isOpenInitialized)
         {
-            _isOpen = IsOpen;
-            _previousIsOpen = IsOpen;
+            _isOpen = Open;
+            _previousIsOpen = Open;
             _isOpenInitialized = true;
         }
-        else if (IsOpen != _previousIsOpen)
+        else if (Open != _previousIsOpen)
         {
-            // Parent mudou IsOpen explicitamente — aceita o novo valor.
-            _previousIsOpen = IsOpen;
-            _isOpen = IsOpen;
+            // Parent mudou Open explicitamente — aceita o novo valor.
+            _previousIsOpen = Open;
+            _isOpen = Open;
         }
     }
 
@@ -235,7 +235,7 @@
         // Antecipa o valor que o pai vai ver via @bind — evita que SetParametersAsync
         // detecte "mudança externa" e ressincronize desnecessariamente.
         _previousIsOpen = open;
-        if (IsOpenChanged.HasDelegate) await IsOpenChanged.InvokeAsync(_isOpen);
+        if (OpenChanged.HasDelegate) await OpenChanged.InvokeAsync(_isOpen);
         StateHasChanged();
     }
 

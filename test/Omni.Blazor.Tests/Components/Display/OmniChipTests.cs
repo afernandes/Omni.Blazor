@@ -53,6 +53,43 @@ public class OmniChipTests : TestContextBase
     }
 
     [Fact]
+    public void Accent_static_combines_both_modifier_classes()
+    {
+        var cut = Render<OmniChip>(p => p
+            .Add(c => c.Text, "Status")
+            .Add(c => c.Accent, true)
+            .Add(c => c.Static, true));
+
+        var className = cut.Find("button.omni-chip").ClassName;
+        Assert.Contains("omni-chip-accent", className);
+        Assert.Contains("omni-chip-static", className);
+    }
+
+    [Fact]
+    public void Accent_static_style_is_shipped_in_the_css_bundle()
+    {
+        var cssPath = Path.Combine(
+            FindRepoRoot(),
+            "src",
+            "Omni.Blazor",
+            "wwwroot",
+            "css",
+            "omni.css");
+        var css = File.ReadAllText(cssPath);
+        const string selector = ".omni-chip-accent.omni-chip-static";
+
+        var ruleStart = css.IndexOf(selector, StringComparison.Ordinal);
+        Assert.True(ruleStart >= 0, $"The shipped CSS bundle does not contain '{selector}'.");
+
+        var ruleEnd = css.IndexOf('}', ruleStart);
+        Assert.True(ruleEnd > ruleStart, $"The shipped CSS rule for '{selector}' is incomplete.");
+
+        var rule = css[ruleStart..ruleEnd];
+        Assert.Contains("background: var(--omni-accent-soft)", rule, StringComparison.Ordinal);
+        Assert.Contains("color: var(--omni-accent)", rule, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Appends_consumer_Class_to_root()
     {
         var cut = Render<OmniChip>(p => p
@@ -92,5 +129,18 @@ public class OmniChipTests : TestContextBase
 
         cut.Find("button.omni-chip").Click();
         Assert.Equal(1, fired);
+    }
+
+    private static string FindRepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Omni.Blazor.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName
+            ?? throw new DirectoryNotFoundException("Could not locate the Omni.Blazor repository root.");
     }
 }

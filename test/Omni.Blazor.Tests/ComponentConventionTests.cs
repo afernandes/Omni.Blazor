@@ -1,11 +1,13 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace Omni.Blazor.Tests;
 
 /// <summary>
 /// Convention guards for the <c>.razor</c>-backed components under
 /// <c>src/Omni.Blazor/Components</c> (matched to their types by reflection). They catch
-/// a new component that skips a non-negotiable rule (base class, missing test).
+/// a new component that skips a non-negotiable rule (base class, missing test, missing
+/// showcase usage — CONTRIBUTING.md requires one per component).
 /// Scope: only <c>.razor</c> components are scanned — pure-<c>.cs</c> components without
 /// a <c>.razor</c> file (e.g. validators) are out of scope.
 ///
@@ -97,6 +99,57 @@ public class ComponentConventionTests
 
         Assert.True(missing.Count == 0,
             $"Every component needs a <Name>Tests.cs (or be allow-listed as tested-via-parent). Missing: {string.Join(", ", missing)}");
+    }
+
+    // Components with no live usage in the showcase — every one is deliberate, not an
+    // oversight allow-list. Two shapes recur:
+    //   • rendered only by another component's own markup, never placed directly by a
+    //     showcase author (the parent's showcase page exercises it transitively);
+    //   • activated by DialogService via typeof() rather than a markup tag, so its name
+    //     never appears as a literal <Tag> anywhere.
+    private static readonly HashSet<string> NotDirectlyShowcased = new(StringComparer.Ordinal)
+    {
+        // DialogService.Alert/Confirm open these by typeof(), not by tag — exercised via
+        // DialogPage.razor's Dialog.Alert(...)/Dialog.Confirm(...) calls.
+        "AlertDialog", "ConfirmDialog",
+        // Rendered only inside OmniDatePicker/OmniDateRangePicker (both showcased).
+        "OmniCalendar", "OmniTimePicker",
+        // Placed once via <OmniOverlayHosts /> (itself already exempt as a host aggregator),
+        // never shown individually.
+        "OmniContextMenuHost", "OmniDialogHost", "OmniNotificationHost",
+        "OmniTooltipHost", "OmniTourHost",
+        // Rendered only inside OmniDropZone (showcased).
+        "OmniDropZoneItem",
+        // Rendered only inside OmniGanttForm/OmniKanbanForm/OmniSchedulerForm (all showcased).
+        "OmniEntityEditorHost",
+        // Already TestedViaParent for the same reason: internal sub-renderers a showcase
+        // page never places directly, only their owning composite component does.
+        "OmniDataFilterItem", "OmniDataFormCollectionEditor", "OmniDataFormFieldRenderer",
+        "OmniDataFormGroupRenderer", "OmniDataFormLookupEditor", "OmniDataGridFormEditor",
+        "SchedulerTimeView", "SchedulerYearGrid",
+    };
+
+    [Fact]
+    public void Every_component_has_a_showcase_usage()
+    {
+        var showcaseDir = Path.Combine(
+            RepoRoot, "src", "Forneria.Demo", "Forneria.Demo.Pages", "Pages", "Showcase");
+        var showcaseText = Directory.Exists(showcaseDir)
+            ? string.Join('\n', Directory.GetFiles(showcaseDir, "*.razor", SearchOption.AllDirectories)
+                .Select(File.ReadAllText))
+            : "";
+
+        var missing = PublicComponents()
+            .Select(t => StripArity(t.Name))
+            .Distinct(StringComparer.Ordinal)
+            .Where(name => !NotDirectlyShowcased.Contains(name)
+                && !Regex.IsMatch(showcaseText, $"<{Regex.Escape(name)}(?=[\\s/>])"))
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(missing.Count == 0,
+            "Every component needs a live <Tag> usage under Forneria.Demo.Pages/Pages/Showcase "
+            + $"(or be allow-listed as shown via its parent/service). Missing: {string.Join(", ", missing)}");
     }
 
     [Fact]
