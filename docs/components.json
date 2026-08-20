@@ -1,7 +1,7 @@
 {
   "package": "AndersonN.Omni.Blazor",
   "repository": "https://github.com/afernandes/Omni.Blazor",
-  "count": 209,
+  "count": 210,
   "components": [
     {
       "name": "OmniAiConversation",
@@ -16004,13 +16004,6 @@
           "summary": "Altura máxima (CSS). Default 240px. Quando excede, scroll vertical."
         },
         {
-          "name": "Multiple",
-          "kind": "parameter",
-          "type": "bool",
-          "required": false,
-          "summary": "Quando true, permite selecionar múltiplos itens."
-        },
-        {
           "name": "TextSelector",
           "kind": "parameter",
           "type": "Func<TValue, string>",
@@ -16023,20 +16016,6 @@
           "type": "Func<TValue, TValue>",
           "required": false,
           "summary": "Extrai o valor de bind de cada item. Default = o próprio item (identidade)."
-        },
-        {
-          "name": "Values",
-          "kind": "parameter",
-          "type": "IEnumerable<TValue>",
-          "required": false,
-          "summary": "Multi-select bind. Use com Multiple=true."
-        },
-        {
-          "name": "ValuesChanged",
-          "kind": "event",
-          "type": "EventCallback<IEnumerable<TValue>>",
-          "required": false,
-          "summary": "Disparado quando a seleção múltipla muda (modo Multiple)."
         },
         {
           "name": "Attributes",
@@ -16327,6 +16306,180 @@
       ]
     },
     {
+      "name": "OmniMultiListBox",
+      "category": "Inputs",
+      "baseType": "FormComponent<T>",
+      "isInput": true,
+      "hasChildContent": false,
+      "source": "src/Omni.Blazor/Components/Inputs/OmniMultiListBox.razor",
+      "parameters": [
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "aria-label for the listbox."
+        },
+        {
+          "name": "DescriptionSelector",
+          "kind": "parameter",
+          "type": "Func<TValue, string>",
+          "required": false,
+          "summary": "Optional secondary text under each item's label."
+        },
+        {
+          "name": "DisabledSelector",
+          "kind": "parameter",
+          "type": "Func<TValue, bool>",
+          "required": false,
+          "summary": "Per item: return true to disable that specific item."
+        },
+        {
+          "name": "IconSelector",
+          "kind": "parameter",
+          "type": "Func<TValue, string>",
+          "required": false,
+          "summary": "Icon name shown to the left of each item. Default = no icon."
+        },
+        {
+          "name": "Items",
+          "kind": "parameter",
+          "type": "IEnumerable<TValue>",
+          "required": false,
+          "summary": "Items to render."
+        },
+        {
+          "name": "MaxHeight",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Max height (CSS). Default 240px; scrolls vertically past it."
+        },
+        {
+          "name": "TextSelector",
+          "kind": "parameter",
+          "type": "Func<TValue, string>",
+          "required": false,
+          "summary": "Primary text per item. Default = item.ToString()."
+        },
+        {
+          "name": "ValueSelector",
+          "kind": "parameter",
+          "type": "Func<TValue, TValue>",
+          "required": false,
+          "summary": "Extracts each item's bound value. Default = the item itself (identity)."
+        },
+        {
+          "name": "Attributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Extra HTML attributes splatted on the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Class",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Extra CSS classes appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Name",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Nome lógico do campo. Use com validators irmãos (<OmniRequiredValidator Component=\"email\" />). Default = nome da propriedade extraído do ValueExpression.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "OnlyValidateIfDirty",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Quando true, valida apenas após o user mexer no campo (touched). Evita erros vermelhos na primeira render do formulário. Default true.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ReadOnly",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Required",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Marca o campo como obrigatório — valor default/vazio dispara RequiredError.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "RequiredError",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Mensagem exibida quando Required = true e o valor é default/empty.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Style",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Inline style appended to the component root.",
+          "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "IEnumerable<TValue>",
+          "required": false,
+          "summary": "Valor atual.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueChanged",
+          "kind": "event",
+          "type": "EventCallback<IEnumerable<TValue>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueExpression",
+          "kind": "parameter",
+          "type": "Expression<Func<IEnumerable<TValue>>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        }
+      ]
+    },
+    {
       "name": "OmniMultiSelect",
       "category": "Inputs",
       "baseType": "FormComponent<T>",
@@ -16348,13 +16501,6 @@
           "type": "Func<TValue, string>",
           "required": false,
           "summary": "Maps an option to secondary text."
-        },
-        {
-          "name": "Disabled",
-          "kind": "parameter",
-          "type": "bool",
-          "required": false,
-          "summary": "Whether the component is disabled."
         },
         {
           "name": "DisabledSelector",
@@ -16418,13 +16564,6 @@
           "type": "int",
           "required": false,
           "summary": "Hard limit for options retained from one provider search."
-        },
-        {
-          "name": "Name",
-          "kind": "parameter",
-          "type": "string",
-          "required": false,
-          "summary": "Logical form-component name."
         },
         {
           "name": "Placeholder",
@@ -16497,27 +16636,6 @@
           "summary": "Extracts the bound value from an option."
         },
         {
-          "name": "Values",
-          "kind": "parameter",
-          "type": "IEnumerable<TValue>",
-          "required": false,
-          "summary": "Selected values."
-        },
-        {
-          "name": "ValuesChanged",
-          "kind": "event",
-          "type": "EventCallback<IEnumerable<TValue>>",
-          "required": false,
-          "summary": "Raised when Values changes."
-        },
-        {
-          "name": "ValuesExpression",
-          "kind": "parameter",
-          "type": "Expression<Func<IEnumerable<TValue>>>",
-          "required": false,
-          "summary": "Expression used for EditContext integration."
-        },
-        {
           "name": "Attributes",
           "kind": "parameter",
           "type": "IReadOnlyDictionary<string, object>",
@@ -16534,12 +16652,96 @@
           "inheritedFrom": "OmniComponent"
         },
         {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Name",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Nome lógico do campo. Use com validators irmãos (<OmniRequiredValidator Component=\"email\" />). Default = nome da propriedade extraído do ValueExpression.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "OnlyValidateIfDirty",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Quando true, valida apenas após o user mexer no campo (touched). Evita erros vermelhos na primeira render do formulário. Default true.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ReadOnly",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Required",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Marca o campo como obrigatório — valor default/vazio dispara RequiredError.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "RequiredError",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Mensagem exibida quando Required = true e o valor é default/empty.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Style",
           "kind": "parameter",
           "type": "string",
           "required": false,
           "summary": "Inline style appended to the component root.",
           "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "IEnumerable<TValue>",
+          "required": false,
+          "summary": "Valor atual.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueChanged",
+          "kind": "event",
+          "type": "EventCallback<IEnumerable<TValue>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueExpression",
+          "kind": "parameter",
+          "type": "Expression<Func<IEnumerable<TValue>>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
         }
       ]
     },
@@ -19299,7 +19501,6 @@
       "baseType": "FormComponent<T>",
       "isInput": true,
       "hasChildContent": false,
-      "summary": "OmniTagInput — entrada de múltiplos valores de texto livre (tags, e-mails, escopos, rótulos).",
       "source": "src/Omni.Blazor/Components/Inputs/OmniTagInput.razor",
       "parameters": [
         {
@@ -19327,14 +19528,6 @@
           "summary": "Comparação sensível a maiúsculas (duplicatas/sugestões). Default false."
         },
         {
-          "name": "Disabled",
-          "kind": "parameter",
-          "type": "bool",
-          "default": "false",
-          "required": false,
-          "summary": "Desabilita o campo (sem adicionar/remover tags). Default false."
-        },
-        {
           "name": "Max",
           "kind": "parameter",
           "type": "int",
@@ -19348,13 +19541,6 @@
           "default": "8",
           "required": false,
           "summary": "Máximo de sugestões exibidas no painel. Default 8."
-        },
-        {
-          "name": "Name",
-          "kind": "parameter",
-          "type": "string",
-          "required": false,
-          "summary": "Nome lógico — registra com OmniForm para validators irmãos (<OmniRequiredValidator Component=\"...\" />)."
         },
         {
           "name": "OnTagAdded",
@@ -19376,14 +19562,6 @@
           "type": "string",
           "required": false,
           "summary": "Texto exibido no campo quando não há tags."
-        },
-        {
-          "name": "ReadOnly",
-          "kind": "parameter",
-          "type": "bool",
-          "default": "false",
-          "required": false,
-          "summary": "Somente leitura — exibe as tags mas bloqueia edição. Default false."
         },
         {
           "name": "Size",
@@ -19419,27 +19597,6 @@
           "summary": "Conjunto opcional de sugestões exibidas num painel ao digitar."
         },
         {
-          "name": "Values",
-          "kind": "parameter",
-          "type": "IEnumerable<string>",
-          "required": false,
-          "summary": "Tags atuais (two-way via @bind-Values)."
-        },
-        {
-          "name": "ValuesChanged",
-          "kind": "event",
-          "type": "EventCallback<IEnumerable<string>>",
-          "required": false,
-          "summary": "Disparado quando a coleção de tags muda."
-        },
-        {
-          "name": "ValuesExpression",
-          "kind": "parameter",
-          "type": "Expression<Func<IEnumerable<string>>>",
-          "required": false,
-          "summary": "Expression pra integração com EditContext (validators irmãos)."
-        },
-        {
           "name": "Attributes",
           "kind": "parameter",
           "type": "IReadOnlyDictionary<string, object>",
@@ -19456,12 +19613,100 @@
           "inheritedFrom": "OmniComponent"
         },
         {
+          "name": "Disabled",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "InputId",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Stable HTML id applied to the actual focusable input element. Composite controls without a single native input apply it to their focus root. Wrapper elements continue to receive unmatched component attributes.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Name",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Nome lógico do campo. Use com validators irmãos (<OmniRequiredValidator Component=\"email\" />). Default = nome da propriedade extraído do ValueExpression.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "OnlyValidateIfDirty",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "true",
+          "required": false,
+          "summary": "Quando true, valida apenas após o user mexer no campo (touched). Evita erros vermelhos na primeira render do formulário. Default true.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ReadOnly",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Required",
+          "kind": "parameter",
+          "type": "bool",
+          "default": "false",
+          "required": false,
+          "summary": "Marca o campo como obrigatório — valor default/vazio dispara RequiredError.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "RequiredError",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Mensagem exibida quando Required = true e o valor é default/empty.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
           "name": "Style",
           "kind": "parameter",
           "type": "string",
           "required": false,
           "summary": "Inline style appended to the component root.",
           "inheritedFrom": "OmniComponent"
+        },
+        {
+          "name": "Validation",
+          "kind": "parameter",
+          "type": "object",
+          "required": false,
+          "summary": "Delegate de validação polimórfico. Aceita várias formas: Func<TValue?, bool> — false = erro genérico \"Inválido\".Func<TValue?, string?> — string null = OK, qualquer outra = mensagem.Func<TValue?, IEnumerable<string>> — múltiplas mensagens.Func<TValue?, Task<string?>> — async (uniqueness check em server, etc.).Func<TValue?, Task<IEnumerable<string>>> — async multi.Func<TValue?, CancellationToken, Task<string?>> — async cancelável.Func<TValue?, CancellationToken, Task<IEnumerable<string>>> — async multi cancelável.ValidationAttribute — reusa [Range], [EmailAddress], etc.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "Value",
+          "kind": "parameter",
+          "type": "IEnumerable<string>",
+          "required": false,
+          "summary": "Valor atual.",
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueChanged",
+          "kind": "event",
+          "type": "EventCallback<IEnumerable<string>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
+        },
+        {
+          "name": "ValueExpression",
+          "kind": "parameter",
+          "type": "Expression<Func<IEnumerable<string>>>",
+          "required": false,
+          "inheritedFrom": "FormComponent"
         }
       ]
     },

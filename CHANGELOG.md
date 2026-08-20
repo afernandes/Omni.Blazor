@@ -10,12 +10,19 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ### Added
 - `OmniTabs.ActiveIndex` / `ActiveIndexChanged`: the active tab can now be driven or observed from outside via `@bind-ActiveIndex`. Uncontrolled usage (no `ActiveIndex` passed) is unchanged — the first registered tab is still active by default.
+- `OmniMultiListBox<TValue>`: the multi-selection half of the listbox pair, the same way `OmniMultiSelect` pairs with `OmniSelect`. Binds the whole selection as one collection through `@bind-Value`.
+
+### Changed
+- **One multi-value binding contract.** `OmniMultiSelect`, `OmniTagInput`, `OmniMultiListBox` and `OmniCheckBoxList` all derive from `FormComponent<IEnumerable<TValue>>` and bind through `@bind-Value`, so they are interchangeable and every one of them integrates with `EditContext`, `Required` and `Validation`. `OmniMultiSelect` and `OmniTagInput` previously hand-rolled a partial `IOmniFormComponent` implementation with no validation support; that is gone in favour of the shared base.
 
 ### Removed
 - Renamed `OmniFabMenuItem.Label` and `OmniMessage.Content` to `Text`, for consistency with the rest of the library's naming. No compatibility alias — the library is pre-1.0.
 - Renamed `OmniFabMenu.IsOpen`/`IsOpenChanged` and `OmniOverlay.Visible`/`VisibleChanged` to `Open`/`OpenChanged`, matching the name already used by `OmniBottomSheet`, `OmniCommandPalette`, `OmniPopover` and `OmniDrawer`. No compatibility alias.
+- `OmniMultiSelect.Values`/`ValuesChanged`/`ValuesExpression` and `OmniTagInput.Values`/`ValuesChanged`/`ValuesExpression` are now `Value`/`ValueChanged`/`ValueExpression`, per the unified contract above.
+- `OmniListBox.Multiple`, along with its `Values`/`ValuesChanged` pair: the listbox is single-selection only, and multi-selection moved to the new `OmniMultiListBox`. A single component whose bound type changed with a boolean could not participate in the shared contract.
 
 ### Fixed
+- `Required` no longer accepts an empty collection as a filled-in value. `FormComponent.HasValue` treated any non-null value other than a string as present, so a multi-value input bound to an empty list satisfied `Required` — precisely the case it exists to reject. Strings keep their existing empty-is-missing behaviour.
 - `OmniStatusBadge.AriaLabel` is now emitted on the root element instead of being a no-op parameter.
 - `OmniChip` now gives `Accent Static` chips a soft accent surface without requiring the selected `Active` state.
 
