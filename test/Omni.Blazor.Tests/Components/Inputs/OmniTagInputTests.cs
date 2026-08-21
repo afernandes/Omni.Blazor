@@ -110,7 +110,7 @@ public class OmniTagInputTests : TestContextBase
         IEnumerable<string>? captured = null;
         var cut = Render<OmniTagInput>(p => p
             .Add(c => c.Value, Array.Empty<string>())
-            .Add(c => c.ValueChanged, EventCallback.Factory.Create<IEnumerable<string>>(this, v => captured = v)));
+            .Add(c => c.ValueChanged, EventCallback.Factory.Create<IEnumerable<string>?>(this, v => captured = v)));
 
         cut.Find("input.omni-taginput-entry").Input("react,");
 
@@ -196,7 +196,7 @@ public class OmniTagInputTests : TestContextBase
         IEnumerable<string>? captured = null;
         var cut = Render<OmniTagInput>(p => p
             .Add(c => c.Value, new[] { "a", "b" })
-            .Add(c => c.ValueChanged, EventCallback.Factory.Create<IEnumerable<string>>(this, v => captured = v)));
+            .Add(c => c.ValueChanged, EventCallback.Factory.Create<IEnumerable<string>?>(this, v => captured = v)));
 
         cut.FindAll(".omni-taginput-chip-x")[0].Click();
 

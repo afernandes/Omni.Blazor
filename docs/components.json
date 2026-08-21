@@ -1096,7 +1096,7 @@
           "type": "bool",
           "default": "true",
           "required": false,
-          "summary": "Fecha o menu quando o user clica fora dele. Default true."
+          "summary": "Fecha o menu quando o user clica fora dele. Default true. O fechamento é despachado depois do clique, então um handler do próprio consumidor disparado pelo mesmo clique decide primeiro. Se o menu for dirigido exclusivamente por controles externos — que são todos \"fora\" dele —, prefira false: cada um desses cliques também conta como clique fora."
         },
         {
           "name": "Direction",
@@ -16753,6 +16753,13 @@
       "hasChildContent": false,
       "source": "src/Omni.Blazor/Components/Inputs/OmniNumeric.razor",
       "parameters": [
+        {
+          "name": "AutoDecimalSeparator",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "When true, typed digits are treated as a fixed-scale number and the culture-specific decimal separator is inserted automatically. For example, with Decimals=\"2\", typing 1234 produces 12,34 in pt-BR. Default false."
+        },
         {
           "name": "Decimals",
           "kind": "parameter",
