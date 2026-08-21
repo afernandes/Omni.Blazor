@@ -5,6 +5,13 @@
 
 <PageTitle>FAB & FabMenu — Showcase</PageTitle>
 
+@* Only rendered on the interactive pass, so browser tests can tell a live circuit
+   apart from the prerendered HTML before they start clicking. *@
+@if (_interactiveReady)
+{
+    <span data-testid="fab-interactive" aria-hidden="true"></span>
+}
+
 <ShowcasePage Title="FAB & Floating Action Menu"
               Subtitle="Floating Action Button — ação primária ancorada num canto. FabMenu = speed dial Material com items que expandem em stagger.">
 
@@ -448,6 +455,7 @@
 @code {
     private string _log = "(nenhuma ação ainda)";
     private bool _menuOpen;
+    private bool _interactiveReady;
 
     // Strings com @ literal — evita Razor parser de attribute interpretar como diretiva.
     private const string DescBind = "@bind-Open permite abrir/fechar de fora. Use OpenAsync() / CloseAsync() / ToggleAsync() via @ref.";
@@ -457,6 +465,14 @@
     private void Log(string action)
     {
         _log = $"{DateTime.Now:HH:mm:ss} — {action}";
+        StateHasChanged();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _interactiveReady = true;
         StateHasChanged();
     }
 }

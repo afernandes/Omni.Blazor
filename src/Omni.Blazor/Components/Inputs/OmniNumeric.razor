@@ -37,8 +37,6 @@
            disabled="@Disabled"
            readonly="@ReadOnly"
            name="@Name"
-           onkeypress="numericKeyPress(event, @IsIntegerType.ToString().ToLowerInvariant(), '@JsDecimalSeparator')"
-           onpaste="numericOnPaste(event, @JsMin, @JsMax)"
            @onchange="OnChangeAsync"
            @onkeydown="OnKeyDownAsync" />
     @if (!string.IsNullOrEmpty(Suffix))
@@ -77,6 +75,14 @@
     [Parameter] public int? Decimals { get; set; }
 
     /// <summary>
+    /// When true, typed digits are treated as a fixed-scale number and the
+    /// culture-specific decimal separator is inserted automatically. For
+    /// example, with <c>Decimals="2"</c>, typing <c>1234</c> produces
+    /// <c>12,34</c> in <c>pt-BR</c>. Default false.
+    /// </summary>
+    [Parameter] public bool AutoDecimalSeparator { get; set; }
+
+    /// <summary>
     /// Custom <c>ToString</c> format for the display value (e.g. <c>"00"</c> for
     /// 2-digit zero-padded, <c>"0,000"</c> for thousands grouping). When set,
     /// wins over the default <c>"N{Decimals}"</c>.
@@ -97,6 +103,7 @@
 
     private ElementReference _input;
     private string _displayValue = "";
+    private bool _jsAttached;
 
     // ParameterState fires only on consumer-driven changes, so blur reformat /
     // step / Enter mutations don't trigger an extra reformat that would race
@@ -115,12 +122,6 @@
 
     private string JsDecimalSeparator =>
         Culture.NumberFormat.NumberDecimalSeparator.Replace("\\", "\\\\").Replace("'", "\\'");
-
-    private string JsMin =>
-        Min.HasValue ? Min.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null";
-
-    private string JsMax =>
-        Max.HasValue ? Max.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null";
 
     private bool IsIntegerType
     {
@@ -143,6 +144,17 @@
         .AddClass("omni-numeric-disabled", Disabled)
         .AddClass(Class)
         .Build();
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (AutoDecimalSeparator && Decimals < 0)
+            throw new InvalidOperationException(
+                $"{nameof(Decimals)} must be zero or greater when {nameof(AutoDecimalSeparator)} is enabled.");
+        if (AutoDecimalSeparator && IsIntegerType && EffectiveDecimals > 0)
+            throw new InvalidOperationException(
+                $"{nameof(AutoDecimalSeparator)} with decimal places requires a non-integer TValue.");
+    }
 
     private int EffectiveDecimals
     {
@@ -198,6 +210,33 @@
                 await OnChangeAsync(new ChangeEventArgs { Value = raw });
             }
             catch { }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "numericAttach",
+                _input,
+                IsIntegerType,
+                JsDecimalSeparator,
+                Min,
+                Max,
+                AutoDecimalSeparator,
+                EffectiveDecimals);
+            _jsAttached = true;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException
+            or JSDisconnectedException
+            or OperationCanceledException
+            or ObjectDisposedException)
+        {
+            // Static SSR, an interrupted interactive handoff, or a disposed
+            // circuit. A later interactive render can retry the attachment.
+            _jsAttached = false;
         }
     }
 
@@ -288,5 +327,16 @@
             return ConvertToT(dec);
         }
         catch { return value; }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        if (!_jsAttached) return;
+
+        TaskObserver.Observe(
+            JS.InvokeVoidAsync("numericDetach", _input),
+            operation: "OmniNumeric.Dispose");
+        _jsAttached = false;
     }
 }

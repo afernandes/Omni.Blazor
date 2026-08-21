@@ -86,12 +86,51 @@ const ns = {};
     }
   };
 
+  const decimalDigitMap = (function () {
+    const map = new Map();
+    for (let digit = 0; digit <= 9; digit++) map.set(String(digit), String(digit));
+
+    // Build mappings for every decimal numbering system supported by the
+    // browser (arab, arabext, deva, fullwide, mathematical digits, etc.).
+    // Intl is the source of truth for each glyph's numeric value; this avoids
+    // maintaining a brittle table of Unicode code-point ranges.
+    let numberingSystems = [];
+    try {
+      if (typeof Intl.supportedValuesOf === 'function') {
+        numberingSystems = Intl.supportedValuesOf('numberingSystem');
+      }
+    } catch { }
+
+    // Older engines may not expose supportedValuesOf, but their active locale
+    // still needs to work.
+    numberingSystems.push(undefined);
+    for (const numberingSystem of numberingSystems) {
+      try {
+        const formatter = new Intl.NumberFormat(
+          navigator.language,
+          { useGrouping: false, numberingSystem });
+        for (let digit = 0; digit <= 9; digit++) {
+          const glyph = Array.from(formatter.format(digit))
+            .find(character => /\p{Nd}/u.test(character));
+          if (glyph) map.set(glyph, String(digit));
+        }
+      } catch { }
+    }
+    return map;
+  })();
+
+  function normalizeDecimalDigits(value) {
+    return Array.from(String(value ?? ''))
+      .map(character => decimalDigitMap.get(character) ?? character)
+      .join('');
+  }
+
   // Numeric input key filter — ported from Radzen.numericKeyPress.
   // Blocks any character that isn't a Unicode digit, minus sign, or (when the
   // bound type isn't integer) the culture's decimal separator. Translates the
   // numpad decimal key into the culture's separator. Control keys and meta/
   // ctrl/alt combinations pass through so copy/paste/select-all still work.
-  ns.numericKeyPress = function (e, isInteger, decimalSeparator) {
+  function numericKeyPress(e, isInteger, decimalSeparator, autoDecimalSeparator) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var k = e.key;
     if (k === 'Tab' || k === 'Backspace' || k === 'Delete' || k === 'Enter' ||
@@ -111,9 +150,29 @@ const ns = {};
       return;
     }
 
+    if (autoDecimalSeparator) {
+      if (decimalDigitMap.has(k) || k === '-') return;
+      e.preventDefault();
+      return;
+    }
+
     if (/\p{Nd}/u.test(k) || k === '-' || (!isInteger && k === decimalSeparator)) return;
     e.preventDefault();
-  };
+  }
+
+  function formatFixedDecimalInput(value, decimalSeparator, scale) {
+    const source = normalizeDecimalDigits(value);
+    const negative = source.trimStart().startsWith('-');
+    let digits = source.replace(/[^0-9]/g, '');
+    digits = digits.replace(/^0+(?=\d)/, '');
+
+    if (scale === 0) return (negative ? '-' : '') + (digits || '0');
+
+    const padded = (digits || '0').padStart(scale + 1, '0');
+    const whole = padded.slice(0, -scale);
+    const fraction = padded.slice(-scale);
+    return (negative ? '-' : '') + whole + decimalSeparator + fraction;
+  }
 
   // Numeric paste validator — rejects pastes that can't be parsed as a number
   // under the user's locale or that fall outside Min/Max.
@@ -128,26 +187,68 @@ const ns = {};
     }
   };
 
-  ns.numericOnPaste = function (e, min, max) {
+  function numericOnPaste(e, min, max, autoDecimalSeparator, decimalSeparator, scale) {
     if (!e.clipboardData) return;
     var value = e.clipboardData.getData('text');
     if (!value) { e.preventDefault(); return; }
     value = String(value).trim();
 
-    var parts = new Intl.NumberFormat(navigator.language).formatToParts(1234567.89);
-    var group = ',', dec = '.';
-    for (var i = 0; i < parts.length; i++) {
-      if (parts[i].type === 'group') group = parts[i].value;
-      if (parts[i].type === 'decimal') dec = parts[i].value;
+    if (autoDecimalSeparator) {
+      value = formatFixedDecimalInput(value, decimalSeparator, scale)
+        .replace(decimalSeparator, '.');
+    } else {
+      var parts = new Intl.NumberFormat(navigator.language).formatToParts(1234567.89);
+      var group = ',', dec = '.';
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].type === 'group') group = parts[i].value;
+        if (parts[i].type === 'decimal') dec = parts[i].value;
+      }
+      value = value.replace(/[  ]/g, ' ');
+      if (group) value = value.split(group).join('');
+      if (dec !== '.') value = value.split(dec).join('.');
     }
-    value = value.replace(/[  ]/g, ' ');
-    if (group) value = value.split(group).join('');
-    if (dec !== '.') value = value.split(dec).join('.');
     if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(value)) { e.preventDefault(); return; }
     var n = Number(value);
     if (!isFinite(n)) { e.preventDefault(); return; }
     if (min != null && n < min) { e.preventDefault(); return; }
     if (max != null && n > max) { e.preventDefault(); return; }
+  }
+
+  const numericRegistry = new WeakMap();
+
+  ns.numericAttach = function (el, isInteger, decimalSeparator, min, max, autoDecimalSeparator, scale) {
+    if (!el) return;
+    ns.numericDetach(el);
+
+    const onKeyDown = function (e) {
+      numericKeyPress(e, isInteger, decimalSeparator, autoDecimalSeparator);
+    };
+    const onPaste = function (e) {
+      numericOnPaste(e, min, max, autoDecimalSeparator, decimalSeparator, scale);
+    };
+    const onInput = function () {
+      if (!autoDecimalSeparator) return;
+      const formatted = formatFixedDecimalInput(el.value, decimalSeparator, scale);
+      if (el.value !== formatted) el.value = formatted;
+      const caret = formatted.length;
+      try { el.setSelectionRange(caret, caret); } catch {}
+    };
+
+    el.addEventListener('keydown', onKeyDown);
+    el.addEventListener('paste', onPaste);
+    el.addEventListener('input', onInput);
+    numericRegistry.set(el, { onKeyDown, onPaste, onInput });
+  };
+
+  ns.numericDetach = function (el) {
+    if (!el) return;
+    const entry = numericRegistry.get(el);
+    if (!entry) return;
+
+    el.removeEventListener('keydown', entry.onKeyDown);
+    el.removeEventListener('paste', entry.onPaste);
+    el.removeEventListener('input', entry.onInput);
+    numericRegistry.delete(el);
   };
 
 
