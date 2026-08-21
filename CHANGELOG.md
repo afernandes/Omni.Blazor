@@ -8,12 +8,15 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-21
+
 ### Added
 - `OmniTabs.ActiveIndex` / `ActiveIndexChanged`: the active tab can now be driven or observed from outside via `@bind-ActiveIndex`. Uncontrolled usage (no `ActiveIndex` passed) is unchanged — the first registered tab is still active by default.
 - `OmniMultiListBox<TValue>`: the multi-selection half of the listbox pair, the same way `OmniMultiSelect` pairs with `OmniSelect`. Binds the whole selection as one collection through `@bind-Value`.
 
 ### Changed
 - **One multi-value binding contract.** `OmniMultiSelect`, `OmniTagInput`, `OmniMultiListBox` and `OmniCheckBoxList` all derive from `FormComponent<IEnumerable<TValue>>` and bind through `@bind-Value`, so they are interchangeable and every one of them integrates with `EditContext`, `Required` and `Validation`. `OmniMultiSelect` and `OmniTagInput` previously hand-rolled a partial `IOmniFormComponent` implementation with no validation support; that is gone in favour of the shared base.
+- Refreshed the .NET 10 WebAssembly development server, Source Link, `Microsoft.Extensions.AI.Abstractions`, coverage collector and browser accessibility tooling to their validated stable versions. The Axe upgrade also tightened contrast checks exercised by both Server and WebAssembly browser suites.
 
 ### Removed
 - Renamed `OmniFabMenuItem.Label` and `OmniMessage.Content` to `Text`, for consistency with the rest of the library's naming. No compatibility alias — the library is pre-1.0.
@@ -175,5 +178,8 @@ Each release section follows this shape:
 - Bumped transitive `Xyz` to patch CVE-XXXX-YYYY.
 ```
 
-[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.6.1...v0.7.0
