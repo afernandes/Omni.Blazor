@@ -1,0 +1,158 @@
+@inherits DataGridHierarchyExamplesBase
+
+<ShowcaseSection Title="Hierarquia (DataGrid com árvore)"
+                 Description="Usa o mesmo motor seguro do OmniTreeGrid, preservando sorting, edição, seleção, exportação e virtualização do DataGrid."
+                 Code="@(@"<OmniDataGrid TItem=""SharingNode"" Data=""@SharingRoots""
+       KeySelector=""@(n => n.IdLoja)""
+       Children=""@(n => n.Children)""
+       InitiallyExpanded=""@(n => true)"" IndentSize=""22"">
+    <Columns>
+        <OmniDataGridColumn TItem=""SharingNode"" Title=""Nome""
+                             IsHierarchyAnchor Property=""@(n => n.Nome)"" />
+    </Columns>
+</OmniDataGrid>")">
+    <div class="omni-stack omni-stack-12">
+        <div class="omni-stack" style="flex-direction: row; gap: 8px; align-items: center;">
+            <OmniTextBox Placeholder="Buscar por nome, ID retaguarda ou proprietário..."
+                         LeadingIcon="search" Clearable="true"
+                         Value="@_treeSearch"
+                         ValueChanged="OnTreeSearchChanged"
+                         Style="flex: 1; max-width: 380px;" />
+            <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm"
+                        Icon="chevron-down" Text="Expandir tudo" OnClick="ExpandAllAsync" />
+            <OmniButton Variant="ButtonVariant.Default" Size="ComponentSize.Sm"
+                        Icon="chevron-right" Text="Recolher tudo" OnClick="CollapseAllAsync" />
+            <div style="flex: 1"></div>
+            <span class="omni-mono omni-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;">
+                @CountAll(SharingRoots) registros
+            </span>
+        </div>
+
+        <OmniAlert Severity="NotificationSeverity.Warning"
+                   Title="Existem registros com referência de pai não encontrada. Verifique a integridade da estrutura." />
+
+        <OmniDataGrid TItem="SharingNode" Data="@FilteredSharing"
+                      @ref="_treeGridRef"
+                      KeySelector="@(node => node.IdLoja)"
+                      Children="@(node => node.Children)"
+                      InitiallyExpanded="InitiallyExpanded"
+                      IndentSize="22"
+                      AllowPaging="false"
+                      RowClass="SharingRowClass">
+            <Columns>
+                <OmniDataGridColumn TItem="SharingNode" Title="Nome / hierarquia" IsHierarchyAnchor
+                                    Property="@(node => node.Nome)">
+                    <Template>
+                        <div class="omni-stack" style="flex-direction: row; align-items: center; gap: 8px; min-width: 0;">
+                            @if (context.IsInconsistent)
+                            {
+                                <OmniIcon Name="alert-triangle" Size="ComponentSize.Sm" />
+                            }
+                            else if (context.Children is { Count: > 0 })
+                            {
+                                <OmniIcon Name="folder" Size="ComponentSize.Sm" />
+                            }
+                            else
+                            {
+                                <OmniIcon Name="file" Size="ComponentSize.Sm" />
+                            }
+                            <span style="font-weight: @(context.IsCurrent ? "600" : "400");">@context.Nome</span>
+                            @if (context.IsCurrent)
+                            {
+                                <OmniBadge Text="Loja atual" Variant="BadgeVariant.Accent" />
+                            }
+                            @if (context.IsInconsistent)
+                            {
+                                <OmniBadge Text="Inconsistente" Variant="BadgeVariant.Warn" />
+                            }
+                        </div>
+                    </Template>
+                </OmniDataGridColumn>
+                <OmniDataGridColumn TItem="SharingNode" Title="ID proprietário" Property="@(node => node.IdProprietario)" Width="180px">
+                    <Template><span class="omni-mono">@context.IdProprietario</span></Template>
+                </OmniDataGridColumn>
+                <OmniDataGridColumn TItem="SharingNode" Title="ID retaguarda loja" Property="@(node => node.IdLoja)" Width="180px">
+                    <Template><span class="omni-mono">@context.IdLoja</span></Template>
+                </OmniDataGridColumn>
+                <OmniDataGridColumn TItem="SharingNode" Title="ID retaguarda pai" Property="@(node => node.IdPai ?? "")" Width="180px">
+                    <Template><span class="omni-mono">@(string.IsNullOrEmpty(context.IdPai) ? "—" : context.IdPai)</span></Template>
+                </OmniDataGridColumn>
+                <OmniDataGridColumn TItem="SharingNode" Title="Nível" Width="80px" Sortable="false">
+                    <Template>
+                        <OmniBadge Text="@(context.Nivel?.ToString() ?? "?")"
+                                   Variant="@LevelBadgeVariant(context.Nivel)" />
+                    </Template>
+                </OmniDataGridColumn>
+            </Columns>
+        </OmniDataGrid>
+    </div>
+</ShowcaseSection>
+
+@code {
+    private OmniDataGrid<SharingNode>? _treeGridRef;
+    private string? _treeSearch;
+    private bool _pendingTreeAutoExpand;
+
+    private IEnumerable<SharingNode> FilteredSharing => FilterSharingRoots();
+
+    private void OnTreeSearchChanged(string? value)
+    {
+        _treeSearch = value;
+        if (!string.IsNullOrWhiteSpace(value))
+            _pendingTreeAutoExpand = true;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_pendingTreeAutoExpand || _treeGridRef is null)
+            return Task.CompletedTask;
+
+        _pendingTreeAutoExpand = false;
+        return _treeGridRef.ExpandAllAsync();
+    }
+
+    private Task ExpandAllAsync() => _treeGridRef?.ExpandAllAsync() ?? Task.CompletedTask;
+
+    private Task CollapseAllAsync() => _treeGridRef?.CollapseAllAsync() ?? Task.CompletedTask;
+
+    private IEnumerable<SharingNode> FilterSharingRoots()
+    {
+        if (string.IsNullOrWhiteSpace(_treeSearch))
+            return SharingRoots;
+
+        var query = _treeSearch.Trim();
+        var matches = new List<SharingNode>();
+        foreach (var root in SharingRoots)
+        {
+            var match = MatchTree(root, query);
+            if (match is not null)
+                matches.Add(match);
+        }
+
+        return matches;
+    }
+
+    private static SharingNode? MatchTree(SharingNode node, string query)
+    {
+        var selfMatches =
+            node.Nome.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            node.IdProprietario.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            node.IdLoja.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+        List<SharingNode>? keptChildren = null;
+        if (node.Children is not null)
+        {
+            keptChildren = [];
+            foreach (var child in node.Children)
+            {
+                var match = MatchTree(child, query);
+                if (match is not null)
+                    keptChildren.Add(match);
+            }
+        }
+
+        return selfMatches || keptChildren is { Count: > 0 }
+            ? node.WithChildren(keptChildren)
+            : null;
+    }
+}

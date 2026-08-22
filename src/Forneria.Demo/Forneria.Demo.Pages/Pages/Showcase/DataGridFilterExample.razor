@@ -1,0 +1,27 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+
+<ShowcaseSection Title="Filter per-column"
+                 Description="Linha de filtros abaixo do header. Cada coluna decide se é filtrável (operador Contains client-side e server-side)."
+                 Code="@(@"<OmniDataGrid TItem=""Order"" DataProvider=""@Load"" AllowColumnFilter>
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Cliente"" Property=""@(o => o.Cliente)"" Filterable />
+    </Columns>
+</OmniDataGrid>")">
+    <OmniDataGrid TItem="Order" DataProvider="Orders.SearchAsync" AllowColumnFilter AllowPaging PageSize="12">
+        <Columns>
+            <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
+                                 Filterable Width="120px">
+                <Template><span class="omni-mono">#@context.Numero</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" Filterable />
+            <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)" Filterable />
+            <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)" Filterable>
+                <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)">
+                <Template><span class="omni-mono">@context.Total.ToString("C", PtBr)</span></Template>
+            </OmniDataGridColumn>
+        </Columns>
+    </OmniDataGrid>
+</ShowcaseSection>

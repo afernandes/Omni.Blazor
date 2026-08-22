@@ -1,0 +1,39 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+
+<ShowcaseSection Title="Virtualize 10.000 pedidos in-memory"
+                 Description="Virtualize=true + SpacerElement='tr' → apenas ~20 &lt;tr&gt; reais no DOM. Scroll 60fps. Combina com sort, filter per-column, frozen, multi-select."
+                 Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@Orders.AllOrders""
+       Virtualize RowHeight=""44"" Height=""520px""
+       AllowSearch AllowColumnFilter>
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+    <OmniDataGrid TItem="Order" Data="@Orders.AllOrders"
+                  Virtualize RowHeight="44" Height="520px"
+                  AllowSearch AllowColumnFilter>
+        <Columns>
+            <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(order => (object)order.Numero)"
+                                 Width="120px" Frozen="FrozenPosition.Left" Filterable>
+                <Template><span class="omni-mono">#@context.Numero</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(order => order.Cliente)"
+                                 Width="220px" Filterable />
+            <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(order => order.Canal)"
+                                 Width="160px" Filterable />
+            <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(order => order.Status)"
+                                 Width="160px" Filterable>
+                <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Itens" PropertyName="Itens" Property="@(order => (object)order.Itens)" Width="100px">
+                <Template><span class="omni-mono">@context.Itens</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Quando" PropertyName="QuandoUtc" Property="@(order => (object)order.QuandoUtc)" Width="180px">
+                <Template><span class="omni-mono">@context.QuandoUtc.ToString("dd/MM HH:mm")</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(order => (object)order.Total)"
+                                 Width="160px" Frozen="FrozenPosition.Right">
+                <Template><span class="omni-mono">@context.Total.ToString("C", PtBr)</span></Template>
+            </OmniDataGridColumn>
+        </Columns>
+    </OmniDataGrid>
+</ShowcaseSection>

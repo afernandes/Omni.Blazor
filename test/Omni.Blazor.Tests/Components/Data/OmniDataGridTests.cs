@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Bunit;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
 using Omni.Blazor.Utilities;
@@ -58,6 +59,144 @@ public class OmniDataGridTests : TestContextBase
         var headers = cut.FindAll("table.omni-grid-table thead th");
         Assert.Contains(headers, h => h.TextContent.Contains("Name"));
         Assert.Contains(headers, h => h.TextContent.Contains("Age"));
+    }
+
+    [Fact]
+    public void Keyboard_navigation_is_opt_in()
+    {
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowPaging, false)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        Assert.Null(cut.Find("table").GetAttribute("role"));
+        Assert.All(cut.FindAll("tbody tr"), row => Assert.False(row.HasAttribute("tabindex")));
+    }
+
+    [Fact]
+    public async Task Arrow_keys_move_focus_selection_and_raise_the_binding_callback()
+    {
+        Person? selected = Sample[0];
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowPaging, false)
+            .Add(c => c.AllowKeyboardNavigation, true)
+            .Add(c => c.AriaLabel, "People")
+            .Add(c => c.SelectedItem, selected)
+            .Add(c => c.SelectedItemChanged, item => selected = item)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        Assert.Equal("grid", cut.Find("table").GetAttribute("role"));
+        Assert.Equal("People", cut.Find("table").GetAttribute("aria-label"));
+        Assert.Equal("0", cut.FindAll("tbody tr")[0].GetAttribute("tabindex"));
+
+        await cut.FindAll("tbody tr")[0].TriggerEventAsync(
+            "onkeydown",
+            new KeyboardEventArgs { Key = "ArrowDown" });
+
+        Assert.Same(Sample[1], selected);
+        var rows = cut.FindAll("tbody tr");
+        Assert.Equal("-1", rows[0].GetAttribute("tabindex"));
+        Assert.Equal("0", rows[1].GetAttribute("tabindex"));
+        Assert.Equal("true", rows[1].GetAttribute("aria-selected"));
+        Assert.Contains("omni-grid-row-selected", rows[1].ClassList);
+    }
+
+    [Fact]
+    public async Task Explicit_keyboard_selection_moves_focus_without_changing_selection_until_enter()
+    {
+        Person? selected = Sample[0];
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowPaging, false)
+            .Add(c => c.AllowKeyboardNavigation, true)
+            .Add(c => c.SelectionFollowsFocus, false)
+            .Add(c => c.SelectedItem, selected)
+            .Add(c => c.SelectedItemChanged, item => selected = item)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        await cut.FindAll("tbody tr")[0].TriggerEventAsync(
+            "onkeydown",
+            new KeyboardEventArgs { Key = "ArrowDown" });
+
+        var rows = cut.FindAll("tbody tr");
+        Assert.Same(Sample[0], selected);
+        Assert.Equal("true", rows[0].GetAttribute("aria-selected"));
+        Assert.Equal("0", rows[1].GetAttribute("tabindex"));
+        Assert.Equal("false", rows[1].GetAttribute("aria-selected"));
+        var focusInvocation = JSInterop.VerifyInvoke("omniBlazor.gridFocusRow");
+        Assert.Equal(1, focusInvocation.Arguments[1]);
+
+        await rows[1].TriggerEventAsync(
+            "onkeydown",
+            new KeyboardEventArgs { Key = "Enter" });
+
+        Assert.Same(Sample[1], selected);
+        Assert.Equal("true", cut.FindAll("tbody tr")[1].GetAttribute("aria-selected"));
+    }
+
+    [Fact]
+    public async Task Space_commits_focused_row_in_explicit_keyboard_selection_mode()
+    {
+        Person? selected = Sample[0];
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowPaging, false)
+            .Add(c => c.AllowKeyboardNavigation, true)
+            .Add(c => c.SelectionFollowsFocus, false)
+            .Add(c => c.SelectedItem, selected)
+            .Add(c => c.SelectedItemChanged, item => selected = item)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        await cut.FindAll("tbody tr")[0].TriggerEventAsync(
+            "onkeydown",
+            new KeyboardEventArgs { Key = "ArrowDown" });
+        await cut.FindAll("tbody tr")[1].TriggerEventAsync(
+            "onkeydown",
+            new KeyboardEventArgs { Key = " " });
+
+        Assert.Same(Sample[1], selected);
+    }
+
+    [Fact]
+    public async Task Enter_activates_the_keyboard_selected_row()
+    {
+        Person? activated = null;
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowPaging, false)
+            .Add(c => c.AllowKeyboardNavigation, true)
+            .Add(c => c.OnRowClick, item => activated = item)
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        await cut.FindAll("tbody tr")[0].TriggerEventAsync(
+            "onkeydown",
+            new KeyboardEventArgs { Key = "Enter" });
+
+        Assert.Same(Sample[0], activated);
+        Assert.Same(Sample[0], cut.Instance.SelectedItem);
+    }
+
+    [Fact]
+    public async Task Arrow_keys_skip_rows_rejected_by_the_selection_predicate()
+    {
+        Person? selected = Sample[0];
+        var cut = Render<OmniDataGrid<Person>>(p => p
+            .Add(c => c.Data, Sample)
+            .Add(c => c.AllowPaging, false)
+            .Add(c => c.AllowKeyboardNavigation, true)
+            .Add(c => c.SelectedItem, selected)
+            .Add(c => c.SelectedItemChanged, item => selected = item)
+            .Add(c => c.RowSelectable, item => item.Name != "Bob")
+            .Add(c => c.Columns, ColumnsFragment()));
+
+        Assert.Equal("true", cut.FindAll("tbody tr")[1].GetAttribute("aria-disabled"));
+        await cut.FindAll("tbody tr")[0].TriggerEventAsync(
+            "onkeydown",
+            new KeyboardEventArgs { Key = "ArrowDown" });
+
+        Assert.Same(Sample[2], selected);
+        Assert.Equal("0", cut.FindAll("tbody tr")[2].GetAttribute("tabindex"));
     }
 
     [Fact]

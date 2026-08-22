@@ -1,0 +1,56 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+
+        <ShowcaseSection Title="Seleção por teclado (opt-in)"
+                         Description="AllowKeyboardNavigation adiciona um único ponto de Tab ao grid. Por padrão, ↑/↓ e Home/End movem o foco e a seleção. Use SelectionFollowsFocus=false para apenas destacar a linha durante a navegação e confirmar com Enter ou Espaço. O recurso se aplica às linhas planas, sem agrupamento ou virtualização."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@orders""
+               AllowKeyboardNavigation
+               SelectionFollowsFocus=""false""
+               @bind-SelectedItem=""_selectedOrder""
+               AriaLabel=""Pedidos disponíveis"">
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+            <div class="omni-stack omni-gap-2" data-testid="datagrid-keyboard-navigation">
+                <div aria-live="polite" class="omni-text-soft">
+                    Selecionado: <strong>@(_keyboardSelected?.Cliente ?? "nenhum")</strong>
+                </div>
+                <OmniDataGrid TItem="Order" Data="@_inMemory.Take(6)"
+                              AllowPaging="false" AllowKeyboardNavigation
+                              @bind-SelectedItem="_keyboardSelected"
+                              AriaLabel="Pedidos disponíveis">
+                    <Columns>
+                        <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero"
+                                            Property="@(o => (object)o.Numero)" Width="120px" />
+                        <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente"
+                                            Property="@(o => o.Cliente)" />
+                        <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status"
+                                            Property="@(o => o.Status)" Width="160px" />
+                    </Columns>
+                </OmniDataGrid>
+                <div aria-live="polite" class="omni-text-soft">
+                    Confirmação explícita: <strong>@(_keyboardExplicitSelected?.Cliente ?? "nenhum")</strong>
+                </div>
+                <OmniDataGrid TItem="Order" Data="@_inMemory.Take(6)"
+                              AllowPaging="false" AllowKeyboardNavigation
+                              SelectionFollowsFocus="false"
+                              @bind-SelectedItem="_keyboardExplicitSelected"
+                              AriaLabel="Pedidos com confirmação explícita">
+                    <Columns>
+                        <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero"
+                                            Property="@(o => (object)o.Numero)" Width="120px" />
+                        <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente"
+                                            Property="@(o => o.Cliente)" />
+                        <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status"
+                                            Property="@(o => o.Status)" Width="160px" />
+                    </Columns>
+                </OmniDataGrid>
+            </div>
+        </ShowcaseSection>
+
+@code {
+    private List<Order> _inMemory = [];
+    private Order? _keyboardSelected;
+    private Order? _keyboardExplicitSelected;
+
+    protected override void OnInitialized() => _inMemory = CreateInMemoryOrders();
+}

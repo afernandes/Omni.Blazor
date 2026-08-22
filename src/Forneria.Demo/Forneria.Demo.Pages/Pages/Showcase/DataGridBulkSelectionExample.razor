@@ -1,0 +1,49 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+@inject NotificationService Toast
+
+<ShowcaseSection Title="Multi-selection + bulk actions"
+                 Description="Checkbox no header seleciona a página inteira. Barra de bulk-actions reflete o total."
+                 Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory""
+       AllowMultiSelection @bind-SelectedItems=""_selected"">
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+    @if (_selected.Count > 0)
+    {
+        <OmniAlert Severity="NotificationSeverity.Info" Title="@($"{_selected.Count} pedidos selecionados")"
+                   Dismissible Closed="@(() => _selected.Clear())">
+            <OmniButton Text="Cancelar selecionados" Icon="x-circle" Variant="ButtonVariant.Danger" Size="ComponentSize.Sm"
+                        OnClick="OnBulkCancel" />
+        </OmniAlert>
+    }
+    <OmniDataGrid TItem="Order" Data="@_inMemory" AllowMultiSelection
+                  @bind-SelectedItems="_selected" AllowPaging PageSize="8">
+        <Columns>
+            <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(o => (object)o.Numero)" Width="120px">
+                <Template><span class="omni-mono">#@context.Numero</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+            <OmniDataGridColumn TItem="Order" Title="Canal" Property="@(o => o.Canal)" />
+            <OmniDataGridColumn TItem="Order" Title="Status" Property="@(o => o.Status)">
+                <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => (object)o.Total)">
+                <Template><span class="omni-mono">@context.Total.ToString("C", PtBr)</span></Template>
+            </OmniDataGridColumn>
+        </Columns>
+    </OmniDataGrid>
+</ShowcaseSection>
+
+@code {
+    private List<Order> _inMemory = [];
+    private HashSet<Order> _selected = [];
+
+    protected override void OnInitialized() => _inMemory = CreateInMemoryOrders();
+
+    private void OnBulkCancel()
+    {
+        Toast.Notify(NotificationSeverity.Success, "Bulk action",
+            $"{_selected.Count} pedidos marcados como cancelados.");
+        _selected.Clear();
+    }
+}

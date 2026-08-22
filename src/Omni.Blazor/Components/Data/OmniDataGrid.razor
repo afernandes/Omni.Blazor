@@ -11,7 +11,9 @@
 @* Tabela de dados rica: sorting, paging, busca, filtros/agregações por coluna, agrupamento, seleção múltipla, master-detail, tree-grid, virtualização e export CSV — in-memory ou server-side via DataProvider. *@
 
 <CascadingValue Value="this" IsFixed="true">
-    <div class="@RootCss"
+    <div @ref="Element"
+         id="@Id"
+         class="@RootCss"
          style="@RootInlineStyle"
          aria-busy="@(IsHierarchyMode ? IsHierarchyLoading : _loading)"
          @attributes="Attributes">
@@ -144,9 +146,9 @@
                 </div>
             }
             <table class="@TableCss"
-                   role="@(IsHierarchyMode ? "treegrid" : null)"
-                   aria-label="@(IsHierarchyMode ? EffectiveHierarchyAriaLabel : null)"
-                   aria-rowcount="@(IsHierarchyMode ? HierarchyRows.Count : null)">
+                   role="@(IsHierarchyMode ? "treegrid" : FlatKeyboardNavigationEnabled ? "grid" : null)"
+                   aria-label="@(IsHierarchyMode ? EffectiveHierarchyAriaLabel : AriaLabel)"
+                   aria-rowcount="@(IsHierarchyMode ? HierarchyRows.Count : FlatKeyboardNavigationEnabled ? _view.Count : null)">
                 <colgroup>
                     @if (AllowMultiSelection) { <col style="width:36px" /> }
                     @if (DetailTemplate is not null) { <col style="width:36px" /> }
@@ -325,9 +327,9 @@
                         }
                         else
                         {
-                            foreach (var row in _view)
+                            for (var rowIndex = 0; rowIndex < _view.Count; rowIndex++)
                             {
-                                @RenderFlatRowFragment(row)
+                                @RenderFlatRowFragment(_view[rowIndex], rowIndex)
                             }
                         }
                     }
@@ -454,6 +456,35 @@
 
     /// <summary>Emitido quando uma linha é clicada (fora do modo edição).</summary>
     [Parameter] public EventCallback<TItem> OnRowClick { get; set; }
+
+    /// <summary>
+    /// Enables opt-in ArrowUp/ArrowDown/Home/End navigation on flat, non-grouped
+    /// and non-virtualized rows. Selection behavior is controlled by
+    /// <see cref="SelectionFollowsFocus"/>. Default false.
+    /// </summary>
+    [Parameter] public bool AllowKeyboardNavigation { get; set; }
+
+    /// <summary>
+    /// When true, moving keyboard focus with ArrowUp/ArrowDown/Home/End also
+    /// changes <see cref="SelectedItem"/>. When false, Enter or Space commits
+    /// the focused row, matching the Radzen-style interaction. Default true.
+    /// </summary>
+    [Parameter] public bool SelectionFollowsFocus { get; set; } = true;
+
+    /// <summary>Single selected item used by keyboard navigation and row clicks.</summary>
+    [Parameter] public TItem? SelectedItem { get; set; }
+
+    /// <summary>Raised when the keyboard or a row click changes <see cref="SelectedItem"/>.</summary>
+    [Parameter] public EventCallback<TItem?> SelectedItemChanged { get; set; }
+
+    /// <summary>
+    /// Optional predicate for single selection. Keyboard navigation skips rows that
+    /// return false and exposes them as aria-disabled; row clicks still raise OnRowClick.
+    /// </summary>
+    [Parameter] public Func<TItem, bool>? RowSelectable { get; set; }
+
+    /// <summary>Optional accessible label for the flat data grid.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>
     /// When true, renders without outer border/radius and stretches to fill its
@@ -637,6 +668,9 @@
     private CancellationTokenSource? _loadCts;
     private int _loadSeq;
     private int _disposeState;
+    private int _keyboardRowIndex = -1;
+    private int? _pendingKeyboardFocusIndex;
+    private bool _keyboardInteropEnabled;
     private IReadOnlyDictionary<string, object?>? _serverAggregates;
     private readonly Dictionary<OmniDataGridColumn<TItem>, FilterDescriptor> _filters = new();
     private readonly HashSet<TItem> _selectedInternal = new();
@@ -743,6 +777,9 @@
     /// <summary>Paging efetivo: desligado quando virtualize está ativo (são mutuamente exclusivos).</summary>
     private bool EffectivePaging => AllowPaging && !Virtualize;
 
+    private bool FlatKeyboardNavigationEnabled =>
+        AllowKeyboardNavigation && !IsHierarchyMode && !IsGroupMode && !Virtualize;
+
     private string RootCss => CssBuilder.Default("omni-grid")
         .AddClass("omni-grid-embed", Embed)
         .AddClass(Class)
@@ -804,6 +841,8 @@
         AllowGrouping = schema.AllowGrouping;
         AllowExport = schema.AllowExport;
         AllowMultiSelection = schema.AllowMultiSelection;
+        AllowKeyboardNavigation = schema.AllowKeyboardNavigation;
+        SelectionFollowsFocus = schema.SelectionFollowsFocus;
         Virtualize = schema.Virtualize;
         Height = schema.Height;
         RowHeight = schema.RowHeight;
@@ -944,6 +983,7 @@
 
     private async Task ApplyAndRenderAsync()
     {
+        SynchronizeKeyboardRowIndex();
         if (_hasShape && CurrentShapeStamp() is { } atual && atual == _lastShape) return;
         ShapeApplyCount++;
 
@@ -967,6 +1007,7 @@
 
         BuildGroups();
         RecomputeFrozenStyles();
+        SynchronizeKeyboardRowIndex();
         StateHasChanged();
 
         // Carimba DEPOIS do pipeline completo: se algo lançar no meio, o carimbo velho
@@ -1350,7 +1391,125 @@
     private async Task HandleRowClick(TItem row)
     {
         if (_editingRow is not null) return;        // don't trigger row-click while editing
+        if (AllowKeyboardNavigation && IsRowSelectable(row)) await SelectSingleRowAsync(row);
         if (OnRowClick.HasDelegate) await OnRowClick.InvokeAsync(row);
+    }
+
+    /// <summary>
+    /// Moves DOM focus to the selected flat row, or to the first row when no
+    /// selection belongs to the current view. Has no effect in unsupported modes.
+    /// </summary>
+    public Task FocusAsync()
+    {
+        if (!FlatKeyboardNavigationEnabled || _view.Count == 0) return Task.CompletedTask;
+        SynchronizeKeyboardRowIndex();
+        if (_keyboardRowIndex < 0) _keyboardRowIndex = FindSelectableRowIndex(0, 1);
+        if (_keyboardRowIndex < 0) return Task.CompletedTask;
+        _pendingKeyboardFocusIndex = _keyboardRowIndex;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleFlatRowKeyDownAsync(TItem row, int rowIndex, KeyboardEventArgs args)
+    {
+        if (!FlatKeyboardNavigationEnabled || rowIndex < 0 || args.AltKey || args.CtrlKey || args.MetaKey)
+            return;
+
+        switch (args.Key)
+        {
+            case "ArrowDown":
+                await MoveKeyboardFocusAsync(FindSelectableRowIndex(rowIndex + 1, 1));
+                break;
+            case "ArrowUp":
+                await MoveKeyboardFocusAsync(FindSelectableRowIndex(rowIndex - 1, -1));
+                break;
+            case "Home":
+                await MoveKeyboardFocusAsync(FindSelectableRowIndex(0, 1));
+                break;
+            case "End":
+                await MoveKeyboardFocusAsync(FindSelectableRowIndex(_view.Count - 1, -1));
+                break;
+            case " ":
+                await SelectSingleRowAsync(row);
+                break;
+            case "Enter":
+            case "NumpadEnter":
+                await HandleRowClick(row);
+                break;
+        }
+    }
+
+    private async Task MoveKeyboardFocusAsync(int rowIndex)
+    {
+        if (rowIndex < 0 || rowIndex >= _view.Count) return;
+        _keyboardRowIndex = rowIndex;
+        if (SelectionFollowsFocus) await SelectSingleRowAsync(_view[rowIndex]);
+        await GridInterop.FocusRowAsync(Id, rowIndex);
+        StateHasChanged();
+    }
+
+    private async Task SelectSingleRowAsync(TItem row)
+    {
+        var changed = !EqualityComparer<TItem?>.Default.Equals(SelectedItem, row);
+        SelectedItem = row;
+        var rowIndex = _view.FindIndex(item => EqualityComparer<TItem>.Default.Equals(item, row));
+        if (rowIndex >= 0) _keyboardRowIndex = rowIndex;
+        if (changed && SelectedItemChanged.HasDelegate)
+            await SelectedItemChanged.InvokeAsync(row);
+    }
+
+    private bool IsSingleRowSelected(TItem row) =>
+        AllowKeyboardNavigation
+        && SelectedItem is not null
+        && EqualityComparer<TItem>.Default.Equals(SelectedItem, row);
+
+    private bool IsRowSelectable(TItem row) => RowSelectable?.Invoke(row) ?? true;
+
+    private int FlatRowTabIndex(int rowIndex)
+    {
+        if (rowIndex < 0) return -1;
+        var tabStop = _keyboardRowIndex >= 0
+            ? _keyboardRowIndex
+            : FindSelectableRowIndex(0, 1);
+        return rowIndex == tabStop ? 0 : -1;
+    }
+
+    private int FindSelectableRowIndex(int startIndex, int direction)
+    {
+        for (var rowIndex = startIndex;
+             rowIndex >= 0 && rowIndex < _view.Count;
+             rowIndex += direction)
+        {
+            if (IsRowSelectable(_view[rowIndex])) return rowIndex;
+        }
+
+        return -1;
+    }
+
+    private void SynchronizeKeyboardRowIndex()
+    {
+        if (!FlatKeyboardNavigationEnabled || _view.Count == 0)
+        {
+            _keyboardRowIndex = -1;
+            return;
+        }
+
+        if (SelectedItem is not null)
+        {
+            var selectedIndex = _view.FindIndex(item => EqualityComparer<TItem>.Default.Equals(item, SelectedItem));
+            if (selectedIndex >= 0)
+            {
+                _keyboardRowIndex = selectedIndex;
+                return;
+            }
+        }
+
+        if (_keyboardRowIndex >= _view.Count
+            || (_keyboardRowIndex >= 0 && !IsRowSelectable(_view[_keyboardRowIndex])))
+        {
+            _keyboardRowIndex = -1;
+        }
+        if (_keyboardRowIndex < 0) _keyboardRowIndex = FindSelectableRowIndex(0, 1);
     }
 
     private void BeginEdit(TItem row) => _editingRow = row;
@@ -2026,12 +2185,19 @@
         }
     };
 
-    private RenderFragment RenderFlatRowFragment(TItem row) => __builder =>
+    private RenderFragment RenderFlatRowFragment(TItem row, int rowIndex = -1) => __builder =>
     {
         var isEditing = _editingRow is not null && ReferenceEquals(_editingRow, row);
-        var isSelected = AllowMultiSelection && Selection.Contains(row);
+        var isSelected = (AllowMultiSelection && Selection.Contains(row)) || IsSingleRowSelected(row);
         var isExpanded = DetailTemplate is not null && _expanded.Contains(row);
-        <tr class="@RowCss(row, isEditing, isSelected)" @onclick="@(() => HandleRowClick(row))">
+        <tr class="@RowCss(row, isEditing, isSelected)"
+            role="@(FlatKeyboardNavigationEnabled ? "row" : null)"
+            aria-selected="@(FlatKeyboardNavigationEnabled ? isSelected ? "true" : "false" : null)"
+            aria-disabled="@(FlatKeyboardNavigationEnabled && !IsRowSelectable(row) ? "true" : null)"
+            tabindex="@(FlatKeyboardNavigationEnabled ? FlatRowTabIndex(rowIndex) : null)"
+            data-omni-grid-row-index="@(FlatKeyboardNavigationEnabled ? rowIndex : null)"
+            @onclick="@(() => HandleRowClick(row))"
+            @onkeydown="@(args => HandleFlatRowKeyDownAsync(row, rowIndex, args))">
             @if (AllowMultiSelection)
             {
                 <td class="omni-grid-td-select" @onclick:stopPropagation>
@@ -2054,7 +2220,8 @@
             }
             @foreach (var c in VisibleColumns)
             {
-                <td class="@CellCss(c)" style="@CellStyle(c)">
+                <td role="@(FlatKeyboardNavigationEnabled ? "gridcell" : null)"
+                    class="@CellCss(c)" style="@CellStyle(c)">
                     @if (isEditing && c.EditTemplate is not null) { @c.EditTemplate(row) }
                     else if (c.Template is not null) { @c.Template(row) }
                     else { @c.GetCellText(row) }

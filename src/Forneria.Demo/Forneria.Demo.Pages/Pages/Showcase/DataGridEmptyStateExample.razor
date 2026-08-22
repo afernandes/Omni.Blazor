@@ -1,0 +1,110 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+@inject NotificationService Toast
+
+<ShowcaseSection Title="EmptyTemplate + LoadingTemplate"
+                 Description="Slots customizáveis pro empty state (ícone + texto + CTA) e pro loading (skeleton rows em vez do spinner). Toggle pra ver cada estado."
+                 Code="@(@"<OmniDataGrid TItem=""Order"" DataProvider=""@Load"" LoadingSkeleton>
+    <Columns>...</Columns>
+    <EmptyTemplate>
+        <p>Nenhum pedido por aqui</p>
+    </EmptyTemplate>
+</OmniDataGrid>")">
+    <div class="omni-stack omni-stack-12">
+        <div class="omni-stack" style="flex-direction: row; gap: 8px;">
+            <OmniButton Variant="@(_emptyDemoState == 0 ? ButtonVariant.Primary : ButtonVariant.Default)"
+                        Size="ComponentSize.Sm" Text="Com dados" OnClick="ShowData" />
+            <OmniButton Variant="@(_emptyDemoState == 1 ? ButtonVariant.Primary : ButtonVariant.Default)"
+                        Size="ComponentSize.Sm" Text="Vazio (EmptyTemplate)" OnClick="ShowEmpty" />
+            <OmniButton Variant="@(_emptyDemoState == 2 ? ButtonVariant.Primary : ButtonVariant.Default)"
+                        Size="ComponentSize.Sm" Text="Carregando (Skeleton)" OnClick="ShowLoading" />
+        </div>
+        <OmniDataGrid TItem="Order"
+                      DataProvider="DemoLoadAsync"
+                      AllowPaging PageSize="6"
+                      LoadingSkeleton>
+            <Columns>
+                <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(order => (object)order.Numero)" Width="120px">
+                    <Template><span class="omni-mono">#@context.Numero</span></Template>
+                </OmniDataGridColumn>
+                <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(order => order.Cliente)" />
+                <OmniDataGridColumn TItem="Order" Title="Status" Property="@(order => order.Status)">
+                    <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                </OmniDataGridColumn>
+                <OmniDataGridColumn TItem="Order" Title="Total" Property="@(order => (object)order.Total)">
+                    <Template><span class="omni-mono">@context.Total.ToString("C", PtBr)</span></Template>
+                </OmniDataGridColumn>
+            </Columns>
+            <EmptyTemplate>
+                <div class="omni-stack omni-stack-8" style="padding: 48px 24px; text-align: center; align-items: center;">
+                    <OmniIcon Name="inbox" />
+                    <h3 style="margin: 0;">Nenhum pedido por aqui</h3>
+                    <p class="omni-muted" style="margin: 0;">Crie seu primeiro pedido pra começar.</p>
+                    <OmniButton Text="Criar pedido" Icon="plus" Variant="ButtonVariant.Primary" Size="ComponentSize.Sm"
+                                OnClick="OnEmptyCtaClick" />
+                </div>
+            </EmptyTemplate>
+        </OmniDataGrid>
+    </div>
+</ShowcaseSection>
+
+@code {
+    private int _emptyDemoState;
+
+    private ValueTask<GridLoadResult<Order>> DemoLoadAsync(
+        GridState<Order> state,
+        CancellationToken cancellationToken)
+    {
+        if (_emptyDemoState == 2)
+        {
+            var request = new DelayedDemoLoad(this, state);
+            var task = Task.Delay(1200, cancellationToken).ContinueWith(
+                CompleteDelayedDemoLoad,
+                request,
+                cancellationToken,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+            return new ValueTask<GridLoadResult<Order>>(task);
+        }
+
+        if (_emptyDemoState == 1)
+            return ValueTask.FromResult(new GridLoadResult<Order>(Array.Empty<Order>(), 0));
+
+        return ValueTask.FromResult(BuildDemoLoadResult(state));
+    }
+
+    private static GridLoadResult<Order> CompleteDelayedDemoLoad(Task delay, object? state)
+    {
+        delay.GetAwaiter().GetResult();
+        var request = (DelayedDemoLoad)state!;
+        return request.Owner.CompleteDemoLoad(request.State);
+    }
+
+    private GridLoadResult<Order> BuildDemoLoadResult(GridState<Order> state)
+    {
+        var page = Orders.AllOrders.Skip(state.Skip).Take(Math.Min(state.Top, 12)).ToList();
+        return new GridLoadResult<Order>(page, 12);
+    }
+
+    private GridLoadResult<Order> CompleteDemoLoad(GridState<Order> state)
+    {
+        _emptyDemoState = 0;
+        _ = InvokeAsync(StateHasChanged);
+        return BuildDemoLoadResult(state);
+    }
+
+    private void ShowData() => _emptyDemoState = 0;
+
+    private void ShowEmpty() => _emptyDemoState = 1;
+
+    private void ShowLoading() => _emptyDemoState = 2;
+
+    private void OnEmptyCtaClick() =>
+        Toast.Success("Demo", "Botão CTA do EmptyTemplate funciona!");
+
+    private sealed class DelayedDemoLoad(DataGridEmptyStateExample owner, GridState<Order> state)
+    {
+        public DataGridEmptyStateExample Owner { get; } = owner;
+        public GridState<Order> State { get; } = state;
+    }
+}
