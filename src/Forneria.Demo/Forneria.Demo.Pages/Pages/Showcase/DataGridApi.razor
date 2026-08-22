@@ -1,0 +1,152 @@
+        <ShowcaseApiTable Title="OmniDataGrid — Dados">
+            <ShowcaseApiRow Name="Schema" Type="DataGridSchema&lt;TItem&gt;?" Default="null"
+                            Description="Configuração Fluent tipada e reutilizável de colunas, hierarquia e comportamento estrutural." />
+            <ShowcaseApiRow Name="Data" Type="IEnumerable&lt;TItem&gt;?" Default="null"
+                            Description="Fonte de dados in-memory. Ignorado quando DataProvider é setado." />
+            <ShowcaseApiRow Name="DataProvider" Type="GridDataProvider&lt;TItem&gt;?" Default="null"
+                            Description="Provider server-side cancelável. Recebe estado e token, retornando uma janela de itens e o total." />
+            <ShowcaseApiRow Name="Count" Type="int?" Default="null"
+                            Description="Override do total quando server-side e o resultado não preenche TotalCount." />
+            <ShowcaseApiRow Name="DebounceMs" Type="int" Default="300"
+                            Description="Debounce entre keystrokes na busca antes de chamar DataProvider." />
+            <ShowcaseApiRow Name="Columns" Type="RenderFragment?" Default="null"
+                            Description="Slot onde as OmniDataGridColumn são declaradas." />
+            <ShowcaseApiRow Name="EmptyText" Type="string" Default="Nenhum registro..."
+                            Description="Texto exibido quando não há registros (sem EmptyTemplate)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Paginação & Ordenação">
+            <ShowcaseApiRow Name="AllowPaging" Type="bool" Default="true"
+                            Description="Liga a paginação. Ignorado quando Virtualize está ativo." />
+            <ShowcaseApiRow Name="PageSize" Type="int" Default="10"
+                            Description="Quantidade de registros por página." />
+            <ShowcaseApiRow Name="AllowSorting" Type="bool" Default="true"
+                            Description="Liga a ordenação por clique no header (Shift+clique adiciona critério)." />
+            <ShowcaseApiRow Name="AllowSearch" Type="bool" Default="false"
+                            Description="Exibe o campo de busca global na toolbar." />
+            <ShowcaseApiRow Name="SearchPlaceholder" Type="string" Default="Buscar..."
+                            Description="Placeholder do campo de busca global." />
+            <ShowcaseApiRow Name="ShowAggregateRow" Type="bool" Default="false"
+                            Description="Renderiza a linha de agregações no rodapé (tfoot)." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Filtros">
+            <ShowcaseApiRow Name="AllowColumnFilter" Type="bool" Default="false"
+                            Description="Exibe a linha de filtros abaixo do header. Só colunas Filterable mostram o input." />
+            <ShowcaseApiRow Name="AllowColumnVisibility" Type="bool" Default="false"
+                            Description="Exibe o menu de colunas visíveis na toolbar." />
+            <ShowcaseApiRow Name="AllowExport" Type="bool" Default="false"
+                            Description="Exibe o botão de exportação CSV na toolbar." />
+            <ShowcaseApiRow Name="ExportFilename" Type="string" Default="export.csv"
+                            Description="Nome do arquivo gerado na exportação." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Seleção & Expansão">
+            <ShowcaseApiRow Name="AllowKeyboardNavigation" Type="bool" Default="false"
+                            Description="Ativa seleção única e foco móvel por ↑/↓, Home/End, Espaço e Enter em linhas planas não virtualizadas." />
+            <ShowcaseApiRow Name="SelectionFollowsFocus" Type="bool" Default="true"
+                            Description="Quando false, as setas apenas movem e destacam a linha; Enter ou Espaço confirmam SelectedItem, como no Radzen." />
+            <ShowcaseApiRow Name="SelectedItem / SelectedItemChanged" Type="TItem?" Default="null"
+                            Description="Seleção única controlável por bind-SelectedItem quando a navegação por teclado está ativa." />
+            <ShowcaseApiRow Name="RowSelectable" Type="Func&lt;TItem, bool&gt;?" Default="null"
+                            Description="Predicado opcional; linhas rejeitadas recebem aria-disabled e são ignoradas pelas setas." />
+            <ShowcaseApiRow Name="AriaLabel" Type="string?" Default="null"
+                            Description="Nome acessível do grid plano, recomendado quando a navegação por teclado está ativa." />
+            <ShowcaseApiRow Name="AllowMultiSelection" Type="bool" Default="false"
+                            Description="Adiciona uma coluna de checkbox para seleção múltipla." />
+            <ShowcaseApiRow Name="SelectedItems" Type="HashSet&lt;TItem&gt;?" Default="null"
+                            Description="Conjunto de itens selecionados. Suporta bind-SelectedItems." />
+            <ShowcaseApiRow Name="DetailTemplate" Type="RenderFragment&lt;TItem&gt;?" Default="null"
+                            Description="Template renderizado abaixo da linha quando ela é expandida (master-detail)." />
+            <ShowcaseApiRow Name="ExpandMode" Type="ExpandMode" Default="Single"
+                            Description="Single = uma linha expandida por vez; Multi = várias simultâneas." />
+            <ShowcaseApiRow Name="EmptyTemplate" Type="RenderFragment?" Default="null"
+                            Description="Slot custom para o estado vazio — ícone, título e CTA ricos." />
+            <ShowcaseApiRow Name="LoadingTemplate" Type="RenderFragment?" Default="null"
+                            Description="Slot custom para o overlay de loading." />
+            <ShowcaseApiRow Name="LoadingSkeleton" Type="bool" Default="false"
+                            Description="Renderiza linhas de skeleton em vez do spinner durante a carga." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Virtualização">
+            <ShowcaseApiRow Name="Virtualize" Type="bool" Default="false"
+                            Description="Liga a virtualização do tbody — só linhas visíveis no DOM. Desliga a paginação." />
+            <ShowcaseApiRow Name="RowHeight" Type="float" Default="44"
+                            Description="Altura fixa (px) por linha quando virtualize está ativo." />
+            <ShowcaseApiRow Name="OverscanCount" Type="int" Default="4"
+                            Description="Linhas extras renderizadas fora do viewport." />
+            <ShowcaseApiRow Name="Height" Type="string?" Default="520px"
+                            Description="Altura do scroller. Obrigatória quando virtualize está ativo." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Edição">
+            <ShowcaseApiRow Name="EditMode" Type="DataGridEditMode" Default="None"
+                            Description="Liga a edição inline. Cada coluna precisa de um EditTemplate para ser editável." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Hierarquia">
+            <ShowcaseApiRow Name="KeySelector" Type="Func&lt;TItem, object&gt;?" Default="item"
+                            Description="Identidade estável usada pela expansão, cache e operações lazy." />
+            <ShowcaseApiRow Name="Children" Type="Func&lt;TItem, IEnumerable&lt;TItem&gt;?&gt;?" Default="null"
+                            Description="Função síncrona que retorna os filhos de um item — ativa o modo tree-grid." />
+            <ShowcaseApiRow Name="ChildrenProvider" Type="HierarchyChildrenProvider&lt;TItem&gt;?" Default="null"
+                            Description="Provider lazy cancelável, deduplicado e com cache LRU limitado." />
+            <ShowcaseApiRow Name="HasChildren" Type="Func&lt;TItem, bool&gt;?" Default="null"
+                            Description="Predicado que decide se uma linha tem filhos (mostra o chevron)." />
+            <ShowcaseApiRow Name="IndentSize" Type="int" Default="20"
+                            Description="Pixels de indentação por nível na coluna âncora." />
+            <ShowcaseApiRow Name="InitiallyExpanded" Type="Func&lt;TItem, bool&gt;?" Default="null"
+                            Description="Predicado aplicado uma vez quando a fonte hierárquica muda." />
+            <ShowcaseApiRow Name="ExpandedKeys / ExpandedKeysChanged" Type="IReadOnlyCollection&lt;object&gt;?" Default="null"
+                            Description="Estado de expansão controlável pelas chaves estáveis." />
+            <ShowcaseApiRow Name="MaxCachedNodes / MaxCachedItems" Type="int" Default="500 / 10000"
+                            Description="Limites do cache LRU compartilhado com o OmniTreeGrid." />
+            <ShowcaseApiRow Name="MaxVisibleRows / MaxDepth" Type="int" Default="5000 / 64"
+                            Description="Proteções contra árvores patológicas e ciclos." />
+            <ShowcaseApiRow Name="RowClass" Type="Func&lt;TItem, string?&gt;?" Default="null"
+                            Description="Função que retorna classes CSS extras por linha — útil para destacar linhas." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGrid — Eventos & Métodos" ShowDefault="false">
+            <ShowcaseApiRow Name="OnRowClick" Type="EventCallback&lt;TItem&gt;" ShowDefault="false"
+                            Description="Disparado ao clicar em uma linha." />
+            <ShowcaseApiRow Name="RowUpdated" Type="EventCallback&lt;TItem&gt;" ShowDefault="false"
+                            Description="Disparado ao confirmar uma edição inline. Use para persistir." />
+            <ShowcaseApiRow Name="SelectedItemsChanged" Type="EventCallback&lt;HashSet&lt;TItem&gt;&gt;" ShowDefault="false"
+                            Description="Disparado quando a seleção muda." />
+            <ShowcaseApiRow Name="OnRowExpand / OnRowCollapse" Type="EventCallback&lt;TItem&gt;" ShowDefault="false"
+                            Description="Disparados ao expandir / colapsar uma linha." />
+            <ShowcaseApiRow Name="ExpandAllAsync() / CollapseAllAsync()" Type="Task" ShowDefault="false"
+                            Description="Métodos públicos para expandir / recolher toda a árvore (tree-grid)." />
+            <ShowcaseApiRow Name="FocusAsync()" Type="Task" ShowDefault="false"
+                            Description="Move o foco para a linha selecionada ou para a primeira linha selecionável." />
+        </ShowcaseApiTable>
+
+        <ShowcaseApiTable Title="OmniDataGridColumn — Parâmetros">
+            <ShowcaseApiRow Name="Title" Type="string?" Default="null"
+                            Description="Cabeçalho da coluna." />
+            <ShowcaseApiRow Name="Property" Type="Func&lt;TItem, object?&gt;?" Default="null"
+                            Description="Selector do valor da célula — usado para sort, filtro e agregação." />
+            <ShowcaseApiRow Name="PropertyName" Type="string?" Default="null"
+                            Description="Nome canônico da propriedade — recomendado em modo server-side." />
+            <ShowcaseApiRow Name="Width" Type="string?" Default="null"
+                            Description="Largura CSS da coluna (ex: 120px)." />
+            <ShowcaseApiRow Name="Sortable" Type="bool" Default="true"
+                            Description="Permite ordenar por esta coluna." />
+            <ShowcaseApiRow Name="Monospace" Type="bool" Default="false"
+                            Description="Usa a família mono e algarismos tabulares para IDs, códigos, datas e valores técnicos." />
+            <ShowcaseApiRow Name="Numeric" Type="bool" Default="false"
+                            Description="Usa tipografia mono tabular e alinha a coluna numérica ao fim." />
+            <ShowcaseApiRow Name="Filterable" Type="bool" Default="false"
+                            Description="Exibe o input de filtro nesta coluna (requer AllowColumnFilter)." />
+            <ShowcaseApiRow Name="Frozen" Type="FrozenPosition?" Default="null"
+                            Description="Congela a coluna no scroll horizontal — Left ou Right." />
+            <ShowcaseApiRow Name="Aggregate" Type="AggregateFunction?" Default="null"
+                            Description="Função agregadora no rodapé — Sum, Count, Average, Min, Max." />
+            <ShowcaseApiRow Name="IsHierarchyAnchor" Type="bool" Default="false"
+                            Description="Marca esta coluna como âncora da árvore — recebe chevron + indentação." />
+            <ShowcaseApiRow Name="Template" Type="RenderFragment&lt;TItem&gt;?" Default="null"
+                            Description="Template custom da célula (context = o item da linha)." />
+            <ShowcaseApiRow Name="EditTemplate" Type="RenderFragment&lt;TItem&gt;?" Default="null"
+                            Description="Editor renderizado quando a linha está em modo de edição." />
+        </ShowcaseApiTable>

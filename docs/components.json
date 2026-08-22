@@ -2764,6 +2764,13 @@
           "summary": "Enables row grouping. Shows a drop panel above the grid; drag a column's grip there (column must be Groupable) — or call GroupByAsync — to group rows by that column. Multiple columns nest."
         },
         {
+          "name": "AllowKeyboardNavigation",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Enables opt-in ArrowUp/ArrowDown/Home/End navigation on flat, non-grouped and non-virtualized rows. Selection behavior is controlled by SelectionFollowsFocus. Default false."
+        },
+        {
           "name": "AllowMultiSelection",
           "kind": "parameter",
           "type": "bool",
@@ -2790,6 +2797,13 @@
           "type": "bool",
           "required": false,
           "summary": "Permite ordenar clicando no header das colunas Sortable. Default true."
+        },
+        {
+          "name": "AriaLabel",
+          "kind": "parameter",
+          "type": "string",
+          "required": false,
+          "summary": "Optional accessible label for the flat data grid."
         },
         {
           "name": "AutoCollapseGroupsThreshold",
@@ -3209,6 +3223,13 @@
           "summary": "Altura fixa (px) por linha quando virtualize ativo. Default 44."
         },
         {
+          "name": "RowSelectable",
+          "kind": "parameter",
+          "type": "Func<TItem, bool>",
+          "required": false,
+          "summary": "Optional predicate for single selection. Keyboard navigation skips rows that return false and exposes them as aria-disabled; row clicks still raise OnRowClick."
+        },
+        {
           "name": "RowUpdated",
           "kind": "event",
           "type": "EventCallback<TItem>",
@@ -3230,6 +3251,20 @@
           "summary": "Placeholder do campo de busca. Default \"Buscar...\"."
         },
         {
+          "name": "SelectedItem",
+          "kind": "parameter",
+          "type": "TItem",
+          "required": false,
+          "summary": "Single selected item used by keyboard navigation and row clicks."
+        },
+        {
+          "name": "SelectedItemChanged",
+          "kind": "event",
+          "type": "EventCallback<TItem>",
+          "required": false,
+          "summary": "Raised when the keyboard or a row click changes SelectedItem."
+        },
+        {
           "name": "SelectedItems",
           "kind": "parameter",
           "type": "HashSet<TItem>",
@@ -3242,6 +3277,13 @@
           "type": "EventCallback<HashSet<TItem>>",
           "required": false,
           "summary": "Emitido quando a seleção muda. O argumento é o set atual."
+        },
+        {
+          "name": "SelectionFollowsFocus",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "When true, moving keyboard focus with ArrowUp/ArrowDown/Home/End also changes SelectedItem. When false, Enter or Space commits the focused row, matching the Radzen-style interaction. Default true."
         },
         {
           "name": "ShowAggregateRow",
@@ -28545,6 +28587,12 @@
           "summary": "Whether grouping is enabled."
         },
         {
+          "name": "AllowKeyboardNavigation",
+          "kind": "property",
+          "signature": "bool AllowKeyboardNavigation",
+          "summary": "Whether flat, non-virtualized rows support keyboard navigation and single selection."
+        },
+        {
           "name": "AllowMultiSelection",
           "kind": "property",
           "signature": "bool AllowMultiSelection",
@@ -28639,6 +28687,12 @@
           "kind": "property",
           "signature": "string SearchPlaceholder",
           "summary": "Optional search placeholder."
+        },
+        {
+          "name": "SelectionFollowsFocus",
+          "kind": "property",
+          "signature": "bool SelectionFollowsFocus",
+          "summary": "Whether moving keyboard focus also changes the single selected item."
         },
         {
           "name": "Virtualize",
@@ -28737,6 +28791,12 @@
           "kind": "method",
           "signature": "DataGridSchemaBuilder<TItem> Key<TKey>(Expression<Func<TItem, TKey>> selector)",
           "summary": "Sets the stable key used by hierarchy and expansion state."
+        },
+        {
+          "name": "KeyboardNavigation",
+          "kind": "method",
+          "signature": "DataGridSchemaBuilder<TItem> KeyboardNavigation(bool enabled, bool selectionFollowsFocus)",
+          "summary": "Enables or disables keyboard navigation and configures whether selection follows focus or is committed explicitly with Enter or Space."
         },
         {
           "name": "LazyHierarchy",

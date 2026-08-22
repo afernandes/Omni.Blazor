@@ -4,8 +4,8 @@ using Microsoft.Playwright;
 namespace Omni.Blazor.BrowserTests;
 
 /// <summary>
-/// Walk every client route of the published showcase and fail on any unhandled
-/// component exception.
+/// Walk every client route of the WebAssembly showcase and fail on any unhandled
+/// component exception during SPA navigation, direct loading, or reload.
 ///
 /// This exists because a published WebAssembly app is a different program from the one
 /// the other suites exercise: the library sets IsAotCompatible, so publishing trims its
@@ -14,8 +14,8 @@ namespace Omni.Blazor.BrowserTests;
 /// names) reached production and was found one page at a time by a human. A per-page
 /// sweep turns that whole class of bug into a build failure.
 ///
-/// Run it against the published artifact — see the Pages workflow, which points
-/// OMNI_BROWSER_STATIC_ROOT at the trimmed publish output.
+/// Run it against the development host with OMNI_BROWSER_HOST=wasm, or against the
+/// published artifact by pointing OMNI_BROWSER_STATIC_ROOT at the trimmed output.
 /// </summary>
 [Collection(BrowserCollection.Name)]
 public sealed class PublishedRouteSweepBrowserTests(BrowserFixture fixture)
@@ -28,45 +28,98 @@ public sealed class PublishedRouteSweepBrowserTests(BrowserFixture fixture)
     public async Task Every_route_renders_without_an_unhandled_component_exception()
     {
         string[] routes = DiscoverRoutes();
-        Assert.True(routes.Length > 50, $"Only {routes.Length} routes were discovered; the sweep is not covering the showcase.");
+        AssertRouteCoverage(routes);
 
         await using IBrowserContext context = await fixture.CreateContextAsync();
-        IPage page = await context.NewPageAsync();
-
-        List<string> current = [];
-        page.Console += (_, message) =>
-        {
-            // Blazor reports a render failure through console.error, so the page keeps
-            // responding to clicks and nothing else marks it as broken.
-            if (message.Type == "error")
-                lock (current) current.Add(message.Text);
-        };
-        page.PageError += (_, error) => { lock (current) current.Add(error); };
-
-        IResponse? boot = await page.GotoAsync($"{fixture.BaseUrl}/");
-        Assert.NotNull(boot);
-        await page.WaitForFunctionAsync("() => !!window.Blazor");
-
         List<string> broken = [];
+        TrackedPage? tracked = null;
         foreach (string route in routes)
         {
-            lock (current) current.Clear();
+            try
+            {
+                tracked ??= await CreateTrackedPageAsync(context, "/");
+                string[] startupFailures = tracked.DrainFailures();
+                if (startupFailures.Length > 0)
+                {
+                    broken.Add($"{route} [bootstrap] -> {Collapse(startupFailures[0])}");
+                    await tracked.DisposeAsync();
+                    tracked = null;
+                    continue;
+                }
 
-            await page.EvaluateAsync("route => Blazor.navigateTo(route, false, false)", $"{fixture.BaseUrl}{route}");
+                await tracked.Page.EvaluateAsync(
+                    "route => Blazor.navigateTo(route, false, false)",
+                    $"{fixture.BaseUrl}{route}");
 
-            // Pages that load their data asynchronously throw well after the first render,
-            // so settle long enough to see it — a short wait silently passes those routes.
-            await page.WaitForTimeoutAsync(900);
+                // Pages that load their data asynchronously throw well after the first render,
+                // so settle long enough to see it — a short wait silently passes those routes.
+                await tracked.Page.WaitForTimeoutAsync(900);
 
-            string[] failures;
-            lock (current) failures = [.. current];
-            if (failures.Length > 0)
+                string[] failures = tracked.DrainFailures();
+                if (failures.Length == 0) continue;
+
                 broken.Add($"{route} -> {Collapse(failures[0])}");
+                await tracked.DisposeAsync();
+                tracked = null;
+            }
+            catch (Exception exception)
+            {
+                broken.Add($"{route} -> {Collapse(exception.Message)}");
+                if (tracked is not null) await tracked.DisposeAsync();
+                tracked = null;
+            }
         }
+        if (tracked is not null) await tracked.DisposeAsync();
 
         Assert.True(
             broken.Count == 0,
             $"{broken.Count} of {routes.Length} routes failed to render:{Environment.NewLine}"
+                + string.Join(Environment.NewLine, broken));
+    }
+
+    [Fact]
+    public async Task Every_route_supports_direct_load_and_reload()
+    {
+        string[] routes = DiscoverRoutes();
+        AssertRouteCoverage(routes);
+
+        await using IBrowserContext context = await fixture.CreateContextAsync();
+        List<string> broken = [];
+        foreach (string route in routes)
+        {
+            await using TrackedPage tracked = await CreateTrackedPageAsync(context, route);
+
+            string[] directFailures = tracked.DrainFailures();
+            if (directFailures.Length > 0)
+            {
+                broken.Add($"{route} [direct] -> {Collapse(directFailures[0])}");
+                continue;
+            }
+
+            try
+            {
+                IResponse? response = await tracked.Page.ReloadAsync(
+                    new PageReloadOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+                if (response is null || !response.Ok)
+                {
+                    broken.Add($"{route} [reload] -> HTTP {response?.Status.ToString() ?? "no response"}");
+                    continue;
+                }
+
+                await WaitForBlazorAsync(tracked.Page);
+                string[] reloadFailures = tracked.DrainFailures();
+                if (reloadFailures.Length > 0)
+                    broken.Add($"{route} [reload] -> {Collapse(reloadFailures[0])}");
+            }
+            catch (Exception exception)
+            {
+                broken.Add($"{route} [reload] -> {Collapse(exception.Message)}");
+            }
+        }
+
+        Assert.True(
+            broken.Count == 0,
+            $"{broken.Count} of {routes.Length} routes failed direct loading or reload:{Environment.NewLine}"
                 + string.Join(Environment.NewLine, broken));
     }
 
@@ -95,13 +148,102 @@ public sealed class PublishedRouteSweepBrowserTests(BrowserFixture fixture)
             }
         }
 
-        return [.. routes.OrderBy(route => route, StringComparer.Ordinal)];
+        string[] discovered = [.. routes.OrderBy(route => route, StringComparer.Ordinal)];
+        string? configured = Environment.GetEnvironmentVariable("OMNI_BROWSER_ROUTES");
+        if (string.IsNullOrWhiteSpace(configured)) return discovered;
+
+        HashSet<string> requested = configured
+            .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return [.. discovered.Where(requested.Contains)];
+    }
+
+    private static void AssertRouteCoverage(string[] routes)
+    {
+        string? configured = Environment.GetEnvironmentVariable("OMNI_BROWSER_ROUTES");
+        if (string.IsNullOrWhiteSpace(configured))
+            Assert.True(routes.Length > 50, $"Only {routes.Length} routes were discovered; the sweep is not covering the showcase.");
+        else
+            Assert.NotEmpty(routes);
+    }
+
+    private async Task<TrackedPage> CreateTrackedPageAsync(IBrowserContext context, string route)
+    {
+        IPage page = await context.NewPageAsync();
+        TrackedPage tracked = new(page);
+        try
+        {
+            IResponse? response = await page.GotoAsync(
+                $"{fixture.BaseUrl}{route}",
+                new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            if (response is null || !response.Ok)
+                tracked.AddFailure($"HTTP {response?.Status.ToString() ?? "no response"}");
+            await WaitForBlazorAsync(page);
+            return tracked;
+        }
+        catch (Exception exception)
+        {
+            tracked.AddFailure($"Blazor did not finish bootstrapping this route: {exception.Message}");
+            return tracked;
+        }
+    }
+
+    private static async Task WaitForBlazorAsync(IPage page)
+    {
+        await page.WaitForFunctionAsync("() => !!window.Blazor");
+        await page.WaitForTimeoutAsync(900);
     }
 
     private static string Collapse(string message)
     {
         string single = Regex.Replace(message, @"\s+", " ").Trim();
         return single.Length <= 500 ? single : single[..500];
+    }
+
+    private sealed class TrackedPage : IAsyncDisposable
+    {
+        private readonly List<string> _failures = [];
+
+        public TrackedPage(IPage page)
+        {
+            Page = page;
+            page.Console += CaptureConsole;
+            page.PageError += CapturePageError;
+        }
+
+        public IPage Page { get; }
+
+        public void AddFailure(string failure)
+        {
+            lock (_failures) _failures.Add(failure);
+        }
+
+        public string[] DrainFailures()
+        {
+            lock (_failures)
+            {
+                string[] snapshot = [.. _failures];
+                _failures.Clear();
+                return snapshot;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            Page.Console -= CaptureConsole;
+            Page.PageError -= CapturePageError;
+            await Page.CloseAsync();
+        }
+
+        private void CaptureConsole(object? sender, IConsoleMessage message)
+        {
+            // Mono Debug logs the first assertion line as a warning in some browsers,
+            // then exits the runtime. Capture it even when it is not console.error.
+            if (message.Type == "error" || message.Text.Contains("[MONO]", StringComparison.OrdinalIgnoreCase))
+                AddFailure(message.Text);
+        }
+
+        private void CapturePageError(object? sender, string error) => AddFailure(error);
     }
 
     private static string FindRepositoryRoot()

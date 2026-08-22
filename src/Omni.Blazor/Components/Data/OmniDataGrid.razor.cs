@@ -187,6 +187,19 @@ public partial class OmniDataGrid<TItem>
         if (ChildrenProvider is not null && Volatile.Read(ref _disposeState) == 0)
             ObserveHierarchyTask(_hierarchy.LoadPendingExpandedAsync());
         await InitializeOrApplyViewStateAsync();
+
+        var keyboardEnabled = FlatKeyboardNavigationEnabled;
+        if (keyboardEnabled != _keyboardInteropEnabled)
+        {
+            await GridInterop.ConfigureKeyboardNavigationAsync(Id, keyboardEnabled);
+            _keyboardInteropEnabled = keyboardEnabled;
+        }
+
+        if (keyboardEnabled && _pendingKeyboardFocusIndex is { } rowIndex)
+        {
+            _pendingKeyboardFocusIndex = null;
+            await GridInterop.FocusRowAsync(Id, rowIndex);
+        }
     }
 
     private async Task InitializeOrApplyViewStateAsync()

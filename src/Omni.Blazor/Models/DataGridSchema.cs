@@ -24,6 +24,8 @@ public sealed class DataGridSchema<TItem>
         bool allowGrouping,
         bool allowExport,
         bool allowMultiSelection,
+        bool allowKeyboardNavigation,
+        bool selectionFollowsFocus,
         bool virtualize,
         string? height,
         float rowHeight,
@@ -44,6 +46,8 @@ public sealed class DataGridSchema<TItem>
         AllowGrouping = allowGrouping;
         AllowExport = allowExport;
         AllowMultiSelection = allowMultiSelection;
+        AllowKeyboardNavigation = allowKeyboardNavigation;
+        SelectionFollowsFocus = selectionFollowsFocus;
         Virtualize = virtualize;
         Height = height;
         RowHeight = rowHeight;
@@ -90,6 +94,12 @@ public sealed class DataGridSchema<TItem>
 
     /// <summary>Whether multi-selection is enabled.</summary>
     public bool AllowMultiSelection { get; }
+
+    /// <summary>Whether flat, non-virtualized rows support keyboard navigation and single selection.</summary>
+    public bool AllowKeyboardNavigation { get; }
+
+    /// <summary>Whether moving keyboard focus also changes the single selected item.</summary>
+    public bool SelectionFollowsFocus { get; }
 
     /// <summary>Whether row virtualization is enabled.</summary>
     public bool Virtualize { get; }
@@ -149,6 +159,8 @@ public sealed class DataGridSchemaBuilder<TItem>
     private bool _allowGrouping;
     private bool _allowExport;
     private bool _allowMultiSelection;
+    private bool _allowKeyboardNavigation;
+    private bool _selectionFollowsFocus = true;
     private bool _virtualize;
     private string? _height;
     private float _rowHeight = 44;
@@ -180,6 +192,8 @@ public sealed class DataGridSchemaBuilder<TItem>
         _allowGrouping = schema.AllowGrouping;
         _allowExport = schema.AllowExport;
         _allowMultiSelection = schema.AllowMultiSelection;
+        _allowKeyboardNavigation = schema.AllowKeyboardNavigation;
+        _selectionFollowsFocus = schema.SelectionFollowsFocus;
         _virtualize = schema.Virtualize;
         _height = schema.Height;
         _rowHeight = schema.RowHeight;
@@ -318,6 +332,20 @@ public sealed class DataGridSchemaBuilder<TItem>
     /// <summary>Enables or disables multi-selection.</summary>
     public DataGridSchemaBuilder<TItem> MultiSelection(bool enabled = true) => Set(ref _allowMultiSelection, enabled);
 
+    /// <summary>
+    /// Enables or disables keyboard navigation and configures whether selection
+    /// follows focus or is committed explicitly with Enter or Space.
+    /// </summary>
+    public DataGridSchemaBuilder<TItem> KeyboardNavigation(
+        bool enabled = true,
+        bool selectionFollowsFocus = true)
+    {
+        EnsureMutable();
+        _allowKeyboardNavigation = enabled;
+        _selectionFollowsFocus = selectionFollowsFocus;
+        return this;
+    }
+
     /// <summary>Enables fixed-row virtualization and disables paging.</summary>
     public DataGridSchemaBuilder<TItem> Virtualization(
         string height = "520px",
@@ -353,7 +381,8 @@ public sealed class DataGridSchemaBuilder<TItem>
             Array.AsReadOnly(columns), _keySelector, _hierarchy,
             _allowSearch, _allowSorting, _allowPaging, _pageSize,
             _allowColumnFilter, _allowColumnResize, _allowColumnVisibility,
-            _allowGrouping, _allowExport, _allowMultiSelection,
+            _allowGrouping, _allowExport, _allowMultiSelection, _allowKeyboardNavigation,
+            _selectionFollowsFocus,
             _virtualize, _height, _rowHeight, _overscanCount,
             _searchPlaceholder, _emptyText);
     }

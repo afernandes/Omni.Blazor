@@ -1,0 +1,46 @@
+@inherits DataGridHierarchyExamplesBase
+
+<ShowcaseSection Title="Virtualize + Hierarquia (tree-grid)"
+                 Description="Tree-grid com Virtualize ativo: _flatView virtualizado, chevron + indent funcionam idênticos. Ideal pra árvores grandes.">
+    <OmniDataGrid TItem="SharingNode" Data="@SharingRoots"
+                  KeySelector="@(node => node.IdLoja)"
+                  Children="@(node => node.Children)"
+                  InitiallyExpanded="InitiallyExpanded"
+                  Virtualize RowHeight="44" Height="360px"
+                  IndentSize="22"
+                  RowClass="SharingRowClass">
+        <Columns>
+            <OmniDataGridColumn TItem="SharingNode" Title="Nome / hierarquia" IsHierarchyAnchor
+                                Property="@(node => node.Nome)">
+                <Template>
+                    <div class="omni-stack" style="flex-direction: row; align-items: center; gap: 8px; min-width: 0;">
+                        <OmniIcon Name="@(context.IsInconsistent ? "alert-triangle"
+                                          : context.Children is { Count: > 0 } ? "folder" : "file")"
+                                  Size="ComponentSize.Sm" />
+                        <span style="font-weight: @(context.IsCurrent ? "600" : "400");">@context.Nome</span>
+                        @if (context.IsCurrent)
+                        {
+                            <OmniBadge Text="Loja atual" Variant="BadgeVariant.Accent" />
+                        }
+                        @if (context.IsInconsistent)
+                        {
+                            <OmniBadge Text="Inconsistente" Variant="BadgeVariant.Warn" />
+                        }
+                    </div>
+                </Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="SharingNode" Title="ID proprietário" Property="@(node => node.IdProprietario)" Width="160px">
+                <Template><span class="omni-mono">@context.IdProprietario</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="SharingNode" Title="ID retaguarda loja" Property="@(node => node.IdLoja)" Width="160px">
+                <Template><span class="omni-mono">@context.IdLoja</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="SharingNode" Title="Nível" Width="80px" Sortable="false">
+                <Template>
+                    <OmniBadge Text="@(context.Nivel?.ToString() ?? "?")"
+                               Variant="@LevelBadgeVariant(context.Nivel)" />
+                </Template>
+            </OmniDataGridColumn>
+        </Columns>
+    </OmniDataGrid>
+</ShowcaseSection>
