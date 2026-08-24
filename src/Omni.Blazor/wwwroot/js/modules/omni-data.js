@@ -90,6 +90,39 @@ const ns = {};
     document.addEventListener('pointercancel', cancel);
   };
 
+  // ─── DataGrid row keyboard navigation ────────────────────────────────
+  // Blazor's preventDefault modifier is static for an event handler. The
+  // grid must suppress only navigation keys (never Tab), so this small DOM
+  // listener owns that browser-specific detail while .NET owns selection.
+  ns.gridConfigureKeyboardNavigation = function (gridId, enabled) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    if (grid.__omniGridKeyboard) {
+      grid.removeEventListener('keydown', grid.__omniGridKeyboard);
+      delete grid.__omniGridKeyboard;
+    }
+    if (!enabled) return;
+
+    grid.__omniGridKeyboard = function (event) {
+      if (!event.target.closest('[data-omni-grid-row-index]')) return;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp'
+          || event.key === 'Home' || event.key === 'End' || event.key === ' ') {
+        event.preventDefault();
+      }
+    };
+    grid.addEventListener('keydown', grid.__omniGridKeyboard);
+  };
+
+  ns.gridFocusRow = function (gridId, rowIndex) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    const row = grid.querySelector('[data-omni-grid-row-index="' + rowIndex + '"]');
+    if (!row) return;
+    row.focus({ preventScroll: true });
+    row.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
+
   // ─── Gantt left-pane column resize ────────────────────────────────────
   // The pane (paneId) carries a CSS custom property per column (varName);
   // header AND body cells read it via var(), so updating the single property

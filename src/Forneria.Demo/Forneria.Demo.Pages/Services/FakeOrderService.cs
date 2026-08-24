@@ -33,8 +33,10 @@ public sealed class FakeOrderService
     {
         var rng = new Random(42);
         var baseTime = new DateTime(2026, 5, 21, 12, 0, 0, DateTimeKind.Utc);
-        _data = Enumerable.Range(1, 10_000)
-            .Select(i => new Order(
+        _data = new List<Order>(10_000);
+        for (int i = 1; i <= 10_000; i++)
+        {
+            _data.Add(new Order(
                 Numero: 100000 + i,
                 Cliente: _clientes[rng.Next(_clientes.Length)],
                 Canal: _canais[rng.Next(_canais.Length)],
@@ -42,8 +44,8 @@ public sealed class FakeOrderService
                 Total: Math.Round((decimal)(rng.NextDouble() * 280 + 18), 2),
                 Itens: rng.Next(1, 9),
                 QuandoUtc: baseTime.AddMinutes(-rng.Next(0, 60 * 24 * 90))
-            ))
-            .ToList();
+            ));
+        }
     }
 
     public int TotalCount => _data.Count;
@@ -70,12 +72,33 @@ public sealed class FakeOrderService
             .ToList();
     }
 
-    public async ValueTask<GridLoadResult<Order>> SearchAsync(
+    public ValueTask<GridLoadResult<Order>> SearchAsync(
         GridState<Order> state,
         CancellationToken cancellationToken)
     {
-        // Latência simulada — deixa o loading state visível
-        await Task.Delay(220, cancellationToken);
+        var request = new DelayedSearchRequest(this, state, cancellationToken);
+        var task = Task.Delay(220, cancellationToken).ContinueWith(
+            CompleteDelayedSearch,
+            request,
+            cancellationToken,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+
+        return new ValueTask<GridLoadResult<Order>>(task);
+    }
+
+    private static GridLoadResult<Order> CompleteDelayedSearch(Task delay, object? state)
+    {
+        delay.GetAwaiter().GetResult();
+        var request = (DelayedSearchRequest)state!;
+        return request.Service.Search(request.State, request.CancellationToken);
+    }
+
+    private GridLoadResult<Order> Search(
+        GridState<Order> state,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
 
         IEnumerable<Order> src = _data;
 
@@ -126,6 +149,16 @@ public sealed class FakeOrderService
         var page = materialized.Skip(state.Skip).Take(state.Top).ToList();
 
         return new GridLoadResult<Order>(page, total, Groups: null, Aggregates: aggregates);
+    }
+
+    private sealed class DelayedSearchRequest(
+        FakeOrderService service,
+        GridState<Order> state,
+        CancellationToken cancellationToken)
+    {
+        public FakeOrderService Service { get; } = service;
+        public GridState<Order> State { get; } = state;
+        public CancellationToken CancellationToken { get; } = cancellationToken;
     }
 
     private static Func<Order, object?> MakeKeySelector(string property) => property switch

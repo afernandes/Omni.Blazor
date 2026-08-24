@@ -1,0 +1,49 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+
+<ShowcaseSection Title="Master-detail (Row expand)"
+                 Description="Cada linha expande mostrando os itens do pedido. ExpandMode=Single fecha o anterior."
+                 Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory""
+       ExpandMode=""ExpandMode.Single""
+       DetailTemplate=""@RenderOrderDetail"">
+    <Columns>...</Columns>
+</OmniDataGrid>")">
+    <OmniDataGrid TItem="Order" Data="@_inMemory" AllowPaging PageSize="6"
+                  ExpandMode="ExpandMode.Single"
+                  DetailTemplate="@RenderOrderDetail">
+        <Columns>
+            <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(o => (object)o.Numero)" Width="120px">
+                <Template><span class="omni-mono">#@context.Numero</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(o => o.Cliente)" />
+            <OmniDataGridColumn TItem="Order" Title="Itens" Property="@(o => (object)o.Itens)" Width="80px">
+                <Template><span class="omni-mono">@context.Itens</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Total" Property="@(o => (object)o.Total)">
+                <Template><span class="omni-mono">@context.Total.ToString("C", PtBr)</span></Template>
+            </OmniDataGridColumn>
+        </Columns>
+    </OmniDataGrid>
+</ShowcaseSection>
+
+@code {
+    private List<Order> _inMemory = [];
+
+    protected override void OnInitialized() => _inMemory = CreateInMemoryOrders();
+
+    private RenderFragment<Order> RenderOrderDetail => order => __builder =>
+    {
+        var items = Orders.ItemsOf(order);
+        <div class="omni-stack omni-stack-8">
+            <div class="omni-mono omni-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
+                Pedido #@order.Numero · @order.Cliente · @order.Canal
+            </div>
+            <ul class="omni-stack omni-stack-4" style="padding-left: 1.25rem; margin: 0;">
+                @foreach (var item in items)
+                {
+                    <li class="omni-mono" style="font-size: 13px;">@item</li>
+                }
+            </ul>
+        </div>
+    };
+}

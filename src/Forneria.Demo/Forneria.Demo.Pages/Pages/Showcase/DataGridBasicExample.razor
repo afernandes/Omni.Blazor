@@ -1,0 +1,33 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+
+        <ShowcaseSection Title="Básico (in-memory)"
+                         Description="Pipeline client-side: sort em uma coluna, busca global, paginação de 6 em 6."
+                         Code="@(@"<OmniDataGrid TItem=""Order"" Data=""@_inMemory"" AllowSearch AllowPaging PageSize=""6"">
+    <Columns>
+        <OmniDataGridColumn TItem=""Order"" Title=""Cliente"" Property=""@(o => o.Cliente)"" />
+        <OmniDataGridColumn TItem=""Order"" Title=""Status"" Property=""@(o => o.Status)"" />
+    </Columns>
+</OmniDataGrid>")">
+            <OmniDataGrid TItem="Order" Data="@_inMemory" AllowSearch AllowPaging PageSize="6">
+                <Columns>
+                    <OmniDataGridColumn TItem="Order" Title="Pedido #" PropertyName="Numero" Property="@(o => (object)o.Numero)"
+                                        TextSelector="@(o => $"#{o.Numero}")" Width="120px" Monospace />
+                    <OmniDataGridColumn TItem="Order" Title="Cliente" PropertyName="Cliente" Property="@(o => o.Cliente)" />
+                    <OmniDataGridColumn TItem="Order" Title="Canal" PropertyName="Canal" Property="@(o => o.Canal)">
+                        <Template><OmniBadge Text="@context.Canal" Variant="BadgeVariant.Plain" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Status" PropertyName="Status" Property="@(o => o.Status)">
+                        <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+                    </OmniDataGridColumn>
+                    <OmniDataGridColumn TItem="Order" Title="Total" PropertyName="Total" Property="@(o => (object)o.Total)"
+                                        TextSelector="@(o => o.Total.ToString("C", PtBr))" Numeric />
+                </Columns>
+            </OmniDataGrid>
+        </ShowcaseSection>
+
+@code {
+    private List<Order> _inMemory = [];
+
+    protected override void OnInitialized() => _inMemory = CreateInMemoryOrders();
+}

@@ -1,0 +1,34 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+
+        <ShowcaseSection Title="FLUENT SCHEMA TIPADO"
+                         Description="Colunas e recursos estruturais ficam em um schema imutável, reutilizável também no OmniDataGridForm e no OmniEntityPicker. Expressões substituem nomes de propriedades em string."
+                         Code="@(@"private static readonly DataGridSchema<Order> GridSchema =
+    DataGridSchema<Order>.Create(grid => grid
+        .Key(order => order.Numero)
+        .Column(order => order.Cliente, column => column.Title(""Cliente"").Width(""220px""))
+        .Column(order => order.Status, column => column.Filterable())
+        .Column(order => order.Total, column => column.Title(""Total"").Format(""C2""))
+        .Search(placeholder: ""Buscar pedidos"")
+        .ColumnResize()
+        .Paging(6));
+
+<OmniDataGrid Data=""@orders"" Schema=""@GridSchema"" />")">
+            <OmniDataGrid TItem="Order" Data="@_inMemory" Schema="@_fluentGridSchema" />
+        </ShowcaseSection>
+
+@code {
+    private static readonly DataGridSchema<Order> _fluentGridSchema =
+        DataGridSchema<Order>.Create(grid => grid
+            .Key(order => order.Numero)
+            .Column(order => order.Cliente, column => column.Title("Cliente").Width("220px"))
+            .Column(order => order.Status, column => column.Filterable())
+            .Column(order => order.Total, column => column.Title("Total").Format("C2", PtBr))
+            .Search(placeholder: "Buscar pedidos")
+            .ColumnResize()
+            .Paging(6));
+
+    private List<Order> _inMemory = [];
+
+    protected override void OnInitialized() => _inMemory = CreateInMemoryOrders();
+}

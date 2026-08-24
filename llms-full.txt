@@ -339,10 +339,12 @@ Parameters:
 - `AllowColumnVisibility`: bool — Shows the column visibility menu in the toolbar.
 - `AllowExport`: bool — Shows an export action that streams the filtered dataset as a bounded CSV.
 - `AllowGrouping`: bool — Enables row grouping. Shows a drop panel above the grid; drag a column's grip there (column must be Groupable) — or call GroupByAsync — to group rows by that column. Multiple columns nest.
+- `AllowKeyboardNavigation`: bool — Enables opt-in ArrowUp/ArrowDown/Home/End navigation on flat, non-grouped and non-virtualized rows. Selection behavior is controlled by SelectionFollowsFocus. Default false.
 - `AllowMultiSelection`: bool — Habilita uma coluna de checkbox à esquerda para seleção múltipla.
 - `AllowPaging`: bool — Liga a paginação no rodapé. Default true. Ignorado quando Virtualize está ativo.
 - `AllowSearch`: bool — Mostra o campo de busca textual na toolbar. Default false.
 - `AllowSorting`: bool — Permite ordenar clicando no header das colunas Sortable. Default true.
+- `AriaLabel`: string — Optional accessible label for the flat data grid.
 - `AutoCollapseGroupsThreshold`: int — Acima de quantos grupos de primeiro nível o agrupamento nasce COLAPSADO. Default 100. Sem isso, o primeiro render depois de arrastar uma coluna é sempre o conjunto inteiro aberto — agrupar 200 mil linhas por dia significa achatar as 200 mil de uma vez só para o usuário fechar tudo em seguida. Valores <= 0 desligam o auto-colapso.
 - `Children`: Func<TItem, IEnumerable<TItem>> — Synchronous child selector that enables hierarchy mode for in-memory trees.
 - `ChildrenProvider`: HierarchyChildrenProvider<TItem> — Asynchronous, cancellable child source that enables lazy hierarchy mode.
@@ -386,9 +388,12 @@ Parameters:
 - `PersistKey`: string — Optional stable local-storage key for automatic view-state restore. Column PropertyName values must be unique and stable. Null disables browser persistence.
 - `RowClass`: Func<TItem, string> — Função opcional que retorna classes CSS extras por linha — útil para destacar linhas específicas (ex: "linha atual", "registro com pendência"). Aplicado em conjunto com as classes internas (selecionado, edição, etc.).
 - `RowHeight`: float — Altura fixa (px) por linha quando virtualize ativo. Default 44.
+- `RowSelectable`: Func<TItem, bool> — Optional predicate for single selection. Keyboard navigation skips rows that return false and exposes them as aria-disabled; row clicks still raise OnRowClick.
 - `Schema`: DataGridSchema<TItem> — Optional immutable typed schema. Schema columns are rendered before declarative Columns and its structural feature defaults take precedence while supplied.
 - `SearchPlaceholder`: string — Placeholder do campo de busca. Default "Buscar...".
+- `SelectedItem`: TItem — Single selected item used by keyboard navigation and row clicks.
 - `SelectedItems`: HashSet<TItem> — Itens selecionados. Quando setado pelo consumidor (via @bind-SelectedItems), o DataGrid usa essa referência diretamente.
+- `SelectionFollowsFocus`: bool — When true, moving keyboard focus with ArrowUp/ArrowDown/Home/End also changes SelectedItem. When false, Enter or Space commits the focused row, matching the Radzen-style interaction. Default true.
 - `ShowAggregateRow`: bool — Renderiza uma linha de agregação (<tfoot>) somando/contando/etc. colunas que definam Aggregate. Em modo server-side, valores vêm de Aggregates; client-side, calculados sobre o dataset filtrado completo (não só a página atual).
 - `ShowGroupFooters`: bool — Renders a per-group aggregate footer row (reuses each column's Aggregate). Requires aggregated columns.
 - `ViewState`: DataGridViewState — Controlled view preferences. Replace the record instance when changing it; row data, selection and hierarchy expansion are intentionally outside this state.
@@ -404,6 +409,7 @@ Events:
 - `OnRowCollapse`: EventCallback<TItem> — Emitido quando uma linha é colapsada.
 - `OnRowExpand`: EventCallback<TItem> — Emitido quando uma linha é expandida.
 - `RowUpdated`: EventCallback<TItem> — Fired when the user confirms an inline edit (clicks check). Use to persist changes.
+- `SelectedItemChanged`: EventCallback<TItem> — Raised when the keyboard or a row click changes SelectedItem.
 - `SelectedItemsChanged`: EventCallback<HashSet<TItem>> — Emitido quando a seleção muda. O argumento é o set atual.
 - `ViewStateChanged`: EventCallback<DataGridViewState> — Raised with a normalized snapshot after a user changes persisted view preferences.
 Slots:
@@ -3664,6 +3670,7 @@ _class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
 - `bool AllowColumnVisibility` — Whether column visibility can be customized.
 - `bool AllowExport` — Whether bounded CSV export is enabled.
 - `bool AllowGrouping` — Whether grouping is enabled.
+- `bool AllowKeyboardNavigation` — Whether flat, non-virtualized rows support keyboard navigation and single selection.
 - `bool AllowMultiSelection` — Whether multi-selection is enabled.
 - `bool AllowPaging` — Whether paging is enabled.
 - `bool AllowSearch` — Whether search is enabled.
@@ -3680,6 +3687,7 @@ _class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
 - `int PageSize` — Default page size.
 - `float RowHeight` — Fixed virtualized row height.
 - `string SearchPlaceholder` — Optional search placeholder.
+- `bool SelectionFollowsFocus` — Whether moving keyboard focus also changes the single selected item.
 - `bool Virtualize` — Whether row virtualization is enabled.
 
 ### DataGridSchemaBuilder<TItem>
@@ -3699,6 +3707,7 @@ _class · source: src/Omni.Blazor/Models/DataGridSchema.cs_
 - `DataGridSchemaBuilder<TItem> Hierarchy<TKey>(Expression<Func<TItem, TKey>> key, Func<TItem, IEnumerable<TItem>> children, Action<DataGridHierarchyBuilder<TItem>> configure)` — Enables an in-memory hierarchy with bounded flattening and caching defaults.
 - `DataGridSchemaBuilder<TItem> Include(DataGridSchema<TItem> schema)` — Includes columns and defaults from an immutable schema.
 - `DataGridSchemaBuilder<TItem> Key<TKey>(Expression<Func<TItem, TKey>> selector)` — Sets the stable key used by hierarchy and expansion state.
+- `DataGridSchemaBuilder<TItem> KeyboardNavigation(bool enabled, bool selectionFollowsFocus)` — Enables or disables keyboard navigation and configures whether selection follows focus or is committed explicitly with Enter or Space.
 - `DataGridSchemaBuilder<TItem> LazyHierarchy<TKey>(Expression<Func<TItem, TKey>> key, HierarchyChildrenProvider<TItem> provider, Action<DataGridHierarchyBuilder<TItem>> configure)` — Enables a cancellable lazy hierarchy with bounded concurrency and caches.
 - `DataGridSchemaBuilder<TItem> MultiSelection(bool enabled)` — Enables or disables multi-selection.
 - `DataGridSchemaBuilder<TItem> OverrideColumn<TValue>(Expression<Func<TItem, TValue>> property, Action<DataGridColumnBuilder<TItem, TValue>> configure)` — Replaces a previously included or declared column while preserving its position.

@@ -50,4 +50,30 @@ public sealed class DataGridInteropService
             receiver,
             columnTitle);
     }
+
+    /// <summary>Enables browser default suppression for the row-navigation keys.</summary>
+    public async ValueTask ConfigureKeyboardNavigationAsync(
+        string gridId,
+        bool enabled,
+        CancellationToken cancellationToken = default)
+    {
+        await _js.InvokeVoidAsync(
+            "gridConfigureKeyboardNavigation",
+            cancellationToken,
+            gridId,
+            enabled);
+    }
+
+    /// <summary>Moves DOM focus to one rendered grid row and keeps it visible.</summary>
+    public async ValueTask FocusRowAsync(
+        string gridId,
+        int rowIndex,
+        CancellationToken cancellationToken = default)
+    {
+        await _js.InvokeVoidAsync(
+            "gridFocusRow",
+            cancellationToken,
+            gridId,
+            rowIndex);
+    }
 }

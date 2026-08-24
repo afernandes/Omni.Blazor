@@ -12,7 +12,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Forneria.Demo.Pages\Forneria.Demo.Pages.csproj" />
+    <!-- Mono WebAssembly Debug aborts while resolving compiler-generated Razor metadata
+         across the 162-page route catalog. Keep the host debuggable, but compile the shared
+         page assembly with Release codegen; its portable PDB is still copied to the host. -->
+    <ProjectReference Include="..\Forneria.Demo.Pages\Forneria.Demo.Pages.csproj"
+                      AdditionalProperties="Configuration=Release" />
     <ProjectReference Include="..\..\Omni.Blazor\Omni.Blazor.csproj" />
   </ItemGroup>
 

@@ -32,7 +32,8 @@ public sealed class FluentSchemaIntegrationTests : TestContextBase
             .Column(product => product.Name, column => column.Title("Product").Width("220px"))
             .Column(product => product.Price, column => column.Title("Price").Format("C2"))
             .Search(placeholder: "Find products")
-            .ColumnResize());
+            .ColumnResize()
+            .KeyboardNavigation(selectionFollowsFocus: false));
 
         var cut = Render<OmniDataGrid<Product>>(parameters => parameters
             .Add(component => component.Schema, schema)
@@ -43,6 +44,8 @@ public sealed class FluentSchemaIntegrationTests : TestContextBase
         Assert.Contains("Keyboard", cut.Find("tbody").TextContent);
         Assert.Equal("Find products", cut.Find(".omni-grid-search input").GetAttribute("placeholder"));
         Assert.NotEmpty(cut.FindAll(".omni-grid-resizer"));
+        Assert.Equal("grid", cut.Find("table").GetAttribute("role"));
+        Assert.False(cut.Instance.SelectionFollowsFocus);
     }
 
     [Fact]

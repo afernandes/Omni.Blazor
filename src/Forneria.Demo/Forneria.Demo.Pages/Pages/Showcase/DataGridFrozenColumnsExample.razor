@@ -1,0 +1,39 @@
+@using Forneria.Demo.Pages.Services
+@inherits DataGridExamplesBase
+
+<ShowcaseSection Title="Frozen columns (sticky horizontal)"
+                 Description="Primeira coluna fixa à esquerda, última à direita. Scroll horizontal mantém ambas no lugar. Sombra no divisor marca o limite de cada lado."
+                 Code="@(@"<OmniDataGridColumn TItem=""Order"" Title=""Pedido #""
+             Width=""120px"" Frozen=""FrozenPosition.Left"" />
+<OmniDataGridColumn TItem=""Order"" Title=""Total""
+             Width=""160px"" Frozen=""FrozenPosition.Right"" />")">
+    <OmniDataGrid TItem="Order" Data="@_inMemory" AllowPaging PageSize="8">
+        <Columns>
+            <OmniDataGridColumn TItem="Order" Title="Pedido #" Property="@(order => (object)order.Numero)"
+                                 Width="120px" Frozen="FrozenPosition.Left">
+                <Template><span class="omni-mono">#@context.Numero</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Cliente" Property="@(order => order.Cliente)" Width="200px" />
+            <OmniDataGridColumn TItem="Order" Title="Canal" Property="@(order => order.Canal)" Width="160px" />
+            <OmniDataGridColumn TItem="Order" Title="Status" Property="@(order => order.Status)" Width="180px">
+                <Template><OmniBadge Text="@context.Status" Variant="@StatusVariant(context.Status)" /></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Itens" Property="@(order => (object)order.Itens)" Width="120px">
+                <Template><span class="omni-mono">@context.Itens</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Quando" Property="@(order => (object)order.QuandoUtc)" Width="200px">
+                <Template><span class="omni-mono">@context.QuandoUtc.ToString("dd/MM HH:mm")</span></Template>
+            </OmniDataGridColumn>
+            <OmniDataGridColumn TItem="Order" Title="Total" Property="@(order => (object)order.Total)"
+                                 Width="160px" Frozen="FrozenPosition.Right">
+                <Template><span class="omni-mono">@context.Total.ToString("C", PtBr)</span></Template>
+            </OmniDataGridColumn>
+        </Columns>
+    </OmniDataGrid>
+</ShowcaseSection>
+
+@code {
+    private List<Order> _inMemory = [];
+
+    protected override void OnInitialized() => _inMemory = CreateInMemoryOrders();
+}
