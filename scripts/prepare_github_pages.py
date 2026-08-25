@@ -32,7 +32,12 @@ def discover_routes(source_directories: list[Path]) -> set[str]:
     for directory in source_directories:
         directory = directory.resolve(strict=True)
         for razor in directory.rglob("*.razor"):
-            content = razor.read_text(encoding="utf-8")
+            # utf-8-sig, not utf-8: a byte-order mark survives a plain utf-8 read as
+            # U+FEFF, which is a format character rather than whitespace, so ``^\s*@page``
+            # stops matching and the route silently disappears from the static site. The
+            # page still works in the SPA and only 404s on a direct load or refresh, which
+            # is a miserable thing to debug -- one BOM cost us exactly that.
+            content = razor.read_text(encoding="utf-8-sig")
             routes.update(match.group("route") for match in PAGE_DIRECTIVE.finditer(content))
     return routes
 
