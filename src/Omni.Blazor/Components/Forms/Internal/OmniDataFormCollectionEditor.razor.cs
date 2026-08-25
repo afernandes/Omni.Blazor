@@ -297,7 +297,12 @@ public partial class OmniDataFormCollectionEditor<TModel, TCollection,
 
     private void ReleaseItems(IReadOnlyCollection<ItemRuntime> retained)
     {
-        foreach (ItemRuntime runtime in _items)
+        // Snapshot first. Dispose cancels _lifetime, which resumes any in-flight async
+        // validation; that continuation lands on a thread-pool thread and can re-sync
+        // _items while this loop is walking it, and List<T> throws on a modified
+        // collection. Unsubscribing from a runtime that has since been replaced is
+        // harmless — tearing down the whole component with an exception is not.
+        foreach (ItemRuntime runtime in _items.ToArray())
         {
             if (retained.Contains(runtime)) continue;
             runtime.Context.OnValidationStateChanged -= OnItemValidationStateChanged;
