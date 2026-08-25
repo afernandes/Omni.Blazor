@@ -37,6 +37,7 @@ public sealed class LocalizationBrowserTests(BrowserFixture fixture)
         await using IBrowserContext context = await fixture.CreateContextAsync();
         IPage page = await context.NewPageAsync();
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/localization");
+        await BrowserFixture.WaitForNavigationFocusAsync(page);
 
         ILocator selector = page.GetByTestId("global-culture-selector");
         await selector.Locator(".omni-select-trigger").ClickAsync();
