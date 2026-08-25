@@ -3647,9 +3647,6 @@ body.omni-grid-resizing * { cursor: col-resize !important; }
 .omni-grid-expand-btn:hover { background: var(--omni-bg-sunken); border-color: var(--omni-line); color: var(--omni-fg); }
 .omni-grid-expand-btn.omni-active { color: var(--omni-accent); }
 
-.omni-grid-row-selected td {
-  background: var(--omni-accent-softer, oklch(from var(--omni-accent) 0.96 0.02 h));
-}
 
 // Estados de destaque/alerta por linha — opt-in via RowClass callback
 .omni-grid-row-highlight td {
@@ -3741,7 +3738,7 @@ body.omni-grid-resizing * { cursor: col-resize !important; }
 }
 // Linhas em estado especial precisam dominar o background do frozen
 .omni-grid-row-selected td.omni-grid-frozen {
-  background: var(--omni-accent-softer, oklch(from var(--omni-accent) 0.96 0.02 h));
+  background: var(--omni-accent-soft);
 }
 .omni-grid-row-editing td.omni-grid-frozen {
   background: var(--omni-accent-softer, oklch(from var(--omni-accent) 0.96 0.02 h));
@@ -12292,4 +12289,51 @@ span.omni-citation { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .omni-culture-picker-item { animation: none; }
   .omni-culture-picker-caret { transition: none; }
+}
+
+/* ── DataGrid: selected row and keyboard cursor ───────────────────────────────
+   Two different things that were reading as one. Selection is a state the row
+   keeps; keyboard focus is where the cursor happens to be, and with
+   SelectionFollowsFocus=false the two can sit on different rows — so they need
+   different visual languages, the way a spreadsheet separates its cursor from
+   its highlighted range.
+
+   Selection = tinted fill + a rail on the leading edge (the vocabulary
+   omni-grid-row-highlight already uses). Focus = a ring that hugs the row.
+
+   The row is focusable, so without this it inherits the global :focus-visible
+   ring built for buttons: 6px radius and a 2px offset, which on a table row
+   floats a rounded box over its neighbours and breaks the grid's rhythm. */
+.omni-grid-table tbody tr[tabindex]:focus-visible {
+  /* Hugs the row rectangle instead of orbiting it: no offset, no radius. */
+  outline: 2px solid var(--omni-accent);
+  outline-offset: -2px;
+  border-radius: 0;
+  /* Lift above the sticky header's stacking context so the ring is never clipped. */
+  position: relative;
+  z-index: 1;
+}
+
+/* Selection is the louder of the two: it persists, focus does not. */
+.omni-grid-row-selected td {
+  background: var(--omni-accent-soft);
+}
+
+.omni-grid-row-selected td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--omni-accent);
+}
+
+[dir='rtl'] .omni-grid-row-selected td:first-child { box-shadow: none; }
+[dir='rtl'] .omni-grid-row-selected td:last-child {
+  box-shadow: inset -3px 0 0 0 var(--omni-accent);
+}
+
+/* Hover must not wash the selection out: a selected row deepens instead. */
+.omni-grid-table tbody tr.omni-grid-row-selected:hover td {
+  background: color-mix(in oklab, var(--omni-accent) 16%, transparent);
+}
+
+/* The rail belongs to the row, so a frozen first column keeps it. */
+.omni-grid-row-selected td.omni-grid-frozen:first-child {
+  box-shadow: inset 3px 0 0 0 var(--omni-accent);
 }
