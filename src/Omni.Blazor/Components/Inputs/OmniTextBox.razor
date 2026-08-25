@@ -115,10 +115,45 @@ else
                autocomplete="@Autocomplete"
                name="@Name"
                @oninput="OnInput"
+               @ref="_inputElement"
                @onkeydown="OnKeyDown"
                @onblur="OnBlur"
-               @attributes="@(HasGroupAffix ? null : Attributes)" />
+               @attributes="@InnerAttributes" />
     };
+
+    /// <summary>
+    /// Attributes for the &lt;input&gt; itself. Unmatched attributes land on the wrapper
+    /// once the field has an icon or a clear button, which puts them on the wrong node for
+    /// anything the input has to own — <c>role</c>, <c>aria-activedescendant</c>,
+    /// <c>inputmode</c>, <c>data-*</c> a script looks up. This always reaches the input.
+    /// </summary>
+    [Parameter] public IReadOnlyDictionary<string, object>? InputAttributes { get; set; }
+
+    // Without an affix the input is the root, so it keeps taking the unmatched attributes;
+    // InputAttributes is merged on top either way, and wins on a clash because it is the
+    // more specific of the two.
+    private IReadOnlyDictionary<string, object>? InnerAttributes
+    {
+        get
+        {
+            IReadOnlyDictionary<string, object>? splat = HasGroupAffix ? null : Attributes;
+            if (InputAttributes is null || InputAttributes.Count == 0) return splat;
+            if (splat is null || splat.Count == 0) return InputAttributes;
+
+            var merged = new Dictionary<string, object>(splat, StringComparer.Ordinal);
+            foreach (var pair in InputAttributes) merged[pair.Key] = pair.Value;
+            return merged;
+        }
+    }
+
+    private ElementReference _inputElement;
+
+    /// <summary>
+    /// Moves focus to the input. A consumer cannot reach it on its own once the field wraps
+    /// itself in an affix group, so opening a dialog on a text field had no way to put the
+    /// caret where the user is about to type.
+    /// </summary>
+    public ValueTask FocusAsync() => _inputElement.FocusAsync();
 
     private Task OnInput(ChangeEventArgs e) => SetValueAsync(e.Value?.ToString());
 

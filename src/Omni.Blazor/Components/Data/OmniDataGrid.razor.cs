@@ -184,6 +184,8 @@ public partial class OmniDataGrid<TItem>
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender && AutoFocusSearch && AllowSearch) await FocusSearchAsync();
+
         if (ChildrenProvider is not null && Volatile.Read(ref _disposeState) == 0)
             ObserveHierarchyTask(_hierarchy.LoadPendingExpandedAsync());
         await InitializeOrApplyViewStateAsync();

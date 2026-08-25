@@ -2599,14 +2599,14 @@ button.omni-select-load-more:disabled {
 .omni-data-form-collection-empty {
   padding: 16px;
   border: 1px dashed var(--omni-border);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   color: var(--omni-muted);
   text-align: center;
 }
 .omni-data-form-collection-item {
   padding: 14px;
   border: 1px solid var(--omni-border);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   background: var(--omni-bg-subtle);
 }
 .omni-data-form-collection-header {
@@ -2747,31 +2747,60 @@ button.omni-select-load-more:disabled {
   align-items: stretch;
   min-width: 0;
 }
+/* The trigger carries .omni-input, so its box, typography, hover, focus, disabled
+   and invalid states all come from the text field it is meant to resemble. Only
+   what a button needs on top of that lives here. */
+.omni-entity-picker-field { position: relative; }
+
 .omni-entity-picker-trigger {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  min-height: 38px;
-  padding: 7px 10px;
-  border: 1px solid var(--omni-line-strong);
-  border-radius: var(--omni-radius-md);
-  background: var(--omni-bg-elev);
-  color: var(--omni-fg);
-  font: inherit;
   text-align: start;
   cursor: pointer;
+  /* Room for the adornments that sit over the field's trailing edge. */
+  padding-inline-end: 38px;
 }
-.omni-entity-picker-trigger:focus-visible {
-  outline: 2px solid var(--omni-accent);
-  outline-offset: 2px;
+
+.omni-entity-picker-trigger:disabled { cursor: not-allowed; }
+
+/* Widen the gutter when a clear button joins the search affordance. */
+.omni-entity-picker-field:has(.omni-entity-picker-clear) .omni-entity-picker-trigger {
+  padding-inline-end: 66px;
 }
-.omni-entity-picker.omni-invalid .omni-entity-picker-trigger { border-color: var(--omni-danger); }
-.omni-entity-picker-trigger:disabled { cursor: not-allowed; opacity: .6; }
+
+.omni-entity-picker-adornments {
+  position: absolute;
+  inset-inline-end: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--omni-fg-soft);
+  /* The search mark is decoration over a button: let clicks fall through to the
+     trigger, and re-enable them only on the clear, which is a control. */
+  pointer-events: none;
+}
+
+.omni-entity-picker-clear {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--omni-fg-soft);
+  cursor: pointer;
+  transition: background 100ms, color 100ms;
+}
+.omni-entity-picker-clear:hover:not(:disabled) { background: var(--omni-bg-sunken); color: var(--omni-fg); }
+.omni-entity-picker-clear:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 1px; }
+.omni-entity-picker-clear:disabled { cursor: not-allowed; opacity: .5; }
+
 .omni-entity-picker-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.omni-entity-picker-placeholder { color: var(--omni-fg-muted); }
-.omni-entity-picker-clear { flex: 0 0 auto; margin-inline-start: 4px; }
+.omni-entity-picker-placeholder { color: var(--omni-fg-soft); }
 .omni-entity-picker-error {
   position: absolute;
   inset-block-start: calc(100% + 4px);
@@ -2957,13 +2986,13 @@ button.omni-select-load-more:disabled {
   min-height: 36px;
   padding: 6px 9px;
   border: 1px solid var(--omni-line-strong);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   background: var(--omni-bg-elev);
   color: var(--omni-fg);
   font: inherit;
 }
 .omni-data-import-mapping select:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 2px; }
-.omni-data-import-preview { max-width: 100%; overflow: auto; border: 1px solid var(--omni-line); border-radius: var(--omni-radius-md); }
+.omni-data-import-preview { max-width: 100%; overflow: auto; border: 1px solid var(--omni-line); border-radius: var(--omni-radius); }
 .omni-data-import-preview:focus-visible { outline: 2px solid var(--omni-accent); outline-offset: 2px; }
 .omni-data-import-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .omni-data-import-preview th,
@@ -3008,7 +3037,7 @@ button.omni-select-load-more:disabled {
   margin-bottom: 16px;
   padding: 10px 12px;
   border: 1px dashed var(--omni-warning);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   color: var(--omni-fg-muted);
   font-size: 12px;
 }
@@ -12336,4 +12365,21 @@ span.omni-citation { cursor: default; }
 /* The rail belongs to the row, so a frozen first column keeps it. */
 .omni-grid-row-selected td.omni-grid-frozen:first-child {
   box-shadow: inset 3px 0 0 0 var(--omni-accent);
+}
+
+/* ── DataGrid: search-driven row cursor ───────────────────────────────────────
+   In combobox mode the row under the cursor never holds DOM focus — focus stays
+   in the search box so typing keeps filtering — so it cannot rely on the focus
+   ring. It reuses the keyboard cursor's language instead: a ring hugging the
+   row, no radius, drawn inside its own rectangle. */
+.omni-grid-table tbody tr[data-omni-grid-cursor='true'] {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: -2px;
+  border-radius: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.omni-grid-table tbody tr[data-omni-grid-cursor='true'] td {
+  background: var(--omni-accent-softer);
 }

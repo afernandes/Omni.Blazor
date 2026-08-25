@@ -55,6 +55,16 @@ class PrepareGitHubPagesTests(unittest.TestCase):
                 {"/", "/showcase/get-started", "/showcase/start"}, discover_routes([source])
             )
 
+    def test_discover_routes_survives_a_byte_order_mark(self) -> None:
+        """A BOM used to hide the route, so the page 404'd on direct load only."""
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            (source / "Bom.razor").write_text(
+                '@page "/showcase/entity-picker"\n<h1>hi</h1>', encoding="utf-8-sig"
+            )
+
+            self.assertEqual({"/showcase/entity-picker"}, discover_routes([source]))
+
     def test_prepare_pre_renders_static_routes_so_deep_links_answer_200(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

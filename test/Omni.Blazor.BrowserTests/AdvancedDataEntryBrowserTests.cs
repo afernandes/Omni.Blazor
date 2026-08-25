@@ -123,7 +123,15 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
             new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
         ILocator scope = page.GetByTestId("entity-picker-local");
 
-        await scope.GetByRole(AriaRole.Button, new() { Name = "Café Aurora — Campinas" }).ClickAsync();
+        // The trigger is a combobox, so the <label for> names it and the selected entity
+        // is its value. Asserting both is the point: when this was a plain button the
+        // label won the accessible name outright and the selection stopped being
+        // announced at all, which no screenshot would have shown.
+        // Exact, because role-name matching is a substring match and the grid's own search
+        // box is a combobox too — "Fornecedor" would also match "Buscar fornecedor".
+        ILocator trigger = scope.GetByRole(AriaRole.Combobox, new() { Name = "Fornecedor", Exact = true });
+        await Assertions.Expect(trigger).ToHaveTextAsync("Café Aurora — Campinas");
+        await trigger.ClickAsync();
         ILocator dialog = scope.GetByRole(AriaRole.Dialog, new() { Name = "Selecionar fornecedor" });
         await dialog.WaitForAsync();
         AssertNoAxeViolations(await dialog.RunAxe());
@@ -131,7 +139,7 @@ public sealed class AdvancedDataEntryBrowserTests(BrowserFixture fixture)
             .Filter(new LocatorFilterOptions { HasTextString = "Padaria Central" })
             .ClickAsync();
 
-        await scope.GetByRole(AriaRole.Button, new() { Name = "Padaria Central — São Paulo" }).WaitForAsync();
+        await Assertions.Expect(trigger).ToHaveTextAsync("Padaria Central — São Paulo");
         Assert.Contains("41000000-0000-0000-0000-000000000002", await scope.TextContentAsync());
         Assert.Empty(errors);
     }

@@ -30,8 +30,9 @@
                          Description="A entidade é encontrada sem I/O e o binding recebe somente o Guid do fornecedor."
                          Code="@LocalExample">
             <div data-testid="entity-picker-local" style="max-width:560px;">
-                <OmniLabel Text="Fornecedor" />
+                <OmniLabel Text="Fornecedor" For="picker-fornecedor" />
                 <OmniEntityPicker TItem="Fornecedor" TKey="Guid"
+                                  InputId="picker-fornecedor"
                                   Items="@_fornecedores"
                                   GridSchema="@FornecedorGridSchema"
                                   KeySelector="@(fornecedor => fornecedor.Id)"
@@ -47,8 +48,9 @@
                          Description="DataProvider pagina e pesquisa; ResolveItem recupera a entidade quando o formulário recebe somente uma chave. Ambos recebem CancellationToken."
                          Code="@ProviderExample">
             <div data-testid="entity-picker-provider" style="max-width:620px;">
-                <OmniLabel Text="Produto" />
+                <OmniLabel Text="Produto" For="picker-produto" />
                 <OmniEntityPicker TItem="Produto" TKey="int"
+                                  InputId="picker-produto"
                                   DataProvider="@BuscarProdutosAsync"
                                   ResolveItem="@ResolverProdutoAsync"
                                   KeySelector="@(produto => produto.Id)"

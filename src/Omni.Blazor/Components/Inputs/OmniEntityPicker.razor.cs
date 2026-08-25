@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Omni.Blazor.Models;
 using Omni.Blazor.Utilities;
 
@@ -139,12 +140,46 @@ public partial class OmniEntityPicker<TItem, TKey>
         return Task.CompletedTask;
     }
 
+    // Enter and Space already reach OpenAsync as a native button activation; the arrows
+    // are what a combobox adds, and they are the keys a user reaches for when the field
+    // looks like a picker. Everything else falls through untouched.
+    private Task OnTriggerKeyDownAsync(KeyboardEventArgs args) => args.Key switch
+    {
+        "ArrowDown" or "ArrowUp" => OpenAsync(),
+        _ => Task.CompletedTask
+    };
+
     /// <summary>Closes the selection surface.</summary>
     public Task CloseAsync()
     {
+        bool wasOpen = _open;
         _open = false;
+        // A dialog that closes without handing focus back leaves a keyboard user standing
+        // wherever the DOM happens to collapse to — here it was the page title.
+        if (wasOpen) _restoreFocus = true;
         return Task.CompletedTask;
     }
+
+    private bool _restoreFocus;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (!_restoreFocus) return;
+
+        _restoreFocus = false;
+        try
+        {
+            await _triggerElement.FocusAsync();
+        }
+        catch
+        {
+            // The trigger can be gone if the picker was removed while closing.
+        }
+    }
+
+    private ElementReference _triggerElement;
 
     protected override void OnParametersSet()
     {
@@ -285,7 +320,7 @@ public partial class OmniEntityPicker<TItem, TKey>
         CancelResolveOperation();
         await SetValueAsync(key);
         if (SelectedItemChanged.HasDelegate) await SelectedItemChanged.InvokeAsync(item);
-        _open = false;
+        await CloseAsync();
     }
 
     private async Task ClearAsync()
@@ -311,6 +346,20 @@ public partial class OmniEntityPicker<TItem, TKey>
     private string DisplayText => _selectedItem is null
         ? Placeholder ?? Texts.EntityPickerPlaceholder
         : TextSelector(_selectedItem) ?? string.Empty;
+    // The trigger wears .omni-input so it inherits the text field's box, focus ring,
+    // hover, disabled and invalid states rather than maintaining a near-copy that
+    // drifts — it looks like a text box because it is styled as one.
+    private string TriggerCss => CssBuilder.Default("omni-input")
+        .AddClass("omni-entity-picker-trigger")
+        .AddClass("omni-invalid", IsInvalid)
+        .Build();
+
+    // A label can only point at an id that exists. InputId is null unless the consumer
+    // sets one, so fall back to the component's own generated id.
+    private string TriggerId => InputId ?? Id;
+
+    private string ErrorId => $"{TriggerId}-error";
+
     private string DisplayCss => CssBuilder.Default("omni-entity-picker-text")
         .AddClass("omni-entity-picker-placeholder", _selectedItem is null)
         .Build();
@@ -326,6 +375,7 @@ public partial class OmniEntityPicker<TItem, TKey>
         ? $"width:min({Width}, 100vw)"
         : $"width:min({Width}, calc(100vw - 24px))";
     private string TitleId => $"{Id}-title";
+    private string PanelId => $"{Id}-panel";
     private Func<TItem, object?> GridKeySelector => _gridKeySelector;
 
     private void CancelResolveOperation()

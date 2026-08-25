@@ -11,7 +11,7 @@ public sealed class DataGridBrowserTests(BrowserFixture fixture)
     public async Task Flat_grid_moves_selection_and_dom_focus_with_arrow_keys_without_trapping_tab()
     {
         await using IBrowserContext context = await fixture.CreateContextAsync();
-        IPage page = await context.NewPageAsync();
+        IPage page = await BrowserFixture.NewPageAsync(context);
         List<string> errors = [];
         CaptureRuntimeErrors(page, errors);
 
@@ -19,6 +19,10 @@ public sealed class DataGridBrowserTests(BrowserFixture fixture)
         ILocator demo = page.GetByTestId("datagrid-keyboard-navigation");
         await demo.WaitForAsync();
         await Assertions.Expect(page.Locator(".omni-grid[aria-busy=\"true\"]")).ToHaveCountAsync(0);
+        // FocusOnNavigate lands on the <h1> after all of the above is already true. Focus a
+        // row before it fires and the heading takes the focus back, taking the arrow key
+        // with it — the grid never sees the press and the row never moves.
+        await BrowserFixture.WaitForNavigationFocusAsync(page);
 
         ILocator grids = demo.Locator("table[role=grid]");
         Assert.Equal(2, await grids.CountAsync());
@@ -52,7 +56,7 @@ public sealed class DataGridBrowserTests(BrowserFixture fixture)
     public async Task Explicit_keyboard_selection_keeps_focus_and_selection_separate_until_enter()
     {
         await using IBrowserContext context = await fixture.CreateContextAsync();
-        IPage page = await context.NewPageAsync();
+        IPage page = await BrowserFixture.NewPageAsync(context);
         List<string> errors = [];
         CaptureRuntimeErrors(page, errors);
 
@@ -60,6 +64,7 @@ public sealed class DataGridBrowserTests(BrowserFixture fixture)
         ILocator demo = page.GetByTestId("datagrid-keyboard-navigation");
         await demo.WaitForAsync();
         await Assertions.Expect(page.Locator(".omni-grid[aria-busy=\"true\"]")).ToHaveCountAsync(0);
+        await BrowserFixture.WaitForNavigationFocusAsync(page);
 
         ILocator grid = demo.Locator("table[role=grid]").Nth(1);
         ILocator rows = grid.Locator("tbody tr[data-omni-grid-row-index]");
@@ -86,7 +91,7 @@ public sealed class DataGridBrowserTests(BrowserFixture fixture)
     public async Task Direct_route_survives_delayed_provider_and_a_second_interactive_render()
     {
         await using IBrowserContext context = await fixture.CreateContextAsync();
-        IPage page = await context.NewPageAsync();
+        IPage page = await BrowserFixture.NewPageAsync(context);
         List<string> errors = [];
         CaptureRuntimeErrors(page, errors);
 
@@ -94,6 +99,7 @@ public sealed class DataGridBrowserTests(BrowserFixture fixture)
         await page.GetByRole(AriaRole.Heading, new() { Name = "OmniDataGrid", Exact = true }).WaitForAsync();
         ILocator busyGrids = page.Locator(".omni-grid[aria-busy=\"true\"]");
         await Assertions.Expect(busyGrids).ToHaveCountAsync(0);
+        await BrowserFixture.WaitForNavigationFocusAsync(page);
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Ver código", Exact = true }).First.ClickAsync();
         await page.GetByRole(AriaRole.Button, new() { Name = "Ocultar código", Exact = true }).First.WaitForAsync();
