@@ -1,4 +1,4 @@
-﻿using Bunit;
+using Bunit;
 using Microsoft.AspNetCore.Components.Web;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
@@ -125,6 +125,46 @@ public sealed class OmniEntityPickerTests : TestContextBase
         var cut = RenderLocal(1);
 
         Assert.False(string.IsNullOrEmpty(cut.Find("button.omni-entity-picker-trigger").Id));
+    }
+
+    [Fact]
+    public void Trigger_is_a_combobox_so_the_label_does_not_swallow_the_selection()
+    {
+        // Giving the trigger an id made it labelable, and a <label for> outranks element
+        // content in the accessible name calculation — so the field announced itself as
+        // "Fornecedor" and the selected entity vanished from the accessibility tree.
+        // role=combobox has a value separate from its name, and that value is the
+        // content, so the label names the field and the selection is still announced.
+        var cut = RenderLocal(1);
+
+        var trigger = cut.Find("button.omni-entity-picker-trigger");
+        Assert.Equal("combobox", trigger.GetAttribute("role"));
+        Assert.Equal("dialog", trigger.GetAttribute("aria-haspopup"));
+        Assert.Contains("Café", trigger.TextContent);
+    }
+
+    [Fact]
+    public void Open_combobox_points_aria_controls_at_the_panel_it_opened()
+    {
+        var cut = RenderLocal(1);
+
+        cut.Find("button.omni-entity-picker-trigger").Click();
+
+        var trigger = cut.Find("button.omni-entity-picker-trigger");
+        string? controls = trigger.GetAttribute("aria-controls");
+        Assert.False(string.IsNullOrEmpty(controls));
+        Assert.Equal("true", trigger.GetAttribute("aria-expanded"));
+        Assert.NotNull(cut.Find($"#{controls}"));
+    }
+
+    [Fact]
+    public void Arrow_keys_open_the_picker_the_way_a_combobox_does()
+    {
+        var cut = RenderLocal(1);
+
+        cut.Find("button.omni-entity-picker-trigger").KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
+
+        Assert.Equal("true", cut.Find("button.omni-entity-picker-trigger").GetAttribute("aria-expanded"));
     }
 
     [Fact]

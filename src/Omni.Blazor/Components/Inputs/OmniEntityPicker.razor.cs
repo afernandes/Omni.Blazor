@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Omni.Blazor.Models;
 using Omni.Blazor.Utilities;
 
@@ -138,6 +139,15 @@ public partial class OmniEntityPicker<TItem, TKey>
         if (!Disabled && !ReadOnly) _open = true;
         return Task.CompletedTask;
     }
+
+    // Enter and Space already reach OpenAsync as a native button activation; the arrows
+    // are what a combobox adds, and they are the keys a user reaches for when the field
+    // looks like a picker. Everything else falls through untouched.
+    private Task OnTriggerKeyDownAsync(KeyboardEventArgs args) => args.Key switch
+    {
+        "ArrowDown" or "ArrowUp" => OpenAsync(),
+        _ => Task.CompletedTask
+    };
 
     /// <summary>Closes the selection surface.</summary>
     public Task CloseAsync()
@@ -365,6 +375,7 @@ public partial class OmniEntityPicker<TItem, TKey>
         ? $"width:min({Width}, 100vw)"
         : $"width:min({Width}, calc(100vw - 24px))";
     private string TitleId => $"{Id}-title";
+    private string PanelId => $"{Id}-panel";
     private Func<TItem, object?> GridKeySelector => _gridKeySelector;
 
     private void CancelResolveOperation()

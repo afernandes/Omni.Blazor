@@ -1,4 +1,4 @@
-﻿@namespace Omni.Blazor.Components
+@namespace Omni.Blazor.Components
 @typeparam TItem where TItem : class
 @typeparam TKey where TKey : notnull
 @inherits FormComponent<TKey>
@@ -13,16 +13,25 @@
      aria-busy="@_resolving"
      @attributes="Attributes">
     <div class="omni-entity-picker-field">
+        @* role=combobox, not the implicit button: a <label for> wins the accessible name
+           over element content, so once the trigger became labelable the selected entity
+           stopped being announced — the field read out as "Fornecedor, button" and the
+           user never heard what was in it. A combobox has a value distinct from its name,
+           and that value is its text content, so the label names the field and the
+           selection is announced after it. This is the APG select-only combobox. *@
         <button @ref="_triggerElement"
                 id="@TriggerId"
                 type="button"
+                role="combobox"
                 class="@TriggerCss"
                 disabled="@(Disabled || ReadOnly)"
                 aria-haspopup="dialog"
                 aria-expanded="@(_open ? "true" : "false")"
+                aria-controls="@(_open ? PanelId : null)"
                 aria-invalid="@IsInvalid"
                 aria-describedby="@(_resolveError is not null ? ErrorId : null)"
-                @onclick="OpenAsync">
+                @onclick="OpenAsync"
+                @onkeydown="OnTriggerKeyDownAsync">
             <span class="@DisplayCss">@DisplayText</span>
         </button>
         @* Adornments sit over the trigger rather than inside it: a button cannot
@@ -62,7 +71,8 @@
                  AutoClose="false"
                  CloseOnEsc="true"
                  OnClosed="CloseAsync">
-        <section class="@PanelCss"
+        <section id="@PanelId"
+                 class="@PanelCss"
                  style="@PanelStyle"
                  role="dialog"
                  aria-modal="true"
