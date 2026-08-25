@@ -1,4 +1,4 @@
-@namespace Omni.Blazor.Components
+﻿@namespace Omni.Blazor.Components
 @typeparam TItem where TItem : class
 @typeparam TKey where TKey : notnull
 @inherits FormComponent<TKey>
@@ -12,37 +12,46 @@
      style="@Style"
      aria-busy="@_resolving"
      @attributes="Attributes">
-    <button id="@InputId"
-            type="button"
-            class="omni-entity-picker-trigger"
-            disabled="@(Disabled || ReadOnly)"
-            aria-haspopup="dialog"
-            aria-expanded="@(_open ? "true" : "false")"
-            aria-invalid="@IsInvalid"
-            @onclick="OpenAsync">
-        <span class="@DisplayCss">@DisplayText</span>
-        @if (_resolving)
-        {
-            <OmniSpinner Size="ComponentSize.Sm" />
-        }
-        else
-        {
-            <OmniIcon Name="search" Size="ComponentSize.Sm" />
-        }
-    </button>
-    @if (AllowClear && HasSelection)
-    {
-        <OmniButton Class="omni-entity-picker-clear"
-                    Text="@(ClearText ?? Texts.Clear)"
-                    Icon="x"
-                    Size="ComponentSize.Sm"
-                    Variant="ButtonVariant.Ghost"
-                    Disabled="@(Disabled || ReadOnly)"
-                    OnClick="@(_ => ClearAsync())" />
-    }
+    <div class="omni-entity-picker-field">
+        <button id="@TriggerId"
+                type="button"
+                class="@TriggerCss"
+                disabled="@(Disabled || ReadOnly)"
+                aria-haspopup="dialog"
+                aria-expanded="@(_open ? "true" : "false")"
+                aria-invalid="@IsInvalid"
+                aria-describedby="@(_resolveError is not null ? ErrorId : null)"
+                @onclick="OpenAsync">
+            <span class="@DisplayCss">@DisplayText</span>
+        </button>
+        @* Adornments sit over the trigger rather than inside it: a button cannot
+           nest a button, which is why the clear used to be stranded outside the
+           field altogether. *@
+        <span class="omni-entity-picker-adornments">
+            @if (AllowClear && HasSelection)
+            {
+                <button type="button"
+                        class="omni-entity-picker-clear"
+                        disabled="@(Disabled || ReadOnly)"
+                        aria-label="@(ClearText ?? Texts.Clear)"
+                        title="@(ClearText ?? Texts.Clear)"
+                        @onclick="@(_ => ClearAsync())">
+                    <OmniIcon Name="x" Size="ComponentSize.Sm" />
+                </button>
+            }
+            @if (_resolving)
+            {
+                <OmniSpinner Size="ComponentSize.Sm" />
+            }
+            else
+            {
+                <OmniIcon Name="search" Size="ComponentSize.Sm" Class="omni-entity-picker-search" />
+            }
+        </span>
+    </div>
     @if (_resolveError is not null)
     {
-        <div class="omni-entity-picker-error" role="alert">@_resolveError.Message</div>
+        <div id="@ErrorId" class="omni-entity-picker-error" role="alert">@_resolveError.Message</div>
     }
 </div>
 

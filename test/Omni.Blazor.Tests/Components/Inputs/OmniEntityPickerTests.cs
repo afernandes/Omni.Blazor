@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
 
@@ -21,6 +21,57 @@ public sealed class OmniEntityPickerTests : TestContextBase
             .Add(component => component.KeySelector, produto => produto.Id)
             .Add(component => component.TextSelector, produto => produto.Nome)
             .Add(component => component.Value, value));
+
+    [Fact]
+    public void Trigger_wears_the_text_field_contract()
+    {
+        // The control reads as a text box, so it has to be styled as one rather than
+        // approximating it: .omni-input is what carries the box, focus ring, hover,
+        // disabled and invalid states, and it cannot drift from OmniTextBox while shared.
+        var cut = RenderLocal(1);
+
+        var trigger = cut.Find("button.omni-entity-picker-trigger");
+        Assert.Contains("omni-input", trigger.ClassList);
+    }
+
+    [Fact]
+    public void Trigger_always_has_an_id_a_label_can_point_at()
+    {
+        // InputId is null unless the consumer sets one; without a fallback there is no
+        // id for <OmniLabel For="..."> to reference, and the field goes unlabelled.
+        var cut = RenderLocal(1);
+
+        Assert.False(string.IsNullOrEmpty(cut.Find("button.omni-entity-picker-trigger").Id));
+    }
+
+    [Fact]
+    public void Consumer_supplied_InputId_wins_over_the_generated_one()
+    {
+        var cut = Render<OmniEntityPicker<Produto, int>>(parameters => parameters
+            .Add(component => component.Items, Produtos)
+            .Add(component => component.KeySelector, produto => produto.Id)
+            .Add(component => component.TextSelector, produto => produto.Nome)
+            .Add(component => component.Value, 1)
+            .Add(component => component.InputId, "meu-picker"));
+
+        Assert.Equal("meu-picker", cut.Find("button.omni-entity-picker-trigger").Id);
+    }
+
+    [Fact]
+    public void Clear_sits_inside_the_field_and_carries_an_accessible_name()
+    {
+        // It used to be a labelled button stranded outside the box. Inside the field it
+        // is icon-only, so the name has to come from aria-label.
+        var cut = Render<OmniEntityPicker<Produto, int>>(parameters => parameters
+            .Add(component => component.Items, Produtos)
+            .Add(component => component.KeySelector, produto => produto.Id)
+            .Add(component => component.TextSelector, produto => produto.Nome)
+            .Add(component => component.Value, 1)
+            .Add(component => component.AllowClear, true));
+
+        var clear = cut.Find(".omni-entity-picker-field .omni-entity-picker-clear");
+        Assert.False(string.IsNullOrWhiteSpace(clear.GetAttribute("aria-label")));
+    }
 
     [Fact]
     public void Renders_common_surface_and_resolves_a_local_value_without_opening()

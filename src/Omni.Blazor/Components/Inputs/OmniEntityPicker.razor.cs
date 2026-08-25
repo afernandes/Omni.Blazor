@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Omni.Blazor.Models;
 using Omni.Blazor.Utilities;
 
@@ -311,6 +311,20 @@ public partial class OmniEntityPicker<TItem, TKey>
     private string DisplayText => _selectedItem is null
         ? Placeholder ?? Texts.EntityPickerPlaceholder
         : TextSelector(_selectedItem) ?? string.Empty;
+    // The trigger wears .omni-input so it inherits the text field's box, focus ring,
+    // hover, disabled and invalid states rather than maintaining a near-copy that
+    // drifts — it looks like a text box because it is styled as one.
+    private string TriggerCss => CssBuilder.Default("omni-input")
+        .AddClass("omni-entity-picker-trigger")
+        .AddClass("omni-invalid", IsInvalid)
+        .Build();
+
+    // A label can only point at an id that exists. InputId is null unless the consumer
+    // sets one, so fall back to the component's own generated id.
+    private string TriggerId => InputId ?? Id;
+
+    private string ErrorId => $"{TriggerId}-error";
+
     private string DisplayCss => CssBuilder.Default("omni-entity-picker-text")
         .AddClass("omni-entity-picker-placeholder", _selectedItem is null)
         .Build();

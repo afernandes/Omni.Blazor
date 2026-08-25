@@ -4569,7 +4569,7 @@ button.omni-select-load-more:disabled {
 .omni-data-form-collection-empty {
   padding: 16px;
   border: 1px dashed var(--omni-border);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   color: var(--omni-muted);
   text-align: center;
 }
@@ -4577,7 +4577,7 @@ button.omni-select-load-more:disabled {
 .omni-data-form-collection-item {
   padding: 14px;
   border: 1px solid var(--omni-border);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   background: var(--omni-bg-subtle);
 }
 
@@ -4791,35 +4791,72 @@ button.omni-select-load-more:disabled {
   min-width: 0;
 }
 
+/* The trigger carries .omni-input, so its box, typography, hover, focus, disabled
+   and invalid states all come from the text field it is meant to resemble. Only
+   what a button needs on top of that lives here. */
+.omni-entity-picker-field {
+  position: relative;
+}
+
 .omni-entity-picker-trigger {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  min-height: 38px;
-  padding: 7px 10px;
-  border: 1px solid var(--omni-line-strong);
-  border-radius: var(--omni-radius-md);
-  background: var(--omni-bg-elev);
-  color: var(--omni-fg);
-  font: inherit;
   text-align: start;
   cursor: pointer;
-}
-
-.omni-entity-picker-trigger:focus-visible {
-  outline: 2px solid var(--omni-accent);
-  outline-offset: 2px;
-}
-
-.omni-entity-picker.omni-invalid .omni-entity-picker-trigger {
-  border-color: var(--omni-danger);
+  /* Room for the adornments that sit over the field's trailing edge. */
+  padding-inline-end: 38px;
 }
 
 .omni-entity-picker-trigger:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+}
+
+/* Widen the gutter when a clear button joins the search affordance. */
+.omni-entity-picker-field:has(.omni-entity-picker-clear) .omni-entity-picker-trigger {
+  padding-inline-end: 66px;
+}
+
+.omni-entity-picker-adornments {
+  position: absolute;
+  inset-inline-end: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--omni-fg-soft);
+  /* The search mark is decoration over a button: let clicks fall through to the
+     trigger, and re-enable them only on the clear, which is a control. */
+  pointer-events: none;
+}
+
+.omni-entity-picker-clear {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--omni-fg-soft);
+  cursor: pointer;
+  transition: background 100ms, color 100ms;
+}
+
+.omni-entity-picker-clear:hover:not(:disabled) {
+  background: var(--omni-bg-sunken);
+  color: var(--omni-fg);
+}
+
+.omni-entity-picker-clear:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 1px;
+}
+
+.omni-entity-picker-clear:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .omni-entity-picker-text {
@@ -4830,12 +4867,7 @@ button.omni-select-load-more:disabled {
 }
 
 .omni-entity-picker-placeholder {
-  color: var(--omni-fg-muted);
-}
-
-.omni-entity-picker-clear {
-  flex: 0 0 auto;
-  margin-inline-start: 4px;
+  color: var(--omni-fg-soft);
 }
 
 .omni-entity-picker-error {
@@ -5160,7 +5192,7 @@ button.omni-select-load-more:disabled {
   min-height: 36px;
   padding: 6px 9px;
   border: 1px solid var(--omni-line-strong);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   background: var(--omni-bg-elev);
   color: var(--omni-fg);
   font: inherit;
@@ -5175,7 +5207,7 @@ button.omni-select-load-more:disabled {
   max-width: 100%;
   overflow: auto;
   border: 1px solid var(--omni-line);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
 }
 
 .omni-data-import-preview:focus-visible {
@@ -5298,7 +5330,7 @@ button.omni-select-load-more:disabled {
   margin-bottom: 16px;
   padding: 10px 12px;
   border: 1px dashed var(--omni-warning);
-  border-radius: var(--omni-radius-md);
+  border-radius: var(--omni-radius);
   color: var(--omni-fg-muted);
   font-size: 12px;
 }
