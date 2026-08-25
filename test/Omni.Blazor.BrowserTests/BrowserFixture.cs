@@ -129,7 +129,61 @@ public sealed class BrowserFixture : IAsyncLifetime
             Locale = "pt-BR"
         });
         context.SetDefaultTimeout(15_000);
+        await context.AddInitScriptAsync(NavigationFocusRecorder);
         return context;
+    }
+
+    /// <summary>
+    /// Records that the framework's post-navigation focus has happened.
+    ///
+    /// Routes.razor carries the template's &lt;FocusOnNavigate Selector="h1" /&gt;, which
+    /// moves focus to the page heading — and it runs on the interactive render, which is
+    /// later than every readiness signal a test can see: the DOM is complete, the data is
+    /// right and aria-busy has already cleared. Anything focused before that point loses
+    /// focus to the heading without warning, and a key pressed on it is delivered to the
+    /// heading instead. Runs as an init script so the listener is installed before any
+    /// page script, and re-runs on each navigation so the flag tracks the current page.
+    /// </summary>
+    private const string NavigationFocusRecorder =
+        """
+        window.__omniNavigationFocusLanded = false;
+        window.addEventListener(
+            'focusin',
+            event => {
+                if (event.target?.tagName === 'H1') window.__omniNavigationFocusLanded = true;
+            },
+            true);
+        """;
+
+    /// <summary>
+    /// Waits until <c>FocusOnNavigate</c> has moved focus to the page heading. Call this
+    /// after navigating and before focusing anything, or the framework will take the focus
+    /// back mid-test. See <see cref="NavigationFocusRecorder"/>.
+    /// </summary>
+    public static Task WaitForNavigationFocusAsync(IPage page) =>
+        page.WaitForFunctionAsync("() => window.__omniNavigationFocusLanded === true");
+
+    /// <summary>
+    /// Opens a page, optionally slowing its main thread down by
+    /// <c>OMNI_BROWSER_CPU_THROTTLE</c> (a CDP multiplier — 20 means twenty times slower).
+    /// Timing races here do not reproduce on a developer machine at full speed; throttling
+    /// is what turns "flaky on CI" into something reproducible on the first attempt.
+    /// </summary>
+    public static async Task<IPage> NewPageAsync(IBrowserContext context)
+    {
+        IPage page = await context.NewPageAsync();
+        if (!int.TryParse(Environment.GetEnvironmentVariable("OMNI_BROWSER_CPU_THROTTLE"), out int rate)
+            || rate <= 1)
+        {
+            return page;
+        }
+
+        ICDPSession session = await context.NewCDPSessionAsync(page);
+        await session.SendAsync("Emulation.setCPUThrottlingRate", new Dictionary<string, object>
+        {
+            ["rate"] = rate
+        });
+        return page;
     }
 
     public async ValueTask DisposeAsync()
