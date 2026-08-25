@@ -142,9 +142,34 @@ public partial class OmniEntityPicker<TItem, TKey>
     /// <summary>Closes the selection surface.</summary>
     public Task CloseAsync()
     {
+        bool wasOpen = _open;
         _open = false;
+        // A dialog that closes without handing focus back leaves a keyboard user standing
+        // wherever the DOM happens to collapse to — here it was the page title.
+        if (wasOpen) _restoreFocus = true;
         return Task.CompletedTask;
     }
+
+    private bool _restoreFocus;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (!_restoreFocus) return;
+
+        _restoreFocus = false;
+        try
+        {
+            await _triggerElement.FocusAsync();
+        }
+        catch
+        {
+            // The trigger can be gone if the picker was removed while closing.
+        }
+    }
+
+    private ElementReference _triggerElement;
 
     protected override void OnParametersSet()
     {
@@ -285,7 +310,7 @@ public partial class OmniEntityPicker<TItem, TKey>
         CancelResolveOperation();
         await SetValueAsync(key);
         if (SelectedItemChanged.HasDelegate) await SelectedItemChanged.InvokeAsync(item);
-        _open = false;
+        await CloseAsync();
     }
 
     private async Task ClearAsync()

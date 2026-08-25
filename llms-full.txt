@@ -346,6 +346,7 @@ Parameters:
 - `AllowSorting`: bool — Permite ordenar clicando no header das colunas Sortable. Default true.
 - `AriaLabel`: string — Optional accessible label for the flat data grid.
 - `AutoCollapseGroupsThreshold`: int — Acima de quantos grupos de primeiro nível o agrupamento nasce COLAPSADO. Default 100. Sem isso, o primeiro render depois de arrastar uma coluna é sempre o conjunto inteiro aberto — agrupar 200 mil linhas por dia significa achatar as 200 mil de uma vez só para o usuário fechar tudo em seguida. Valores <= 0 desligam o auto-colapso.
+- `AutoFocusSearch`: bool — Puts focus in the search box on first render. Meant for a grid that opens inside a dialog, where the user's first act is to type.
 - `Children`: Func<TItem, IEnumerable<TItem>> — Synchronous child selector that enables hierarchy mode for in-memory trees.
 - `ChildrenProvider`: HierarchyChildrenProvider<TItem> — Asynchronous, cancellable child source that enables lazy hierarchy mode.
 - `CollapseText`: string — Accessible label for collapsing a hierarchy row.
@@ -390,6 +391,7 @@ Parameters:
 - `RowHeight`: float — Altura fixa (px) por linha quando virtualize ativo. Default 44.
 - `RowSelectable`: Func<TItem, bool> — Optional predicate for single selection. Keyboard navigation skips rows that return false and exposes them as aria-disabled; row clicks still raise OnRowClick.
 - `Schema`: DataGridSchema<TItem> — Optional immutable typed schema. Schema columns are rendered before declarative Columns and its structural feature defaults take precedence while supplied.
+- `SearchCursorNavigation`: bool — Lets the search box drive a row cursor: arrows move it, Enter activates the row, and focus never leaves the input — so typing keeps filtering no matter where the cursor is. This is the WAI-ARIA combobox pattern, and it is what a lookup dialog needs: AllowKeyboardNavigation moves DOM focus onto the rows instead, which is right for a standalone grid but would swallow the next keystroke here.
 - `SearchPlaceholder`: string — Placeholder do campo de busca. Default "Buscar...".
 - `SelectedItem`: TItem — Single selected item used by keyboard navigation and row clicks.
 - `SelectedItems`: HashSet<TItem> — Itens selecionados. Quando setado pelo consumidor (via @bind-SelectedItems), o DataGrid usa essa referência diretamente.
@@ -2397,6 +2399,7 @@ _base: FormComponent<T> · form input · source: src/Omni.Blazor/Components/Inpu
 Parameters:
 - `Autocomplete`: string — HTML autocomplete attribute for the input.
 - `Clearable`: bool = false — When true, shows an "x" button to clear the value whenever it's non-empty.
+- `InputAttributes`: IReadOnlyDictionary<string, object> — Attributes for the <input> itself. Unmatched attributes land on the wrapper once the field has an icon or a clear button, which puts them on the wrong node for anything the input has to own — role, aria-activedescendant, inputmode, data-* a script looks up. This always reaches the input.
 - `LeadingIcon`: string — Icon name rendered inside the input on the left. Default none.
 - `MaxLength`: int — Maximum length enforced via the input's maxlength attribute. Default null (none).
 - `MinLength`: int — Minimum length enforced via the input's minlength attribute. Default null (none).

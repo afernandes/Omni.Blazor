@@ -1,4 +1,5 @@
 ﻿using Bunit;
+using Microsoft.AspNetCore.Components.Web;
 using Omni.Blazor.Components;
 using Omni.Blazor.Models;
 
@@ -21,6 +22,88 @@ public sealed class OmniEntityPickerTests : TestContextBase
             .Add(component => component.KeySelector, produto => produto.Id)
             .Add(component => component.TextSelector, produto => produto.Nome)
             .Add(component => component.Value, value));
+
+    [Fact]
+    public void Open_panel_wires_the_search_box_as_a_combobox_over_the_rows()
+    {
+        // Focus has to stay in the search box for typing to keep filtering, so the active
+        // row is addressed by aria-activedescendant rather than by moving focus onto it.
+        var cut = RenderLocal(1);
+        cut.Find("button.omni-entity-picker-trigger").Click();
+
+        var search = cut.Find(".omni-entity-picker-panel input.omni-input");
+        Assert.Equal("combobox", search.GetAttribute("role"));
+        Assert.Equal("list", search.GetAttribute("aria-autocomplete"));
+
+        // Both references have to resolve to elements that exist, or they are dead ends
+        // for a screen reader.
+        string controls = search.GetAttribute("aria-controls")!;
+        string active = search.GetAttribute("aria-activedescendant")!;
+        Assert.NotNull(cut.Find($"#{controls}"));
+        Assert.NotNull(cut.Find($"#{active}"));
+    }
+
+    [Fact]
+    public void Arrow_keys_move_the_cursor_without_taking_focus_off_the_search_box()
+    {
+        var cut = RenderLocal(1);
+        cut.Find("button.omni-entity-picker-trigger").Click();
+
+        var search = cut.Find(".omni-entity-picker-panel input.omni-input");
+        string first = search.GetAttribute("aria-activedescendant")!;
+
+        search.KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
+
+        var moved = cut.Find(".omni-entity-picker-panel input.omni-input");
+        Assert.NotEqual(first, moved.GetAttribute("aria-activedescendant"));
+        Assert.Equal(
+            moved.GetAttribute("aria-activedescendant"),
+            cut.Find(".omni-entity-picker-panel tr[data-omni-grid-cursor='true']").Id);
+    }
+
+    [Fact]
+    public void Enter_picks_the_row_under_the_cursor_and_closes()
+    {
+        var cut = RenderLocal(0);
+        cut.Find("button.omni-entity-picker-trigger").Click();
+
+        var search = cut.Find(".omni-entity-picker-panel input.omni-input");
+        search.KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
+        cut.Find(".omni-entity-picker-panel input.omni-input")
+           .KeyDown(new KeyboardEventArgs { Key = "Enter" });
+
+        Assert.Empty(cut.FindAll(".omni-entity-picker-panel"));
+        Assert.Equal(Produtos[1].Id, cut.Instance.Value);
+    }
+
+    [Fact]
+    public void Cursor_returns_to_the_top_when_filtering_changes_the_rows()
+    {
+        // The row it was pointing at is probably gone, and a stale index would leave
+        // aria-activedescendant naming an element that no longer exists.
+        var cut = RenderLocal(1);
+        cut.Find("button.omni-entity-picker-trigger").Click();
+
+        var search = cut.Find(".omni-entity-picker-panel input.omni-input");
+        search.KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
+        cut.Find(".omni-entity-picker-panel input.omni-input").Input("Pão");
+
+        // The grid debounces its search, so settle before reading the wiring back.
+        cut.WaitForAssertion(() =>
+        {
+            var after = cut.Find(".omni-entity-picker-panel input.omni-input");
+            string? active = after.GetAttribute("aria-activedescendant");
+
+            // Either nothing is active, or what is named exists — never a dangling id.
+            if (string.IsNullOrEmpty(active))
+            {
+                Assert.Empty(cut.FindAll(".omni-entity-picker-panel tbody tr[data-omni-grid-cursor='true']"));
+                return;
+            }
+
+            Assert.Equal(active, cut.Find(".omni-entity-picker-panel tr[data-omni-grid-cursor='true']").Id);
+        }, TimeSpan.FromSeconds(2));
+    }
 
     [Fact]
     public void Trigger_wears_the_text_field_contract()

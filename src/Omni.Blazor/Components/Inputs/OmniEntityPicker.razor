@@ -13,7 +13,8 @@
      aria-busy="@_resolving"
      @attributes="Attributes">
     <div class="omni-entity-picker-field">
-        <button id="@TriggerId"
+        <button @ref="_triggerElement"
+                id="@TriggerId"
                 type="button"
                 class="@TriggerCss"
                 disabled="@(Disabled || ReadOnly)"
@@ -81,6 +82,8 @@
                               DataProvider="@DataProvider"
                               KeySelector="@GridKeySelector"
                               AllowSearch="@AllowSearch"
+                              SearchCursorNavigation="@AllowSearch"
+                              AutoFocusSearch="@AllowSearch"
                               SearchPlaceholder="@(SearchPlaceholder ?? Texts.SearchPlaceholder)"
                               AllowPaging="@AllowPaging"
                               PageSize="@PageSize"

@@ -2813,6 +2813,13 @@
           "summary": "Acima de quantos grupos de primeiro nível o agrupamento nasce COLAPSADO. Default 100. Sem isso, o primeiro render depois de arrastar uma coluna é sempre o conjunto inteiro aberto — agrupar 200 mil linhas por dia significa achatar as 200 mil de uma vez só para o usuário fechar tudo em seguida. Valores <= 0 desligam o auto-colapso."
         },
         {
+          "name": "AutoFocusSearch",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Puts focus in the search box on first render. Meant for a grid that opens inside a dialog, where the user's first act is to type."
+        },
+        {
           "name": "Children",
           "kind": "parameter",
           "type": "Func<TItem, IEnumerable<TItem>>",
@@ -3242,6 +3249,13 @@
           "type": "DataGridSchema<TItem>",
           "required": false,
           "summary": "Optional immutable typed schema. Schema columns are rendered before declarative Columns and its structural feature defaults take precedence while supplied."
+        },
+        {
+          "name": "SearchCursorNavigation",
+          "kind": "parameter",
+          "type": "bool",
+          "required": false,
+          "summary": "Lets the search box drive a row cursor: arrows move it, Enter activates the row, and focus never leaves the input — so typing keeps filtering no matter where the cursor is. This is the WAI-ARIA combobox pattern, and it is what a lookup dialog needs: AllowKeyboardNavigation moves DOM focus onto the rows instead, which is right for a standalone grid but would swallow the next keystroke here."
         },
         {
           "name": "SearchPlaceholder",
@@ -19925,6 +19939,13 @@
           "default": "false",
           "required": false,
           "summary": "When true, shows an \"x\" button to clear the value whenever it's non-empty."
+        },
+        {
+          "name": "InputAttributes",
+          "kind": "parameter",
+          "type": "IReadOnlyDictionary<string, object>",
+          "required": false,
+          "summary": "Attributes for the <input> itself. Unmatched attributes land on the wrapper once the field has an icon or a clear button, which puts them on the wrong node for anything the input has to own — role, aria-activedescendant, inputmode, data-* a script looks up. This always reaches the input."
         },
         {
           "name": "LeadingIcon",

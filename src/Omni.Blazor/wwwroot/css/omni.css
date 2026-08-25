@@ -18487,4 +18487,21 @@ span.omni-citation {
   box-shadow: inset 3px 0 0 0 var(--omni-accent);
 }
 
+/* ── DataGrid: search-driven row cursor ───────────────────────────────────────
+   In combobox mode the row under the cursor never holds DOM focus — focus stays
+   in the search box so typing keeps filtering — so it cannot rely on the focus
+   ring. It reuses the keyboard cursor's language instead: a ring hugging the
+   row, no radius, drawn inside its own rectangle. */
+.omni-grid-table tbody tr[data-omni-grid-cursor=true] {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: -2px;
+  border-radius: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.omni-grid-table tbody tr[data-omni-grid-cursor=true] td {
+  background: var(--omni-accent-softer);
+}
+
 /*# sourceMappingURL=omni.css.map */
