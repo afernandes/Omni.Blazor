@@ -150,8 +150,8 @@
                 </div>
             }
             <table class="@TableCss"
-                   id="@(SearchCursorNavigation ? GridUid : null)"
-                   role="@(IsHierarchyMode ? "treegrid" : FlatKeyboardNavigationEnabled || SearchCursorNavigation ? "grid" : null)"
+                   id="@(SearchCursorNavigationEnabled ? GridUid : null)"
+                   role="@(IsHierarchyMode ? "treegrid" : FlatKeyboardNavigationEnabled || SearchCursorNavigationEnabled ? "grid" : null)"
                    aria-label="@(IsHierarchyMode ? EffectiveHierarchyAriaLabel : AriaLabel)"
                    aria-rowcount="@(IsHierarchyMode ? HierarchyRows.Count : FlatKeyboardNavigationEnabled ? _view.Count : null)">
                 <colgroup>
@@ -1404,6 +1404,13 @@
     /// </summary>
     [Parameter] public bool SearchCursorNavigation { get; set; }
 
+    // Same guards as FlatKeyboardNavigationEnabled, for the same reason: the cursor
+    // addresses rows by their index in the flat view, and grouping, hierarchy and
+    // virtualization each render something other than that flat list — so the ids in
+    // aria-activedescendant would point at rows that are not there.
+    private bool SearchCursorNavigationEnabled =>
+        SearchCursorNavigation && AllowSearch && !IsHierarchyMode && !IsGroupMode && !Virtualize;
+
     /// <summary>
     /// Puts focus in the search box on first render. Meant for a grid that opens inside a
     /// dialog, where the user's first act is to type.
@@ -1439,7 +1446,7 @@
     {
         get
         {
-            if (!SearchCursorNavigation) return null;
+            if (!SearchCursorNavigationEnabled) return null;
 
             var attributes = new Dictionary<string, object>(StringComparer.Ordinal)
             {
@@ -1459,7 +1466,7 @@
 
     private async Task OnSearchKeyDownAsync(KeyboardEventArgs args)
     {
-        if (!SearchCursorNavigation || _view.Count == 0) return;
+        if (!SearchCursorNavigationEnabled || _view.Count == 0) return;
 
         int cursor = CursorInRange;
         int target = args.Key switch
@@ -2311,8 +2318,8 @@
             aria-disabled="@(FlatKeyboardNavigationEnabled && !IsRowSelectable(row) ? "true" : null)"
             tabindex="@(FlatKeyboardNavigationEnabled ? FlatRowTabIndex(rowIndex) : null)"
             data-omni-grid-row-index="@(FlatKeyboardNavigationEnabled ? rowIndex : null)"
-            id="@(SearchCursorNavigation ? RowUid(rowIndex) : null)"
-            data-omni-grid-cursor="@(SearchCursorNavigation && rowIndex == _cursor ? "true" : null)"
+            id="@(SearchCursorNavigationEnabled ? RowUid(rowIndex) : null)"
+            data-omni-grid-cursor="@(SearchCursorNavigationEnabled && rowIndex == CursorInRange ? "true" : null)"
             @onclick="@(() => HandleRowClick(row))"
             @onkeydown="@(args => HandleFlatRowKeyDownAsync(row, rowIndex, args))">
             @if (AllowMultiSelection)

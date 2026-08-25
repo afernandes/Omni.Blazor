@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -592,6 +592,62 @@ public class OmniDataGridTests : TestContextBase
         b.AddAttribute(24, nameof(OmniDataGridColumn<Sale>.Aggregate), AggregateFunction.Sum);
         b.CloseComponent();
     };
+
+    // Grouping only accepts a column that opted in, so the guard test can reach that state.
+    private static RenderFragment GroupableColumnsFragment() => b =>
+    {
+        b.OpenComponent<OmniDataGridColumn<Person>>(0);
+        b.AddAttribute(1, nameof(OmniDataGridColumn<Person>.Title), "Name");
+        b.AddAttribute(2, nameof(OmniDataGridColumn<Person>.Property), (Func<Person, object?>)(p => p.Name));
+        b.AddAttribute(3, nameof(OmniDataGridColumn<Person>.Groupable), true);
+        b.CloseComponent();
+    };
+
+    private IRenderedComponent<OmniDataGrid<Person>> RenderCursorGrid(
+        Action<ComponentParameterCollectionBuilder<OmniDataGrid<Person>>>? extra = null)
+        => Render<OmniDataGrid<Person>>(p =>
+        {
+            p.Add(c => c.Data, Sample);
+            p.Add(c => c.Columns, GroupableColumnsFragment());
+            p.Add(c => c.AllowSearch, true);
+            p.Add(c => c.SearchCursorNavigation, true);
+            extra?.Invoke(p);
+        });
+
+    [Fact]
+    public void Search_cursor_mode_wires_the_combobox_over_the_rows()
+    {
+        var cut = RenderCursorGrid();
+
+        var search = cut.Find("input.omni-input");
+        Assert.Equal("combobox", search.GetAttribute("role"));
+        Assert.Equal(
+            search.GetAttribute("aria-activedescendant"),
+            cut.Find("tr[data-omni-grid-cursor='true']").Id);
+    }
+
+    [Fact]
+    public void Search_cursor_mode_stands_down_under_virtualization()
+    {
+        // The cursor addresses rows by their index in the flat view. Virtualize renders
+        // something else, so the ids in aria-activedescendant would name rows that are not
+        // in the DOM — a dangling reference is worse than no combobox at all.
+        var cut = RenderCursorGrid(p => p.Add(c => c.Virtualize, true));
+
+        Assert.Null(cut.Find("input.omni-input").GetAttribute("role"));
+        Assert.Empty(cut.FindAll("tr[data-omni-grid-cursor]"));
+    }
+
+    [Fact]
+    public async Task Search_cursor_mode_stands_down_once_the_rows_are_grouped()
+    {
+        var cut = RenderCursorGrid(p => p.Add(c => c.AllowGrouping, true));
+
+        await cut.InvokeAsync(() => cut.Instance.GroupByAsync("Name"));
+
+        Assert.Null(cut.Find("input.omni-input").GetAttribute("role"));
+        Assert.Empty(cut.FindAll("tr[data-omni-grid-cursor]"));
+    }
 
     private IRenderedComponent<OmniDataGrid<Sale>> RenderSalesGrid(
         Action<ComponentParameterCollectionBuilder<OmniDataGrid<Sale>>>? extra = null)
