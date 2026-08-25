@@ -12309,6 +12309,11 @@ span.omni-citation { cursor: default; }
   outline: 2px solid var(--omni-accent);
   outline-offset: -2px;
   border-radius: 0;
+  /* The global :focus-visible in _reset.scss paints a 3px outer halo with
+     box-shadow. On a row that halo spills onto the neighbours above and below —
+     the very bleed this rule exists to remove — so it goes. The selection rail is
+     a box-shadow on the cell, not the row, and is untouched by this. */
+  box-shadow: none;
   /* Lift above the sticky header's stacking context so the ring is never clipped. */
   position: relative;
   z-index: 1;
