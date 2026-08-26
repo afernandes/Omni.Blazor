@@ -8,6 +8,10 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+### Added
+
+- Community health policies, structured issue forms, support guidance, and a pull request template.
+
 ## [0.10.0] - 2026-08-21
 
 ### Added

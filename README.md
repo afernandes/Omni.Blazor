@@ -317,7 +317,7 @@ Open <http://localhost:5253>.
 
 ## Contributing
 
-Bug reports, feature requests and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Vulnerability reports follow [SECURITY.md](SECURITY.md).
+Bug reports, feature requests and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). For usage help, see [SUPPORT.md](SUPPORT.md). Vulnerability reports follow [SECURITY.md](SECURITY.md).
 
 ## Versioning
 
