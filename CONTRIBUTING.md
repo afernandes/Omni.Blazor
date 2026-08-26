@@ -10,7 +10,7 @@ By participating you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md)
 
 - **Report bugs** with a minimal reproduction — use the [bug report form](https://github.com/afernandes/Omni.Blazor/issues/new?template=bug_report.yml).
 - **Propose features** — use the [feature request form](https://github.com/afernandes/Omni.Blazor/issues/new?template=feature_request.yml) before starting a non-trivial change.
-- **Ask usage questions** — check [SUPPORT.md](SUPPORT.md) and use the structured question form.
+- **Ask usage questions** — check [SUPPORT.md](SUPPORT.md) and use the [structured question form](https://github.com/afernandes/Omni.Blazor/issues/new?template=question.yml).
 - **Improve docs** — typos, missing parameters, new examples are always welcome.
 - **Submit fixes** — small, focused PRs are easier to land than sprawling ones.
 
