@@ -8,6 +8,12 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-08-27
+
+### Fixed
+
+- `OmniHotkey` now waits for interactive rendering before registering its JavaScript shortcut, so Server prerender and direct page loads no longer fail with an invalid interop call.
+
 ## [0.11.0] - 2026-08-27
 
 ### Added
@@ -24,7 +30,6 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ### Fixed
 
-- `OmniHotkey` now waits for interactive rendering before registering its JavaScript shortcut, so Server prerender and direct page loads no longer fail with an invalid interop call.
 - `OmniDataGrid` now renders persistent selection separately from the keyboard cursor, including frozen columns and RTL layouts, and keeps the cursor on visible selectable rows as filtering changes the view.
 - `OmniDataForm` collection-editor teardown no longer surfaces cancellation as a validation failure.
 - The WebAssembly showcase no longer aborts on the large DataGrid route in Debug, and the published route sweep now validates SPA navigation, direct loading, and reloads independently.
@@ -199,7 +204,8 @@ Each release section follows this shape:
 - Bumped transitive `Xyz` to patch CVE-XXXX-YYYY.
 ```
 
-[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.8.0...v0.9.0
