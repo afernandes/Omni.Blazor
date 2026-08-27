@@ -24,6 +24,7 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ### Fixed
 
+- `OmniHotkey` now waits for interactive rendering before registering its JavaScript shortcut, so Server prerender and direct page loads no longer fail with an invalid interop call.
 - `OmniDataGrid` now renders persistent selection separately from the keyboard cursor, including frozen columns and RTL layouts, and keeps the cursor on visible selectable rows as filtering changes the view.
 - `OmniDataForm` collection-editor teardown no longer surfaces cancellation as a validation failure.
 - The WebAssembly showcase no longer aborts on the large DataGrid route in Debug, and the published route sweep now validates SPA navigation, direct loading, and reloads independently.
