@@ -198,19 +198,16 @@ protected override async Task OnInitializedAsync()
     private Task OnSave(KeyboardEventArgs _)    { Toast.Success("Salvo", "Ctrl+S");                    return Task.CompletedTask; }
     private Task OnHelp(KeyboardEventArgs _)    { Toast.Info("Ajuda aberta", "?");                     return Task.CompletedTask; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        _ctrlE = await Hotkeys.RegisterAsync("Ctrl+E", _ =>
-        {
-            Toast.Info("Atalho via service", "Ctrl+E (registrado em C#)");
-            return Task.CompletedTask;
-        });
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            _ctrlE = await Hotkeys.RegisterAsync("Ctrl+E", _ =>
+            {
+                Toast.Info("Atalho via service", "Ctrl+E (registrado em C#)");
+                return Task.CompletedTask;
+            });
+
             _scopedHandle = await KeyInterceptor.AttachAsync(_scopedCard,
                 new[]
                 {

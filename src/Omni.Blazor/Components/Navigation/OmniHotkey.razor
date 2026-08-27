@@ -34,6 +34,7 @@
     [Parameter] public bool Disabled { get; set; }
 
     private IAsyncDisposable? _handle;
+    private bool _interactive;
 
     // Two ParameterStates: one for the "what combo to register" signature
     // (Combo / Key / Modifiers all roll up into one spec string) and one for
@@ -45,13 +46,27 @@
     {
         _specState = RegisterParameter<string?>("Spec")
             .WithParameter(ComputeSpec)
-            .WithChangeHandler(args => ReRegisterAsync(args.Value))
+            .WithChangeHandler(args => OnSpecChangedAsync(args.Value))
             .Attach();
         _disabledState = RegisterParameter<bool>(nameof(Disabled))
             .WithParameter(() => Disabled)
-            .WithChangeHandler(args => ApplyDisabledAsync(args.Value))
+            .WithChangeHandler(args => OnDisabledChangedAsync(args.Value))
             .Attach();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _interactive) return;
+
+        _interactive = true;
+        await ReRegisterAsync(ComputeSpec());
+    }
+
+    private Task OnSpecChangedAsync(string? spec)
+        => _interactive ? ReRegisterAsync(spec) : Task.CompletedTask;
+
+    private Task OnDisabledChangedAsync(bool disabled)
+        => _interactive ? ApplyDisabledAsync(disabled) : Task.CompletedTask;
 
     private async Task ReRegisterAsync(string? spec)
     {
