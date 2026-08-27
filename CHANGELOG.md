@@ -8,9 +8,25 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-27
+
 ### Added
 
+- Opt-in keyboard navigation and single selection for `OmniDataGrid<TItem>`, including `AllowKeyboardNavigation`, `SelectedItem` / `SelectedItemChanged`, `SelectionFollowsFocus`, `RowSelectable`, `AriaLabel`, `FocusAsync`, and matching fluent-schema support.
+- Search-owned row navigation for lookup dialogs through `SearchCursorNavigation`, `AutoFocusSearch`, and `FocusSearchAsync`, keeping keyboard focus in the search field while arrows move the active row and Enter selects it.
+- `OmniTextBox.InputAttributes` and `FocusAsync`, so input-owned ARIA and data attributes reach the native `<input>` even when the component renders adornments.
 - Community health policies, structured issue forms, support guidance, and a pull request template.
+
+### Changed
+
+- `OmniEntityPicker` now shares the `OmniTextBox` visual contract and exposes its lookup as a keyboard-operable combobox/listbox interaction: typing filters, arrows move the cursor, Enter selects, Escape cancels, and focus returns to the trigger.
+- Updated the .NET abstractions packages to 10.0.11, Microsoft.Playwright to 1.62.0, Microsoft.NET.Test.Sdk to 18.9.0, and AspNetCore.SassCompiler to 1.103.0.
+
+### Fixed
+
+- `OmniDataGrid` now renders persistent selection separately from the keyboard cursor, including frozen columns and RTL layouts, and keeps the cursor on visible selectable rows as filtering changes the view.
+- `OmniDataForm` collection-editor teardown no longer surfaces cancellation as a validation failure.
+- The WebAssembly showcase no longer aborts on the large DataGrid route in Debug, and the published route sweep now validates SPA navigation, direct loading, and reloads independently.
 
 ## [0.10.0] - 2026-08-21
 
@@ -182,7 +198,8 @@ Each release section follows this shape:
 - Bumped transitive `Xyz` to patch CVE-XXXX-YYYY.
 ```
 
-[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.7.0...v0.8.0
