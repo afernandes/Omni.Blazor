@@ -28,9 +28,12 @@ but teammates will not receive the skill from the application's repository.
 
 | Client | Project location | Personal location |
 |---|---|---|
-| ChatGPT Desktop / Codex | `<CONSUMER_REPO>/.agents/skills/` | `%USERPROFILE%/.agents/skills/` |
-| GitHub Copilot | `<CONSUMER_REPO>/.agents/skills/` | `%USERPROFILE%/.agents/skills/` |
-| Claude Code | `<CONSUMER_REPO>/.claude/skills/` | `%USERPROFILE%/.claude/skills/` |
+| ChatGPT Desktop / Codex | `<CONSUMER_REPO>/.agents/skills/` | `~/.agents/skills/` |
+| GitHub Copilot | `<CONSUMER_REPO>/.agents/skills/` | `~/.agents/skills/` |
+| Claude Code | `<CONSUMER_REPO>/.claude/skills/` | `~/.claude/skills/` |
+
+`~` denotes the current user's home directory. The PowerShell examples below
+use `$env:USERPROFILE` as its Windows equivalent.
 
 Installing once in `.agents/skills` therefore serves both ChatGPT Desktop/Codex
 and GitHub Copilot. Claude Code needs the same skill directory under
@@ -185,7 +188,7 @@ For personal use across newly created projects, copy it once to each personal
 location:
 
 ```text
-%USERPROFILE%/
+~/
 ├── .agents/skills/building-omni-blazor-apps/
 └── .claude/skills/building-omni-blazor-apps/
 ```

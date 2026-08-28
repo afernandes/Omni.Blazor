@@ -17,7 +17,7 @@ public static class OmniCatalogTools
         => catalog.CatalogInfoText();
 
     [McpServerTool(Name = "list_components")]
-    [Description("List Omni.Blazor components (name, category, one-line summary). Optionally filter by category: Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation, Overlay.")]
+    [Description("List Omni.Blazor components (name, category, one-line summary). Optionally filter by category: Ai, Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation, Overlay.")]
     public static string ListComponents(
         ComponentCatalog catalog,
         [Description("Optional category filter, e.g. Inputs. Omit for all components.")] string? category = null)
