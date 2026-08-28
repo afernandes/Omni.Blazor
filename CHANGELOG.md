@@ -8,6 +8,12 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-08-28
+
+### Fixed
+
+- `OmniEntityPicker` no longer reopens its dialog or drawer after Enter selects the active row in fast WebAssembly rendering; the overlay now suppresses only the combobox's native Enter action while preserving the Blazor selection handler and focus restoration.
+
 ## [0.11.1] - 2026-08-27
 
 ### Fixed
@@ -204,7 +210,8 @@ Each release section follows this shape:
 - Bumped transitive `Xyz` to patch CVE-XXXX-YYYY.
 ```
 
-[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.2...HEAD
+[0.11.2]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.9.0...v0.10.0
