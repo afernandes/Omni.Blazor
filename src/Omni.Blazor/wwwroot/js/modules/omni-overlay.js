@@ -843,6 +843,16 @@ ns.viewportHeight = function () {
       // stopPropagation() would block the global Enter-as-Tab handler.
       if (target && target.closest &&
           target.closest('[data-omni-enter-as-tab]:not([data-omni-enter-as-tab="false"])')) return;
+      // A combobox with an active descendant owns Enter: its component handler accepts
+      // that option. Prevent the browser's native action, but keep propagation intact so
+      // Blazor still receives the keydown. Without this, a fast local/WASM render can
+      // close the overlay and restore focus before the keydown default runs; the browser
+      // then activates the newly-focused opener and immediately reopens the overlay.
+      if (target && target.matches &&
+          target.matches('[role="combobox"][aria-activedescendant]')) {
+        e.preventDefault();
+        return;
+      }
       const btn = el.querySelector('[data-omni-default]:not([disabled])');
       if (!btn) return;
       e.preventDefault();
