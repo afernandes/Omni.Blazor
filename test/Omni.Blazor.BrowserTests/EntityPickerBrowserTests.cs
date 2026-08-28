@@ -18,7 +18,7 @@ public sealed class EntityPickerBrowserTests(BrowserFixture fixture)
         string expectedSelection)
     {
         await using IBrowserContext context = await fixture.CreateContextAsync();
-        IPage page = await context.NewPageAsync();
+        IPage page = await BrowserFixture.NewPageAsync(context);
 
         await page.GotoAsync($"{fixture.BaseUrl}/showcase/entity-picker");
         await page.GetByTestId("entity-picker-interactive").WaitForAsync(
