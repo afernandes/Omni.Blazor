@@ -2,7 +2,9 @@ namespace Omni.Blazor.Mcp;
 
 // Records mirroring docs/components.json (produced by Omni.Blazor.ManifestGen).
 // Deserialized case-insensitively, so PascalCase props map from camelCase JSON;
-// unknown JSON properties (e.g. "version") are ignored.
+// The generated manifest intentionally omits Version so it stays deterministic.
+// Version remains optional here because an externally supplied manifest may carry
+// provenance of its own.
 
 /// <summary>Root of the component manifest.</summary>
 public sealed record Manifest(
@@ -10,7 +12,17 @@ public sealed record Manifest(
     string Repository,
     int Count,
     List<Component> Components,
-    List<ConfigurationApi>? ConfigurationApis = null);
+    List<ConfigurationApi>? ConfigurationApis = null,
+    string? Version = null);
+
+/// <summary>Provenance and size of the catalog currently served by MCP.</summary>
+public sealed record CatalogInfo(
+    string Package,
+    string? Version,
+    string Repository,
+    string Source,
+    int ComponentCount,
+    int ConfigurationApiCount);
 
 /// <summary>One component and its public surface.</summary>
 public sealed record Component(

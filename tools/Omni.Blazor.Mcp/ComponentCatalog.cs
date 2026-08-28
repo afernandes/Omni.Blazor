@@ -13,16 +13,25 @@ namespace Omni.Blazor.Mcp;
 public sealed class ComponentCatalog
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions CatalogInfoJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+    };
     private const StringComparison Ic = StringComparison.OrdinalIgnoreCase;
 
     private readonly Manifest _manifest;
+    private readonly string? _version;
+    private readonly string _source;
     private readonly Dictionary<string, Component> _byName;
     private readonly IReadOnlyList<ConfigurationApi> _configurationApis;
     private readonly Dictionary<string, ConfigurationApi> _configurationApiByName;
 
-    private ComponentCatalog(Manifest manifest)
+    private ComponentCatalog(Manifest manifest, string? version, string source)
     {
         _manifest = manifest;
+        _version = version;
+        _source = source;
         _byName = manifest.Components.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
         _configurationApis = manifest.ConfigurationApis ?? [];
         _configurationApiByName = _configurationApis.ToDictionary(
@@ -33,9 +42,8 @@ public sealed class ComponentCatalog
     /// <summary>Parse a catalog from manifest JSON.</summary>
     public static ComponentCatalog FromJson(string json)
     {
-        Manifest manifest = JsonSerializer.Deserialize<Manifest>(json, JsonOptions)
-            ?? throw new InvalidOperationException("Manifesto vazio ou inválido.");
-        return new ComponentCatalog(manifest);
+        Manifest manifest = Parse(json);
+        return new ComponentCatalog(manifest, manifest.Version, "provided-json");
     }
 
     /// <summary>
@@ -44,11 +52,19 @@ public sealed class ComponentCatalog
     /// </summary>
     public static ComponentCatalog Load(string? path)
     {
-        string json = path is not null && File.Exists(path)
-            ? File.ReadAllText(path)
-            : ReadEmbeddedManifest();
-        return FromJson(json);
+        if (path is not null && File.Exists(path))
+        {
+            Manifest externalManifest = Parse(File.ReadAllText(path));
+            return new ComponentCatalog(externalManifest, externalManifest.Version, "external-manifest");
+        }
+
+        Manifest embeddedManifest = Parse(ReadEmbeddedManifest());
+        return new ComponentCatalog(embeddedManifest, ToolPackageVersion(), "embedded-manifest");
     }
+
+    private static Manifest Parse(string json) =>
+        JsonSerializer.Deserialize<Manifest>(json, JsonOptions)
+        ?? throw new InvalidOperationException("Manifesto vazio ou inválido.");
 
     private static string ReadEmbeddedManifest()
     {
@@ -64,6 +80,15 @@ public sealed class ComponentCatalog
 
     /// <summary>Total fluent configuration API count.</summary>
     public int ConfigurationApiCount => _configurationApis.Count;
+
+    /// <summary>Package, version provenance and catalog size for compatibility checks.</summary>
+    public CatalogInfo Info => new(
+        _manifest.Package,
+        _version,
+        _manifest.Repository,
+        _source,
+        Count,
+        ConfigurationApiCount);
 
     /// <summary>All components, optionally filtered by category (case-insensitive).</summary>
     public IReadOnlyList<Component> List(string? category) =>
@@ -143,6 +168,9 @@ public sealed class ComponentCatalog
     }
 
     // ─── Text rendered back to the agent ────────────────────────────────────
+
+    /// <summary>Machine-readable provenance used to detect catalog/package drift.</summary>
+    public string CatalogInfoText() => JsonSerializer.Serialize(Info, CatalogInfoJsonOptions);
 
     /// <summary>Bullet list (name, category, summary) for the list/search tools.</summary>
     public string ListText(string? category)
@@ -259,5 +287,16 @@ public sealed class ComponentCatalog
             sb.AppendLine();
         }
         sb.AppendLine();
+    }
+
+    private static string? ToolPackageVersion()
+    {
+        string? informationalVersion = typeof(ComponentCatalog).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+            return informationalVersion.Split('+', 2)[0];
+
+        return typeof(ComponentCatalog).Assembly.GetName().Version?.ToString();
     }
 }

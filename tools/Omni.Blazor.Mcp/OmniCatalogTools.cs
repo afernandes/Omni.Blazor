@@ -11,8 +11,13 @@ namespace Omni.Blazor.Mcp;
 [McpServerToolType]
 public static class OmniCatalogTools
 {
+    [McpServerTool(Name = "get_catalog_info")]
+    [Description("Get the package/version provenance and counts of the Omni.Blazor catalog served by this MCP process. Compare its version with the consuming project's resolved AndersonN.Omni.Blazor package before relying on component APIs.")]
+    public static string GetCatalogInfo(ComponentCatalog catalog)
+        => catalog.CatalogInfoText();
+
     [McpServerTool(Name = "list_components")]
-    [Description("List Omni.Blazor components (name, category, one-line summary). Optionally filter by category: Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation, Overlay.")]
+    [Description("List Omni.Blazor components (name, category, one-line summary). Optionally filter by category: Ai, Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation, Overlay.")]
     public static string ListComponents(
         ComponentCatalog catalog,
         [Description("Optional category filter, e.g. Inputs. Omit for all components.")] string? category = null)
