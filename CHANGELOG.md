@@ -8,6 +8,17 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-08-28
+
+### Added
+
+- Added the portable `building-omni-blazor-apps` Agent Skill with version-aware catalog selection, component decision guidance, application composition patterns, validation boundaries, and step-by-step manual installation for ChatGPT Desktop/Codex, Claude Code, and GitHub Copilot.
+- Added the MCP `get_catalog_info` tool, exposing the served catalog's package, version provenance, source, component count, and configuration API count so agents can detect drift before generating component usage.
+
+### Changed
+
+- Consolidated Cursor and Copilot consumer guidance around the shared Agent Skill while keeping `AGENTS.md` as the canonical contributor runbook.
+
 ## [0.11.2] - 2026-08-28
 
 ### Fixed
@@ -210,7 +221,8 @@ Each release section follows this shape:
 - Bumped transitive `Xyz` to patch CVE-XXXX-YYYY.
 ```
 
-[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.2...HEAD
+[Unreleased]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.3...HEAD
+[0.11.3]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/afernandes/Omni.Blazor/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/afernandes/Omni.Blazor/compare/v0.10.0...v0.11.0

@@ -1,5 +1,5 @@
 ---
-description: Omni.Blazor — conventions for contributing components and the AI-readable component manifest
+description: Omni.Blazor — route application generation to the portable skill and library contributions to AGENTS.md
 alwaysApply: true
 ---
 
@@ -7,24 +7,11 @@ alwaysApply: true
 
 Full guidance: [AGENTS.md](../../AGENTS.md). Architecture: [CLAUDE.md](../../CLAUDE.md).
 
-## Before writing component usage
-Read the generated manifest — **do not invent parameters**:
-- `llms.txt` — index of all components (name, category, one-line description).
-- `llms-full.txt` / `docs/components.json` — full params, events, slots, enum values, defaults.
+For application UI that consumes the package, load
+[building-omni-blazor-apps](../../.agents/skills/building-omni-blazor-apps/SKILL.md)
+and only the references it routes to. Match the MCP/catalog version to the project's
+resolved package and never invent public API.
 
-If a parameter isn't in `docs/components.json`, it does not exist. Regenerate after
-public-surface changes: `dotnet run --project tools/Omni.Blazor.ManifestGen`.
-
-## When authoring a component (hard rules)
-- Single-file `.razor` under `src/Omni.Blazor/Components/<Category>/Omni<Name>.razor` — **no `.razor.cs` code-behinds**.
-- Inherit `OmniComponent` / `OmniComponentWithChildren` / `FormComponent<TValue>`.
-- Root element **must** splat: `class="@RootCss" style="@Style" @attributes="Attributes"`.
-- Compose classes **only** with `CssBuilder`; append the consumer's `Class` **last**.
-- `@key` on every `foreach`. Inputs write via `SetValueAsync`. Reactive recompute via `ParameterState<T>` in `OnInitialized`.
-- JS only through DI services (`ScrollManager`, `HotkeyService`, `OverlayLifecycle`, …) — never inject `IJSRuntime`.
-- Styles → append to the single bundle `Themes/_components.scss`. JS → append to `wwwroot/js/Omni.js` (`window.omniBlazor`).
-- Document every public `[Parameter]` with `/// <summary>` and give the component a leading `@* one-sentence description *@`.
-- Every component needs a bUnit test (`test/Omni.Blazor.Tests/Components/<Category>/`) and a showcase page (`src/Forneria.Demo/Forneria.Demo.Pages/Pages/Showcase/<Category>/`).
-
-## Naming
-CSS class prefix `omni-`, design tokens `--omni-`, JS namespace `window.omniBlazor`.
+For changes to this library, follow `AGENTS.md` as the single source of contributor
+rules. It covers the current `.razor`/`.razor.cs`, typed JS module, styling, testing,
+showcase, and generated-manifest conventions; do not duplicate those rules here.

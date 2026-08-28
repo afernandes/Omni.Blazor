@@ -87,6 +87,8 @@ public class ComponentCatalogTests
         ComponentCatalog c = Catalog();
         Assert.Equal(3, c.Count);
         Assert.Equal(["Buttons", "Inputs", "Display"], c.Categories);
+        Assert.Equal("9.9.9-test", c.Info.Version);
+        Assert.Equal("provided-json", c.Info.Source);
     }
 
     [Fact]
@@ -99,6 +101,7 @@ public class ComponentCatalogTests
         ComponentCatalog catalog = ComponentCatalog.FromJson(ConfigurationApiFixture);
 
         Assert.Equal(1, catalog.ConfigurationApiCount);
+        Assert.Null(catalog.Info.Version);
         Assert.Single(catalog.ListConfigurationApis("data"));
         Assert.Single(catalog.SearchConfigurationApis("Collection"));
         Assert.Contains("Builds a CRUD schema.", catalog.ListConfigurationApisText(null));
@@ -237,6 +240,9 @@ public class ComponentCatalogTests
         ComponentCatalog c = ComponentCatalog.Load(null);
         Assert.True(c.Count > 50, $"expected the embedded manifest to have many components, got {c.Count}");
         Assert.NotNull(c.Get("OmniButton"));
+        Assert.Equal("embedded-manifest", c.Info.Source);
+        Assert.False(string.IsNullOrWhiteSpace(c.Info.Version));
+        Assert.Contains("\"componentCount\"", c.CatalogInfoText());
     }
 
     [Fact]
@@ -246,7 +252,10 @@ public class ComponentCatalogTests
         try
         {
             File.WriteAllText(path, Fixture);
-            Assert.Equal(3, ComponentCatalog.Load(path).Count);
+            ComponentCatalog catalog = ComponentCatalog.Load(path);
+            Assert.Equal(3, catalog.Count);
+            Assert.Equal("9.9.9-test", catalog.Info.Version);
+            Assert.Equal("external-manifest", catalog.Info.Source);
         }
         finally { File.Delete(path); }
     }
@@ -255,6 +264,13 @@ public class ComponentCatalogTests
 public class OmniCatalogToolsTests
 {
     private static ComponentCatalog Catalog() => ComponentCatalog.Load(null); // embedded real manifest
+
+    [Fact]
+    public void GetCatalogInfo_delegates_toCatalog()
+    {
+        ComponentCatalog c = Catalog();
+        Assert.Equal(c.CatalogInfoText(), OmniCatalogTools.GetCatalogInfo(c));
+    }
 
     [Fact]
     public void ListComponents_delegates_toCatalog()

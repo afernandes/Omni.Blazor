@@ -9,7 +9,7 @@
 
 **[Explore the live component showcase](https://afernandes.github.io/Omni.Blazor/)**
 
-> Modern Blazor component library for .NET 10 — **206 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
+> Modern Blazor component library for .NET 10 — **210 components**, warm cream/amber design system, dark mode, runtime accent swap, no Bootstrap dependency.
 
 ```xml
 <PackageReference Include="AndersonN.Omni.Blazor" Version="*" />
@@ -19,7 +19,7 @@
 
 ## Highlights
 
-- **206 components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
+- **210 components** across data, inputs, layout, navigation, overlays, marketing, and AI/chat
 - **Single CSS bundle** (~295 KB) — no Bootstrap, no Tailwind, no runtime CSS-in-JS
 - **Design tokens** in CSS custom properties (`--omni-*`) — restyleable without recompiling
 - **Light / Dark / System** appearance toggle out of the box
@@ -163,12 +163,12 @@ actionable message when dynamic code isn't supported.
 
 ## Component catalog
 
-_206 components — generated from [`docs/components.json`](docs/components.json). Run `dotnet run --project tools/Omni.Blazor.ManifestGen` after changing the public surface._
+_210 components — generated from [`docs/components.json`](docs/components.json). Run `dotnet run --project tools/Omni.Blazor.ManifestGen` after changing the public surface._
 
 <details>
-<summary><strong>Layout</strong> (32)</summary>
+<summary><strong>Layout</strong> (34)</summary>
 
-OmniAppBar, OmniAppearanceToggle, OmniAuthLayout, OmniBanner, OmniBento, OmniBentoItem, OmniBrand, OmniBreakpointProvider, OmniCol, OmniContainer, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniHidden, OmniLayout, OmniMain, OmniMasonry, OmniMediaQuery, OmniPaneHeader, OmniPaneToolbar, OmniParallax, OmniParallaxLayer, OmniRow, OmniSplitAsideLabel, OmniSplitView, OmniSplitter, OmniSplitterPane, OmniStack, OmniSwipeArea, OmniTheme, OmniThemePicker, OmniToolBar
+OmniAppBar, OmniAppearanceToggle, OmniAuthLayout, OmniBanner, OmniBento, OmniBentoItem, OmniBrand, OmniBreakpointProvider, OmniCol, OmniContainer, OmniCulturePicker, OmniCultureScope, OmniDrawer, OmniDrawerToggle, OmniFooter, OmniHidden, OmniLayout, OmniMain, OmniMasonry, OmniMediaQuery, OmniPaneHeader, OmniPaneToolbar, OmniParallax, OmniParallaxLayer, OmniRow, OmniSplitAsideLabel, OmniSplitView, OmniSplitter, OmniSplitterPane, OmniStack, OmniSwipeArea, OmniTheme, OmniThemePicker, OmniToolBar
 </details>
 
 <details>
@@ -178,15 +178,15 @@ OmniBreadcrumb, OmniExitPrompt, OmniGlobalSearch, OmniHotkey, OmniMenuBar, OmniM
 </details>
 
 <details>
-<summary><strong>Inputs</strong> (32)</summary>
+<summary><strong>Inputs</strong> (34)</summary>
 
-OmniAutoComplete, OmniCalendar, OmniCheckBox, OmniCheckBoxList, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniEntityPicker, OmniFileUpload, OmniFormField, OmniListBox, OmniMaskedTextBox, OmniMultiSelect, OmniNumeric, OmniPassword, OmniPasswordStrength, OmniPickList, OmniQtyStepper, OmniRadio, OmniRadioGroup, OmniRating, OmniSecurityCode, OmniSelect, OmniSignaturePad, OmniSlider, OmniSpeechToText, OmniSpeechToTextButton, OmniSwitch, OmniTagInput, OmniTextArea, OmniTextBox, OmniTimePicker
+OmniAutoComplete, OmniCalendar, OmniCheckBox, OmniCheckBoxList, OmniColorPicker, OmniDatePicker, OmniDateRangePicker, OmniEntityPicker, OmniFileUpload, OmniFormField, OmniListBox, OmniMaskedTextBox, OmniMultiListBox, OmniMultiSelect, OmniNumeric, OmniPassword, OmniPasswordStrength, OmniPickList, OmniQtyStepper, OmniRadio, OmniRadioGroup, OmniRating, OmniSecurityCode, OmniSelect, OmniSignaturePad, OmniSlider, OmniSpeechToText, OmniSpeechToTextButton, OmniSwitch, OmniTagInput, OmniTextArea, OmniTextBox, OmniTimePicker, OmniVirtualKeyboard
 </details>
 
 <details>
-<summary><strong>Forms</strong> (13)</summary>
+<summary><strong>Forms</strong> (14)</summary>
 
-OmniCompareValidator, OmniCustomValidator, OmniDataAnnotationValidator, OmniDataForm, OmniDataFormWizard, OmniEmailValidator, OmniForm, OmniLengthValidator, OmniRangeValidator, OmniRegexValidator, OmniRequiredValidator, OmniValidationMessage, OmniValidationSummary
+OmniCompareValidator, OmniCustomValidator, OmniDataAnnotationValidator, OmniDataForm, OmniDataFormWizard, OmniEmailValidator, OmniForm, OmniLengthValidator, OmniPropertyGrid, OmniRangeValidator, OmniRegexValidator, OmniRequiredValidator, OmniValidationMessage, OmniValidationSummary
 </details>
 
 <details>
@@ -202,9 +202,9 @@ OmniAccordion, OmniAccordionItem, OmniAlert, OmniAvatar, OmniAvatarGroup, OmniBa
 </details>
 
 <details>
-<summary><strong>Data</strong> (36)</summary>
+<summary><strong>Data</strong> (39)</summary>
 
-OmniChat, OmniDataFilter, OmniDataFilterItem, OmniDataGrid, OmniDataGridColumn, OmniDataGridForm, OmniDataImport, OmniDayView, OmniDiagramCanvas, OmniDropZone, OmniDropZoneContainer, OmniDropZoneItem, OmniFileManager, OmniGantt, OmniGanttColumn, OmniHtmlEditor, OmniHtmlEditorButton, OmniKanban, OmniMonthView, OmniMultiDayView, OmniPivotColumn, OmniPivotGrid, OmniPivotRow, OmniPivotValue, OmniScheduler, OmniTree, OmniTreeGrid, OmniTreeGridColumn, OmniTreeItem, OmniTreeLevel, OmniVirtualize, OmniWeekView, OmniYearPlannerView, OmniYearTimelineView, OmniYearView
+OmniChat, OmniDataFilter, OmniDataFilterItem, OmniDataGrid, OmniDataGridColumn, OmniDataGridForm, OmniDataImport, OmniDayView, OmniDiagramCanvas, OmniDropZone, OmniDropZoneContainer, OmniDropZoneItem, OmniFileManager, OmniGantt, OmniGanttColumn, OmniGanttForm, OmniHtmlEditor, OmniHtmlEditorButton, OmniKanban, OmniKanbanForm, OmniMonthView, OmniMultiDayView, OmniPivotColumn, OmniPivotGrid, OmniPivotRow, OmniPivotValue, OmniScheduler, OmniSchedulerForm, OmniTree, OmniTreeGrid, OmniTreeGridColumn, OmniTreeItem, OmniTreeLevel, OmniVirtualize, OmniWeekView, OmniWorkflowDesigner, OmniYearPlannerView, OmniYearTimelineView, OmniYearView
 </details>
 
 <details>
@@ -246,14 +246,22 @@ dotnet run --project src/Omni.Templates/Omni.Templates.Host   # http://localhost
 Coding agents (Claude Code, Cursor, Copilot, v0) should read the generated,
 machine-readable surface instead of browsing component source:
 
+- **[`building-omni-blazor-apps` Agent Skill](.agents/skills/building-omni-blazor-apps/SKILL.md)** — portable, progressively disclosed guidance for choosing components, composing application screens, matching the catalog version, and validating generated UI. See the [step-by-step manual installation guide](docs/agent-skill.md) for ChatGPT Desktop/Codex, Claude Code, and GitHub Copilot, at project or personal scope.
 - **[`llms.txt`](llms.txt)** — curated index of every component (name, category, one-line description, source link).
 - **[`llms-full.txt`](llms-full.txt)** — full dump: parameters, events, slots, enum values and theme tokens.
 - **[`docs/components.json`](docs/components.json)** — the same data, structured (generated by `tools/Omni.Blazor.ManifestGen`).
 - **[`AGENTS.md`](AGENTS.md)** — runbook for using the library and contributing components. Cursor (`.cursor/rules/`) and Copilot (`.github/copilot-instructions.md`) rules point here.
-- **MCP server** — live `list_components` / `get_component` / `search_components` tools over the manifest. Install with `dotnet tool install -g AndersonN.Omni.Blazor.Mcp` (already installed? `dotnet tool update -g` — the manifest is baked in, so an old tool serves an old catalog), then register it with `claude mcp add omni-blazor --scope user -- omni-blazor-mcp` or the equivalent `mcpServers` entry. Setup, scopes and troubleshooting: [AGENTS.md](AGENTS.md#mcp-server-live-tools-for-agents).
+- **MCP server** — live `get_catalog_info`, component discovery, and typed configuration API tools over the manifest. Install with `dotnet tool install -g AndersonN.Omni.Blazor.Mcp` (already installed? `dotnet tool update -g` — the manifest is baked in, so an old tool serves an old catalog), then register it with `claude mcp add omni-blazor --scope user -- omni-blazor-mcp` or the equivalent `mcpServers` entry. Call `get_catalog_info` first and match it to the resolved NuGet package. Setup, scopes and troubleshooting: [AGENTS.md](AGENTS.md#mcp-server-live-tools-for-agents).
+
+The skill follows the open [Agent Skills specification](https://agentskills.io/specification).
+ChatGPT Desktop/Codex and Copilot discover manual installations from `.agents/skills/`;
+Claude Code uses `.claude/skills/`. The [installation guide](docs/agent-skill.md) includes
+copy commands, verification, updates, new-project setup, and the ChatGPT web/mobile
+limitation. MCP is recommended for focused live queries, but the skill also works with
+version-matched generated files.
 
 All three files are also served from the showcase site, if you would rather fetch them
-than install anything — they track `main`:
+than install anything — they track `main`, so do not use them for an older package:
 
 - <https://afernandes.github.io/Omni.Blazor/llms.txt>
 - <https://afernandes.github.io/Omni.Blazor/llms-full.txt>

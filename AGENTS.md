@@ -7,8 +7,8 @@ see [CLAUDE.md](CLAUDE.md) (architecture deep-dive) and
 
 ## What this is
 
-**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. 206 components (authoritative count + full API: [`docs/components.json`](docs/components.json))
-across Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation and
+**Omni.Blazor** — a packable Razor Class Library for **.NET 10**. 210 components (authoritative count + full API: [`docs/components.json`](docs/components.json))
+across AI, Buttons, Data, Display, Forms, Inputs, Layout, Marketing, Navigation and
 Overlay. One SCSS bundle, isolated feature ES modules, all theming via CSS custom properties.
 
 | | |
@@ -38,11 +38,28 @@ dotnet run --project tools/Omni.Blazor.ManifestGen
 pwsh ./tools/generate-localization-resources.ps1  # after changing OmniTexts
 ```
 
+## Agent Skill (building applications)
+
+The portable Agent Skill at
+[`building-omni-blazor-apps`](.agents/skills/building-omni-blazor-apps/SKILL.md)
+teaches compatible agents how to select components, compose common application
+screens, match the catalog to the consumer's installed package, and validate the
+result. The [manual installation guide](docs/agent-skill.md) documents project and
+personal setup for ChatGPT Desktop/Codex, Claude Code, and GitHub Copilot, including
+the exact target directories and verification steps.
+
+Use the skill for **applications consuming** Omni.Blazor. It deliberately routes
+contributors back to this `AGENTS.md` checklist instead of duplicating library-internal
+rules. The skill can use the MCP server below, but also works with version-matched
+generated artifacts when MCP is unavailable.
+
 ## MCP server (live tools for agents)
 
 A stdio **MCP server** (`tools/Omni.Blazor.Mcp`) exposes the catalog as live tools —
-`list_components`, `get_component`, `search_components` — over the embedded manifest
-(self-contained, no library reference).
+`get_catalog_info`, `list_components`, `get_component`, `search_components`, and the
+equivalent list/get/search tools for typed configuration APIs — over the embedded
+manifest (self-contained, no library reference). Call `get_catalog_info` first and
+compare its version with the consuming project's resolved NuGet package.
 
 **Use it (external projects)** — install the .NET tool:
 
