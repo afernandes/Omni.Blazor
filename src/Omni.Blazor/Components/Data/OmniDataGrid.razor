@@ -16,7 +16,7 @@
          id="@Id"
          class="@RootCss"
          style="@RootInlineStyle"
-         aria-busy="@(IsHierarchyMode ? IsHierarchyLoading : _loading)"
+         aria-busy="@((IsDataLoading || (IsHierarchyMode && IsHierarchyLoading)) ? "true" : "false")"
          @attributes="Attributes">
         @if (!Embed && (ToolbarContent is not null || AllowSearch || AllowExport || AllowColumnVisibility))
         {
@@ -137,13 +137,13 @@
         }
 
         <div class="omni-grid-scroller">
-            @if (_loading && LoadingTemplate is null && !LoadingSkeleton)
+            @if (IsDataLoading && LoadingTemplate is null && !LoadingSkeleton)
             {
                 <div class="omni-grid-loading" aria-live="polite" aria-busy="true">
                     <OmniSpinner Size="ComponentSize.Md" />
                 </div>
             }
-            else if (_loading && LoadingTemplate is not null)
+            else if (IsDataLoading && LoadingTemplate is not null)
             {
                 <div class="omni-grid-loading" aria-live="polite" aria-busy="true">
                     @LoadingTemplate
@@ -265,11 +265,11 @@
                         var anchorCol = HierarchyAnchorColumn;
                         var totalRows = IsHierarchyMode ? HierarchyRows.Count : _view.Count;
                     }
-                    @if (_loading && LoadingSkeleton && LoadingTemplate is null)
+                    @if (IsDataLoading && LoadingSkeleton && LoadingTemplate is null)
                     {
                         @RenderLoadingSkeleton
                     }
-                    else if (totalRows == 0 && !_loading)
+                    else if (totalRows == 0 && !IsDataLoading)
                     {
                         <tr><td colspan="@FullColSpan" class="omni-grid-empty">
                             @if (EmptyTemplate is not null) { @EmptyTemplate }
@@ -990,6 +990,14 @@
 
     private async Task ApplyAndRenderAsync()
     {
+        // External loading needs only column registration and a cheap render.
+        // Do not enumerate/filter/group application data until it is ready.
+        if (Loading && DataProvider is null)
+        {
+            _hasShape = false;
+            StateHasChanged();
+            return;
+        }
         SynchronizeKeyboardRowIndex();
         if (_hasShape && CurrentShapeStamp() is { } atual && atual == _lastShape) return;
         ShapeApplyCount++;

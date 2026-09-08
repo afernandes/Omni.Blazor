@@ -14,6 +14,16 @@ namespace Omni.Blazor.Components;
 /// </summary>
 public partial class OmniDataGrid<TItem>
 {
+    /// <summary>
+    /// Application-owned loading state, including in-memory Data populated outside
+    /// the grid. Combined with provider activity; setting false never hides an
+    /// active provider request. Use LoadingSkeleton for placeholders in cells.
+    /// While true with Data and no DataProvider, defers shaping the pending data.
+    /// </summary>
+    [Parameter] public bool Loading { get; set; }
+
+    private bool IsDataLoading => Loading || _loading;
+
     private readonly HierarchyState<TItem> _hierarchy;
     private object? _lastHierarchySource;
     private Func<TItem, object>? _lastKeySelector;
