@@ -8,6 +8,17 @@ The version is derived from the latest `vX.Y.Z` git tag by [MinVer](https://gith
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-08
+
+### Added
+
+- `OmniDataGrid.Loading` lets applications control loading for in-memory `Data`, using the existing cell-level `LoadingSkeleton` or custom `LoadingTemplate` while preserving column headers and accessible busy state.
+
+### Changed
+
+- DataGrid defers shaping application-owned data while `Loading` is true, without hiding an active `DataProvider` request when external loading completes.
+- The DataGrid loading showcase demonstrates external loading directly, with regression tests for pending data, provider activity, custom templates, and disposal.
+
 ## [0.11.3] - 2026-08-28
 
 ### Added
